@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Plus, Trash2, Flame, Loader2, Pencil, Check } from 'lucide-react';
+import PageShell from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
@@ -105,25 +106,20 @@ export default function HabitsPage() {
 
   const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-  return (
-    <div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-12 pb-16">
-      <div className="flex items-end justify-between mb-7 flex-wrap gap-3">
-        <div>
-          <div className="mono text-[11px] tracking-[0.22em] uppercase text-muted-foreground mb-2.5">
-            {habitsList.length} active {habitsList.length === 1 ? 'habit' : 'habits'}
-            {longestStreak > 0 && <> · longest streak {longestStreak} {longestStreak === 1 ? 'day' : 'days'}</>}
-          </div>
-          <h1 className="serif text-4xl md:text-[44px] font-medium tracking-[-0.02em]">Habits</h1>
-        </div>
-        <Button onClick={openCreate}><Plus className="size-3.5" /> New habit</Button>
-      </div>
+  const caption = `${habitsList.length} active ${habitsList.length === 1 ? 'habit' : 'habits'}${longestStreak > 0 ? ` · longest streak ${longestStreak} ${longestStreak === 1 ? 'day' : 'days'}` : ''}`;
 
+  return (
+    <PageShell
+      caption={caption}
+      title="Habits"
+      actions={<Button onClick={openCreate}><Plus className="size-3.5" /> New habit</Button>}
+    >
       {loading ? (
         <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
         </div>
       ) : habitsList.length === 0 ? (
-        <div className="glass rounded-[14px] text-center py-16 text-muted-foreground">
+        <div className="glass rounded-lg text-center py-16 text-muted-foreground">
           <div className="text-4xl mb-3 opacity-30">◉</div>
           <p className="text-sm">No habits yet. Build something small.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={openCreate}>
@@ -131,7 +127,7 @@ export default function HabitsPage() {
           </Button>
         </div>
       ) : (
-        <div className="glass rounded-[14px] overflow-hidden">
+        <div className="glass rounded-lg overflow-hidden">
           {/* Header row */}
           <div
             className="hidden md:grid items-center px-5 md:px-6 py-3 border-b border-border/50"
@@ -230,7 +226,7 @@ export default function HabitsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
 

@@ -7,6 +7,7 @@ import { tags as tagsApi } from '@/api';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight } from 'lucide-react';
+import PageShell from '@/components/PageShell';
 
 interface TagCount { tag: string; count: number; }
 interface TagEntity { type: string; id: number; title: string; subtitle?: string; }
@@ -64,39 +65,30 @@ export default function TagsPage() {
   const entityTypes = entities ? Array.from(new Set(entities.map((e) => e.type))) : [];
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto pl-14 md:pl-8 pr-4 md:pr-8 py-4">
-          <div className="flex items-end justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Tags</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {tagsList.length} {tagsList.length === 1 ? 'tag' : 'tags'} across your second brain.
-              </p>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Filter tags…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-8 h-9"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+    <PageShell
+      caption={`${tagsList.length} ${tagsList.length === 1 ? 'tag' : 'tags'} across your second brain`}
+      title="Tags"
+      actions={
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Filter tags…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-8 h-9"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 flex flex-col gap-8">
+      }
+    >
+      <div className="flex flex-col gap-8">
           {/* Tag cloud */}
           <section>
             {loading ? (
@@ -243,9 +235,8 @@ export default function TagsPage() {
               </motion.section>
             )}
           </AnimatePresence>
-        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
 

@@ -18,7 +18,7 @@ import type { MissedTask } from '@/api';
 import {
   ChevronLeft, ChevronRight, Save, Loader2, Target, CheckSquare,
   Link as LinkIcon, Trash2, AlertCircle, ArrowRight,
-  PanelRightClose, PanelRight, FilePlus, Calendar as CalendarIcon,
+  PanelLeftClose, PanelLeft, FilePlus, Calendar as CalendarIcon,
   ChevronDown,
 } from 'lucide-react';
 
@@ -221,8 +221,8 @@ export default function JournalPage() {
 
   return (
     <div className="flex h-screen overflow-hidden page-fade-in">
-      {/* Editor pane (LEFT — sidebar is now on the right) */}
-      <div className="flex-1 flex flex-col min-w-0 order-1">
+      {/* Editor pane (CENTER — left sidebar carries entries, right margin carries context). */}
+      <div className="flex-1 flex flex-col min-w-0 order-2">
         {/* Top navbar — kept minimal */}
         <header className="flex items-center justify-between gap-2 pl-14 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-10 h-12">
           <div className="flex items-center gap-1 min-w-0 flex-1">
@@ -240,7 +240,7 @@ export default function JournalPage() {
               className="hidden md:flex shrink-0"
               title={sidebarOpen ? 'Hide journal' : 'Show journal'}
             >
-              {sidebarOpen ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
+              {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
             </Button>
           </div>
         </header>
@@ -265,14 +265,19 @@ export default function JournalPage() {
 
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5">
-            {/* Date title */}
+            {/* Date title — Obsidian-style serif hero per the design. */}
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
+              {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
+                <div className="mono text-[10.5px] tracking-[0.22em] uppercase text-primary/80 mb-3">
+                  ── continued from yesterday
+                </div>
+              )}
+              <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
                 {format(dateObj, 'EEEE')}
-              </div>
-              <h1 className="font-serif font-semibold tracking-tight text-4xl md:text-5xl">
-                {format(dateObj, 'MMMM d, yyyy')}
               </h1>
+              <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
+                {format(dateObj, 'MMMM d, yyyy')}
+              </div>
             </div>
 
             {/* Mood pill row */}
@@ -362,17 +367,38 @@ export default function JournalPage() {
         </div>
       </div>
 
-      {/* Sidebar — RIGHT */}
+      {/* Sidebar — LEFT (entries + mini calendar, design-aligned) */}
       <AnimatePresence initial={false} mode="popLayout">
         {sidebarOpen && (
           <motion.aside
             key="sidebar"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
+            animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-            className="hidden md:flex border-l border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden order-2"
+            className="hidden md:flex border-r border-border bg-sidebar/40 flex-col shrink-0 overflow-hidden order-1"
           >
+            {/* Streak header — small but visible cue at the top of the rail. */}
+            <div className="px-4 py-3.5 border-b border-sidebar-border/60">
+              <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground mb-1">journal</div>
+              <div className="flex items-baseline gap-2">
+                <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
+                <span className="text-[11px] text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
+              </div>
+              <div className="flex gap-[3px] mt-2">
+                {Array.from({ length: 14 }).map((_, i) => {
+                  const d = format(subDays(new Date(), 13 - i), 'yyyy-MM-dd');
+                  const has = entryDates.has(d);
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 h-1 rounded-sm"
+                      style={{ background: has ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.18)' }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
             <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
               <div className="flex gap-1">
                 <Button onClick={goToday} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">

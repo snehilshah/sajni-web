@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sun, BookOpen, CheckSquare, Target, Film, FileText, Hash,
@@ -61,24 +60,43 @@ export default function Layout() {
       <div className="sajni-mesh" aria-hidden="true" />
 
       <div className="relative z-10 flex min-h-screen text-foreground">
-        {/* Mobile menu button */}
-        <button
-          className="fixed top-3 left-3 z-50 md:hidden size-9 rounded-lg flex items-center justify-center glass-strong"
-          onClick={() => setMobileOpen((v) => !v)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-        </button>
+        {/* Mobile menu button — sits inside the safe-area inset, with a
+            solid background so it never visually clashes with content
+            behind it. Hidden when the sidebar drawer is open (the
+            sidebar's own X button is what closes it). */}
+        {!mobileOpen && (
+          <button
+            className="md:hidden fixed top-3 left-3 z-50 size-10 rounded-lg flex items-center justify-center bg-card border border-border shadow-sm text-foreground"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu className="size-5" />
+          </button>
+        )}
 
         <aside
           className={`
             ${expanded ? 'w-[216px]' : 'w-16'}
-            h-screen flex flex-col py-4 px-2.5 shrink-0 glass
+            h-screen flex flex-col py-4 px-2.5 shrink-0
             transition-[width] duration-200 ease-out
             fixed md:sticky top-0 z-40
             ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            md:glass
+            bg-sidebar md:bg-transparent
+            border-r border-border md:border-r-0
+            shadow-2xl md:shadow-none
           `}
         >
+          {/* Mobile-only close button (in-rail, near the top) */}
+          {mobileOpen && (
+            <button
+              className="md:hidden absolute top-3 right-3 size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+            >
+              <X className="size-4" />
+            </button>
+          )}
           {/* Brand — orb + name */}
           <div className={`flex items-center gap-2.5 px-1.5 mb-3.5 ${expanded ? '' : 'justify-center'}`}>
             <div className="sajni-orb" />
@@ -95,7 +113,7 @@ export default function Layout() {
             const trigger = (
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('palette:open'))}
-                className={`group flex items-center gap-2.5 mb-3.5 ${expanded ? 'px-2.5' : 'justify-center'} h-9 rounded-[10px] border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/80 transition-colors w-full`}
+                className={`group flex items-center gap-2.5 mb-3.5 ${expanded ? 'px-2.5' : 'justify-center'} h-9 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/80 transition-colors w-full`}
                 title="Search · ⌘K"
                 aria-label="Search"
               >
@@ -124,7 +142,7 @@ export default function Layout() {
             const trigger = (
               <button
                 onClick={() => setAiChatOpen(true)}
-                className={`group flex items-center gap-2.5 mb-3 ${expanded ? 'px-2.5' : 'justify-center'} h-9 rounded-[10px] text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors`}
+                className={`group flex items-center gap-2.5 mb-3 ${expanded ? 'px-2.5' : 'justify-center'} h-9 rounded-lg text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors`}
                 title="Ask Sajni"
                 aria-label="Ask Sajni"
               >
@@ -160,19 +178,13 @@ export default function Layout() {
                 <NavLink
                   to={item.path}
                   end={item.path === '/'}
-                  className={`relative flex items-center gap-3 ${expanded ? 'px-3' : 'justify-center'} h-[38px] rounded-[10px] text-[13px] font-medium transition-colors active:scale-[0.97] tap-highlight-none
-                    ${isActive ? 'text-primary-foreground' : 'text-foreground/80 hover:bg-foreground/5'}`}
+                  className={`flex items-center gap-3 ${expanded ? 'px-3' : 'justify-center'} h-[38px] rounded-md text-[13px] font-medium tap-highlight-none
+                    ${isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground/80 hover:bg-foreground/5'}`}
                 >
-                  {isActive && (
-                    <motion.span
-                      layoutId="sidebar-active-pill"
-                      className="absolute inset-0 rounded-[10px] bg-primary -z-0 shadow-[0_4px_16px_-8px_hsl(var(--primary)/0.6)]"
-                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                    />
-                  )}
-                  <Icon className="size-[15px] shrink-0 relative z-10" />
-                  {expanded && <span className="truncate relative z-10">{item.label}</span>}
-                  {expanded && isActive && <span className="mono text-[9px] opacity-60 tracking-[0.1em] relative z-10">•</span>}
+                  <Icon className="size-[15px] shrink-0" />
+                  {expanded && <span className="truncate">{item.label}</span>}
                 </NavLink>
               );
 
@@ -222,7 +234,7 @@ export default function Layout() {
 
         {/* Mobile overlay */}
         {mobileOpen && (
-          <div className="fixed inset-0 bg-foreground/10 backdrop-blur-sm z-30 md:hidden" onClick={() => setMobileOpen(false)} />
+          <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-30 md:hidden" onClick={() => setMobileOpen(false)} />
         )}
 
         <main className="flex-1 min-w-0 min-h-screen flex flex-col">

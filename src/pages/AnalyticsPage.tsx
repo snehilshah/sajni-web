@@ -6,6 +6,7 @@ import { analytics as analyticsApi } from '@/api';
 import type { Analytics } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, CalendarDays, Sparkles } from 'lucide-react';
+import PageShell from '@/components/PageShell';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
@@ -59,22 +60,14 @@ export default function AnalyticsPage() {
 
   if (!data || !heatmap) {
     return (
-      <div className="flex flex-col h-full page-fade-in">
-        <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
-          <div className="max-w-6xl mx-auto pl-14 md:pl-8 pr-4 md:pr-8 py-4">
-            <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Analytics</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Patterns from your second brain.</p>
-          </div>
-        </header>
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 grid gap-4">
-            <Skeleton className="h-44 w-full rounded-xl" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-44 w-full rounded-xl" />)}
-            </div>
+      <PageShell caption="Patterns from your second brain" title="Insights">
+        <div className="grid gap-4">
+          <Skeleton className="h-44 w-full rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-44 w-full rounded-lg" />)}
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -103,22 +96,17 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto pl-14 md:pl-8 pr-4 md:pr-8 py-4 flex items-end justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Analytics</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Patterns from your second brain.</p>
-          </div>
-          <div className="flex gap-4 font-mono text-[11px] text-muted-foreground">
-            <Stat icon={Sparkles} label="Total entries" value={heatmap.total} />
-            <Stat icon={CalendarDays} label="Active days" value={heatmap.activeDays} />
-          </div>
+    <PageShell
+      caption="Patterns from your second brain"
+      title="Insights"
+      actions={
+        <div className="flex gap-4 font-mono text-[11px] text-muted-foreground">
+          <Stat icon={Sparkles} label="Total entries" value={heatmap.total} />
+          <Stat icon={CalendarDays} label="Active days" value={heatmap.activeDays} />
         </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 flex flex-col gap-5">
+      }
+    >
+      <div className="flex flex-col gap-5">
           {/* Heatmap */}
           <Panel title="Activity (last 365 days)" subtitle={`${heatmap.total} contributions`}>
             <div className="overflow-x-auto -mx-1 px-1">
@@ -356,9 +344,8 @@ export default function AnalyticsPage() {
               </Link>
             </Panel>
           </div>
-        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
 

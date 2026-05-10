@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Sun, Star, Calendar, Inbox, ListTodo, Plus, MoreVertical, Trash2, Pencil,
 } from 'lucide-react';
@@ -54,8 +53,9 @@ export default function ListsRail({
   };
 
   return (
-    <aside className="w-56 shrink-0 border-r border-border/60 bg-card/30 flex flex-col">
-      <nav className="flex-1 overflow-y-auto py-2 flex flex-col gap-0.5">
+    <aside className="w-52 shrink-0 hidden md:block">
+      <nav className="rounded-lg border border-border bg-card/40 p-2 flex flex-col gap-0.5 sticky top-6">
+        <div className="px-2.5 pb-1.5 mono text-[9px] uppercase tracking-widest text-muted-foreground">Smart</div>
         {SMART_LISTS.map((s) => {
           const Icon = SMART_ICON[s.smart];
           const active = selection.kind === 'smart' && selection.smart === s.smart;
@@ -64,21 +64,16 @@ export default function ListsRail({
             <button
               key={s.smart}
               onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
-              className={`relative mx-2 flex items-center gap-2.5 h-8 px-2.5 rounded-md text-sm transition-colors text-left
-                ${active ? 'text-primary-foreground' : 'text-foreground/80 hover:bg-accent'}`}
+              className={`flex items-center gap-2.5 h-8 px-2.5 rounded-md text-sm text-left
+                ${active
+                  ? 'bg-primary/12 text-primary font-semibold'
+                  : 'text-foreground/80 hover:bg-foreground/5'}`}
               title={s.description}
             >
-              {active && (
-                <motion.span
-                  layoutId="lists-active"
-                  className="absolute inset-0 rounded-md bg-primary -z-0"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              )}
-              <Icon className="size-4 shrink-0 relative z-10" />
-              <span className="flex-1 truncate relative z-10">{s.label}</span>
+              <Icon className="size-4 shrink-0" />
+              <span className="flex-1 truncate">{s.label}</span>
               {typeof count === 'number' && count > 0 && (
-                <span className="font-mono text-[10px] px-1 rounded bg-muted text-muted-foreground relative z-10">
+                <span className="mono text-[10px] px-1 rounded bg-muted text-muted-foreground">
                   {count}
                 </span>
               )}
@@ -86,11 +81,9 @@ export default function ListsRail({
           );
         })}
 
-        <div className="mx-3 my-2 border-t border-border/60" />
+        <div className="my-2 border-t border-border/60" />
 
-        <div className="mx-3 mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-          Lists
-        </div>
+        <div className="px-2.5 pb-1.5 mono text-[9px] uppercase tracking-widest text-muted-foreground">Lists</div>
 
         {lists.map((l) => {
           const active = selection.kind === 'list' && selection.id === l.id;
@@ -98,18 +91,13 @@ export default function ListsRail({
           return (
             <div
               key={l.id}
-              className={`group relative mx-2 flex items-center gap-2 h-8 px-2.5 rounded-md text-sm
-                ${active ? 'text-primary-foreground' : 'text-foreground/80 hover:bg-accent'}`}
+              className={`group flex items-center gap-2 h-8 px-2.5 rounded-md text-sm
+                ${active
+                  ? 'bg-primary/12 text-primary font-semibold'
+                  : 'text-foreground/80 hover:bg-foreground/5'}`}
             >
-              {active && (
-                <motion.span
-                  layoutId="lists-active"
-                  className="absolute inset-0 rounded-md bg-primary -z-0"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              )}
               <span
-                className="size-2 rounded-full shrink-0 relative z-10"
+                className="size-2 rounded-full shrink-0"
                 style={{ backgroundColor: l.color }}
               />
               {isEditing ? (

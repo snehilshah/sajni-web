@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
 import type { MediaEntry, MediaStatus, MediaSearchResult } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import PageShell from '@/components/PageShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -96,7 +97,6 @@ const TYPE_META: Record<string, { label: string; plural: string; icon: typeof Fi
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
 
-const SPRING = { type: 'spring' as const, stiffness: 320, damping: 32, mass: 0.6 };
 
 function ProgressBar({ watched, total, label, color = 'bg-primary' }: { watched: number; total: number; label: string; color?: string }) {
   if (total <= 0) return null;
@@ -266,6 +266,10 @@ export default function MediaPage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  // Grid-view series open in a centered dialog rather than expanding
+  // the card inline — that used to push the rest of the grid down and
+  // looked jumpy. Same data, no layout shift.
+  const [seriesDialog, setSeriesDialog] = useState<Extract<SeriesRow, { kind: 'series' }> | null>(null);
   useEffect(() => {
     try { localStorage.setItem(MEDIA_VIEW_KEY, viewMode); } catch {}
   }, [viewMode]);
@@ -445,50 +449,42 @@ export default function MediaPage() {
   const TypeIcon = TYPE_META[activeType]?.icon || Film;
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto pl-14 md:pl-8 pr-4 md:pr-8 py-4 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Library</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Movies, shows, books — one shelf.</p>
-          </div>
-          <Button onClick={() => openForm()} className="gap-1.5">
-            <Plus className="size-4" /> Add
-          </Button>
+    <PageShell
+      caption={`${items.length} ${items.length === 1 ? 'entry' : 'entries'} · ${counts['in_progress'] || 0} in progress`}
+      title="Library"
+      subtitle="Movies, shows, books — one shelf."
+      actions={
+        <Button onClick={() => openForm()} className="gap-1.5">
+          <Plus className="size-4" /> Add
+        </Button>
+      }
+    >
+      {/* Type tabs */}
+      <div className="border-b border-border -mt-3">
+        <div className="flex gap-1 -mb-px">
+          {Object.entries(TYPE_META).map(([key, meta]) => {
+            const Icon = meta.icon;
+            const active = activeType === key;
+            return (
+              <button
+                key={key}
+                onClick={() => { setActiveType(key); setStatusFilter(''); setSearchQuery(''); }}
+                className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                  active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {meta.plural}
+                {active && (
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 bg-primary rounded-full" />
+                )}
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Type tabs */}
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <div className="flex gap-1 -mb-px">
-            {Object.entries(TYPE_META).map(([key, meta]) => {
-              const Icon = meta.icon;
-              const active = activeType === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => { setActiveType(key); setStatusFilter(''); setSearchQuery(''); }}
-                  className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                    active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="size-3.5" />
-                  {meta.plural}
-                  {active && (
-                    <motion.div
-                      layoutId="media-tab-underline"
-                      className="absolute inset-x-0 -bottom-px h-0.5 bg-primary rounded-full"
-                      transition={SPRING}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-5 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
           {/* Toolbar: status chips + search */}
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex flex-wrap gap-1">
@@ -516,19 +512,17 @@ export default function MediaPage() {
               })}
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 h-9 px-2 rounded-md border border-border text-xs">
-                <ArrowUpDown className="size-3.5 text-muted-foreground shrink-0" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="bg-transparent outline-none cursor-pointer text-foreground"
-                  title="Sort"
-                >
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                <SelectTrigger size="sm" className="h-9 min-w-[180px] gap-2 text-xs">
+                  <ArrowUpDown className="size-3.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                   {SORT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
                   ))}
-                </select>
-              </div>
+                </SelectContent>
+              </Select>
               {activeType === 'movie' && (
                 <button
                   onClick={() => setGroupSeries((v) => !v)}
@@ -622,9 +616,7 @@ export default function MediaPage() {
                     >
                       <SeriesPosterCard
                         row={row}
-                        expanded={expandedSeries.has(row.collectionId)}
-                        onToggle={() => toggleSeries(row.collectionId)}
-                        onPickItem={openForm}
+                        onOpen={() => setSeriesDialog(row)}
                       />
                     </motion.div>
                   )
@@ -632,43 +624,17 @@ export default function MediaPage() {
               </AnimatePresence>
             </motion.div>
           ) : (
-            <div className="glass rounded-[14px] overflow-hidden">
+            <div className="glass rounded-xl overflow-hidden">
               <AnimatePresence initial={false}>
                 {seriesRows.map((row, idx) => (
                   row.kind === 'single' ? (
-                    <motion.button
+                    <MediaListRow
                       key={'item-' + row.item.id}
-                      layout="position"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+                      item={row.item}
+                      index={idx}
+                      first={idx === 0}
                       onClick={() => openForm(row.item)}
-                      className={`w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left hover:bg-foreground/[.03] transition-colors
-                        ${idx === 0 ? '' : 'border-t border-border/40'}`}
-                    >
-                      <MediaThumb item={row.item} index={idx} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <div className="serif text-[16px] font-medium truncate">{row.item.title || 'Untitled'}</div>
-                          {row.item.year ? <span className="mono text-[11px] text-muted-foreground">{row.item.year}</span> : null}
-                          {row.item.rating ? (
-                            <span className="inline-flex items-center gap-0.5 text-amber-500">
-                              <Star className="size-3 fill-current" />
-                              <span className="mono text-[10px]">{row.item.rating}</span>
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
-                          {row.item.type}{progressLabel(row.item) ? ' · ' + progressLabel(row.item) : ''}
-                          {row.item.platform ? ' · ' + platformLabel(row.item.platform) : ''}
-                          {' · '}{watchAgeLabel(row.item)}
-                        </div>
-                      </div>
-                      <span className={`chip ${chipClassFor(row.item.status)}`}>
-                        {(statusMeta(row.item.status)?.label || row.item.status).toLowerCase()}
-                      </span>
-                    </motion.button>
+                    />
                   ) : (
                     <SeriesListRow
                       key={'series-' + row.collectionId}
@@ -683,7 +649,6 @@ export default function MediaPage() {
               </AnimatePresence>
             </div>
           )}
-        </div>
       </div>
 
       <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditItem(null); }}>
@@ -829,7 +794,13 @@ export default function MediaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+
+      <SeriesDialog
+        row={seriesDialog}
+        onClose={() => setSeriesDialog(null)}
+        onPickItem={openForm}
+      />
+    </PageShell>
   );
 }
 
@@ -1125,65 +1096,182 @@ function chipClassFor(status: MediaStatus): string {
 }
 
 // SeriesPosterCard — grid-view representation of a movie series.
-// Shows a stacked-poster effect using the first member's poster as
-// the cover (chronologically earliest, per user request) plus a
-// "+N" pill. Clicking expands inline to reveal the parts.
+// Static button: click opens a centered dialog with the parts.
+// (The previous inline expansion shifted the surrounding grid.)
 function SeriesPosterCard({
-  row, expanded, onToggle, onPickItem,
+  row, onOpen,
 }: {
   row: Extract<SeriesRow, { kind: 'series' }>;
-  expanded: boolean;
-  onToggle: () => void;
-  onPickItem: (m: MediaEntry) => void;
+  onOpen: () => void;
 }) {
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={onToggle}
-        className="group relative text-left"
-        title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
-      >
-        <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-border/60 bg-muted transition-shadow group-hover:shadow-lg">
-          {/* Stack effect: two faint posters peeking behind the cover. */}
-          <div
-            className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted opacity-40"
-            style={cover.poster_url ? { backgroundImage: `url(${cover.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-          />
-          <div
-            className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-lg bg-muted opacity-70"
-            style={cover.poster_url ? { backgroundImage: `url(${cover.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-          />
+    <button
+      onClick={onOpen}
+      className="group relative text-left flex flex-col gap-2"
+      title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
+    >
+      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-border/60 bg-muted transition-shadow group-hover:shadow-lg">
+        {/* Stack effect: two faint posters peeking behind the cover. */}
+        <div
+          className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted opacity-40"
+          style={cover.poster_url ? { backgroundImage: `url(${cover.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        />
+        <div
+          className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-lg bg-muted opacity-70"
+          style={cover.poster_url ? { backgroundImage: `url(${cover.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        />
+        {cover.poster_url ? (
+          <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-muted-foreground">
+            <Film className="size-7 opacity-40" />
+            <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
+          </div>
+        )}
+        <span className="absolute top-2 left-2 chip chip-sage">
+          <Film className="size-3" /> Series
+        </span>
+        <span className="absolute bottom-2 right-2 mono text-[10px] px-1.5 py-0.5 rounded bg-background/85 backdrop-blur border border-border/60">
+          {watched}/{row.members.length}
+        </span>
+      </div>
+      <div className="mt-2 px-0.5">
+        <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
+        <div className="mono text-[10px] text-muted-foreground mt-0.5">{row.members.length} movies</div>
+      </div>
+    </button>
+  );
+}
+
+// SeriesDialog — centered dialog listing every part of a series in
+// release order. Click any row to jump into the edit form for that
+// movie. Replaces the inline grid expansion.
+function SeriesDialog({
+  row, onClose, onPickItem,
+}: {
+  row: Extract<SeriesRow, { kind: 'series' }> | null;
+  onClose: () => void;
+  onPickItem: (m: MediaEntry) => void;
+}) {
+  if (!row) return null;
+  const cover = row.members[0];
+  const watched = row.members.filter((m) => m.status === 'complete').length;
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogHeader className="shrink-0 p-5 border-b border-border flex flex-row items-center gap-4">
           {cover.poster_url ? (
-            <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <img src={cover.poster_url} alt="" className="w-12 h-[68px] rounded object-cover ring-1 ring-border/60 shrink-0" />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-muted-foreground">
-              <Film className="size-7 opacity-40" />
-              <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
-            </div>
+            <div className="w-12 h-[68px] rounded bg-muted shrink-0" />
           )}
-          <span className="absolute top-2 left-2 chip chip-sage">
-            <Film className="size-3" /> Series
-          </span>
-          <span className="absolute bottom-2 right-2 mono text-[10px] px-1.5 py-0.5 rounded bg-background/85 backdrop-blur border border-border/60">
-            {watched}/{row.members.length}
-          </span>
-        </div>
-        <div className="mt-2 px-0.5">
-          <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
-          <div className="mono text-[10px] text-muted-foreground mt-0.5">{row.members.length} movies</div>
-        </div>
-      </button>
-      {expanded && (
-        <div className="grid grid-cols-2 gap-2">
-          {row.members.map((m) => (
-            <PosterCard key={m.id} item={m} onClick={() => onPickItem(m)} />
+          <div className="flex-1 min-w-0 text-left">
+            <DialogTitle className="serif text-lg font-medium truncate">{row.collectionName}</DialogTitle>
+            <div className="mono text-[11px] text-muted-foreground mt-0.5">
+              {row.members.length} movies · {watched}/{row.members.length} watched
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto">
+          {row.members.map((m, mi) => (
+            <button
+              key={m.id}
+              onClick={() => { onPickItem(m); onClose(); }}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-foreground/[.04] transition-colors
+                ${mi === 0 ? '' : 'border-t border-border/40'}`}
+            >
+              <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right shrink-0">
+                {mi + 1}
+              </span>
+              <MediaThumb item={m} index={mi} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <div className="text-[14px] font-medium truncate">{m.title}</div>
+                  {m.year ? <span className="mono text-[11px] text-muted-foreground">{m.year}</span> : null}
+                </div>
+                <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {watchAgeLabel(m)}
+                </div>
+              </div>
+              <span className={`chip ${chipClassFor(m.status)}`}>
+                {(statusMeta(m.status)?.label || m.status).toLowerCase()}
+              </span>
+            </button>
           ))}
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
+}
+
+// MediaListRow — single-entry list row (split out so we can render a
+// thin progress bar at the bottom for in-progress shows/books without
+// duplicating the row markup inline).
+function MediaListRow({
+  item, index, first, onClick,
+}: {
+  item: MediaEntry;
+  index: number;
+  first: boolean;
+  onClick: () => void;
+}) {
+  const pct = listProgressPct(item);
+  return (
+    <motion.button
+      layout="position"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+      onClick={onClick}
+      className={`relative w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left hover:bg-foreground/[.03] transition-colors
+        ${first ? '' : 'border-t border-border/40'}`}
+    >
+      <MediaThumb item={item} index={index} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <div className="serif text-[16px] font-medium truncate">{item.title || 'Untitled'}</div>
+          {item.year ? <span className="mono text-[11px] text-muted-foreground">{item.year}</span> : null}
+          {item.rating ? (
+            <span className="inline-flex items-center gap-0.5 text-amber-500">
+              <Star className="size-3 fill-current" />
+              <span className="mono text-[10px]">{item.rating}</span>
+            </span>
+          ) : null}
+        </div>
+        <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
+          {item.type}{progressLabel(item) ? ' · ' + progressLabel(item) : ''}
+          {item.platform ? ' · ' + platformLabel(item.platform) : ''}
+          {' · '}{watchAgeLabel(item)}
+        </div>
+      </div>
+      <span className={`chip ${chipClassFor(item.status)}`}>
+        {(statusMeta(item.status)?.label || item.status).toLowerCase()}
+      </span>
+      {/* Progress bar — only when there's something to show.
+          Sits flush along the bottom edge of the row. */}
+      {pct !== null && (
+        <span className="absolute left-0 right-0 bottom-0 h-[3px] bg-muted/50">
+          <span
+            className={`block h-full ${item.status === 'complete' ? 'bg-primary/80' : 'bg-secondary'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </span>
+      )}
+    </motion.button>
+  );
+}
+
+// listProgressPct — fraction watched in [0..100] for shows/books.
+// Returns null when there's nothing to render (movies, no totals
+// known, etc.) so the row can skip the bar entirely.
+function listProgressPct(item: MediaEntry): number | null {
+  if (item.type === 'movie') return null;
+  if (!item.episodes_total || item.episodes_total <= 0) return null;
+  const pct = Math.min(100, Math.max(0, Math.round((item.episodes_watched / item.episodes_total) * 100)));
+  return pct;
 }
 
 // SeriesListRow — list-view representation. Expandable: shows a single

@@ -17,6 +17,7 @@ import TaskFormDialog from '@/components/tasks/TaskFormDialog';
 import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel,
 } from '@/components/tasks/helpers';
+import PageShell from '@/components/PageShell';
 
 type ViewMode = 'list' | 'board';
 
@@ -135,20 +136,13 @@ export default function TasksPage() {
   const headerLabel = selectionLabel(selection, lists);
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto pl-14 md:pl-8 pr-4 md:pr-8 py-4 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Tasks</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Lists, nesting, steps. Click any task to edit.</p>
-          </div>
-          <Button onClick={() => openCreate()}>
-            <Plus className="size-4" /> Add task
-          </Button>
-        </div>
-      </header>
-
-      <div className="flex-1 min-h-0 w-full flex">
+    <PageShell
+      caption={`${open.length} open · ${grouped.in_progress.length} in flight · ${tasksList.filter((t) => t.status === 'done').length} done`}
+      title="Tasks"
+      subtitle="Lists, nesting, steps. Click any task to edit."
+      actions={<Button onClick={() => openCreate()}><Plus className="size-4" /> Add task</Button>}
+    >
+      <div className="flex w-full gap-4 -mx-4 md:-mx-12 px-4 md:px-12">
         <ListsRail
           lists={lists}
           selection={selection}
@@ -171,52 +165,51 @@ export default function TasksPage() {
           }}
         />
 
-        <main className="flex-1 min-w-0 flex flex-col">
-          {/* Toolbar */}
-          <div className="border-b border-border/60 px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <main className="flex-1 min-w-0 flex flex-col gap-4">
+          {/* Sub-heading: list name + view toggle */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="font-serif text-xl font-semibold truncate">{headerLabel}</h2>
+              <h2 className="serif text-xl font-semibold truncate">{headerLabel}</h2>
               {!loading && (
-                <Badge variant="secondary" className="font-mono text-[10px]">
+                <Badge variant="secondary" className="mono text-[10px]">
                   {open.length}
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-md border border-border overflow-hidden">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-2.5 h-7 inline-flex items-center gap-1 text-xs ${viewMode === 'list' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  title="List view"
-                >
-                  <ListChecks className="size-3.5" /> List
-                </button>
-                <button
-                  onClick={() => setViewMode('board')}
-                  className={`px-2.5 h-7 inline-flex items-center gap-1 text-xs border-l border-border ${viewMode === 'board' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  title="Board view"
-                >
-                  <LayoutGrid className="size-3.5" /> Board
-                </button>
-              </div>
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 h-8 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                title="List view"
+              >
+                <ListChecks className="size-3.5" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('board')}
+                className={`px-3 h-8 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Board view"
+              >
+                <LayoutGrid className="size-3.5" /> Board
+              </button>
             </div>
           </div>
 
-          {/* Quick add bar */}
-          <div className="px-4 md:px-6 py-2 border-b border-border/40">
+          {/* Quick add — card-styled to match the design's input row */}
+          <div className="rounded-lg border border-border bg-card/60 px-3 flex items-center gap-2 h-11">
+            <Plus className="size-4 text-muted-foreground shrink-0" />
             <Input
               value={quickTitle}
               onChange={(e) => setQuickTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleQuickAdd();
               }}
-              placeholder="+ Add a task. Press Enter."
-              className="h-9"
+              placeholder="Add a task. Press ↵."
+              className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-0 text-sm"
             />
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
+          <div className="flex-1 min-h-0">
             {loading ? (
               <div className="flex flex-col gap-2">
                 {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
@@ -263,7 +256,7 @@ export default function TasksPage() {
         lists={lists}
         onSaved={() => { reloadTasks(); reloadLists(); }}
       />
-    </div>
+    </PageShell>
   );
 }
 

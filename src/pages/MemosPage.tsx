@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import PageShell from '@/components/PageShell';
 
 export default function MemosPage() {
   const [memosList, setMemosList] = useState<Memo[]>([]);
@@ -79,32 +80,28 @@ export default function MemosPage() {
   const grouped = useMemo(() => groupByDay(memosList), [memosList]);
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <div className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto w-full pl-14 md:pl-6 pr-4 md:pr-6 py-4 flex items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Memos</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Quick thoughts. Use #tags and [[backlinks]].</p>
-          </div>
-          <div className="relative w-full max-w-[280px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-8 h-9"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
+    <PageShell
+      caption={`${memosList.length} ${memosList.length === 1 ? 'memo' : 'memos'}`}
+      title="Memos"
+      subtitle="Quick thoughts. Use #tags and [[backlinks]]."
+      actions={
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-8 h-9"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-6 flex flex-col gap-6">
+      }
+    >
+      <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
           {/* Composer */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <Textarea
@@ -155,7 +152,6 @@ export default function MemosPage() {
               ))}
             </div>
           )}
-        </div>
       </div>
 
       <MemoDetailDialog
@@ -165,7 +161,7 @@ export default function MemosPage() {
         onDelete={handleDelete}
         onSave={handleSaveEdit}
       />
-    </div>
+    </PageShell>
   );
 }
 

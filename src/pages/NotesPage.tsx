@@ -776,11 +776,11 @@ function NotesAtlas({
       {loading ? (
         <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-[14px]" />
+            <Skeleton key={i} className="h-40 w-full rounded-xl" />
           ))}
         </div>
       ) : notes.length === 0 ? (
-        <div className="glass rounded-[14px] text-center py-20 text-muted-foreground">
+        <div className="glass rounded-xl text-center py-20 text-muted-foreground">
           <FileText className="size-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">No notes yet. Start one to fill your atlas.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={onNew}>
@@ -798,10 +798,10 @@ function NotesAtlas({
               <button
                 key={n.id}
                 onClick={() => onPick(n.id)}
-                className="glass rounded-[14px] p-5 text-left relative min-h-[160px] transition-shadow hover:shadow-[0_6px_30px_-12px_hsl(var(--foreground)/0.15)]"
+                className="glass rounded-xl p-5 text-left relative min-h-[160px] transition-shadow hover:shadow-[0_6px_30px_-12px_hsl(var(--foreground)/0.15)]"
               >
                 <div
-                  className="absolute top-0 right-0 w-[80px] h-[80px] pointer-events-none rounded-[14px] opacity-50"
+                  className="absolute top-0 right-0 w-[80px] h-[80px] pointer-events-none rounded-xl opacity-50"
                   style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--m${meshIdx})), transparent 70%)` }}
                 />
                 <div className="relative">

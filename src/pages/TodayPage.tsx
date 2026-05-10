@@ -200,7 +200,7 @@ export default function TodayPage() {
 			</div>
 
 			{/* Capture bar */}
-			<div className="glass sajni-spot rounded-[14px] p-5 mt-9 fade-in">
+			<div className="glass sajni-spot rounded-xl p-5 mt-9 fade-in">
 				<div className="flex items-center gap-2.5 mb-2.5">
 					<div className="sajni-orb" style={{ width: 22, height: 22, borderRadius: 6 }} />
 					<span className="mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">Capture</span>
@@ -242,7 +242,7 @@ export default function TodayPage() {
 					<button
 						onClick={handleCapture}
 						disabled={!capture.trim() || saving}
-						className="inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
+						className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
 					>
 						{saving ? <Loader2 className="size-3.5 animate-spin" /> : null}
 						Save
@@ -269,7 +269,7 @@ export default function TodayPage() {
 							</Link>
 						}
 					>
-						<div className="glass rounded-[14px] overflow-hidden">
+						<div className="glass rounded-xl overflow-hidden">
 							{dueOpen.length === 0 ? (
 								<div className="px-5 py-8 text-center text-sm text-muted-foreground">Nothing scheduled for today.</div>
 							) : (
@@ -325,12 +325,12 @@ export default function TodayPage() {
 					>
 						<div className="flex flex-col gap-2.5">
 							{recentMemos.length === 0 ? (
-								<div className="glass rounded-[14px] px-5 py-6 text-center text-sm text-muted-foreground">
+								<div className="glass rounded-xl px-5 py-6 text-center text-sm text-muted-foreground">
 									Nothing captured yet — try the bar above.
 								</div>
 							) : (
 								recentMemos.map((m) => (
-									<div key={m.id} className="glass rounded-[14px] p-4 hover:border-border transition-colors">
+									<div key={m.id} className="glass rounded-xl p-4 hover:border-border transition-colors">
 										<div className="prose-sajni text-[14.5px] leading-[1.55] line-clamp-3">
 											<ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
 										</div>
@@ -353,7 +353,7 @@ export default function TodayPage() {
 					{/* Echo from earlier */}
 					{echo && (
 						<Section title="Echo from earlier" hint="surfaced from a few days ago">
-							<div className="glass sajni-spot rounded-[14px] p-5">
+							<div className="glass sajni-spot rounded-xl p-5">
 								<Quote className="size-4 text-secondary mb-2.5" />
 								<p className="serif italic text-[17px] leading-[1.55] text-foreground/85 mb-3">
 									{echo.content
@@ -372,7 +372,7 @@ export default function TodayPage() {
 				<div className="sajni-stagger flex flex-col gap-6">
 					{/* Today's habits */}
 					<Section title="Today's habits" hint={totalHabitsToday > 0 ? `${habitsDone}/${totalHabitsToday} done` : undefined}>
-						<div className="glass rounded-[14px] p-4">
+						<div className="glass rounded-xl p-4">
 							{habitStatus.length === 0 ? (
 								<div className="text-sm text-muted-foreground text-center py-2">No habits yet.</div>
 							) : (
@@ -443,7 +443,7 @@ export default function TodayPage() {
 					{/* Journal prompt */}
 					<Section title="Today's prompt">
 						<div
-							className="glass rounded-[14px] p-5"
+							className="glass rounded-xl p-5"
 							style={{ background: 'color-mix(in oklch, hsl(var(--m1)) 22%, hsl(var(--card) / 0.78))' }}
 						>
 							<div className="mono text-[9.5px] tracking-[0.18em] uppercase text-primary mb-2.5">
@@ -452,7 +452,7 @@ export default function TodayPage() {
 							<p className="serif italic text-[18px] leading-[1.45] text-foreground mb-3.5">{journalPrompt}</p>
 							<button
 								onClick={() => navigate('/journal')}
-								className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-[10px] border border-border bg-background/50 hover:bg-background text-[13px] text-foreground/85 transition-colors"
+								className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-lg border border-border bg-background/50 hover:bg-background text-[13px] text-foreground/85 transition-colors"
 							>
 								Write today's entry
 								<ArrowRight className="size-3" />
@@ -462,7 +462,7 @@ export default function TodayPage() {
 
 					{/* At a glance */}
 					<Section title="At a glance">
-						<div className="glass rounded-[14px] p-5 grid grid-cols-2 gap-5">
+						<div className="glass rounded-xl p-5 grid grid-cols-2 gap-5">
 							<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
 							<Stat label="Tasks closed" value={String(dueToday.filter((t) => t.status === 'done').length)} />
 							<Stat label="Journal streak" value={`${recentJournal.length}d`} />
