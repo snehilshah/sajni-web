@@ -1,0 +1,63 @@
+name: Deploy (Vercel production)
+
+# Tag-triggered explicit production promotion. Use:
+#   git tag srf/release/v0.1.0
+#   git push origin srf/release/v0.1.0
+# 'srf' = sajni-react-frontend.
+#
+# Branch pushes (main, feature branches) become Vercel previews via
+# the Vercel git integration — no workflow needed. This workflow is
+# only for promoting a specific commit to the production URL.
+on:
+  push:
+    tags:
+      - 'srf/release/v*'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Re-run the same gates CI runs so a tag can never ship a build
+      # that wouldn't pass CI on the same commit.
+      - run: npx eslint .
+      - run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # `vercel pull` writes .vercel/project.json + downloads env vars
+      # for the prod environment. Needs VERCEL_ORG_ID / PROJECT_ID set
+      # as repo Variables and VERCEL_TOKEN as a repo Secret.
+      - name: Pull Vercel environment
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build for production
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt artifact to production
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Deployed: $URL"

@@ -1,0 +1,583 @@
+import { authFetch, requestJSON, API_BASE } from './auth/client';
+
+const request = requestJSON;
+
+// --- Memos ---
+export const memos = {
+  list: (params?: { search?: string; pinned?: boolean; tag?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
+    if (params?.pinned) q.set('pinned', 'true');
+    if (params?.tag) q.set('tag', params.tag);
+    const qs = q.toString();
+    return request<any[]>(`/memos${qs ? '?' + qs : ''}`);
+  },
+  create: (content: string, pinned = false) =>
+    request<{ id: number }>('/memos', { method: 'POST', body: JSON.stringify({ content, pinned }) }),
+  update: (id: number, data: { content?: string; pinned?: boolean }) =>
+    request('/memos/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/memos/' + id, { method: 'DELETE' }),
+};
+
+// --- Tasks ---
+import type { Task, TaskList, TaskStep, SmartList } from './types';
+
+export const tasks = {
+  list: (params?: {
+    status?: string;
+    due_date?: string;
+    completed_date?: string;
+    list?: number | 'none';
+    parent?: number | 'null';
+    smart?: SmartList;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.due_date) q.set('due_date', params.due_date);
+    if (params?.completed_date) q.set('completed_date', params.completed_date);
+    if (params?.list !== undefined) q.set('list', String(params.list));
+    if (params?.parent !== undefined) q.set('parent', String(params.parent));
+    if (params?.smart) q.set('smart', params.smart);
+    const qs = q.toString();
+    return request<Task[]>('/tasks' + (qs ? '?' + qs : ''));
+  },
+  create: (data: {
+    title: string;
+    description?: string;
+    priority?: string;
+    status?: string;
+    due_date?: string;
+    list_id?: number | null;
+    parent_task_id?: number | null;
+    important?: boolean;
+    steps?: TaskStep[];
+  }) => request<{ id: number }>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: Record<string, any>) =>
+    request('/tasks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/tasks/' + id, { method: 'DELETE' }),
+  reorder: (ids: number[]) =>
+    request('/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  subtasks: (id: number) =>
+    request<Task[]>('/tasks/' + id + '/subtasks'),
+  missed: (date: string) =>
+    request<MissedTask[]>('/tasks/missed?date=' + encodeURIComponent(date)),
+  history: (id: number) =>
+    request<TaskHistoryEntry[]>('/tasks/' + id + '/history'),
+};
+
+// --- Task lists (groups) ---
+export const taskLists = {
+  list: () => request<TaskList[]>('/task-lists'),
+  create: (data: { name: string; color?: string; icon?: string }) =>
+    request<{ id: number }>('/task-lists', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: { name?: string; color?: string; icon?: string }) =>
+    request('/task-lists/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/task-lists/' + id, { method: 'DELETE' }),
+  reorder: (ids: number[]) =>
+    request('/task-lists/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
+};
+
+export interface MissedTask {
+  id: number;
+  title: string;
+  status: string;
+  priority: string;
+  missed_date: string;
+  current_due_date: string | null;
+  source: 'rescheduled' | 'overdue';
+}
+
+export interface TaskHistoryEntry {
+  due_date: string;
+  outcome: string;
+  recorded_at: string;
+}
+
+// --- Habits ---
+export const habits = {
+  list: () => request<any[]>('/habits'),
+  create: (data: { name: string; frequency?: string; color?: string }) =>
+    request<{ id: number }>('/habits', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: Record<string, any>) =>
+    request('/habits/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/habits/' + id, { method: 'DELETE' }),
+  toggleLog: (id: number) => request<{ logged: boolean }>('/habits/' + id + '/log', { method: 'POST' }),
+  toggleLogForDate: (id: number, date: string) => request<{ logged: boolean }>('/habits/' + id + '/log/' + date, { method: 'POST' }),
+  statusForDate: (date: string) => request<any[]>('/habits/status?date=' + date),
+  getLogs: (id: number, days = 30) => request<string[]>('/habits/' + id + '/logs?days=' + days),
+};
+
+// --- Media ---
+export interface MediaDetails {
+  external_id: string;
+  type: 'show' | 'movie';
+  title: string;
+  year: string;
+  poster_url: string;
+  genre: string;
+  overview: string;
+  seasons_total: number;
+  episodes_total: number;
+  season_episodes: number[];
+  collection_id: string;
+  collection_name: string;
+}
+
+export interface CollectionPart {
+  external_id: string;
+  title: string;
+  year: string;
+  poster_url: string;
+  overview: string;
+}
+
+export interface CollectionPayload {
+  id: string;
+  name: string;
+  parts: CollectionPart[];
+}
+
+export const media = {
+  list: (params?: { type?: string; status?: string; collection_id?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.type) q.set('type', params.type);
+    if (params?.status) q.set('status', params.status);
+    if (params?.collection_id) q.set('collection_id', params.collection_id);
+    const qs = q.toString();
+    return request<any[]>('/media' + (qs ? '?' + qs : ''));
+  },
+  create: (data: Record<string, any>) =>
+    request<{ id: number }>('/media', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: Record<string, any>) =>
+    request('/media/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/media/' + id, { method: 'DELETE' }),
+  search: (query: string, type: string) => {
+    const q = new URLSearchParams({ q: query, type });
+    return request<any[]>('/media/search?' + q.toString());
+  },
+  details: (externalId: string) =>
+    request<MediaDetails>('/media/details?external_id=' + encodeURIComponent(externalId)),
+  collection: (id: string) =>
+    request<CollectionPayload>('/media/collection?id=' + encodeURIComponent(id)),
+  events: (id: number) =>
+    request<MediaEventRow[]>('/media/' + id + '/events'),
+};
+
+export type MediaEventKind =
+  | 'added'
+  | 'started'
+  | 'progress'
+  | 'completed'
+  | 'dropped'
+  | 'rating';
+
+export interface MediaEventMeta {
+  title?: string;
+  type?: string;
+  status?: string;
+  season?: number;
+  episode?: number;
+  episodes_watched?: number;
+  episodes_total?: number;
+  seasons_watched?: number;
+  rating?: number;
+}
+
+export interface MediaEventRow {
+  id: number;
+  media_id: number;
+  kind: MediaEventKind;
+  meta: MediaEventMeta;
+  created_at: string;
+}
+
+// --- Journal ---
+export const journal = {
+  list: () => request<any[]>('/journal'),
+  get: (date: string) => request<any>('/journal/' + date),
+  save: (date: string, content: string, mood?: string | null) =>
+    request('/journal/' + date, { method: 'PUT', body: JSON.stringify({ content, mood }) }),
+  delete: (date: string) => request('/journal/' + date, { method: 'DELETE' }),
+};
+
+// --- Notes ---
+export const notes = {
+  list: (params?: { search?: string; tag?: string; folder?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
+    if (params?.tag) q.set('tag', params.tag);
+    if (params?.folder) q.set('folder', params.folder);
+    const qs = q.toString();
+    return request<any[]>('/notes' + (qs ? '?' + qs : ''));
+  },
+  get: (id: number) => request<any>('/notes/' + id),
+  create: (title: string, content: string, folder?: string) =>
+    request<{ id: number; folder: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '' }) }),
+  update: (id: number, data: { title?: string; content?: string; folder?: string }) =>
+    request('/notes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/notes/' + id, { method: 'DELETE' }),
+  // Folders
+  listFolders: () => request<string[]>('/notes/folders'),
+  createFolder: (path: string) =>
+    request<{ path: string }>('/notes/folders', { method: 'POST', body: JSON.stringify({ path }) }),
+  deleteFolder: (path: string) =>
+    request('/notes/folders', { method: 'DELETE', body: JSON.stringify({ path }) }),
+  renameFolder: (from: string, to: string) =>
+    request('/notes/folders/rename', { method: 'POST', body: JSON.stringify({ from, to }) }),
+};
+
+// --- Uploads ---
+export const uploads = {
+  upload: async (file: File | Blob): Promise<{ url: string; filename: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await authFetch('/uploads', { method: 'POST', body: form });
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json();
+  },
+  // Build a fully-qualified URL for an upload — the relative form `/api/uploads/foo`
+  // works when the frontend is same-origin or behind a proxy; in cross-origin
+  // production deployments callers should prepend the API base.
+  resolveUrl: (relative: string): string => {
+    if (relative.startsWith('http')) return relative;
+    if (API_BASE === '/api') return relative;
+    return API_BASE.replace(/\/api$/, '') + relative;
+  },
+};
+
+// --- Tags ---
+export const tags = {
+  list: () => request<{ tag: string; count: number }[]>('/tags'),
+  get: (tag: string) => request<{ tag: string; entities: any[] }>('/tags/' + encodeURIComponent(tag)),
+};
+
+// --- Analytics ---
+export const analytics = {
+  get: () => request<any>('/analytics'),
+};
+
+// --- Finance ---
+export interface FinAccount {
+  id: number;
+  name: string;
+  type: 'savings' | 'checking' | 'credit_card' | 'investment' | 'cash';
+  institution: string;
+  currency: string;
+  opening_balance: number;
+  balance: number;
+  credit_limit: number | null;
+  statement_day: number | null;
+  due_day: number | null;
+  cashback_type: 'none' | 'percentage' | 'fixed';
+  cashback_value: number;
+  color: string;
+  archived: boolean;
+  created_at: string;
+}
+
+export interface FinCategory {
+  id: number;
+  name: string;
+  kind: 'income' | 'expense';
+  color: string;
+  icon: string;
+}
+
+export interface FinTransaction {
+  id: number;
+  account_id: number;
+  account_name: string;
+  category_id: number | null;
+  category_name: string | null;
+  category_color: string | null;
+  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out';
+  amount: number;
+  description: string;
+  txn_date: string;
+  transfer_pair: number | null;
+  linked_account: number | null;
+  created_at: string;
+}
+
+export interface FinBudgetItem {
+  id: number;
+  category_id: number | null;
+  amount: number;
+  spent: number;
+}
+
+export interface FinBudget {
+  id: number;
+  name: string;
+  period: 'monthly' | 'custom';
+  start_date: string;
+  end_date: string;
+  total_amount: number;
+  spent: number;
+  items: FinBudgetItem[];
+}
+
+export interface FinInvestment {
+  id: number;
+  name: string;
+  type: 'sip' | 'rd' | 'stock' | 'etf' | 'mutual_fund' | 'fd' | 'other';
+  account_id: number | null;
+  invested_amount: number;
+  current_value: number;
+  monthly_amount: number;
+  frequency: string;
+  start_date: string | null;
+  maturity_date: string | null;
+  expected_return: number;
+  notes: string;
+  last_updated: string;
+}
+
+export interface FinSaving {
+  id: number;
+  account_id: number;
+  account_name: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  color: string;
+  created_at: string;
+}
+
+export interface FinStatement {
+  id: number;
+  account_id: number;
+  account_name: string;
+  statement_date: string;
+  due_date: string;
+  amount_due: number;
+  cashback_earned: number;
+  paid: boolean;
+  paid_at: string | null;
+}
+
+export const finance = {
+  // Accounts
+  listAccounts: () => request<FinAccount[]>('/finance/accounts'),
+  createAccount: (data: Partial<FinAccount>) =>
+    request<{ id: number }>('/finance/accounts', { method: 'POST', body: JSON.stringify(data) }),
+  updateAccount: (id: number, data: Partial<FinAccount>) =>
+    request('/finance/accounts/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteAccount: (id: number) =>
+    request('/finance/accounts/' + id, { method: 'DELETE' }),
+
+  // Categories
+  listCategories: (kind?: 'income' | 'expense') =>
+    request<FinCategory[]>('/finance/categories' + (kind ? '?kind=' + kind : '')),
+  createCategory: (data: Partial<FinCategory>) =>
+    request<{ id: number }>('/finance/categories', { method: 'POST', body: JSON.stringify(data) }),
+  updateCategory: (id: number, data: Partial<FinCategory>) =>
+    request('/finance/categories/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCategory: (id: number) =>
+    request('/finance/categories/' + id, { method: 'DELETE' }),
+
+  // Transactions
+  listTransactions: (params?: { account_id?: number; category_id?: number; type?: string; from?: string; to?: string; search?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.account_id) q.set('account_id', String(params.account_id));
+    if (params?.category_id) q.set('category_id', String(params.category_id));
+    if (params?.type) q.set('type', params.type);
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    if (params?.search) q.set('search', params.search);
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return request<FinTransaction[]>('/finance/transactions' + (qs ? '?' + qs : ''));
+  },
+  createTransaction: (data: { account_id: number; category_id?: number | null; type: string; amount: number; description?: string; txn_date: string; linked_account?: number }) =>
+    request<{ id: number }>('/finance/transactions', { method: 'POST', body: JSON.stringify(data) }),
+  updateTransaction: (id: number, data: Partial<FinTransaction>) =>
+    request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteTransaction: (id: number) =>
+    request('/finance/transactions/' + id, { method: 'DELETE' }),
+
+  // Budgets
+  listBudgets: () => request<FinBudget[]>('/finance/budgets'),
+  createBudget: (data: { name: string; period: string; start_date: string; end_date: string; total_amount: number; items: { category_id: number | null; amount: number }[] }) =>
+    request<{ id: number }>('/finance/budgets', { method: 'POST', body: JSON.stringify(data) }),
+  updateBudget: (id: number, data: any) =>
+    request('/finance/budgets/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBudget: (id: number) =>
+    request('/finance/budgets/' + id, { method: 'DELETE' }),
+
+  // Investments
+  listInvestments: () => request<FinInvestment[]>('/finance/investments'),
+  createInvestment: (data: Partial<FinInvestment>) =>
+    request<{ id: number }>('/finance/investments', { method: 'POST', body: JSON.stringify(data) }),
+  updateInvestment: (id: number, data: Partial<FinInvestment>) =>
+    request('/finance/investments/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteInvestment: (id: number) =>
+    request('/finance/investments/' + id, { method: 'DELETE' }),
+
+  // Virtual savings
+  listSavings: (account_id?: number) =>
+    request<FinSaving[]>('/finance/savings' + (account_id ? '?account_id=' + account_id : '')),
+  createSaving: (data: Partial<FinSaving>) =>
+    request<{ id: number }>('/finance/savings', { method: 'POST', body: JSON.stringify(data) }),
+  updateSaving: (id: number, data: Partial<FinSaving>) =>
+    request('/finance/savings/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteSaving: (id: number) =>
+    request('/finance/savings/' + id, { method: 'DELETE' }),
+
+  // Card statements
+  listStatements: (account_id?: number) =>
+    request<FinStatement[]>('/finance/cards/statements' + (account_id ? '?account_id=' + account_id : '')),
+  createStatement: (account_id: number, data: { statement_date: string; due_date: string; amount_due?: number; cashback_earned?: number }) =>
+    request<{ id: number; amount_due: number; cashback_earned: number }>(
+      '/finance/cards/' + account_id + '/statements',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+  updateStatement: (id: number, data: Partial<FinStatement>) =>
+    request('/finance/cards/statements/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteStatement: (id: number) =>
+    request('/finance/cards/statements/' + id, { method: 'DELETE' }),
+
+  // Overview
+  overview: () => request<{
+    net_worth: number;
+    total_assets: number;
+    total_liabilities: number;
+    investments_total: number;
+    month_income: number;
+    month_expense: number;
+    month_savings: number;
+    month_recurring_invest: number;
+    accounts: { account_id: number; name: string; type: string; balance: number; color: string }[];
+    top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
+    daily_trend: { date: string; income: number; expense: number }[];
+    upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
+    investments_breakdown: { type: string; amount: number }[];
+  }>('/finance/overview'),
+
+  networthHistory: () =>
+    request<{ date: string; assets: number; liabilities: number; net_worth: number }[]>('/finance/networth/history'),
+  takeSnapshot: () =>
+    request<{ date: string; assets: number; liabilities: number; net_worth: number }>(
+      '/finance/networth/snapshot',
+      { method: 'POST' },
+    ),
+
+  // Export URLs (download via authFetch + blob)
+  exportUrl: (kind: 'transactions' | 'budgets' | 'networth') =>
+    '/finance/export/' + kind + '.csv',
+};
+
+// --- Universal search ---
+export interface SearchHit {
+  type: string;
+  id: number;
+  title: string;
+  snippet?: string;
+  subtitle?: string;
+  route?: string;
+}
+
+export const search = {
+  query: (q: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    return request<{ results: SearchHit[] }>("/search" + (params.toString() ? "?" + params.toString() : ""));
+  },
+};
+
+// --- AI ---
+
+export type AIEventType = 'delta' | 'tool_call' | 'tool_result' | 'error' | 'done';
+
+export interface AIEvent {
+  type: AIEventType;
+  data: any;
+}
+
+export interface AISessionMeta {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AISession {
+  id: number;
+  title: string;
+  // messages is the persisted history (genai.Content shape) — opaque to UI
+  // except for extracting text from each part to render the transcript.
+  messages: { role: string; parts: { text?: string; functionCall?: any; functionResponse?: any }[] }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export const ai = {
+  status: () => request<{ enabled: boolean; model?: string }>('/ai/status'),
+
+  listSessions: () => request<AISessionMeta[]>('/ai/sessions'),
+  getSession: (id: number) => request<AISession>('/ai/sessions/' + id),
+  createSession: () => request<{ id: number }>('/ai/sessions', { method: 'POST' }),
+  deleteSession: (id: number) => request('/ai/sessions/' + id, { method: 'DELETE' }),
+
+  // adoptSession promotes a one-shot palette exchange into a real
+  // chat session so the user can keep talking from the sidebar with
+  // full prior context (tool calls and all).
+  adoptSession: (history: unknown[], title?: string) =>
+    request<{ id: number }>('/ai/sessions/adopt', {
+      method: 'POST',
+      body: JSON.stringify({ history, title }),
+    }),
+
+  // chat opens an SSE stream against /ai/chat. onEvent fires for every
+  // parsed event; the returned promise resolves when the stream ends.
+  // Aborting via the AbortSignal cleanly closes the connection.
+  chat: async (
+    body: { session_id?: number; message: string; mode: 'palette' | 'chat' },
+    onEvent: (ev: AIEvent) => void,
+    signal?: AbortSignal,
+  ): Promise<void> => {
+    const resp = await authFetch('/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body: JSON.stringify(body),
+      signal,
+    });
+    if (!resp.ok) {
+      let detail = '';
+      try { detail = (await resp.json()).error; } catch { /* ignore */ }
+      throw new Error(detail || `AI request failed: ${resp.status}`);
+    }
+    if (!resp.body) throw new Error('No stream');
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // SSE frames are separated by a blank line (\n\n).
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) >= 0) {
+        const frame = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        const ev = parseSSEFrame(frame);
+        if (ev) onEvent(ev);
+      }
+    }
+  },
+};
+
+function parseSSEFrame(frame: string): AIEvent | null {
+  let event = 'message';
+  let data = '';
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event: ')) event = line.slice(7).trim();
+    else if (line.startsWith('data: ')) data += (data ? '\n' : '') + line.slice(6);
+  }
+  if (!data) return null;
+  try {
+    return { type: event as AIEventType, data: JSON.parse(data) };
+  } catch {
+    return null;
+  }
+}

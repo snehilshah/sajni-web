@@ -1,0 +1,326 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Sparkles, BookOpen, CheckSquare, Target, FileText, Film,
+  Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft,
+} from 'lucide-react';
+
+import { search as searchApi, type SearchHit } from '@/api';
+import {
+  parseQuery, rankHit, highlight,
+  SEARCH_TYPE_LABELS, type SearchType,
+} from '@/lib/fuzzy';
+import AIPaletteAnswer from '@/components/AIPaletteAnswer';
+
+const TYPE_ICONS: Record<string, typeof SearchIcon> = {
+  memo: Sparkles,
+  task: CheckSquare,
+  note: FileText,
+  journal: BookOpen,
+  habit: Target,
+  media: Film,
+  tag: Hash,
+  account: Wallet,
+  transaction: ArrowLeftRight,
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  memo: 'text-emerald-600 dark:text-emerald-400',
+  task: 'text-rose-600 dark:text-rose-400',
+  note: 'text-sky-600 dark:text-sky-400',
+  journal: 'text-amber-600 dark:text-amber-400',
+  habit: 'text-blue-600 dark:text-blue-400',
+  media: 'text-purple-600 dark:text-purple-400',
+  tag: 'text-cyan-600 dark:text-cyan-400',
+  account: 'text-teal-600 dark:text-teal-400',
+  transaction: 'text-indigo-600 dark:text-indigo-400',
+};
+
+interface RankedHit extends SearchHit {
+  score: number;
+}
+
+export default function CommandPalette() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const [results, setResults] = useState<SearchHit[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const fetchSeq = useRef(0);
+  // aiQuery is set on Enter in AI mode; AIPaletteAnswer reads from it.
+  // Empty string means AI mode is active but no question yet.
+  const [aiQuery, setAiQuery] = useState<string>('');
+
+  // Global Ctrl/Cmd+K toggle. Esc closes. Also responds to a custom
+  // `palette:open` event so a UI button can trigger it without faking keys.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isToggle = (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey);
+      if (isToggle) {
+        e.preventDefault();
+        setOpen((v) => !v);
+      } else if (e.key === 'Escape' && open) {
+        setOpen(false);
+      }
+    };
+    const onCustom = () => setOpen(true);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('palette:open', onCustom);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('palette:open', onCustom);
+    };
+  }, [open]);
+
+  // Focus input + reset state on open.
+  useEffect(() => {
+    if (open) {
+      setInput('');
+      setResults([]);
+      setActiveIndex(0);
+      setAiQuery('');
+      // Defer to after the dialog has mounted.
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
+
+  // Reset the AI answer whenever the user keeps editing — only fires on Enter.
+  useEffect(() => {
+    setAiQuery('');
+  }, [input]);
+
+  const parsed = useMemo(() => parseQuery(input), [input]);
+
+  // Debounced fetch as the user types. Skipped in AI mode — the palette
+  // doesn't need search results when @sajni is the active lane.
+  useEffect(() => {
+    if (!open) return;
+    if (parsed.aiMode) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+    const seq = ++fetchSeq.current;
+    setLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await searchApi.query(parsed.query);
+        if (fetchSeq.current === seq) {
+          setResults(res.results || []);
+          setActiveIndex(0);
+        }
+      } catch {
+        if (fetchSeq.current === seq) setResults([]);
+      } finally {
+        if (fetchSeq.current === seq) setLoading(false);
+      }
+    }, 120);
+    return () => clearTimeout(t);
+  }, [open, parsed.query, parsed.aiMode]);
+
+  // Score + sort + cap.
+  const ranked = useMemo<RankedHit[]>(() => {
+    const out = results.map<RankedHit>((r) => ({
+      ...r,
+      score: rankHit(r.title, r.subtitle, r.type, parsed),
+    }));
+    out.sort((a, b) => b.score - a.score);
+    // Drop hits with no signal once a query is entered.
+    const filtered = parsed.query ? out.filter((h) => h.score > 0.05) : out;
+    return filtered.slice(0, 50);
+  }, [results, parsed]);
+
+  const open_hit = useCallback((hit: SearchHit) => {
+    setOpen(false);
+    if (hit.route) navigate(hit.route);
+    else navigate('/');
+  }, [navigate]);
+
+  // Keyboard navigation.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // AI mode: Enter submits the question to the agent. Arrow keys are no-ops.
+    if (parsed.aiMode) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (parsed.query.trim()) setAiQuery(parsed.query.trim());
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, ranked.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const hit = ranked[activeIndex];
+      if (hit) open_hit(hit);
+    }
+  };
+
+  // Keep active row in view.
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${activeIndex}"]`);
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, ranked.length]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="palette-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12 }}
+          className="fixed inset-0 z-[60] bg-foreground/30 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-3"
+          onClick={() => setOpen(false)}
+        >
+          <motion.div
+            key="palette-panel"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+            className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center gap-2 px-3 py-2.5 border-b border-border ${parsed.aiMode ? 'bg-primary/5' : ''}`}>
+              {parsed.aiMode ? (
+                <Sparkles className="size-4 text-primary shrink-0" />
+              ) : (
+                <SearchIcon className="size-4 text-muted-foreground shrink-0" />
+              )}
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder={parsed.aiMode
+                  ? 'Ask Sajni anything…  (Enter to send)'
+                  : 'Search everything…   try "task grocery", or "@sajni" to ask the AI'}
+                className="flex-1 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
+              />
+              {loading && !parsed.aiMode && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+              {parsed.aiMode && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary inline-flex items-center gap-1">
+                  <Sparkles className="size-3" /> AI
+                </span>
+              )}
+              {!parsed.aiMode && parsed.typeBoost && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                  {SEARCH_TYPE_LABELS[parsed.typeBoost as SearchType]}
+                </span>
+              )}
+              <kbd className="hidden sm:inline-flex font-mono text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5">
+                Esc
+              </kbd>
+            </div>
+
+            <div ref={listRef} className="max-h-[60vh] overflow-y-auto py-1">
+              {parsed.aiMode ? (
+                <AIPaletteAnswer query={aiQuery} onClose={() => setOpen(false)} />
+              ) : ranked.length === 0 ? (
+                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search — or use @sajni to ask the AI.'}
+                </div>
+              ) : (
+                ranked.map((hit, i) => (
+                  <PaletteRow
+                    key={`${hit.type}-${hit.id}-${i}`}
+                    hit={hit}
+                    active={i === activeIndex}
+                    queryText={parsed.query}
+                    index={i}
+                    onMouseEnter={() => setActiveIndex(i)}
+                    onClick={() => open_hit(hit)}
+                  />
+                ))
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-border bg-muted/30 font-mono text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-3">
+                {parsed.aiMode ? (
+                  <span className="inline-flex items-center gap-1">
+                    <kbd className="border border-border rounded px-1 inline-flex items-center"><CornerDownLeft className="size-2.5" /></kbd>
+                    ask Sajni
+                  </span>
+                ) : (
+                  <>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="border border-border rounded px-1">↑</kbd>
+                  <kbd className="border border-border rounded px-1">↓</kbd>
+                  navigate
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="border border-border rounded px-1 inline-flex items-center"><CornerDownLeft className="size-2.5" /></kbd>
+                  open
+                </span>
+                  </>
+                )}
+              </div>
+              <span>
+                {parsed.aiMode
+                  ? 'press Enter to ask'
+                  : `${ranked.length} result${ranked.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function PaletteRow({
+  hit, active, queryText, index, onMouseEnter, onClick,
+}: {
+  hit: RankedHit;
+  active: boolean;
+  queryText: string;
+  index: number;
+  onMouseEnter: () => void;
+  onClick: () => void;
+}) {
+  const Icon = TYPE_ICONS[hit.type] || SearchIcon;
+  const color = TYPE_COLORS[hit.type] || 'text-foreground';
+  const label = SEARCH_TYPE_LABELS[hit.type as SearchType] || hit.type;
+
+  return (
+    <button
+      data-idx={index}
+      onMouseEnter={onMouseEnter}
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+        active ? 'bg-accent' : 'hover:bg-accent/50'
+      }`}
+    >
+      <Icon className={`size-4 shrink-0 ${color}`} />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm truncate">
+          {highlight(hit.title, queryText).map((seg, i) =>
+            seg.hit ? (
+              <mark key={i} className="bg-primary/25 text-foreground rounded-[2px] px-0.5">{seg.text}</mark>
+            ) : (
+              <span key={i}>{seg.text}</span>
+            ),
+          )}
+        </div>
+        {hit.subtitle && (
+          <div className="font-mono text-[10px] text-muted-foreground truncate mt-0.5">
+            {hit.subtitle}
+          </div>
+        )}
+      </div>
+      <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground shrink-0">
+        {label}
+      </span>
+    </button>
+  );
+}

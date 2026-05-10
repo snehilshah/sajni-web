@@ -1,0 +1,50 @@
+# sajni-web — React + Vite frontend, deployed to Vercel.
+
+# Dependencies (always rebuilt from package-lock.json).
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# Build output.
+dist/
+dist-ssr/
+build/
+out/
+.vite/
+
+# Vercel CLI workspace metadata.
+.vercel
+
+# Environment files. Vite reads .env / .env.local.
+# Production env vars live in Vercel project settings, not the repo.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Test / coverage artifacts.
+coverage/
+.nyc_output/
+
+# Logs.
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS noise.
+.DS_Store
+*.swp
+*.swo
+*.sw?
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript / tooling caches.
+*.tsbuildinfo
+.eslintcache

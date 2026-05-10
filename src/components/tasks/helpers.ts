@@ -1,0 +1,51 @@
+import type { Task, SmartList } from '@/types';
+
+export const STATUSES: Task['status'][] = ['todo', 'in_progress', 'done'];
+
+export const STATUS_LABELS: Record<Task['status'], string> = {
+  todo: 'To do',
+  in_progress: 'In progress',
+  done: 'Done',
+};
+
+export const STATUS_DOT: Record<Task['status'], string> = {
+  todo: 'bg-muted-foreground/40',
+  in_progress: 'bg-secondary',
+  done: 'bg-primary',
+};
+
+export const PRIORITIES: Task['priority'][] = ['low', 'medium', 'high'];
+
+export const PRIORITY_COLORS: Record<string, string> = {
+  high: 'bg-destructive',
+  medium: 'bg-amber-500',
+  low: 'bg-muted-foreground/50',
+};
+
+export const PRIORITY_LABEL: Record<string, string> = {
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+};
+
+export type Selection =
+  | { kind: 'smart'; smart: SmartList }
+  | { kind: 'list'; id: number };
+
+export const SMART_LISTS: { smart: SmartList; label: string; description: string }[] = [
+  { smart: 'my_day', label: 'My Day', description: 'Tasks due today' },
+  { smart: 'important', label: 'Important', description: 'Starred tasks' },
+  { smart: 'planned', label: 'Planned', description: 'Tasks with a due date' },
+  { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },
+  { smart: 'all', label: 'All', description: 'Every open task' },
+];
+
+export function selectionLabel(sel: Selection, lists: { id: number; name: string }[]): string {
+  if (sel.kind === 'smart') return SMART_LISTS.find((s) => s.smart === sel.smart)?.label || 'Tasks';
+  return lists.find((l) => l.id === sel.id)?.name || 'List';
+}
+
+// uid generates a stable-enough id for new step rows on the client.
+export function uid(): string {
+  return 's_' + Math.random().toString(36).slice(2, 10);
+}
