@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://sajni-api-478936612706.asia-south1.run.app/api/:path*"
+      "destination": "https://sajni-api-a7bzmoi2qq-el.a.run.app/api/:path*"
     },
     {
       "source": "/((?!assets/|favicon|.*\\.[a-zA-Z0-9]+$).*)",

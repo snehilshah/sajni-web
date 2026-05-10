@@ -1,8 +1,10 @@
 # Deploying sajni-web
 
 Frontend ships to **Vercel** — Hobby tier (free) handles this app
-easily. Hostname: `ohmysajni.com`. The app talks to the backend at
-`api.ohmysajni.com` (Cloud Run), configured via `VITE_API_URL`.
+easily. Hostname: `www.ohmysajni.com` with the apex redirecting to it.
+The app calls same-origin `/api/*`; `vercel.json` rewrites those
+requests to the Cloud Run default URL because Cloud Run domain mapping
+is not available in the backend region.
 
 ```
 push branch / PR       ─►  CI: eslint · tsc · vite build
@@ -37,8 +39,9 @@ change.
 1. Sign in at [vercel.com](https://vercel.com) and **Add New →
    Project → Import Git Repository**. Pick `ohmysajni/sajni-web`.
 2. Vercel auto-detects Vite from `vercel.json`. Leave defaults.
-3. Under **Environment Variables (Production)**, add:
-   - `VITE_API_URL` = `https://api.ohmysajni.com/api`
+3. Do not set `VITE_API_URL` in Production unless you intentionally
+   want to bypass the Vercel rewrite. Leaving it unset makes the app
+   use `/api`.
 4. **Settings → Git → Production Branch**: leave as `main`. *Or*
    change to a stub like `production-disabled` if you want **only**
    the tag workflow to promote (recommended — keeps tag = prod and
@@ -81,10 +84,10 @@ Typically:
 ```
 A     @     76.76.21.21          ; Vercel's apex IP
 CNAME www   cname.vercel-dns.com
-CNAME api   ghs.googlehosted.com ; (printed by gcloud — see sajni-api)
 ```
 
-The `api` record points at Cloud Run's domain mapping for the backend.
+No `api` record is needed while production uses Vercel rewrites to
+Cloud Run.
 
 ---
 
@@ -99,8 +102,8 @@ git push origin srf/release/v0.1.0
 The workflow:
 
 1. Re-runs eslint + tsc.
-2. `vercel pull` syncs the production env config (so `VITE_API_URL`
-   from Vercel project settings is baked into the build).
+2. `vercel pull` syncs the production env config. Keep `VITE_API_URL`
+   unset so the built app calls same-origin `/api`.
 3. `vercel build --prod` produces a static deployment artifact.
 4. `vercel deploy --prebuilt --prod` ships it to `ohmysajni.com`.
 
@@ -130,11 +133,11 @@ can run sajni-api locally and the frontend talks to it without CORS.
 
 |                    | dev (laptop)           | prod                           |
 | ------------------ | ---------------------- | ------------------------------ |
-| Frontend           | `localhost:5173`       | `https://ohmysajni.com`        |
-| Backend            | `localhost:8080`       | `https://api.ohmysajni.com`    |
-| Frontend → backend | Vite proxy (`/api/*`)  | direct (`VITE_API_URL`)        |
-| CORS_ORIGIN (api)  | not needed (proxy)     | `https://ohmysajni.com`        |
+| Frontend           | `localhost:5173`       | `https://www.ohmysajni.com`     |
+| Backend            | `localhost:8080`       | Cloud Run default URL           |
+| Frontend → backend | Vite proxy (`/api/*`)  | Vercel rewrite (`/api/*`)       |
+| CORS_ORIGIN (api)  | not needed (proxy)     | not needed for same-origin API  |
 
-If a request works locally and 4xxs in prod, the first thing to check
-is `CORS_ORIGIN` on the backend — it must match the frontend URL
-exactly, scheme included.
+If a request works locally but fails in prod, check that `VITE_API_URL`
+is unset in Vercel and that `vercel.json` points `/api/:path*` at the
+current Cloud Run service URL.
