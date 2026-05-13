@@ -328,7 +328,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
           {showEmptyState && enabled !== false && (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">
-                Hey — I can read your tasks, habits, journal, memos, finance, and media; and I can create things on your behalf.
+                Your second brain. Ask anything about your data, or just describe what to capture.
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {SKILLS.map((sk) => {

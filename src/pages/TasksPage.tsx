@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-import ListsRail from '@/components/tasks/ListsRail';
+import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
 import TaskFormDialog from '@/components/tasks/TaskFormDialog';
 import {
@@ -135,15 +135,40 @@ export default function TasksPage() {
 
   const headerLabel = selectionLabel(selection, lists);
 
+  // On mobile the kanban board is unusable; force list view there.
+  const isNarrow = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 768px)').matches;
+  const effectiveView = isNarrow ? 'list' : viewMode;
+
+  const subtitleStats = `${open.length} open · ${grouped.in_progress.length} in flight · ${tasksList.filter((t) => t.status === 'done').length} done`;
+
   return (
     <PageShell
-      caption={`${open.length} open · ${grouped.in_progress.length} in flight · ${tasksList.filter((t) => t.status === 'done').length} done`}
-      title="Tasks"
-      subtitle="Lists, nesting, steps. Click any task to edit."
-      actions={<Button onClick={() => openCreate()}><Plus className="size-4" /> Add task</Button>}
+      caption={subtitleStats}
+      title={headerLabel}
+      actions={
+        !isNarrow ? (
+          <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              title="List view"
+            >
+              <ListChecks className="size-3.5" /> List
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Board view"
+            >
+              <LayoutGrid className="size-3.5" /> Board
+            </button>
+          </div>
+        ) : undefined
+      }
     >
-      <div className="flex w-full gap-4 -mx-4 md:-mx-12 px-4 md:px-12">
-        <ListsRail
+      <div className="flex flex-col gap-3.5">
+        {/* Smart + user list pills — single swipeable row. */}
+        <PillScroller
           lists={lists}
           selection={selection}
           onSelect={setSelection}
@@ -151,101 +176,65 @@ export default function TasksPage() {
             await listsApi.create({ name });
             reloadLists();
           }}
-          onRename={async (id, name) => {
-            await listsApi.update(id, { name });
-            reloadLists();
-          }}
-          onDelete={async (id) => {
-            await listsApi.delete(id);
-            if (selection.kind === 'list' && selection.id === id) {
-              setSelection({ kind: 'smart', smart: 'inbox' });
-            }
-            reloadLists();
-            reloadTasks();
-          }}
         />
 
-        <main className="flex-1 min-w-0 flex flex-col gap-4">
-          {/* Sub-heading: list name + view toggle */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2 className="serif text-xl font-semibold truncate">{headerLabel}</h2>
-              {!loading && (
-                <Badge variant="secondary" className="mono text-[10px]">
-                  {open.length}
-                </Badge>
-              )}
-            </div>
-            <div className="inline-flex rounded-md border border-border overflow-hidden">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 h-8 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                title="List view"
-              >
-                <ListChecks className="size-3.5" /> List
-              </button>
-              <button
-                onClick={() => setViewMode('board')}
-                className={`px-3 h-8 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Board view"
-              >
-                <LayoutGrid className="size-3.5" /> Board
-              </button>
-            </div>
-          </div>
+        {/* Quick add — primary capture. The dedicated "Add task" button
+            in the header was redundant; this is the way. */}
+        <div className="rounded-[12px] border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
+          <Plus className="size-4 text-muted-foreground shrink-0" />
+          <Input
+            value={quickTitle}
+            onChange={(e) => setQuickTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleQuickAdd();
+            }}
+            placeholder="Add a task. Press ↵."
+            className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-0 text-sm"
+          />
+          {quickTitle.trim() && (
+            <Button size="sm" className="h-7 px-3 text-xs" onClick={handleQuickAdd}>
+              Add
+            </Button>
+          )}
+        </div>
 
-          {/* Quick add — card-styled to match the design's input row */}
-          <div className="rounded-lg border border-border bg-card/60 px-3 flex items-center gap-2 h-11">
-            <Plus className="size-4 text-muted-foreground shrink-0" />
-            <Input
-              value={quickTitle}
-              onChange={(e) => setQuickTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleQuickAdd();
-              }}
-              placeholder="Add a task. Press ↵."
-              className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-0 text-sm"
+        {/* Body */}
+        <div className="min-h-0">
+          {loading ? (
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+            </div>
+          ) : effectiveView === 'list' ? (
+            <ListView
+              open={open}
+              completed={completed}
+              showCompleted={showCompleted}
+              onToggleCompleted={() => setShowCompleted((v) => !v)}
+              onClick={openEdit}
+              onChange={() => { reloadTasks(); reloadLists(); }}
             />
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 min-h-0">
-            {loading ? (
-              <div className="flex flex-col gap-2">
-                {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
-              </div>
-            ) : viewMode === 'list' ? (
-              <ListView
-                open={open}
-                completed={completed}
-                showCompleted={showCompleted}
-                onToggleCompleted={() => setShowCompleted((v) => !v)}
-                onClick={openEdit}
-                onChange={() => { reloadTasks(); reloadLists(); }}
-              />
-            ) : (
-              <BoardView
-                grouped={grouped}
-                onClick={openEdit}
-                onMove={async (id, status) => {
-                  const t = tasksList.find((x) => x.id === id);
-                  if (!t || t.status === status) return;
-                  setTasksList((arr) => arr.map((x) => (x.id === id ? { ...x, status } : x)));
-                  await tasksApi.update(id, { status });
-                  reloadLists();
-                }}
-                onQuickAdd={async (status, title) => {
-                  const overrides: any = { title, status };
-                  if (selection.kind === 'list') overrides.list_id = selection.id;
-                  await tasksApi.create(overrides);
-                  reloadTasks();
-                  reloadLists();
-                }}
-                onChange={() => { reloadTasks(); reloadLists(); }}
-              />
-            )}
-          </div>
-        </main>
+          ) : (
+            <BoardView
+              grouped={grouped}
+              onClick={openEdit}
+              onMove={async (id, status) => {
+                const t = tasksList.find((x) => x.id === id);
+                if (!t || t.status === status) return;
+                setTasksList((arr) => arr.map((x) => (x.id === id ? { ...x, status } : x)));
+                await tasksApi.update(id, { status });
+                reloadLists();
+              }}
+              onQuickAdd={async (status, title) => {
+                const overrides: any = { title, status };
+                if (selection.kind === 'list') overrides.list_id = selection.id;
+                await tasksApi.create(overrides);
+                reloadTasks();
+                reloadLists();
+              }}
+              onChange={() => { reloadTasks(); reloadLists(); }}
+            />
+          )}
+        </div>
       </div>
 
       <TaskFormDialog
