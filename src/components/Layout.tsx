@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Sun, BookOpen, Target, Film, FileText, Hash, BarChart3,
-  PanelLeftClose, PanelLeft, Moon, LogOut, Wallet, MessageSquare, Sparkles,
-  Search, Settings, Monitor, Loader2, Home, ListChecks, MoreHorizontal,
+  BookOpen, Target, Film, FileText, Hash, BarChart3,
+  PanelLeftClose, PanelLeft, LogOut, Wallet, MessageSquare, Sparkles,
+  Search, Settings, Loader2, Home, ListChecks, MoreHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import CommandPalette from '@/components/CommandPalette';
 import AIChat from '@/components/AIChat';
 import Backdrop from '@/components/Backdrop';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
+import { useMode, useDensity, useTheme } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -113,14 +113,9 @@ function MenuRow({
 }
 
 function UserMenuBody({
-  email, mode, setMode, density, setDensity, onOpenCommand, onOpenChat,
-  onSettings, onSignOut, signingOut,
+  email, onOpenCommand, onOpenChat, onSettings, onSignOut, signingOut,
 }: {
   email: string;
-  mode: ModePref;
-  setMode: (m: ModePref) => void;
-  density: Density;
-  setDensity: (d: Density) => void;
   onOpenCommand: () => void;
   onOpenChat: () => void;
   onSettings: () => void;
@@ -137,54 +132,8 @@ function UserMenuBody({
         </div>
       </div>
       <div className="sajni-sep my-1.5" />
-
       <MenuRow icon={Search} label="Search" hint="⌘K" onClick={onOpenCommand} />
       <MenuRow icon={Sparkles} label="Ask Sajni" onClick={onOpenChat} />
-
-      <div className="sajni-sep my-1.5" />
-      <div className="px-3 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">appearance</div>
-      <div className="grid grid-cols-3 gap-1 px-2 pb-1">
-        {(['system', 'light', 'dark'] as ModePref[]).map((m) => {
-          const Icon = m === 'light' ? Sun : m === 'dark' ? Moon : Monitor;
-          const active = mode === m;
-          return (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={cn(
-                'h-9 inline-flex items-center justify-center gap-1.5 text-[11px] capitalize border',
-                active
-                  ? 'bg-primary/15 border-primary/40 text-primary'
-                  : 'bg-transparent border-border text-muted-foreground hover:bg-foreground/5',
-              )}
-            >
-              <Icon className="size-3.5" /> {m}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="px-3 pt-2 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">density</div>
-      <div className="grid grid-cols-3 gap-1 px-2 pb-2">
-        {(['compact', 'comfortable', 'cozy'] as Density[]).map((d) => {
-          const active = density === d;
-          return (
-            <button
-              key={d}
-              onClick={() => setDensity(d)}
-              className={cn(
-                'h-9 inline-flex items-center justify-center text-[11px] capitalize border',
-                active
-                  ? 'bg-primary/15 border-primary/40 text-primary'
-                  : 'bg-transparent border-border text-muted-foreground hover:bg-foreground/5',
-              )}
-            >
-              {d}
-            </button>
-          );
-        })}
-      </div>
-
       <div className="sajni-sep my-1.5" />
       <MenuRow icon={Settings} label="Settings" onClick={onSettings} />
       <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={onSignOut} />
@@ -404,8 +353,8 @@ export default function Layout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
-  const { mode, setMode } = useMode();
-  const { density, setDensity } = useDensity();
+  useMode();
+  useDensity();
   useTheme();
 
   const [expanded, setExpanded] = useState<boolean>(() => {
@@ -444,10 +393,6 @@ export default function Layout() {
   const userMenuBody = (
     <UserMenuBody
       email={email}
-      mode={mode}
-      setMode={setMode}
-      density={density}
-      setDensity={setDensity}
       onOpenCommand={openCommand}
       onOpenChat={() => setAiChatOpen(true)}
       onSettings={goSettings}
@@ -536,51 +481,6 @@ export default function Layout() {
                         >
                           <Icon className="size-5" />
                           {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="sajni-sep my-4" />
-
-                <div className="px-3">
-                  <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground pb-2">appearance</div>
-                  <div className="grid grid-cols-3 gap-1">
-                    {(['system', 'light', 'dark'] as ModePref[]).map((m) => {
-                      const Icon = m === 'light' ? Sun : m === 'dark' ? Moon : Monitor;
-                      const active = mode === m;
-                      return (
-                        <button
-                          key={m}
-                          onClick={() => setMode(m)}
-                          className={cn(
-                            'h-9 inline-flex items-center justify-center gap-1.5 text-[11px] capitalize border',
-                            active ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-transparent border-border text-muted-foreground hover:bg-foreground/5',
-                          )}
-                        >
-                          <Icon className="size-3.5" /> {m}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="px-3 mt-3">
-                  <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground pb-2">density</div>
-                  <div className="grid grid-cols-3 gap-1">
-                    {(['compact', 'comfortable', 'cozy'] as Density[]).map((d) => {
-                      const active = density === d;
-                      return (
-                        <button
-                          key={d}
-                          onClick={() => setDensity(d)}
-                          className={cn(
-                            'h-9 inline-flex items-center justify-center text-[11px] capitalize border',
-                            active ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-transparent border-border text-muted-foreground hover:bg-foreground/5',
-                          )}
-                        >
-                          {d}
                         </button>
                       );
                     })}
