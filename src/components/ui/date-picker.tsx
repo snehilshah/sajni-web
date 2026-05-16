@@ -47,7 +47,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   const selected = isoToDate(value)
-  const display = selected ? format(selected, "EEE, d MMM yyyy") : placeholder
+  const display = selected ? format(selected, "EEE, d MMM") : placeholder
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

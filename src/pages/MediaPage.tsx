@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Loader2, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown } from 'lucide-react';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown } from 'lucide-react';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
 const MEDIA_SORT_KEY = 'sajni:media:sort';
@@ -729,7 +729,7 @@ export default function MediaPage() {
                       placeholder="Filter library…"
                       autoFocus
                       onBlur={() => { if (!searchQuery) setSearchExpanded(false); }}
-                      className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
+                      className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:rounded-full focus-visible:pl-10 focus-visible:pr-9 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
                     />
                     {(searchQuery || searchExpanded) && (
                       <button
@@ -756,7 +756,7 @@ export default function MediaPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filter library…"
-                    className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
+                    className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:rounded-full focus-visible:pl-10 focus-visible:pr-9 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
                   />
                   {searchQuery && (
                     <button

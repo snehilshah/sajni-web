@@ -11,18 +11,18 @@ import { journal as journalApi, habits as habitsApi, tasks as tasksApi } from '@
 import RichEditor from '@/components/editor/RichEditor';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import type { MissedTask } from '@/api';
 import {
-  ChevronLeft, ChevronRight, Save, Loader2, Target, CheckSquare,
-  Link as LinkIcon, Trash2, AlertCircle, ArrowRight, Flame,
+  ChevronLeft, ChevronRight, Save, Target, CheckSquare,
+  Trash2, AlertCircle, ArrowRight,
   PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FilePlus, Calendar as CalendarIcon,
-  ChevronDown,
+  ChevronDown, Check as LucideCheck,
 } from 'lucide-react';
 
 const MOODS = [
@@ -253,17 +253,13 @@ export default function JournalPage() {
                 className="group flex items-start gap-2.5 text-left"
                 title="Mark done"
               >
-                <span className="mt-[3px] size-[16px] rounded-[3px] border-2 border-[hsl(var(--on-surface-variant))] group-hover:border-primary shrink-0 transition-colors" />
+                <Checkbox checked={false} className="mt-0.5 shrink-0 pointer-events-none" tabIndex={-1} />
                 <span className="flex-1 text-[12.5px] text-foreground/85 leading-snug">{t.title}</span>
               </button>
             ))}
             {completedTasks.map((t) => (
               <div key={t.id} className="flex items-start gap-2.5">
-                <span className="mt-[3px] size-[16px] rounded-[3px] bg-primary border-2 border-primary shrink-0 inline-flex items-center justify-center text-primary-foreground">
-                  <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="10 3 5 8.5 2 6" />
-                  </svg>
-                </span>
+                <Checkbox checked={true} className="mt-0.5 shrink-0 pointer-events-none" tabIndex={-1} />
                 <span className="flex-1 text-[12.5px] line-through text-muted-foreground leading-snug">{t.title}</span>
               </div>
             ))}
@@ -309,11 +305,7 @@ export default function JournalPage() {
                     color: '#fff',
                   }}
                 >
-                  {h.logged && (
-                    <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="10 3 5 8.5 2 6" />
-                    </svg>
-                  )}
+                  {h.logged && <LucideCheck className="size-3 stroke-[3px]" />}
                 </span>
                 <span className="flex-1 text-[12.5px] text-foreground/85">{h.name}</span>
               </button>
