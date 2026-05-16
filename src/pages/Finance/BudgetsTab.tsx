@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { finance, type FinBudget, type FinCategory } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatMoney } from './utils';
@@ -240,10 +241,10 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
             </Field>
           )}
           <Field label="Start">
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DatePicker value={startDate} onChange={setStartDate} />
           </Field>
           <Field label="End">
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <DatePicker value={endDate} onChange={setEndDate} />
           </Field>
         </div>
 

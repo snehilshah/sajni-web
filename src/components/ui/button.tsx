@@ -3,33 +3,65 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material 3 Expressive Button.
+ *
+ *  variants: filled (default) | tonal | outlined | text | elevated | destructive | secondary | link
+ *  sizes:    sm | default | lg | icon variants | fab | fab-extended
+ */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 border whitespace-nowrap font-serif font-normal lowercase tracking-[0.04em] transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-1 focus-visible:ring-offset-background active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+  [
+    "group/button inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap",
+    "font-sans font-medium tracking-[0.005em]",
+    "transition-[background-color,box-shadow,transform,color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
+    "outline-none select-none",
+    "focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "active:scale-[0.97]",
+    "disabled:pointer-events-none disabled:opacity-50",
+    "aria-invalid:ring-2 aria-invalid:ring-destructive/30",
+    "[&_svg]:pointer-events-none [&_svg]:shrink-0",
+    "[&_svg:not([class*='size-'])]:size-[18px]",
+  ].join(" "),
   {
     variants: {
       variant: {
+        // Filled — high-emphasis primary CTA.
         default:
-          "border-foreground bg-foreground text-background hover:bg-primary hover:border-primary",
+          "rounded-full bg-primary text-primary-foreground border border-transparent shadow-none hover:brightness-105 hover:shadow-[var(--m3-elev-1)]",
+        // Tonal — medium-emphasis container fill.
+        tonal:
+          "rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent hover:brightness-[0.97]",
+        // Outlined — secondary action with outline.
         outline:
-          "border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background",
-        secondary:
-          "border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/85",
+          "rounded-full bg-transparent text-foreground border border-[hsl(var(--outline))] hover:bg-[hsl(var(--on-surface)/0.05)]",
+        // Text — lowest emphasis.
         ghost:
-          "border-transparent text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
+          "rounded-full bg-transparent text-foreground border border-transparent hover:bg-[hsl(var(--on-surface)/0.06)]",
+        // Elevated — like text but with a subtle surface lift.
+        elevated:
+          "rounded-full bg-[hsl(var(--surface-container-low))] text-primary border border-transparent shadow-[var(--m3-elev-1)] hover:shadow-[var(--m3-elev-2)] hover:bg-[hsl(var(--surface-container))]",
+        // Secondary alias — kept for backwards compat; renders tonal.
+        secondary:
+          "rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent hover:brightness-[0.97]",
+        // Destructive — error container fill.
         destructive:
-          "border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20",
+          "rounded-full bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] border border-transparent hover:brightness-[0.97]",
+        // Link — text + underline.
         link:
-          "border-transparent text-primary underline underline-offset-4 hover:no-underline px-0",
+          "rounded-none border-0 text-primary underline underline-offset-4 hover:no-underline px-0 active:scale-100",
       },
       size: {
-        default: "h-9 px-[18px] text-sm",
-        xs: "h-7 gap-1 px-3 text-xs [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1.5 px-3 text-xs",
-        lg: "h-11 gap-2 px-6 text-sm",
-        icon: "size-9 px-0",
-        "icon-xs": "size-7 px-0 [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-8 px-0",
-        "icon-lg": "size-11 px-0",
+        default: "h-10 px-6 text-sm",
+        xs: "h-7 gap-1 px-3 text-xs rounded-full [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "h-8 gap-1.5 px-4 text-xs rounded-full",
+        lg: "h-12 gap-2 px-7 text-sm rounded-full",
+        icon: "size-10 px-0 rounded-full",
+        "icon-xs": "size-7 px-0 rounded-full [&_svg:not([class*='size-'])]:size-3.5",
+        "icon-sm": "size-9 px-0 rounded-full",
+        "icon-lg": "size-12 px-0 rounded-full",
+        // M3 FABs — square-ish rounded.
+        fab: "size-14 rounded-2xl shadow-[var(--m3-elev-3)] [&_svg:not([class*='size-'])]:size-6",
+        "fab-extended": "h-14 px-6 rounded-2xl shadow-[var(--m3-elev-3)] gap-3 text-sm [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {

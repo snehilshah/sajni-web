@@ -18,6 +18,7 @@ import RequireAuth from './auth/RequireAuth';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { M3Shapes } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
 
 // Redirects already-authenticated users away from /login and /register.
@@ -32,6 +33,7 @@ export default function App() {
 	return (
 		<AuthProvider>
 			<TooltipProvider>
+				<M3Shapes />
 				<Toaster richColors closeButton position="bottom-right" />
 				<TweaksPanel />
 				{/* prettier-ignore */}

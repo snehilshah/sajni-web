@@ -16,20 +16,12 @@ import { cn } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
 } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const SIDEBAR_KEY = 'sajni:sidebar-expanded';
 
@@ -61,18 +53,18 @@ function Avatar({
   return (
     <Tag
       onClick={onClick}
-      className="relative shrink-0 inline-flex items-center justify-center font-serif italic text-primary-foreground"
+      className="relative shrink-0 inline-flex items-center justify-center font-serif font-medium text-primary-foreground"
       style={{
         width: size,
         height: size,
         borderRadius: '50%',
-        fontSize: Math.max(11, size * 0.42),
+        fontSize: Math.max(11, size * 0.40),
         letterSpacing: '0.02em',
         background:
-          'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)) 60%, hsl(var(--primary) / 0.7))',
+          'radial-gradient(circle at 30% 28%, hsl(var(--tertiary)) 0%, transparent 55%), radial-gradient(circle at 70% 72%, hsl(var(--secondary)) 0%, transparent 55%), linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)) 55%, hsl(var(--tertiary)))',
         boxShadow: ring
-          ? '0 0 0 2px hsl(var(--background)), 0 0 0 3px hsl(var(--foreground)), 0 6px 14px -6px hsl(var(--foreground) / 0.5)'
-          : 'inset 0 1px 0 hsl(0 0% 100% / 0.18), 0 3px 8px -3px hsl(var(--primary) / 0.5)',
+          ? '0 0 0 2px hsl(var(--background)), 0 0 0 3px hsl(var(--primary)), 0 6px 14px -6px hsl(var(--primary) / 0.5)'
+          : 'inset 0 1px 0 hsl(0 0% 100% / 0.22), 0 3px 8px -3px hsl(var(--primary) / 0.5)',
         cursor: onClick ? 'pointer' : 'default',
         border: 0,
       }}
@@ -82,7 +74,6 @@ function Avatar({
   );
 }
 
-// ─── Shared menu body ───────────────────────────────────────────────────
 function MenuRow({
   icon: Icon, label, hint, onClick, danger, disabled, spinning,
 }: {
@@ -100,12 +91,12 @@ function MenuRow({
       onClick={onClick}
       disabled={disabled || spinning}
       className={cn(
-        'w-full flex items-center gap-3 px-2.5 py-2 text-[13px] text-left transition-colors',
-        danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground/85 hover:bg-foreground/5',
+        'w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left rounded-xl transition-colors',
+        danger ? 'text-destructive hover:bg-[hsl(var(--error-container))]' : 'text-foreground/90 hover:bg-[hsl(var(--on-surface)/0.08)]',
         (disabled || spinning) && 'opacity-50 cursor-not-allowed',
       )}
     >
-      <Icon className={cn('size-[15px] shrink-0', spinning && 'animate-spin')} />
+      <Icon className={cn('size-4 shrink-0', spinning && 'animate-spin')} />
       <span className="flex-1">{label}</span>
       {hint && <span className="mono text-[10px] text-muted-foreground tracking-[0.05em]">{hint}</span>}
     </button>
@@ -125,16 +116,16 @@ function UserMenuBody({
   return (
     <div className="p-1">
       <div className="px-3 pt-3 pb-2 flex items-center gap-3">
-        <Avatar size={36} ring label={email.slice(0, 2).toUpperCase()} />
+        <Avatar size={40} ring label={email.slice(0, 2).toUpperCase()} />
         <div className="min-w-0">
-          <div className="serif text-[14px] font-semibold leading-tight truncate">{email}</div>
+          <div className="serif text-sm font-semibold leading-tight truncate">{email}</div>
           <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">signed in</div>
         </div>
       </div>
-      <div className="sajni-sep my-1.5" />
+      <div className="sajni-sep my-2" />
       <MenuRow icon={Search} label="Search" hint="⌘K" onClick={onOpenCommand} />
       <MenuRow icon={Sparkles} label="Ask Sajni" onClick={onOpenChat} />
-      <div className="sajni-sep my-1.5" />
+      <div className="sajni-sep my-2" />
       <MenuRow icon={Settings} label="Settings" onClick={onSettings} />
       <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={onSignOut} />
     </div>
@@ -142,6 +133,9 @@ function UserMenuBody({
 }
 
 // ─── Desktop rail (≥768px) ──────────────────────────────────────────────
+// IMPORTANT: NavLinks are always mounted (never conditionally wrapped).
+// Conditional wrappers were re-mounting NavLink on every collapse/expand
+// toggle, which restarted page-fade-in / layoutId animations.
 function DesktopRail({
   expanded, setExpanded, onOpenCommand, onOpenChat, userMenuContent, initials, pathname,
 }: {
@@ -153,32 +147,24 @@ function DesktopRail({
   initials: string;
   pathname: string;
 }) {
-  const w = expanded ? 224 : 64;
+  const w = expanded ? 232 : 76;
   return (
     <aside
-      className="hidden md:flex h-[100dvh] sticky top-0 flex-col py-4 px-2.5 shrink-0 glass z-30"
-      style={{ width: w, transition: 'width 240ms cubic-bezier(.22,.61,.36,1)' }}
+      className="hidden md:flex h-[100dvh] sticky top-0 flex-col py-4 px-3 shrink-0 bg-[hsl(var(--surface-container-low))] border-r border-[hsl(var(--outline-variant))] z-30"
+      style={{ width: w, transition: 'width 280ms cubic-bezier(0.2, 0, 0, 1)' }}
     >
-      <div className={cn('flex items-center mb-4 px-1', expanded ? 'gap-2.5' : 'justify-center')}>
-        <span className="sajni-orb" aria-hidden="true" />
-        {expanded && (
-          <div className="min-w-0">
-            <div className="serif text-[15px] font-semibold leading-tight">sajni</div>
-            <div className="mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">codex</div>
-          </div>
-        )}
-      </div>
+      {/* Brand removed from rail — shown at bottom of SettingsPage instead. */}
 
       <button
         onClick={onOpenCommand}
         className={cn(
-          'mb-2 h-9 inline-flex items-center gap-2 border border-border bg-card/40 text-muted-foreground hover:bg-card/80 transition-colors text-[13px]',
-          expanded ? 'px-2.5' : 'justify-center w-9 self-center',
+          'mb-2 h-11 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm',
+          expanded ? 'px-3.5' : 'w-11 justify-center self-center',
         )}
         title="Ask anything · ⌘K"
         aria-label="Ask anything"
       >
-        <Search className="size-3.5 shrink-0" />
+        <Search className="size-[18px] shrink-0" />
         {expanded && (
           <>
             <span className="flex-1 text-left">Ask anything</span>
@@ -190,16 +176,16 @@ function DesktopRail({
       <button
         onClick={onOpenChat}
         className={cn(
-          'mb-3 h-9 inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:bg-foreground/5 transition-colors',
-          expanded ? 'px-2.5' : 'justify-center w-9 self-center',
+          'mb-4 h-11 inline-flex items-center gap-2 rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors',
+          expanded ? 'px-3.5' : 'w-11 justify-center self-center',
         )}
         aria-label="Ask Sajni"
       >
-        <MessageSquare className="size-3.5 shrink-0" />
+        <MessageSquare className="size-[18px] shrink-0" />
         {expanded && (
           <>
             <span className="flex-1 text-left">Ask Sajni</span>
-            <span className="mono text-[9px] uppercase tracking-wider px-1 py-0.5 bg-primary/15 text-primary inline-flex items-center gap-1">
+            <span className="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1">
               <Sparkles className="size-2.5" /> AI
             </span>
           </>
@@ -207,57 +193,54 @@ function DesktopRail({
       </button>
 
       {expanded && (
-        <div className="mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground px-2 mb-1">
+        <div className="mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground px-3 mb-1 mt-1">
           places
         </div>
       )}
 
-      <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto pr-0.5">
+      <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-0.5">
         {NAV_ITEMS.map(({ path, label, Icon }) => {
           const isActive = path === '/'
             ? pathname === '/'
             : pathname === path || pathname.startsWith(path + '/');
-
-          const link = (
+          return (
             <NavLink
+              key={path}
               to={path}
               end={path === '/'}
+              title={!expanded ? label : undefined}
               className={cn(
-                'relative flex items-center gap-3 h-[34px] text-[13px] font-normal transition-colors',
-                expanded ? 'px-3' : 'justify-center',
-                isActive ? 'text-primary-foreground' : 'text-foreground/80 hover:bg-foreground/5',
+                'relative flex items-center h-11 rounded-full text-sm font-medium transition-colors',
+                expanded ? 'gap-3 px-3.5' : 'w-11 justify-center self-center',
+                isActive
+                  ? 'text-[hsl(var(--on-secondary-container))]'
+                  : 'text-foreground/85 hover:bg-[hsl(var(--on-surface)/0.06)]',
               )}
             >
               {isActive && (
                 <motion.span
                   layoutId="rail-active"
-                  className="absolute inset-0 bg-primary -z-0"
+                  className="absolute inset-0 rounded-full bg-[hsl(var(--secondary-container))] -z-0"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
-              <Icon className="size-[15px] shrink-0 relative z-10" />
-              {expanded && <span className="truncate relative z-10">{label}</span>}
+              <Icon className="size-[18px] shrink-0 relative z-10" strokeWidth={isActive ? 2.2 : 1.7} />
+              {expanded && (
+                <span className="truncate relative z-10">{label}</span>
+              )}
             </NavLink>
-          );
-
-          if (expanded) return <div key={path}>{link}</div>;
-          return (
-            <Tooltip key={path}>
-              <TooltipTrigger render={link} />
-              <TooltipContent side="right" className="text-xs">{label}</TooltipContent>
-            </Tooltip>
           );
         })}
       </nav>
 
-      <div className="mt-2 pt-2.5 border-t border-border">
+      <div className="mt-2 pt-3 border-t border-[hsl(var(--outline-variant))]">
         {expanded ? (
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
                   <button
-                    className="flex-1 min-w-0 flex items-center gap-2.5 px-2 py-1.5 text-left hover:bg-foreground/5 transition-colors"
+                    className="flex-1 min-w-0 flex items-center gap-2.5 px-2.5 py-2 rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
                     title="Account"
                   >
                     <Avatar size={28} label={initials} />
@@ -273,26 +256,26 @@ function DesktopRail({
             </DropdownMenu>
             <button
               onClick={() => setExpanded(false)}
-              className="size-[28px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+              className="size-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors shrink-0"
               title="Collapse"
             >
-              <PanelLeftClose className="size-[14px]" />
+              <PanelLeftClose className="size-4" />
             </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
             <DropdownMenu>
-              <DropdownMenuTrigger render={<button><Avatar size={28} label={initials} /></button>} />
+              <DropdownMenuTrigger render={<button className="rounded-full"><Avatar size={32} label={initials} /></button>} />
               <DropdownMenuContent align="start" side="right" sideOffset={8} className="w-[280px]">
                 {userMenuContent}
               </DropdownMenuContent>
             </DropdownMenu>
             <button
               onClick={() => setExpanded(true)}
-              className="size-[28px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+              className="size-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
               title="Expand"
             >
-              <PanelLeft className="size-[14px]" />
+              <PanelLeft className="size-4" />
             </button>
           </div>
         )}
@@ -301,7 +284,7 @@ function DesktopRail({
   );
 }
 
-// ─── Bottom tabbar (<768px) ─────────────────────────────────────────────
+// ─── Bottom tabbar (<768px) — M3 NavigationBar style ────────────────────
 function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; pathname: string }) {
   const tabs = NAV_ITEMS.filter((i) => PRIMARY_MOBILE.has(i.path));
   return (
@@ -317,20 +300,20 @@ function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; path
             end={path === '/'}
             aria-selected={isActive}
             className={cn(
-              'group relative flex flex-col items-center justify-center gap-1 px-1 py-1.5',
-              'text-[10px] uppercase tracking-[0.12em] font-mono',
-              'border-r border-border last:border-r-0',
-              isActive ? 'text-primary' : 'text-muted-foreground',
+              'group relative flex flex-col items-center justify-center gap-1 px-1 py-2',
+              'text-[10px] tracking-[0.02em] font-medium',
+              isActive ? 'text-[hsl(var(--on-secondary-container))]' : 'text-muted-foreground',
             )}
           >
             <span
               aria-hidden="true"
               className={cn(
-                'absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-7 bg-primary transition-opacity',
-                isActive ? 'opacity-100' : 'opacity-0',
+                'relative inline-flex items-center justify-center h-8 w-16 rounded-full transition-[background-color] duration-200',
+                isActive ? 'bg-[hsl(var(--secondary-container))]' : 'bg-transparent',
               )}
-            />
-            <Icon className="size-[18px]" strokeWidth={1.5} />
+            >
+              <Icon className="size-[22px]" strokeWidth={isActive ? 2 : 1.6} />
+            </span>
             <span>{label}</span>
           </NavLink>
         );
@@ -338,9 +321,11 @@ function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; path
       <button
         type="button"
         onClick={onMoreClick}
-        className="flex flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] uppercase tracking-[0.12em] font-mono text-muted-foreground"
+        className="flex flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] tracking-[0.02em] font-medium text-muted-foreground"
       >
-        <MoreHorizontal className="size-[18px]" strokeWidth={1.5} />
+        <span className="relative inline-flex items-center justify-center h-8 w-16 rounded-full">
+          <MoreHorizontal className="size-[22px]" strokeWidth={1.6} />
+        </span>
         <span>More</span>
       </button>
     </nav>
@@ -434,32 +419,30 @@ export default function Layout() {
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
               <SheetContent
                 side="bottom"
-                className="max-h-[92dvh] overflow-y-auto border-t border-border bg-popover px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+                className="max-h-[92dvh] overflow-y-auto px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
               >
-                <div className="mx-auto mb-3 h-[3px] w-9 bg-muted-foreground/35" aria-hidden="true" />
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[hsl(var(--outline))]" aria-hidden="true" />
 
-                {/* Account header — avatar + email up top */}
                 <div className="flex items-center gap-3 px-3 pb-3">
-                  <Avatar size={40} ring label={initials} />
+                  <Avatar size={44} ring label={initials} />
                   <div className="min-w-0">
-                    <div className="serif text-[15px] font-semibold leading-tight truncate">{email}</div>
+                    <div className="serif text-base font-semibold leading-tight truncate">{email}</div>
                     <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-0.5">signed in</div>
                   </div>
                 </div>
 
-                {/* Quick actions */}
-                <div className="flex gap-2 px-3 mb-3">
+                <div className="flex gap-2 px-3 mb-4">
                   <button
                     onClick={() => { setMoreOpen(false); openCommand(); }}
-                    className="flex-1 h-10 inline-flex items-center justify-center gap-2 border border-border bg-card/40 text-[13px]"
+                    className="flex-1 h-12 inline-flex items-center justify-center gap-2 rounded-full bg-[hsl(var(--surface-container-high))] text-sm font-medium"
                   >
-                    <Search className="size-3.5" /> Search
+                    <Search className="size-4" /> Search
                   </button>
                   <button
                     onClick={() => { setMoreOpen(false); setAiChatOpen(true); }}
-                    className="flex-1 h-10 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground text-[13px]"
+                    className="flex-1 h-12 inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-medium"
                   >
-                    <Sparkles className="size-3.5" /> Ask Sajni
+                    <Sparkles className="size-4" /> Ask Sajni
                   </button>
                 </div>
 
@@ -473,13 +456,13 @@ export default function Layout() {
                           key={path}
                           onClick={() => { navigate(path); setMoreOpen(false); }}
                           className={cn(
-                            'flex flex-col items-center justify-center gap-2 px-1.5 py-4 text-[12px] font-normal border transition-colors',
+                            'flex flex-col items-center justify-center gap-2 px-1.5 py-4 text-xs font-medium rounded-2xl transition-colors',
                             isActive
-                              ? 'bg-primary/15 border-primary/40 text-primary'
-                              : 'bg-card/40 border-border text-foreground/85 hover:bg-card/80',
+                              ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                              : 'bg-[hsl(var(--surface-container))] text-foreground/85 hover:bg-[hsl(var(--surface-container-high))]',
                           )}
                         >
-                          <Icon className="size-5" />
+                          <Icon className="size-5" strokeWidth={isActive ? 2 : 1.7} />
                           {label}
                         </button>
                       );
@@ -492,16 +475,16 @@ export default function Layout() {
                 <div className="px-3 flex items-center gap-2">
                   <button
                     onClick={() => { setMoreOpen(false); goSettings(); }}
-                    className="flex-1 h-10 inline-flex items-center justify-center gap-2 border border-border bg-card/40 text-[13px]"
+                    className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-full bg-[hsl(var(--surface-container-high))] text-sm font-medium"
                   >
-                    <Settings className="size-3.5" /> Settings
+                    <Settings className="size-4" /> Settings
                   </button>
                   <button
                     onClick={onSignOut}
                     disabled={signingOut}
-                    className="flex-1 h-10 inline-flex items-center justify-center gap-2 border border-destructive/30 bg-destructive/10 text-destructive text-[13px] disabled:opacity-50"
+                    className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-full bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] text-sm font-medium disabled:opacity-50"
                   >
-                    {signingOut ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />}
+                    {signingOut ? <M3CookieLoader size="sm" tone="primary" className="!bg-[hsl(var(--on-error-container))]" /> : <LogOut className="size-4" />}
                     {signingOut ? 'Signing out…' : 'Sign out'}
                   </button>
                 </div>

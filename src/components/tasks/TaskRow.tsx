@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, Loader2, ListChecks,
+  Star, ChevronRight, Plus, ListChecks,
 } from 'lucide-react';
+import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskStep } from '@/types';
 import TagPill from '@/components/TagPill';
@@ -185,7 +186,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
             <div className="flex flex-col gap-1 mt-1">
               {loadingSubs && (
                 <div className="text-xs text-muted-foreground flex items-center gap-2 px-3 py-1.5">
-                  <Loader2 className="size-3 animate-spin" /> Loading…
+                  <M3CookieLoader size="sm" tone="secondary" /> Loading…
                 </div>
               )}
 

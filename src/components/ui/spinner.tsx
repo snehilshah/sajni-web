@@ -1,9 +1,17 @@
 import { cn } from "@/lib/utils"
-import { Loader2Icon } from "lucide-react"
 
-function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
+/**
+ * Generic loading spinner. M3 Expressive cookie loader under the hood;
+ * any consumer of `<Spinner />` gets the same morphing indicator the
+ * rest of the app uses.
+ */
+function Spinner({ className }: { className?: string }) {
   return (
-    <Loader2Icon role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <span
+      role="status"
+      aria-label="Loading"
+      className={cn("m3-cookie m3-cookie-sm", className)}
+    />
   )
 }
 

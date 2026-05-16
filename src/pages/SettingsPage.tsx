@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Sun, Moon, Monitor, Type, LogOut, Loader2, Palette } from 'lucide-react';
+import { Sun, Moon, Monitor, Type, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
-import { useMode, useDensity, useTheme, type ModePref, type Density, type ThemeName } from '@/hooks/useThemePrefs';
+import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
 
 function Section({ title, caption, children }: { title: string; caption?: string; children: React.ReactNode }) {
@@ -28,10 +28,10 @@ function Choice<T extends string>({
     <button
       onClick={() => onSelect(value)}
       className={cn(
-        'h-10 px-4 inline-flex items-center justify-center gap-2 border text-sm capitalize',
+        'h-10 px-5 inline-flex items-center justify-center gap-2 border text-sm capitalize rounded-full transition-colors',
         active
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-transparent border-border text-foreground/80 hover:bg-foreground/5',
+          ? 'bg-primary text-primary-foreground border-primary shadow-[var(--m3-elev-1)]'
+          : 'bg-transparent border-[hsl(var(--outline))] text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.06)]',
       )}
     >
       {Icon && <Icon className="size-3.5" />}
@@ -51,9 +51,9 @@ export default function SettingsPage() {
     <div className="page-fade-in flex-1 overflow-y-auto">
       <div className="max-w-2xl mx-auto px-5 md:px-10 pt-10 pb-24">
         <header className="mb-8">
-          <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground mb-2">codex preferences</div>
-          <h1 className="serif text-4xl md:text-5xl font-normal tracking-tight">Settings</h1>
-          <p className="serif italic text-base text-muted-foreground mt-1">Tune how the codex looks and feels.</p>
+          <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground mb-2">preferences</div>
+          <h1 className="serif text-4xl md:text-5xl font-medium tracking-tight">Settings</h1>
+          <p className="text-base text-muted-foreground mt-1">Tune how Sajni looks and feels.</p>
         </header>
 
         <Section title="Appearance" caption="Light, dark, or follow the OS.">
@@ -73,10 +73,10 @@ export default function SettingsPage() {
                   key={t.id}
                   onClick={() => setTheme(t.id)}
                   className={cn(
-                    'h-10 px-4 inline-flex items-center gap-2 border text-sm',
+                    'h-10 px-5 inline-flex items-center gap-2 border text-sm rounded-full transition-colors',
                     active
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-transparent border-border text-foreground/80 hover:bg-foreground/5',
+                      ? 'bg-primary text-primary-foreground border-primary shadow-[var(--m3-elev-1)]'
+                      : 'bg-transparent border-[hsl(var(--outline))] text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.06)]',
                   )}
                 >
                   <span>{t.emoji}</span>
@@ -110,11 +110,22 @@ export default function SettingsPage() {
                 finally { setSigningOut(false); }
               }}
             >
-              {signingOut ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />}
+              {signingOut ? <M3CookieLoader size="xs" tone="primary" className="!bg-destructive-foreground" /> : <LogOut className="size-3.5" />}
               {signingOut ? 'Signing out…' : 'Sign out'}
             </Button>
           </div>
         </Section>
+
+        {/* Brand mark — moved here from the rail. */}
+        <div className="border-t border-border mt-10 pt-8 flex items-center gap-3 opacity-80">
+          <span className="sajni-orb" aria-hidden="true" />
+          <div>
+            <div className="serif text-base font-semibold leading-tight">sajni</div>
+            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">
+              your second brain · v1
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -68,18 +68,18 @@ function CommandInput({
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div data-slot="command-input-wrapper" className="p-1">
-      <InputGroup className="border-transparent border-b-input bg-transparent px-3">
+    <div data-slot="command-input-wrapper" className="p-2">
+      <InputGroup className="border-transparent border-b-[hsl(var(--outline-variant))] bg-transparent px-4 py-1.5">
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            "w-full px-2 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            "w-full px-3 py-2.5 text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground",
             className
           )}
           {...props}
         />
         <InputGroupAddon>
-          <SearchIcon className="size-3.5 shrink-0 opacity-50" />
+          <SearchIcon className="size-4 shrink-0 opacity-60" />
         </InputGroupAddon>
       </InputGroup>
     </div>
@@ -123,7 +123,7 @@ function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        "overflow-hidden p-1.5 text-foreground **:[[cmdk-group-heading]]:px-3 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:tracking-wider **:[[cmdk-group-heading]]:text-muted-foreground **:[[cmdk-group-heading]]:uppercase",
+        "overflow-hidden p-1.5 text-foreground **:[[cmdk-group-heading]]:px-3 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-[11px] **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:tracking-[0.08em] **:[[cmdk-group-heading]]:text-muted-foreground **:[[cmdk-group-heading]]:uppercase",
         className
       )}
       {...props}
@@ -153,7 +153,7 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex cursor-default items-center gap-2 rounded-none px-3 py-2 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 data-selected:*:[svg]:text-foreground",
+        "group/command-item relative flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2 text-sm outline-hidden select-none transition-colors data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-[hsl(var(--secondary-container))] data-selected:text-[hsl(var(--on-secondary-container))] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-current",
         className
       )}
       {...props}

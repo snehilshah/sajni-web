@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { uploads, notes as notesApi } from '@/api';
 import { WikiLink, TagSuggest } from './wikilink';
 import { SlashCommand } from './slashMenu';
+import { TimeChip, TimeChipSuggest } from './timeChip';
 
 import {
   Bold, Italic, Strikethrough, Code, Link2, List, ListOrdered, ListChecks,
@@ -47,6 +48,8 @@ export default function RichEditor({
     WikiLink,
     TagSuggest,
     SlashCommand,
+    TimeChip,
+    TimeChipSuggest,
     Placeholder.configure({
       placeholder: ({ node, editor: ed, pos }) => {
         // Show only on the first empty paragraph

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type ThemeName = 'default' | 'gruvbox' | 'catppuccin' | 'rose-pine';
+export type ThemeName = 'default' | 'warm';
 export type ModePref = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact' | 'cozy';
 
@@ -9,10 +9,8 @@ const LS_MODE    = 'sajni:mode';
 const LS_DENSITY = 'sajni:density';
 
 export const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
-  { id: 'default',    label: 'Codex',             emoji: '📜' },
-  { id: 'gruvbox',    label: 'Gruvbox Material',   emoji: '🌿' },
-  { id: 'catppuccin', label: 'Catppuccin Mocha',   emoji: '🐱' },
-  { id: 'rose-pine',  label: 'Rosé Pine',          emoji: '🌸' },
+  { id: 'default', label: 'Marine',     emoji: '🌊' },
+  { id: 'warm',    label: 'Terracotta', emoji: '🌅' },
 ];
 
 function read<T extends string>(key: string, fallback: T): T {
@@ -28,9 +26,11 @@ function applyMode(modePref: ModePref) {
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<ThemeName>(() => read<ThemeName>(LS_THEME, 'default'));
+  const [theme, setTheme] = useState<ThemeName>(() => {
+    const stored = read<ThemeName>(LS_THEME, 'default');
+    return (stored === 'default' || stored === 'warm') ? stored : 'default';
+  });
 
-  // Apply theme on mount and whenever it changes.
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);

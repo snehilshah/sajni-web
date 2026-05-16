@@ -19,6 +19,7 @@ import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel,
 } from '@/components/tasks/helpers';
 import PageShell from '@/components/PageShell';
+import { SplitButton } from '@/components/ui/split-button';
 
 type ViewMode = 'list' | 'board';
 
@@ -149,22 +150,16 @@ export default function TasksPage() {
       actions={
         !isMobile ? (
           <div className="inline-flex items-center gap-2">
-            <div className="inline-flex border border-border overflow-hidden h-8">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                title="List view"
-              >
-                <ListChecks className="size-3.5" /> List
-              </button>
-              <button
-                onClick={() => setViewMode('board')}
-                className={`px-3 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Board view"
-              >
-                <LayoutGrid className="size-3.5" /> Board
-              </button>
-            </div>
+            <SplitButton
+              size="sm"
+              value={viewMode}
+              options={[
+                { value: 'list',  label: 'List',  icon: ListChecks },
+                { value: 'board', label: 'Board', icon: LayoutGrid },
+              ]}
+              onChange={(v) => setViewMode(v as ViewMode)}
+              onPrimary={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
+            />
             <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
               <Plus className="size-3.5" /> New task
             </Button>

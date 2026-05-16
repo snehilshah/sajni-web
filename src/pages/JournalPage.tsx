@@ -250,17 +250,19 @@ export default function JournalPage() {
               <button
                 key={t.id}
                 onClick={() => completeTask(t.id)}
-                className="group flex items-start gap-2 text-left"
+                className="group flex items-start gap-2.5 text-left"
                 title="Mark done"
               >
-                <span className="mt-0.5 size-[13px] border border-muted-foreground/60 group-hover:border-primary shrink-0" />
+                <span className="mt-[3px] size-[16px] rounded-[3px] border-2 border-[hsl(var(--on-surface-variant))] group-hover:border-primary shrink-0 transition-colors" />
                 <span className="flex-1 text-[12.5px] text-foreground/85 leading-snug">{t.title}</span>
               </button>
             ))}
             {completedTasks.map((t) => (
-              <div key={t.id} className="flex items-start gap-2">
-                <span className="mt-0.5 size-[13px] bg-primary border border-primary shrink-0 inline-flex items-center justify-center">
-                  <CheckSquare className="size-[9px] text-primary-foreground" />
+              <div key={t.id} className="flex items-start gap-2.5">
+                <span className="mt-[3px] size-[16px] rounded-[3px] bg-primary border-2 border-primary shrink-0 inline-flex items-center justify-center text-primary-foreground">
+                  <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="10 3 5 8.5 2 6" />
+                  </svg>
                 </span>
                 <span className="flex-1 text-[12.5px] line-through text-muted-foreground leading-snug">{t.title}</span>
               </div>
@@ -300,14 +302,18 @@ export default function JournalPage() {
                 className="group flex items-center gap-2.5 text-left"
               >
                 <span
-                  className="size-4 border inline-flex items-center justify-center shrink-0 transition-colors"
+                  className="size-[18px] rounded-[3px] border-2 inline-flex items-center justify-center shrink-0 transition-[background-color,border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
                   style={{
                     background: h.logged ? h.color : 'transparent',
-                    borderColor: h.logged ? h.color : 'hsl(var(--muted-foreground) / 0.5)',
-                    color: 'hsl(var(--primary-foreground))',
+                    borderColor: h.logged ? h.color : 'hsl(var(--on-surface-variant))',
+                    color: '#fff',
                   }}
                 >
-                  {h.logged && <CheckSquare className="size-2.5" />}
+                  {h.logged && (
+                    <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="10 3 5 8.5 2 6" />
+                    </svg>
+                  )}
                 </span>
                 <span className="flex-1 text-[12.5px] text-foreground/85">{h.name}</span>
               </button>
@@ -336,58 +342,59 @@ export default function JournalPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden page-fade-in">
-      {/* Editor pane (CENTER — left rail = entries, right margin = context). */}
-      <div className="flex-1 flex flex-col min-w-0 order-2">
-        {/* Top navbar — kept minimal */}
-        <header className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16">
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <SaveStatus state={savingState} onSave={() => performSave()} />
-          </div>
-          <div className="flex gap-0.5 items-center shrink-0">
-            {entryDates.has(selectedDate) && (
-              <Button variant="ghost" size="icon-sm" onClick={deleteEntry} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete entry">
-                <Trash2 className="size-4" />
-              </Button>
-            )}
-            <Button
-              variant="ghost" size="icon-sm"
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="hidden md:flex shrink-0"
-              title={sidebarOpen ? 'Hide journal' : 'Show journal'}
-            >
-              {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
-            </Button>
-            <Button
-              variant="ghost" size="icon-sm"
-              onClick={() => isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v)}
-              className="shrink-0"
-              title={isMobile ? 'Show context' : (marginOpen ? 'Hide context' : 'Show context')}
-            >
-              {marginOpen && !isMobile ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
-            </Button>
-          </div>
-        </header>
-
-        {/* Date nav row — separate from navbar, no clutter on mobile */}
-        <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-border/60 bg-background/60">
-          <Button variant="ghost" size="icon-sm" onClick={goPrev} title="Previous day" className="shrink-0">
-            <ChevronLeft className="size-4" />
+    <div className="flex flex-col h-screen overflow-hidden page-fade-in">
+      {/* App-consistent full-width header. Vault (left) + context (right)
+          panels live BELOW this header so chrome is continuous. */}
+      <header className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16 shrink-0">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <Button
+            variant="ghost" size="icon-sm"
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="hidden md:flex shrink-0"
+            title={sidebarOpen ? 'Hide journal' : 'Show journal'}
+          >
+            {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
           </Button>
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <Breadcrumb dateObj={dateObj} />
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={goNext} title="Next day" className="shrink-0">
-            <ChevronRight className="size-4" />
-          </Button>
-          {!isToday && (
-            <Button variant="ghost" size="sm" onClick={goToday} className="text-xs ml-1 shrink-0">
-              Today
+          <SaveStatus state={savingState} onSave={() => performSave()} />
+        </div>
+        <div className="flex gap-0.5 items-center shrink-0">
+          {entryDates.has(selectedDate) && (
+            <Button variant="ghost" size="icon-sm" onClick={deleteEntry} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete entry">
+              <Trash2 className="size-4" />
             </Button>
           )}
+          <Button
+            variant="ghost" size="icon-sm"
+            onClick={() => isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v)}
+            className="shrink-0"
+            title={isMobile ? 'Show context' : (marginOpen ? 'Hide context' : 'Show context')}
+          >
+            {marginOpen && !isMobile ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
+          </Button>
         </div>
+      </header>
 
-        <div className="flex-1 overflow-y-auto">
+      {/* Date nav — also full-width, beneath the header. */}
+      <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-border/60 bg-background/60 shrink-0">
+        <Button variant="ghost" size="icon-sm" onClick={goPrev} title="Previous day" className="shrink-0">
+          <ChevronLeft className="size-4" />
+        </Button>
+        <div className="flex-1 min-w-0 flex items-center justify-center">
+          <Breadcrumb dateObj={dateObj} />
+        </div>
+        <Button variant="ghost" size="icon-sm" onClick={goNext} title="Next day" className="shrink-0">
+          <ChevronRight className="size-4" />
+        </Button>
+        {!isToday && (
+          <Button variant="ghost" size="sm" onClick={goToday} className="text-xs ml-1 shrink-0">
+            Today
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Editor pane (CENTER) */}
+        <div className="flex-1 flex flex-col min-w-0 order-2 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5">
             {/* Date title — Obsidian-style serif hero per the design. */}
             <div>
@@ -457,7 +464,6 @@ export default function JournalPage() {
 
           </div>
         </div>
-      </div>
 
       {/* Right margin — context dock (desktop) */}
       <AnimatePresence initial={false} mode="popLayout">
@@ -605,6 +611,7 @@ export default function JournalPage() {
         )}
       </AnimatePresence>
 
+      </div>
     </div>
   );
 }
@@ -688,7 +695,7 @@ function CalendarGrid({ viewMonth, selectedDate, entryDates, onPick }: {
 
 function SaveStatus({ state, onSave }: { state: 'idle' | 'saving' | 'saved'; onSave: () => void }) {
   if (state === 'saving') {
-    return <span className="flex items-center gap-1.5 text-xs text-muted-foreground px-2"><Loader2 className="size-3.5 animate-spin" />Saving</span>;
+    return <span className="flex items-center gap-1.5 text-xs text-muted-foreground px-2"><M3CookieLoader size="xs" tone="primary" />Saving</span>;
   }
   if (state === 'saved') {
     return <span className="flex items-center gap-1.5 text-xs text-primary px-2"><Save className="size-3.5" />Saved</span>;

@@ -1,0 +1,117 @@
+import * as React from 'react';
+import { ChevronDown } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+/**
+ * M3 Expressive Split Button.
+ *
+ *  ┌────────────────┬───┐
+ *  │  Primary       │ ⌄ │
+ *  └────────────────┴───┘
+ *
+ *  Left segment = primary action (most common choice).
+ *  Right segment = chevron that opens a menu of alternatives.
+ *  Both segments share a pill body — the chevron rotates 180° on press
+ *  for an expressive flourish.
+ */
+
+export interface SplitButtonOption<V extends string = string> {
+  value: V;
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+}
+
+export interface SplitButtonProps<V extends string = string> {
+  value: V;
+  options: SplitButtonOption<V>[];
+  onChange: (v: V) => void;
+  onPrimary?: () => void;
+  className?: string;
+  size?: 'sm' | 'default';
+  /**
+   * tonal | filled | outlined — defaults to tonal (M3 secondary-container).
+   */
+  variant?: 'tonal' | 'filled' | 'outlined';
+}
+
+export function SplitButton<V extends string = string>({
+  value, options, onChange, onPrimary, className, size = 'default', variant = 'tonal',
+}: SplitButtonProps<V>) {
+  const [open, setOpen] = React.useState(false);
+  const current = options.find((o) => o.value === value) ?? options[0];
+  const Icon = current?.icon;
+
+  const h = size === 'sm' ? 'h-9' : 'h-11';
+  const px = size === 'sm' ? 'px-3' : 'px-4';
+
+  const bgClasses =
+    variant === 'filled'   ? 'bg-primary text-primary-foreground hover:brightness-105' :
+    variant === 'outlined' ? 'border border-[hsl(var(--outline))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]' :
+                              'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97]';
+
+  const divider =
+    variant === 'filled'   ? 'bg-primary-foreground/30' :
+    variant === 'outlined' ? 'bg-[hsl(var(--outline))]' :
+                              'bg-[hsl(var(--on-secondary-container))]/20';
+
+  return (
+    <div className={cn('relative inline-flex shrink-0', className)}>
+      <button
+        type="button"
+        onClick={onPrimary ?? (() => setOpen(true))}
+        className={cn(
+          'inline-flex items-center gap-2 rounded-l-full font-medium text-sm tracking-[0.005em] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97]',
+          h, px, bgClasses,
+        )}
+        title={current?.label}
+      >
+        {Icon && <Icon className="size-4" />}
+        <span className="whitespace-nowrap">{current?.label}</span>
+      </button>
+      <span className={cn('w-px self-center', divider)} style={{ height: '60%' }} />
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger
+          render={
+            <button
+              type="button"
+              className={cn(
+                'inline-flex items-center justify-center rounded-r-full transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.95]',
+                h, size === 'sm' ? 'w-9' : 'w-11',
+                bgClasses,
+              )}
+              aria-label="More options"
+            >
+              <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 360, damping: 28 }}>
+                <ChevronDown className="size-4" />
+              </motion.span>
+            </button>
+          }
+        />
+        <DropdownMenuContent align="end" sideOffset={6} className="min-w-44">
+          {options.map((o) => {
+            const O = o.icon;
+            return (
+              <DropdownMenuItem
+                key={o.value}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                data-active={o.value === value}
+              >
+                {O && <O className="size-4 mr-1.5 opacity-80" />}
+                {o.label}
+                {o.value === value && <span className="ml-auto mono text-[10px] text-muted-foreground">●</span>}
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}

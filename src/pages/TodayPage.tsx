@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Loader2 } from 'lucide-react';
+import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { tasks as tasksApi, habits as habitsApi, memos as memosApi, journal as journalApi } from '@/api';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import type { Task, Habit } from '@/types';
 
 interface Memo {
@@ -233,7 +234,7 @@ export default function TodayPage() {
 					onKeyDown={onCaptureKey}
 					placeholder="A thought, a task, a #tag… anything."
 					rows={2}
-					className="w-full resize-none bg-transparent border-0 outline-none text-base leading-[1.5] text-foreground placeholder:text-muted-foreground/60"
+					className="w-full resize-none bg-transparent border-0 outline-none text-base leading-[1.55] text-foreground placeholder:text-muted-foreground/60 px-3 py-3 min-h-[72px] rounded-lg focus:bg-[hsl(var(--on-surface)/0.04)] transition-colors"
 				/>
 				<div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
 					<div className="flex gap-1.5">
@@ -264,7 +265,7 @@ export default function TodayPage() {
 						disabled={!capture.trim() || saving}
 						className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
 					>
-						{saving ? <Loader2 className="size-3.5 animate-spin" /> : null}
+						{saving ? <M3CookieLoader size="sm" tone="primary" className="!bg-primary-foreground" /> : null}
 						Save
 						<kbd className="mono text-[10px] px-1 py-px rounded bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground/85">
 							⌘↵

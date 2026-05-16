@@ -9,6 +9,7 @@ import { tasks as tasksApi, type TaskHistoryEntry } from '@/api';
 import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -207,11 +208,10 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
 
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={form.due_date}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                className="h-9"
+                onChange={(v) => setForm({ ...form, due_date: v })}
+                placeholder="No date"
               />
             </div>
 
@@ -301,7 +301,7 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
-            {saving && <Loader2 className="size-3.5 animate-spin" />}
+            {saving && <M3CookieLoader size="xs" tone="primary" className="!bg-primary-foreground" />}
             {editing ? 'Save' : 'Create task'}
           </Button>
         </DialogFooter>

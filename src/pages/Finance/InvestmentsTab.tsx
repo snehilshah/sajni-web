@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from
 import { finance, type FinAccount, type FinInvestment } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -266,10 +267,10 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             </Field>
           )}
           <Field label="Start date">
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DatePicker value={startDate} onChange={setStartDate} />
           </Field>
           <Field label="Maturity date">
-            <Input type="date" value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} />
+            <DatePicker value={maturityDate} onChange={setMaturityDate} />
           </Field>
           <Field label="Expected return %">
             <Input type="number" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 12" />

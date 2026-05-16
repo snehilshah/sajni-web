@@ -6,6 +6,7 @@ import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X } 
 import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -330,7 +331,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             <Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
           <Field label="Date">
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DatePicker value={date} onChange={setDate} />
           </Field>
           <Field label="Description" className="col-span-2">
             <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional notes" />

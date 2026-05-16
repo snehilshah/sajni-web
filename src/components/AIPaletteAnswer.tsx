@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { M3CookieLoader } from '@/components/ui/shapes';
 
 import { ai, type AIEvent } from '@/api';
 
@@ -163,8 +164,8 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
                 </div>
               ) : streaming ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" /> Thinking…
+                <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <M3CookieLoader size="sm" tone="tertiary" /> Thinking…
                 </div>
               ) : (
                 !error && (
@@ -228,7 +229,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
               className="self-start mt-1 inline-flex items-center gap-1.5 text-xs text-primary hover:underline disabled:opacity-50"
             >
               {adopting ? (
-                <><Loader2 className="size-3 animate-spin" /> Opening chat…</>
+                <><M3CookieLoader size="xs" tone="tertiary" /> Opening chat…</>
               ) : (
                 <>Continue in chat <ArrowRight className="size-3" /></>
               )}

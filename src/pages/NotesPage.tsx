@@ -389,66 +389,69 @@ export default function NotesPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden page-fade-in">
-      {/* Desktop sidebar */}
-      <AnimatePresence initial={false} mode="popLayout">
-        {sidebarOpen && (
-          <motion.aside
-            key="sidebar"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-            className="hidden md:flex border-r border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden"
+    <div className="flex flex-col h-screen overflow-hidden page-fade-in">
+      {/* App-consistent full-width header — vault toggle + breadcrumb +
+          save / move / delete actions. Page body (vault + editor) lives
+          BELOW this header so the chrome stays uninterrupted. */}
+      <header className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16 shrink-0">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <Button
+            variant="ghost" size="icon-sm"
+            onClick={() => isMobile ? setMobileTreeOpen(true) : setSidebarOpen((v) => !v)}
+            className="shrink-0"
+            title={isMobile ? 'Open vault' : (sidebarOpen ? 'Hide vault' : 'Show vault')}
           >
-            {treeBody}
-          </motion.aside>
-        )}
-      </AnimatePresence>
+            {sidebarOpen && !isMobile ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
+          </Button>
+          <Breadcrumb segments={breadcrumb} title={selectedId ? (title || 'Untitled') : 'New note'} />
+        </div>
+        <div className="flex gap-1.5 items-center shrink-0">
+          <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
+          {selectedId && (
+            <>
+              <Button variant="ghost" size="icon-sm" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
+                <FolderMoveIcon className="size-4" />
+              </Button>
+              <Button variant="ghost" size="icon-sm" onClick={handleDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">
+                <Trash2 className="size-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </header>
 
-      {/* Mobile sidebar — left sheet */}
-      <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
-        <SheetContent
-          side="left"
-          className="md:hidden w-[86vw] max-w-[320px] p-0 bg-sidebar text-sidebar-foreground flex flex-col"
-        >
-          <SheetHeader className="p-3 pt-12">
-            <SheetTitle className="serif text-base normal-case tracking-tight">Vault</SheetTitle>
-          </SheetHeader>
-          {treeBody}
-        </SheetContent>
-      </Sheet>
-
-      {/* Editor pane */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16">
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <Button
-              variant="ghost" size="icon-sm"
-              onClick={() => isMobile ? setMobileTreeOpen(true) : setSidebarOpen((v) => !v)}
-              className="shrink-0"
-              title={isMobile ? 'Open vault' : (sidebarOpen ? 'Hide vault' : 'Show vault')}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Desktop vault sidebar */}
+        <AnimatePresence initial={false} mode="popLayout">
+          {sidebarOpen && (
+            <motion.aside
+              key="sidebar"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 280, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+              className="hidden md:flex border-r border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden"
             >
-              {sidebarOpen && !isMobile ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
-            </Button>
-            <Breadcrumb segments={breadcrumb} title={selectedId ? (title || 'Untitled') : 'New note'} />
-          </div>
-          <div className="flex gap-1.5 items-center shrink-0">
-            <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
-            {selectedId && (
-              <>
-                <Button variant="ghost" size="icon-sm" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
-                  <FolderMoveIcon className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" onClick={handleDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">
-                  <Trash2 className="size-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        </header>
+              {treeBody}
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Mobile vault — left sheet */}
+        <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
+          <SheetContent
+            side="left"
+            className="md:hidden w-[86vw] max-w-[320px] p-0 bg-sidebar text-sidebar-foreground flex flex-col"
+          >
+            <SheetHeader className="p-3 pt-12">
+              <SheetTitle className="serif text-base normal-case tracking-tight">Vault</SheetTitle>
+            </SheetHeader>
+            {treeBody}
+          </SheetContent>
+        </Sheet>
+
+        {/* Editor body — fills remaining width. */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
           {/* Atlas landing — show the design's card grid when no note is open
               and not actively drafting a new one. */}
           {!selectedId && !drafting && !loadingNote && !title && !content ? (
@@ -511,7 +514,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {/* Move-to-folder dialog */}
+      {/* Move-to-folder dialog (sits at page root, outside the editor scroll) */}
       <Dialog open={!!moveTarget} onOpenChange={(o) => { if (!o) setMoveTarget(null); }}>
         <DialogContent>
           <DialogHeader>
@@ -771,7 +774,7 @@ function Breadcrumb({ segments, title }: { segments: string[]; title: string }) 
 
 function SaveIndicator({ state, canSave, onSave }: { state: 'idle' | 'saving' | 'saved'; canSave: boolean; onSave: () => void }) {
   if (state === 'saving') {
-    return <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />Saving</span>;
+    return <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><M3CookieLoader size="xs" tone="primary" />Saving</span>;
   }
   if (state === 'saved') {
     return <span className="flex items-center gap-1.5 text-xs text-primary"><Save className="size-3.5" />Saved</span>;

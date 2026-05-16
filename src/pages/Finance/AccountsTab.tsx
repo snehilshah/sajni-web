@@ -384,7 +384,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
           {account && (
             <Field label="" className="sm:col-span-2">
               <label className="inline-flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} className="size-4 rounded border-input" />
+                <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} className="size-[18px] rounded-[3px] accent-primary border-2 border-[hsl(var(--on-surface-variant))]" />
                 Archived (hide from active view)
               </label>
             </Field>

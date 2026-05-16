@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { ai, type AIEvent, type AISessionMeta } from '@/api';
 import { SKILLS } from '@/lib/aiSkills';
+import { M3CookieLoader } from '@/components/ui/shapes';
 
 interface ToolResultMeta {
   kind: string;
@@ -394,7 +395,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               disabled={!input.trim() || streaming || enabled === false}
               title="Send"
             >
-              {streaming ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              {streaming ? <M3CookieLoader size="sm" tone="primary" className="!bg-primary-foreground" /> : <Send className="size-4" />}
             </Button>
           </div>
           <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground mt-2 text-center">
@@ -443,8 +444,8 @@ function AssistantMessage({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
           </div>
         ) : msg.streaming ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin" /> Thinking…
+          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <M3CookieLoader size="sm" tone="tertiary" /> Thinking…
           </div>
         ) : null}
 

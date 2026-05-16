@@ -6,6 +6,7 @@ import { CreditCard, Plus, Check, AlertCircle, Trash2, Gift } from 'lucide-react
 import { finance, type FinAccount, type FinStatement } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatMoney } from './utils';
@@ -266,10 +267,10 @@ function StatementDialog({ card, onClose, onSaved }: {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Statement date">
-            <Input type="date" value={stmtDate} onChange={(e) => setStmtDate(e.target.value)} />
+            <DatePicker value={stmtDate} onChange={setStmtDate} />
           </Field>
           <Field label="Due date">
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DatePicker value={dueDate} onChange={setDueDate} />
           </Field>
           <Field label="Amount (optional)">
             <Input type="number" inputMode="decimal" value={amountOverride} onChange={(e) => setAmountOverride(e.target.value)} placeholder="Auto-compute" />

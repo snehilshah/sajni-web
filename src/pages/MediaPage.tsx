@@ -5,15 +5,17 @@ import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/ap
 import type { MediaEntry, MediaStatus, MediaSearchResult } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import PageShell from '@/components/PageShell';
+import { SplitButton } from '@/components/ui/split-button';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Loader2, Film, Tv, BookOpen, Calendar, ImageIcon, X, Check, LayoutGrid, ListChecks, ArrowUpDown } from 'lucide-react';
+import { Plus, Star, Trash2, Search, Loader2, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown } from 'lucide-react';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
 const MEDIA_SORT_KEY = 'sajni:media:sort';
@@ -112,101 +114,94 @@ function statusPillColor(status: MediaStatus): string {
 }
 
 
-// boxColor — returns the CSS color for a single progress segment box.
-// Status controls the full color scheme, not just the watched/unwatched split.
-function boxColor(boxStart: number, boxEnd: number, watched: number, status: MediaStatus): string {
-  switch (status) {
-    case 'complete':
-      return 'var(--progress-complete)';
-    case 'dropped':
-    case 'scratched':
-      return watched >= boxEnd ? 'var(--progress-dropped)' : 'var(--progress-idle)';
-    case 'pending':
-    case 'waiting':
-    case 'archived':
-      return 'var(--progress-inactive)';
-    case 'in_progress':
-    default:
-      if (watched >= boxEnd) return 'var(--progress-complete)';
-      if (watched > boxStart) return 'var(--progress-active)';
-      return 'var(--progress-idle)';
-  }
-}
 
-// SegmentedBar — heatmap-cell-style progress. Each box = totalEpisodes/numBoxes.
-// variant='row'  → single grid row (list rows, poster overlays)
-// variant='wrap' → wrapping 10px squares (dialog form)
+/**
+ * SegmentedBar — one bar per *unit* (a season for shows, a chunk for
+ * books). Each bar is colored by the COMPLETION STATE OF THAT UNIT, not
+ * by the global percentage. So a 5-season show watched through s3 reads
+ * as: 3 green bars + 1 active bar + 1 idle bar.
+ *
+ * Inputs are still cumulative (episodes_watched / episodes_total) so the
+ * call sites don't change.
+ *
+ *   variant='row'  → single grid row (list rows, poster overlays)
+ *   variant='wrap' → wrapping squares (dialog form)
+ */
 function SegmentedBar({
-  watched, total, status, maxBoxes = 40, boxH = 4,
+  watched, total, status, units,
   showLabel = false, label = '', variant = 'row',
+  boxH = 6,
 }: {
-  watched: number; total: number; status: MediaStatus;
-  maxBoxes?: number; boxH?: number;
-  showLabel?: boolean; label?: string;
+  watched: number;
+  total: number;
+  status: MediaStatus;
+  /** Number of bars to draw. For shows pass seasons_total; for books we
+      fall back to a smart bucket count when omitted. */
+  units?: number;
+  showLabel?: boolean;
+  label?: string;
   variant?: 'row' | 'wrap';
+  boxH?: number;
 }) {
   if (total <= 0) return null;
-  const numBoxes = Math.min(total, maxBoxes);
-  const perBox = total / numBoxes;
+  // Default unit count: prefer caller-provided (seasons); else 10 chunks.
+  const numBars = Math.max(1, units && units > 0 ? units : Math.min(10, total));
+  const perBar = total / numBars;
   const pct = Math.round((watched / total) * 100);
 
-  const boxes = Array.from({ length: numBoxes }, (_, i) => ({
-    i,
-    start: i * perBox,
-    end: (i + 1) * perBox,
-  }));
+  // Per-bar state: complete / current / pending — overridden by item status.
+  function barColor(idx: number): string {
+    const barEnd = (idx + 1) * perBar;
+    const barStart = idx * perBar;
 
-  if (variant === 'wrap') {
-    return (
-      <div className="flex flex-col gap-1.5">
-        {showLabel && (
-          <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            <span>{label}</span>
-            <span>{watched}/{total} · {pct}%</span>
-          </div>
-        )}
-        <div className="flex flex-wrap gap-[2px]">
-          {boxes.map(({ i, start, end }) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.15, delay: i * 0.004 }}
-              style={{
-                width: '10px', height: '10px',
-                background: boxColor(start, end, watched, status),
-                transition: 'background 250ms ease',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    );
+    // Item-level overrides paint every bar regardless of progress.
+    if (status === 'complete') return 'var(--progress-complete)';
+    if (status === 'dropped' || status === 'scratched') {
+      return watched >= barEnd ? 'var(--progress-dropped)' : 'var(--progress-idle)';
+    }
+    if (status === 'pending' || status === 'waiting' || status === 'archived') {
+      return 'var(--progress-inactive)';
+    }
+
+    // in_progress (default):
+    if (watched >= barEnd)   return 'var(--progress-complete)';
+    if (watched > barStart)  return 'var(--progress-active)';
+    return 'var(--progress-idle)';
   }
 
-  // row variant — full-width grid, no wrapping
+  const bars = Array.from({ length: numBars }, (_, i) => i);
+  const isRow = variant === 'row';
+  const headerLabel = units && units > 0
+    ? `${units} ${units === 1 ? 'season' : 'seasons'}`
+    : label;
+
   return (
     <div className="flex flex-col gap-1">
       {showLabel && (
         <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-          <span>{label}</span>
+          <span>{headerLabel || label}</span>
           <span>{watched}/{total} · {pct}%</span>
         </div>
       )}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${numBoxes}, 1fr)`,
-          gap: '1.5px',
+          gridTemplateColumns: `repeat(${numBars}, 1fr)`,
+          gap: isRow ? '3px' : '4px',
         }}
       >
-        {boxes.map(({ i, start, end }) => (
-          <div
+        {bars.map((i) => (
+          <motion.div
             key={i}
+            initial={{ scaleY: 0.4, opacity: 0 }}
+            animate={{ scaleY: 1, opacity: 1 }}
+            transition={{ duration: 0.22, delay: i * 0.025, ease: [0.2, 0, 0, 1] }}
             style={{
               height: `${boxH}px`,
-              background: boxColor(start, end, watched, status),
+              borderRadius: '9999px',
+              background: barColor(i),
               transition: 'background 250ms ease',
+              transformOrigin: 'center',
             }}
           />
         ))}
@@ -222,7 +217,7 @@ function ProgressBar({ watched, total, label, itemStatus = 'in_progress' }: {
   return (
     <SegmentedBar
       watched={watched} total={total} status={itemStatus}
-      maxBoxes={60} boxH={8} variant="wrap"
+      boxH={10} variant="wrap"
       showLabel label={label}
     />
   );
@@ -243,11 +238,38 @@ function StarRating({ value, interactive = false, onChange, size = 'sm' }: { val
   );
 }
 
-function ExternalSearch({ type, onSelect }: { type: string; onSelect: (r: MediaSearchResult) => void }) {
-  const [query, setQuery] = useState('');
+/**
+ * TitleAutocomplete — single Title field with inline TMDB / Open Library
+ * suggestions. Replaces the old split "Search DB" + "Title" inputs so
+ * manual entries flow the same as DB-backed ones: type a name → either
+ * pick a suggestion or just commit the free-text title.
+ */
+function TitleAutocomplete({
+  value, type, onChange, onSelect, autoFocus, source,
+}: {
+  value: string;
+  type: string;
+  onChange: (v: string) => void;
+  onSelect: (r: MediaSearchResult) => void;
+  autoFocus?: boolean;
+  /** Set once a suggestion is picked — used to suppress the dropdown. */
+  source?: string;
+}) {
   const [results, setResults] = useState<MediaSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside.
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
 
   const doSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return; }
@@ -258,44 +280,65 @@ function ExternalSearch({ type, onSelect }: { type: string; onSelect: (r: MediaS
   }, [type]);
 
   const handleChange = (val: string) => {
-    setQuery(val);
+    onChange(val);
+    setHighlight(0);
+    setOpen(true);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => doSearch(val), 350);
+    timer.current = setTimeout(() => doSearch(val), 320);
   };
 
+  const placeholder = type === 'book'
+    ? 'Title — search Open Library or type manually'
+    : `Title — search ${TYPE_META[type]?.plural || 'titles'} on TMDB or type manually`;
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder={type === 'book' ? 'Search Open Library…' : `Search ${TYPE_META[type]?.plural || 'titles'} on TMDB…`}
-          className="pl-9 pr-9"
-        />
-        {loading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-muted-foreground" />}
-        {!loading && query && (
-          <button onClick={() => { setQuery(''); setResults([]); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X className="size-3.5" />
-          </button>
-        )}
-      </div>
+    <div className="relative" ref={wrapRef}>
+      <input
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => { if (results.length > 0) setOpen(true); }}
+        onKeyDown={(e) => {
+          if (!open || results.length === 0) return;
+          if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => Math.min(h + 1, results.length - 1)); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
+          else if (e.key === 'Enter')   { e.preventDefault(); const r = results[highlight]; if (r) { onSelect(r); setOpen(false); setResults([]); } }
+          else if (e.key === 'Escape')  { setOpen(false); }
+        }}
+        autoFocus={autoFocus}
+        placeholder={placeholder}
+        required
+        aria-required="true"
+        className="w-full bg-transparent font-serif text-2xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/45 border-b-2 border-[hsl(var(--outline-variant))] focus:border-primary transition-colors pb-2"
+      />
+      {loading && (
+        <span className="absolute right-1 top-3"><M3CookieLoader size="sm" tone="primary" /></span>
+      )}
+      {source && !loading && (
+        <span className="absolute right-1 top-3 chip chip-sage h-6 px-2 text-[10px]">
+          {source.startsWith('tmdb') ? 'TMDB' : 'Open Library'}
+        </span>
+      )}
       <AnimatePresence initial={false}>
-        {results.length > 0 && (
+        {open && results.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
-            className="border border-border rounded-lg max-h-72 overflow-y-auto divide-y divide-border/60 bg-popover shadow-sm"
+            transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
+            className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-2xl bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-80 overflow-y-auto p-1.5"
           >
             {results.map((r, i) => (
               <button
-                key={i}
-                className="w-full flex items-start gap-3 p-2.5 hover:bg-accent/40 transition-colors cursor-pointer text-left"
-                onClick={() => { onSelect(r); setQuery(''); setResults([]); }}
+                key={r.external_id + i}
+                type="button"
+                className={cn(
+                  'w-full flex items-start gap-3 p-2.5 rounded-xl transition-colors text-left',
+                  highlight === i ? 'bg-[hsl(var(--on-surface)/0.08)]' : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
+                )}
+                onMouseEnter={() => setHighlight(i)}
+                onClick={() => { onSelect(r); setOpen(false); setResults([]); }}
               >
-                <div className="w-10 aspect-[2/3] rounded bg-muted shrink-0 overflow-hidden">
+                <div className="w-10 aspect-[2/3] rounded-md bg-[hsl(var(--surface-container-highest))] shrink-0 overflow-hidden">
                   {r.poster_url ? (
                     <img src={r.poster_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -311,6 +354,9 @@ function ExternalSearch({ type, onSelect }: { type: string; onSelect: (r: MediaS
                 </div>
               </button>
             ))}
+            <div className="px-3 pt-2 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
+              Press Enter to pick · Esc to keep typing
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -403,7 +449,11 @@ export default function MediaPage() {
   const [form, setForm] = useState<FormState>(blankForm());
 
   const load = async () => {
-    setLoading(true);
+    // Only show full-page skeletons on the very first load; subsequent
+    // refetches (filter switch, mutation) keep existing items in place
+    // so AnimatePresence can do its enter/exit anim instead of the whole
+    // grid flickering through skeleton → re-enter.
+    if (items.length === 0) setLoading(true);
     try {
       const params: any = { type: activeType };
       if (statusFilter) params.status = statusFilter;
@@ -628,61 +678,89 @@ export default function MediaPage() {
                   <ArrowUpDown className="size-3.5 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="start" alignItemWithTrigger={false} sideOffset={6}>
                   {SORT_OPTIONS.map((o) => (
                     <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {activeType === 'movie' && (
-                <button
+              {activeType === 'movie' && !isMobileMedia && (
+                <motion.button
                   onClick={() => setGroupSeries((v) => !v)}
-                  className={`h-9 px-3 rounded-md border border-border text-xs inline-flex items-center gap-1.5 ${groupSeries ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  whileTap={{ scale: 0.94 }}
+                  animate={groupSeries ? { rotate: [0, -6, 6, 0] } : { rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+                  className={cn(
+                    'h-9 px-3.5 rounded-full text-xs inline-flex items-center gap-1.5 border transition-colors',
+                    groupSeries
+                      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
+                      : 'border-[hsl(var(--outline))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
+                  )}
                   title="Group movies that share a series (e.g. Mission Impossible)"
                 >
                   <Film className="size-3.5" /> Series
-                </button>
+                </motion.button>
               )}
-              <div className="inline-flex border border-border h-9 shrink-0">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`h-full px-3 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
-                  title="List view"
-                >
-                  <ListChecks className="size-3.5" /> List
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`h-full px-3 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
-                  title="Grid view"
-                >
-                  <LayoutGrid className="size-3.5" /> Grid
-                </button>
-              </div>
-              {/* Desktop: full-width input. Mobile: icon-only collapsed,
-                  expands inline (full row) when tapped. */}
-              {isMobileMedia && !searchExpanded && !searchQuery ? (
-                <button
-                  onClick={() => setSearchExpanded(true)}
-                  className="h-9 w-9 inline-flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                  aria-label="Search library"
-                >
-                  <Search className="size-3.5" />
-                </button>
+              {/* List/grid switch — desktop only; mobile defaults to grid.
+                  M3 split button: primary toggles the OTHER view instantly,
+                  chevron opens a menu with both options. */}
+              {!isMobileMedia && (
+                <SplitButton
+                  size="sm"
+                  value={viewMode}
+                  options={[
+                    { value: 'grid', label: 'Grid', icon: LayoutGrid },
+                    { value: 'list', label: 'List', icon: ListChecks },
+                  ]}
+                  onChange={(v) => setViewMode(v as 'grid' | 'list')}
+                  onPrimary={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                />
+              )}
+              {/* Search — desktop = inline input; mobile = icon only. Both
+                  use the same searchQuery; clicking the mobile icon opens
+                  a small inline input that takes the toolbar's full row. */}
+              {isMobileMedia ? (
+                searchExpanded ? (
+                  <div className="relative flex-1 min-w-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Filter library…"
+                      autoFocus
+                      onBlur={() => { if (!searchQuery) setSearchExpanded(false); }}
+                      className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
+                    />
+                    {(searchQuery || searchExpanded) && (
+                      <button
+                        onClick={() => { setSearchQuery(''); setSearchExpanded(false); }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSearchExpanded(true)}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
+                    aria-label="Search library"
+                  >
+                    <Search className="size-4" />
+                  </button>
+                )
               ) : (
-                <div className={`relative ${isMobileMedia ? 'flex-1 min-w-0' : 'w-64'}`}>
+                <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filter library…"
-                    autoFocus={isMobileMedia && searchExpanded && !searchQuery}
-                    onBlur={() => { if (isMobileMedia && !searchQuery) setSearchExpanded(false); }}
-                    className="h-9 pl-9 pr-8 w-full"
+                    className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
                   />
-                  {(searchQuery || searchExpanded) && (
+                  {searchQuery && (
                     <button
-                      onClick={() => { setSearchQuery(''); setSearchExpanded(false); }}
+                      onClick={() => setSearchQuery('')}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="size-3.5" />
@@ -695,21 +773,12 @@ export default function MediaPage() {
 
           {/* Grid / list */}
           {loading ? (
-            viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="flex flex-col gap-2">
-                    <Skeleton className="w-full aspect-[2/3] rounded-lg" />
-                    <Skeleton className="h-3 w-3/4" />
-                    <Skeleton className="h-2.5 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
-              </div>
-            )
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <M3CookieLoader size="lg" tone="primary" />
+              <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">
+                opening library…
+              </span>
+            </div>
           ) : filteredItems.length === 0 ? (
             <EmptyState type={activeType} hasFilter={!!statusFilter || !!searchQuery} onAdd={() => openForm()} onClear={() => { setStatusFilter(''); setSearchQuery(''); }} />
           ) : viewMode === 'grid' ? (
@@ -722,22 +791,22 @@ export default function MediaPage() {
                   row.kind === 'single' ? (
                     <motion.div
                       key={'item-' + row.item.id}
-                      layout="position"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
-                      transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
+                      transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
                     >
                       <PosterCard item={row.item} onClick={() => openForm(row.item)} />
                     </motion.div>
                   ) : (
                     <motion.div
                       key={'series-' + row.collectionId}
-                      layout="position"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
-                      transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
+                      transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
                     >
                       <SeriesPosterCard
                         row={row}
@@ -789,13 +858,9 @@ export default function MediaPage() {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-            {!editItem && (
-              <ExternalSearch type={form.type} onSelect={handleExternalSelect} />
-            )}
-
             <div className="grid grid-cols-[120px_1fr] gap-5">
               {/* Poster preview */}
-              <div className="aspect-[2/3] w-full rounded-lg border border-border bg-muted overflow-hidden flex items-center justify-center text-muted-foreground">
+              <div className="aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden flex items-center justify-center text-muted-foreground">
                 {form.poster_url ? (
                   <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -805,13 +870,16 @@ export default function MediaPage() {
 
               <div className="flex flex-col gap-3 min-w-0">
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Title</Label>
-                  <input
+                  <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    Title <span className="text-destructive">*</span>
+                  </Label>
+                  <TitleAutocomplete
                     value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    autoFocus
-                    placeholder="Untitled"
-                    className="bg-transparent font-serif text-2xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 border-b border-border focus:border-primary transition-colors pb-1.5"
+                    type={form.type}
+                    autoFocus={!editItem}
+                    source={form.external_id}
+                    onChange={(v) => setForm({ ...form, title: v, external_id: form.external_id && v !== form.title ? '' : form.external_id })}
+                    onSelect={handleExternalSelect}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -913,7 +981,7 @@ export default function MediaPage() {
             )}
             <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
-              {saving && <Loader2 className="size-3.5 animate-spin" />}
+              {saving && <M3CookieLoader size="xs" tone="primary" />}
               {editItem ? 'Save' : 'Add to library'}
             </Button>
           </DialogFooter>
@@ -933,18 +1001,39 @@ export default function MediaPage() {
 
 function FilterChip({ active, onClick, children, count, dot }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; dot?: string }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+      className={cn(
+        'inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium transition-[background-color,color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] border',
         active
-          ? 'bg-foreground text-background'
-          : 'bg-secondary/50 text-foreground hover:bg-secondary/80'
-      }`}
+          ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
+          : 'bg-transparent text-foreground border-[hsl(var(--outline))] hover:bg-[hsl(var(--on-surface)/0.06)]',
+      )}
     >
-      {dot && <span className={`size-1.5 rounded-full ${active ? 'bg-background' : dot}`} />}
+      {active && (
+        <motion.span
+          layout
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+        >
+          <CheckIconCircle />
+        </motion.span>
+      )}
+      {dot && !active && <span className={`size-1.5 rounded-full ${dot}`} />}
       {children}
       <span className={`font-mono text-[10px] tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
-    </button>
+    </motion.button>
+  );
+}
+
+function CheckIconCircle() {
+  return (
+    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }
 
@@ -1031,7 +1120,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
       className="group flex flex-col gap-2 text-left w-full"
       title={item.title}
     >
-      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-muted ring-1 ring-border/60 transition-shadow group-hover:shadow-lg group-hover:ring-ring/40">
+      <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]">
         {item.poster_url ? (
           <img
             src={item.poster_url}
@@ -1078,7 +1167,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
               watched={item.episodes_watched}
               total={item.episodes_total}
               status={item.status}
-              maxBoxes={20}
+              units={item.type === 'show' ? item.seasons_total : undefined}
               boxH={5}
             />
           </div>
@@ -1245,16 +1334,17 @@ function SeriesPosterCard({
       className="group relative text-left flex flex-col gap-2"
       title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
     >
-      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-border/60 bg-muted transition-shadow group-hover:shadow-lg">
-        {/* Stack effect: two faint posters peeking behind the cover. */}
-        <div
-          className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted opacity-40"
-          style={cover.poster_url ? { backgroundImage: `url(${cover.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-        />
-        <div
-          className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-lg bg-muted opacity-70"
-          style={cover.poster_url ? { backgroundImage: `url(${cover.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-        />
+      {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster
+          fills it edge-to-edge. Depth is conveyed via a layered box-shadow
+          (offset duplicates of the wrapper), not by translating inner
+          siblings which made the visible image read smaller on mobile. */}
+      <div
+        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]"
+        style={{
+          boxShadow:
+            '4px 4px 0 -1px hsl(var(--outline-variant)), 8px 8px 0 -2px hsl(var(--outline-variant) / 0.55)',
+        }}
+      >
         {cover.poster_url ? (
           <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
@@ -1263,10 +1353,10 @@ function SeriesPosterCard({
             <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
           </div>
         )}
-        <span className="absolute top-2 left-2 chip chip-sage">
+        <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-[10px]">
           <Film className="size-3" /> Series
         </span>
-        <span className="absolute bottom-2 right-2 mono text-[10px] px-1.5 py-0.5 rounded bg-background/85 backdrop-blur border border-border/60">
+        <span className="absolute bottom-2 right-2 mono text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
           {watched}/{row.members.length}
         </span>
       </div>
@@ -1391,7 +1481,7 @@ function MediaListRow({
             watched={item.episodes_watched}
             total={item.episodes_total}
             status={item.status}
-            maxBoxes={48}
+            units={item.type === 'show' ? item.seasons_total : undefined}
             boxH={4}
           />
         </span>
@@ -1509,7 +1599,7 @@ function ActivityTimeline({ mediaId }: { mediaId: number }) {
     <Section title="Activity">
       {loading && (
         <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
-          <Loader2 className="size-3 animate-spin" /> Loading…
+          <M3CookieLoader size="sm" tone="secondary" /> Loading…
         </div>
       )}
       {!loading && events && events.length === 0 && (
@@ -1873,7 +1963,7 @@ function CollectionBadge({
         <div className="rounded-md border border-border/60 bg-background/40 mt-2">
           {loading && (
             <div className="p-3 text-xs text-muted-foreground inline-flex items-center gap-2">
-              <Loader2 className="size-3 animate-spin" /> Loading collection…
+              <M3CookieLoader size="sm" tone="secondary" /> Loading collection…
             </div>
           )}
           {!loading && parts && parts.length === 0 && (
