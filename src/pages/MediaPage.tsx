@@ -98,25 +98,133 @@ const TYPE_META: Record<string, { label: string; plural: string; icon: typeof Fi
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
 
+// Returns the accent color for status-colored UI elements (poster pill, etc.)
+function statusPillColor(status: MediaStatus): string {
+  switch (status) {
+    case 'in_progress': return 'hsl(var(--secondary))';
+    case 'complete':    return 'hsl(var(--color-complete))';
+    case 'dropped':
+    case 'scratched':   return 'hsl(var(--destructive))';
+    case 'waiting':     return 'hsl(var(--color-waiting))';
+    case 'pending':     return 'hsl(var(--muted-foreground))';
+    default:            return 'hsl(var(--muted-foreground))';
+  }
+}
 
-function ProgressBar({ watched, total, label, color = 'bg-primary' }: { watched: number; total: number; label: string; color?: string }) {
+
+// boxColor — returns the CSS color for a single progress segment box.
+// Status controls the full color scheme, not just the watched/unwatched split.
+function boxColor(boxStart: number, boxEnd: number, watched: number, status: MediaStatus): string {
+  switch (status) {
+    case 'complete':
+      return 'var(--progress-complete)';
+    case 'dropped':
+    case 'scratched':
+      return watched >= boxEnd ? 'var(--progress-dropped)' : 'var(--progress-idle)';
+    case 'pending':
+    case 'waiting':
+    case 'archived':
+      return 'var(--progress-inactive)';
+    case 'in_progress':
+    default:
+      if (watched >= boxEnd) return 'var(--progress-complete)';
+      if (watched > boxStart) return 'var(--progress-active)';
+      return 'var(--progress-idle)';
+  }
+}
+
+// SegmentedBar — heatmap-cell-style progress. Each box = totalEpisodes/numBoxes.
+// variant='row'  → single grid row (list rows, poster overlays)
+// variant='wrap' → wrapping 10px squares (dialog form)
+function SegmentedBar({
+  watched, total, status, maxBoxes = 40, boxH = 4,
+  showLabel = false, label = '', variant = 'row',
+}: {
+  watched: number; total: number; status: MediaStatus;
+  maxBoxes?: number; boxH?: number;
+  showLabel?: boolean; label?: string;
+  variant?: 'row' | 'wrap';
+}) {
   if (total <= 0) return null;
-  const pct = Math.min(100, Math.round((watched / total) * 100));
+  const numBoxes = Math.min(total, maxBoxes);
+  const perBox = total / numBoxes;
+  const pct = Math.round((watched / total) * 100);
+
+  const boxes = Array.from({ length: numBoxes }, (_, i) => ({
+    i,
+    start: i * perBox,
+    end: (i + 1) * perBox,
+  }));
+
+  if (variant === 'wrap') {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {showLabel && (
+          <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <span>{label}</span>
+            <span>{watched}/{total} · {pct}%</span>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-[2px]">
+          {boxes.map(({ i, start, end }) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15, delay: i * 0.004 }}
+              style={{
+                width: '10px', height: '10px',
+                background: boxColor(start, end, watched, status),
+                transition: 'background 250ms ease',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // row variant — full-width grid, no wrapping
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-        <span>{label}</span>
-        <span>{watched}/{total} · {pct}%</span>
-      </div>
-      <div className="h-1 bg-muted rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className={`h-full ${color} rounded-full`}
-        />
+      {showLabel && (
+        <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          <span>{label}</span>
+          <span>{watched}/{total} · {pct}%</span>
+        </div>
+      )}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${numBoxes}, 1fr)`,
+          gap: '1.5px',
+        }}
+      >
+        {boxes.map(({ i, start, end }) => (
+          <div
+            key={i}
+            style={{
+              height: `${boxH}px`,
+              background: boxColor(start, end, watched, status),
+              transition: 'background 250ms ease',
+            }}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+// ProgressBar — kept as alias for SegmentedBar for backward compat.
+function ProgressBar({ watched, total, label, itemStatus = 'in_progress' }: {
+  watched: number; total: number; label: string; itemStatus?: MediaStatus; color?: string;
+}) {
+  return (
+    <SegmentedBar
+      watched={watched} total={total} status={itemStatus}
+      maxBoxes={60} boxH={8} variant="wrap"
+      showLabel label={label}
+    />
   );
 }
 
@@ -772,7 +880,7 @@ export default function MediaPage() {
                     onChange={(n) => setForm({ ...form, episodes_total: n })}
                   />
                 </div>
-                {form.episodes_total > 0 && <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Pages" />}
+                {form.episodes_total > 0 && <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Pages" itemStatus={form.status} />}
               </Section>
             )}
 
@@ -915,8 +1023,7 @@ function EmptyState({ type, hasFilter, onAdd, onClear }: { type: string; hasFilt
 function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }) {
   const meta = statusMeta(item.status);
   const Icon = TYPE_META[item.type]?.icon || Film;
-  const showProgress = (item.type === 'show' && item.episodes_total > 0) || (item.type === 'book' && item.episodes_total > 0);
-  const pct = showProgress ? Math.min(100, Math.round((item.episodes_watched / item.episodes_total) * 100)) : 0;
+  const showProgress = item.episodes_total > 0;
 
   return (
     <button
@@ -939,33 +1046,41 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
           </div>
         )}
 
-        {/* Status pill */}
+        {/* Status pill — color-coded per status */}
         <div className="absolute top-2 left-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2 py-0.5 text-[10px] font-medium shadow-sm ring-1 ring-foreground/5">
-            <span className={`size-1.5 rounded-full ${meta?.dot}`} />
+          <span
+            className="inline-flex items-center gap-1 bg-background/88 backdrop-blur px-2 py-0.5 text-[10px] font-mono font-medium shadow-sm ring-1 ring-foreground/5"
+            style={{
+              color: statusPillColor(item.status),
+              borderLeft: `2px solid ${statusPillColor(item.status)}`,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
             {meta?.label}
           </span>
         </div>
 
         {/* Rating */}
         {item.rating ? (
-          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur px-1.5 py-0.5 text-[10px] font-mono shadow-sm ring-1 ring-foreground/5">
+          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-background/88 backdrop-blur px-1.5 py-0.5 text-[10px] font-mono shadow-sm ring-1 ring-foreground/5">
             <Star className="size-2.5 fill-amber-400 text-amber-400" />
             <span>{item.rating}</span>
           </div>
         ) : null}
 
-        {/* Complete check */}
-        {item.status === 'complete' && (
-          <div className="absolute bottom-2 right-2 size-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow">
-            <Check className="size-3" strokeWidth={3} />
-          </div>
-        )}
-
-        {/* Progress bar overlay */}
-        {showProgress && item.status !== 'complete' && (
-          <div className="absolute bottom-0 inset-x-0 h-1 bg-foreground/10">
-            <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+        {/* Segmented progress overlay — bottom strip.
+            Shows for all shows/books regardless of complete status:
+            complete = all green, dropped = red/muted, etc. */}
+        {showProgress && (
+          <div className="absolute bottom-0 inset-x-0">
+            <SegmentedBar
+              watched={item.episodes_watched}
+              total={item.episodes_total}
+              status={item.status}
+              maxBoxes={20}
+              boxH={5}
+            />
           </div>
         )}
       </div>
@@ -1105,10 +1220,11 @@ function progressLabel(item: MediaEntry): string {
 function chipClassFor(status: MediaStatus): string {
   switch (status) {
     case 'in_progress': return 'chip-amber';
-    case 'complete': return 'chip-sage';
+    case 'complete':    return 'chip-olive';   // green — done
+    case 'waiting':     return 'chip-sky';     // slate — on hold
     case 'dropped':
-    case 'scratched': return 'chip-rose';
-    default: return '';
+    case 'scratched':   return 'chip-rose';
+    default:            return '';
   }
 }
 
@@ -1267,13 +1383,16 @@ function MediaListRow({
       <span className={`chip ${chipClassFor(item.status)}`}>
         {(statusMeta(item.status)?.label || item.status).toLowerCase()}
       </span>
-      {/* Progress bar — only when there's something to show.
-          Sits flush along the bottom edge of the row. */}
-      {pct !== null && (
-        <span className="absolute left-0 right-0 bottom-0 h-[3px] bg-muted/50">
-          <span
-            className={`block h-full ${item.status === 'complete' ? 'bg-primary/80' : 'bg-secondary'}`}
-            style={{ width: `${pct}%` }}
+      {/* Segmented progress — flush bottom edge; color-codes both
+          progress AND the item's health state at a glance. */}
+      {hasProgress && (
+        <span className="absolute left-0 right-0 bottom-0">
+          <SegmentedBar
+            watched={item.episodes_watched}
+            total={item.episodes_total}
+            status={item.status}
+            maxBoxes={48}
+            boxH={4}
           />
         </span>
       )}
@@ -1661,7 +1780,7 @@ function ShowProgressSection({
             {form.episodes_watched} of {totalEpisodes} episodes watched
           </div>
           {totalEpisodes > 0 && (
-            <ProgressBar watched={form.episodes_watched} total={totalEpisodes} label="Episodes" />
+            <ProgressBar watched={form.episodes_watched} total={totalEpisodes} label="Episodes" itemStatus={form.status} />
           )}
         </>
       ) : (
@@ -1692,7 +1811,7 @@ function ShowProgressSection({
             />
           </div>
           {form.episodes_total > 0 && (
-            <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Episodes" />
+            <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Episodes" itemStatus={form.status} />
           )}
         </>
       )}
