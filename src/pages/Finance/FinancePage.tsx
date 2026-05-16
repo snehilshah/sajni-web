@@ -159,13 +159,11 @@ export default function FinancePage() {
 
   return (
     <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto pl-14 md:pl-8 pr-4 md:pr-8 pt-4 pb-0 flex items-end justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="font-serif font-semibold tracking-tight text-3xl md:text-4xl">Finance</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Accounts, transactions, budgets, and your net worth.
-            </p>
+      <header className="border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20">
+        <div className="px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none">accounts · ledger · plans</div>
+            <h1 className="serif text-base md:text-lg font-semibold tracking-tight leading-tight mt-0.5">Finance</h1>
           </div>
           <div className="relative">
             <button

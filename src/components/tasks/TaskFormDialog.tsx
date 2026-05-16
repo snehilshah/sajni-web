@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { Loader2, Trash2, Star, CalendarClock, ListChecks } from 'lucide-react';
 
 import type { Task, TaskList, TaskStep } from '@/types';
@@ -112,25 +114,33 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
     onSaved();
   };
 
+  const isMobile = useIsMobile();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-full sm:max-w-2xl h-[min(85vh,720px)] flex flex-col gap-0 p-0 overflow-hidden">
-        <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
-          <div className="flex items-center justify-between gap-2">
-            <div>
+      <DialogContent
+        className={cn(
+          'flex flex-col gap-0 p-0 overflow-hidden',
+          isMobile
+            ? 'fixed inset-x-0 bottom-0 top-auto left-0 translate-x-0 translate-y-0 max-w-full w-full h-[92dvh] border-t border-border'
+            : 'max-w-2xl w-full sm:max-w-2xl h-[min(85vh,720px)]',
+        )}
+      >
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-4 pr-14 border-b border-border">
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, important: !form.important })}
+              className={`mt-0.5 p-1.5 hover:bg-accent transition-colors ${form.important ? 'text-secondary' : 'text-muted-foreground'}`}
+              title={form.important ? 'Remove from Important' : 'Mark important'}
+            >
+              <Star className={`size-4 ${form.important ? 'fill-current' : ''}`} />
+            </button>
+            <div className="min-w-0">
               <DialogTitle>{editing ? 'Edit task' : 'New task'}</DialogTitle>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 {editing ? 'Update details below' : 'Capture something to do'}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, important: !form.important })}
-              className={`p-1.5 rounded-md hover:bg-accent transition-colors ${form.important ? 'text-amber-500' : 'text-muted-foreground'}`}
-              title={form.important ? 'Remove from Important' : 'Mark important'}
-            >
-              <Star className={`size-4 ${form.important ? 'fill-current' : ''}`} />
-            </button>
           </div>
         </DialogHeader>
 

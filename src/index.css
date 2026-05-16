@@ -2,100 +2,159 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
-
-@import "@fontsource-variable/inter";
-@import "@fontsource/fraunces";
-@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource/old-standard-tt/400.css";
+@import "@fontsource/old-standard-tt/700.css";
+@import "@fontsource/old-standard-tt/400-italic.css";
+@import "@fontsource/eb-garamond/400.css";
+@import "@fontsource/eb-garamond/500.css";
+@import "@fontsource/eb-garamond/600.css";
+@import "@fontsource/eb-garamond/700.css";
+@import "@fontsource/eb-garamond/400-italic.css";
+@import "@fontsource/eb-garamond/500-italic.css";
+@import "@fontsource/courier-prime/400.css";
+@import "@fontsource/courier-prime/700.css";
+@import "@fontsource/courier-prime/400-italic.css";
 
 /*
-  Sajni — Quiet Garden palette.
-  Warm bone surfaces, deep sage primary, soft amber accent.
-  Subtle 6px radius for tactile-but-modern feel.
+  Sajni — Codex of the Second Brain.
+  Themes register as [data-theme='name'] blocks of HSL vars.
+  Mode (light/dark) registered as [data-theme='name'][data-mode='dark'].
+  Density scales --text-scale, applied to html font-size.
 */
 
-:root {
-  --background: 38 50% 97%;
-  --foreground: 60 9% 12%;
-  --card: 40 30% 94%;
-  --card-foreground: 60 9% 12%;
-  --popover: 40 30% 96%;
-  --popover-foreground: 60 9% 12%;
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
-  --primary: 165 38% 22%;
-  --primary-foreground: 38 50% 97%;
+/* ============================================================
+   Default theme — Codex (oxblood + walnut sepia on bone paper)
+   ============================================================ */
+:root,
+[data-theme="default"] {
+  --background: 45 78% 92%;
+  --foreground: 28 23% 22%;
 
-  --secondary: 35 60% 38%;
-  --secondary-foreground: 38 50% 97%;
+  --card: 46 70% 89%;
+  --card-foreground: 28 23% 22%;
 
-  --muted: 36 22% 90%;
-  --muted-foreground: 30 8% 38%;
+  --popover: 46 70% 89%;
+  --popover-foreground: 28 23% 22%;
 
-  --accent: 165 28% 35%;
-  --accent-foreground: 38 50% 97%;
+  --primary: 5 47% 45%;
+  --primary-foreground: 45 78% 92%;
 
-  --destructive: 0 70% 45%;
-  --destructive-foreground: 38 50% 97%;
+  --secondary: 30 47% 36%;
+  --secondary-foreground: 45 78% 92%;
 
-  --border: 36 16% 84%;
-  --input: 36 16% 84%;
-  --ring: 165 38% 28%;
+  --muted: 41 50% 81%;
+  --muted-foreground: 35 19% 47%;
 
-  --chart-1: 165 38% 28%;
-  --chart-2: 35 60% 42%;
-  --chart-3: 200 30% 45%;
-  --chart-4: 12 60% 50%;
-  --chart-5: 280 25% 50%;
+  --accent: 44 65% 86%;
+  --accent-foreground: 28 23% 22%;
 
-  --radius: 0.5rem;
+  --destructive: 5 47% 45%;
+  --destructive-foreground: 45 78% 92%;
 
-  --sidebar: 38 35% 95%;
-  --sidebar-foreground: 60 9% 12%;
-  --sidebar-primary: 165 38% 22%;
-  --sidebar-primary-foreground: 38 50% 97%;
-  --sidebar-accent: 36 22% 88%;
-  --sidebar-accent-foreground: 165 38% 22%;
-  --sidebar-border: 36 16% 82%;
-  --sidebar-ring: 165 38% 28%;
+  --border: 44 47% 71%;
+  --input: 44 47% 71%;
+  --ring: 5 47% 45%;
+
+  --chart-1: 5 47% 45%;
+  --chart-2: 30 47% 36%;
+  --chart-3: 274 19% 39%;
+  --chart-4: 217 24% 39%;
+  --chart-5: 35 19% 47%;
+
+  --sidebar: 46 70% 89%;
+  --sidebar-foreground: 28 23% 22%;
+  --sidebar-primary: 5 47% 45%;
+  --sidebar-primary-foreground: 45 78% 92%;
+  --sidebar-accent: 44 65% 86%;
+  --sidebar-accent-foreground: 28 23% 22%;
+  --sidebar-border: 44 47% 71%;
+  --sidebar-ring: 5 47% 45%;
+
+  /* Codex extra inks */
+  --ink-2: 32 22% 34%;
+  --ink-3: 35 19% 47%;
+  --line-soft: 43 50% 78%;
+
+  /* Backdrop blobs */
+  --backdrop-blob-1: 45 78% 92%;
+  --backdrop-blob-2: 36 40% 58%;
+  --backdrop-blob-3: 38 36% 62%;
+  --backdrop-blob-4: 38 36% 62%;
+  --backdrop-blob-5: 45 78% 92%;
+
+  --backdrop-grain: 0.14;
+  --backdrop-intensity: 0.5;
+
+  /* Density + sizing */
+  --text-scale: 1;
+  --tabbar-h: 64px;
+  --radius: 0;
 }
 
-.dark {
-  --background: 165 18% 8%;
-  --foreground: 38 30% 92%;
-  --card: 165 22% 12%;
-  --card-foreground: 38 30% 92%;
-  --popover: 165 22% 13%;
-  --popover-foreground: 38 30% 92%;
+[data-theme="default"][data-mode="dark"],
+:root[data-mode="dark"] {
+  --background: 30 27% 13%;
+  --foreground: 43 64% 89%;
 
-  --primary: 162 38% 70%;
-  --primary-foreground: 165 38% 12%;
+  --card: 30 26% 17%;
+  --card-foreground: 43 64% 89%;
 
-  --secondary: 35 55% 60%;
-  --secondary-foreground: 165 28% 12%;
+  --popover: 30 26% 17%;
+  --popover-foreground: 43 64% 89%;
 
-  --muted: 165 18% 16%;
-  --muted-foreground: 40 12% 65%;
+  --primary: 6 52% 53%;
+  --primary-foreground: 30 27% 13%;
 
-  --accent: 165 22% 22%;
-  --accent-foreground: 162 38% 78%;
+  --secondary: 35 47% 58%;
+  --secondary-foreground: 30 27% 13%;
 
-  --destructive: 0 65% 55%;
-  --destructive-foreground: 38 30% 92%;
+  --muted: 30 22% 22%;
+  --muted-foreground: 39 22% 50%;
 
-  --border: 165 18% 20%;
-  --input: 165 18% 20%;
-  --ring: 162 38% 60%;
+  --accent: 30 25% 24%;
+  --accent-foreground: 43 64% 89%;
 
-  --sidebar: 165 22% 9%;
-  --sidebar-foreground: 38 30% 92%;
-  --sidebar-primary: 162 38% 70%;
-  --sidebar-primary-foreground: 165 38% 12%;
-  --sidebar-accent: 165 22% 14%;
-  --sidebar-accent-foreground: 162 38% 78%;
-  --sidebar-border: 165 18% 18%;
-  --sidebar-ring: 162 38% 60%;
+  --destructive: 6 52% 53%;
+  --destructive-foreground: 30 27% 13%;
+
+  --border: 32 25% 27%;
+  --input: 32 25% 27%;
+  --ring: 6 52% 53%;
+
+  --sidebar: 30 26% 17%;
+  --sidebar-foreground: 43 64% 89%;
+  --sidebar-primary: 6 52% 53%;
+  --sidebar-primary-foreground: 30 27% 13%;
+  --sidebar-accent: 30 25% 24%;
+  --sidebar-accent-foreground: 43 64% 89%;
+  --sidebar-border: 32 25% 27%;
+  --sidebar-ring: 6 52% 53%;
+
+  --ink-2: 44 47% 71%;
+  --ink-3: 39 22% 50%;
+  --line-soft: 32 25% 27%;
+
+  --backdrop-blob-1: 30 27% 13%;
+  --backdrop-blob-2: 30 22% 22%;
+  --backdrop-blob-3: 30 26% 17%;
+  --backdrop-blob-4: 20 30% 14%;
+  --backdrop-blob-5: 30 22% 18%;
+  --backdrop-grain: 0.10;
+  --backdrop-intensity: 0.4;
 }
 
+/* ============================================================
+   Density presets — scale html font-size; rem-based Tailwind
+   spacing/sizing scales with it.
+   ============================================================ */
+[data-density="compact"]  { --text-scale: 0.92; }
+[data-density="cozy"]     { --text-scale: 1.06; }
+
+/* ============================================================
+   Tailwind v4 — wire CSS vars to theme tokens.
+   ============================================================ */
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -130,180 +189,180 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
 
-  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Fraunces', ui-serif, Georgia, serif;
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'EB Garamond', Garamond, 'Times New Roman', serif;
+  --font-serif: 'Old Standard TT', 'EB Garamond', Georgia, serif;
+  --font-mono: 'Courier Prime', 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ============================================================
+   Codex baseline — zero radius everywhere except SVG and
+   explicit circle opt-outs (avatars use border-radius:50% inline).
+   ============================================================ */
+*:not(svg):not(svg *):not([style*="border-radius: 50%"]):not([style*="border-radius:50%"]) {
+  border-radius: 0 !important;
 }
 
 * {
   @apply border-border;
 }
 
+html {
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
 html, body, #root {
   height: 100%;
+  margin: 0;
 }
 
 body {
-  @apply bg-background text-foreground font-sans antialiased;
-  font-feature-settings: "ss01", "cv11";
-  /* Slightly looser default leading — readability tuning. */
+  @apply bg-background text-foreground antialiased;
+  font-family: var(--font-sans);
+  font-feature-settings: "liga", "dlig", "kern", "onum" 1;
   line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: hsl(var(--primary) / 0.2);
+  background: hsl(var(--primary) / 0.22);
 }
 
-/* ============================================
-   Atmospheric mesh + grain backdrop
-   ============================================
-   Lives at the body level so every page floats over the same
-   palette-tinted gradient. Tunable via:
-     --grad-intensity (default 0.85)  — how vivid the blobs are
-     --noise-opacity  (default 0.05)  — how much grain
-   Reading-tuned: blobs sit behind content, content surfaces stay
-   opaque/glass so type contrast is unchanged.
-*/
+/* App height helpers — mobile dvh aware */
+.app-h    { height: 100vh; height: 100dvh; }
+.screen-h { height: 100vh; height: 100dvh; }
+
 :root {
-  --grad-intensity: 0.85;
-  --noise-opacity: 0.05;
-
-  /* Mesh blob colors derived from the sage palette. */
-  --m1: 165 38% 82%;
-  --m2: 35 60% 80%;
-  --m3: 200 30% 80%;
-  --m4: 35 60% 75%;
-  --m5: 165 28% 78%;
-}
-.dark {
-  --grad-intensity: 0.7;
-  --noise-opacity: 0.04;
-  --m1: 165 30% 22%;
-  --m2: 35 30% 22%;
-  --m3: 200 25% 20%;
-  --m4: 12 30% 22%;
-  --m5: 165 22% 18%;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top:    env(safe-area-inset-top, 0px);
 }
 
-.sajni-mesh {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
+/* ============================================================
+   Backdrop — paper grain, vars-driven so future themes can
+   swap blob colors / grain density independently.
+   ============================================================ */
+.sajni-backdrop {
+  position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
   overflow: hidden;
   background: hsl(var(--background));
 }
-.sajni-mesh::before {
+.sajni-backdrop::before {
   content: "";
-  position: absolute;
-  inset: -10%;
+  position: absolute; inset: -10%;
   background:
-    radial-gradient(ellipse 38% 30% at 18% 22%, hsl(var(--m1) / 0.55) 0%, transparent 60%),
-    radial-gradient(ellipse 32% 28% at 82% 18%, hsl(var(--m2) / 0.45) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 36% at 72% 78%, hsl(var(--m3) / 0.50) 0%, transparent 60%),
-    radial-gradient(ellipse 30% 28% at 12% 82%, hsl(var(--m4) / 0.40) 0%, transparent 60%),
-    radial-gradient(ellipse 36% 30% at 50% 50%, hsl(var(--m5) / 0.35) 0%, transparent 65%);
-  filter: blur(48px);
-  opacity: var(--grad-intensity);
-  animation: sajni-mesh-drift 36s ease-in-out infinite alternate;
+    radial-gradient(ellipse 60% 50% at 50% 0%,   hsl(var(--backdrop-blob-1) / 0.45), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, hsl(var(--backdrop-blob-2) / 0.20), transparent 60%),
+    radial-gradient(ellipse 40% 30% at 15% 50%,  hsl(var(--backdrop-blob-3) / 0.15), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 85% 50%,  hsl(var(--backdrop-blob-4) / 0.15), transparent 70%);
+  filter: blur(80px);
+  opacity: var(--backdrop-intensity);
 }
-.sajni-mesh::after {
-  /* Grain layer — adds quiet texture without hurting contrast. */
-  content: "";
-  position: absolute; inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  opacity: var(--noise-opacity);
+.sajni-backdrop::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10  0 0 0 0 0.06  0 0 0 0 0.03  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: var(--backdrop-grain);
   mix-blend-mode: multiply;
 }
-.dark .sajni-mesh::after { mix-blend-mode: screen; opacity: calc(var(--noise-opacity) * 0.6); }
-
-@keyframes sajni-mesh-drift {
-  0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
-  50%  { transform: translate3d(2%, -1%, 0) rotate(2deg) scale(1.05); }
-  100% { transform: translate3d(-1%, 2%, 0) rotate(-1deg) scale(1.02); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sajni-mesh::before { animation: none; }
+[data-mode="dark"] .sajni-backdrop::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.88  0 0 0 0 0.7  0 0 0 0.40 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode: screen;
 }
 
-/* Glass surfaces — opaque enough to keep type readable while picking up
-   the mesh underneath at the edges. */
+/* Back-compat alias — pages that still reference the old name. */
+.sajni-mesh { @apply pointer-events-none; }
+
+/* ============================================================
+   Glass — vellum sheets over paper.
+   ============================================================ */
 .glass {
-  background: hsl(var(--card) / 0.78);
-  backdrop-filter: blur(18px) saturate(1.1);
-  -webkit-backdrop-filter: blur(18px) saturate(1.1);
-  border: 1px solid hsl(var(--border) / 0.7);
+  background: color-mix(in oklch, hsl(var(--card)) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  border: 1px solid hsl(var(--border));
 }
 .glass-strong {
-  background: hsl(var(--card) / 0.92);
-  backdrop-filter: blur(22px) saturate(1.2);
-  -webkit-backdrop-filter: blur(22px) saturate(1.2);
-  border: 1px solid hsl(var(--border) / 0.85);
+  background: color-mix(in oklch, hsl(var(--card)) 96%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid hsl(var(--foreground) / 0.4);
 }
-.dark .glass { background: hsl(var(--card) / 0.6); }
-.dark .glass-strong { background: hsl(var(--card) / 0.78); }
+[data-mode="dark"] .glass        { background: color-mix(in oklch, hsl(var(--card)) 78%, transparent); }
+[data-mode="dark"] .glass-strong { background: color-mix(in oklch, hsl(var(--card)) 90%, transparent); }
 
-/* The brand orb — tiny gradient logo. */
+/* ============================================================
+   Brand mark.
+   ============================================================ */
 .sajni-orb {
-  width: 28px; height: 28px; border-radius: 8px;
+  width: 28px; height: 28px;
   background:
-    radial-gradient(circle at 30% 30%, hsl(var(--m2)) 0%, transparent 60%),
-    radial-gradient(circle at 70% 70%, hsl(var(--m1)) 0%, transparent 60%),
-    linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    radial-gradient(circle at 30% 30%, hsl(var(--secondary)) 0%, transparent 60%),
+    radial-gradient(circle at 70% 70%, hsl(var(--primary)) 0%, transparent 60%),
+    linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
     0 4px 14px -4px hsl(var(--primary) / 0.5);
   position: relative; flex-shrink: 0;
 }
-.sajni-orb::after {
-  content: "";
-  position: absolute; inset: 0; border-radius: inherit;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.4'/></svg>");
-  mix-blend-mode: overlay;
-  opacity: 0.5;
-}
 
-/* "Spotlight" tint — used on hero capture surface, journal prompt, etc. */
-.sajni-spot { position: relative; overflow: hidden; }
-.sajni-spot::before {
-  content: "";
-  position: absolute; inset: 0; border-radius: inherit;
-  background:
-    radial-gradient(circle at 100% 0%, hsl(var(--m2) / 0.55), transparent 50%),
-    radial-gradient(circle at 0% 100%, hsl(var(--m1) / 0.45), transparent 50%);
-  pointer-events: none; opacity: 0.7;
-}
-.sajni-spot > * { position: relative; }
-
-/* Chips — quiet pills used across cards for tags / status. */
+/* ============================================================
+   Codex chips — uppercase Courier marks.
+   ============================================================ */
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
-  height: 22px; padding: 0 9px; border-radius: 999px;
-  font-size: 11px; font-weight: 500; letter-spacing: 0.01em;
-  background: hsl(var(--muted) / 0.8);
-  border: 1px solid hsl(var(--border) / 0.6);
-  color: hsl(var(--muted-foreground));
+  height: 22px; padding: 0 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px; font-weight: 400;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--ink-3));
+  color: hsl(var(--ink-2));
 }
-.chip-sage { background: hsl(var(--primary) / 0.1); color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.25); }
-.chip-amber { background: hsl(var(--secondary) / 0.14); color: hsl(var(--secondary)); border-color: hsl(var(--secondary) / 0.28); }
-.chip-rose { background: hsl(var(--destructive) / 0.12); color: hsl(var(--destructive)); border-color: hsl(var(--destructive) / 0.28); }
+.chip-sage   { color: hsl(var(--primary));   border-color: hsl(var(--primary)); }
+.chip-amber  { color: hsl(var(--secondary)); border-color: hsl(var(--secondary)); }
+.chip-rose   { color: hsl(var(--destructive)); border-color: hsl(var(--destructive)); }
 
-/* Family helpers — design uses .serif / .mono everywhere, mirror them. */
-.serif { font-family: var(--font-serif); font-optical-sizing: auto; }
-.mono { font-family: var(--font-mono); }
+/* ============================================================
+   Codex Kbd — typewriter key.
+   ============================================================ */
+.kbd {
+  display: inline-flex; align-items: center; gap: 1px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px; font-weight: 700;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--ink-3));
+  color: hsl(var(--ink-2));
+  letter-spacing: 0.02em;
+}
 
-/* Subtle separator that fades to the edges. */
+/* ============================================================
+   Family helpers.
+   ============================================================ */
+.serif { font-family: var(--font-serif); font-optical-sizing: auto; letter-spacing: -0.005em; }
+.mono  { font-family: var(--font-mono); }
+
+/* Decorative rule under section headers. */
 .sajni-sep { height: 1px; background: linear-gradient(to right, transparent, hsl(var(--border)), transparent); }
 
-/* Stagger reveal — used on dashboards. Children fade in one by one. */
-.sajni-stagger > * {
-  animation: sajni-fade-up 380ms cubic-bezier(.22,.61,.36,1) both;
-}
+/* ============================================================
+   Motion — ink rise + fade.
+   ============================================================ */
+@keyframes inkRise   { from { opacity: 0; transform: translateY(8px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes fade-in   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes page-fade-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sheetUp   { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.fade-up { animation: inkRise 520ms cubic-bezier(.22,.61,.36,1) both; }
+.fade-in { animation: fade-in 200ms ease both; }
+.page-fade-in { animation: page-fade-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+.sajni-stagger > * { animation: inkRise 600ms cubic-bezier(.22,.61,.36,1) both; }
 .sajni-stagger > *:nth-child(1) { animation-delay: 40ms; }
 .sajni-stagger > *:nth-child(2) { animation-delay: 90ms; }
 .sajni-stagger > *:nth-child(3) { animation-delay: 140ms; }
@@ -312,25 +371,41 @@ body {
 .sajni-stagger > *:nth-child(6) { animation-delay: 290ms; }
 .sajni-stagger > *:nth-child(7) { animation-delay: 340ms; }
 .sajni-stagger > *:nth-child(8) { animation-delay: 390ms; }
-@keyframes sajni-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+
 @media (prefers-reduced-motion: reduce) {
-  .sajni-stagger > * { animation: none; }
+  .fade-up, .fade-in, .page-fade-in, .sajni-stagger > * { animation: none !important; }
 }
 
-/* ============================================
-   Scrollbar — quiet
-   ============================================ */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border: 3px solid hsl(var(--background)); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+/* ============================================================
+   Headings — Codex serif.
+   ============================================================ */
+h1, h2, h3, h4 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  line-height: 1.05;
+}
+h1 { font-weight: 700; }
+em, .italic { font-style: italic; }
 
-/* ============================================
-   Prose styling for markdown preview
-   ============================================ */
+/* ============================================================
+   Scrollbar — quiet.
+   ============================================================ */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, hsl(var(--ink-3)) 35%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, hsl(var(--ink-3)) 60%, transparent);
+  background-clip: padding-box;
+}
+
+/* ============================================================
+   Prose — markdown preview.
+   ============================================================ */
 .prose-sajni { color: hsl(var(--foreground)); line-height: 1.65; }
 .prose-sajni h1, .prose-sajni h2, .prose-sajni h3, .prose-sajni h4 { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.01em; color: hsl(var(--foreground)); }
 .prose-sajni h1 { font-size: 1.875rem; margin: 1.5rem 0 0.75rem; }
@@ -342,20 +417,20 @@ body {
 .prose-sajni ol { list-style: decimal; }
 .prose-sajni li { margin: 0.125rem 0; }
 .prose-sajni li > p { margin: 0; }
-.prose-sajni code { font-family: var(--font-mono); font-size: 0.85em; background: hsl(var(--muted)); padding: 0.1em 0.35em; border-radius: 4px; }
-.prose-sajni pre { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); padding: 0.75rem 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 0 0 0.75rem; }
+.prose-sajni code { font-family: var(--font-mono); font-size: 0.85em; background: hsl(var(--muted)); padding: 0.1em 0.35em; }
+.prose-sajni pre { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); padding: 0.75rem 1rem; overflow-x: auto; margin: 0 0 0.75rem; }
 .prose-sajni pre code { background: transparent; padding: 0; }
 .prose-sajni blockquote { border-left: 3px solid hsl(var(--primary) / 0.5); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0 0 0.75rem; }
 .prose-sajni a { color: hsl(var(--primary)); text-underline-offset: 2px; text-decoration: underline; }
-.prose-sajni img { max-width: 100%; border-radius: 0.5rem; margin: 0.5rem 0; }
+.prose-sajni img { max-width: 100%; margin: 0.5rem 0; }
 .prose-sajni hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 1.5rem 0; }
 .prose-sajni table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; }
 .prose-sajni th, .prose-sajni td { border: 1px solid hsl(var(--border)); padding: 0.4rem 0.6rem; }
 .prose-sajni th { background: hsl(var(--muted)); font-weight: 600; }
 
-/* ============================================
-   Tiptap editor surfaces
-   ============================================ */
+/* ============================================================
+   Tiptap editor surfaces.
+   ============================================================ */
 .ProseMirror {
   outline: none !important;
   min-height: 100%;
@@ -369,29 +444,24 @@ body {
   pointer-events: none;
 }
 
-/* Wikilink pill */
+/* Wikilink — Codex italic Garamond w/ rule underline. */
 .wikilink {
   display: inline-flex;
-  align-items: center;
-  background: hsl(var(--primary) / 0.1);
+  align-items: baseline;
   color: hsl(var(--primary));
-  padding: 0.05rem 0.4rem;
-  border-radius: 4px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  border-bottom: 1px solid hsl(var(--primary) / 0.4);
+  padding: 0 2px 1px;
+  font-weight: 500;
   text-decoration: none !important;
-  border: 1px solid hsl(var(--primary) / 0.2);
-  font-size: 0.95em;
   cursor: pointer;
-  transition: background 120ms ease;
+  transition: border-color 120ms ease;
 }
-.wikilink::before { content: '⌘'; margin-right: 4px; opacity: 0.55; font-size: 0.85em; }
-.wikilink:hover { background: hsl(var(--primary) / 0.18); }
+.wikilink::before { content: '↗'; margin-right: 4px; opacity: 0.55; font-size: 0.78em; font-style: normal; }
+.wikilink:hover { border-color: hsl(var(--primary)); }
 
-.dark .wikilink {
-  background: hsl(var(--primary) / 0.15);
-  color: hsl(var(--primary));
-}
-
-/* Inline tasklist checkbox */
+/* Tasklist checkbox */
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0.25rem;
@@ -416,17 +486,16 @@ body {
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { text-decoration: line-through; opacity: 0.55; }
 
 .tiptap-link { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
-.tiptap-image { max-width: 100%; border-radius: 0.5rem; }
-.tiptap-code-block { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); padding: 0.75rem 1rem; border-radius: 0.5rem; overflow-x: auto; }
+.tiptap-image { max-width: 100%; }
+.tiptap-code-block { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); padding: 0.75rem 1rem; overflow-x: auto; }
 .tiptap-code-block code { font-family: var(--font-mono); font-size: 0.85em; }
 
-/* ============================================
-   Activity heatmap cells
-   ============================================ */
+/* ============================================================
+   Heatmap cells.
+   ============================================================ */
 .heatmap-cell {
   width: 11px;
   height: 11px;
-  border-radius: 2px;
   background: hsl(var(--muted));
   transition: transform 120ms ease;
 }
@@ -436,40 +505,31 @@ body {
 .heatmap-cell.l3 { background: hsl(var(--primary) / 0.7); }
 .heatmap-cell.l4 { background: hsl(var(--primary)); }
 
-/* ============================================
-   Subtle motion utilities
-   ============================================ */
-.fade-in {
-  animation: fade-in 200ms ease;
-}
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Page transition — gentle fade without unmount flash */
-.page-fade-in {
-  animation: page-fade-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-@keyframes page-fade-in {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ============================================================
+   Mobile tabbar + sheet helper classes.
+   ============================================================ */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: stretch;
+  background: color-mix(in oklch, hsl(var(--card)) 95%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border-top: 1px solid hsl(var(--ink-3));
+  z-index: 30;
 }
 
-/* Suppress the default tap flash on iOS/Android for buttons that already
-   have their own active feedback (we use active:scale or active:bg). */
-.tap-highlight-none {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Buttons / interactive elements: tighter active feedback for mobile. */
+/* Tap highlight off. */
 button, [role="button"], a {
   -webkit-tap-highlight-color: transparent;
 }
+.tap-highlight-none { -webkit-tap-highlight-color: transparent; }
 
-@media (prefers-reduced-motion: reduce) {
-  .page-fade-in,
-  .fade-in {
-    animation: none;
-  }
+/* Focus ring — single ink rule. */
+:focus-visible {
+  outline: 1px solid hsl(var(--primary));
+  outline-offset: 2px;
 }

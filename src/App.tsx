@@ -10,6 +10,7 @@ import NotesPage from './pages/NotesPage';
 import TagsPage from './pages/TagsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FinancePage from './pages/Finance/FinancePage';
+import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/Auth/Login';
 import RegisterPage from './pages/Auth/Register';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -17,6 +18,7 @@ import RequireAuth from './auth/RequireAuth';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import TweaksPanel from '@/components/TweaksPanel';
 
 // Redirects already-authenticated users away from /login and /register.
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -31,6 +33,7 @@ export default function App() {
 		<AuthProvider>
 			<TooltipProvider>
 				<Toaster richColors closeButton position="bottom-right" />
+				<TweaksPanel />
 				{/* prettier-ignore */}
 				<Routes>
           <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
@@ -48,6 +51,7 @@ export default function App() {
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/tags/:tag" element={<TagsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
 			</TooltipProvider>

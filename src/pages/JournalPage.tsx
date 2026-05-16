@@ -14,11 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
 import type { MissedTask } from '@/api';
 import {
   ChevronLeft, ChevronRight, Save, Loader2, Target, CheckSquare,
-  Link as LinkIcon, Trash2, AlertCircle, ArrowRight,
-  PanelLeftClose, PanelLeft, FilePlus, Calendar as CalendarIcon,
+  Link as LinkIcon, Trash2, AlertCircle, ArrowRight, Flame,
+  PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FilePlus, Calendar as CalendarIcon,
   ChevronDown,
 } from 'lucide-react';
 
@@ -38,6 +41,7 @@ interface JournalEntry { id: number; date: string; mood: string | null; tags: st
 
 const SIDEBAR_KEY = 'sajni:journal-sidebar';
 const DAILY_KEY = 'sajni:journal-daily';
+const MARGIN_KEY = 'sajni:journal-margin';
 const EXPANDED_MONTHS_KEY = 'sajni:journal-months';
 
 export default function JournalPage() {
@@ -67,6 +71,12 @@ export default function JournalPage() {
   const [dailyOpen, setDailyOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(DAILY_KEY) !== '0'; } catch { return true; }
   });
+  const [marginOpen, setMarginOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem(MARGIN_KEY) !== '0'; } catch { return true; }
+  });
+  const [mobileMarginOpen, setMobileMarginOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(EXPANDED_MONTHS_KEY);
@@ -83,6 +93,9 @@ export default function JournalPage() {
   useEffect(() => {
     try { localStorage.setItem(DAILY_KEY, dailyOpen ? '1' : '0'); } catch {}
   }, [dailyOpen]);
+  useEffect(() => {
+    try { localStorage.setItem(MARGIN_KEY, marginOpen ? '1' : '0'); } catch {}
+  }, [marginOpen]);
   useEffect(() => {
     try { localStorage.setItem(EXPANDED_MONTHS_KEY, JSON.stringify(Array.from(expandedMonths))); } catch {}
   }, [expandedMonths]);
@@ -219,12 +232,115 @@ export default function JournalPage() {
     });
   };
 
+  const contextPanel = (
+    <div className="flex flex-col gap-6 p-4">
+      {/* Tasks today */}
+      <section>
+        <div className="flex items-baseline justify-between mb-2.5">
+          <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground">tasks today</div>
+          <button onClick={() => navigate('/tasks')} className="mono text-[9.5px] tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
+        </div>
+        {loadingTasks ? (
+          <Skeleton className="h-16 w-full" />
+        ) : dueTasks.length === 0 && completedTasks.length === 0 ? (
+          <div className="text-xs italic text-muted-foreground">Clear day. A small mercy.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {dueTasks.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => completeTask(t.id)}
+                className="group flex items-start gap-2 text-left"
+                title="Mark done"
+              >
+                <span className="mt-0.5 size-[13px] border border-muted-foreground/60 group-hover:border-primary shrink-0" />
+                <span className="flex-1 text-[12.5px] text-foreground/85 leading-snug">{t.title}</span>
+              </button>
+            ))}
+            {completedTasks.map((t) => (
+              <div key={t.id} className="flex items-start gap-2">
+                <span className="mt-0.5 size-[13px] bg-primary border border-primary shrink-0 inline-flex items-center justify-center">
+                  <CheckSquare className="size-[9px] text-primary-foreground" />
+                </span>
+                <span className="flex-1 text-[12.5px] line-through text-muted-foreground leading-snug">{t.title}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {missedTasks.length > 0 && (
+          <div className="mt-3 pt-2 border-t border-border/60">
+            <div className="mono text-[9px] tracking-[0.18em] uppercase text-destructive/80 mb-1.5 flex items-center gap-1.5">
+              <AlertCircle className="size-3" /> missed
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {missedTasks.slice(0, 5).map((t) => (
+                <div key={t.id} className="text-[12px] text-foreground/70 truncate">{t.title}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Habits today */}
+      <section>
+        <div className="flex items-baseline justify-between mb-2.5">
+          <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground">habits</div>
+          <button onClick={() => navigate('/habits')} className="mono text-[9.5px] tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
+        </div>
+        {loadingHabits ? (
+          <Skeleton className="h-16 w-full" />
+        ) : habitStatuses.length === 0 ? (
+          <div className="text-xs italic text-muted-foreground">No habits yet.</div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {habitStatuses.map((h) => (
+              <button
+                key={h.id}
+                onClick={() => toggleHabit(h.id)}
+                className="group flex items-center gap-2.5 text-left"
+              >
+                <span
+                  className="size-4 border inline-flex items-center justify-center shrink-0 transition-colors"
+                  style={{
+                    background: h.logged ? h.color : 'transparent',
+                    borderColor: h.logged ? h.color : 'hsl(var(--muted-foreground) / 0.5)',
+                    color: 'hsl(var(--primary-foreground))',
+                  }}
+                >
+                  {h.logged && <CheckSquare className="size-2.5" />}
+                </span>
+                <span className="flex-1 text-[12.5px] text-foreground/85">{h.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Backlinks */}
+      <section>
+        <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2.5">backlinks</div>
+        {backlinks.length === 0 ? (
+          <div className="text-xs italic text-muted-foreground">Nothing points here yet.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {backlinks.map((bl: any, i: number) => (
+              <div key={i} className="text-[12.5px] text-primary">
+                <div className="underline underline-offset-2 decoration-primary/30 truncate">[[{bl.title || 'Untitled'}]]</div>
+                <div className="mono text-[9.5px] text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden page-fade-in">
-      {/* Editor pane (CENTER — left sidebar carries entries, right margin carries context). */}
+      {/* Editor pane (CENTER — left rail = entries, right margin = context). */}
       <div className="flex-1 flex flex-col min-w-0 order-2">
         {/* Top navbar — kept minimal */}
-        <header className="flex items-center justify-between gap-2 pl-14 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-10 h-12">
+        <header className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16">
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <SaveStatus state={savingState} onSave={() => performSave()} />
           </div>
@@ -241,6 +357,14 @@ export default function JournalPage() {
               title={sidebarOpen ? 'Hide journal' : 'Show journal'}
             >
               {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
+            </Button>
+            <Button
+              variant="ghost" size="icon-sm"
+              onClick={() => isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v)}
+              className="shrink-0"
+              title={isMobile ? 'Show context' : (marginOpen ? 'Hide context' : 'Show context')}
+            >
+              {marginOpen && !isMobile ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
             </Button>
           </div>
         </header>
@@ -310,21 +434,6 @@ export default function JournalPage() {
               )}
             </div>
 
-            {/* Daily — habits + tasks (collapsible) */}
-            <DailySection
-              open={dailyOpen}
-              onToggle={() => setDailyOpen((v) => !v)}
-              habitStatuses={habitStatuses}
-              loadingHabits={loadingHabits}
-              dueTasks={dueTasks}
-              completedTasks={completedTasks}
-              missedTasks={missedTasks}
-              loadingTasks={loadingTasks}
-              onToggleHabit={toggleHabit}
-              onCompleteTask={completeTask}
-              onJumpDate={(d) => setSelectedDate(d)}
-            />
-
             {/* Editor */}
             <div className="flex flex-col">
               {loading ? (
@@ -346,26 +455,41 @@ export default function JournalPage() {
               </div>
             )}
 
-            {/* Backlinks */}
-            {backlinks.length > 0 && (
-              <div className="rounded-lg border border-border bg-card mt-2">
-                <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/60 bg-muted/30">
-                  <LinkIcon className="size-3.5 text-primary" />
-                  <span className="text-xs font-medium">{backlinks.length} backlink{backlinks.length === 1 ? '' : 's'}</span>
-                </div>
-                <div className="p-2">
-                  {backlinks.map((bl: any, i: number) => (
-                    <div key={i} className="text-sm py-1 px-1 flex items-center gap-1.5">
-                      <Badge variant="secondary" className="text-[9px] capitalize shrink-0">{bl.source_type}</Badge>
-                      <span className="truncate">{bl.title || 'Untitled'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Right margin — context dock (desktop) */}
+      <AnimatePresence initial={false} mode="popLayout">
+        {marginOpen && (
+          <motion.aside
+            key="right-margin"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 260, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+            className="hidden md:flex border-l border-border bg-sidebar/40 flex-col shrink-0 overflow-hidden order-3"
+          >
+            <div className="overflow-y-auto">
+              {contextPanel}
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile right margin — bottom sheet */}
+      <Sheet open={mobileMarginOpen} onOpenChange={setMobileMarginOpen}>
+        <SheetContent
+          side="bottom"
+          className="md:hidden max-h-[80dvh] overflow-y-auto bg-popover border-t border-border px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+        >
+          <div className="mx-auto mb-3 h-[3px] w-9 bg-muted-foreground/35" aria-hidden="true" />
+          <SheetHeader className="p-0 px-2">
+            <SheetTitle className="serif text-base normal-case tracking-tight">Today's context</SheetTitle>
+          </SheetHeader>
+          {contextPanel}
+        </SheetContent>
+      </Sheet>
 
       {/* Sidebar — LEFT (entries + mini calendar, design-aligned) */}
       <AnimatePresence initial={false} mode="popLayout">
@@ -672,7 +796,7 @@ function DailySection({
 
                     {missedTasks.length > 0 && (
                       <div className="mt-1 pt-1 border-t border-border/60">
-                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-[9px] uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-[9px] uppercase tracking-widest text-secondary">
                           <AlertCircle className="size-3" />
                           Missed
                         </div>

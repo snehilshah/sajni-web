@@ -1,0 +1,106 @@
+import { useState } from 'react';
+import { Sun, Moon, Monitor, Type, LogOut, Loader2, Palette } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/auth/AuthContext';
+import { useMode, useDensity, useTheme, type ModePref, type Density, type ThemeName } from '@/hooks/useThemePrefs';
+import { cn } from '@/lib/utils';
+
+function Section({ title, caption, children }: { title: string; caption?: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-border first:border-t-0 py-6 first:pt-0">
+      <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground mb-1">{title}</div>
+      {caption && <div className="serif italic text-sm text-muted-foreground mb-4">{caption}</div>}
+      {!caption && <div className="h-3" />}
+      {children}
+    </section>
+  );
+}
+
+function Choice<T extends string>({
+  value, current, onSelect, Icon, label,
+}: {
+  value: T; current: T; onSelect: (v: T) => void;
+  Icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  const active = value === current;
+  return (
+    <button
+      onClick={() => onSelect(value)}
+      className={cn(
+        'h-10 px-4 inline-flex items-center justify-center gap-2 border text-sm capitalize',
+        active
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'bg-transparent border-border text-foreground/80 hover:bg-foreground/5',
+      )}
+    >
+      {Icon && <Icon className="size-3.5" />}
+      {label}
+    </button>
+  );
+}
+
+export default function SettingsPage() {
+  const { user, logout } = useAuth();
+  const { theme, setTheme, themes } = useTheme();
+  const { mode, setMode } = useMode();
+  const { density, setDensity } = useDensity();
+  const [signingOut, setSigningOut] = useState(false);
+
+  return (
+    <div className="page-fade-in flex-1 overflow-y-auto">
+      <div className="max-w-2xl mx-auto px-5 md:px-10 pt-10 pb-24">
+        <header className="mb-8">
+          <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground mb-2">codex preferences</div>
+          <h1 className="serif text-4xl md:text-5xl font-normal tracking-tight">Settings</h1>
+          <p className="serif italic text-base text-muted-foreground mt-1">Tune how the codex looks and feels.</p>
+        </header>
+
+        <Section title="Appearance" caption="Light, dark, or follow the OS.">
+          <div className="flex flex-wrap gap-2">
+            <Choice value={'system' as ModePref} current={mode} onSelect={setMode} Icon={Monitor} label="System" />
+            <Choice value={'light'  as ModePref} current={mode} onSelect={setMode} Icon={Sun} label="Light" />
+            <Choice value={'dark'   as ModePref} current={mode} onSelect={setMode} Icon={Moon} label="Dark" />
+          </div>
+        </Section>
+
+        <Section title="Theme" caption="More themes coming soon.">
+          <div className="flex flex-wrap gap-2">
+            {themes.map((t) => (
+              <Choice<ThemeName> key={t.id} value={t.id} current={theme} onSelect={setTheme} Icon={Palette} label={t.label} />
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Density" caption="How much room each thing takes.">
+          <div className="flex flex-wrap gap-2">
+            <Choice value={'compact'      as Density} current={density} onSelect={setDensity} Icon={Type} label="Compact" />
+            <Choice value={'comfortable'  as Density} current={density} onSelect={setDensity} Icon={Type} label="Comfortable" />
+            <Choice value={'cozy'         as Density} current={density} onSelect={setDensity} Icon={Type} label="Cozy" />
+          </div>
+        </Section>
+
+        <Section title="Account">
+          <div className="flex flex-col gap-3">
+            <div className="text-sm">
+              Signed in as <span className="serif font-semibold">{user?.email || '—'}</span>
+            </div>
+            <Button
+              variant="destructive"
+              className="w-fit"
+              disabled={signingOut}
+              onClick={async () => {
+                setSigningOut(true);
+                try { await logout(); }
+                finally { setSigningOut(false); }
+              }}
+            >
+              {signingOut ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />}
+              {signingOut ? 'Signing out…' : 'Sign out'}
+            </Button>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+}

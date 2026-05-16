@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList } from '@/types';
@@ -135,9 +136,9 @@ export default function TasksPage() {
 
   const headerLabel = selectionLabel(selection, lists);
 
-  // On mobile the kanban board is unusable; force list view there.
-  const isNarrow = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 768px)').matches;
-  const effectiveView = isNarrow ? 'list' : viewMode;
+  // Reactive mobile detection — kanban board is forced to list on phone.
+  const isMobile = useIsMobile();
+  const effectiveView = isMobile ? 'list' : viewMode;
 
   const subtitleStats = `${open.length} open · ${grouped.in_progress.length} in flight · ${tasksList.filter((t) => t.status === 'done').length} done`;
 
@@ -146,22 +147,27 @@ export default function TasksPage() {
       caption={subtitleStats}
       title={headerLabel}
       actions={
-        !isNarrow ? (
-          <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              title="List view"
-            >
-              <ListChecks className="size-3.5" /> List
-            </button>
-            <button
-              onClick={() => setViewMode('board')}
-              className={`px-3 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Board view"
-            >
-              <LayoutGrid className="size-3.5" /> Board
-            </button>
+        !isMobile ? (
+          <div className="inline-flex items-center gap-2">
+            <div className="inline-flex border border-border overflow-hidden h-8">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                title="List view"
+              >
+                <ListChecks className="size-3.5" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('board')}
+                className={`px-3 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Board view"
+              >
+                <LayoutGrid className="size-3.5" /> Board
+              </button>
+            </div>
+            <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
+              <Plus className="size-3.5" /> New task
+            </Button>
           </div>
         ) : undefined
       }
@@ -178,25 +184,26 @@ export default function TasksPage() {
           }}
         />
 
-        {/* Quick add — primary capture. The dedicated "Add task" button
-            in the header was redundant; this is the way. */}
-        <div className="rounded-[12px] border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
-          <Plus className="size-4 text-muted-foreground shrink-0" />
-          <Input
-            value={quickTitle}
-            onChange={(e) => setQuickTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleQuickAdd();
-            }}
-            placeholder="Add a task. Press ↵."
-            className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-0 text-sm"
-          />
-          {quickTitle.trim() && (
-            <Button size="sm" className="h-7 px-3 text-xs" onClick={handleQuickAdd}>
-              Add
-            </Button>
-          )}
-        </div>
+        {/* Inline quick-add — desktop only. Mobile uses the FAB → full sheet. */}
+        {!isMobile && (
+          <div className="border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
+            <Plus className="size-4 text-muted-foreground shrink-0" />
+            <Input
+              value={quickTitle}
+              onChange={(e) => setQuickTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleQuickAdd();
+              }}
+              placeholder="Add a task. Press ↵."
+              className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-0 text-sm"
+            />
+            {quickTitle.trim() && (
+              <Button size="sm" className="h-7 px-3 text-xs" onClick={handleQuickAdd}>
+                Add
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Body */}
         <div className="min-h-0">
@@ -245,6 +252,22 @@ export default function TasksPage() {
         lists={lists}
         onSaved={() => { reloadTasks(); reloadLists(); }}
       />
+
+      {/* Mobile FAB — sits above the bottom tabbar. */}
+      {isMobile && (
+        <button
+          type="button"
+          aria-label="New task"
+          onClick={() => openCreate()}
+          className="md:hidden fixed right-4 z-40 size-14 inline-flex items-center justify-center bg-primary text-primary-foreground shadow-lg active:translate-y-px"
+          style={{
+            bottom: 'calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px)',
+            borderRadius: '50%',
+          }}
+        >
+          <Plus className="size-6" />
+        </button>
+      )}
     </PageShell>
   );
 }
@@ -443,7 +466,7 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onChange }
           <button
             onClick={toggleStar}
             disabled={busy}
-            className={`opacity-60 hover:opacity-100 transition-opacity shrink-0 ${task.important ? 'text-amber-500 opacity-100' : ''}`}
+            className={`opacity-60 hover:opacity-100 transition-opacity shrink-0 ${task.important ? 'text-secondary opacity-100' : ''}`}
             title={task.important ? 'Remove from Important' : 'Mark important'}
           >
             <svg viewBox="0 0 24 24" className="size-3.5" fill={task.important ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">

@@ -1,40 +1,43 @@
 import { type ReactNode } from 'react';
 
-// PageShell — the one place that defines page padding, max-width and
-// hero-block placement. Every top-level page renders its content
-// inside this so heading position, vertical rhythm and side gutters
-// stay identical across tabs (no sticky-vs-inline split, no random
-// max-w-Nxl variations).
+// PageShell — single source of truth for the top page chrome.
+// Sticky h-14 (mobile) / h-16 (desktop) bar: caption mono + title serif on
+// the left, actions slot on the right. Body scrolls inside a centered
+// max-w-6xl gutter, identical across pages.
 export default function PageShell({
-  caption, title, subtitle, actions, children,
+  caption, title, actions, children, contentClassName,
 }: {
-  caption?: string;
+  caption?: ReactNode;
   title: ReactNode;
+  /** Deprecated — fold into caption. Kept so existing call sites compile. */
   subtitle?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
+  contentClassName?: string;
 }) {
   return (
-    <div className="page-fade-in max-w-6xl w-full mx-auto px-4 md:px-12 pt-10 md:pt-14 pb-20 flex flex-col gap-7">
-      <header className="flex items-end justify-between gap-4 flex-wrap pl-12 md:pl-0">
-        <div className="min-w-0">
+    <div className="page-fade-in flex-1 flex flex-col min-h-0">
+      <header
+        className="sticky top-0 z-20 h-14 md:h-16 border-b border-border bg-background/85 backdrop-blur flex items-center gap-3 px-4 md:px-8 shrink-0"
+      >
+        <div className="min-w-0 flex-1">
           {caption && (
-            <div className="mono text-[11px] tracking-[0.22em] uppercase text-muted-foreground mb-2">
+            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none truncate">
               {caption}
             </div>
           )}
-          <h1 className="serif text-3xl md:text-4xl font-medium tracking-tight leading-none">
+          <h1 className="serif text-base md:text-lg font-semibold tracking-tight leading-tight truncate mt-0.5">
             {title}
           </h1>
-          {subtitle && (
-            <div className="serif italic text-sm md:text-base text-muted-foreground mt-2">
-              {subtitle}
-            </div>
-          )}
         </div>
-        {actions && <div className="flex items-center gap-2 flex-wrap shrink-0">{actions}</div>}
+        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </header>
-      {children}
+
+      <div className="flex-1 overflow-y-auto">
+        <div className={contentClassName ?? 'max-w-6xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-8 pb-20 flex flex-col gap-6'}>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

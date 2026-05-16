@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, BookOpen, CheckSquare, Target, FileText, Film,
   Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft, X,
+  Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight,
 } from 'lucide-react';
 
 import { search as searchApi, type SearchHit } from '@/api';
@@ -12,6 +13,8 @@ import {
   SEARCH_TYPE_LABELS, type SearchType,
 } from '@/lib/fuzzy';
 import AIPaletteAnswer from '@/components/AIPaletteAnswer';
+import { useMode, useDensity } from '@/hooks/useThemePrefs';
+import { useAuth } from '@/auth/AuthContext';
 
 // AI_PREFIXES committed by space/tab become the AI chip. We keep the
 // list small — typing one of these and pressing space flips the
@@ -46,8 +49,20 @@ interface RankedHit extends SearchHit {
   score: number;
 }
 
+type Action = {
+  id: string;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  hint?: string;
+  danger?: boolean;
+  run: () => void | Promise<void>;
+};
+
 export default function CommandPalette() {
   const navigate = useNavigate();
+  const { setMode } = useMode();
+  const { setDensity } = useDensity();
+  const { logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [results, setResults] = useState<SearchHit[]>([]);
@@ -56,6 +71,17 @@ export default function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const fetchSeq = useRef(0);
+
+  const actions = useMemo<Action[]>(() => [
+    { id: 'theme-system',  label: 'Theme: System', Icon: Monitor, run: () => setMode('system') },
+    { id: 'theme-light',   label: 'Theme: Light',  Icon: Sun,     run: () => setMode('light') },
+    { id: 'theme-dark',    label: 'Theme: Dark',   Icon: Moon,    run: () => setMode('dark') },
+    { id: 'density-comf',  label: 'Density: Comfortable', Icon: Type, run: () => setDensity('comfortable') },
+    { id: 'density-comp',  label: 'Density: Compact',     Icon: Type, run: () => setDensity('compact') },
+    { id: 'density-cozy',  label: 'Density: Cozy',        Icon: Type, run: () => setDensity('cozy') },
+    { id: 'go-settings',   label: 'Open Settings',  Icon: Settings, hint: '/settings', run: () => navigate('/settings') },
+    { id: 'sign-out',      label: 'Sign out',       Icon: LogOut,   danger: true, run: () => logout() },
+  ], [setMode, setDensity, navigate, logout]);
   // aiQuery is set on Enter in AI mode; AIPaletteAnswer reads from it.
   // Empty string means AI mode is active but no question yet.
   const [aiQuery, setAiQuery] = useState<string>('');
@@ -102,6 +128,19 @@ export default function CommandPalette() {
   useEffect(() => {
     setAiQuery('');
   }, [input]);
+
+  // Action mode: input starts with '>'. Lists app-level commands
+  // (theme/density/settings/sign-out) instead of search hits.
+  const actionMode = input.startsWith('>');
+  const actionQuery = actionMode ? input.slice(1).trim().toLowerCase() : '';
+  const actionResults = useMemo<Action[]>(
+    () => actionMode
+      ? (actionQuery === ''
+          ? actions
+          : actions.filter((a) => a.label.toLowerCase().includes(actionQuery)))
+      : [],
+    [actions, actionMode, actionQuery],
+  );
 
   // When the chip is committed, treat input as the raw question (no
   // re-parsing for type prefixes). Otherwise parseQuery handles
@@ -180,6 +219,25 @@ export default function CommandPalette() {
     if (aiChip && e.key === 'Backspace' && input === '') {
       e.preventDefault();
       setAiChip(false);
+      return;
+    }
+
+    // Action mode: navigate + Enter runs the action.
+    if (actionMode) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex((i) => Math.min(i + 1, actionResults.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex((i) => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const a = actionResults[activeIndex];
+        if (a) {
+          setOpen(false);
+          Promise.resolve(a.run()).catch(() => {});
+        }
+      }
       return;
     }
 
@@ -289,11 +347,32 @@ export default function CommandPalette() {
             </div>
 
             <div ref={listRef} className="max-h-[60vh] overflow-y-auto py-1">
-              {parsed.aiMode ? (
+              {actionMode ? (
+                actionResults.length === 0 ? (
+                  <div className="px-4 py-10 text-center text-sm text-muted-foreground">No matching action.</div>
+                ) : (
+                  actionResults.map((a, i) => (
+                    <button
+                      key={a.id}
+                      data-idx={i}
+                      onMouseEnter={() => setActiveIndex(i)}
+                      onClick={() => { setOpen(false); Promise.resolve(a.run()).catch(() => {}); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+                        i === activeIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                      } ${a.danger ? 'text-destructive' : 'text-foreground'}`}
+                    >
+                      <a.Icon className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 text-sm">{a.label}</span>
+                      {a.hint && <span className="mono text-[10px] text-muted-foreground">{a.hint}</span>}
+                      <ChevronRight className="size-3 text-muted-foreground/60" />
+                    </button>
+                  ))
+                )
+              ) : parsed.aiMode ? (
                 <AIPaletteAnswer query={aiQuery} onClose={() => setOpen(false)} />
               ) : ranked.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search — or use @sajni to ask the AI.'}
+                  {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search — or use @sajni to ask the AI, or > for actions.'}
                 </div>
               ) : (
                 ranked.map((hit, i) => (

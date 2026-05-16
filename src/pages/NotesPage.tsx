@@ -10,11 +10,23 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 import {
   Trash2, Search, Loader2, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
   PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon,
 } from 'lucide-react';
+
+function deriveTitle(content: string): string {
+  for (const raw of content.split('\n')) {
+    let line = raw.trim();
+    line = line.replace(/^#+\s*/, '');
+    if (line) return line.length > 80 ? line.slice(0, 80) : line;
+  }
+  return 'Untitled';
+}
 
 interface NoteListItem {
   id: number; title: string; folder: string; tags: string[]; created_at: string; updated_at: string;
@@ -114,6 +126,9 @@ export default function NotesPage() {
 
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMobile = useIsMobile();
+  const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0'); } catch {}
@@ -155,6 +170,7 @@ export default function NotesPage() {
 
   const selectNote = async (id: number) => {
     setLoadingNote(true);
+    setDrafting(false);
     dirtyRef.current = false;
     try {
       const note = await notesApi.get(id);
@@ -189,20 +205,25 @@ export default function NotesPage() {
     setTags([]);
     setBacklinks([]);
     dirtyRef.current = false;
+    setDrafting(true);
     const next = new URLSearchParams(params);
     next.delete('id');
     setParams(next, { replace: true });
   };
 
   const performSave = useCallback(async (silent = false) => {
-    if (!title.trim()) return;
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+    if (!trimmedTitle && !trimmedContent) return;
+    const effectiveTitle = trimmedTitle || deriveTitle(content);
+    if (effectiveTitle !== title) setTitle(effectiveTitle);
     if (!silent) setSavingState('saving');
     try {
       let id = selectedId;
       if (id) {
-        await notesApi.update(id, { title, content });
+        await notesApi.update(id, { title: effectiveTitle, content });
       } else {
-        const res = await notesApi.create(title, content, folder);
+        const res = await notesApi.create(effectiveTitle, content, folder);
         id = res.id;
         setSelectedId(id);
         const next = new URLSearchParams(params);
@@ -216,18 +237,20 @@ export default function NotesPage() {
       setSavingState('saved');
       setTimeout(() => setSavingState((s) => (s === 'saved' ? 'idle' : s)), 1400);
       dirtyRef.current = false;
+      setDrafting(false);
       loadAll();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('[notes] save failed', err);
+      toast.error(`Couldn't save note: ${err?.message || 'unknown error'}`);
       setSavingState('idle');
     }
   }, [title, content, folder, selectedId, params, setParams, loadAll]);
 
-  // Debounced auto-save
+  // Debounced auto-save — fires once content OR title becomes non-empty.
   useEffect(() => {
     if (loadingNote) return;
     if (!dirtyRef.current) return;
-    if (!title.trim()) return;
+    if (!title.trim() && !content.trim()) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => performSave(true), 1200);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
@@ -291,9 +314,83 @@ export default function NotesPage() {
     return folder.split('/');
   }, [folder]);
 
+  const treeBody = (
+    <>
+      <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search notes…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 pl-8 pr-7 text-xs"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <Button
+            onClick={() => { handleNew(''); setMobileTreeOpen(false); }}
+            size="xs" variant="ghost"
+            className="flex-1 justify-start gap-1.5 font-normal text-xs"
+          >
+            <FilePlus className="size-3.5" /> New note
+          </Button>
+          <Button onClick={() => { setShowNewFolder(''); setNewFolderName(''); }} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
+            <FolderPlus className="size-3.5" /> New folder
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-1.5 px-1">
+        {loading ? (
+          <div className="px-2 py-2 flex flex-col gap-1.5">
+            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
+          </div>
+        ) : tree.children.length === 0 && showNewFolder !== '' ? (
+          <div className="text-center text-xs text-muted-foreground py-12 px-3">
+            {search ? 'No notes match' : 'No notes yet — start writing'}
+          </div>
+        ) : (
+          <>
+            {showNewFolder === '' && (
+              <FolderInput
+                depth={0}
+                value={newFolderName}
+                onChange={setNewFolderName}
+                onConfirm={handleCreateFolder}
+                onCancel={() => { setShowNewFolder(null); setNewFolderName(''); }}
+              />
+            )}
+            <TreeView
+              node={tree}
+              depth={0}
+              expanded={expandedFolders}
+              selectedId={selectedId}
+              showNewFolderUnder={showNewFolder}
+              newFolderValue={newFolderName}
+              onNewFolderChange={setNewFolderName}
+              onToggle={toggleFolder}
+              onSelectNote={(id) => { selectNote(id); setMobileTreeOpen(false); }}
+              onNewNoteIn={(p) => { handleNew(p); setMobileTreeOpen(false); }}
+              onNewSubfolder={(p) => { setShowNewFolder(p); setNewFolderName(''); }}
+              onDeleteFolder={handleDeleteFolder}
+              onMoveNote={(n) => setMoveTarget(n)}
+              onCreateFolder={handleCreateFolder}
+              onCancelNewFolder={() => { setShowNewFolder(null); setNewFolderName(''); }}
+            />
+          </>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden page-fade-in">
-      {/* Sidebar */}
+      {/* Desktop sidebar */}
       <AnimatePresence initial={false} mode="popLayout">
         {sidebarOpen && (
           <motion.aside
@@ -304,91 +401,40 @@ export default function NotesPage() {
             transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
             className="hidden md:flex border-r border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden"
           >
-            <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  placeholder="Search notes…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-8 pl-8 pr-7 text-xs"
-                />
-                {search && (
-                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    <X className="size-3.5" />
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-1">
-                <Button onClick={() => handleNew('')} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
-                  <FilePlus className="size-3.5" /> New note
-                </Button>
-                <Button onClick={() => { setShowNewFolder(''); setNewFolderName(''); }} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
-                  <FolderPlus className="size-3.5" /> New folder
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-1.5 px-1">
-              {loading ? (
-                <div className="px-2 py-2 flex flex-col gap-1.5">
-                  {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
-                </div>
-              ) : tree.children.length === 0 && showNewFolder !== '' ? (
-                <div className="text-center text-xs text-muted-foreground py-12 px-3">
-                  {search ? 'No notes match' : 'No notes yet — start writing'}
-                </div>
-              ) : (
-                <>
-                  {showNewFolder === '' && (
-                    <FolderInput
-                      depth={0}
-                      value={newFolderName}
-                      onChange={setNewFolderName}
-                      onConfirm={handleCreateFolder}
-                      onCancel={() => { setShowNewFolder(null); setNewFolderName(''); }}
-                    />
-                  )}
-                  <TreeView
-                    node={tree}
-                    depth={0}
-                    expanded={expandedFolders}
-                    selectedId={selectedId}
-                    showNewFolderUnder={showNewFolder}
-                    newFolderValue={newFolderName}
-                    onNewFolderChange={setNewFolderName}
-                    onToggle={toggleFolder}
-                    onSelectNote={selectNote}
-                    onNewNoteIn={(p) => handleNew(p)}
-                    onNewSubfolder={(p) => { setShowNewFolder(p); setNewFolderName(''); }}
-                    onDeleteFolder={handleDeleteFolder}
-                    onMoveNote={(n) => setMoveTarget(n)}
-                    onCreateFolder={handleCreateFolder}
-                    onCancelNewFolder={() => { setShowNewFolder(null); setNewFolderName(''); }}
-                  />
-                </>
-              )}
-            </div>
+            {treeBody}
           </motion.aside>
         )}
       </AnimatePresence>
 
+      {/* Mobile sidebar — left sheet */}
+      <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
+        <SheetContent
+          side="left"
+          className="md:hidden w-[86vw] max-w-[320px] p-0 bg-sidebar text-sidebar-foreground flex flex-col"
+        >
+          <SheetHeader className="p-3 pt-12">
+            <SheetTitle className="serif text-base normal-case tracking-tight">Vault</SheetTitle>
+          </SheetHeader>
+          {treeBody}
+        </SheetContent>
+      </Sheet>
+
       {/* Editor pane */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between gap-3 pl-14 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-10 h-12">
+        <header className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16">
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <Button
               variant="ghost" size="icon-sm"
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="hidden md:flex shrink-0"
-              title={sidebarOpen ? 'Hide vault' : 'Show vault'}
+              onClick={() => isMobile ? setMobileTreeOpen(true) : setSidebarOpen((v) => !v)}
+              className="shrink-0"
+              title={isMobile ? 'Open vault' : (sidebarOpen ? 'Hide vault' : 'Show vault')}
             >
-              {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
+              {sidebarOpen && !isMobile ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
             </Button>
             <Breadcrumb segments={breadcrumb} title={selectedId ? (title || 'Untitled') : 'New note'} />
           </div>
           <div className="flex gap-1.5 items-center shrink-0">
-            <SaveIndicator state={savingState} canSave={!!title.trim()} onSave={() => performSave()} />
+            <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
             {selectedId && (
               <>
                 <Button variant="ghost" size="icon-sm" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
@@ -403,8 +449,9 @@ export default function NotesPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Atlas landing — show the design's card grid when no note is open. */}
-          {!selectedId && !loadingNote && !title && !content ? (
+          {/* Atlas landing — show the design's card grid when no note is open
+              and not actively drafting a new one. */}
+          {!selectedId && !drafting && !loadingNote && !title && !content ? (
             <NotesAtlas
               notes={notesList}
               loading={loading}
@@ -427,10 +474,6 @@ export default function NotesPage() {
                     onChange={(e) => handleTitleChange(e.target.value)}
                     className="w-full bg-transparent border-none outline-none font-serif text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
                   />
-
-                  {!title.trim() && (
-                    <p className="text-xs text-muted-foreground">A title is required to save.</p>
-                  )}
 
                   <RichEditor
                     value={content}
@@ -793,7 +836,7 @@ function NotesAtlas({
           style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
         >
           {notes.map((n) => {
-            const meshIdx = (n.id % 5) + 1;
+            const meshIdx = ((n.id % 5) + 1);
             return (
               <button
                 key={n.id}
@@ -802,7 +845,7 @@ function NotesAtlas({
               >
                 <div
                   className="absolute top-0 right-0 w-[80px] h-[80px] pointer-events-none rounded-xl opacity-50"
-                  style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--m${meshIdx})), transparent 70%)` }}
+                  style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--backdrop-blob-${meshIdx})), transparent 70%)` }}
                 />
                 <div className="relative">
                   <div className="mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground mb-2.5">

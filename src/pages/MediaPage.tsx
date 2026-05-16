@@ -5,6 +5,7 @@ import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/ap
 import type { MediaEntry, MediaStatus, MediaSearchResult } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import PageShell from '@/components/PageShell';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -241,6 +242,8 @@ export default function MediaPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [items, setItems] = useState<MediaEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const isMobileMedia = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     try { return (localStorage.getItem(MEDIA_VIEW_KEY) as 'grid' | 'list') || 'list'; }
@@ -532,39 +535,53 @@ export default function MediaPage() {
                   <Film className="size-3.5" /> Series
                 </button>
               )}
-              <div className="inline-flex rounded-md border border-border overflow-hidden h-9">
+              <div className="inline-flex border border-border h-9 shrink-0">
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`px-2.5 inline-flex items-center gap-1 text-xs ${viewMode === 'list' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`h-full px-3 inline-flex items-center gap-1.5 text-xs ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
                   title="List view"
                 >
                   <ListChecks className="size-3.5" /> List
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`px-2.5 inline-flex items-center gap-1 text-xs border-l border-border ${viewMode === 'grid' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`h-full px-3 inline-flex items-center gap-1.5 text-xs border-l border-border ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
                   title="Grid view"
                 >
                   <LayoutGrid className="size-3.5" /> Grid
                 </button>
               </div>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter library…"
-                  className="h-9 pl-9 pr-8"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                )}
-              </div>
+              {/* Desktop: full-width input. Mobile: icon-only collapsed,
+                  expands inline (full row) when tapped. */}
+              {isMobileMedia && !searchExpanded && !searchQuery ? (
+                <button
+                  onClick={() => setSearchExpanded(true)}
+                  className="h-9 w-9 inline-flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                  aria-label="Search library"
+                >
+                  <Search className="size-3.5" />
+                </button>
+              ) : (
+                <div className={`relative ${isMobileMedia ? 'flex-1 min-w-0' : 'w-64'}`}>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Filter library…"
+                    autoFocus={isMobileMedia && searchExpanded && !searchQuery}
+                    onBlur={() => { if (isMobileMedia && !searchQuery) setSearchExpanded(false); }}
+                    className="h-9 pl-9 pr-8 w-full"
+                  />
+                  {(searchQuery || searchExpanded) && (
+                    <button
+                      onClick={() => { setSearchQuery(''); setSearchExpanded(false); }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1235,7 +1252,7 @@ function MediaListRow({
           <div className="serif text-[16px] font-medium truncate">{item.title || 'Untitled'}</div>
           {item.year ? <span className="mono text-[11px] text-muted-foreground">{item.year}</span> : null}
           {item.rating ? (
-            <span className="inline-flex items-center gap-0.5 text-amber-500">
+            <span className="inline-flex items-center gap-0.5 text-secondary">
               <Star className="size-3 fill-current" />
               <span className="mono text-[10px]">{item.rating}</span>
             </span>
@@ -1320,7 +1337,7 @@ function SeriesListRow({
             <button
               key={m.id}
               onClick={() => onPickItem(m)}
-              className={`w-full flex items-center gap-4 pl-12 md:pl-14 pr-5 md:pr-6 py-2.5 text-left hover:bg-foreground/[.05] transition-colors
+              className={`w-full flex items-center gap-4 pl-4 md:pl-6 pr-5 md:pr-6 py-2.5 text-left hover:bg-foreground/[.05] transition-colors
                 ${mi === 0 ? '' : 'border-t border-border/30'}`}
             >
               <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right shrink-0">
@@ -1332,7 +1349,7 @@ function SeriesListRow({
                   <div className="text-[14px] font-medium truncate">{m.title}</div>
                   {m.year ? <span className="mono text-[11px] text-muted-foreground">{m.year}</span> : null}
                   {m.rating ? (
-                    <span className="inline-flex items-center gap-0.5 text-amber-500">
+                    <span className="inline-flex items-center gap-0.5 text-secondary">
                       <Star className="size-3 fill-current" />
                       <span className="mono text-[10px]">{m.rating}</span>
                     </span>

@@ -2,16 +2,17 @@ import { useEffect, useState } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
+function readMode(): "light" | "dark" {
+  if (typeof document === "undefined") return "light"
+  return document.documentElement.dataset.mode === "dark" ? "dark" : "light"
+}
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const [theme, setTheme] = useState<"light" | "dark">(() =>
-    typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light",
-  )
+  const [theme, setTheme] = useState<"light" | "dark">(readMode)
 
   useEffect(() => {
-    const obs = new MutationObserver(() => {
-      setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light")
-    })
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+    const obs = new MutationObserver(() => setTheme(readMode()))
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mode"] })
     return () => obs.disconnect()
   }, [])
 

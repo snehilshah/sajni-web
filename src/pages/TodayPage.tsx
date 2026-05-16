@@ -58,23 +58,33 @@ export default function TodayPage() {
 		return () => clearInterval(t);
 	}, []);
 
-	const refresh = async () => {
-		const [tasksData, statusData, habitsData, memosData, journalData] = await Promise.all([
-			tasksApi.list({ smart: 'my_day' }).catch(() => [] as Task[]),
+	const refreshTasks = async () => {
+		const data = await tasksApi.list({ smart: 'my_day' }).catch(() => [] as Task[]);
+		setDueToday(data);
+	};
+	const refreshHabits = async () => {
+		const [status, list] = await Promise.all([
 			habitsApi.statusForDate(today).catch(() => [] as HabitDayStatus[]),
 			habitsApi.list().catch(() => [] as Habit[]),
-			memosApi.list().catch(() => [] as Memo[]),
-			journalApi.list().catch(() => [] as JournalMeta[]),
 		]);
-		setDueToday(tasksData);
-		setHabitStatus(statusData);
-		setHabitsList(habitsData);
-		setRecentMemos((memosData as Memo[]).slice(0, 3));
-		setRecentJournal((journalData as JournalMeta[]).slice(0, 4));
+		setHabitStatus(status);
+		setHabitsList(list);
+	};
+	const refreshMemos = async () => {
+		const data = await memosApi.list().catch(() => [] as Memo[]);
+		setRecentMemos((data as Memo[]).slice(0, 3));
+	};
+	const refreshJournal = async () => {
+		const data = await journalApi.list().catch(() => [] as JournalMeta[]);
+		setRecentJournal((data as JournalMeta[]).slice(0, 4));
+	};
+	const refreshAll = async () => {
+		await Promise.all([refreshTasks(), refreshHabits(), refreshMemos(), refreshJournal()]);
 	};
 
 	useEffect(() => {
-		refresh();
+		refreshAll();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// Derive the per-habit last-7-days completion (Mon..Sun ending today).
@@ -108,11 +118,19 @@ export default function TodayPage() {
 		};
 	}, [habitsList]);
 
-	// React to AI mutations — refresh the dashboard.
+	// React to AI mutations — refresh only the relevant domain.
 	useEffect(() => {
-		const onInvalidate = () => refresh();
+		const onInvalidate = (e: Event) => {
+			const kind = (e as CustomEvent).detail?.kind as string | undefined;
+			if (!kind) { refreshAll(); return; }
+			if (kind.startsWith('task_')) refreshTasks();
+			else if (kind.startsWith('habit_')) refreshHabits();
+			else if (kind.startsWith('memo_')) refreshMemos();
+			else if (kind.startsWith('journal_')) refreshJournal();
+		};
 		window.addEventListener('data:invalidate', onInvalidate);
 		return () => window.removeEventListener('data:invalidate', onInvalidate);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const greeting =
@@ -163,7 +181,9 @@ export default function TodayPage() {
 				}
 			}
 			setCapture('');
-			refresh();
+			if (captureKind === 'memo') refreshMemos();
+			else if (captureKind === 'task') refreshTasks();
+			else if (captureKind === 'journal') refreshJournal();
 		} finally {
 			setSaving(false);
 		}
@@ -278,7 +298,7 @@ export default function TodayPage() {
 										key={t.id}
 										onClick={async () => {
 											await tasksApi.update(t.id, { status: 'done' });
-											refresh();
+											refreshTasks();
 										}}
 										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-foreground/[.03] transition-colors
                     ${i === 0 ? '' : 'border-t border-border/50'}`}
@@ -388,7 +408,7 @@ export default function TodayPage() {
 											<button
 												onClick={async () => {
 													await habitsApi.toggleLogForDate(h.id, today);
-													refresh();
+													refreshHabits();
 												}}
 												className="size-[26px] rounded-lg flex items-center justify-center transition-all"
 												style={{
@@ -444,7 +464,7 @@ export default function TodayPage() {
 					<Section title="Today's prompt">
 						<div
 							className="glass rounded-xl p-5"
-							style={{ background: 'color-mix(in oklch, hsl(var(--m1)) 22%, hsl(var(--card) / 0.78))' }}
+							style={{ background: 'color-mix(in oklch, hsl(var(--backdrop-blob-2)) 22%, hsl(var(--card) / 0.78))' }}
 						>
 							<div className="mono text-[9.5px] tracking-[0.18em] uppercase text-primary mb-2.5">
 								continued from yesterday
