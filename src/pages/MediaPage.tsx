@@ -1196,7 +1196,7 @@ function SeriesDialog({
             <button
               key={m.id}
               onClick={() => { onPickItem(m); onClose(); }}
-              className={`w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-foreground/[.04] transition-colors
+              className={`m3-state w-full flex items-center gap-3 px-5 py-3 text-left transition-colors
                 ${mi === 0 ? '' : 'border-t border-border/40'}`}
             >
               <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right shrink-0">
@@ -1234,7 +1234,7 @@ function MediaListRow({
   first: boolean;
   onClick: () => void;
 }) {
-  const pct = listProgressPct(item);
+  const hasProgress = listProgressPct(item) !== null;
   return (
     <motion.button
       layout="position"
@@ -1243,7 +1243,7 @@ function MediaListRow({
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
       transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
       onClick={onClick}
-      className={`relative w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left hover:bg-foreground/[.03] transition-colors
+      className={`m3-state relative w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left transition-colors
         ${first ? '' : 'border-t border-border/40'}`}
     >
       <MediaThumb item={item} index={index} />
@@ -1313,7 +1313,7 @@ function SeriesListRow({
     <>
       <button
         onClick={onToggle}
-        className={`w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left hover:bg-foreground/[.03] transition-colors
+        className={`m3-state w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left transition-colors
           ${first ? '' : 'border-t border-border/40'}`}
       >
         <MediaThumb item={cover} index={0} />

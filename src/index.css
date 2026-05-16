@@ -323,9 +323,22 @@ body {
   border: 1px solid hsl(var(--ink-3));
   color: hsl(var(--ink-2));
 }
-.chip-sage   { color: hsl(var(--primary));   border-color: hsl(var(--primary)); }
-.chip-amber  { color: hsl(var(--secondary)); border-color: hsl(var(--secondary)); }
-.chip-rose   { color: hsl(var(--destructive)); border-color: hsl(var(--destructive)); }
+.chip-sage   { color: hsl(var(--primary));   border-color: hsl(var(--primary));   background: hsl(var(--primary)   / 0.06); }
+.chip-amber  { color: hsl(var(--secondary)); border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / 0.06); }
+.chip-rose   { color: hsl(var(--destructive)); border-color: hsl(var(--destructive)); background: hsl(var(--destructive) / 0.06); }
+
+/* Complete — uses --color-complete CSS var, overridden per-theme. */
+.chip-olive {
+  color: hsl(var(--color-complete));
+  border-color: hsl(var(--color-complete));
+  background: hsl(var(--color-complete) / 0.08);
+}
+/* Waiting — uses --color-waiting CSS var, overridden per-theme. */
+.chip-sky {
+  color: hsl(var(--color-waiting));
+  border-color: hsl(var(--color-waiting));
+  background: hsl(var(--color-waiting) / 0.08);
+}
 
 /* ============================================================
    Codex Kbd — typewriter key.
