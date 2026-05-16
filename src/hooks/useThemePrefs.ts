@@ -1,27 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type ThemeName = 'default';
+export type ThemeName = 'default' | 'gruvbox' | 'catppuccin' | 'rose-pine';
 export type ModePref = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact' | 'cozy';
 
-const LS_THEME = 'sajni:theme';
-const LS_MODE = 'sajni:mode';
+const LS_THEME   = 'sajni:theme';
+const LS_MODE    = 'sajni:mode';
 const LS_DENSITY = 'sajni:density';
 
-export const THEMES: { id: ThemeName; label: string }[] = [
-  { id: 'default', label: 'Codex' },
-];
-
-const DENSITIES: { id: Density; label: string }[] = [
-  { id: 'comfortable', label: 'Comfortable' },
-  { id: 'compact', label: 'Compact' },
-  { id: 'cozy', label: 'Cozy' },
-];
-
-const MODES: { id: ModePref; label: string }[] = [
-  { id: 'system', label: 'System' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
+export const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
+  { id: 'default',    label: 'Codex',             emoji: '📜' },
+  { id: 'gruvbox',    label: 'Gruvbox Material',   emoji: '🌿' },
+  { id: 'catppuccin', label: 'Catppuccin Mocha',   emoji: '🐱' },
+  { id: 'rose-pine',  label: 'Rosé Pine',          emoji: '🌸' },
 ];
 
 function read<T extends string>(key: string, fallback: T): T {
@@ -38,11 +29,18 @@ function applyMode(modePref: ModePref) {
 
 export function useTheme() {
   const [theme, setTheme] = useState<ThemeName>(() => read<ThemeName>(LS_THEME, 'default'));
+
+  // Apply theme on mount and whenever it changes.
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
   const update = useCallback((next: ThemeName) => {
     setTheme(next);
     try { localStorage.setItem(LS_THEME, next); } catch {}
     document.documentElement.dataset.theme = next;
   }, []);
+
   return { theme, setTheme: update, themes: THEMES };
 }
 
@@ -50,6 +48,7 @@ export function useMode() {
   const [mode, setMode] = useState<ModePref>(() => read<ModePref>(LS_MODE, 'system'));
 
   useEffect(() => {
+    applyMode(mode);
     if (mode !== 'system') return;
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = () => applyMode('system');
@@ -60,18 +59,23 @@ export function useMode() {
   const update = useCallback((next: ModePref) => {
     setMode(next);
     try { localStorage.setItem(LS_MODE, next); } catch {}
-    applyMode(next);
   }, []);
 
-  return { mode, setMode: update, modes: MODES };
+  return { mode, setMode: update };
 }
 
 export function useDensity() {
   const [density, setDensity] = useState<Density>(() => read<Density>(LS_DENSITY, 'comfortable'));
+
+  useEffect(() => {
+    document.documentElement.dataset.density = density;
+  }, [density]);
+
   const update = useCallback((next: Density) => {
     setDensity(next);
     try { localStorage.setItem(LS_DENSITY, next); } catch {}
     document.documentElement.dataset.density = next;
   }, []);
-  return { density, setDensity: update, densities: DENSITIES };
+
+  return { density, setDensity: update };
 }
