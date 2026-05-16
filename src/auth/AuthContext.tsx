@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { setAccessToken, getAccessToken, authFetch, API_BASE } from "./client";
+import log from "../lib/logger";
 
 export interface User {
   id: number;
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setAccessToken(data.access_token);
         setUser(data.user);
+        log.info({ userId: data.user.id }, "session restored");
       } catch {
         setAccessToken(null);
         setUser(null);
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data: AuthResponse = await res.json();
       setAccessToken(data.access_token);
       setUser(data.user);
+      log.info({ userId: data.user.id }, path === "/auth/login" ? "login" : "register");
     },
     [],
   );
@@ -105,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore — we clear local state regardless
     }
+    log.info("logout");
     setAccessToken(null);
     setUser(null);
   }, []);

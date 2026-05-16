@@ -1,3 +1,5 @@
+import log from '../lib/logger';
+
 // API_BASE is the prefix for backend calls. In dev, the Vite proxy at
 // /api forwards to localhost:8080; in prod, set VITE_API_URL to the full
 // backend URL (e.g. https://api.sajni.app/api).
@@ -88,7 +90,11 @@ export async function requestJSON<T>(
   const res = await authFetch(path, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || res.statusText);
+    const msg = err.error || res.statusText;
+    if (res.status >= 500) {
+      log.error({ path, status: res.status }, `api error: ${msg}`);
+    }
+    throw new Error(msg);
   }
   return res.json();
 }
