@@ -64,11 +64,26 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Theme" caption="More themes coming soon.">
+        <Section title="Theme" caption="Each theme has light and dark variants — toggle with Appearance above.">
           <div className="flex flex-wrap gap-2">
-            {themes.map((t) => (
-              <Choice<ThemeName> key={t.id} value={t.id} current={theme} onSelect={setTheme} Icon={Palette} label={t.label} />
-            ))}
+            {themes.map((t) => {
+              const active = theme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className={cn(
+                    'h-10 px-4 inline-flex items-center gap-2 border text-sm',
+                    active
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-transparent border-border text-foreground/80 hover:bg-foreground/5',
+                  )}
+                >
+                  <span>{t.emoji}</span>
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </Section>
 
