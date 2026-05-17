@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Sun, Moon, Monitor, Type, LogOut, Loader2 } from 'lucide-react';
+import { Sun, Moon, Monitor, Type, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import { useAuth } from '@/auth/AuthContext';
 import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';

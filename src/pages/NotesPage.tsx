@@ -11,10 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import {
-  Trash2, Search, Loader2, Save, Link as LinkIcon, FileText, X,
+  Trash2, Search, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
   PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon,
 } from 'lucide-react';

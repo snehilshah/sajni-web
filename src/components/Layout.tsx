@@ -22,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { M3CookieLoader } from '@/components/ui/shapes';
 
 const SIDEBAR_KEY = 'sajni:sidebar-expanded';
 

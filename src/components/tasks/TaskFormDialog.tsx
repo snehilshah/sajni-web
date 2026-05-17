@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Loader2, Trash2, Star, CalendarClock, ListChecks } from 'lucide-react';
+import { Trash2, Star, CalendarClock, ListChecks } from 'lucide-react';
+import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
 import { tasks as tasksApi, type TaskHistoryEntry } from '@/api';

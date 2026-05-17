@@ -292,7 +292,8 @@ function TitleAutocomplete({
     : `Title — search ${TYPE_META[type]?.plural || 'titles'} on TMDB or type manually`;
 
   return (
-    <div className="relative" ref={wrapRef}>
+    <div className="relative group" ref={wrapRef}>
+      <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10" />
       <input
         value={value}
         onChange={(e) => handleChange(e.target.value)}
@@ -308,37 +309,37 @@ function TitleAutocomplete({
         placeholder={placeholder}
         required
         aria-required="true"
-        className="w-full bg-transparent font-serif text-2xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/45 border-b-2 border-[hsl(var(--outline-variant))] focus:border-primary transition-colors pb-2"
+        className="w-full h-14 pl-14 pr-14 rounded-full bg-[hsl(var(--surface-container-high))] font-serif text-lg font-medium tracking-tight outline-none placeholder:text-muted-foreground/55 border-2 border-transparent focus:border-primary focus:bg-[hsl(var(--surface-container-highest))] focus:shadow-[var(--m3-elev-2)] transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
       />
       {loading && (
-        <span className="absolute right-1 top-3"><M3CookieLoader size="sm" tone="primary" /></span>
+        <span className="absolute right-5 top-1/2 -translate-y-1/2"><M3CookieLoader size="sm" tone="primary" /></span>
       )}
       {source && !loading && (
-        <span className="absolute right-1 top-3 chip chip-sage h-6 px-2 text-[10px]">
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 chip chip-sage h-7 px-2.5 text-[10px]">
           {source.startsWith('tmdb') ? 'TMDB' : 'Open Library'}
         </span>
       )}
       <AnimatePresence initial={false}>
         {open && results.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
-            className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-2xl bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-80 overflow-y-auto p-1.5"
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+            className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 rounded-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-80 overflow-y-auto p-2 origin-top"
           >
             {results.map((r, i) => (
               <button
                 key={r.external_id + i}
                 type="button"
                 className={cn(
-                  'w-full flex items-start gap-3 p-2.5 rounded-xl transition-colors text-left',
-                  highlight === i ? 'bg-[hsl(var(--on-surface)/0.08)]' : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
+                  'w-full flex items-start gap-3 p-3 rounded-2xl transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] text-left active:scale-[0.99]',
+                  highlight === i ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
                 )}
                 onMouseEnter={() => setHighlight(i)}
                 onClick={() => { onSelect(r); setOpen(false); setResults([]); }}
               >
-                <div className="w-10 aspect-[2/3] rounded-md bg-[hsl(var(--surface-container-highest))] shrink-0 overflow-hidden">
+                <div className="w-11 aspect-[2/3] rounded-lg bg-[hsl(var(--surface-container-highest))] shrink-0 overflow-hidden">
                   {r.poster_url ? (
                     <img src={r.poster_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -349,12 +350,12 @@ function TitleAutocomplete({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{r.title}</div>
-                  {r.year && <div className="font-mono text-[10px] text-muted-foreground">{r.year}</div>}
-                  {r.overview && <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{r.overview}</div>}
+                  {r.year && <div className="font-mono text-[10px] opacity-70">{r.year}</div>}
+                  {r.overview && <div className="text-xs opacity-75 line-clamp-2 mt-0.5">{r.overview}</div>}
                 </div>
               </button>
             ))}
-            <div className="px-3 pt-2 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
+            <div className="px-3 pt-2.5 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
               Press Enter to pick · Esc to keep typing
             </div>
           </motion.div>
@@ -722,14 +723,14 @@ export default function MediaPage() {
               {isMobileMedia ? (
                 searchExpanded ? (
                   <div className="relative flex-1 min-w-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Filter library…"
                       autoFocus
                       onBlur={() => { if (!searchQuery) setSearchExpanded(false); }}
-                      className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:rounded-full focus-visible:pl-10 focus-visible:pr-9 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
+                      className="h-11 pl-11 pr-10 w-full rounded-full bg-[hsl(var(--surface-container-high))] border-transparent hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-full focus-visible:pl-11 focus-visible:pr-10 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-[hsl(var(--surface-container-highest))] focus-visible:shadow-[var(--m3-elev-1)] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
                     />
                     {(searchQuery || searchExpanded) && (
                       <button
@@ -751,12 +752,12 @@ export default function MediaPage() {
                 )
               ) : (
                 <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filter library…"
-                    className="h-10 pl-10 pr-9 w-full rounded-full bg-[hsl(var(--surface-container))] border-transparent hover:border-transparent focus-visible:rounded-full focus-visible:pl-10 focus-visible:pr-9 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-transparent"
+                    className="h-11 pl-11 pr-10 w-full rounded-full bg-[hsl(var(--surface-container-high))] border-transparent hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-full focus-visible:pl-11 focus-visible:pr-10 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-[hsl(var(--surface-container-highest))] focus-visible:shadow-[var(--m3-elev-1)] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
                   />
                   {searchQuery && (
                     <button
