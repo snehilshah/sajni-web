@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 // Flubber has no first-party types — we declare just the slice we use.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+ 
 // @ts-expect-error - flubber ships no types
 import { interpolate } from 'flubber';
 

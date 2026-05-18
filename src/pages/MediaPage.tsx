@@ -463,7 +463,7 @@ export default function MediaPage() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [activeType, statusFilter]);
+  useEffect(() => { load();   }, [activeType, statusFilter]);
 
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();

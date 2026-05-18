@@ -73,7 +73,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
             </button>
           )}
         </div>
-        <Select value={accountFilter || 'all'} onValueChange={(v) => setAccountFilter(v === 'all' ? '' : v)}>
+        <Select value={accountFilter || 'all'} onValueChange={(v) => setAccountFilter(!v || v === 'all' ? '' : v)}>
           <SelectTrigger size="sm" className="w-[160px]">
             <SelectValue placeholder="All accounts" />
           </SelectTrigger>
@@ -84,7 +84,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
             ))}
           </SelectContent>
         </Select>
-        <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
+        <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}>
           <SelectTrigger size="sm" className="w-[140px]">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
@@ -351,7 +351,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             />
           </Field>
           <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2">
-            <Select value={accountId || undefined} onValueChange={setAccountId} disabled={!!txn}>
+            <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v ?? '')} disabled={!!txn}>
               <SelectTrigger>
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
@@ -364,7 +364,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           </Field>
           {type === 'transfer' && !txn && (
             <Field label="To account" className="col-span-2">
-              <Select value={linkedId || undefined} onValueChange={setLinkedId}>
+              <Select value={linkedId || undefined} onValueChange={(v) => setLinkedId(v ?? '')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select destination" />
                 </SelectTrigger>
@@ -395,7 +395,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
                 value={categoryId || 'others'}
                 onValueChange={(v) => {
                   userPickedCategoryRef.current = true;
-                  setCategoryId(v === 'others' ? '' : v);
+                  setCategoryId(!v || v === 'others' ? '' : v);
                 }}
               >
                 <SelectTrigger>

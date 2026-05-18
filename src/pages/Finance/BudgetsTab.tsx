@@ -269,7 +269,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
                 <div key={idx} className="grid grid-cols-[1fr_120px_auto] gap-2">
                   <Select
                     value={it.category_id == null ? 'none' : String(it.category_id)}
-                    onValueChange={(v) => updateItem(idx, { category_id: v === 'none' ? null : parseInt(v) })}
+                    onValueChange={(v) => updateItem(idx, { category_id: !v || v === 'none' ? null : parseInt(v) })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="— category —" />

@@ -325,7 +325,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. HDFC Savings" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={setType}>
+            <Select value={type} onValueChange={(v) => setType(v ?? '')}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -368,7 +368,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
                 <Input type="number" inputMode="numeric" value={dueDay} onChange={(e) => setDueDay(e.target.value)} placeholder="e.g. 15" />
               </Field>
               <Field label="Cashback type">
-                <Select value={cashbackType} onValueChange={setCashbackType}>
+                <Select value={cashbackType} onValueChange={(v) => setCashbackType(v ?? 'none')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

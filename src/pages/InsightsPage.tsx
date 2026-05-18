@@ -36,7 +36,7 @@ export default function InsightsPage() {
     }
   };
 
-  useEffect(() => { load(window); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [window]);
+  useEffect(() => { load(window);   }, [window]);
 
   const runNow = async () => {
     setRunning(true);

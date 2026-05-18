@@ -238,7 +238,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nifty 50 SIP" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={setType}>
+            <Select value={type} onValueChange={(v) => setType(v ?? '')}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -252,7 +252,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
           <Field label="Linked account">
             <Select
               value={accountId || 'none'}
-              onValueChange={(v) => setAccountId(v === 'none' ? '' : v)}
+              onValueChange={(v) => setAccountId(!v || v === 'none' ? '' : v)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="— none —" />
@@ -286,7 +286,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input type="number" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 12" />
           </Field>
           <Field label="Frequency">
-            <Select value={frequency} onValueChange={setFrequency}>
+            <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
