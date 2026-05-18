@@ -35,6 +35,12 @@ export function makePopupRenderer(emptyText?: string) {
           editor: props.editor,
         });
         if (!props.clientRect) return;
+        // Defer mounting the popup DOM until items actually exist. Empty
+        // items happen when the upstream Suggestion fires for a position
+        // the user didn't actively trigger (e.g. loading a doc that
+        // already contains the trigger char). Without this, we'd paint a
+        // "no matches" pill over the editor on every page open.
+        if (!props.items || props.items.length === 0) return;
 
         popup = document.createElement('div');
         popup.style.position = 'fixed';
@@ -46,6 +52,24 @@ export function makePopupRenderer(emptyText?: string) {
       },
       onUpdate(props: any) {
         component?.updateProps({ ...props, emptyText });
+        const hasItems = (props.items?.length ?? 0) > 0;
+        if (hasItems && !popup && props.clientRect && component) {
+          // Late mount: the popup was suppressed on start (empty items)
+          // but the user has since typed enough to produce matches.
+          popup = document.createElement('div');
+          popup.style.position = 'fixed';
+          popup.style.zIndex = '9999';
+          popup.style.pointerEvents = 'auto';
+          document.body.appendChild(popup);
+          popup.appendChild(component.element);
+        }
+        if (!hasItems && popup) {
+          // Items vanished — drop the popup so we don't show a "No matches"
+          // shell when the user backspaces past the trigger.
+          if (popup.parentNode) popup.parentNode.removeChild(popup);
+          popup = null;
+          return;
+        }
         place(props.clientRect?.());
       },
       onKeyDown(props: any) {

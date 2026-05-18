@@ -44,10 +44,28 @@ function validRange(sH: number, sM: number, eH: number, eM: number): boolean {
 // into a TimeChip node so saved entries round-trip cleanly. Plain
 // `09:30-18:00` substrings remain plain text (we don't try to detect
 // arbitrary numbers as times).
+//
+// Also strips the legacy `[timeChip]` literal that earlier builds wrote
+// when the markdown serializer was missing — those entries have lost
+// the original time data, so the best we can do is consume the
+// placeholder silently instead of rendering it as `[timeChip]` text.
 function timeChipMarkdownIt(md: any) {
   md.inline.ruler.before('link', 'timechip', (state: any, silent: boolean) => {
     const start = state.pos;
     if (state.src.charCodeAt(start) !== 0x5b /* [ */) return false;
+
+    // Legacy placeholder — earlier builds serialized chips as the bare
+    // node name. Eat it silently. No time data to recover.
+    const legacy = '[timeChip]';
+    if (state.src.slice(start, start + legacy.length) === legacy) {
+      if (!silent) {
+        const token = state.push('text', '', 0);
+        token.content = '';
+      }
+      state.pos = start + legacy.length;
+      return true;
+    }
+
     const tag = '[time:';
     if (state.src.slice(start, start + tag.length) !== tag) return false;
     const end = state.src.indexOf(']', start + tag.length);
@@ -237,7 +255,12 @@ export const TimeChipSuggest = Extension.create({
         startOfLine: false,
         pluginKey: new PluginKey('timeChipSuggest'),
         allowSpaces: false,
-        items: ({ query }: { query: string }) => {
+        // Same guard as TagSuggest: only surface preset times after the
+        // user has explicitly focused the editor. Stops the picker from
+        // auto-appearing when a saved entry already contains an `@`.
+        allowedPrefixes: [' ', '\n', '\t', null] as any,
+        items: ({ query, editor }: { query: string; editor: any }) => {
+          if (!editor?.isFocused) return [];
           const items: TimeSuggestItem[] = [];
           const live = parseQuery(query);
           if (live) items.push(live);

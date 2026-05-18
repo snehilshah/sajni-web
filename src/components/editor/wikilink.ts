@@ -136,8 +136,17 @@ export const TagSuggest = Extension.create({
         char: '#',
         startOfLine: false,
         allowSpaces: false,
+        // Restrict to whitespace / start-of-text prefixes so the suggestion
+        // only ever fires for genuine new tags. Without this, a `#` inside
+        // existing content (e.g. when opening a journal entry that already
+        // mentions `#happy`) would be treated as an active tag query.
+        allowedPrefixes: [' ', '\n', '\t', null] as any,
         pluginKey: new PluginKey('tagSuggest'),
-        items: async ({ query }: { query: string }) => {
+        items: async ({ query, editor }: { query: string; editor: any }) => {
+          // Bail unless the editor is actually focused. This blocks the
+          // popup from auto-opening on initial page load when the cursor
+          // (placed programmatically) lands inside an existing `#tag`.
+          if (!editor?.isFocused) return [];
           try {
             const list = await tagsApi.list();
             const filtered = list

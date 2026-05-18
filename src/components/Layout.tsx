@@ -177,32 +177,38 @@ function DesktopRail({
 
       <button
         onClick={onOpenCommand}
-        className="mb-2 h-11 w-full grid grid-cols-[44px_1fr] items-center rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm overflow-hidden text-left"
+        className={cn(
+          'mb-2 h-11 w-full inline-flex items-center rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm overflow-hidden text-left',
+          expanded ? 'gap-2 pl-3.5 pr-3.5' : 'justify-center',
+        )}
         title="Ask anything · ⌘K"
         aria-label="Ask anything"
       >
-        <Search className="size-[18px] justify-self-center" />
+        <Search className="size-[18px] shrink-0" />
         {expanded && (
-          <span className="pr-3.5 flex items-center gap-2 min-w-0">
+          <>
             <span className="flex-1 truncate">Ask anything</span>
             <span className="kbd shrink-0">⌘K</span>
-          </span>
+          </>
         )}
       </button>
 
       <button
         onClick={onOpenChat}
-        className="mb-4 h-11 w-full grid grid-cols-[44px_1fr] items-center rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden text-left"
+        className={cn(
+          'mb-4 h-11 w-full inline-flex items-center rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden text-left',
+          expanded ? 'gap-2 pl-3.5 pr-3.5' : 'justify-center',
+        )}
         aria-label="Ask Sajni"
       >
-        <MessageSquare className="size-[18px] justify-self-center" />
+        <MessageSquare className="size-[18px] shrink-0" />
         {expanded && (
-          <span className="pr-3.5 flex items-center gap-2 min-w-0">
+          <>
             <span className="flex-1 truncate">Ask Sajni</span>
             <span className="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1 shrink-0">
               <Sparkles className="size-2.5" /> AI
             </span>
-          </span>
+          </>
         )}
       </button>
 
@@ -224,7 +230,8 @@ function DesktopRail({
               end={path === '/'}
               title={!expanded ? label : undefined}
               className={cn(
-                'relative h-11 w-full grid grid-cols-[44px_1fr] items-center rounded-full text-sm font-medium transition-colors overflow-hidden',
+                'relative h-11 w-full inline-flex items-center rounded-full text-sm font-medium transition-colors overflow-hidden',
+                expanded ? 'gap-3 pl-3.5 pr-3.5' : 'justify-center',
                 isActive
                   ? 'text-[hsl(var(--on-secondary-container))]'
                   : 'text-foreground/85 hover:bg-[hsl(var(--on-surface)/0.06)]',
@@ -238,11 +245,11 @@ function DesktopRail({
                 />
               )}
               <Icon
-                className="size-[18px] justify-self-center relative z-10"
+                className="size-[18px] shrink-0 relative z-10"
                 strokeWidth={isActive ? 2.2 : 1.7}
               />
               {expanded && (
-                <span className="truncate pr-3.5 relative z-10">{label}</span>
+                <span className="truncate relative z-10">{label}</span>
               )}
             </NavLink>
           );
@@ -254,14 +261,15 @@ function DesktopRail({
           <DropdownMenuTrigger
             render={
               <button
-                className="w-full h-11 grid grid-cols-[44px_1fr] items-center rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden"
+                className={cn(
+                  'w-full h-11 inline-flex items-center rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden',
+                  expanded ? 'gap-2.5 pl-2.5 pr-3' : 'justify-center',
+                )}
                 title="Account"
               >
-                <span className="justify-self-center">
-                  <Avatar size={28} label={initials} />
-                </span>
+                <Avatar size={28} label={initials} />
                 {expanded && (
-                  <span className="min-w-0 pr-3">
+                  <span className="min-w-0">
                     <span className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground block">account</span>
                   </span>
                 )}
