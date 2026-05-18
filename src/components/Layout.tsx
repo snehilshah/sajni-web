@@ -151,9 +151,21 @@ function DesktopRail({
   const w = expanded ? 232 : 76;
   return (
     <aside
-      className="hidden md:flex h-[100dvh] sticky top-0 flex-col py-4 px-3 shrink-0 bg-[hsl(var(--surface-container-low))] border-r border-[hsl(var(--outline-variant))] z-30"
+      className="hidden md:flex h-[100dvh] sticky top-0 flex-col py-4 px-3 shrink-0 bg-[hsl(var(--surface-container-low))] border-r border-[hsl(var(--outline-variant))] z-30 relative"
       style={{ width: w, transition: 'width 280ms cubic-bezier(0.2, 0, 0, 1)' }}
     >
+      {/* Floating collapse/expand toggle — anchored to rail's right edge,
+          rendered as a small circle that overlaps the border. Absolute
+          positioning means it never shifts the account icon when the rail
+          width changes. */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="absolute top-1/2 -right-3 -translate-y-1/2 size-6 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors flex items-center justify-center shadow-sm z-40"
+        title={expanded ? 'Collapse' : 'Expand'}
+        aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+      >
+        {expanded ? <PanelLeftClose className="size-3.5" /> : <PanelLeft className="size-3.5" />}
+      </button>
       {/* Brand removed from rail — shown at bottom of SettingsPage instead. */}
 
       <button
@@ -236,48 +248,32 @@ function DesktopRail({
 
       <div className="mt-2 pt-3 border-t border-[hsl(var(--outline-variant))]">
         {expanded ? (
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <button
-                    className="flex-1 min-w-0 flex items-center gap-2.5 px-2.5 py-2 rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
-                    title="Account"
-                  >
-                    <Avatar size={28} label={initials} />
-                    <div className="min-w-0 flex-1">
-                      <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">account</div>
-                    </div>
-                  </button>
-                }
-              />
-              <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-[280px]">
-                {userMenuContent}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <button
-              onClick={() => setExpanded(false)}
-              className="size-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors shrink-0"
-              title="Collapse"
-            >
-              <PanelLeftClose className="size-4" />
-            </button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
+                  title="Account"
+                >
+                  <Avatar size={28} label={initials} />
+                  <div className="min-w-0 flex-1">
+                    <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">account</div>
+                  </div>
+                </button>
+              }
+            />
+            <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-[280px]">
+              {userMenuContent}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex justify-center">
             <DropdownMenu>
               <DropdownMenuTrigger render={<button className="rounded-full"><Avatar size={32} label={initials} /></button>} />
               <DropdownMenuContent align="start" side="right" sideOffset={8} className="w-[280px]">
                 {userMenuContent}
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              onClick={() => setExpanded(true)}
-              className="size-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
-              title="Expand"
-            >
-              <PanelLeft className="size-4" />
-            </button>
           </div>
         )}
       </div>

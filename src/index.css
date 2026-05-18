@@ -908,6 +908,18 @@ button, [role="button"], a {
 .m3-cookie.tertiary  { background: hsl(var(--tertiary)); }
 .m3-cookie.secondary { background: hsl(var(--secondary)); }
 
+/* SVG-based shape-morphing loader: rotation happens on the wrapper span
+   while the inner <path> morphs `d` via SMIL. */
+@keyframes m3CookieRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.m3-cookie-svg {
+  animation: m3CookieRotate 2400ms linear infinite;
+  transform-origin: 50% 50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .m3-cookie-svg { animation: none; }
+  .m3-cookie-svg svg animate { display: none; }
+}
+
 /* Inline shimmer loading bar (M3 linear progress, indeterminate) */
 @keyframes m3LinearSlide {
   0%   { left: -40%; right: 100%; }

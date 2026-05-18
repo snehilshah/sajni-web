@@ -295,16 +295,24 @@ export default function TodayPage() {
 								<div className="px-5 py-8 text-center text-sm text-muted-foreground">Nothing scheduled for today.</div>
 							) : (
 								dueOpen.map((t, i) => (
-									<button
+									<div
 										key={t.id}
-										onClick={async () => {
-											await tasksApi.update(t.id, { status: 'done' });
-											refreshTasks();
-										}}
-										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-foreground/[.03] transition-colors
+										onClick={() => navigate(`/tasks?focus=${t.id}`)}
+										role="button"
+										tabIndex={0}
+										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-foreground/[.03] transition-colors cursor-pointer
                     ${i === 0 ? '' : 'border-t border-border/50'}`}
 									>
-										<div className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 group-hover:border-primary" />
+										<button
+											type="button"
+											onClick={async (e) => {
+												e.stopPropagation();
+												await tasksApi.update(t.id, { status: 'done' });
+												refreshTasks();
+											}}
+											aria-label="Mark complete"
+											className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 hover:border-primary hover:bg-primary/10 transition-colors"
+										/>
 										<div className="flex-1 min-w-0">
 											<div className="text-[14px] text-foreground font-medium truncate">{t.title}</div>
 											<div className="flex gap-2 mt-1 text-[11px] text-muted-foreground">
@@ -325,7 +333,7 @@ export default function TodayPage() {
 										>
 											{t.priority}
 										</span>
-									</button>
+									</div>
 								))
 							)}
 						</div>
@@ -404,10 +412,14 @@ export default function TodayPage() {
 									return (
 										<div
 											key={h.id}
-											className={`flex items-center gap-3 py-2.5 ${i === 0 ? '' : 'border-t border-border/40'}`}
+											onClick={() => navigate(`/habits?focus=${h.id}`)}
+											role="button"
+											tabIndex={0}
+											className={`flex items-center gap-3 py-2.5 cursor-pointer hover:bg-foreground/[.03] -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
 										>
 											<button
-												onClick={async () => {
+												onClick={async (e) => {
+													e.stopPropagation();
 													await habitsApi.toggleLogForDate(h.id, today);
 													refreshHabits();
 												}}

@@ -646,9 +646,9 @@ export default function MediaPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 min-w-0">
           {/* Toolbar: status chips + search */}
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center min-w-0 w-full">
             <div className="flex flex-wrap gap-1">
               <FilterChip
                 active={statusFilter === ''}
@@ -673,7 +673,11 @@ export default function MediaPage() {
                 );
               })}
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className={cn(
+              'ml-auto flex items-center gap-2 min-w-0',
+              isMobileMedia && searchExpanded ? 'w-full' : '',
+            )}>
+              {!(isMobileMedia && searchExpanded) && (
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
                 <SelectTrigger size="sm" className="h-9 min-w-[180px] gap-2 text-xs">
                   <ArrowUpDown className="size-3.5 text-muted-foreground" />
@@ -685,6 +689,7 @@ export default function MediaPage() {
                   ))}
                 </SelectContent>
               </Select>
+              )}
               {activeType === 'movie' && !isMobileMedia && (
                 <motion.button
                   onClick={() => setGroupSeries((v) => !v)}
@@ -1336,15 +1341,12 @@ function SeriesPosterCard({
       title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
     >
       {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster
-          fills it edge-to-edge. Depth is conveyed via a layered box-shadow
-          (offset duplicates of the wrapper), not by translating inner
-          siblings which made the visible image read smaller on mobile. */}
+          fills it edge-to-edge. The stacked-card depth shadow is desktop-
+          only; on mobile the offsets visually shrink the poster relative
+          to single-movie tiles, so the series card matches PosterCard's
+          plain border on small screens. */}
       <div
-        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]"
-        style={{
-          boxShadow:
-            '4px 4px 0 -1px hsl(var(--outline-variant)), 8px 8px 0 -2px hsl(var(--outline-variant) / 0.55)',
-        }}
+        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]"
       >
         {cover.poster_url ? (
           <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />

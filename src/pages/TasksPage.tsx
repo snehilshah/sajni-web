@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
@@ -74,6 +75,24 @@ export default function TasksPage() {
 
   useEffect(() => { reloadLists(); }, [reloadLists]);
   useEffect(() => { reloadTasks(); }, [reloadTasks]);
+
+  // Deep-link support: /tasks?focus=<id> opens that task's edit dialog
+  // once it appears in the loaded list. Default smart filter is "my_day"
+  // so Today-page links always resolve; other filters may not include it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
+  const focusHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusId || focusHandled.current === focusId) return;
+    const inList = tasksList.find((x) => String(x.id) === focusId);
+    if (inList) {
+      focusHandled.current = focusId;
+      setEditingTask(inList);
+      setShowForm(true);
+      searchParams.delete('focus');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [focusId, tasksList, searchParams, setSearchParams]);
 
   // Refresh after AI tools mutate tasks (`data:invalidate` fires from AIChat).
   useEffect(() => {

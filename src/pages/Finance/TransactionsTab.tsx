@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X } from 'lucide-react';
+import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles } from 'lucide-react';
 
 import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import { formatMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
 
@@ -202,6 +202,11 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [inferring, setInferring] = useState(false);
+  // Once the user picks a category by hand we stop auto-overwriting it,
+  // even if they keep editing the title afterward.
+  const userPickedCategoryRef = useRef(false);
+  const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (txn) {
@@ -213,6 +218,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setAmount(String(txn.amount));
       setDescription(txn.description);
       setDate(txn.txn_date);
+      userPickedCategoryRef.current = true; // editing — treat existing pick as user's
     } else {
       setType('expense');
       setAccountId(accounts[0] ? String(accounts[0].id) : '');
@@ -221,10 +227,49 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setAmount('');
       setDescription('');
       setDate(format(new Date(), 'yyyy-MM-dd'));
+      userPickedCategoryRef.current = false;
     }
   }, [txn, open, accounts]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
+
+  // Debounced AI category inference. Fires when the user types a title
+  // on a NEW transaction (not edit), as long as they haven't picked a
+  // category by hand. Cheap (~50 tok) but still rate-limited server-side
+  // by the shared AI budget.
+  useEffect(() => {
+    if (txn) return;                              // edit mode — don't auto-pick
+    if (type === 'transfer') return;              // transfers have no category
+    if (userPickedCategoryRef.current) return;    // user took the wheel
+    const title = description.trim();
+    if (title.length < 3) {                       // avoid noise / 1-letter spam
+      setInferring(false);
+      return;
+    }
+    if (inferTimer.current) clearTimeout(inferTimer.current);
+    // Adaptive debounce: short strings settle fast, long sentences wait
+    // longer so we don't fire a categorize call for every keystroke mid-word.
+    const delay = Math.min(1600, 500 + title.length * 30);
+    inferTimer.current = setTimeout(async () => {
+      setInferring(true);
+      try {
+        const res = await finance.categorizeTransaction({
+          title,
+          kind: type === 'income' ? 'income' : 'expense',
+        });
+        // Don't clobber if the user picked something during the in-flight
+        // request, or if the model bailed to "Others" with no match.
+        if (!userPickedCategoryRef.current && res.category_id != null) {
+          setCategoryId(String(res.category_id));
+        }
+      } catch {
+        // Silent fail — limiter 429s or network blips shouldn't block the form.
+      } finally {
+        setInferring(false);
+      }
+    }, delay);
+    return () => { if (inferTimer.current) clearTimeout(inferTimer.current); };
+  }, [description, type, txn]);
 
   const save = async () => {
     if (!accountId || !amount) return;
@@ -291,6 +336,15 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
+          <Field label="Title" className="col-span-2">
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={type === 'transfer' ? 'e.g. Move to savings' : type === 'income' ? 'e.g. October salary' : 'e.g. Lunch at Cafe X'}
+              maxLength={120}
+              autoFocus={!txn}
+            />
+          </Field>
           <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2">
             <select
               value={accountId}
@@ -316,13 +370,29 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             </Field>
           )}
           {type !== 'transfer' && (
-            <Field label="Category" className="col-span-2">
+            <Field
+              label="Category"
+              className="col-span-2"
+              hint={inferring ? (
+                <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground normal-case tracking-normal">
+                  <M3CookieLoader size="xs" tone="primary" />
+                  Sajni is picking…
+                </span>
+              ) : categoryId && !userPickedCategoryRef.current && !txn ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-primary normal-case tracking-normal">
+                  <Sparkles className="size-3" /> auto · change anytime
+                </span>
+              ) : undefined}
+            >
               <select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={(e) => {
+                  userPickedCategoryRef.current = true;
+                  setCategoryId(e.target.value);
+                }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               >
-                <option value="">Uncategorized</option>
+                <option value="">Others</option>
                 {filteredCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </Field>
@@ -332,9 +402,6 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           </Field>
           <Field label="Date">
             <DatePicker value={date} onChange={setDate} />
-          </Field>
-          <Field label="Description" className="col-span-2">
-            <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional notes" />
           </Field>
         </div>
         <DialogFooter className="sm:justify-between">
@@ -353,10 +420,13 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   );
 }
 
-function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
+function Field({ label, className = '', children, hint }: { label: string; className?: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <div className="flex items-center justify-between gap-2 min-h-[14px]">
+        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+        {hint}
+      </div>
       {children}
     </div>
   );

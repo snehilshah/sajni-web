@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, subDays, startOfDay } from 'date-fns';
 
@@ -61,6 +62,21 @@ export default function HabitsPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Deep-link: /habits?focus=<id> opens that habit's edit dialog once loaded.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
+  const focusHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusId || focusHandled.current === focusId) return;
+    const h = habitsList.find((x) => String(x.id) === focusId);
+    if (h) {
+      focusHandled.current = focusId;
+      openEdit(h);
+      searchParams.delete('focus');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [focusId, habitsList, searchParams, setSearchParams]);
 
   const openCreate = () => {
     setEditing(null);

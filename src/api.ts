@@ -245,6 +245,43 @@ export const uploads = {
   },
 };
 
+// --- Takeout (export/import all user data) + account delete ---
+export const account = {
+  // Downloads the user's full takeout archive (zip). Browser kicks off a
+  // save dialog via an anchor with the blob URL.
+  exportData: async (): Promise<void> => {
+    const res = await authFetch('/takeout');
+    if (!res.ok) throw new Error('Takeout failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sajni-takeout-${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+  importData: async (file: File): Promise<{ imported: Record<string, number> }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await authFetch('/takeout/import', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Import failed');
+    }
+    return res.json();
+  },
+  scheduleDelete: () =>
+    request<{ status: string; purge_after: string; grace_duration: string }>(
+      '/account/delete', { method: 'POST' }),
+  cancelDelete: () =>
+    request<{ status: string }>('/account/cancel-delete', { method: 'POST' }),
+  deletionStatus: () =>
+    request<{ scheduled: boolean; deleted_at?: string; purge_after?: string }>(
+      '/account/deletion-status'),
+};
+
 // --- Tags ---
 export const tags = {
   list: () => request<{ tag: string; count: number }[]>('/tags'),
@@ -395,6 +432,14 @@ export const finance = {
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request('/finance/transactions/' + id, { method: 'DELETE' }),
+  // AI category inference. Returns { category_id, category_name } where
+  // category_id is null when no existing category matched (falls back
+  // to "Others"). 429 means the user has exhausted their AI quota.
+  categorizeTransaction: (data: { title: string; kind: 'expense' | 'income' }) =>
+    request<{ category_id: number | null; category_name: string }>(
+      '/finance/categorize',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
 
   // Budgets
   listBudgets: () => request<FinBudget[]>('/finance/budgets'),

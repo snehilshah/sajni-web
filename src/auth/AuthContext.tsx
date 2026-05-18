@@ -13,6 +13,8 @@ import log from "../lib/logger";
 export interface User {
   id: number;
   email: string;
+  /** RFC3339. Present while the account is in the 7-day soft-delete grace. */
+  deleted_at?: string | null;
 }
 
 interface AuthState {
