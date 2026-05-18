@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { TrendingUp, TrendingDown, Wallet, Camera, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Camera, AlertCircle, Receipt, Zap } from 'lucide-react';
 
 import { finance, type FinAccount } from '@/api';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface OverviewData {
   top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
   daily_trend: { date: string; income: number; expense: number }[];
   upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
+  upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; is_subscription: boolean; auto_renew: boolean }[];
   investments_breakdown: { type: string; amount: number }[];
 }
 
@@ -129,6 +130,37 @@ export default function OverviewTab({ accounts }: Props) {
 
         <Panel title="Income vs expense · 30 days" className="md:col-span-2">
           <TrendChart trend={data.daily_trend} />
+        </Panel>
+
+        <Panel title="Upcoming bills" subtitle="next 14 days">
+          {data.upcoming_bills.length === 0 ? (
+            <Empty>No bills due in the next 14 days.</Empty>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {data.upcoming_bills.map((b) => {
+                const days = Math.round((new Date(b.due_date).getTime() - Date.now()) / 86400000);
+                return (
+                  <div key={b.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
+                    <div className="min-w-0 flex items-center gap-2">
+                      <Receipt className="size-3.5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm truncate inline-flex items-center gap-1.5">
+                          {b.name}
+                          {b.auto_renew ? <Zap className="size-3 text-primary" /> : null}
+                        </div>
+                        <div className="font-mono text-[10px] text-muted-foreground">
+                          {b.account_name || 'no account'} · {days < 0 ? `${-days}d overdue` : days === 0 ? 'today' : `${days}d`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`font-mono text-sm tabular-nums ${days < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                      {formatMoney(b.amount)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Panel>
 
         <Panel title="Upcoming card dues">

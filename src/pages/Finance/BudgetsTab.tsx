@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatMoney } from './utils';
 import { CardsSkeleton } from './Skeletons';
 
@@ -226,14 +227,15 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. May 2026" />
           </Field>
           <Field label="Period">
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as any)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="custom">Custom</option>
-            </select>
+            <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
           {period === 'monthly' && !budget && (
             <Field label="">
@@ -265,14 +267,20 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
             <div className="flex flex-col gap-2">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-[1fr_120px_auto] gap-2">
-                  <select
-                    value={it.category_id ?? ''}
-                    onChange={(e) => updateItem(idx, { category_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  <Select
+                    value={it.category_id == null ? 'none' : String(it.category_id)}
+                    onValueChange={(v) => updateItem(idx, { category_id: v === 'none' ? null : parseInt(v) })}
                   >
-                    <option value="">— category —</option>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="— category —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— category —</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input
                     type="number"
                     inputMode="decimal"

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { formatMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
@@ -72,24 +73,28 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
             </button>
           )}
         </div>
-        <select
-          value={accountFilter}
-          onChange={(e) => setAccountFilter(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-        >
-          <option value="">All accounts</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-        >
-          <option value="">All types</option>
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-          <option value="transfer_out">Transfer</option>
-        </select>
+        <Select value={accountFilter || 'all'} onValueChange={(v) => setAccountFilter(v === 'all' ? '' : v)}>
+          <SelectTrigger size="sm" className="w-[160px]">
+            <SelectValue placeholder="All accounts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All accounts</SelectItem>
+            {accounts.map((a) => (
+              <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
+          <SelectTrigger size="sm" className="w-[140px]">
+            <SelectValue placeholder="All types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            <SelectItem value="expense">Expense</SelectItem>
+            <SelectItem value="income">Income</SelectItem>
+            <SelectItem value="transfer_out">Transfer</SelectItem>
+          </SelectContent>
+        </Select>
         <Button onClick={() => setCreating(true)}>
           <Plus className="size-4 mr-1" /> Add
         </Button>
@@ -346,27 +351,29 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             />
           </Field>
           <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2">
-            <select
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-              disabled={!!txn}
-            >
-              <option value="">Select account</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <Select value={accountId || undefined} onValueChange={setAccountId} disabled={!!txn}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select account" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           {type === 'transfer' && !txn && (
             <Field label="To account" className="col-span-2">
-              <select
-                value={linkedId}
-                onChange={(e) => setLinkedId(e.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-              >
-                <option value="">Select destination</option>
-                {accounts.filter((a) => String(a.id) !== accountId).map((a) =>
-                  <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
+              <Select value={linkedId || undefined} onValueChange={setLinkedId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select destination" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.filter((a) => String(a.id) !== accountId).map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
           {type !== 'transfer' && (
@@ -384,17 +391,23 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
                 </span>
               ) : undefined}
             >
-              <select
-                value={categoryId}
-                onChange={(e) => {
+              <Select
+                value={categoryId || 'others'}
+                onValueChange={(v) => {
                   userPickedCategoryRef.current = true;
-                  setCategoryId(e.target.value);
+                  setCategoryId(v === 'others' ? '' : v);
                 }}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               >
-                <option value="">Others</option>
-                {filteredCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Others" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="others">Others</SelectItem>
+                  {filteredCats.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
           <Field label="Amount">

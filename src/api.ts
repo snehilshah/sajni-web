@@ -192,12 +192,49 @@ export interface MediaEventRow {
 }
 
 // --- Journal ---
+export interface JournalLocation {
+  label: string;
+  lat?: number | null;
+  lon?: number | null;
+}
+
 export const journal = {
   list: () => request<any[]>('/journal'),
   get: (date: string) => request<any>('/journal/' + date),
-  save: (date: string, content: string, mood?: string | null) =>
-    request('/journal/' + date, { method: 'PUT', body: JSON.stringify({ content, mood }) }),
+  save: (
+    date: string,
+    content: string,
+    mood?: string | null,
+    location?: JournalLocation | null,
+  ) =>
+    request('/journal/' + date, {
+      method: 'PUT',
+      body: JSON.stringify({
+        content,
+        mood,
+        location_label: location?.label ?? '',
+        location_lat: location?.lat ?? null,
+        location_lon: location?.lon ?? null,
+      }),
+    }),
   delete: (date: string) => request('/journal/' + date, { method: 'DELETE' }),
+};
+
+// --- Places (Google Places (New) proxy used by the journal location pill) ---
+export interface PlacePrediction { place_id: string; primary: string; secondary: string }
+export interface PlaceDetails { place_id: string; label: string; lat: number; lon: number }
+
+export const places = {
+  autocomplete: (q: string, session: string, coords?: { lat: number; lon: number }) => {
+    const params = new URLSearchParams({ q, session });
+    if (coords) {
+      params.set('lat', String(coords.lat));
+      params.set('lon', String(coords.lon));
+    }
+    return request<{ predictions: PlacePrediction[] }>('/places/autocomplete?' + params.toString());
+  },
+  details: (place_id: string, session: string) =>
+    request<PlaceDetails>('/places/details?place_id=' + encodeURIComponent(place_id) + '&session=' + encodeURIComponent(session)),
 };
 
 // --- Notes ---
@@ -381,6 +418,40 @@ export interface FinSaving {
   created_at: string;
 }
 
+export type BillerFrequency = 'weekly' | 'fortnightly' | 'monthly' | 'bimonthly';
+
+export interface FinBiller {
+  id: number;
+  name: string;
+  amount: number;
+  frequency: BillerFrequency;
+  next_due_date: string;
+  account_id: number | null;
+  account_name: string | null;
+  category_id: number | null;
+  category_name: string | null;
+  category_color: string | null;
+  is_subscription: boolean;
+  auto_renew: boolean;
+  alert_days: number;
+  color: string;
+  notes: string;
+  archived: boolean;
+  last_paid_date: string | null;
+  created_at: string;
+}
+
+export interface FinBillerAlert {
+  id: number;
+  biller_id: number;
+  biller_name: string;
+  kind: 'upcoming' | 'auto_paid';
+  due_date: string;
+  amount: number;
+  seen: boolean;
+  created_at: string;
+}
+
 export interface FinStatement {
   id: number;
   account_id: number;
@@ -482,6 +553,25 @@ export const finance = {
   deleteStatement: (id: number) =>
     request('/finance/cards/statements/' + id, { method: 'DELETE' }),
 
+  // Billers / subscriptions
+  listBillers: (includeArchived = false) =>
+    request<FinBiller[]>('/finance/billers' + (includeArchived ? '?include_archived=true' : '')),
+  createBiller: (data: Partial<FinBiller>) =>
+    request<{ id: number }>('/finance/billers', { method: 'POST', body: JSON.stringify(data) }),
+  updateBiller: (id: number, data: Partial<FinBiller>) =>
+    request('/finance/billers/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBiller: (id: number) =>
+    request('/finance/billers/' + id, { method: 'DELETE' }),
+  payBiller: (id: number, data?: { paid_date?: string; amount?: number }) =>
+    request<{ status: string; txn_id: number; next_due_date: string }>(
+      '/finance/billers/' + id + '/pay',
+      { method: 'POST', body: JSON.stringify(data || {}) },
+    ),
+  listBillerAlerts: (unseenOnly = false) =>
+    request<FinBillerAlert[]>('/finance/billers/alerts' + (unseenOnly ? '?unseen=true' : '')),
+  markBillerAlertSeen: (id: number) =>
+    request('/finance/billers/alerts/' + id + '/seen', { method: 'POST' }),
+
   // Overview
   overview: () => request<{
     net_worth: number;
@@ -496,6 +586,7 @@ export const finance = {
     top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
     daily_trend: { date: string; income: number; expense: number }[];
     upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
+    upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; is_subscription: boolean; auto_renew: boolean }[];
     investments_breakdown: { type: string; amount: number }[];
   }>('/finance/overview'),
 
@@ -510,6 +601,101 @@ export const finance = {
   // Export URLs (download via authFetch + blob)
   exportUrl: (kind: 'transactions' | 'budgets' | 'networth') =>
     '/finance/export/' + kind + '.csv',
+};
+
+// --- Themes (AI-generated M3 palettes) ---
+export interface ThemeSeedsApi {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+  neutral?: string;
+}
+
+export interface UserTheme {
+  id: number;
+  name: string;
+  source: 'ai' | 'manual' | 'preset';
+  seeds: ThemeSeedsApi;
+  prompt: string;
+  mode_pref: 'auto' | 'light' | 'dark';
+  is_active: boolean;
+  created_at: string;
+}
+
+export const themes = {
+  list: () => request<UserTheme[]>('/themes'),
+  active: () => request<UserTheme | null>('/themes/active'),
+  create: (data: {
+    name: string;
+    seeds: ThemeSeedsApi;
+    source?: 'manual' | 'ai' | 'preset';
+    prompt?: string;
+    mode_pref?: 'auto' | 'light' | 'dark';
+    activate?: boolean;
+  }) => request<{ id: number }>('/themes', { method: 'POST', body: JSON.stringify(data) }),
+  generate: (prompt: string, opts?: { activate?: boolean; mode_pref?: 'auto' | 'light' | 'dark' }) =>
+    request<UserTheme>('/themes/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, activate: opts?.activate ?? false, mode_pref: opts?.mode_pref ?? 'auto' }),
+    }),
+  update: (id: number, data: Partial<Pick<UserTheme, 'name' | 'seeds' | 'mode_pref'>>) =>
+    request('/themes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/themes/' + id, { method: 'DELETE' }),
+  activate: (id: number) =>
+    request<UserTheme>('/themes/' + id + '/activate', { method: 'POST' }),
+};
+
+// --- Insights (cross-module correlation engine) ---
+export type InsightWindow = '1w' | '2w' | '1m' | '6m' | '1y';
+
+export interface Insight {
+  id: number;
+  window_key: InsightWindow;
+  kind: string;
+  title: string;
+  body: string;
+  score: number;
+  evidence: Record<string, any>;
+  pinned: boolean;
+  generated_at: string;
+}
+
+export const insights = {
+  list: (window?: InsightWindow) =>
+    request<Insight[]>('/insights' + (window ? '?window=' + window : '')),
+  run: (window: InsightWindow) =>
+    request<{ window: InsightWindow; generated: number }>(
+      '/insights/run?window=' + window,
+      { method: 'POST' },
+    ),
+  pin: (id: number) => request('/insights/' + id + '/pin', { method: 'POST' }),
+  unpin: (id: number) => request('/insights/' + id + '/unpin', { method: 'POST' }),
+  dismiss: (id: number) => request('/insights/' + id + '/dismiss', { method: 'POST' }),
+};
+
+// --- Time-travel (semantic event lookup over user history) ---
+export interface TimeTravelHit {
+  type: 'journal' | 'memo' | 'note' | 'transaction' | 'media';
+  id: number;
+  date: string;
+  title: string;
+  excerpt: string;
+}
+
+// time_travel is exposed indirectly through the AI palette; this endpoint
+// gives the Insights UI a direct path for the "when was the last time…?"
+// search box without spinning up a chat round.
+export const timeTravel = {
+  search: (q: string, opts?: { types?: string[]; date_from?: string; date_to?: string; limit?: number }) => {
+    const params = new URLSearchParams({ q });
+    if (opts?.date_from) params.set('from', opts.date_from);
+    if (opts?.date_to) params.set('to', opts.date_to);
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    if (opts?.types?.length) params.set('types', opts.types.join(','));
+    return request<{ items: TimeTravelHit[]; count: number; query: string }>(
+      '/time-travel?' + params.toString(),
+    );
+  },
 };
 
 // --- Universal search ---

@@ -1,18 +1,13 @@
-import { cn } from "@/lib/utils"
+import { MorphLoader } from "./morph-loader"
 
 /**
- * Generic loading spinner. M3 Expressive cookie loader under the hood;
- * any consumer of `<Spinner />` gets the same morphing indicator the
- * rest of the app uses.
+ * Generic loading spinner. The M3 Expressive shape-morphing loader under
+ * the hood; every <Spinner /> across the app smoothly tweens between
+ * curated cookie / clover / pentagon / sunny shapes the same way Android
+ * does it.
  */
 function Spinner({ className }: { className?: string }) {
-  return (
-    <span
-      role="status"
-      aria-label="Loading"
-      className={cn("m3-cookie m3-cookie-sm", className)}
-    />
-  )
+  return <MorphLoader size="sm" className={className} />
 }
 
 export { Spinner }

@@ -36,7 +36,8 @@ const NAV_ITEMS = [
   { path: '/media',     label: 'Media',    Icon: Film },
   { path: '/finance',   label: 'Finance',  Icon: Wallet },
   { path: '/tags',      label: 'Tags',     Icon: Hash },
-  { path: '/analytics', label: 'Insights', Icon: BarChart3 },
+  { path: '/insights',  label: 'Insights', Icon: BarChart3 },
+  { path: '/analytics', label: 'Analytics', Icon: BarChart3 },
 ] as const;
 
 const PRIMARY_MOBILE = new Set(['/', '/notes', '/tasks', '/journal']);
@@ -154,54 +155,54 @@ function DesktopRail({
       className="hidden md:flex h-[100dvh] sticky top-0 flex-col py-4 px-3 shrink-0 bg-[hsl(var(--surface-container-low))] border-r border-[hsl(var(--outline-variant))] z-30 relative"
       style={{ width: w, transition: 'width 280ms cubic-bezier(0.2, 0, 0, 1)' }}
     >
-      {/* Floating collapse/expand toggle — anchored to rail's right edge,
-          rendered as a small circle that overlaps the border. Absolute
-          positioning means it never shifts the account icon when the rail
-          width changes. */}
+      {/* Floating collapse/expand toggle — anchored to the rail's right
+          edge, slightly below center so it sits next to the nav list,
+          not over the search field. Absolute positioning means it never
+          shifts other content when the rail width animates. */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="absolute top-1/2 -right-3 -translate-y-1/2 size-6 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors flex items-center justify-center shadow-sm z-40"
+        className="absolute top-[62%] -right-3 -translate-y-1/2 size-6 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors flex items-center justify-center shadow-sm z-40"
         title={expanded ? 'Collapse' : 'Expand'}
         aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
       >
         {expanded ? <PanelLeftClose className="size-3.5" /> : <PanelLeft className="size-3.5" />}
       </button>
-      {/* Brand removed from rail — shown at bottom of SettingsPage instead. */}
+      {/* Brand removed from rail — shown at bottom of SettingsPage instead.
+
+          Every rail row below uses the same `grid-cols-[44px_1fr]` so the
+          icon sits in a fixed 44px column. The label column simply
+          collapses to 0 in the narrow rail. This keeps the icon's
+          on-screen x-position identical between collapsed and expanded
+          states — no horizontal jitter on toggle. */}
 
       <button
         onClick={onOpenCommand}
-        className={cn(
-          'mb-2 h-11 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm',
-          expanded ? 'px-3.5' : 'w-11 justify-center self-center',
-        )}
+        className="mb-2 h-11 w-full grid grid-cols-[44px_1fr] items-center rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm overflow-hidden text-left"
         title="Ask anything · ⌘K"
         aria-label="Ask anything"
       >
-        <Search className="size-[18px] shrink-0" />
+        <Search className="size-[18px] justify-self-center" />
         {expanded && (
-          <>
-            <span className="flex-1 text-left">Ask anything</span>
-            <span className="kbd">⌘K</span>
-          </>
+          <span className="pr-3.5 flex items-center gap-2 min-w-0">
+            <span className="flex-1 truncate">Ask anything</span>
+            <span className="kbd shrink-0">⌘K</span>
+          </span>
         )}
       </button>
 
       <button
         onClick={onOpenChat}
-        className={cn(
-          'mb-4 h-11 inline-flex items-center gap-2 rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors',
-          expanded ? 'px-3.5' : 'w-11 justify-center self-center',
-        )}
+        className="mb-4 h-11 w-full grid grid-cols-[44px_1fr] items-center rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden text-left"
         aria-label="Ask Sajni"
       >
-        <MessageSquare className="size-[18px] shrink-0" />
+        <MessageSquare className="size-[18px] justify-self-center" />
         {expanded && (
-          <>
-            <span className="flex-1 text-left">Ask Sajni</span>
-            <span className="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1">
+          <span className="pr-3.5 flex items-center gap-2 min-w-0">
+            <span className="flex-1 truncate">Ask Sajni</span>
+            <span className="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1 shrink-0">
               <Sparkles className="size-2.5" /> AI
             </span>
-          </>
+          </span>
         )}
       </button>
 
@@ -223,8 +224,7 @@ function DesktopRail({
               end={path === '/'}
               title={!expanded ? label : undefined}
               className={cn(
-                'relative flex items-center h-11 rounded-full text-sm font-medium transition-colors',
-                expanded ? 'gap-3 px-3.5' : 'w-11 justify-center self-center',
+                'relative h-11 w-full grid grid-cols-[44px_1fr] items-center rounded-full text-sm font-medium transition-colors overflow-hidden',
                 isActive
                   ? 'text-[hsl(var(--on-secondary-container))]'
                   : 'text-foreground/85 hover:bg-[hsl(var(--on-surface)/0.06)]',
@@ -237,9 +237,12 @@ function DesktopRail({
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
-              <Icon className="size-[18px] shrink-0 relative z-10" strokeWidth={isActive ? 2.2 : 1.7} />
+              <Icon
+                className="size-[18px] justify-self-center relative z-10"
+                strokeWidth={isActive ? 2.2 : 1.7}
+              />
               {expanded && (
-                <span className="truncate relative z-10">{label}</span>
+                <span className="truncate pr-3.5 relative z-10">{label}</span>
               )}
             </NavLink>
           );
@@ -247,35 +250,33 @@ function DesktopRail({
       </nav>
 
       <div className="mt-2 pt-3 border-t border-[hsl(var(--outline-variant))]">
-        {expanded ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
-                  title="Account"
-                >
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                className="w-full h-11 grid grid-cols-[44px_1fr] items-center rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden"
+                title="Account"
+              >
+                <span className="justify-self-center">
                   <Avatar size={28} label={initials} />
-                  <div className="min-w-0 flex-1">
-                    <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">account</div>
-                  </div>
-                </button>
-              }
-            />
-            <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-[280px]">
-              {userMenuContent}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <div className="flex justify-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<button className="rounded-full"><Avatar size={32} label={initials} /></button>} />
-              <DropdownMenuContent align="start" side="right" sideOffset={8} className="w-[280px]">
-                {userMenuContent}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+                </span>
+                {expanded && (
+                  <span className="min-w-0 pr-3">
+                    <span className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground block">account</span>
+                  </span>
+                )}
+              </button>
+            }
+          />
+          <DropdownMenuContent
+            align="start"
+            side={expanded ? 'top' : 'right'}
+            sideOffset={8}
+            className="w-[280px]"
+          >
+            {userMenuContent}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );

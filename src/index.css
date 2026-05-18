@@ -920,6 +920,15 @@ button, [role="button"], a {
   .m3-cookie-svg svg animate { display: none; }
 }
 
+/* Continuous spin that pairs with the path-morph tween in MorphLoader. */
+@keyframes morphLoaderSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .morph-loader { animation: none !important; }
+}
+
 /* Inline shimmer loading bar (M3 linear progress, indeterminate) */
 @keyframes m3LinearSlide {
   0%   { left: -40%; right: 100%; }

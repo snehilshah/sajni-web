@@ -40,12 +40,69 @@ function validRange(sH: number, sM: number, eH: number, eM: number): boolean {
   return eH * 60 + eM > sH * 60 + sM;
 }
 
+// timeChipMarkdownIt parses `[time:9:30]` or `[time:9:30-18:00]` back
+// into a TimeChip node so saved entries round-trip cleanly. Plain
+// `09:30-18:00` substrings remain plain text (we don't try to detect
+// arbitrary numbers as times).
+function timeChipMarkdownIt(md: any) {
+  md.inline.ruler.before('link', 'timechip', (state: any, silent: boolean) => {
+    const start = state.pos;
+    if (state.src.charCodeAt(start) !== 0x5b /* [ */) return false;
+    const tag = '[time:';
+    if (state.src.slice(start, start + tag.length) !== tag) return false;
+    const end = state.src.indexOf(']', start + tag.length);
+    if (end < 0) return false;
+    const body = state.src.slice(start + tag.length, end);
+    const m = body.match(/^(\d{1,2})(?::(\d{1,2}))?(?:-(\d{1,2})(?::(\d{1,2}))?)?$/);
+    if (!m) return false;
+    if (!silent) {
+      const sH = parseInt(m[1], 10);
+      const sM = m[2] != null ? parseInt(m[2], 10) : 0;
+      const eH = m[3] != null ? parseInt(m[3], 10) : null;
+      const eM = m[4] != null ? parseInt(m[4], 10) : (eH == null ? null : 0);
+      const token = state.push('html_inline', '', 0);
+      token.content =
+        `<span data-time-chip="" data-start="${sH}" data-start-min="${sM}"` +
+        (eH != null ? ` data-end="${eH}" data-end-min="${eM ?? 0}"` : '') +
+        `>${pad(sH)}:${pad(sM)}${eH != null ? '-' + pad(eH) + ':' + pad(eM ?? 0) : ''}</span>`;
+    }
+    state.pos = end + 1;
+    return true;
+  });
+}
+
 export const TimeChip = Node.create({
   name: 'timeChip',
   group: 'inline',
   inline: true,
   atom: true,
   selectable: true,
+
+  // Tiptap-markdown looks for `storage.markdown.serialize` on every node
+  // and falls back to `[nodeName]` literal output when missing — which
+  // is exactly how "[timeChip]" was leaking into saved entries. Write
+  // the chip as `[time:09:30]` / `[time:09:30-18:30]` so we round-trip
+  // through the .md blob without losing it.
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state: any, node: any) {
+          const { start, startMin, end, endMin } = node.attrs as {
+            start: number; startMin: number; end: number | null; endMin: number | null;
+          };
+          const body = end == null
+            ? fmtPoint(start, startMin)
+            : `${fmtPoint(start, startMin)}-${fmtPoint(end, endMin ?? 0)}`;
+          state.write(`[time:${body}]`);
+        },
+        parse: {
+          setup(md: any) {
+            md.use(timeChipMarkdownIt);
+          },
+        },
+      },
+    };
+  },
 
   addAttributes() {
     return {

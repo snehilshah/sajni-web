@@ -9,6 +9,7 @@ import MediaPage from './pages/MediaPage';
 import NotesPage from './pages/NotesPage';
 import TagsPage from './pages/TagsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import InsightsPage from './pages/InsightsPage';
 import FinancePage from './pages/Finance/FinancePage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/Auth/Login';
@@ -20,6 +21,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { M3Shapes } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 
 // Redirects already-authenticated users away from /login and /register.
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -32,6 +34,7 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 export default function App() {
 	return (
 		<AuthProvider>
+			<ThemeProvider>
 			<TooltipProvider>
 				<M3Shapes />
 				<Toaster richColors closeButton position="bottom-right" />
@@ -53,10 +56,12 @@ export default function App() {
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/tags/:tag" element={<TagsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
 			</TooltipProvider>
+			</ThemeProvider>
 		</AuthProvider>
 	);
 }

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
-  TrendingUp, CreditCard, Download,
+  TrendingUp, CreditCard, Download, Receipt,
 } from 'lucide-react';
 
 import {
@@ -17,6 +17,7 @@ import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
 import CardsTab from './CardsTab';
+import BillersTab from './BillersTab';
 import { downloadCSV } from './utils';
 
 const tabs = [
@@ -24,6 +25,7 @@ const tabs = [
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
+  { id: 'billers', label: 'Billers', icon: Receipt },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
   { id: 'cards', label: 'Cards', icon: CreditCard },
 ] as const;
@@ -277,6 +279,9 @@ export default function FinancePage() {
               reload={loadInvestments}
             />
           </TabPanel>
+          <TabPanel active={active === 'billers'}>
+            <BillersTab accounts={data.accounts} categories={data.categories} />
+          </TabPanel>
           <TabPanel active={active === 'cards'}>
             <CardsTab
               accounts={data.accounts}
@@ -295,11 +300,21 @@ export default function FinancePage() {
 }
 
 function TabPanel({ active, children }: { active: boolean; children: React.ReactNode }) {
-  // Hidden tabs stay mounted (so re-entering is instant + scroll position
-  // is preserved) but get pulled out of layout & input. We avoid
-  // `visibility: hidden` because it clips the fade-out animation.
+  // Hidden tabs stay mounted (instant re-entry, preserved scroll) but
+  // become `inert` so their descendants are unfocusable. Previously we
+  // only set `tabIndex={-1}` on the wrapper — descendants (the M3
+  // SelectTriggers in TransactionsTab et al.) stayed focusable, so
+  // when the user switched tabs the browser would walk down DOM order
+  // and land on a hidden dropdown, opening it on Space/Enter.
+  //
+  // `inert` blocks all interaction + focus + tabbing in one shot and is
+  // supported in every shipped browser at this point. We keep
+  // aria-hidden for assistive-tech parity.
   return (
     <motion.div
+      // The `inert` attribute is what we actually rely on here; the
+      // typings on React are still partial, hence the cast.
+      {...({ inert: !active ? '' : undefined } as any)}
       initial={false}
       animate={{ opacity: active ? 1 : 0, y: active ? 0 : 3 }}
       transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
@@ -308,10 +323,8 @@ function TabPanel({ active, children }: { active: boolean; children: React.React
         top: active ? 'auto' : 0,
         left: active ? 'auto' : 0,
         right: active ? 'auto' : 0,
-        pointerEvents: active ? 'auto' : 'none',
       }}
       aria-hidden={!active}
-      tabIndex={active ? undefined : -1}
     >
       {children}
     </motion.div>

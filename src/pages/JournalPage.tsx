@@ -7,8 +7,9 @@ import {
   parseISO,
 } from 'date-fns';
 
-import { journal as journalApi, habits as habitsApi, tasks as tasksApi } from '@/api';
+import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type JournalLocation } from '@/api';
 import RichEditor from '@/components/editor/RichEditor';
+import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,6 +53,7 @@ export default function JournalPage() {
   const [viewMonth, setViewMonth] = useState(parseISO(initialDate));
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<string | null>(null);
+  const [location, setLocation] = useState<JournalLocation | null>(null);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [backlinks, setBacklinks] = useState<any[]>([]);
@@ -125,6 +127,9 @@ export default function JournalPage() {
       const entry = await journalApi.get(selectedDate);
       setContent(entry.content || '');
       setMood(entry.mood || null);
+      setLocation(entry.location_label
+        ? { label: entry.location_label, lat: entry.location_lat ?? null, lon: entry.location_lon ?? null }
+        : null);
       setTags(entry.tags || []);
       setBacklinks(entry.backlinks || []);
     } finally {
@@ -159,7 +164,7 @@ export default function JournalPage() {
   const performSave = useCallback(async (silent = false) => {
     if (!silent) setSavingState('saving');
     try {
-      await journalApi.save(selectedDate, content, mood);
+      await journalApi.save(selectedDate, content, mood, location);
       const entry = await journalApi.get(selectedDate);
       setTags(entry.tags || []);
       setBacklinks(entry.backlinks || []);
@@ -171,7 +176,7 @@ export default function JournalPage() {
       console.error(err);
       setSavingState('idle');
     }
-  }, [selectedDate, content, mood, loadEntries]);
+  }, [selectedDate, content, mood, location, loadEntries]);
 
   // Debounced auto-save when dirty
   useEffect(() => {
@@ -180,10 +185,11 @@ export default function JournalPage() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => performSave(true), 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [content, mood, performSave, loading]);
+  }, [content, mood, location, performSave, loading]);
 
   const handleContentChange = (v: string) => { dirtyRef.current = true; setContent(v); };
   const handleMoodChange = (v: string | null) => { dirtyRef.current = true; setMood(v); };
+  const handleLocationChange = (v: JournalLocation | null) => { dirtyRef.current = true; setLocation(v); };
 
   const toggleHabit = async (habitId: number) => {
     setHabitStatuses((prev) => prev.map((h) => h.id === habitId ? { ...h, logged: !h.logged } : h));
@@ -199,7 +205,7 @@ export default function JournalPage() {
   const deleteEntry = async () => {
     if (!confirm(`Delete journal entry for ${selectedDate}?`)) return;
     await journalApi.delete(selectedDate);
-    setContent(''); setMood(null); setTags([]); setBacklinks([]);
+    setContent(''); setMood(null); setLocation(null); setTags([]); setBacklinks([]);
     loadEntries();
   };
 
@@ -209,6 +215,43 @@ export default function JournalPage() {
   };
   const goPrev = () => setSelectedDate(format(subDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'));
   const goNext = () => setSelectedDate(format(addDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'));
+
+  // Page-level keymap. Editor-local shortcuts (⌘B/I/U, ⌘⇧7/8, ⌘⇧C
+  // checklist, slash menu) are already wired in RichEditor. These extras
+  // give the journal page parity with the iOS Journal experience.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSave();
+      } else if (e.shiftKey && (e.key === 'M' || e.key === 'm')) {
+        e.preventDefault();
+        const order = MOODS.map((m) => m.emoji);
+        const idx = mood ? order.indexOf(mood) : -1;
+        handleMoodChange(order[(idx + 1) % order.length]);
+      } else if (e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+        e.preventDefault();
+        const btn = document.querySelector<HTMLButtonElement>('[data-slot="popover-trigger"]:has(.lucide-map-pin)');
+        btn?.click();
+      } else if (!e.shiftKey && e.key === '[') {
+        e.preventDefault();
+        goPrev();
+      } else if (!e.shiftKey && e.key === ']') {
+        e.preventDefault();
+        goNext();
+      } else if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
+        e.preventDefault();
+        goToday();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // performSave / handlers are stable enough; intentionally narrow deps to
+    // avoid re-binding on every keystroke.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mood, selectedDate, performSave]);
 
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
   const dateObj = parseISO(selectedDate);
@@ -431,6 +474,8 @@ export default function JournalPage() {
                   Clear
                 </button>
               )}
+              <span className="w-px h-4 bg-border/60 mx-1 self-center" />
+              <LocationPill value={location} onChange={handleLocationChange} />
             </div>
 
             {/* Editor */}

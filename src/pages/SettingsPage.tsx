@@ -1,12 +1,168 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2 } from 'lucide-react';
+import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Sparkles, Star, Wand2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useAuth } from '@/auth/AuthContext';
 import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
-import { account } from '@/api';
+import { account, themes as themesApi, type UserTheme } from '@/api';
 import { format, parseISO } from 'date-fns';
+import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
+import { previewSwatches } from '@/theme/applyM3';
+
+// AIThemes — prompt input + saved theme list. Generated palettes are
+// applied through the ThemeProvider so other pages observe the swap
+// the moment activate fires.
+function AIThemes() {
+  const { mode, apply, active, refresh } = useUserTheme();
+  const [list, setList] = useState<UserTheme[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [prompt, setPrompt] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try { setList(await themesApi.list()); }
+    catch {}
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const generate = async () => {
+    const p = prompt.trim();
+    if (!p) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const t = await themesApi.generate(p, { activate: true });
+      setPrompt('');
+      apply(t);
+      await load();
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message || 'Generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const activate = async (id: number) => {
+    try {
+      const t = await themesApi.activate(id);
+      apply(t);
+      await load();
+    } catch (e) { console.error(e); }
+  };
+
+  const remove = async (id: number) => {
+    if (!confirm('Delete this theme?')) return;
+    await themesApi.delete(id);
+    if (active?.id === id) {
+      apply(null);
+    }
+    await load();
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g. forest morning, calm, dark-leaning"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); generate(); } }}
+            disabled={generating}
+          />
+          <Button onClick={generate} disabled={generating || !prompt.trim()} className="shrink-0 gap-2">
+            {generating ? <M3CookieLoader size="xs" tone="primary" /> : <Wand2 className="size-4" />}
+            {generating ? 'Mixing…' : 'Generate'}
+          </Button>
+        </div>
+        {error && <div className="text-xs text-destructive">{error}</div>}
+      </div>
+
+      {loading ? (
+        <div className="text-xs text-muted-foreground">Loading…</div>
+      ) : list.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
+          No themes yet. Describe a vibe above to generate one.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {list.map((t) => {
+            const isActive = t.is_active;
+            const previewMode = t.mode_pref === 'auto' ? mode : t.mode_pref;
+            const swatches = previewSwatches(t.seeds, previewMode);
+            return (
+              <div
+                key={t.id}
+                className={cn(
+                  'flex items-center gap-3 rounded-2xl border p-3',
+                  isActive ? 'border-primary ring-1 ring-primary/30' : 'border-border',
+                )}
+              >
+                <div className="flex shrink-0">
+                  {swatches.map((s, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'size-7 rounded-full border-2 border-[hsl(var(--surface))]',
+                        i > 0 && '-ml-2',
+                      )}
+                      style={{ background: s }}
+                    />
+                  ))}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-serif font-semibold text-sm truncate">{t.name}</span>
+                    {t.source === 'ai' && (
+                      <Sparkles className="size-3 text-primary shrink-0" />
+                    )}
+                  </div>
+                  <div className="font-mono text-[10px] text-muted-foreground truncate">
+                    {t.prompt || (t.source === 'manual' ? 'custom' : t.source)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!isActive && (
+                    <button
+                      onClick={() => activate(t.id)}
+                      className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-primary hover:bg-accent"
+                      title="Activate"
+                    >
+                      <Star className="size-4" />
+                    </button>
+                  )}
+                  {isActive && (
+                    <span className="size-8 rounded-md grid place-items-center text-primary" title="Active">
+                      <Star className="size-4 fill-current" />
+                    </span>
+                  )}
+                  <button
+                    onClick={() => remove(t.id)}
+                    className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-destructive hover:bg-accent"
+                    title="Delete"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="text-[10px] font-mono text-muted-foreground inline-flex items-center gap-1">
+        <Pencil className="size-3" /> Tip: Sajni mixes seeds for primary, secondary, tertiary, neutral; the rest of the
+        M3 token set is derived per mode.
+      </div>
+    </div>
+  );
+}
 
 function Section({ title, caption, children }: { title: string; caption?: string; children: React.ReactNode }) {
   return (
@@ -149,6 +305,13 @@ export default function SettingsPage() {
               );
             })}
           </div>
+        </Section>
+
+        <Section
+          title="AI themes"
+          caption='Describe a vibe — "moss & bone, calm, dark-leaning" — and Sajni will mix you an M3 palette.'
+        >
+          <AIThemes />
         </Section>
 
         <Section title="Density" caption="How much room each thing takes.">
