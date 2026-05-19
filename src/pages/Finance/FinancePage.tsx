@@ -80,49 +80,49 @@ export default function FinancePage() {
     try {
       const accounts = await finance.listAccounts();
       setData((d) => ({ ...d, accounts, loaded: { ...d.loaded, accounts: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   const loadCategories = useCallback(async () => {
     try {
       const categories = await finance.listCategories();
       setData((d) => ({ ...d, categories, loaded: { ...d.loaded, categories: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   const loadTransactions = useCallback(async () => {
     try {
       const transactions = await finance.listTransactions({ limit: 200 });
       setData((d) => ({ ...d, transactions, loaded: { ...d.loaded, transactions: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   const loadBudgets = useCallback(async () => {
     try {
       const budgets = await finance.listBudgets();
       setData((d) => ({ ...d, budgets, loaded: { ...d.loaded, budgets: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   const loadInvestments = useCallback(async () => {
     try {
       const investments = await finance.listInvestments();
       setData((d) => ({ ...d, investments, loaded: { ...d.loaded, investments: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   const loadSavings = useCallback(async () => {
     try {
       const savings = await finance.listSavings();
       setData((d) => ({ ...d, savings, loaded: { ...d.loaded, savings: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   const loadStatements = useCallback(async () => {
     try {
       const statements = await finance.listStatements();
       setData((d) => ({ ...d, statements, loaded: { ...d.loaded, statements: true } }));
-    } catch {}
+    } catch { }
   }, []);
 
   // Initial load — fetch the lightweight stuff every tab needs (accounts, categories).
@@ -218,9 +218,8 @@ export default function FinancePage() {
                 <button
                   key={t.id}
                   onClick={() => setActive(t.id)}
-                  className={`relative inline-flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium rounded-t-md transition-colors active:scale-[0.97] tap-highlight-none ${
-                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`relative inline-flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium rounded-t-md transition-colors active:scale-[0.97] tap-highlight-none ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   <Icon className="size-3.5 relative z-10" />
                   <span className="relative z-10">{t.label}</span>
@@ -323,6 +322,7 @@ function TabPanel({ active, children }: { active: boolean; children: React.React
         top: active ? 'auto' : 0,
         left: active ? 'auto' : 0,
         right: active ? 'auto' : 0,
+        pointerEvents: active ? 'auto' : 'none',
       }}
       aria-hidden={!active}
     >

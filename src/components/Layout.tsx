@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  BookOpen, Target, Film, FileText, Hash, BarChart3,
-  PanelLeftClose, PanelLeft, LogOut, Wallet, MessageSquare, Sparkles,
+  BookOpen, Target, Film, FileText, Hash, Compass,
+  ChevronRight, LogOut, Wallet, MessageSquare, Sparkles,
   Search, Settings, Loader2, Home, ListChecks, MoreHorizontal,
+  Brain, Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import CommandPalette from '@/components/CommandPalette';
@@ -27,17 +28,17 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 const SIDEBAR_KEY = 'sajni:sidebar-expanded';
 
 const NAV_ITEMS = [
-  { path: '/',          label: 'Today',    Icon: Home },
-  { path: '/notes',     label: 'Notes',    Icon: FileText },
-  { path: '/tasks',     label: 'Tasks',    Icon: ListChecks },
-  { path: '/journal',   label: 'Journal',  Icon: BookOpen },
-  { path: '/memos',     label: 'Memos',    Icon: Sparkles },
-  { path: '/habits',    label: 'Habits',   Icon: Target },
-  { path: '/media',     label: 'Media',    Icon: Film },
-  { path: '/finance',   label: 'Finance',  Icon: Wallet },
-  { path: '/tags',      label: 'Tags',     Icon: Hash },
-  { path: '/insights',  label: 'Insights', Icon: BarChart3 },
-  { path: '/analytics', label: 'Analytics', Icon: BarChart3 },
+  { path: '/', label: 'Today', Icon: Home },
+  { path: '/memos', label: 'Memos', Icon: Brain },
+  { path: '/journal', label: 'Journal', Icon: BookOpen },
+  { path: '/tasks', label: 'Tasks', Icon: ListChecks },
+  { path: '/habits', label: 'Habits', Icon: Target },
+  { path: '/notes', label: 'Notes', Icon: FileText },
+  { path: '/media', label: 'Media', Icon: Film },
+  { path: '/finance', label: 'Finance', Icon: Wallet },
+  { path: '/tags', label: 'Tags', Icon: Hash },
+  { path: '/analytics', label: 'Analytics', Icon: Compass },
+  { path: '/insights', label: 'Insights', Icon: Lightbulb },
 ] as const;
 
 const PRIMARY_MOBILE = new Set(['/', '/notes', '/tasks', '/journal']);
@@ -161,62 +162,57 @@ function DesktopRail({
           shifts other content when the rail width animates. */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="absolute top-[62%] -right-3 -translate-y-1/2 size-6 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors flex items-center justify-center shadow-sm z-40"
+        className="absolute top-[89%] -right-3 -translate-y-1/8 size-6 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors flex items-center justify-center shadow-sm z-40"
         title={expanded ? 'Collapse' : 'Expand'}
         aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
       >
-        {expanded ? <PanelLeftClose className="size-3.5" /> : <PanelLeft className="size-3.5" />}
+        <ChevronRight
+          className="size-3.5 transition-transform duration-280"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
       </button>
       {/* Brand removed from rail — shown at bottom of SettingsPage instead.
 
-          Every rail row below uses the same `grid-cols-[44px_1fr]` so the
-          icon sits in a fixed 44px column. The label column simply
+          Every rail row below uses the same `grid-cols-[50px_1fr]` so the
+          icon sits in a fixed 50px column. The label column simply
           collapses to 0 in the narrow rail. This keeps the icon's
           on-screen x-position identical between collapsed and expanded
           states — no horizontal jitter on toggle. */}
 
       <button
         onClick={onOpenCommand}
-        className={cn(
-          'mb-2 h-11 w-full inline-flex items-center rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm overflow-hidden text-left',
-          expanded ? 'gap-2 pl-3.5 pr-3.5' : 'justify-center',
-        )}
+        className="mb-2 h-11 w-full grid items-center rounded-full bg-[hsl(var(--surface-container))] text-muted-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors text-sm overflow-hidden text-left"
+        style={{ gridTemplateColumns: '50px 1fr', paddingRight: expanded ? '14px' : 0 }}
         title="Ask anything · ⌘K"
         aria-label="Ask anything"
       >
-        <Search className="size-[18px] shrink-0" />
+        <Search className="size-[18px] justify-self-center" />
         {expanded && (
-          <>
+          <span className="flex items-center gap-2 min-w-0">
             <span className="flex-1 truncate">Ask anything</span>
             <span className="kbd shrink-0">⌘K</span>
-          </>
+          </span>
         )}
       </button>
 
       <button
         onClick={onOpenChat}
-        className={cn(
-          'mb-4 h-11 w-full inline-flex items-center rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden text-left',
-          expanded ? 'gap-2 pl-3.5 pr-3.5' : 'justify-center',
-        )}
+        className="mb-4 h-11 w-full grid items-center rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden text-left"
+        style={{ gridTemplateColumns: '50px 1fr', paddingRight: expanded ? '14px' : 0 }}
         aria-label="Ask Sajni"
       >
-        <MessageSquare className="size-[18px] shrink-0" />
+        <MessageSquare className="size-[18px] justify-self-center" />
         {expanded && (
-          <>
+          <span className="flex items-center gap-2 min-w-0">
             <span className="flex-1 truncate">Ask Sajni</span>
             <span className="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1 shrink-0">
               <Sparkles className="size-2.5" /> AI
             </span>
-          </>
+          </span>
         )}
       </button>
 
-      {expanded && (
-        <div className="mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground px-3 mb-1 mt-1">
-          places
-        </div>
-      )}
+      <div className="mx-3 my-1.5 border-t border-border" />
 
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-0.5">
         {NAV_ITEMS.map(({ path, label, Icon }) => {
@@ -230,12 +226,12 @@ function DesktopRail({
               end={path === '/'}
               title={!expanded ? label : undefined}
               className={cn(
-                'relative h-11 w-full inline-flex items-center rounded-full text-sm font-medium transition-colors overflow-hidden',
-                expanded ? 'gap-3 pl-3.5 pr-3.5' : 'justify-center',
+                'relative h-11 w-full grid items-center rounded-full text-sm font-medium transition-colors overflow-hidden',
                 isActive
                   ? 'text-[hsl(var(--on-secondary-container))]'
                   : 'text-foreground/85 hover:bg-[hsl(var(--on-surface)/0.06)]',
               )}
+              style={{ gridTemplateColumns: '50px 1fr' }}
             >
               {isActive && (
                 <motion.span
@@ -245,7 +241,7 @@ function DesktopRail({
                 />
               )}
               <Icon
-                className="size-[18px] shrink-0 relative z-10"
+                className="size-[18px] justify-self-center relative z-10"
                 strokeWidth={isActive ? 2.2 : 1.7}
               />
               {expanded && (
@@ -261,13 +257,11 @@ function DesktopRail({
           <DropdownMenuTrigger
             render={
               <button
-                className={cn(
-                  'w-full h-11 inline-flex items-center rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden',
-                  expanded ? 'gap-2.5 pl-2.5 pr-3' : 'justify-center',
-                )}
+                className="w-full h-11 grid items-center rounded-full text-left hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden"
+                style={{ gridTemplateColumns: '50px 1fr' }}
                 title="Account"
               >
-                <Avatar size={28} label={initials} />
+                <span className="justify-self-center"><Avatar size={28} label={initials} /></span>
                 {expanded && (
                   <span className="min-w-0">
                     <span className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground block">account</span>
@@ -356,7 +350,7 @@ export default function Layout() {
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
-    try { localStorage.setItem(SIDEBAR_KEY, expanded ? '1' : '0'); } catch {}
+    try { localStorage.setItem(SIDEBAR_KEY, expanded ? '1' : '0'); } catch { }
   }, [expanded]);
 
   useEffect(() => {
