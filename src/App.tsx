@@ -24,6 +24,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { M3Shapes } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
+import { Analytics } from '@vercel/analytics/react';
 
 // Redirects already-authenticated users away from /login and /register.
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
+        <Analytics />
 			</TooltipProvider>
 			</ThemeProvider>
 		</AuthProvider>
