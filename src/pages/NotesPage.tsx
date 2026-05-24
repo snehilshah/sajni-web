@@ -471,7 +471,7 @@ export default function NotesPage() {
                 </>
               ) : (
                 <>
-                  <input
+                  <Input
                     type="text"
                     placeholder="Untitled"
                     value={title}
@@ -729,7 +729,7 @@ function FolderInput({
       style={{ paddingLeft: `${depth * 12 + 4}px`, paddingRight: '4px' }}
     >
       <FolderPlus className="size-3.5 text-muted-foreground shrink-0 ml-4" />
-      <input
+      <Input
         ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}

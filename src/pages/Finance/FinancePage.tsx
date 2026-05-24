@@ -19,6 +19,7 @@ import InvestmentsTab from './InvestmentsTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
 import { downloadCSV } from './utils';
+import { Input } from '@/components/ui/input';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -291,7 +292,7 @@ export default function FinancePage() {
           </TabPanel>
 
           {/* Hidden absolute reload helper for global refresh after deep mutations */}
-          <input type="hidden" data-reload-all onClick={reloadAll} />
+          <Input type="hidden" data-reload-all onClick={reloadAll} />
         </div>
       </div>
     </div>

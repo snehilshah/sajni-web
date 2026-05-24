@@ -294,7 +294,7 @@ function TitleAutocomplete({
   return (
     <div className="relative group" ref={wrapRef}>
       <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10" />
-      <input
+      <Input
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => { if (results.length > 0) setOpen(true); }}

@@ -101,7 +101,7 @@ export default function ListsRail({
                 style={{ backgroundColor: l.color }}
               />
               {isEditing ? (
-                <input
+                <Input
                   autoFocus
                   value={editDraft}
                   onChange={(e) => setEditDraft(e.target.value)}

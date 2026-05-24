@@ -15,6 +15,7 @@ import {
 import AIPaletteAnswer from '@/components/AIPaletteAnswer';
 import { useMode, useDensity } from '@/hooks/useThemePrefs';
 import { useAuth } from '@/auth/AuthContext';
+import { Input } from './ui/input';
 
 // AI_PREFIXES committed by space/tab become the AI chip. We keep the
 // list small — typing one of these and pressing space flips the
@@ -313,7 +314,7 @@ export default function CommandPalette() {
                 </span>
               )}
 
-              <input
+              <Input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

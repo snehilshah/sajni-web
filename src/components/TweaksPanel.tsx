@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { Input } from './ui/input';
 
 type Tweak = {
   key: string;
@@ -65,7 +66,7 @@ export default function TweaksPanel() {
                 <span>{t.label}</span>
                 <span className="mono text-muted-foreground">{values[t.key].toFixed(2)}{t.unit ?? ''}</span>
               </div>
-              <input
+              <Input
                 type="range"
                 min={t.min}
                 max={t.max}

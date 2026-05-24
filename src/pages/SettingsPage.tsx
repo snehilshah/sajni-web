@@ -354,7 +354,7 @@ export default function SettingsPage() {
                 {importing ? <M3CookieLoader size="xs" tone="primary" /> : <Upload className="size-4" />}
                 {importing ? 'Importing…' : 'Import from takeout'}
               </Button>
-              <input
+              <Input
                 ref={fileRef}
                 type="file"
                 accept=".zip,application/zip"
