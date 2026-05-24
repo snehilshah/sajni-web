@@ -285,8 +285,14 @@ export default function AIChat({ open, onOpenChange }: Props) {
             >
               History <ChevronDown className={`size-3 ml-1 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
             </Button>
-            <Button size="icon-sm" variant="ghost" onClick={newChat} title="New chat">
-              <Plus className="size-4" />
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={newChat}
+              title="Start a new chat"
+              className="font-mono text-[10px] uppercase tracking-wider"
+            >
+              <Plus className="size-3 mr-1" /> New
             </Button>
           </div>
 
