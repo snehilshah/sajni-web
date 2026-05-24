@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { NativeSelect } from '@/components/ui/native-select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Flame, Loader2, Pencil, Check } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 
@@ -201,10 +201,15 @@ export default function HabitsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Frequency</Label>
-                <NativeSelect value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                </NativeSelect>
+                <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v ?? 'daily' })}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Color</Label>
@@ -217,7 +222,7 @@ export default function HabitsPage() {
                       style={{ backgroundColor: c }}
                     />
                   ))}
-                  <input
+                  <Input
                     type="color"
                     value={form.color}
                     onChange={(e) => setForm({ ...form, color: e.target.value })}
