@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Sun, Star, Calendar, Inbox, ListTodo, Plus } from 'lucide-react';
+import { Sun, Star, Calendar, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 
 import type { TaskList, SmartList } from '@/types';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { SMART_LISTS, type Selection } from './helpers';
 
 const SMART_ICON: Record<SmartList, typeof Sun> = {
@@ -18,15 +21,26 @@ interface Props {
   selection: Selection;
   onSelect: (sel: Selection) => void;
   onCreate: (name: string) => Promise<void>;
+  onRename?: (id: number, name: string) => Promise<void>;
+  onDelete?: (id: number) => Promise<void>;
 }
 
 // PillScroller — horizontal swipeable row replacing the old vertical
 // rail. Works identically on mobile and desktop, snaps cleanly, hides
 // its scrollbar, and forwards vertical wheel scroll to horizontal so
 // trackpad/mouse users can still pan with two fingers.
-export default function PillScroller({ lists, selection, onSelect, onCreate }: Props) {
+export default function PillScroller({ lists, selection, onSelect, onCreate, onRename, onDelete }: Props) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+
+  const submitRename = async (id: number) => {
+    const name = editDraft.trim();
+    if (name && onRename) await onRename(id, name);
+    setEditingId(null);
+    setEditDraft('');
+  };
 
   const submitNew = async () => {
     const name = draft.trim();
@@ -67,21 +81,72 @@ export default function PillScroller({ lists, selection, onSelect, onCreate }: P
 
       {lists.map((l) => {
         const active = selection.kind === 'list' && selection.id === l.id;
+        const isEditing = editingId === l.id;
         return (
-          <button
+          <div
             key={l.id}
-            onClick={() => onSelect({ kind: 'list', id: l.id })}
-            className={`inline-flex items-center gap-2 h-8 px-3 rounded-full text-[12.5px] font-medium whitespace-nowrap shrink-0 transition-colors
+            className={`group inline-flex items-center gap-1 h-8 pl-3 pr-1 rounded-full text-[12.5px] font-medium whitespace-nowrap shrink-0 transition-colors
               ${active
                 ? 'bg-primary/15 text-primary border border-primary/40'
                 : 'bg-muted/40 text-foreground/85 border border-border/60 hover:bg-muted/80'}`}
           >
             <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
-            {l.name}
-            {l.task_count > 0 && (
-              <span className="mono text-[10px] text-muted-foreground">{l.task_count}</span>
+            {isEditing ? (
+              <Input
+                autoFocus
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                onBlur={() => submitRename(l.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitRename(l.id);
+                  if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
+                }}
+                className="bg-transparent outline-none border-b border-current text-[12.5px] w-24"
+              />
+            ) : (
+              <button
+                onClick={() => onSelect({ kind: 'list', id: l.id })}
+                className="text-left"
+              >
+                {l.name}
+              </button>
             )}
-          </button>
+            {!isEditing && l.task_count > 0 && (
+              <span className="mono text-[10px] text-muted-foreground ml-1">{l.task_count}</span>
+            )}
+            {!isEditing && (onRename || onDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="ml-1 size-5 inline-flex items-center justify-center rounded-full opacity-60 hover:opacity-100 hover:bg-foreground/10"
+                      title="List options"
+                    >
+                      <MoreVertical className="size-3.5" />
+                    </button>
+                  }
+                />
+                <DropdownMenuContent align="end" className="text-sm">
+                  {onRename && (
+                    <DropdownMenuItem onClick={() => { setEditingId(l.id); setEditDraft(l.name); }}>
+                      <Pencil className="size-3.5 mr-2" /> Rename
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => {
+                        if (confirm(`Delete list "${l.name}"? Tasks inside move to Inbox.`)) onDelete(l.id);
+                      }}
+                    >
+                      <Trash2 className="size-3.5 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         );
       })}
 

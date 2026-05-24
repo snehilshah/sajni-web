@@ -196,11 +196,23 @@ export default function TasksPage() {
             await listsApi.create({ name });
             reloadLists();
           }}
+          onRename={async (id, name) => {
+            await listsApi.update(id, { name });
+            reloadLists();
+          }}
+          onDelete={async (id) => {
+            await listsApi.delete(id);
+            if (selection.kind === 'list' && selection.id === id) {
+              setSelection({ kind: 'smart', smart: 'all' });
+            }
+            reloadLists();
+            reloadTasks();
+          }}
         />
 
         {/* Inline quick-add — desktop only. Mobile uses the FAB → full sheet. */}
         {!isMobile && (
-          <div className="border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
+          <div className="rounded-xl border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
             <Plus className="size-4 text-muted-foreground shrink-0" />
             <Input
               value={quickTitle}
@@ -209,7 +221,7 @@ export default function TasksPage() {
                 if (e.key === 'Enter') handleQuickAdd();
               }}
               placeholder="Add a task. Press ↵."
-              className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-0 text-sm"
+              className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-2 text-sm"
             />
             {quickTitle.trim() && (
               <Button size="sm" className="h-7 px-3 text-xs" onClick={handleQuickAdd}>
