@@ -240,20 +240,33 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
 
 // StepsEditor renders the inline checklist editor used inside the
 // task detail dialog. Maintains a local draft until "save".
+// onCommit (optional) is fired immediately after a step is added via
+// Enter or toggled/removed, so the parent dialog can persist without
+// requiring a separate Save click.
 export function StepsEditor({
-  steps, onChange,
+  steps, onChange, onCommit,
 }: {
   steps: TaskStep[];
   onChange: (next: TaskStep[]) => void;
+  onCommit?: (next: TaskStep[]) => void;
 }) {
   const [draft, setDraft] = useState('');
-  const update = (id: string, patch: Partial<TaskStep>) =>
-    onChange(steps.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const remove = (id: string) => onChange(steps.filter((s) => s.id !== id));
+  const update = (id: string, patch: Partial<TaskStep>) => {
+    const next = steps.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    onChange(next);
+    onCommit?.(next);
+  };
+  const remove = (id: string) => {
+    const next = steps.filter((s) => s.id !== id);
+    onChange(next);
+    onCommit?.(next);
+  };
   const add = () => {
     const text = draft.trim();
     if (!text) return;
-    onChange([...steps, { id: 's_' + Date.now(), text, done: false }]);
+    const next = [...steps, { id: 's_' + Date.now(), text, done: false }];
+    onChange(next);
+    onCommit?.(next);
     setDraft('');
   };
 
@@ -273,7 +286,7 @@ export function StepsEditor({
               </svg>
             )}
           </button>
-          <input
+          <Input
             value={s.text}
             onChange={(e) => update(s.id, { text: e.target.value })}
             className={`flex-1 bg-transparent outline-none text-sm ${s.done ? 'line-through text-muted-foreground' : ''}`}
@@ -290,7 +303,7 @@ export function StepsEditor({
       ))}
       <div className="flex items-center gap-2 px-2 py-1">
         <span className="size-4 rounded-full border-2 border-dashed border-muted-foreground/30 shrink-0" />
-        <input
+        <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {

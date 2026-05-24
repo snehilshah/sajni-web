@@ -127,7 +127,7 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
             : 'max-w-2xl w-full sm:max-w-2xl h-[min(85vh,720px)]',
         )}
       >
-        <DialogHeader className="shrink-0 px-6 pt-6 pb-4 pr-14 border-b border-border">
+        <DialogHeader className="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 pr-14 border-b border-border">
           <div className="flex items-start gap-3">
             <button
               type="button"
@@ -146,19 +146,19 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-5 flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5">
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Title</Label>
-            <input
+            <Input
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               autoFocus={!editing}
               placeholder="What needs doing?"
-              className="bg-transparent font-serif text-2xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 border-b border-border focus:border-primary transition-colors pb-2"
+              className="h-auto font-serif text-lg md:text-2xl font-medium tracking-tight placeholder:text-muted-foreground/40 px-3 py-2"
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 shrink-0">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}>
@@ -251,6 +251,12 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
               <StepsEditor
                 steps={form.steps}
                 onChange={(next) => setForm({ ...form, steps: next })}
+                onCommit={editing ? (next) => {
+                  // Persist step mutations immediately when editing an
+                  // existing task so Enter/toggle/delete don't require
+                  // a separate Save click.
+                  tasksApi.update(editing.id, { steps: next }).then(onSaved).catch(() => {});
+                } : undefined}
               />
             </div>
           </div>
@@ -275,7 +281,7 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
             </div>
           )}
 
-          <div className="flex flex-col flex-1 min-h-[200px] border border-border rounded-lg overflow-hidden bg-card">
+          <div className="flex flex-col flex-1 min-h-[140px] md:min-h-[200px] border border-border rounded-lg overflow-hidden bg-card">
             <div className="bg-muted/30 border-b border-border px-3 py-1.5 flex items-center justify-between shrink-0">
               <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Notes</Label>
               <span className="text-[10px] text-muted-foreground/80">/ commands · # tags · [[ links</span>
@@ -290,7 +296,7 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
           </div>
         </div>
 
-        <DialogFooter className="shrink-0 px-6 py-4 border-t border-border bg-muted/20">
+        <DialogFooter className="shrink-0 px-4 md:px-6 py-3 md:py-4 border-t border-border bg-muted/20">
           {editing && (
             <Button
               variant="ghost"
