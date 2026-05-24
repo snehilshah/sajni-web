@@ -19,6 +19,79 @@ export const memos = {
   delete: (id: number) => request('/memos/' + id, { method: 'DELETE' }),
 };
 
+// --- Thinking (typed thought-cards inside a project) ---
+export interface ThinkingProject {
+  id: number;
+  title: string;
+  description: string;
+  thesis: string;
+  gap_questions: string[];
+  synthesized_at: string;
+  card_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ThinkingKind =
+  | 'note' | 'entity' | 'question' | 'idea' | 'reflection'
+  | 'claim' | 'fact' | 'hypothesis' | 'evidence'
+  | 'contradiction' | 'decision' | 'todo';
+
+export type ThinkingRelation =
+  | 'supports' | 'contradicts' | 'extends' | 'depends_on' | 'refines'
+  | 'fixes' | 'refs' | 'points' | 'questions'
+  | 'exemplifies' | 'generalizes' | 'related';
+
+export interface ThinkingConnection {
+  card_id: number;
+  relation: ThinkingRelation;
+}
+
+export interface ThinkingEnrichment {
+  summary?: string;
+  implications?: string[];
+  questions_raised?: string[];
+  connections?: ThinkingConnection[];
+  confidence?: number;
+}
+
+export interface ThinkingCard {
+  id: number;
+  project_id: number;
+  kind: ThinkingKind;
+  content: string;
+  ai_enrichment: ThinkingEnrichment;
+  enriched_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const thinking = {
+  listProjects: () => request<ThinkingProject[]>('/thinking/projects'),
+  createProject: (data: { title: string; description?: string }) =>
+    request<{ id: number }>('/thinking/projects', { method: 'POST', body: JSON.stringify(data) }),
+  getProject: (id: number) =>
+    request<{ project: ThinkingProject; cards: ThinkingCard[] }>('/thinking/projects/' + id),
+  updateProject: (id: number, data: { title?: string; description?: string }) =>
+    request('/thinking/projects/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProject: (id: number) =>
+    request('/thinking/projects/' + id, { method: 'DELETE' }),
+  synthesize: (id: number) =>
+    request<{ thesis: string; gap_questions: string[] }>('/thinking/projects/' + id + '/synthesize', { method: 'POST' }),
+  addCard: (projectId: number, data: { kind: ThinkingKind; content: string }) =>
+    request<{ id: number }>('/thinking/projects/' + projectId + '/cards', { method: 'POST', body: JSON.stringify(data) }),
+  updateCard: (id: number, data: { kind?: ThinkingKind; content?: string }) =>
+    request('/thinking/cards/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCard: (id: number) =>
+    request('/thinking/cards/' + id, { method: 'DELETE' }),
+  enrichCard: (id: number) =>
+    request('/thinking/cards/' + id + '/enrich', { method: 'POST' }),
+  saveEnrichment: (id: number, enrichment: ThinkingEnrichment) =>
+    request('/thinking/cards/' + id + '/enrichment', { method: 'PUT', body: JSON.stringify(enrichment) }),
+  classify: (content: string) =>
+    request<{ kind: ThinkingKind }>('/thinking/classify', { method: 'POST', body: JSON.stringify({ content }) }),
+};
+
 // --- Tasks ---
 import type { Task, TaskList, TaskStep, SmartList } from './types';
 

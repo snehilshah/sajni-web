@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import TodayPage from './pages/TodayPage';
 import MemosPage from './pages/MemosPage';
+import ThinkingPage from './pages/ThinkingPage';
+import ThinkingProjectPage from './pages/ThinkingProjectPage';
 import JournalPage from './pages/JournalPage';
 import TasksPage from './pages/TasksPage';
 import HabitsPage from './pages/HabitsPage';
@@ -46,6 +48,8 @@ export default function App() {
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/" element={<TodayPage />} />
             <Route path="/memos" element={<MemosPage />} />
+            <Route path="/thinking" element={<ThinkingPage />} />
+            <Route path="/thinking/:id" element={<ThinkingProjectPage />} />
             <Route path="/journal" element={<JournalPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/habits" element={<HabitsPage />} />

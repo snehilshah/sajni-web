@@ -30,6 +30,7 @@ const SIDEBAR_KEY = 'sajni:sidebar-expanded';
 const NAV_ITEMS = [
   { path: '/', label: 'Today', Icon: Home },
   { path: '/memos', label: 'Memos', Icon: Brain },
+  { path: '/thinking', label: 'Thinking', Icon: Sparkles },
   { path: '/journal', label: 'Journal', Icon: BookOpen },
   { path: '/tasks', label: 'Tasks', Icon: ListChecks },
   { path: '/habits', label: 'Habits', Icon: Target },
