@@ -240,18 +240,18 @@
   --on-error:               0 0% 100%;
   --error-container:        0 90% 92%;
   --on-error-container:     0 70% 22%;
-  --surface:                28 50% 97%;
-  --surface-dim:            28 25% 89%;
-  --surface-bright:         28 50% 98%;
+  --surface:                28 10% 97%;
+  --surface-dim:            28 6% 89%;
+  --surface-bright:         28 10% 98%;
   --surface-container-lowest: 0 0% 100%;
-  --surface-container-low:  28 45% 95%;
-  --surface-container:      28 40% 92%;
-  --surface-container-high: 28 35% 89%;
-  --surface-container-highest: 28 32% 86%;
-  --on-surface:             18 30% 14%;
-  --on-surface-variant:     18 12% 38%;
-  --outline:                18 12% 52%;
-  --outline-variant:        18 18% 82%;
+  --surface-container-low:  28 8% 95%;
+  --surface-container:      28 6% 93%;
+  --surface-container-high: 28 5% 90%;
+  --surface-container-highest: 28 4% 87%;
+  --on-surface:             18 12% 14%;
+  --on-surface-variant:     18 6% 38%;
+  --outline:                18 6% 52%;
+  --outline-variant:        18 8% 82%;
   --scrim:                  18 40% 6%;
   --inverse-surface:        18 30% 18%;
   --inverse-on-surface:     28 40% 94%;
@@ -816,12 +816,16 @@ button, [role="button"], a {
 }
 .tap-highlight-none { -webkit-tap-highlight-color: transparent; }
 
-/* M3 focus ring — colored, rounded. */
+/* M3 focus ring — colored, follows element's own border-radius.
+   Outline (not box-shadow) so layout never shifts; modern browsers honor
+   the element's border-radius for outlines. Components in `ui/` provide
+   their own focus highlight; this is the fallback for anything else. */
 :focus-visible {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
-  border-radius: inherit;
 }
+/* Components that ship their own focus highlight (Input/Textarea/Button)
+   suppress the global outline via outline-none + an inset shadow ring. */
 
 /* ============================================================
    Progress segments.
