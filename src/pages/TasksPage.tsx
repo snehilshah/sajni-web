@@ -218,6 +218,7 @@ export default function TasksPage() {
           <div className="rounded-xl border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
             <Plus className="size-4 text-muted-foreground shrink-0" />
             <Input
+              name="quick-task-title"
               value={quickTitle}
               onChange={(e) => setQuickTitle(e.target.value)}
               onKeyDown={(e) => {

@@ -157,6 +157,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Title</Label>
             <Input
+              id="task-title"
+              name="task-title"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               autoFocus={!editing}
@@ -217,6 +219,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due date</Label>
               <DatePicker
+                id="task-due-date"
+                name="task-due-date"
                 value={form.due_date}
                 onChange={(v) => setForm({ ...form, due_date: v })}
                 placeholder="No date"

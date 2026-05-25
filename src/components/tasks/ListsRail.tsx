@@ -102,6 +102,7 @@ export default function ListsRail({
               />
               {isEditing ? (
                 <Input
+                  name={`rail-rename-list-${l.id}`}
                   autoFocus
                   value={editDraft}
                   onChange={(e) => setEditDraft(e.target.value)}
@@ -110,7 +111,7 @@ export default function ListsRail({
                     if (e.key === 'Enter') submitRename(l.id);
                     if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
                   }}
-                  className="flex-1 bg-transparent outline-none border-b border-current text-sm relative z-10 min-w-0"
+                  className="h-6 flex-1 border-0 border-b border-current bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-current focus-visible:shadow-none text-sm relative z-10 min-w-0"
                 />
               ) : (
                 <button
@@ -162,6 +163,7 @@ export default function ListsRail({
           {adding ? (
             <div className="flex flex-col gap-1 px-1">
               <Input
+                name="rail-new-list-name"
                 autoFocus
                 placeholder="New list name"
                 value={draft}

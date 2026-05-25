@@ -1161,6 +1161,7 @@ function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () =
     <div className="mt-2 flex items-center gap-2">
       <span className="mono text-[12px] w-[18px] text-center text-muted-foreground">+</span>
       <Input
+        name="journal-quick-task-title"
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}

@@ -93,6 +93,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
             <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
             {isEditing ? (
               <Input
+                name={`rename-list-${l.id}`}
                 autoFocus
                 value={editDraft}
                 onChange={(e) => setEditDraft(e.target.value)}
@@ -101,7 +102,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
                   if (e.key === 'Enter') submitRename(l.id);
                   if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
                 }}
-                className="bg-transparent outline-none border-b border-current text-[12.5px] w-24"
+                className="h-6 w-24 border-0 border-b border-current bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-current focus-visible:shadow-none text-[12.5px]"
               />
             ) : (
               <button
@@ -153,6 +154,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       {adding ? (
         <div className="inline-flex items-center h-8 px-2 rounded-full border border-dashed border-border bg-background/60 shrink-0">
           <Input
+            name="new-list-name"
             autoFocus
             value={draft}
             placeholder="List name"

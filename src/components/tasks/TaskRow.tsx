@@ -210,6 +210,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
               {addingSub ? (
                 <div className="px-3 py-1.5">
                   <Input
+                    name={`subtask-${task.id}`}
                     autoFocus
                     placeholder="New subtask"
                     value={subDraft}
@@ -287,9 +288,10 @@ export function StepsEditor({
             )}
           </button>
           <Input
+            name={`step-${s.id}`}
             value={s.text}
             onChange={(e) => update(s.id, { text: e.target.value })}
-            className={`flex-1 bg-transparent outline-none text-sm ${s.done ? 'line-through text-muted-foreground' : ''}`}
+            className={`flex-1 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm ${s.done ? 'line-through text-muted-foreground' : ''}`}
           />
           <button
             type="button"
@@ -304,13 +306,14 @@ export function StepsEditor({
       <div className="flex items-center gap-2 px-2 py-1">
         <span className="size-4 rounded-full border-2 border-dashed border-muted-foreground/30 shrink-0" />
         <Input
+          name="new-step"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') { e.preventDefault(); add(); }
           }}
           placeholder="Add a step"
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/50"
+          className="flex-1 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
         />
         {draft && (
           <button type="button" onClick={add} className="text-xs text-primary hover:underline">
