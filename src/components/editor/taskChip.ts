@@ -22,6 +22,10 @@ import { Node, mergeAttributes } from '@tiptap/core';
  */
 
 function taskChipMarkdownIt(md: any) {
+  if (md.inline.ruler.__find__?.('taskchip') >= 0) {
+    return;
+  }
+
   const rule = (state: any, silent: boolean) => {
     const start = state.pos;
     const src = state.src;
@@ -39,8 +43,8 @@ function taskChipMarkdownIt(md: any) {
       if (!id) return false;
       if (!silent) {
         const token = state.push('html_inline', '', 0);
-        const safeId = id.replace(/"/g, '&quot;');
-        const safeTitle = title.replace(/</g, '&lt;');
+        const safeId = escapeAttr(id);
+        const safeTitle = escapeAttr(title);
         token.content = `<span data-type="taskchip" data-id="${safeId}" data-title="${safeTitle}">${safeTitle}</span>`;
       }
       state.pos = end + 2;
@@ -61,8 +65,8 @@ function taskChipMarkdownIt(md: any) {
       if (!id) return false;
       if (!silent) {
         const token = state.push('html_inline', '', 0);
-        const safeId = id.replace(/"/g, '&quot;');
-        const safeTitle = title.replace(/</g, '&lt;');
+        const safeId = escapeAttr(id);
+        const safeTitle = escapeAttr(title);
         token.content = `<span data-type="taskchip" data-id="${safeId}" data-title="${safeTitle}">${safeTitle}</span>`;
       }
       state.pos = end + 2;
@@ -72,14 +76,21 @@ function taskChipMarkdownIt(md: any) {
     return false;
   };
 
-  // Try to register before the wikilink rule for the legacy-syntax case.
-  // The `((…))` form has no overlap so this is purely defensive — falls
-  // back to placing before `link` if wikilink isn't loaded.
+  // Register before `text`: `(` is not a markdown special char, so the
+  // default text rule would otherwise consume `((task:...))` first.
   try {
-    md.inline.ruler.before('wikilink', 'taskchip', rule);
+    md.inline.ruler.before('text', 'taskchip', rule);
   } catch {
-    md.inline.ruler.before('link', 'taskchip', rule);
+    md.inline.ruler.push('taskchip', rule);
   }
+}
+
+function escapeAttr(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 export const TaskChip = Node.create({
