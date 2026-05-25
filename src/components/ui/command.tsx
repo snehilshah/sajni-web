@@ -47,17 +47,21 @@ function CommandDialog({
   showCloseButton?: boolean
   children: React.ReactNode
 }) {
+  // Wrap children in the cmdk Command root. Its descendants
+  // (CommandInput/List/Group/Item) read context from this root — without
+  // it they throw and unmount the surrounding React tree, which surfaces
+  // as a "blank page" when CommandDialog opens.
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn("top-1/3 translate-y-0 overflow-hidden p-0", className)}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <Command>{children}</Command>
       </DialogContent>
     </Dialog>
   )

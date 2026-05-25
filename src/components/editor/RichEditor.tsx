@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -10,10 +10,15 @@ import { Markdown } from 'tiptap-markdown';
 import type { Editor } from '@tiptap/react';
 import { useNavigate } from 'react-router-dom';
 
-import { uploads, notes as notesApi } from '@/api';
+import { uploads, notes as notesApi, tasks as tasksApi } from '@/api';
+import type { Task } from '@/types';
 import { WikiLink, TagSuggest } from './wikilink';
 import { SlashCommand } from './slashMenu';
 import { TimeChip, TimeChipSuggest } from './timeChip';
+import { TaskChip } from './taskChip';
+import {
+  CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
+} from '@/components/ui/command';
 
 import {
   Bold, Italic, Strikethrough, Code, Link2, List, ListOrdered, ListChecks,
@@ -27,6 +32,12 @@ interface Props {
   className?: string;
   autoFocus?: boolean;
   minHeight?: string;
+  /**
+   * Reserved hook for future task-creation callers. The /task slash
+   * command itself only *references* tasks — creation happens from the
+   * surrounding page (e.g. the journal right-rail "+ Add task" row).
+   */
+  contextDate?: string;
 }
 
 export default function RichEditor({
@@ -34,6 +45,13 @@ export default function RichEditor({
 }: Props) {
   const navigate = useNavigate();
   const isLocalUpdate = useRef(false);
+
+  // Picker for /task — search-and-pick over existing tasks. No create UI
+  // here per design: /task references only, creation lives outside the
+  // editor (journal right rail, /tasks page, etc).
+  const [taskPicker, setTaskPicker] = useState(false);
+  const [taskList, setTaskList] = useState<Task[]>([]);
+  const [taskLoading, setTaskLoading] = useState(false);
 
   const extensions = useMemo(() => [
     StarterKit.configure({
@@ -50,6 +68,7 @@ export default function RichEditor({
     SlashCommand,
     TimeChip,
     TimeChipSuggest,
+    TaskChip,
     Placeholder.configure({
       placeholder: ({ node, editor: ed, pos }) => {
         // Show only on the first empty paragraph
@@ -79,6 +98,17 @@ export default function RichEditor({
           event.preventDefault();
           const target = String(node.attrs.id || '');
           handleWikiLinkClick(target);
+          return true;
+        }
+        if (node.type.name === 'taskchip') {
+          event.preventDefault();
+          const raw = String(node.attrs.id || '');
+          const id = Number(raw);
+          if (Number.isFinite(id) && id > 0) {
+            // Dispatch a global event picked up by TaskDetailProvider.
+            // Avoids coupling the editor extension to React context.
+            window.dispatchEvent(new CustomEvent('task:open', { detail: { id } }));
+          }
           return true;
         }
         return false;
@@ -158,6 +188,47 @@ export default function RichEditor({
     }
   }, [editor, value]);
 
+  // Bind the TaskChip extension's onOpen slot — the /task slash command
+  // calls it. We strip the trigger range *here* (not in the slash command
+  // file) so the slash menu's popup is fully cleaned up before our picker
+  // dialog opens, otherwise both popups overlap.
+  useEffect(() => {
+    if (!editor) return;
+    const storage = (editor.storage as any).taskchip;
+    if (!storage) return;
+    storage.onOpen = (range: { from: number; to: number }) => {
+      // Drop the "/task" trigger immediately. This forces the underlying
+      // Suggestion plugin to dismiss its popup and parks the cursor at
+      // the insertion point.
+      editor.chain().focus().deleteRange(range).run();
+      setTaskList([]);
+      setTaskPicker(true);
+      // Fetch lazily so users who never invoke /task never pay the cost.
+      setTaskLoading(true);
+      tasksApi
+        .list({ smart: 'all' })
+        .then((list) => setTaskList(list.filter((t) => t.status !== 'done')))
+        .catch(() => setTaskList([]))
+        .finally(() => setTaskLoading(false));
+    };
+    return () => {
+      if (storage) storage.onOpen = null;
+    };
+  }, [editor]);
+
+  const insertTaskChip = useCallback((t: Task) => {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        { type: 'taskchip', attrs: { id: t.id, title: t.title } },
+        { type: 'text', text: ' ' },
+      ])
+      .run();
+    setTaskPicker(false);
+  }, [editor]);
+
   return (
     <div className={`relative w-full ${className || ''}`}>
       {editor && (
@@ -168,6 +239,44 @@ export default function RichEditor({
       <div style={minHeight ? { minHeight } : undefined}>
         <EditorContent editor={editor} />
       </div>
+      <CommandDialog
+        open={taskPicker}
+        onOpenChange={setTaskPicker}
+        title="Reference a task"
+        description="Pick an existing task to insert as an inline chip. Create new tasks from the right rail or the Tasks page."
+      >
+        <CommandInput placeholder="Search tasks…" />
+        <CommandList>
+          {taskLoading ? (
+            <div className="px-3 py-6 text-center text-xs text-muted-foreground">Loading…</div>
+          ) : (
+            <>
+              <CommandEmpty>No matching tasks. Create one from the right rail or /tasks.</CommandEmpty>
+              <CommandGroup heading="Open tasks">
+                {taskList.map((t) => (
+                  <CommandItem
+                    key={t.id}
+                    value={`${t.title}__${t.id}`}
+                    onSelect={() => insertTaskChip(t)}
+                  >
+                    <span className={`size-2 rounded-full shrink-0 ${
+                      t.priority === 'high' ? 'bg-destructive'
+                      : t.priority === 'medium' ? 'bg-amber-500'
+                      : 'bg-muted-foreground/40'
+                    }`} />
+                    <span className="flex-1 truncate">{t.title}</span>
+                    {t.due_date && (
+                      <span className="mono text-[10px] tracking-wider text-muted-foreground">
+                        {t.due_date}
+                      </span>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
+        </CommandList>
+      </CommandDialog>
     </div>
   );
 }

@@ -751,6 +751,24 @@ em, .italic { font-style: italic; }
 }
 .time-chip:hover { transform: translateY(-1px); background: hsl(var(--tertiary-container) / 0.85); }
 
+/* Inline task reference chip — inserted via the /task slash command. */
+.tiptap-taskchip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 22px; padding: 0 9px 0 7px;
+  margin: 0 3px 0 0;
+  border-radius: 9999px;
+  background: hsl(var(--secondary-container));
+  color: hsl(var(--on-secondary-container));
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 180ms var(--m3-ease-emph-decel), background-color 150ms var(--m3-ease-standard);
+}
+.tiptap-taskchip:hover { transform: translateY(-1px); background: hsl(var(--secondary-container) / 0.85); }
+
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0.25rem;

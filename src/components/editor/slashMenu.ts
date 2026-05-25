@@ -48,6 +48,20 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'rule', title: 'Divider', subtitle: 'Horizontal rule', icon: '—',
     command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
   },
+  {
+    // Hands off to the React layer (RichEditor binds editor.storage.taskchip.onOpen)
+    // so the title dialog and tasksApi.create call can live outside the editor.
+    id: 'task', title: 'Task', subtitle: 'Create + reference inline', icon: '☑',
+    command: ({ editor, range }) => {
+      const open = (editor.storage as any)?.taskchip?.onOpen;
+      if (typeof open === 'function') {
+        open(range);
+      } else {
+        // Fallback: at least clear the trigger text so we don't leave "/task" behind.
+        editor.chain().focus().deleteRange(range).run();
+      }
+    },
+  },
 ];
 
 export const SlashCommand = Extension.create({
