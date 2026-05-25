@@ -5,6 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { themes as themesApi, type UserTheme } from '@/api';
+import { useAuth } from '@/auth/AuthContext';
 import { applyM3, resetM3 } from './applyM3';
 
 interface Ctx {
@@ -37,6 +38,7 @@ function detectInitialMode(): 'light' | 'dark' {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
   const [active, setActive] = useState<UserTheme | null>(null);
   const [mode, setModeState] = useState<'light' | 'dark'>(() => detectInitialMode());
 
@@ -69,10 +71,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [apply]);
 
-  // Initial load.
+  // Initial load. Theme endpoints are protected, so wait for auth boot.
   useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      apply(null);
+      return;
+    }
     refresh();
-  }, [refresh]);
+  }, [apply, loading, refresh, user]);
 
   // When the mode toggle changes (light/dark), re-apply the current
   // theme so the new tones land. Custom themes with `mode_pref` set to
