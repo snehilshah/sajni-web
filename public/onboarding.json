@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "steps": [
+    {
+      "key": "welcome",
+      "title": "Welcome to Sajni.",
+      "blurb": "Your second brain in one quiet codex. Notes, journal, tasks, habits, finance — all in one place, all yours.",
+      "icon": "Sparkles"
+    },
+    {
+      "key": "today",
+      "title": "Today",
+      "blurb": "Start every morning here. A single page that pulls your tasks, habits, and what mattered yesterday.",
+      "icon": "Home"
+    },
+    {
+      "key": "memos",
+      "title": "Memos",
+      "blurb": "Capture half-formed thoughts the moment they show up. No folders, no tags — just write.",
+      "icon": "Brain"
+    },
+    {
+      "key": "thinking",
+      "title": "Thinking",
+      "blurb": "Turn scattered memos into structured projects. Sajni connects related cards and surfaces the gaps.",
+      "icon": "Sparkles"
+    },
+    {
+      "key": "journal",
+      "title": "Journal",
+      "blurb": "One entry per day. Mood, location, attachments. Reflection that compounds.",
+      "icon": "BookOpen"
+    },
+    {
+      "key": "tasks",
+      "title": "Tasks",
+      "blurb": "Lists, priorities, due dates, sub-steps. Drag onto the calendar to schedule a time.",
+      "icon": "ListChecks"
+    },
+    {
+      "key": "habits",
+      "title": "Habits",
+      "blurb": "Tick once a day. Streak math, weekly heatmaps, and gentle nudges — never guilt.",
+      "icon": "Target"
+    },
+    {
+      "key": "notes",
+      "title": "Notes",
+      "blurb": "Long-form writing. Markdown editor with backlinks, folders, and a built-in outliner.",
+      "icon": "FileText"
+    },
+    {
+      "key": "media",
+      "title": "Media",
+      "blurb": "Track movies, shows, books, games. Sajni keeps episode counts and recommends what's next.",
+      "icon": "Film"
+    },
+    {
+      "key": "finance",
+      "title": "Finance",
+      "blurb": "Accounts, categories, transactions, budgets, billers. A calm personal ledger — not a bank app.",
+      "icon": "Wallet"
+    },
+    {
+      "key": "tags",
+      "title": "Tags",
+      "blurb": "Drop a #tag in any memo, note, task, or media item. Sajni shows everything tied to it.",
+      "icon": "Hash"
+    },
+    {
+      "key": "analytics",
+      "title": "Analytics",
+      "blurb": "Streaks, mood trends, time-of-day patterns. Quiet charts that reward consistency.",
+      "icon": "Compass"
+    },
+    {
+      "key": "insights",
+      "title": "Insights",
+      "blurb": "Sajni reads your week and writes you one warm paragraph: what worked, what slipped, what to try next.",
+      "icon": "Lightbulb"
+    },
+    {
+      "key": "ai",
+      "title": "Ask Sajni",
+      "blurb": "Press ⌘K for the palette, or the chat icon for a longer conversation. Sajni can add tasks, log habits, and surface anything you've ever written.",
+      "icon": "MessageSquare"
+    },
+    {
+      "key": "done",
+      "title": "You're all set.",
+      "blurb": "Open Today to take it for a spin. You can always reopen this tour from Settings.",
+      "icon": "Sparkles"
+    }
+  ]
+}

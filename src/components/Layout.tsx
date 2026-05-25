@@ -11,6 +11,7 @@ import { useAuth } from '@/auth/AuthContext';
 import CommandPalette from '@/components/CommandPalette';
 import AIChat from '@/components/AIChat';
 import Backdrop from '@/components/Backdrop';
+import Onboarding from '@/components/Onboarding';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useMode, useDensity, useTheme } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
@@ -27,19 +28,22 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 
 const SIDEBAR_KEY = 'sajni:sidebar-expanded';
 
+// `key` matches the entry in /public/onboarding.json — the Onboarding
+// overlay looks up rendered items by `data-onboarding-key` to anchor
+// each tour bubble.
 const NAV_ITEMS = [
-  { path: '/', label: 'Today', Icon: Home },
-  { path: '/memos', label: 'Memos', Icon: Brain },
-  { path: '/thinking', label: 'Thinking', Icon: Sparkles },
-  { path: '/journal', label: 'Journal', Icon: BookOpen },
-  { path: '/tasks', label: 'Tasks', Icon: ListChecks },
-  { path: '/habits', label: 'Habits', Icon: Target },
-  { path: '/notes', label: 'Notes', Icon: FileText },
-  { path: '/media', label: 'Media', Icon: Film },
-  { path: '/finance', label: 'Finance', Icon: Wallet },
-  { path: '/tags', label: 'Tags', Icon: Hash },
-  { path: '/analytics', label: 'Analytics', Icon: Compass },
-  { path: '/insights', label: 'Insights', Icon: Lightbulb },
+  { path: '/', label: 'Today', Icon: Home, key: 'today' },
+  { path: '/memos', label: 'Memos', Icon: Brain, key: 'memos' },
+  { path: '/thinking', label: 'Thinking', Icon: Sparkles, key: 'thinking' },
+  { path: '/journal', label: 'Journal', Icon: BookOpen, key: 'journal' },
+  { path: '/tasks', label: 'Tasks', Icon: ListChecks, key: 'tasks' },
+  { path: '/habits', label: 'Habits', Icon: Target, key: 'habits' },
+  { path: '/notes', label: 'Notes', Icon: FileText, key: 'notes' },
+  { path: '/media', label: 'Media', Icon: Film, key: 'media' },
+  { path: '/finance', label: 'Finance', Icon: Wallet, key: 'finance' },
+  { path: '/tags', label: 'Tags', Icon: Hash, key: 'tags' },
+  { path: '/analytics', label: 'Analytics', Icon: Compass, key: 'analytics' },
+  { path: '/insights', label: 'Insights', Icon: Lightbulb, key: 'insights' },
 ] as const;
 
 const PRIMARY_MOBILE = new Set(['/', '/notes', '/tasks', '/journal']);
@@ -198,6 +202,7 @@ function DesktopRail({
 
       <button
         onClick={onOpenChat}
+        data-onboarding-key="ai"
         className="mb-4 h-11 w-full grid items-center rounded-full text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors overflow-hidden text-left"
         style={{ gridTemplateColumns: '50px 1fr', paddingRight: expanded ? '14px' : 0 }}
         aria-label="Ask Sajni"
@@ -216,7 +221,7 @@ function DesktopRail({
       <div className="mx-3 my-1.5 border-t border-border" />
 
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-0.5">
-        {NAV_ITEMS.map(({ path, label, Icon }) => {
+        {NAV_ITEMS.map(({ path, label, Icon, key }) => {
           const isActive = path === '/'
             ? pathname === '/'
             : pathname === path || pathname.startsWith(path + '/');
@@ -225,6 +230,7 @@ function DesktopRail({
               key={path}
               to={path}
               end={path === '/'}
+              data-onboarding-key={key}
               title={!expanded ? label : undefined}
               className={cn(
                 'relative h-11 w-full grid items-center rounded-full text-sm font-medium transition-colors overflow-hidden',
@@ -496,6 +502,7 @@ export default function Layout() {
 
         <CommandPalette />
         <AIChat open={aiChatOpen} onOpenChange={setAiChatOpen} />
+        <Onboarding />
       </div>
     </>
   );
