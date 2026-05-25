@@ -25,14 +25,17 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         "outline-none",
         // hover (state layer)
         "hover:border-[hsl(var(--on-surface))]",
-        // focus — inset shadow ring instead of border-width change. No layout shift.
-        "focus-visible:border-primary focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--primary))]",
+        // focus — single 2px inset ring sits flush against the existing
+        // 1px outline border. Keeping the border color stable (not flipping
+        // to --primary) prevents the double-line look the previous combo
+        // produced where both border AND inset shadow ended up visible.
+        "focus-visible:border-transparent focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
         // file input bits
         "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
         // disabled
         "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
         // invalid
-        "aria-invalid:border-destructive aria-invalid:focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--destructive))] aria-invalid:focus-visible:border-destructive",
+        "aria-invalid:border-destructive aria-invalid:focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--destructive))] aria-invalid:focus-visible:border-transparent",
         className
       )}
       {...props}
