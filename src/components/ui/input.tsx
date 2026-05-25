@@ -26,14 +26,14 @@ function Input({ className, type, id, name, ...props }: React.ComponentProps<"in
         "placeholder:text-muted-foreground",
         // transitions
         "transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
-        "outline-none",
+        "outline-none focus-visible:outline-none",
         // hover (state layer)
         "hover:border-[hsl(var(--on-surface))]",
         // focus — single 2px inset ring sits flush against the existing
         // 1px outline border. Keeping the border color stable (not flipping
         // to --primary) prevents the double-line look the previous combo
         // produced where both border AND inset shadow ended up visible.
-        "focus-visible:border-transparent focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
+        "focus-visible:border-transparent focus-visible:hover:border-transparent focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
         // file input bits
         "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
         // disabled

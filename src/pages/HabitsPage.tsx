@@ -135,7 +135,7 @@ export default function HabitsPage() {
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
         </div>
       ) : habitsList.length === 0 ? (
-        <div className="glass rounded-lg text-center py-16 text-muted-foreground">
+        <div className="rounded-lg text-center py-16 text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
           <div className="text-4xl mb-3 opacity-30">◉</div>
           <p className="text-sm">No habits yet. Build something small.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={openCreate}>
@@ -143,7 +143,7 @@ export default function HabitsPage() {
           </Button>
         </div>
       ) : (
-        <div className="glass rounded-lg overflow-hidden">
+        <div className="rounded-lg overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
           {/* Header row */}
           <div
             className="hidden md:grid items-center px-5 md:px-6 py-3 border-b border-border/50"

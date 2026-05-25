@@ -29,7 +29,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-foreground/15",
+        "fixed inset-0 isolate z-50 bg-[hsl(var(--scrim)/0.35)] supports-backdrop-filter:backdrop-blur-sm",
         className
       )}
       {...props}

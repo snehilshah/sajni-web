@@ -845,7 +845,7 @@ function NotesAtlas({
               <button
                 key={n.id}
                 onClick={() => onPick(n.id)}
-                className="glass rounded-xl p-5 text-left relative min-h-[160px] transition-shadow hover:shadow-[0_6px_30px_-12px_hsl(var(--foreground)/0.15)]"
+                className="rounded-xl p-5 text-left relative min-h-[160px] bg-[hsl(var(--surface-container))] border border-border transition-shadow hover:shadow-[0_6px_30px_-12px_hsl(var(--foreground)/0.15)]"
               >
                 <div
                   className="absolute top-0 right-0 w-[80px] h-[80px] pointer-events-none rounded-xl opacity-50"

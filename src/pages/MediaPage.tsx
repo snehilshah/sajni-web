@@ -822,7 +822,7 @@ export default function MediaPage() {
               </AnimatePresence>
             </motion.div>
           ) : (
-            <div className="glass rounded-xl overflow-hidden">
+            <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
               <AnimatePresence initial={false}>
                 {seriesRows.map((row, idx) => (
                   row.kind === 'single' ? (
@@ -1548,12 +1548,12 @@ function SeriesListRow({
         </span>
       </button>
       {expanded && (
-        <div className="bg-foreground/[.02] border-t border-border/40">
+        <div className="bg-[hsl(var(--surface-container-low))] border-t border-border/40">
           {row.members.map((m, mi) => (
             <button
               key={m.id}
               onClick={() => onPickItem(m)}
-              className={`w-full flex items-center gap-4 pl-4 md:pl-6 pr-5 md:pr-6 py-2.5 text-left hover:bg-foreground/[.05] transition-colors
+              className={`w-full flex items-center gap-4 pl-4 md:pl-6 pr-5 md:pr-6 py-2.5 text-left hover:bg-[hsl(var(--surface-container-high))] transition-colors
                 ${mi === 0 ? '' : 'border-t border-border/30'}`}
             >
               <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right shrink-0">

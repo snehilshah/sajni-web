@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 
 import { tasks as tasksApi, habits as habitsApi, memos as memosApi, journal as journalApi } from '@/api';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { Task, Habit } from '@/types';
 
@@ -230,13 +231,13 @@ export default function TodayPage() {
 					<div className="flex-1" />
 					<span className="text-[11px] text-muted-foreground hidden md:inline">I'll route to the right place</span>
 				</div>
-				<textarea
+				<Textarea
 					value={capture}
 					onChange={(e) => setCapture(e.target.value)}
 					onKeyDown={onCaptureKey}
 					placeholder="A thought, a task, a #tag… anything."
 					rows={2}
-					className="w-full resize-none bg-transparent border-0 outline-none text-base leading-[1.55] text-foreground placeholder:text-muted-foreground/60 px-3 py-3 min-h-[72px] rounded-lg focus:bg-[hsl(var(--on-surface)/0.04)] transition-colors"
+					className="text-base leading-[1.55] min-h-[72px]"
 				/>
 				<div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
 					<div className="flex gap-1.5">
@@ -292,7 +293,7 @@ export default function TodayPage() {
 							</Link>
 						}
 					>
-						<div className="glass rounded-xl overflow-hidden">
+						<div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
 							{dueOpen.length === 0 ? (
 								<div className="px-5 py-8 text-center text-sm text-muted-foreground">Nothing scheduled for today.</div>
 							) : (
@@ -302,7 +303,7 @@ export default function TodayPage() {
 										onClick={() => openTask(t.id)}
 										role="button"
 										tabIndex={0}
-										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-foreground/[.03] transition-colors cursor-pointer
+										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-[hsl(var(--surface-container-high))] transition-colors cursor-pointer
                     ${i === 0 ? '' : 'border-t border-border/50'}`}
 									>
 										<button
@@ -356,12 +357,12 @@ export default function TodayPage() {
 					>
 						<div className="flex flex-col gap-2.5">
 							{recentMemos.length === 0 ? (
-								<div className="glass rounded-xl px-5 py-6 text-center text-sm text-muted-foreground">
+								<div className="rounded-xl px-5 py-6 text-center text-sm text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
 									Nothing captured yet — try the bar above.
 								</div>
 							) : (
 								recentMemos.map((m) => (
-									<div key={m.id} className="glass rounded-xl p-4 hover:border-border transition-colors">
+									<div key={m.id} className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border hover:border-border transition-colors">
 										<div className="prose-sajni text-[14.5px] leading-[1.55] line-clamp-3">
 											<ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
 										</div>
@@ -384,7 +385,7 @@ export default function TodayPage() {
 					{/* Echo from earlier */}
 					{echo && (
 						<Section title="Echo from earlier" hint="surfaced from a few days ago">
-							<div className="glass sajni-spot rounded-xl p-5">
+							<div className="sajni-spot rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border">
 								<Quote className="size-4 text-secondary mb-2.5" />
 								<p className="serif italic text-[17px] leading-[1.55] text-foreground/85 mb-3">
 									{echo.content
@@ -403,7 +404,7 @@ export default function TodayPage() {
 				<div className="sajni-stagger flex flex-col gap-6">
 					{/* Today's habits */}
 					<Section title="Today's habits" hint={totalHabitsToday > 0 ? `${habitsDone}/${totalHabitsToday} done` : undefined}>
-						<div className="glass rounded-xl p-4">
+						<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border">
 							{habitStatus.length === 0 ? (
 								<div className="text-sm text-muted-foreground text-center py-2">No habits yet.</div>
 							) : (
@@ -417,7 +418,7 @@ export default function TodayPage() {
 											onClick={() => navigate(`/habits?focus=${h.id}`)}
 											role="button"
 											tabIndex={0}
-											className={`flex items-center gap-3 py-2.5 cursor-pointer hover:bg-foreground/[.03] -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
+											className={`flex items-center gap-3 py-2.5 cursor-pointer hover:bg-[hsl(var(--surface-container-high))] -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
 										>
 											<button
 												onClick={async (e) => {
@@ -478,8 +479,8 @@ export default function TodayPage() {
 					{/* Journal prompt */}
 					<Section title="Today's prompt">
 						<div
-							className="glass rounded-xl p-5"
-							style={{ background: 'color-mix(in oklch, hsl(var(--backdrop-blob-2)) 22%, hsl(var(--card) / 0.78))' }}
+							className="rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border"
+							style={{ background: 'hsl(var(--surface-container))' }}
 						>
 							<div className="mono text-[9.5px] tracking-[0.18em] uppercase text-primary mb-2.5">
 								continued from yesterday
@@ -497,7 +498,7 @@ export default function TodayPage() {
 
 					{/* At a glance */}
 					<Section title="At a glance">
-						<div className="glass rounded-xl p-5 grid grid-cols-2 gap-5">
+						<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] border border-border">
 							<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
 							<Stat label="Tasks closed" value={String(dueToday.filter((t) => t.status === 'done').length)} />
 							<Stat label="Journal streak" value={`${recentJournal.length}d`} />
