@@ -42,13 +42,14 @@ const blank: FormState = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseComplete?: () => void;
   editing: Task | null;
   defaults?: Partial<FormState>;
   lists: TaskList[];
   onSaved: () => void;
 }
 
-export default function TaskFormDialog({ open, onOpenChange, editing, defaults, lists, onSaved }: Props) {
+export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(blank);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [saving, setSaving] = useState(false);
@@ -118,7 +119,14 @@ export default function TaskFormDialog({ open, onOpenChange, editing, defaults, 
 
   const isMobile = useIsMobile();
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      onOpenChangeComplete={(isOpen) => {
+        if (!isOpen) onCloseComplete?.();
+      }}
+      modal="trap-focus"
+    >
       <DialogContent
         className={cn(
           'flex flex-col gap-0 p-0 overflow-hidden',

@@ -44,17 +44,6 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   // Tracks the most recent openTask invocation so an in-flight fetch
   // for an earlier task can't overwrite the state set by a newer one.
   const openSeqRef = useRef(0);
-  // Pending "clear editingTask after close" timer. Must be cancellable
-  // because a rapid reopen would otherwise blank the dialog ~200ms later.
-  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const cancelClearTimer = useCallback(() => {
-    if (clearTimerRef.current) {
-      clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = null;
-    }
-  }, []);
-
   // Lazy-load lists so unauthenticated routes don't make a wasted call.
   // Refreshed every time the dialog opens so newly-created lists show up.
   const ensureLists = useCallback(async () => {
@@ -63,7 +52,6 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openTask = useCallback(async (id: number) => {
-    cancelClearTimer();
     const seq = ++openSeqRef.current;
     // Don't pop the dialog yet — wait until we actually have task data.
     // Otherwise the dialog briefly mounts with stale or null `editing`,
@@ -82,16 +70,15 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
       setEditingTask(null);
       setOpen(false);
     }
-  }, [ensureLists, cancelClearTimer]);
+  }, [ensureLists]);
 
   const openNew = useCallback((d: Record<string, unknown> = {}) => {
-    cancelClearTimer();
     ++openSeqRef.current;
     ensureLists();
     setEditingTask(null);
     setDefaults(d);
     setOpen(true);
-  }, [ensureLists, cancelClearTimer]);
+  }, [ensureLists]);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -99,23 +86,14 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
 
   const handleOpenChange = useCallback((o: boolean) => {
     setOpen(o);
-    if (o) {
-      // Reopen during the post-close grace — keep the existing editing
-      // value so the form stays populated. Cancel any pending clear.
-      cancelClearTimer();
-      return;
-    }
-    // Defer clearing so the closing animation doesn't flash an empty form.
-    cancelClearTimer();
-    clearTimerRef.current = setTimeout(() => {
+  }, []);
+
+  const handleCloseComplete = useCallback(() => {
+    if (!open) {
       setEditingTask(null);
       setDefaults({});
-      clearTimerRef.current = null;
-    }, 200);
-  }, [cancelClearTimer]);
-
-  // Cleanup on unmount.
-  useEffect(() => () => cancelClearTimer(), [cancelClearTimer]);
+    }
+  }, [open]);
 
   // After save: emit the existing AI-invalidation event so list pages
   // refresh without us holding their reload callbacks.
@@ -143,6 +121,7 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
       <TaskFormDialog
         open={open}
         onOpenChange={handleOpenChange}
+        onCloseComplete={handleCloseComplete}
         editing={editingTask}
         defaults={defaults}
         lists={lists}
