@@ -125,6 +125,7 @@ export const tasks = {
     important?: boolean;
     steps?: TaskStep[];
   }) => request<{ id: number }>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id: number) => request<Task>('/tasks/' + id),
   update: (id: number, data: Record<string, any>) =>
     request('/tasks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/tasks/' + id, { method: 'DELETE' }),

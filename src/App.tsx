@@ -19,6 +19,7 @@ import OAuthDonePage from './pages/Auth/OAuthDone';
 import LinkChallengePage from './pages/Auth/LinkChallenge';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import RequireAuth from './auth/RequireAuth';
+import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
@@ -41,6 +42,7 @@ export default function App() {
 		<AuthProvider>
 			<ThemeProvider>
 			<TooltipProvider>
+			<TaskDetailProvider>
 				<M3Shapes />
 				<Toaster richColors closeButton position="bottom-right" />
 				<TweaksPanel />
@@ -75,6 +77,7 @@ export default function App() {
         </Routes>
       <Analytics />
       <SpeedInsights />
+			</TaskDetailProvider>
 			</TooltipProvider>
 			</ThemeProvider>
 		</AuthProvider>

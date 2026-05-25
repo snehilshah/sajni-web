@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 
 import { tasks as tasksApi, habits as habitsApi, memos as memosApi, journal as journalApi } from '@/api';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { Task, Habit } from '@/types';
 
 interface Memo {
@@ -38,6 +39,7 @@ type CaptureKind = 'memo' | 'task' | 'journal';
 // dropping into a search-driven feed.
 export default function TodayPage() {
 	const navigate = useNavigate();
+	const { openTask } = useTaskDetail();
 
 	const [dueToday, setDueToday] = useState<Task[]>([]);
 	const [habitStatus, setHabitStatus] = useState<HabitDayStatus[]>([]);
@@ -297,7 +299,7 @@ export default function TodayPage() {
 								dueOpen.map((t, i) => (
 									<div
 										key={t.id}
-										onClick={() => navigate(`/tasks?focus=${t.id}`)}
+										onClick={() => openTask(t.id)}
 										role="button"
 										tabIndex={0}
 										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-foreground/[.03] transition-colors cursor-pointer
