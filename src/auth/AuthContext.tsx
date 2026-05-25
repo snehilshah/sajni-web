@@ -4,10 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { setAccessToken, getAccessToken, authFetch, API_BASE } from "./client";
+import { setAccessToken, getAccessToken, authFetch, API_BASE, refreshSession } from "./client";
 import log from "../lib/logger";
 
 export interface IdentityRef {
@@ -63,33 +64,61 @@ interface AuthResponse {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Tracks whether OAuthDone / LinkChallenge / SignIn already populated the
+  // session via setUser(). If a hydrated session exists, a *failing*
+  // background refresh must NOT clobber it back to null — otherwise the
+  // dev StrictMode double-mount, or any transient refresh hiccup, knocks
+  // a freshly-signed-in user out of their session.
+  const hydratedRef = useRef(false);
+  const setUserSafe = useCallback((u: User | null) => {
+    if (u) hydratedRef.current = true;
+    setUser(u);
+  }, []);
 
   // On mount, try to refresh — succeeds if a refresh cookie is present.
+  //
+  // Two important guards:
+  //
+  //  1. Routes that own their own session handoff (`/auth/done` reads the
+  //     fragment access token; `/auth/link` finalizes a TOTP-linked
+  //     identity) MUST NOT race against this background refresh. Refresh
+  //     tokens are single-use rotating server-side: two concurrent calls
+  //     with the same cookie cause one to 401 and the server's response
+  //     deletes the cookie, taking the just-issued session down with it.
+  //
+  //  2. `refreshSession()` shares an inflight Promise across callers, so
+  //     React 19 StrictMode's double-mount only fires one network call.
   useEffect(() => {
+    const path = window.location.pathname;
+    if (path === "/auth/done" || path === "/auth/link") {
+      // Those pages will call hydrateFromAccessToken / verifyEmailCode
+      // themselves and set the session. Just clear the loading flag so
+      // RequireAuth doesn't keep showing the loader forever.
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/auth/refresh`, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("not signed in");
-        const data: AuthResponse = await res.json();
-        if (cancelled) return;
+      const data = await refreshSession();
+      if (cancelled) return;
+      if (data) {
         setAccessToken(data.access_token);
-        setUser(data.user);
+        setUserSafe(data.user);
         log.info({ userId: data.user.id }, "session restored");
-      } catch {
+      } else if (!hydratedRef.current) {
+        // Only clobber when nobody else has hydrated a session in
+        // parallel. Without this guard a transiently-failed refresh
+        // would log out a freshly-signed-in user.
         setAccessToken(null);
         setUser(null);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setUserSafe]);
 
   const refreshUser = useCallback(async () => {
     const res = await authFetch("/auth/me");
@@ -124,9 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data: AuthResponse = await res.json();
     setAccessToken(data.access_token);
-    setUser(data.user);
+    setUserSafe(data.user);
     log.info({ userId: data.user.id }, "email-totp sign-in");
-  }, []);
+  }, [setUserSafe]);
 
   const beginOAuth = useCallback((provider: "google" | "github") => {
     // OAuth start needs to come from a top-level navigation so the
@@ -137,15 +166,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hydrateFromAccessToken = useCallback(async (token: string) => {
     setAccessToken(token);
+    // Mark hydrated *before* the network call so a parallel background
+    // refresh failure can't clobber the freshly-set token mid-flight.
+    hydratedRef.current = true;
     const res = await authFetch("/auth/me");
     if (!res.ok) {
       setAccessToken(null);
+      hydratedRef.current = false;
       throw new Error("session handoff failed");
     }
     const me: User = await res.json();
-    setUser(me);
+    setUserSafe(me);
     log.info({ userId: me.id }, "oauth handoff");
-  }, []);
+  }, [setUserSafe]);
 
   const markOnboarded = useCallback(async () => {
     const res = await authFetch("/auth/onboarded", { method: "POST" });
@@ -176,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     log.info("logout");
     setAccessToken(null);
+    hydratedRef.current = false;
     setUser(null);
   }, []);
 

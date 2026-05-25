@@ -16,9 +16,28 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
-let refreshInflight: Promise<string | null> | null = null;
+// Public refresh payload — exposes the full /auth/refresh response so
+// AuthProvider can adopt the user object in addition to the access token.
+// Refresh tokens are *single-use rotating*: each call deletes the row
+// on the server and issues a new cookie. Two concurrent calls would
+// race and lose the cookie — so all mount-time and 401-retry refreshes
+// share a single inflight Promise to dedup them (critical with
+// React StrictMode's double-mount in dev).
+export interface RefreshResult {
+  access_token: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    onboarded_at: string | null;
+    identities: Array<{ provider: 'google' | 'github' | 'email' }>;
+    deleted_at?: string | null;
+  };
+}
 
-async function refreshAccessToken(): Promise<string | null> {
+let refreshInflight: Promise<RefreshResult | null> | null = null;
+
+export async function refreshSession(): Promise<RefreshResult | null> {
   if (!refreshInflight) {
     refreshInflight = (async () => {
       try {
@@ -27,9 +46,9 @@ async function refreshAccessToken(): Promise<string | null> {
           credentials: 'include',
         });
         if (!res.ok) return null;
-        const data = await res.json();
+        const data = (await res.json()) as RefreshResult;
         accessToken = data.access_token;
-        return accessToken;
+        return data;
       } catch {
         return null;
       } finally {
@@ -38,6 +57,11 @@ async function refreshAccessToken(): Promise<string | null> {
     })();
   }
   return refreshInflight;
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const r = await refreshSession();
+  return r?.access_token ?? null;
 }
 
 interface AuthFetchOptions extends Omit<RequestInit, 'headers'> {
