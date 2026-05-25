@@ -533,6 +533,25 @@ body {
 [data-mode="dark"] .glass        { background: color-mix(in oklch, hsl(var(--surface-container)) 70%, transparent); }
 [data-mode="dark"] .glass-strong { background: color-mix(in oklch, hsl(var(--surface-container-high)) 85%, transparent); }
 
+.m3-expressive-panel {
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklch, hsl(var(--surface-container-low)) 88%, hsl(var(--primary-container)) 12%),
+      color-mix(in oklch, hsl(var(--surface-container)) 86%, hsl(var(--secondary-container)) 14%) 52%,
+      color-mix(in oklch, hsl(var(--surface-container-high)) 90%, hsl(var(--tertiary-container)) 10%));
+  border: 1px solid color-mix(in oklch, hsl(var(--outline-variant)) 78%, hsl(var(--secondary)) 22%);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--on-surface) / 0.05),
+    0 18px 54px -38px hsl(var(--primary) / 0.34);
+}
+[data-mode="dark"] .m3-expressive-panel {
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklch, hsl(var(--surface-container)) 82%, hsl(var(--primary-container)) 18%),
+      color-mix(in oklch, hsl(var(--surface-container-high)) 84%, hsl(var(--secondary-container)) 16%) 52%,
+      color-mix(in oklch, hsl(var(--surface-container-highest)) 88%, hsl(var(--tertiary-container)) 12%));
+}
+
 /* ============================================================
    Brand mark — Sajni orb (M3 dynamic).
    ============================================================ */

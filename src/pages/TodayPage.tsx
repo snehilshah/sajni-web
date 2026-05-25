@@ -223,7 +223,7 @@ export default function TodayPage() {
 			</div>
 
 			{/* Capture bar */}
-			<div className="glass sajni-spot rounded-xl p-5 mt-9 fade-in">
+			<div className="m3-expressive-panel rounded-xl p-5 mt-9 fade-in">
 				<div className="flex items-center gap-2.5 mb-2.5">
 					<div className="sajni-orb" style={{ width: 22, height: 22, borderRadius: 6 }} />
 					<span className="mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">Capture</span>

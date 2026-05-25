@@ -827,7 +827,7 @@ function NotesAtlas({
           ))}
         </div>
       ) : notes.length === 0 ? (
-        <div className="glass rounded-xl text-center py-20 text-muted-foreground">
+        <div className="m3-expressive-panel rounded-xl text-center py-20 text-muted-foreground">
           <FileText className="size-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">No notes yet. Start one to fill your atlas.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={onNew}>
