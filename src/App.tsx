@@ -26,6 +26,7 @@ import { M3Shapes } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Redirects already-authenticated users away from /signin.
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -73,6 +74,7 @@ export default function App() {
           </Route>
         </Routes>
       <Analytics />
+      <SpeedInsights />
 			</TooltipProvider>
 			</ThemeProvider>
 		</AuthProvider>
