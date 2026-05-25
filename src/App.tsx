@@ -14,8 +14,9 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import InsightsPage from './pages/InsightsPage';
 import FinancePage from './pages/Finance/FinancePage';
 import SettingsPage from './pages/SettingsPage';
-import LoginPage from './pages/Auth/Login';
-import RegisterPage from './pages/Auth/Register';
+import SignInPage from './pages/Auth/SignIn';
+import OAuthDonePage from './pages/Auth/OAuthDone';
+import LinkChallengePage from './pages/Auth/LinkChallenge';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import RequireAuth from './auth/RequireAuth';
 
@@ -26,7 +27,7 @@ import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { Analytics } from '@vercel/analytics/react';
 
-// Redirects already-authenticated users away from /login and /register.
+// Redirects already-authenticated users away from /signin.
 function PublicOnly({ children }: { children: React.ReactNode }) {
 	const { user, loading } = useAuth();
 	if (loading) return null;
@@ -44,8 +45,14 @@ export default function App() {
 				<TweaksPanel />
 				{/* prettier-ignore */}
 				<Routes>
-          <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
-          <Route path="/register" element={<PublicOnly><RegisterPage /></PublicOnly>} />
+          <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
+          {/* Legacy paths fold into /signin so old bookmarks still work. */}
+          <Route path="/login" element={<Navigate to="/signin" replace />} />
+          <Route path="/register" element={<Navigate to="/signin" replace />} />
+          {/* OAuth callback handoff (token in URL fragment). */}
+          <Route path="/auth/done" element={<OAuthDonePage />} />
+          {/* TOTP-link challenge after an unverified-email provider collision. */}
+          <Route path="/auth/link" element={<LinkChallengePage />} />
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/" element={<TodayPage />} />
             <Route path="/memos" element={<MemosPage />} />
@@ -65,7 +72,7 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
-        <Analytics />
+      <Analytics />
 			</TooltipProvider>
 			</ThemeProvider>
 		</AuthProvider>
