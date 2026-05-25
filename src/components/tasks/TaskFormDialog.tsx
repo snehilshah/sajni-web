@@ -125,7 +125,6 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       onOpenChangeComplete={(isOpen) => {
         if (!isOpen) onCloseComplete?.();
       }}
-      modal="trap-focus"
     >
       <DialogContent
         className={cn(
