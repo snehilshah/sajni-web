@@ -112,15 +112,21 @@ function MenuRow({
 }
 
 function UserMenuBody({
-  email, onOpenCommand, onOpenChat, onSettings, onSignOut, signingOut,
+  email, onOpenCommand, onOpenChat, onSettings, onSignOut, onAction, signingOut,
 }: {
   email: string;
   onOpenCommand: () => void;
   onOpenChat: () => void;
   onSettings: () => void;
   onSignOut: () => void;
+  onAction?: () => void;
   signingOut: boolean;
 }) {
+  const runAction = (action: () => void) => () => {
+    onAction?.();
+    action();
+  };
+
   return (
     <div className="p-1">
       <div className="px-3 pt-3 pb-2 flex items-center gap-3">
@@ -131,11 +137,11 @@ function UserMenuBody({
         </div>
       </div>
       <div className="sajni-sep my-2" />
-      <MenuRow icon={Search} label="Search" hint="⌘K" onClick={onOpenCommand} />
-      <MenuRow icon={Sparkles} label="Ask Sajni" onClick={onOpenChat} />
+      <MenuRow icon={Search} label="Search" hint="⌘K" onClick={runAction(onOpenCommand)} />
+      <MenuRow icon={Sparkles} label="Ask Sajni" onClick={runAction(onOpenChat)} />
       <div className="sajni-sep my-2" />
-      <MenuRow icon={Settings} label="Settings" onClick={onSettings} />
-      <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={onSignOut} />
+      <MenuRow icon={Settings} label="Settings" onClick={runAction(onSettings)} />
+      <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={runAction(onSignOut)} />
     </div>
   );
 }
@@ -145,7 +151,7 @@ function UserMenuBody({
 // Conditional wrappers were re-mounting NavLink on every collapse/expand
 // toggle, which restarted page-fade-in / layoutId animations.
 function DesktopRail({
-  expanded, setExpanded, onOpenCommand, onOpenChat, userMenuContent, initials, pathname,
+  expanded, setExpanded, onOpenCommand, onOpenChat, userMenuContent, initials, pathname, accountMenuOpen, setAccountMenuOpen,
 }: {
   expanded: boolean;
   setExpanded: (b: boolean) => void;
@@ -154,6 +160,8 @@ function DesktopRail({
   userMenuContent: ReactNode;
   initials: string;
   pathname: string;
+  accountMenuOpen: boolean;
+  setAccountMenuOpen: (open: boolean) => void;
 }) {
   const w = expanded ? 232 : 76;
   return (
@@ -260,7 +268,7 @@ function DesktopRail({
       </nav>
 
       <div className="mt-2 pt-3 border-t border-[hsl(var(--outline-variant))]">
-        <DropdownMenu>
+        <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <DropdownMenuTrigger
             render={
               <button
@@ -354,6 +362,7 @@ export default function Layout() {
   });
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -362,6 +371,7 @@ export default function Layout() {
 
   useEffect(() => {
     setMoreOpen(false);
+    setAccountMenuOpen(false);
   }, [location.pathname]);
 
   const email = user?.email || 'sign in';
@@ -389,6 +399,7 @@ export default function Layout() {
       onOpenChat={() => setAiChatOpen(true)}
       onSettings={goSettings}
       onSignOut={onSignOut}
+      onAction={() => setAccountMenuOpen(false)}
       signingOut={signingOut}
     />
   );
@@ -406,6 +417,8 @@ export default function Layout() {
           userMenuContent={userMenuBody}
           initials={initials}
           pathname={location.pathname}
+          accountMenuOpen={accountMenuOpen}
+          setAccountMenuOpen={setAccountMenuOpen}
         />
 
         <main
