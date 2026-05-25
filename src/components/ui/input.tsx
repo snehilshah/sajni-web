@@ -10,10 +10,14 @@ import { cn } from "@/lib/utils"
  *  - focus highlight via box-shadow (inset) so padding/border never change
  *    -> placeholder + caret never shift on focus
  */
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, id, name, ...props }: React.ComponentProps<"input">) {
+  const generatedId = React.useId()
+  const fieldId = id ?? generatedId
   return (
     <InputPrimitive
       type={type}
+      id={fieldId}
+      name={name ?? fieldId}
       data-slot="input"
       className={cn(
         // base

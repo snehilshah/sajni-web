@@ -18,6 +18,7 @@ export interface DatePickerProps {
   className?: string
   disabled?: boolean
   id?: string
+  name?: string
 }
 
 function isoToDate(iso?: string): Date | undefined {
@@ -44,22 +45,26 @@ export function DatePicker({
   className,
   disabled,
   id,
+  name,
 }: DatePickerProps) {
+  const generatedId = React.useId()
+  const fieldId = id ?? generatedId
   const [open, setOpen] = React.useState(false)
   const selected = isoToDate(value)
   const display = selected ? format(selected, "EEE, d MMM") : placeholder
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      <input type="hidden" name={name ?? fieldId} value={value ?? ""} />
       <PopoverTrigger
-        id={id}
+        id={fieldId}
         disabled={disabled}
         className={cn(
           "group inline-flex h-11 w-full items-center justify-between gap-2",
           "rounded-xl border border-[hsl(var(--outline))] bg-transparent px-3.5 py-2.5 text-sm",
           "text-foreground transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
           "hover:border-[hsl(var(--on-surface))]",
-          "data-[popup-open]:border-2 data-[popup-open]:border-primary data-[popup-open]:px-[13px]",
+          "data-[popup-open]:border-transparent data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
           "disabled:opacity-50 disabled:pointer-events-none",
           !selected && "text-muted-foreground",
           className

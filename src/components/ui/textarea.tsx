@@ -2,9 +2,13 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+function Textarea({ className, id, name, ...props }: React.ComponentProps<"textarea">) {
+  const generatedId = React.useId()
+  const fieldId = id ?? generatedId
   return (
     <textarea
+      id={fieldId}
+      name={name ?? fieldId}
       data-slot="textarea"
       className={cn(
         // base — no padding/border-width change on focus so caret/placeholder
@@ -14,9 +18,9 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
         "placeholder:text-muted-foreground",
         "transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
         "outline-none hover:border-[hsl(var(--on-surface))]",
-        "focus-visible:border-primary focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--primary))]",
+        "focus-visible:border-transparent focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "aria-invalid:border-destructive aria-invalid:focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--destructive))] aria-invalid:focus-visible:border-destructive",
+        "aria-invalid:border-destructive aria-invalid:focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--destructive))] aria-invalid:focus-visible:border-transparent",
         className
       )}
       {...props}
