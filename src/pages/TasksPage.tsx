@@ -44,6 +44,7 @@ export default function TasksPage() {
   const [formDefaults, setFormDefaults] = useState<Record<string, any>>({});
 
   const [quickTitle, setQuickTitle] = useState('');
+  const loadedTasksKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, viewMode); } catch {}
@@ -57,7 +58,8 @@ export default function TasksPage() {
   }, []);
 
   const reloadTasks = useCallback(async () => {
-    setLoading(true);
+    const key = selection.kind === 'smart' ? `smart:${selection.smart}` : `list:${selection.id}`;
+    if (loadedTasksKeyRef.current !== key) setLoading(true);
     try {
       const params: Parameters<typeof tasksApi.list>[0] = {};
       if (selection.kind === 'smart') {
@@ -68,6 +70,7 @@ export default function TasksPage() {
       }
       const data = await tasksApi.list(params);
       setTasksList(data);
+      loadedTasksKeyRef.current = key;
     } finally {
       setLoading(false);
     }

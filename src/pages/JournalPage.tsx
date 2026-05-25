@@ -92,6 +92,7 @@ export default function JournalPage() {
 
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tasksLoadedDateRef = useRef<string | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0'); } catch {}
@@ -181,7 +182,9 @@ export default function JournalPage() {
   }, [selectedDate]);
 
   const loadTasks = useCallback(async () => {
-    setLoadingTasks(true);
+    if (tasksLoadedDateRef.current !== selectedDate) {
+      setLoadingTasks(true);
+    }
     try {
       const [due, done, missed] = await Promise.all([
         tasksApi.list({ due_date: selectedDate }),
@@ -191,6 +194,7 @@ export default function JournalPage() {
       setDueTasks(due.filter((t: TaskItem) => t.status !== 'done'));
       setCompletedTasks(done);
       setMissedTasks(missed);
+      tasksLoadedDateRef.current = selectedDate;
     } finally { setLoadingTasks(false); }
   }, [selectedDate]);
 
