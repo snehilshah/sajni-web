@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   subMonths, addMonths, subDays, addDays, isSameMonth, isToday as isTodayFn,
-  parseISO,
+  parseISO, startOfISOWeek, endOfISOWeek, getISOWeek, getISOWeekYear,
+  addWeeks, subWeeks, isSameDay,
 } from 'date-fns';
 
 import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type JournalLocation } from '@/api';
@@ -14,10 +15,12 @@ import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
+import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { MissedTask } from '@/api';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
@@ -79,6 +82,7 @@ export default function JournalPage() {
   const [mobileMarginOpen, setMobileMarginOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { openTask } = useTaskDetail();
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(EXPANDED_MONTHS_KEY);
@@ -102,16 +106,49 @@ export default function JournalPage() {
     try { localStorage.setItem(EXPANDED_MONTHS_KEY, JSON.stringify(Array.from(expandedMonths))); } catch {}
   }, [expandedMonths]);
 
-  // Sync URL when date changes
+  // View mode is derived from URL: `?view=week&week=YYYY-Www` triggers the
+  // weekly entry surface; otherwise we render the daily editor. Day clicks
+  // strip the `view`/`week` params back out (see setSelectedDate wrapper).
+  const viewParam = params.get('view');
+  const weekParam = params.get('week');
+  const weekMatch = weekParam ? weekParam.match(/^(\d{4})-W(\d{1,2})$/) : null;
+  const viewMode: 'day' | 'week' = viewParam === 'week' && weekMatch ? 'week' : 'day';
+  const weekYear = weekMatch ? parseInt(weekMatch[1], 10) : getISOWeekYear(parseISO(selectedDate));
+  const weekNumber = weekMatch ? parseInt(weekMatch[2], 10) : getISOWeek(parseISO(selectedDate));
+  const activeWeekKey = viewMode === 'week'
+    ? `${weekYear}-W${String(weekNumber).padStart(2, '0')}`
+    : null;
+
+  // Sync URL when date changes. Also clear week-view params so picking a
+  // day in week mode reverts to the daily editor.
   useEffect(() => {
+    const next = new URLSearchParams(params);
+    let touched = false;
     if (params.get('date') !== selectedDate) {
-      const next = new URLSearchParams(params);
       next.set('date', selectedDate);
-      setParams(next, { replace: true });
+      touched = true;
     }
+    if (params.get('view') === 'week') {
+      next.delete('view');
+      next.delete('week');
+      touched = true;
+    }
+    if (touched) setParams(next, { replace: true });
     setExpandedMonths((prev) => new Set([...prev, selectedDate.slice(0, 7)]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
+
+  const goWeek = useCallback((year: number, week: number) => {
+    const next = new URLSearchParams(params);
+    next.set('view', 'week');
+    next.set('week', `${year}-W${String(week).padStart(2, '0')}`);
+    setParams(next, { replace: true });
+  }, [params, setParams]);
+
+  const goWeekFromDate = useCallback((d: Date) => {
+    goWeek(getISOWeekYear(d), getISOWeek(d));
+  }, [goWeek]);
+  void goWeekFromDate;
 
   const loadEntries = useCallback(async () => {
     const list = await journalApi.list();
@@ -286,28 +323,42 @@ export default function JournalPage() {
         {loadingTasks ? (
           <Skeleton className="h-16 w-full" />
         ) : dueTasks.length === 0 && completedTasks.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground">Clear day. A small mercy.</div>
+          <div className="text-xs italic text-muted-foreground mb-2">Clear day. A small mercy.</div>
         ) : (
           <div className="flex flex-col gap-2">
             {dueTasks.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => completeTask(t.id)}
-                className="group flex items-start gap-2.5 text-left"
-                title="Mark done"
-              >
-                <Checkbox checked={false} className="mt-0.5 shrink-0 pointer-events-none" tabIndex={-1} />
-                <span className="flex-1 text-[12.5px] text-foreground/85 leading-snug">{t.title}</span>
-              </button>
+              <div key={t.id} className="group flex items-start gap-2.5">
+                <button
+                  onClick={() => completeTask(t.id)}
+                  title="Mark done"
+                  className="shrink-0 mt-0.5"
+                >
+                  <Checkbox checked={false} className="pointer-events-none" tabIndex={-1} />
+                </button>
+                <button
+                  onClick={() => openTask(t.id)}
+                  className="flex-1 text-left text-[12.5px] text-foreground/85 leading-snug hover:text-foreground transition-colors"
+                  title="Open task"
+                >
+                  {t.title}
+                </button>
+              </div>
             ))}
             {completedTasks.map((t) => (
               <div key={t.id} className="flex items-start gap-2.5">
                 <Checkbox checked={true} className="mt-0.5 shrink-0 pointer-events-none" tabIndex={-1} />
-                <span className="flex-1 text-[12.5px] line-through text-muted-foreground leading-snug">{t.title}</span>
+                <button
+                  onClick={() => openTask(t.id)}
+                  className="flex-1 text-left text-[12.5px] line-through text-muted-foreground leading-snug hover:text-foreground/70 transition-colors"
+                  title="Open task"
+                >
+                  {t.title}
+                </button>
               </div>
             ))}
           </div>
         )}
+        <QuickAddTask dueDate={selectedDate} onCreated={loadTasks} />
         {missedTasks.length > 0 && (
           <div className="mt-3 pt-2 border-t border-border/60">
             <div className="mono text-[9px] tracking-[0.18em] uppercase text-destructive/80 mb-1.5 flex items-center gap-1.5">
@@ -315,7 +366,14 @@ export default function JournalPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               {missedTasks.slice(0, 5).map((t) => (
-                <div key={t.id} className="text-[12px] text-foreground/70 truncate">{t.title}</div>
+                <button
+                  key={t.id}
+                  onClick={() => openTask(t.id)}
+                  className="text-[12px] text-foreground/70 truncate text-left hover:text-foreground transition-colors"
+                  title="Open task"
+                >
+                  {t.title}
+                </button>
               ))}
             </div>
           </div>
@@ -430,76 +488,90 @@ export default function JournalPage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Editor pane (CENTER) */}
         <div className="flex-1 flex flex-col min-w-0 order-2 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5">
-            {/* Date title — Obsidian-style serif hero per the design. */}
-            <div>
-              {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
-                <div className="mono text-[10.5px] tracking-[0.22em] uppercase text-primary/80 mb-3">
-                  ── continued from yesterday
+          {viewMode === 'week' ? (
+            <WeekView
+              year={weekYear}
+              week={weekNumber}
+              onPickDay={(d) => setSelectedDate(d)}
+              onShiftWeek={(delta) => {
+                const ref = isoWeekDateFromKey(weekYear, weekNumber);
+                const shifted = delta > 0 ? addWeeks(ref, delta) : subWeeks(ref, -delta);
+                goWeek(getISOWeekYear(shifted), getISOWeek(shifted));
+              }}
+            />
+          ) : (
+            <div className="max-w-3xl mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5">
+              {/* Date title — Obsidian-style serif hero per the design. */}
+              <div>
+                {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
+                  <div className="mono text-[10.5px] tracking-[0.22em] uppercase text-primary/80 mb-3">
+                    ── continued from yesterday
+                  </div>
+                )}
+                <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
+                  {format(dateObj, 'EEEE')}
+                </h1>
+                <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
+                  {format(dateObj, 'MMMM d, yyyy')}
+                </div>
+              </div>
+
+              {/* Mood pill row */}
+              <div className="flex gap-1.5 flex-wrap items-center">
+                {MOODS.map((m) => {
+                  const active = mood === m.emoji;
+                  return (
+                    <button
+                      key={m.emoji}
+                      onClick={() => handleMoodChange(active ? null : m.emoji)}
+                      title={m.label}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-all ${
+                        active
+                          ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
+                          : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{m.emoji}</span>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.label}</span>
+                    </button>
+                  );
+                })}
+                {mood && (
+                  <button
+                    onClick={() => handleMoodChange(null)}
+                    className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
+                  >
+                    Clear
+                  </button>
+                )}
+                <span className="w-px h-4 bg-border/60 mx-1 self-center" />
+                <LocationPill value={location} onChange={handleLocationChange} />
+              </div>
+
+              {/* Editor */}
+              <div className="flex flex-col">
+                {loading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : (
+                  <RichEditor
+                    value={content}
+                    onChange={handleContentChange}
+                    placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
+                    minHeight="320px"
+                    contextDate={selectedDate}
+                  />
+                )}
+              </div>
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
+                  {tags.map((tag) => <TagPill key={tag} tag={tag} />)}
                 </div>
               )}
-              <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
-                {format(dateObj, 'EEEE')}
-              </h1>
-              <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
-                {format(dateObj, 'MMMM d, yyyy')}
-              </div>
+
             </div>
-
-            {/* Mood pill row */}
-            <div className="flex gap-1.5 flex-wrap items-center">
-              {MOODS.map((m) => {
-                const active = mood === m.emoji;
-                return (
-                  <button
-                    key={m.emoji}
-                    onClick={() => handleMoodChange(active ? null : m.emoji)}
-                    title={m.label}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-all ${
-                      active
-                        ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                        : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <span className="text-base leading-none">{m.emoji}</span>
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.label}</span>
-                  </button>
-                );
-              })}
-              {mood && (
-                <button
-                  onClick={() => handleMoodChange(null)}
-                  className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
-                >
-                  Clear
-                </button>
-              )}
-              <span className="w-px h-4 bg-border/60 mx-1 self-center" />
-              <LocationPill value={location} onChange={handleLocationChange} />
-            </div>
-
-            {/* Editor */}
-            <div className="flex flex-col">
-              {loading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : (
-                <RichEditor
-                  value={content}
-                  onChange={handleContentChange}
-                  placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
-                  minHeight="320px"
-                />
-              )}
-            </div>
-
-            {/* Tags */}
-            {tags.length > 0 && (
-              <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
-                {tags.map((tag) => <TagPill key={tag} tag={tag} />)}
-              </div>
-            )}
-
-          </div>
+          )}
         </div>
 
       {/* Right margin — context dock (desktop) */}
@@ -595,7 +667,9 @@ export default function JournalPage() {
                   viewMonth={viewMonth}
                   selectedDate={selectedDate}
                   entryDates={entryDates}
+                  activeWeekKey={activeWeekKey}
                   onPick={(d) => setSelectedDate(d)}
+                  onPickWeek={goWeek}
                 />
               </div>
             </div>
@@ -655,6 +729,450 @@ export default function JournalPage() {
 
 /* ---------- Components ---------- */
 
+// isoWeekDateFromKey returns the Monday of a given ISO year+week.
+// Anchors on Jan 4 (always in W1) and shifts forward week-1 weeks.
+function isoWeekDateFromKey(year: number, week: number): Date {
+  const jan4 = new Date(year, 0, 4);
+  const start = startOfISOWeek(jan4);
+  return addWeeks(start, week - 1);
+}
+
+function WeekView({
+  year, week, onPickDay, onShiftWeek,
+}: {
+  year: number;
+  week: number;
+  onPickDay: (date: string) => void;
+  onShiftWeek: (delta: number) => void;
+}) {
+  const [content, setContent] = useState('');
+  const [mood, setMood] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [summary, setSummary] = useState<import('@/api').WeeklySummary | null>(null);
+  const dirtyRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const monday = useMemo(() => isoWeekDateFromKey(year, week), [year, week]);
+  const sunday = useMemo(() => endOfISOWeek(monday), [monday]);
+  const weekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
+    [monday],
+  );
+
+  // Load entry + summary whenever the week changes.
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    dirtyRef.current = false;
+    (async () => {
+      try {
+        const [entry, summ] = await Promise.all([
+          journalApi.week.get(year, week),
+          journalApi.week.summary(year, week),
+        ]);
+        if (!alive) return;
+        setContent(entry.content || '');
+        setMood(entry.mood || null);
+        setSummary(summ);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [year, week]);
+
+  // Debounced auto-save.
+  useEffect(() => {
+    if (loading) return;
+    if (!dirtyRef.current) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving('saving');
+      try {
+        await journalApi.week.save(year, week, content, mood);
+        setSaving('saved');
+        setTimeout(() => setSaving((s) => (s === 'saved' ? 'idle' : s)), 1400);
+        dirtyRef.current = false;
+      } catch {
+        setSaving('idle');
+      }
+    }, 1000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [content, mood, loading, year, week]);
+
+  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
+  const handleMood = (v: string | null) => { dirtyRef.current = true; setMood(v); };
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const formatMoney = (n: number) => {
+    const code = summary?.expense_currency || 'INR';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n); }
+    catch { return `${code} ${n.toFixed(0)}`; }
+  };
+
+  const totalDone = summary?.days.reduce((acc, d) => acc + d.tasks_done, 0) ?? 0;
+  const totalDue = summary?.days.reduce((acc, d) => acc + d.tasks_due + d.tasks_done, 0) ?? 0;
+  const totalMissed = summary?.days.reduce((acc, d) => acc + d.tasks_missed, 0) ?? 0;
+  const entriesWritten = summary?.days.filter((d) => d.has_entry).length ?? 0;
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 md:px-10 lg:px-14 pt-10 pb-32 flex flex-col gap-8">
+      {/* Title + week shift controls. */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
+            weekly entry
+          </div>
+          <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
+            Week {week}, {year}
+          </h1>
+          <div className="serif italic text-lg md:text-xl text-muted-foreground mt-1.5">
+            {format(monday, 'MMM d')} – {format(sunday, 'MMM d, yyyy')}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 mt-1 shrink-0">
+          <Button variant="ghost" size="icon-sm" onClick={() => onShiftWeek(-1)} title="Previous week">
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="mono text-[10px] text-muted-foreground tabular-nums px-1 min-w-[52px] text-center">
+            {saving === 'saving' ? 'Saving' : saving === 'saved' ? 'Saved' : ''}
+          </span>
+          <Button variant="ghost" size="icon-sm" onClick={() => onShiftWeek(1)} title="Next week">
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* At-a-glance stats — M3 expressive: surface-container-low + serif numerals. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatTile label="Tasks done" value={`${totalDone}/${totalDue}`} tone="primary" />
+        <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
+        <StatTile label="Entries" value={`${entriesWritten}/7`} tone="tertiary" />
+        <StatTile
+          label="Expenses"
+          value={summary ? formatMoney(summary.expense_total) : '—'}
+          tone="secondary"
+        />
+      </div>
+
+      {/* Mood pills (same set as daily). */}
+      <div className="flex gap-1.5 flex-wrap items-center">
+        {MOODS.map((m) => {
+          const active = mood === m.emoji;
+          return (
+            <button
+              key={m.emoji}
+              onClick={() => handleMood(active ? null : m.emoji)}
+              title={m.label}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all ${
+                active
+                  ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
+                  : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
+              }`}
+            >
+              <span className="text-base leading-none">{m.emoji}</span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.label}</span>
+            </button>
+          );
+        })}
+        {mood && (
+          <button
+            onClick={() => handleMood(null)}
+            className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Editor — full-width, no card chrome. Matches the daily entry
+          layout so the weekly entry reads as a longer-form journal rather
+          than a panel inside the page. */}
+      <div className="flex flex-col">
+        {loading ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
+          <RichEditor
+            value={content}
+            onChange={handleContent}
+            placeholder="What do you want this week to be about? Use / for commands, [[ to link, /task to reference…"
+            minHeight="280px"
+          />
+        )}
+      </div>
+
+      {/* 7-day task breakdown */}
+      <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+          <CheckSquare className="size-3.5 text-secondary" />
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Tasks by day</span>
+        </div>
+        <div className="divide-y divide-border/40">
+          {weekDays.map((day, i) => {
+            const ds = format(day, 'yyyy-MM-dd');
+            const stat = summary?.days[i];
+            const isCurrent = ds === today;
+            const totalForDay = (stat?.tasks_due ?? 0) + (stat?.tasks_done ?? 0);
+            const ratio = totalForDay > 0 ? (stat!.tasks_done / totalForDay) : 0;
+            return (
+              <button
+                key={ds}
+                onClick={() => onPickDay(ds)}
+                className={`w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/30 transition-colors ${
+                  isCurrent ? 'bg-primary/[0.04]' : ''
+                }`}
+              >
+                <div className={`flex flex-col items-center w-14 shrink-0 ${
+                  isCurrent ? 'text-primary' : 'text-muted-foreground'
+                }`}>
+                  <span className="mono text-[10px] uppercase tracking-wider">{format(day, 'EEE')}</span>
+                  <span className={`serif text-2xl font-medium leading-none tabular-nums ${
+                    isCurrent ? 'text-primary' : 'text-foreground/90'
+                  }`}>
+                    {format(day, 'd')}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-[13px] ${isCurrent ? 'text-primary font-medium' : 'text-foreground/85'}`}>
+                      {format(day, 'MMMM')}
+                    </span>
+                    {stat?.has_entry && (
+                      <span className="mono text-[9.5px] tracking-wider uppercase text-primary/70">entry</span>
+                    )}
+                    {stat?.mood && <span className="text-sm leading-none">{stat.mood}</span>}
+                  </div>
+                  <div className="h-1 rounded-full bg-muted-foreground/15 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width] duration-300"
+                      style={{ width: `${Math.round(ratio * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  <span className="mono text-[11px] text-foreground/80 tabular-nums">
+                    {stat ? `${stat.tasks_done}/${totalForDay}` : '—'}
+                  </span>
+                  {stat && stat.tasks_missed > 0 ? (
+                    <span className="mono text-[9.5px] text-destructive/80 tabular-nums">
+                      {stat.tasks_missed} missed
+                    </span>
+                  ) : (
+                    <span className="mono text-[9.5px] text-muted-foreground/60">on track</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Habits — full-width tracker. Bigger affordances, M3 expressive
+          tonal cards per row, weekly streak summary on the right. */}
+      <section className="rounded-3xl border border-border bg-card/40 overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+          <Target className="size-4 text-primary" />
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/80">
+            Habits this week
+          </span>
+          {summary && summary.habits.length > 0 && (
+            <span className="ml-auto mono text-[10px] uppercase tracking-wider text-muted-foreground tabular-nums">
+              {summary.habits.reduce((acc, h) => acc + h.logged_days.length, 0)}/
+              {summary.habits.length * 7} checked
+            </span>
+          )}
+        </div>
+        <div className="p-5">
+          {!summary || summary.habits.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
+              <p className="serif italic text-base text-muted-foreground">No habits tracked yet.</p>
+              <p className="mono text-[10px] uppercase tracking-wider text-muted-foreground/70 mt-2">
+                Add habits from the Habits page to start the streak.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {summary.habits.map((h) => {
+                const logged = new Set(h.logged_days);
+                const ratio = h.logged_days.length / 7;
+                const isPerfect = h.logged_days.length === 7;
+                return (
+                  <div
+                    key={h.id}
+                    className="rounded-2xl border border-border/60 bg-surface-container-low/40 px-4 py-3.5 flex flex-col gap-3 transition-colors hover:bg-surface-container-low/70"
+                  >
+                    {/* Row header: color swatch · name · count badge. */}
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="size-3 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-background"
+                        style={{
+                          background: h.color,
+                          ['--tw-ring-color' as any]: `${h.color}55`,
+                        }}
+                      />
+                      <span className="text-[14px] font-medium text-foreground/90 flex-1 truncate">
+                        {h.name}
+                      </span>
+                      <span
+                        className={`mono text-[10.5px] uppercase tracking-wider tabular-nums rounded-full px-2.5 py-0.5 ${
+                          isPerfect
+                            ? 'bg-primary text-primary-foreground'
+                            : ratio >= 0.5
+                              ? 'bg-secondary-container text-on-secondary-container'
+                              : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {h.logged_days.length}/7
+                      </span>
+                    </div>
+
+                    {/* 7-day track. Filled tiles use the habit color; empty
+                        tiles show a soft outlined dot. Hover reveals the
+                        weekday + state, tap toggles via the parent state
+                        once we wire mutation. */}
+                    <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                      {weekDays.map((day) => {
+                        const ds = format(day, 'yyyy-MM-dd');
+                        const on = logged.has(ds);
+                        const isToday = ds === today;
+                        return (
+                          <div
+                            key={ds}
+                            title={`${format(day, 'EEE d')} · ${on ? 'logged' : 'not logged'}`}
+                            className="flex flex-col items-center gap-1"
+                          >
+                            <span className="mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+                              {format(day, 'EEEEE')}
+                            </span>
+                            <span
+                              className={`flex items-center justify-center w-full h-9 rounded-xl transition-all duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
+                                on ? 'shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]' : ''
+                              } ${isToday && !on ? 'ring-1 ring-primary/40' : ''}`}
+                              style={{
+                                background: on
+                                  ? h.color
+                                  : 'hsl(var(--muted-foreground) / 0.08)',
+                              }}
+                            >
+                              {on ? (
+                                <svg className="size-4 text-white" viewBox="0 0 12 12">
+                                  <path d="M10 3L4.5 8.5 2 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              ) : (
+                                <span
+                                  className="size-1.5 rounded-full"
+                                  style={{ background: 'hsl(var(--muted-foreground) / 0.35)' }}
+                                />
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Streak meter — a thin progress bar in the habit color. */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-muted-foreground/12 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-[width] duration-300"
+                          style={{
+                            width: `${Math.round(ratio * 100)}%`,
+                            background: h.color,
+                          }}
+                        />
+                      </div>
+                      <span className="mono text-[9.5px] uppercase tracking-wider text-muted-foreground tabular-nums w-10 text-right">
+                        {Math.round(ratio * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function StatTile({ label, value, tone }: {
+  label: string;
+  value: string;
+  tone: 'primary' | 'secondary' | 'tertiary' | 'destructive' | 'muted';
+}) {
+  const toneClasses: Record<typeof tone, string> = {
+    primary: 'bg-primary-container/40 text-on-primary-container',
+    secondary: 'bg-secondary-container/45 text-on-secondary-container',
+    tertiary: 'bg-tertiary-container/40 text-on-tertiary-container',
+    destructive: 'bg-destructive/10 text-destructive',
+    muted: 'bg-muted/40 text-foreground/80',
+  };
+  return (
+    <div className={`rounded-2xl px-4 py-3.5 flex flex-col gap-1.5 ${toneClasses[tone]}`}>
+      <span className="mono text-[9.5px] uppercase tracking-[0.18em] opacity-80">{label}</span>
+      <span className="serif text-2xl font-medium tabular-nums leading-none">{value}</span>
+    </div>
+  );
+}
+
+function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const submit = async () => {
+    const title = value.trim();
+    if (!title) { setEditing(false); setValue(''); return; }
+    setSubmitting(true);
+    try {
+      await tasksApi.create({ title, due_date: dueDate });
+      setValue('');
+      onCreated();
+    } finally {
+      setSubmitting(false);
+      // Stay in edit mode for rapid entry; reset value cleared above.
+      inputRef.current?.focus();
+    }
+  };
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="mt-2 flex items-center gap-2 text-[12.5px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span className="mono text-[12px] w-[18px] text-center">+</span>
+        <span>Add task</span>
+      </button>
+    );
+  }
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <span className="mono text-[12px] w-[18px] text-center text-muted-foreground">+</span>
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); submit(); }
+          else if (e.key === 'Escape') { setEditing(false); setValue(''); }
+        }}
+        onBlur={() => { if (!value.trim()) setEditing(false); }}
+        disabled={submitting}
+        placeholder="Task title…"
+        className="flex-1 h-7 text-[12.5px] px-2"
+      />
+    </div>
+  );
+}
+
 function Breadcrumb({ dateObj }: { dateObj: Date }) {
   return (
     <div className="flex items-center gap-1 min-w-0 text-sm">
@@ -686,44 +1204,86 @@ function EntryRow({ entry, selected, onClick }: { entry: JournalEntry; selected:
   );
 }
 
-function CalendarGrid({ viewMonth, selectedDate, entryDates, onPick }: {
+function CalendarGrid({
+  viewMonth, selectedDate, entryDates, activeWeekKey, onPick, onPickWeek,
+}: {
   viewMonth: Date;
   selectedDate: string;
   entryDates: Set<string>;
+  activeWeekKey: string | null;
   onPick: (d: string) => void;
+  onPickWeek: (year: number, week: number) => void;
 }) {
-  const start = startOfMonth(viewMonth);
-  const end = endOfMonth(viewMonth);
-  const days = eachDayOfInterval({ start, end });
-  const startDow = getDay(start);
-  const blanks = Array.from({ length: startDow }, (_, i) => i);
+  // Mon-first grid: anchor on the Monday of the ISO week that contains
+  // the 1st of the visible month, then walk forward in 7-day rows until
+  // every day of the month is covered. The first column shows the
+  // month-relative week number (1..6), reused as the click target for
+  // the weekly entry view.
+  const firstMon = startOfISOWeek(startOfMonth(viewMonth));
+  const lastSun = endOfISOWeek(endOfMonth(viewMonth));
+  const allDays = eachDayOfInterval({ start: firstMon, end: lastSun });
+  const rows: Date[][] = [];
+  for (let i = 0; i < allDays.length; i += 7) rows.push(allDays.slice(i, i + 7));
+
+  const todayISOYear = getISOWeekYear(new Date());
+  const todayISOWeek = getISOWeek(new Date());
 
   return (
-    <div className="grid grid-cols-7 gap-0.5">
-      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-        <div key={`${d}${i}`} className="text-center font-mono text-[8px] text-muted-foreground/70 uppercase py-1">{d}</div>
+    <div className="grid grid-cols-8 gap-0.5">
+      {['W', 'M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+        <div
+          key={`${d}${i}`}
+          className={`text-center font-mono text-[8px] uppercase py-1 ${
+            i === 0 ? 'text-muted-foreground/50' : 'text-muted-foreground/70'
+          }`}
+        >
+          {d}
+        </div>
       ))}
-      {blanks.map((i) => <div key={`b${i}`} />)}
-      {days.map((day) => {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        const isSelected = dateStr === selectedDate;
-        const hasEntry = entryDates.has(dateStr);
-        const isCurrent = isTodayFn(day);
+      {rows.map((row, ri) => {
+        const monday = row[0];
+        const isoYear = getISOWeekYear(monday);
+        const isoWeek = getISOWeek(monday);
+        const weekKey = `${isoYear}-W${String(isoWeek).padStart(2, '0')}`;
+        const isCurrentWeek = isoYear === todayISOYear && isoWeek === todayISOWeek;
+        const isActiveWeek = activeWeekKey === weekKey;
+        const weekOfMonth = ri + 1;
         return (
-          <button
-            key={dateStr}
-            onClick={() => onPick(dateStr)}
-            className={`aspect-square flex items-center justify-center text-[11px] rounded transition-colors relative
-              ${isSelected ? 'bg-primary text-primary-foreground font-semibold' : ''}
-              ${!isSelected && hasEntry ? 'bg-primary/10 text-primary font-medium' : ''}
-              ${!isSelected && !hasEntry && isCurrent ? 'ring-1 ring-primary/40 text-foreground' : ''}
-              ${!isSelected && !hasEntry && !isCurrent ? 'text-muted-foreground hover:bg-sidebar-accent' : ''}
-              ${!isSameMonth(day, viewMonth) ? 'opacity-30' : ''}
-            `}
-          >
-            {format(day, 'd')}
-            {hasEntry && !isSelected && <span className="absolute bottom-0.5 size-1 rounded-full bg-primary" />}
-          </button>
+          <React.Fragment key={weekKey}>
+            <button
+              onClick={() => onPickWeek(isoYear, isoWeek)}
+              title={`Week ${isoWeek}, ${isoYear}`}
+              className={`aspect-square flex items-center justify-center text-[10px] font-mono rounded transition-colors
+                ${isActiveWeek ? 'bg-primary text-primary-foreground font-semibold' : ''}
+                ${!isActiveWeek && isCurrentWeek ? 'ring-1 ring-primary/40 text-foreground/80' : ''}
+                ${!isActiveWeek && !isCurrentWeek ? 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-foreground' : ''}
+              `}
+            >
+              W{weekOfMonth}
+            </button>
+            {row.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const isSelected = dateStr === selectedDate;
+              const hasEntry = entryDates.has(dateStr);
+              const isCurrent = isTodayFn(day);
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => onPick(dateStr)}
+                  className={`aspect-square flex items-center justify-center text-[11px] rounded transition-colors relative
+                    ${isSelected ? 'bg-primary text-primary-foreground font-semibold' : ''}
+                    ${!isSelected && hasEntry ? 'bg-primary/10 text-primary font-medium' : ''}
+                    ${!isSelected && !hasEntry && isCurrent ? 'ring-1 ring-primary/40 text-foreground' : ''}
+                    ${!isSelected && !hasEntry && !isCurrent ? 'text-muted-foreground hover:bg-sidebar-accent' : ''}
+                    ${!isSameMonth(day, viewMonth) ? 'opacity-30' : ''}
+                  `}
+                >
+                  {format(day, 'd')}
+                  {hasEntry && !isSelected && <span className="absolute bottom-0.5 size-1 rounded-full bg-primary" />}
+                </button>
+              );
+            })}
+          </React.Fragment>
         );
       })}
     </div>

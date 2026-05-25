@@ -272,6 +272,35 @@ export interface JournalLocation {
   lon?: number | null;
 }
 
+export interface WeeklyEntry {
+  id: number;
+  iso_year: number;
+  iso_week: number;
+  mood: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklySummary {
+  iso_year: number;
+  iso_week: number;
+  start_date: string;
+  end_date: string;
+  days: Array<{
+    date: string;
+    tasks_done: number;
+    tasks_due: number;
+    tasks_missed: number;
+    mood: string | null;
+    has_entry: boolean;
+  }>;
+  habits: Array<{ id: number; name: string; color: string; logged_days: string[] }>;
+  expense_total: number;
+  expense_top_category: { id: number; name: string; amount: number } | null;
+  expense_currency: string;
+}
+
 export const journal = {
   list: () => request<any[]>('/journal'),
   get: (date: string) => request<any>('/journal/' + date),
@@ -292,6 +321,22 @@ export const journal = {
       }),
     }),
   delete: (date: string) => request('/journal/' + date, { method: 'DELETE' }),
+
+  // --- Weekly entry. Same shape as daily but keyed by ISO year + week. ---
+  week: {
+    list: () => request<WeeklyEntry[]>('/journal/weeks'),
+    get: (year: number, week: number) =>
+      request<WeeklyEntry>(`/journal/week/${year}/${week}`),
+    save: (year: number, week: number, content: string, mood?: string | null) =>
+      request(`/journal/week/${year}/${week}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content, mood: mood ?? null }),
+      }),
+    delete: (year: number, week: number) =>
+      request(`/journal/week/${year}/${week}`, { method: 'DELETE' }),
+    summary: (year: number, week: number) =>
+      request<WeeklySummary>(`/journal/week/${year}/${week}/summary`),
+  },
 };
 
 // --- Places (Google Places (New) proxy used by the journal location pill) ---
