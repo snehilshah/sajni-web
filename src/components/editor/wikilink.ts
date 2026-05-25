@@ -16,6 +16,10 @@ function wikilinkMarkdownIt(md: any) {
     if (end < 0) return false;
     const inner = state.src.slice(start + 2, end);
     if (!inner || inner.includes('\n')) return false;
+    // Reserve the `[[task:…]]` syntax for the TaskChip extension so a
+    // round-trip through markdown doesn't downgrade task chips into
+    // wikilinks (which would otherwise spawn a new note on click).
+    if (inner.startsWith('task:')) return false;
 
     if (!silent) {
       const [target, alias] = inner.split('|').map((s: string) => s.trim());

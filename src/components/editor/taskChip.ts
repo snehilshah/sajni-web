@@ -17,7 +17,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
  */
 
 function taskChipMarkdownIt(md: any) {
-  md.inline.ruler.before('link', 'taskchip', (state: any, silent: boolean) => {
+  const rule = (state: any, silent: boolean) => {
     const start = state.pos;
     const src = state.src;
     if (src.charCodeAt(start) !== 0x5b /* [ */ || src.charCodeAt(start + 1) !== 0x5b) return false;
@@ -38,7 +38,18 @@ function taskChipMarkdownIt(md: any) {
     }
     state.pos = end + 2;
     return true;
-  });
+  };
+  // Must run BEFORE the wikilink rule — both match `[[…]]` syntax and
+  // wikilink doesn't care about a `task:` prefix, so without this
+  // ordering wikilink eats every TaskChip on the round-trip through
+  // markdown and turns it into a stray note backlink on save → reload.
+  // Fall back to placing before `link` if the wikilink rule isn't
+  // registered (e.g. editor in a non-journal context).
+  try {
+    md.inline.ruler.before('wikilink', 'taskchip', rule);
+  } catch {
+    md.inline.ruler.before('link', 'taskchip', rule);
+  }
 }
 
 export const TaskChip = Node.create({
