@@ -596,7 +596,6 @@ export default function MediaPage() {
       if (editItem) await mediaApi.update(editItem.id, payload);
       else await mediaApi.create(payload);
       setShowForm(false);
-      setEditItem(null);
       load();
     } finally { setSaving(false); }
   };
@@ -604,7 +603,6 @@ export default function MediaPage() {
   const handleDelete = async (id: number) => {
     await mediaApi.delete(id);
     setShowForm(false);
-    setEditItem(null);
     load();
   };
 
@@ -851,7 +849,13 @@ export default function MediaPage() {
           )}
       </div>
 
-      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditItem(null); }}>
+      <Dialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        onOpenChangeComplete={(open) => {
+          if (!open) setEditItem(null);
+        }}
+      >
         <DialogContent className="sm:max-w-3xl w-full max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
           <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
             <DialogTitle className="flex items-center gap-2">
@@ -985,7 +989,7 @@ export default function MediaPage() {
                 <Trash2 className="size-3.5" /> Delete
               </Button>
             )}
-            <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
               {saving && <M3CookieLoader size="xs" tone="primary" />}
               {editItem ? 'Save' : 'Add to library'}
