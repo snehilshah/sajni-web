@@ -242,6 +242,8 @@ export default function RichEditor({
       <CommandDialog
         open={taskPicker}
         onOpenChange={setTaskPicker}
+        modal={false}
+        showOverlay={false}
         title="Reference a task"
         description="Pick an existing task to insert as an inline chip. Create new tasks from the right rail or the Tasks page."
       >
