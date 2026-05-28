@@ -11,6 +11,7 @@ import {
   type FinAccount, type FinCategory, type FinTransaction,
   type FinBudget, type FinInvestment, type FinSaving, type FinStatement,
 } from '@/api';
+import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 import OverviewTab from './OverviewTab';
 import AccountsTab from './AccountsTab';
 import TransactionsTab from './TransactionsTab';
@@ -143,6 +144,21 @@ export default function FinancePage() {
     active, data.loaded,
     loadTransactions, loadBudgets, loadInvestments, loadStatements, loadSavings,
   ]);
+
+  // AI finance mutations (transaction_* / biller_*) refresh the open tab.
+  // Debounced so a multi-tool AI turn triggers one refetch, not several.
+  // Always refresh the cheap shared sets (accounts balances + categories);
+  // only re-fetch the heavy lazy sets that have actually been loaded so we
+  // don't eagerly pull tabs the user never opened.
+  useDataInvalidate(['transaction_', 'biller_'], () => {
+    loadAccounts();
+    loadCategories();
+    if (data.loaded.transactions) loadTransactions();
+    if (data.loaded.budgets) loadBudgets();
+    if (data.loaded.investments) loadInvestments();
+    if (data.loaded.savings) loadSavings();
+    if (data.loaded.statements) loadStatements();
+  });
 
   const setActive = (id: TabId) => {
     navigate(id === 'overview' ? '/finance' : '/finance/' + id, { replace: true });

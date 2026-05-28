@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock } from 'lucide-react';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
-import { tasks as tasksApi, type TaskHistoryEntry } from '@/api';
+import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent } from '@/api';
 import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,23 @@ function timeFromISO(iso?: string | null): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+// eventText renders one audit-trail line for the activity timeline.
+function eventText(e: TaskEvent): React.ReactNode {
+  const label = (s: string) => STATUS_LABELS[s as Task['status']] ?? s;
+  switch (e.kind) {
+    case 'created':
+      return 'Created this task';
+    case 'status':
+      return <>Status <b className="font-medium">{label(e.from) || '—'}</b> → <b className="font-medium">{label(e.to)}</b></>;
+    case 'title':
+      return <>Renamed to <b className="font-medium">“{e.to}”</b></>;
+    case 'list':
+      return <>Moved <b className="font-medium">{e.from}</b> → <b className="font-medium">{e.to}</b></>;
+    default:
+      return e.kind;
+  }
+}
+
 // Combine a YYYY-MM-DD date + local HH:MM into an absolute ISO instant.
 // Returns null unless both are present. new Date('YYYY-MM-DDTHH:MM')
 // parses as local time, so toISOString() yields the correct UTC instant.
@@ -75,6 +92,7 @@ interface Props {
 export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(blank);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
+  const [events, setEvents] = useState<TaskEvent[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -93,10 +111,13 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         steps: editing.steps || [],
       });
       setHistory([]);
+      setEvents([]);
       tasksApi.history(editing.id).then(setHistory).catch(() => {});
+      tasksApi.events(editing.id).then(setEvents).catch(() => {});
     } else {
       setForm({ ...blank, ...defaults });
       setHistory([]);
+      setEvents([]);
     }
   }, [open, editing, defaults]);
 
@@ -268,6 +289,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 onValueChange={(v) =>
                   setForm({ ...form, list_id: v === 'inbox' ? null : Number(v) })
                 }
+                items={[{ value: 'inbox', label: '📥 Inbox' }, ...lists.map((l) => ({ value: String(l.id), label: l.name }))]}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
@@ -363,6 +385,27 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Activity — GitHub-style audit timeline (create / status / title
+              / list moves). Note edits are intentionally not tracked. */}
+          {editing && events.length > 0 && (
+            <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
+              <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <History className="size-3" /> Activity ({events.length})
+              </h4>
+              <ol className="relative ml-1 flex flex-col gap-3 border-l border-border/60 pl-4 pt-1">
+                {events.map((e, i) => (
+                  <li key={i} className="relative">
+                    <span className="absolute -left-[21px] top-1 size-2.5 rounded-full bg-[hsl(var(--secondary))] ring-2 ring-[hsl(var(--card))]" />
+                    <div className="text-xs text-foreground/90 leading-snug">{eventText(e)}</div>
+                    <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                      {formatDistanceToNow(parseISO(e.created_at), { addSuffix: true })}
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
           )}
 

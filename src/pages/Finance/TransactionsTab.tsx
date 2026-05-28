@@ -73,7 +73,8 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
             </button>
           )}
         </div>
-        <Select value={accountFilter || 'all'} onValueChange={(v) => setAccountFilter(!v || v === 'all' ? '' : v)}>
+        <Select value={accountFilter || 'all'} onValueChange={(v) => setAccountFilter(!v || v === 'all' ? '' : v)}
+          items={[{ value: 'all', label: 'All accounts' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}>
           <SelectTrigger size="sm" className="w-[160px]">
             <SelectValue placeholder="All accounts" />
           </SelectTrigger>
@@ -84,7 +85,8 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
             ))}
           </SelectContent>
         </Select>
-        <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}>
+        <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
+          items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'transfer_out', label: 'Transfer' }]}>
           <SelectTrigger size="sm" className="w-[140px]">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
@@ -351,7 +353,8 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             />
           </Field>
           <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2">
-            <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v ?? '')} disabled={!!txn}>
+            <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v ?? '')} disabled={!!txn}
+              items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
@@ -364,7 +367,8 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           </Field>
           {type === 'transfer' && !txn && (
             <Field label="To account" className="col-span-2">
-              <Select value={linkedId || undefined} onValueChange={(v) => setLinkedId(v ?? '')}>
+              <Select value={linkedId || undefined} onValueChange={(v) => setLinkedId(v ?? '')}
+                items={accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select destination" />
                 </SelectTrigger>
@@ -397,6 +401,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
                   userPickedCategoryRef.current = true;
                   setCategoryId(!v || v === 'others' ? '' : v);
                 }}
+                items={[{ value: 'others', label: 'Others' }, ...filteredCats.map((c) => ({ value: String(c.id), label: c.name }))]}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Others" />

@@ -227,7 +227,8 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. May 2026" />
           </Field>
           <Field label="Period">
-            <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+            <Select value={period} onValueChange={(v) => setPeriod(v as any)}
+              items={[{ value: 'monthly', label: 'Monthly' }, { value: 'custom', label: 'Custom' }]}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

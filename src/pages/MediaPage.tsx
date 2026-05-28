@@ -676,7 +676,7 @@ export default function MediaPage() {
               isMobileMedia && searchExpanded ? 'w-full' : '',
             )}>
               {!(isMobileMedia && searchExpanded) && (
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
                 <SelectTrigger size="sm" className="h-9 min-w-[180px] gap-2 text-xs">
                   <ArrowUpDown className="size-3.5 text-muted-foreground" />
                   <SelectValue />

@@ -201,7 +201,8 @@ export default function HabitsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Frequency</Label>
-                <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v ?? 'daily' })}>
+                <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v ?? 'daily' })}
+                  items={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }]}>
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>

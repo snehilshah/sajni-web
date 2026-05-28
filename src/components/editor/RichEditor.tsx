@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/command';
 
 import {
-  Bold, Italic, Strikethrough, Code, Link2, List, ListOrdered, ListChecks,
+  Bold, Italic, Strikethrough, Code, Link2, Unlink, List, ListOrdered, ListChecks,
   Quote, Heading1, Heading2, Heading3, Image as ImageIcon, Minus,
 } from 'lucide-react';
 
@@ -57,7 +57,15 @@ export default function RichEditor({
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
       codeBlock: { HTMLAttributes: { class: 'tiptap-code-block' } },
-      link: { openOnClick: false, HTMLAttributes: { class: 'tiptap-link' } },
+      // openOnClick stays false so a plain click places the cursor; we
+      // open links on cmd/ctrl-click instead (see handleClick). autolink +
+      // linkOnPaste turn bare URLs (typed or pasted) into real links.
+      link: {
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: { class: 'tiptap-link', rel: 'noopener noreferrer', target: '_blank' },
+      },
     }),
     Markdown.configure({ html: false, breaks: true, transformPastedText: true, linkify: true }),
     TaskList,
@@ -109,6 +117,16 @@ export default function RichEditor({
             // Avoids coupling the editor extension to React context.
             window.dispatchEvent(new CustomEvent('task:open', { detail: { id } }));
           }
+          return true;
+        }
+        return false;
+      },
+      handleClick: (view, pos, event) => {
+        // Cmd/Ctrl-click opens a link without hijacking normal click-to-edit.
+        if (!(event.metaKey || event.ctrlKey)) return false;
+        const link = view.state.doc.resolve(pos).marks().find((m) => m.type.name === 'link');
+        if (link?.attrs.href) {
+          window.open(link.attrs.href as string, '_blank', 'noopener,noreferrer');
           return true;
         }
         return false;
@@ -322,10 +340,15 @@ function Toolbar({ editor, onImage }: { editor: Editor; onImage: () => void }) {
       {btn(editor.isActive('taskList'), () => editor.chain().focus().toggleTaskList().run(), ListChecks, 'Todo list')}
       {btn(editor.isActive('blockquote'), () => editor.chain().focus().toggleBlockquote().run(), Quote, 'Quote')}
       <span className="w-px h-4 bg-border mx-0.5" />
-      {btn(false, () => {
-        const url = window.prompt('URL');
-        if (url) editor.chain().focus().setLink({ href: url }).run();
-      }, Link2, 'Link')}
+      {btn(editor.isActive('link'), () => {
+        const prev = (editor.getAttributes('link').href as string) || '';
+        const url = window.prompt('Link URL', prev);
+        if (url === null) return;                 // cancelled
+        const chain = editor.chain().focus().extendMarkRange('link');
+        if (url.trim() === '') chain.unsetLink().run();
+        else chain.setLink({ href: url.trim() }).run();
+      }, Link2, editor.isActive('link') ? 'Edit link' : 'Link')}
+      {editor.isActive('link') && btn(false, () => editor.chain().focus().extendMarkRange('link').unsetLink().run(), Unlink, 'Remove link')}
       {btn(false, onImage, ImageIcon, 'Image')}
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), Minus, 'Divider')}
     </div>

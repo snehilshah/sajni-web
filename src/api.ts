@@ -139,7 +139,16 @@ export const tasks = {
     request<MissedTask[]>('/tasks/missed?date=' + encodeURIComponent(date)),
   history: (id: number) =>
     request<TaskHistoryEntry[]>('/tasks/' + id + '/history'),
+  events: (id: number) =>
+    request<TaskEvent[]>('/tasks/' + id + '/events'),
 };
+
+export interface TaskEvent {
+  kind: 'created' | 'status' | 'title' | 'list';
+  from: string;
+  to: string;
+  created_at: string;
+}
 
 // --- Task lists (groups) ---
 export const taskLists = {

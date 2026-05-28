@@ -9,6 +9,7 @@ import { tasks as tasksApi, habits as habitsApi, memos as memosApi, journal as j
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
+import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 import type { Task, Habit } from '@/types';
 
 interface Memo {
@@ -122,20 +123,12 @@ export default function TodayPage() {
 		};
 	}, [habitsList]);
 
-	// React to AI mutations — refresh only the relevant domain.
-	useEffect(() => {
-		const onInvalidate = (e: Event) => {
-			const kind = (e as CustomEvent).detail?.kind as string | undefined;
-			if (!kind) { refreshAll(); return; }
-			if (kind.startsWith('task_')) refreshTasks();
-			else if (kind.startsWith('habit_')) refreshHabits();
-			else if (kind.startsWith('memo_')) refreshMemos();
-			else if (kind.startsWith('journal_')) refreshJournal();
-		};
-		window.addEventListener('data:invalidate', onInvalidate);
-		return () => window.removeEventListener('data:invalidate', onInvalidate);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	// React to AI mutations — refresh only the relevant domain, debounced so
+	// a multi-tool turn coalesces into one refetch per domain.
+	useDataInvalidate(['task_'], () => refreshTasks());
+	useDataInvalidate(['habit_'], () => refreshHabits());
+	useDataInvalidate(['memo_'], () => refreshMemos());
+	useDataInvalidate(['journal_'], () => refreshJournal());
 
 	const greeting =
 		hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Winding down';

@@ -5,6 +5,7 @@ import {
   Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList } from '@/types';
@@ -97,19 +98,10 @@ export default function TasksPage() {
     }
   }, [focusId, tasksList, searchParams, setSearchParams]);
 
-  // Refresh after AI tools mutate tasks (`data:invalidate` fires from AIChat).
-  useEffect(() => {
-    const onInvalidate = (e: Event) => {
-      const kind = (e as CustomEvent).detail?.kind as string | undefined;
-      if (!kind) return;
-      if (kind.startsWith('task_') || kind === 'task_list_changed') {
-        reloadTasks();
-        reloadLists();
-      }
-    };
-    window.addEventListener('data:invalidate', onInvalidate);
-    return () => window.removeEventListener('data:invalidate', onInvalidate);
-  }, [reloadTasks, reloadLists]);
+  // Refresh after AI tools mutate tasks (`data:invalidate` from AIChat).
+  // Debounced so a multi-tool turn coalesces into one refetch. The `task_`
+  // prefix covers task_created/updated/completed/deleted + task_list_*.
+  useDataInvalidate(['task_'], () => { reloadTasks(); reloadLists(); });
 
   const grouped = useMemo(() => {
     const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], done: [] };

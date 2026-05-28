@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 import { formatMoney } from './utils';
 
 interface Props {
@@ -47,6 +48,10 @@ export default function BillersTab({ accounts, categories }: Props) {
   };
 
   useEffect(() => { load(); }, [showArchived]);
+
+  // AI biller mutations (create / pay) refresh this list, debounced so a
+  // multi-tool turn coalesces into one refetch.
+  useDataInvalidate(['biller_'], () => { load(); });
 
   const subscriptions = useMemo(() => billers.filter((b) => b.is_subscription), [billers]);
   const bills = useMemo(() => billers.filter((b) => !b.is_subscription), [billers]);
@@ -372,7 +377,8 @@ function BillerDialog({
               />
             </Field>
             <Field label="Frequency">
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as BillerFrequency)}>
+              <Select value={frequency} onValueChange={(v) => setFrequency(v as BillerFrequency)}
+                items={(Object.keys(FREQ_LABEL) as BillerFrequency[]).map((f) => ({ value: f, label: FREQ_LABEL[f] }))}>
                 <SelectTrigger size="sm">
                   <SelectValue />
                 </SelectTrigger>
@@ -397,6 +403,7 @@ function BillerDialog({
               <Select
                 value={accountID == null ? 'none' : String(accountID)}
                 onValueChange={(v) => setAccountID(v === 'none' ? null : Number(v))}
+                items={[{ value: 'none', label: '—' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
               >
                 <SelectTrigger size="sm">
                   <SelectValue placeholder="—" />
@@ -413,6 +420,7 @@ function BillerDialog({
               <Select
                 value={categoryID == null ? 'none' : String(categoryID)}
                 onValueChange={(v) => setCategoryID(v === 'none' ? null : Number(v))}
+                items={[{ value: 'none', label: '—' }, ...categories.filter((c) => c.kind === 'expense').map((c) => ({ value: String(c.id), label: c.name }))]}
               >
                 <SelectTrigger size="sm">
                   <SelectValue placeholder="—" />

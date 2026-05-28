@@ -46,6 +46,7 @@ const ACTION_ICONS: Record<string, typeof CheckSquare> = {
   journal_created: BookOpen,
   media_added: Film,
   transaction_created: Wallet,
+  transaction_updated: Wallet,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -58,6 +59,7 @@ const ACTION_LABELS: Record<string, string> = {
   journal_created: 'Saved journal entry',
   media_added: 'Added to library',
   transaction_created: 'Recorded transaction',
+  transaction_updated: 'Updated transaction',
 };
 
 interface Props {

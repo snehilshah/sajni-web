@@ -238,7 +238,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nifty 50 SIP" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType(v ?? '')}>
+            <Select value={type} onValueChange={(v) => setType(v ?? '')} items={INVESTMENT_TYPES}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -253,6 +253,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Select
               value={accountId || 'none'}
               onValueChange={(v) => setAccountId(!v || v === 'none' ? '' : v)}
+              items={[{ value: 'none', label: '— none —' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
             >
               <SelectTrigger>
                 <SelectValue placeholder="— none —" />
@@ -286,7 +287,8 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input type="number" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 12" />
           </Field>
           <Field label="Frequency">
-            <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}>
+            <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}
+              items={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'yearly', label: 'Yearly' }, { value: 'lumpsum', label: 'Lumpsum' }]}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

@@ -715,7 +715,8 @@ function EnrichmentEditor({
           <ul className="space-y-2">
             {(draft.connections ?? []).map((c, i) => (
               <li key={i} className="flex items-center gap-2">
-                <Select value={c.relation} onValueChange={(v) => updateConn(i, { relation: v as ThinkingRelation })}>
+                <Select value={c.relation} onValueChange={(v) => updateConn(i, { relation: v as ThinkingRelation })}
+                  items={RELATIONS.map((r) => ({ value: r, label: r.replace('_', ' ') }))}>
                   <SelectTrigger className="h-8 w-32 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -725,7 +726,8 @@ function EnrichmentEditor({
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={String(c.card_id)} onValueChange={(v) => updateConn(i, { card_id: Number(v) })}>
+                <Select value={String(c.card_id)} onValueChange={(v) => updateConn(i, { card_id: Number(v) })}
+                  items={siblings.map((s) => ({ value: String(s.id), label: s.content.split('\n')[0].slice(0, 40) || `card #${s.id}` }))}>
                   <SelectTrigger className="h-8 flex-1 text-xs">
                     <SelectValue />
                   </SelectTrigger>
