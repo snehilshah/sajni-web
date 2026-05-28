@@ -11,6 +11,7 @@ import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -313,21 +314,22 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               agenda; with Remind on, Sajni emails a nudge ~5 min before. */}
           <div className="flex flex-col gap-2 rounded-lg border border-border bg-card/50 p-3">
             <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <div className="flex flex-col gap-1.5 sm:w-40">
+              <div className="flex flex-col gap-1.5 sm:w-44">
                 <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
                   <Clock className="size-3" /> Time
                 </Label>
-                <Input
-                  type="time"
+                <TimePicker
+                  id="task-time"
+                  name="task-time"
                   value={form.scheduled_time}
                   disabled={!form.due_date}
-                  onChange={(e) => setForm({ ...form, scheduled_time: e.target.value, remind: e.target.value ? form.remind : false })}
-                  className="h-9 text-sm"
+                  placeholder="Set time"
+                  onChange={(v) => setForm({ ...form, scheduled_time: v, remind: v ? form.remind : false })}
                 />
               </div>
               <label
                 className={cn(
-                  'flex items-center gap-2.5 rounded-xl px-3 h-9 flex-1 transition-colors',
+                  'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 transition-colors',
                   form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
                 )}
               >
