@@ -22,6 +22,10 @@ export interface Task {
   tags?: string[];
   due_date?: string | null;
   scheduled_at?: string | null;
+  /** Email the user ~5 min before scheduled_at. */
+  remind?: boolean;
+  /** Sent-sentinel; null until the reminder email has gone out. */
+  reminded_at?: string | null;
   list_id?: number | null;
   parent_task_id?: number | null;
   important: boolean;
@@ -44,7 +48,7 @@ export interface TaskList {
   updated_at: string;
 }
 
-export type SmartList = 'my_day' | 'important' | 'planned' | 'inbox' | 'all';
+export type SmartList = 'my_day' | 'important' | 'planned' | 'scheduled' | 'inbox' | 'all';
 
 export interface Habit {
   id: number;

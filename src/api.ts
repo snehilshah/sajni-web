@@ -120,6 +120,8 @@ export const tasks = {
     priority?: string;
     status?: string;
     due_date?: string;
+    scheduled_at?: string;
+    remind?: boolean;
     list_id?: number | null;
     parent_task_id?: number | null;
     important?: boolean;
@@ -552,6 +554,8 @@ export interface FinBiller {
   category_color: string | null;
   is_subscription: boolean;
   auto_renew: boolean;
+  /** Opt-in: cron spawns a 'Pay {name}' reminder task each cycle. */
+  remind_task: boolean;
   alert_days: number;
   color: string;
   notes: string;

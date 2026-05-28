@@ -36,6 +36,7 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'my_day', label: 'My Day', description: 'Tasks due today' },
   { smart: 'important', label: 'Important', description: 'Starred tasks' },
   { smart: 'planned', label: 'Planned', description: 'Tasks with a due date' },
+  { smart: 'scheduled', label: 'Scheduled', description: 'Tasks with a time / reminder' },
   { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },
   { smart: 'all', label: 'All', description: 'Every open task' },
 ];

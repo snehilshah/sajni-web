@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks } from 'lucide-react';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -29,6 +30,10 @@ interface FormState {
   priority: Task['priority'];
   status: Task['status'];
   due_date: string;
+  /** Local HH:MM clock time; '' = no time (all-day). */
+  scheduled_time: string;
+  /** Email the user ~5 min before scheduled_time. */
+  remind: boolean;
   list_id: number | null;
   important: boolean;
   steps: TaskStep[];
@@ -36,8 +41,26 @@ interface FormState {
 
 const blank: FormState = {
   title: '', description: '', priority: 'medium', status: 'todo',
-  due_date: '', list_id: null, important: false, steps: [],
+  due_date: '', scheduled_time: '', remind: false,
+  list_id: null, important: false, steps: [],
 };
+
+// Local "HH:MM" from an ISO instant, in the browser's tz. '' when null.
+function timeFromISO(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// Combine a YYYY-MM-DD date + local HH:MM into an absolute ISO instant.
+// Returns null unless both are present. new Date('YYYY-MM-DDTHH:MM')
+// parses as local time, so toISOString() yields the correct UTC instant.
+function toScheduledISO(date: string, time: string): string | null {
+  if (!date || !time) return null;
+  const d = new Date(`${date}T${time}`);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 interface Props {
   open: boolean;
@@ -63,6 +86,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         priority: editing.priority,
         status: editing.status,
         due_date: editing.due_date || '',
+        scheduled_time: timeFromISO(editing.scheduled_at),
+        remind: editing.remind ?? false,
         list_id: editing.list_id ?? null,
         important: editing.important,
         steps: editing.steps || [],
@@ -78,6 +103,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
+    // A time only makes sense with a day; remind only with a time.
+    const scheduledISO = toScheduledISO(form.due_date, form.scheduled_time);
+    const remind = scheduledISO ? form.remind : false;
     try {
       if (editing) {
         await tasksApi.update(editing.id, {
@@ -86,6 +114,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           priority: form.priority,
           status: form.status,
           due_date: form.due_date || null,
+          // null clears the time; clear_scheduled lets the server NULL it.
+          scheduled_at: scheduledISO,
+          clear_scheduled: scheduledISO === null,
+          remind,
           list_id: form.list_id,
           important: form.important,
           steps: form.steps,
@@ -97,6 +129,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           priority: form.priority,
           status: form.status,
           due_date: form.due_date || undefined,
+          scheduled_at: scheduledISO ?? undefined,
+          remind,
           list_id: form.list_id ?? null,
           important: form.important,
           steps: form.steps,
@@ -251,6 +285,46 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Time + reminder. A task with a time appears on the Today
+              agenda; with Remind on, Sajni emails a nudge ~5 min before. */}
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-card/50 p-3">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+              <div className="flex flex-col gap-1.5 sm:w-40">
+                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                  <Clock className="size-3" /> Time
+                </Label>
+                <Input
+                  type="time"
+                  value={form.scheduled_time}
+                  disabled={!form.due_date}
+                  onChange={(e) => setForm({ ...form, scheduled_time: e.target.value, remind: e.target.value ? form.remind : false })}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <label
+                className={cn(
+                  'flex items-center gap-2.5 rounded-xl px-3 h-9 flex-1 transition-colors',
+                  form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
+                )}
+              >
+                <Bell className="size-4 text-muted-foreground shrink-0" />
+                <span className="text-sm flex-1">Remind me by email</span>
+                <Switch
+                  checked={form.remind}
+                  disabled={!form.scheduled_time}
+                  onCheckedChange={(v) => setForm({ ...form, remind: v })}
+                />
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {!form.due_date
+                ? 'Pick a due date to set a time.'
+                : form.remind
+                  ? 'Sajni will email you ~5 min before.'
+                  : 'Add a time to show this on your Today agenda.'}
+            </p>
           </div>
 
           {/* Steps editor */}

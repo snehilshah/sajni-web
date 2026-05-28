@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Sun, Star, Calendar, Inbox, ListTodo, Plus, MoreVertical, Trash2, Pencil,
+  Sun, Star, Calendar, AlarmClock, Inbox, ListTodo, Plus, MoreVertical, Trash2, Pencil,
 } from 'lucide-react';
 
 import type { TaskList, SmartList } from '@/types';
@@ -15,6 +15,7 @@ const SMART_ICON: Record<SmartList, typeof Sun> = {
   my_day: Sun,
   important: Star,
   planned: Calendar,
+  scheduled: AlarmClock,
   inbox: Inbox,
   all: ListTodo,
 };

@@ -22,6 +22,8 @@ export interface User {
   name: string;
   /** RFC3339; null until the first-time walkthrough is finished. */
   onboarded_at: string | null;
+  /** IANA tz captured from the browser; reminder emails render in it. */
+  timezone?: string;
   /** Linked sign-in methods. */
   identities: IdentityRef[];
   /** RFC3339. Present while the account is in the 7-day soft-delete grace. */
@@ -119,6 +121,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [setUserSafe]);
+
+  // Capture the browser's IANA timezone once we have a session so reminder
+  // emails render in the user's local clock time. Fire-and-forget; runs only
+  // when the stored tz differs (covers first login, travel, DST changes).
+  // After a successful POST setUser updates timezone, which re-runs this and
+  // immediately short-circuits — no loop.
+  useEffect(() => {
+    if (!user) return;
+    let tz = "";
+    try {
+      tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch {
+      /* Intl unavailable — skip */
+    }
+    if (!tz || tz === user.timezone) return;
+    authFetch("/auth/timezone", {
+      method: "POST",
+      body: JSON.stringify({ timezone: tz }),
+    })
+      .then((res) => {
+        if (res.ok) setUser((prev) => (prev ? { ...prev, timezone: tz } : prev));
+      })
+      .catch(() => {
+        /* best-effort; retries next session */
+      });
+  }, [user?.id, user?.timezone]);
 
   const refreshUser = useCallback(async () => {
     const res = await authFetch("/auth/me");

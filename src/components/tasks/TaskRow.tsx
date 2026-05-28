@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, ListChecks,
+  Star, ChevronRight, Plus, ListChecks, Clock, Bell,
 } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -142,6 +142,13 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                     <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
                   </svg>
                   {format(parseISO(task.due_date), 'MMM d')}
+                </span>
+              )}
+              {task.scheduled_at && (
+                <span className={`inline-flex items-center gap-1 ${task.remind ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--tertiary))]'}`}>
+                  <Clock className="size-3" />
+                  {format(parseISO(task.scheduled_at), 'h:mm a')}
+                  {task.remind && <Bell className="size-2.5 fill-current" />}
                 </span>
               )}
               {totalSteps > 0 && (

@@ -287,6 +287,7 @@ function BillerDialog({
   const [categoryID, setCategoryID] = useState<number | null>(null);
   const [isSubscription, setIsSubscription] = useState(false);
   const [autoRenew, setAutoRenew] = useState(false);
+  const [remindTask, setRemindTask] = useState(false);
   const [alertDays, setAlertDays] = useState(3);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -302,6 +303,7 @@ function BillerDialog({
       setCategoryID(biller.category_id);
       setIsSubscription(biller.is_subscription);
       setAutoRenew(biller.auto_renew);
+      setRemindTask(biller.remind_task);
       setAlertDays(biller.alert_days);
       setNotes(biller.notes);
     } else {
@@ -313,6 +315,7 @@ function BillerDialog({
       setCategoryID(null);
       setIsSubscription(false);
       setAutoRenew(false);
+      setRemindTask(false);
       setAlertDays(3);
       setNotes('');
     }
@@ -331,6 +334,8 @@ function BillerDialog({
         category_id: categoryID,
         is_subscription: isSubscription,
         auto_renew: autoRenew,
+        // Auto-renew self-pays, so a manual bill-pay reminder is moot there.
+        remind_task: remindTask && !autoRenew,
         alert_days: alertDays,
         notes,
       };
@@ -437,6 +442,17 @@ function BillerDialog({
                 disabled={accountID == null}
               />
               Auto-renew
+            </label>
+            <label
+              className={'inline-flex items-center gap-2 ' + (autoRenew ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer')}
+              title="Each cycle, create a 'Pay {name}' task and email a reminder near the due date."
+            >
+              <Checkbox
+                checked={remindTask && !autoRenew}
+                onCheckedChange={(c) => setRemindTask(c === true)}
+                disabled={autoRenew}
+              />
+              Remind me to pay
             </label>
             <Field label="Alert days" className="flex-1 min-w-[120px]">
               <Input

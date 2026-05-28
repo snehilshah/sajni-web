@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote } from 'lucide-react';
+import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -144,6 +144,15 @@ export default function TodayPage() {
 	const habitsDone = habitStatus.filter((h) => h.logged).length;
 	const totalHabitsToday = habitStatus.length;
 	const dueOpen = dueToday.filter((t) => t.status !== 'done');
+
+	// Agenda order: timed tasks first in clock order, untimed after.
+	const dueOpenSorted = useMemo(() => {
+		return [...dueOpen].sort((a, b) => {
+			const at = a.scheduled_at ? new Date(a.scheduled_at).getTime() : Infinity;
+			const bt = b.scheduled_at ? new Date(b.scheduled_at).getTime() : Infinity;
+			return at - bt;
+		});
+	}, [dueOpen]);
 
 	const openTasksCount = dueOpen.length;
 
@@ -297,7 +306,7 @@ export default function TodayPage() {
 							{dueOpen.length === 0 ? (
 								<div className="px-5 py-8 text-center text-sm text-muted-foreground">Nothing scheduled for today.</div>
 							) : (
-								dueOpen.map((t, i) => (
+								dueOpenSorted.map((t, i) => (
 									<div
 										key={t.id}
 										onClick={() => openTask(t.id)}
@@ -319,11 +328,16 @@ export default function TodayPage() {
 										<div className="flex-1 min-w-0">
 											<div className="text-[14px] text-foreground font-medium truncate">{t.title}</div>
 											<div className="flex gap-2 mt-1 text-[11px] text-muted-foreground">
-												{t.due_date && (
+												{t.scheduled_at ? (
+													<span className={`mono inline-flex items-center gap-1 ${t.remind ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--tertiary))]'}`}>
+														<Clock className="size-3" /> {format(parseISO(t.scheduled_at), 'h:mm a')}
+														{t.remind && <Bell className="size-2.5 fill-current" />}
+													</span>
+												) : t.due_date ? (
 													<span className="mono inline-flex items-center gap-1">
 														<Clock className="size-3" /> {format(parseISO(t.due_date), 'MMM d')}
 													</span>
-												)}
+												) : null}
 												{t.tags?.slice(0, 3).map((tag) => (
 													<span key={tag} className="text-primary/80">
 														#{tag}
