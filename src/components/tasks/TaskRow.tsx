@@ -145,10 +145,16 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                 </span>
               )}
               {task.scheduled_at && (
-                <span className={`inline-flex items-center gap-1 ${task.remind ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--tertiary))]'}`}>
-                  <Clock className="size-3" />
-                  {format(parseISO(task.scheduled_at), 'h:mm a')}
-                  {task.remind && <Bell className="size-2.5 fill-current" />}
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
+                    task.remind
+                      ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+                      : 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
+                  }`}
+                  title={task.remind ? 'Reminder set' : 'Scheduled'}
+                >
+                  {task.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
+                  <span>{format(parseISO(task.scheduled_at), 'h:mm a')}</span>
                 </span>
               )}
               {totalSteps > 0 && (

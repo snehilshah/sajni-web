@@ -322,9 +322,16 @@ export default function TodayPage() {
 											<div className="text-[14px] text-foreground font-medium truncate">{t.title}</div>
 											<div className="flex gap-2 mt-1 text-[11px] text-muted-foreground">
 												{t.scheduled_at ? (
-													<span className={`mono inline-flex items-center gap-1 ${t.remind ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--tertiary))]'}`}>
-														<Clock className="size-3" /> {format(parseISO(t.scheduled_at), 'h:mm a')}
-														{t.remind && <Bell className="size-2.5 fill-current" />}
+													<span
+														className={`mono inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
+															t.remind
+																? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+																: 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
+														}`}
+														title={t.remind ? 'Reminder set' : 'Scheduled'}
+													>
+														{t.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
+														{format(parseISO(t.scheduled_at), 'h:mm a')}
 													</span>
 												) : t.due_date ? (
 													<span className="mono inline-flex items-center gap-1">
