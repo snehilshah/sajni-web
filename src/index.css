@@ -788,7 +788,28 @@ em, .italic { font-style: italic; }
   text-decoration: line-through; opacity: 0.55;
 }
 
-.tiptap-link { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
+/* M3 link pill — favicon (decoration widget) + tonal label. Cmd/Ctrl-click
+   opens; plain click edits. The favicon is injected by the LinkFavicon
+   ProseMirror plugin so reloaded [title](url) markdown lights up too. */
+.tiptap-link {
+  color: hsl(var(--on-secondary-container));
+  background: hsl(var(--secondary-container) / 0.55);
+  border-radius: 6px;
+  padding: 0.5px 5px;
+  text-decoration: none;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 150ms var(--m3-ease-standard);
+}
+.tiptap-link:hover { background: hsl(var(--secondary-container)); }
+.link-favicon {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  vertical-align: -2px;
+  margin-right: 3px;
+  object-fit: contain;
+  display: inline-block;
+}
 .tiptap-image { max-width: 100%; border-radius: 12px; }
 .tiptap-code-block {
   background: hsl(var(--surface-container-low));

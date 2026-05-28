@@ -49,6 +49,16 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
   },
   {
+    // Hands off to the React layer (RichEditor binds editor.storage.linkEntry.onOpen)
+    // so the title+url dialog + title-fetch can live outside the editor.
+    id: 'link', title: 'Link', subtitle: 'Insert a titled link', icon: '🔗',
+    command: ({ editor, range }) => {
+      const open = (editor.storage as any)?.linkEntry?.onOpen;
+      if (typeof open === 'function') open(range);
+      else editor.chain().focus().deleteRange(range).run();
+    },
+  },
+  {
     // Hands off to the React layer (RichEditor binds editor.storage.taskchip.onOpen)
     // so the title dialog and tasksApi.create call can live outside the editor.
     id: 'task', title: 'Task', subtitle: 'Create + reference inline', icon: '☑',

@@ -10,15 +10,25 @@ import { Markdown } from 'tiptap-markdown';
 import type { Editor } from '@tiptap/react';
 import { useNavigate } from 'react-router-dom';
 
-import { uploads, notes as notesApi, tasks as tasksApi } from '@/api';
+import { toast } from 'sonner';
+
+import { uploads, notes as notesApi, tasks as tasksApi, links as linksApi } from '@/api';
 import type { Task } from '@/types';
 import { WikiLink, TagSuggest } from './wikilink';
 import { SlashCommand } from './slashMenu';
 import { TimeChip, TimeChipSuggest } from './timeChip';
 import { TaskChip } from './taskChip';
+import { LinkEntry } from './linkEntry';
+import { LinkFavicon } from './linkFavicon';
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
 } from '@/components/ui/command';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
 import {
   Bold, Italic, Strikethrough, Code, Link2, Unlink, List, ListOrdered, ListChecks,
@@ -53,6 +63,12 @@ export default function RichEditor({
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [taskLoading, setTaskLoading] = useState(false);
 
+  // /link dialog state.
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkTitle, setLinkTitle] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkFetching, setLinkFetching] = useState(false);
+
   const extensions = useMemo(() => [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
@@ -77,6 +93,8 @@ export default function RichEditor({
     TimeChip,
     TimeChipSuggest,
     TaskChip,
+    LinkEntry,
+    LinkFavicon,
     Placeholder.configure({
       placeholder: ({ node, editor: ed, pos }) => {
         // Show only on the first empty paragraph
@@ -131,16 +149,37 @@ export default function RichEditor({
         }
         return false;
       },
-      handlePaste(_view, event) {
+      handlePaste(view, event) {
         const items = event.clipboardData?.items;
-        if (!items) return false;
-        for (const item of items) {
-          if (item.type.startsWith('image/')) {
-            event.preventDefault();
-            const blob = item.getAsFile();
-            if (blob) uploadAndInsertImage(blob);
-            return true;
+        if (items) {
+          for (const item of items) {
+            if (item.type.startsWith('image/')) {
+              event.preventDefault();
+              const blob = item.getAsFile();
+              if (blob) uploadAndInsertImage(blob);
+              return true;
+            }
           }
+        }
+        // Bare URL pasted onto a collapsed selection → insert a real link
+        // immediately (clickable + favicon), then fetch its title and offer
+        // to swap the raw URL for it. Selection-paste keeps tiptap's default
+        // linkOnPaste (wraps the highlighted text).
+        const text = event.clipboardData?.getData('text/plain')?.trim();
+        if (text && BARE_URL.test(text) && view.state.selection.empty && editor) {
+          event.preventDefault();
+          editor.chain().focus().insertContent([
+            { type: 'text', text, marks: [{ type: 'link', attrs: { href: text } }] },
+            { type: 'text', text: ' ' },
+          ]).run();
+          linksApi.preview(text).then((res) => {
+            if (!res?.title || res.title === text || res.title === res.host) return;
+            toast('Found the page title', {
+              description: res.title,
+              action: { label: 'Use title', onClick: () => editor && upgradeLink(editor, text, res.title) },
+            });
+          }).catch(() => { /* offline / blocked — keep the raw URL */ });
+          return true;
         }
         return false;
       },
@@ -247,6 +286,48 @@ export default function RichEditor({
     setTaskPicker(false);
   }, [editor]);
 
+  // Bind the /link slash command → M3 link dialog (title + url).
+  useEffect(() => {
+    if (!editor) return;
+    const storage = (editor.storage as any).linkEntry;
+    if (!storage) return;
+    storage.onOpen = (range: { from: number; to: number }) => {
+      editor.chain().focus().deleteRange(range).run();
+      const existing = editor.getAttributes('link').href as string | undefined;
+      setLinkUrl(existing || '');
+      setLinkTitle('');
+      setLinkOpen(true);
+    };
+    return () => { if (storage) storage.onOpen = null; };
+  }, [editor]);
+
+  const fetchLinkTitle = useCallback(async () => {
+    const u = linkUrl.trim();
+    if (!u) return;
+    setLinkFetching(true);
+    try {
+      const res = await linksApi.preview(/^https?:\/\//i.test(u) ? u : 'https://' + u);
+      if (res?.title && res.title !== res.host) setLinkTitle(res.title);
+    } catch { /* ignore — user can type a title */ } finally {
+      setLinkFetching(false);
+    }
+  }, [linkUrl]);
+
+  const commitLink = useCallback(() => {
+    if (!editor) return;
+    let url = linkUrl.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const label = linkTitle.trim() || url;
+    editor.chain().focus().insertContent([
+      { type: 'text', text: label, marks: [{ type: 'link', attrs: { href: url } }] },
+      { type: 'text', text: ' ' },
+    ]).run();
+    setLinkOpen(false);
+    setLinkUrl('');
+    setLinkTitle('');
+  }, [editor, linkUrl, linkTitle]);
+
   return (
     <div className={`relative w-full ${className || ''}`}>
       {editor && (
@@ -297,8 +378,75 @@ export default function RichEditor({
           )}
         </CommandList>
       </CommandDialog>
+
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Insert link</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-1">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLink(); } }}
+                  placeholder="https://…"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={fetchLinkTitle}
+                  disabled={!linkUrl.trim() || linkFetching}
+                  className="shrink-0"
+                >
+                  {linkFetching ? 'Fetching…' : 'Fetch title'}
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Title</Label>
+              <Input
+                value={linkTitle}
+                onChange={(e) => setLinkTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLink(); } }}
+                placeholder="Link text (defaults to the URL)"
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-3">
+            <Button variant="ghost" onClick={() => setLinkOpen(false)}>Cancel</Button>
+            <Button onClick={commitLink} disabled={!linkUrl.trim()}>Insert link</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// Bare URL = single token, no whitespace, http(s).
+const BARE_URL = /^https?:\/\/\S+$/i;
+
+// upgradeLink swaps a freshly-pasted raw-URL link for one labelled with the
+// fetched page title, found by scanning for the link whose text is still
+// the URL (robust to cursor movement after paste).
+function upgradeLink(editor: Editor, href: string, title: string) {
+  let found: { from: number; to: number } | null = null;
+  editor.state.doc.descendants((node: any, pos: number) => {
+    if (found) return false;
+    if (node.isText && node.text === href && node.marks.some((m: any) => m.type.name === 'link' && m.attrs.href === href)) {
+      found = { from: pos, to: pos + node.nodeSize };
+    }
+    return undefined;
+  });
+  if (found) {
+    editor.chain().focus().insertContentAt(found, {
+      type: 'text', text: title, marks: [{ type: 'link', attrs: { href } }],
+    }).run();
+  }
 }
 
 function imagePicker(insert: (file: File) => void) {

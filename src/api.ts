@@ -449,6 +449,15 @@ export const account = {
       '/account/deletion-status'),
 };
 
+// --- Links ---
+export const links = {
+  // Server-side title fetch (CORS blocks the browser). Returns the page
+  // title so the editor can turn a bare URL into a [title](url) link.
+  preview: (url: string) =>
+    request<{ url: string; title: string; host: string }>(
+      '/links/preview?url=' + encodeURIComponent(url)),
+};
+
 // --- Tags ---
 export const tags = {
   list: () => request<{ tag: string; count: number }[]>('/tags'),
