@@ -165,13 +165,14 @@ export function applyM3(seeds: ThemeSeeds, mode: 'light' | 'dark' = 'light') {
   root.setAttribute('data-theme', 'custom');
 }
 
-// resetM3 strips the inline vars so the stylesheet defaults win again.
+// resetM3 strips the inline vars so the stylesheet defaults (or a selected
+// CSS preset) win again. It intentionally does NOT touch the data-theme
+// attribute — that is owned by the preset system, so the caller restores it.
 export function resetM3() {
   const root = document.documentElement;
   for (const name of Object.keys(tokens)) {
     root.style.removeProperty('--' + name);
   }
-  root.removeAttribute('data-theme');
 }
 
 // previewSwatches gives the settings UI a small array of representative

@@ -7,6 +7,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { themes as themesApi, type UserTheme } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
 import { applyM3, resetM3 } from './applyM3';
+import { getPreset, presetStylesheet } from './presets';
+
+const PRESET_KEY = 'sajni:theme';
 
 interface Ctx {
   active: UserTheme | null;
@@ -53,7 +56,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const apply = useCallback((t: UserTheme | null, m?: 'light' | 'dark') => {
     const targetMode = m ?? mode;
     if (!t) {
+      // No server theme: clear the inline M3 vars and fall back to the
+      // user's selected CSS preset (data-theme), so the page keeps its
+      // colors instead of snapping back to the bare :root default.
       resetM3();
+      let presetId = 'marine';
+      try { presetId = getPreset(localStorage.getItem(PRESET_KEY)).id; } catch {}
+      document.documentElement.setAttribute('data-theme', presetId);
       setActive(null);
       return;
     }
@@ -71,7 +80,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [apply]);
 
+  // Inject the preset stylesheets once. Presets ride the data-theme +
+  // data-mode CSS cascade (so the light/dark toggle keeps flipping them),
+  // but their tokens are generated from seeds — single source of truth.
+  useEffect(() => {
+    const ID = 'sajni-theme-presets';
+    if (document.getElementById(ID)) return;
+    const el = document.createElement('style');
+    el.id = ID;
+    el.textContent = presetStylesheet();
+    document.head.appendChild(el);
+  }, []);
+
   // Initial load. Theme endpoints are protected, so wait for auth boot.
+  // Keyed on user.id (not the user object) so a profile edit — e.g.
+  // changing the display name — does NOT re-run this and reset the theme.
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -79,7 +102,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     refresh();
-  }, [apply, loading, refresh, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user?.id]);
 
   // When the mode toggle changes (light/dark), re-apply the current
   // theme so the new tones land. Custom themes with `mode_pref` set to

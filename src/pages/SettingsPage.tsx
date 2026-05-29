@@ -10,6 +10,7 @@ import { account, themes as themesApi, type UserTheme } from '@/api';
 import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
+import { getPreset } from '@/theme/presets';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
 // applied through the ThemeProvider so other pages observe the swap
@@ -317,6 +318,7 @@ function NameEditor() {
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { theme, setTheme, themes } = useTheme();
+  const { apply: applyUserTheme, mode: resolvedMode } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
   const [signingOut, setSigningOut] = useState(false);
@@ -403,18 +405,29 @@ export default function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             {themes.map((t) => {
               const active = theme === t.id;
+              const swatches = previewSwatches(getPreset(t.id).seeds, resolvedMode);
               return (
                 <button
                   key={t.id}
-                  onClick={() => setTheme(t.id)}
+                  // Pick the preset (data-theme) and clear any active AI/custom
+                  // theme's inline vars so the preset's colors win.
+                  onClick={() => { setTheme(t.id); applyUserTheme(null); }}
                   className={cn(
-                    'h-10 px-5 inline-flex items-center gap-2 border text-sm rounded-full transition-colors',
+                    'h-10 pl-2 pr-5 inline-flex items-center gap-2.5 border text-sm rounded-full transition-colors',
                     active
                       ? 'bg-primary text-primary-foreground border-primary shadow-[var(--m3-elev-1)]'
                       : 'bg-transparent border-[hsl(var(--outline))] text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.06)]',
                   )}
                 >
-                  <span>{t.emoji}</span>
+                  <span className="flex -space-x-1" aria-hidden="true">
+                    {swatches.slice(0, 3).map((c, i) => (
+                      <span
+                        key={i}
+                        className="size-4 rounded-full ring-1 ring-[hsl(var(--surface)/0.6)]"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </span>
                   {t.label}
                 </button>
               );
