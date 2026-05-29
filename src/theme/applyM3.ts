@@ -28,16 +28,17 @@ function palettes(seeds: ThemeSeeds) {
   if (seeds.neutral) {
     neutral = TonalPalette.fromInt(argbFromHex(seeds.neutral));
   } else {
-    // Take primary hue but slam chroma down to 2 so the surface family
-    // reads as near-pure grey. Higher chroma (was 6) tinted card
-    // backgrounds noticeably "dull reddish/greenish" on warm/cool seeds.
+    // Take the primary hue and keep a real (but restrained) chroma so the
+    // surface family carries a visible hint of the accent — the page
+    // background should feel tinted, not flat grey. Stays light enough at
+    // the high surface tones to avoid the "dull" mid-tone wash.
     const h = Hct.fromInt(argbFromHex(seeds.primary)).hue;
-    neutral = TonalPalette.fromHueAndChroma(h, 2);
+    neutral = TonalPalette.fromHueAndChroma(h, 10);
   }
-  // Neutral-variant carries slightly more chroma — used for outline
-  // tokens where a hint of color is desirable. Cap at 4 to stay subtle.
+  // Neutral-variant carries a touch more chroma — used for outline tokens
+  // and on-surface-variant where a clearer hint of color reads well.
   const neutralVariantHue = Hct.fromInt(argbFromHex(seeds.primary)).hue;
-  const neutralVariant = TonalPalette.fromHueAndChroma(neutralVariantHue, 4);
+  const neutralVariant = TonalPalette.fromHueAndChroma(neutralVariantHue, 16);
   // Error is fixed across all themes — M3 reference red.
   const error = TonalPalette.fromHueAndChroma(25, 84);
   return { primary, secondary, tertiary, neutral, neutralVariant, error };
