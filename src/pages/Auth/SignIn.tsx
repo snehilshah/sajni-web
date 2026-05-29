@@ -100,7 +100,7 @@ export default function SignIn() {
       <div className="relative z-10 min-h-[100dvh] grid md:grid-cols-2">
         <div className="hidden md:flex flex-col justify-between p-12 border-r border-border">
           <div className="flex items-center gap-3">
-            <span className="sajni-orb" aria-hidden="true" />
+            <span className="sajni-logo" aria-hidden="true" />
             <div>
               <div className="serif text-[20px] font-semibold leading-tight">sajni</div>
               <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">codex</div>
@@ -125,7 +125,7 @@ export default function SignIn() {
         <div className="flex items-center justify-center px-5 py-12 md:py-0">
           <div className="w-full max-w-sm">
             <div className="md:hidden mb-8 flex items-center gap-3">
-              <span className="sajni-orb" aria-hidden="true" />
+              <span className="sajni-logo" aria-hidden="true" />
               <div>
                 <div className="serif text-[18px] font-semibold leading-tight">sajni</div>
                 <div className="mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">codex</div>

@@ -581,7 +581,7 @@ export default function SettingsPage() {
 
         {/* Brand mark — moved here from the rail. */}
         <div className="border-t border-border mt-10 pt-8 flex items-center gap-3 opacity-80">
-          <span className="sajni-orb" aria-hidden="true" />
+          <span className="sajni-logo" aria-hidden="true" />
           <div>
             <div className="serif text-base font-semibold leading-tight">sajni</div>
             <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">

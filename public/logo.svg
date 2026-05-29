@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" color="#1B1410" aria-label="Sajni · Mehendi (favicon)">
+
+    
+    <g fill="currentColor">
+      <circle cx="122" cy="64" r="3"></circle>
+      <circle cx="117.5" cy="86.2" r="3"></circle>
+      <circle cx="105" cy="105" r="3"></circle>
+      <circle cx="86.2" cy="117.5" r="3"></circle>
+      <circle cx="64" cy="122" r="3"></circle>
+      <circle cx="41.8" cy="117.5" r="3"></circle>
+      <circle cx="23" cy="105" r="3"></circle>
+      <circle cx="10.5" cy="86.2" r="3"></circle>
+      <circle cx="6" cy="64" r="3"></circle>
+      <circle cx="10.5" cy="41.8" r="3"></circle>
+      <circle cx="23" cy="23" r="3"></circle>
+      <circle cx="41.8" cy="10.5" r="3"></circle>
+      <circle cx="64" cy="6" r="3"></circle>
+      <circle cx="86.2" cy="10.5" r="3"></circle>
+      <circle cx="105" cy="23" r="3"></circle>
+      <circle cx="117.5" cy="41.8" r="3"></circle>
+    </g>
+    
+    <g transform="translate(64 64)" fill="currentColor">
+      <g transform="rotate(0)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(45)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(90)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(135)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(180)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(225)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(270)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+      <g transform="rotate(315)"><path d="M 0 -48 C -8 -40, -10 -30, -5 -24 C -2 -21, 2 -21, 5 -24 C 10 -30, 8 -40, 0 -48 Z"></path></g>
+    </g>
+    
+    <g transform="translate(64 64)" fill="currentColor">
+      <g transform="rotate(22.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(67.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(112.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(157.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(202.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(247.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(292.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+      <g transform="rotate(337.5)"><circle cx="0" cy="-40" r="2"></circle></g>
+    </g>
+    
+    <circle cx="64" cy="64" r="9" fill="#B53A2D"></circle>
+</svg>

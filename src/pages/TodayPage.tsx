@@ -228,7 +228,7 @@ export default function TodayPage() {
 			{/* Capture bar */}
 			<div className="m3-expressive-panel rounded-xl p-5 mt-9 fade-in">
 				<div className="flex items-center gap-2.5 mb-2.5">
-					<div className="sajni-orb" style={{ width: 22, height: 22, borderRadius: 6 }} />
+					<div className="sajni-logo" style={{ width: 22, height: 22, borderRadius: 6 }} />
 					<span className="mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">Capture</span>
 					<div className="flex-1" />
 					<span className="text-[11px] text-muted-foreground hidden md:inline">I'll route to the right place</span>
