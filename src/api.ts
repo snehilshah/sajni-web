@@ -506,6 +506,7 @@ export interface FinTransaction {
   type: 'expense' | 'income' | 'transfer_in' | 'transfer_out';
   amount: number;
   description: string;
+  note: string;
   txn_date: string;
   transfer_pair: number | null;
   linked_account: number | null;
@@ -638,7 +639,7 @@ export const finance = {
     const qs = q.toString();
     return request<FinTransaction[]>('/finance/transactions' + (qs ? '?' + qs : ''));
   },
-  createTransaction: (data: { account_id: number; category_id?: number | null; type: string; amount: number; description?: string; txn_date: string; linked_account?: number }) =>
+  createTransaction: (data: { account_id: number; category_id?: number | null; type: string; amount: number; description?: string; note?: string; txn_date: string; linked_account?: number }) =>
     request<{ id: number }>('/finance/transactions', { method: 'POST', body: JSON.stringify(data) }),
   updateTransaction: (id: number, data: Partial<FinTransaction>) =>
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),

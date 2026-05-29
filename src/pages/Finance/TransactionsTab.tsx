@@ -6,6 +6,7 @@ import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, S
 import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -208,14 +209,19 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   const [categoryId, setCategoryId] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [note, setNote] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [inferring, setInferring] = useState(false);
+  const clearError = (key: string) => setErrors((e) => (e[key] ? { ...e, [key]: '' } : e));
   // Once the user picks a category by hand we stop auto-overwriting it,
   // even if they keep editing the title afterward.
   const userPickedCategoryRef = useRef(false);
   const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setErrors({});
     if (txn) {
       const t = txn.type === 'transfer_out' ? 'transfer' : (txn.type as any);
       setType(t);
@@ -224,6 +230,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setCategoryId(txn.category_id ? String(txn.category_id) : '');
       setAmount(String(txn.amount));
       setDescription(txn.description);
+      setNote(txn.note || '');
       setDate(txn.txn_date);
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
     } else {
@@ -233,6 +240,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setCategoryId('');
       setAmount('');
       setDescription('');
+      setNote('');
       setDate(format(new Date(), 'yyyy-MM-dd'));
       userPickedCategoryRef.current = false;
     }
@@ -278,40 +286,67 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
     return () => { if (inferTimer.current) clearTimeout(inferTimer.current); };
   }, [description, type, txn]);
 
-  const save = async () => {
-    if (!accountId || !amount) return;
+  // Collect per-field validation messages so the user sees exactly what's
+  // missing instead of the Add button silently doing nothing.
+  const validate = (): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (!accountId) e.account = 'Select an account.';
     const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) return;
-
-    if (txn) {
-      // Edit only — don't change type/account, just amount/category/description/date
-      await finance.updateTransaction(txn.id, {
-        amount: amt,
-        description,
-        txn_date: date,
-        category_id: categoryId ? parseInt(categoryId) as any : null,
-      } as any);
-    } else if (type === 'transfer') {
-      if (!linkedId || linkedId === accountId) return;
-      await finance.createTransaction({
-        account_id: parseInt(accountId),
-        type: 'transfer',
-        amount: amt,
-        description,
-        txn_date: date,
-        linked_account: parseInt(linkedId),
-      });
-    } else {
-      await finance.createTransaction({
-        account_id: parseInt(accountId),
-        type,
-        amount: amt,
-        description,
-        txn_date: date,
-        category_id: categoryId ? parseInt(categoryId) : null,
-      });
+    if (!amount.trim()) e.amount = 'Enter an amount.';
+    else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
+    if (type === 'transfer' && !txn) {
+      if (!linkedId) e.linked = 'Choose a destination account.';
+      else if (linkedId === accountId) e.linked = 'Destination must differ from the source.';
     }
-    onSaved();
+    return e;
+  };
+
+  const save = async () => {
+    if (saving) return;
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setErrors({});
+    const amt = parseFloat(amount);
+
+    setSaving(true);
+    try {
+      if (txn) {
+        // Edit only — don't change type/account, just amount/category/description/note/date
+        await finance.updateTransaction(txn.id, {
+          amount: amt,
+          description,
+          note,
+          txn_date: date,
+          category_id: categoryId ? parseInt(categoryId) as any : null,
+        } as any);
+      } else if (type === 'transfer') {
+        await finance.createTransaction({
+          account_id: parseInt(accountId),
+          type: 'transfer',
+          amount: amt,
+          description,
+          note,
+          txn_date: date,
+          linked_account: parseInt(linkedId),
+        });
+      } else {
+        await finance.createTransaction({
+          account_id: parseInt(accountId),
+          type,
+          amount: amt,
+          description,
+          note,
+          txn_date: date,
+          category_id: categoryId ? parseInt(categoryId) : null,
+        });
+      }
+      onSaved();
+    } catch (e) {
+      // Surface the failure instead of silently leaving the dialog open.
+      alert('Could not save transaction: ' + (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async () => {
@@ -352,10 +387,10 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
               autoFocus={!txn}
             />
           </Field>
-          <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2">
-            <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v ?? '')} disabled={!!txn}
+          <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2" error={errors.account}>
+            <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }} disabled={!!txn}
               items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
-              <SelectTrigger>
+              <SelectTrigger aria-invalid={!!errors.account}>
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
@@ -366,10 +401,10 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             </Select>
           </Field>
           {type === 'transfer' && !txn && (
-            <Field label="To account" className="col-span-2">
-              <Select value={linkedId || undefined} onValueChange={(v) => setLinkedId(v ?? '')}
+            <Field label="To account" className="col-span-2" error={errors.linked}>
+              <Select value={linkedId || undefined} onValueChange={(v) => { setLinkedId(v ?? ''); clearError('linked'); }}
                 items={accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name }))}>
-                <SelectTrigger>
+                <SelectTrigger aria-invalid={!!errors.linked}>
                   <SelectValue placeholder="Select destination" />
                 </SelectTrigger>
                 <SelectContent>
@@ -415,11 +450,30 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
               </Select>
             </Field>
           )}
-          <Field label="Amount">
-            <Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <Field label="Amount" error={errors.amount}>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={amount}
+              aria-invalid={!!errors.amount}
+              onChange={(e) => { setAmount(e.target.value); clearError('amount'); }}
+            />
           </Field>
           <Field label="Date">
             <DatePicker value={date} onChange={setDate} />
+          </Field>
+          <Field label="Note" className="col-span-2">
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional note — context, who it was with, anything to remember"
+              rows={3}
+              maxLength={1000}
+              // Fixed height (field-sizing:fixed) — auto-growing inside the
+              // modal's scroll container caused a layout-thrash freeze.
+              className="resize-none overflow-y-auto !min-h-0 h-[76px]"
+              style={{ fieldSizing: 'fixed' } as any}
+            />
           </Field>
         </div>
         <DialogFooter className="sm:justify-between">
@@ -429,8 +483,11 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={save}>{txn ? 'Save' : 'Add'}</Button>
+            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button onClick={save} disabled={saving} className="gap-1.5">
+              {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
+              {txn ? 'Save' : 'Add'}
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>
@@ -438,7 +495,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   );
 }
 
-function Field({ label, className = '', children, hint }: { label: string; className?: string; children: React.ReactNode; hint?: React.ReactNode }) {
+function Field({ label, className = '', children, hint, error }: { label: string; className?: string; children: React.ReactNode; hint?: React.ReactNode; error?: string }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <div className="flex items-center justify-between gap-2 min-h-[14px]">
@@ -446,6 +503,7 @@ function Field({ label, className = '', children, hint }: { label: string; class
         {hint}
       </div>
       {children}
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
     </div>
   );
 }
