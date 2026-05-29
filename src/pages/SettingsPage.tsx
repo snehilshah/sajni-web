@@ -495,7 +495,7 @@ export default function SettingsPage() {
                 finally { setSigningOut(false); }
               }}
             >
-              {signingOut ? <M3CookieLoader size="xs" tone="primary" className="!bg-destructive-foreground" /> : <LogOut className="size-3.5" />}
+              {signingOut ? <M3CookieLoader size="xs" tone="primary" className="!text-destructive-foreground" /> : <LogOut className="size-3.5" />}
               {signingOut ? 'Signing out…' : 'Sign out'}
             </Button>
           </div>

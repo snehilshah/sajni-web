@@ -403,7 +403,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               disabled={!input.trim() || streaming || enabled === false}
               title="Send"
             >
-              {streaming ? <M3CookieLoader size="sm" tone="primary" className="!bg-primary-foreground" /> : <Send className="size-4" />}
+              {streaming ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : <Send className="size-4" />}
             </Button>
           </div>
           <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground mt-2 text-center">

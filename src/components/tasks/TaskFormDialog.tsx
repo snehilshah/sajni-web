@@ -446,7 +446,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
-            {saving && <M3CookieLoader size="xs" tone="primary" className="!bg-primary-foreground" />}
+            {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
             {editing ? 'Save' : 'Create task'}
           </Button>
         </DialogFooter>

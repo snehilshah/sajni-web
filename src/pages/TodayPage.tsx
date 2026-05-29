@@ -270,7 +270,7 @@ export default function TodayPage() {
 						disabled={!capture.trim() || saving}
 						className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
 					>
-						{saving ? <M3CookieLoader size="sm" tone="primary" className="!bg-primary-foreground" /> : null}
+						{saving ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : null}
 						Save
 						<kbd className="mono text-[10px] px-1 py-px rounded bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground/85">
 							⌘↵
