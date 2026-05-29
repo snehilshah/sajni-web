@@ -322,9 +322,17 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                   id="task-time"
                   name="task-time"
                   value={form.scheduled_time}
-                  disabled={!form.due_date}
                   placeholder="Set time"
-                  onChange={(v) => setForm({ ...form, scheduled_time: v, remind: v ? form.remind : false })}
+                  onChange={(v) => setForm({
+                    ...form,
+                    scheduled_time: v,
+                    // A reminder needs a concrete day — default to today when
+                    // none is picked so a quick "remind me at 5pm" works
+                    // without first choosing a due date. The user can still
+                    // move the date freely with the Due date picker.
+                    due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
+                    remind: v ? form.remind : false,
+                  })}
                 />
               </div>
               <label
@@ -343,11 +351,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               </label>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {!form.due_date
-                ? 'Pick a due date to set a time.'
+              {!form.scheduled_time
+                ? 'Set a time — scheduled for the due date, or today if none is set.'
                 : form.remind
                   ? 'Sajni will email you ~5 min before.'
-                  : 'Add a time to show this on your Today agenda.'}
+                  : 'Shows on your Today agenda. Turn on Remind for an email nudge.'}
             </p>
           </div>
 
