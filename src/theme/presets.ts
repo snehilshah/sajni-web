@@ -9,7 +9,12 @@
 
 import { buildPalette, type ThemeSeeds } from './applyM3';
 
-export type PresetId = 'marine' | 'terracotta' | 'barbie' | 'powerpuff';
+export type PresetId =
+  | 'marine'
+  | 'powerpuff'
+  | 'gruvbox'
+  | 'peach'
+  | 'mauve';
 
 export interface ThemePreset {
   id: PresetId;
@@ -18,49 +23,46 @@ export interface ThemePreset {
   seeds: ThemeSeeds;
 }
 
-// Marine + Terracotta refined as seeds (was hand-authored CSS). Barbie +
-// Powerpuff seeded from barbie.hex / powerpuff.hex at the repo root.
 export const PRESETS: ThemePreset[] = [
-  // No `neutral` seed on purpose: the surface family then derives from the
-  // primary hue (see applyM3 palettes()), so the page background carries a
-  // visible hint of the accent instead of reading as flat grey.
   {
     id: 'marine',
     label: 'Marine',
     emoji: '🌊',
-    // Cool sage-teal primary, slate-blue secondary, sea-green tertiary.
     seeds: { primary: '#1F7A8C', secondary: '#3E6B99', tertiary: '#2E8B6B' },
   },
   {
-    id: 'terracotta',
-    label: 'Terracotta',
-    emoji: '🌅',
-    // Warm clay primary, ochre secondary, olive-green tertiary.
-    seeds: { primary: '#C0552E', secondary: '#B5832F', tertiary: '#3E9173' },
-  },
-  {
-    id: 'barbie',
-    label: 'Barbie',
-    emoji: '🎀',
-    // barbie.hex: pink primary, orchid secondary, soft-gold tertiary.
-    seeds: { primary: '#FF9FD6', secondary: '#C693EC', tertiary: '#F1DAA5' },
-  },
-  {
     id: 'powerpuff',
-    label: 'Powerpuff',
-    emoji: '💥',
-    // powerpuff.hex: hot magenta primary, bubblegum secondary, ruby tertiary.
-    seeds: { primary: '#FF007F', secondary: '#FF66B2', tertiary: '#E0115F' },
+    label: 'PowerPuff',
+    emoji: '🎀',
+    seeds: { primary: '#eb6f92', secondary: '#C693EC', tertiary: '#ebbcba' },
+  },
+  {
+    id: 'gruvbox',
+    label: 'Gruvbox',
+    emoji: '🍂',
+    seeds: { primary: '#A9B665', secondary: '#D8A657', tertiary: '#D3869B' },
+  },
+  {
+    id: 'peach',
+    label: 'Peach',
+    emoji: '🍑',
+    seeds: { primary: '#D7897F', secondary: '#F9B95C', tertiary: '#96C7B3' },
+  },
+  {
+    id: 'mauve',
+    label: 'Mauve',
+    emoji: '🔮',
+    seeds: { primary: '#191724', secondary: '#e0def4', tertiary: '#eb6f92' },
   },
 ];
 
 const VALID = new Set<string>(PRESETS.map((p) => p.id));
 
-// Normalize a stored theme id, migrating the legacy ids ('default'→marine,
-// 'warm'→terracotta) and falling back to marine for anything unknown.
+// Use a stored theme id only if it's a current preset; anything else — a
+// removed theme, a legacy id, or junk — falls back to marine. Themes are
+// final, so there's no alias migration: valid choices are kept as-is,
+// unknown ones snap to marine.
 export function normalizePreset(id: string | null | undefined): PresetId {
-  if (id === 'default') return 'marine';
-  if (id === 'warm') return 'terracotta';
   if (id && VALID.has(id)) return id as PresetId;
   return 'marine';
 }

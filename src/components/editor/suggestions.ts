@@ -71,7 +71,7 @@ export const AutocompleteExtension = Extension.create({
               .filter((t) => t.tag.toLowerCase().includes(query.toLowerCase()))
               .map((t) => ({ title: t.tag, subtitle: `${t.count} items` }))
               .slice(0, 5);
-          } catch (e) {
+          } catch {
             return [];
           }
         },
@@ -88,7 +88,7 @@ export const AutocompleteExtension = Extension.create({
           try {
             const res = await notes.list({ search: query });
             return res.map((n) => ({ title: n.title })).slice(0, 5);
-          } catch (e) {
+          } catch {
             return [];
           }
         },

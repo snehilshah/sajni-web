@@ -23,6 +23,7 @@ import {
   thinking, type ThinkingProject, type ThinkingCard, type ThinkingKind,
   type ThinkingConnection, type ThinkingRelation, type ThinkingEnrichment,
 } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 
 const KINDS: ThinkingKind[] = [
   'note', 'entity', 'question', 'idea', 'reflection',
@@ -74,6 +75,10 @@ export default function ThinkingProjectPage() {
   // current draft. If false, auto-categorize is free to silently flip
   // the Select to its latest suggestion as the user types.
   const userPickedKind = useRef(false);
+  // Render-time mirror of userPickedKind (the "auto" hint reads it in JSX, and
+  // the React Compiler forbids reading a ref during render). The ref stays the
+  // source of truth for the async classify guards which need the live value.
+  const [userPickedKindState, setUserPickedKindState] = useState(false);
   // Latest AI suggestion + a deferred promise. addCard awaits this
   // (up to 3s) if it hasn't resolved by the time the user hits Add.
   const pendingClassify = useRef<Promise<ThinkingKind | null> | null>(null);
@@ -119,6 +124,7 @@ export default function ThinkingProjectPage() {
 
   const onUserPickKind = (v: ThinkingKind) => {
     userPickedKind.current = true;
+    setUserPickedKindState(true);
     setKind(v);
   };
 
@@ -141,6 +147,7 @@ export default function ThinkingProjectPage() {
       setDraft('');
       setKind('note');
       userPickedKind.current = false;
+      setUserPickedKindState(false);
       pendingClassify.current = null;
       await load();
     } finally {
@@ -151,7 +158,7 @@ export default function ThinkingProjectPage() {
   };
 
   const removeCard = async (cid: number) => {
-    if (!confirm('Delete this card?')) return;
+    if (!(await confirmDialog('Delete this card?'))) return;
     await thinking.deleteCard(cid);
     if (openCardId === cid) setOpenCardId(null);
     load();
@@ -198,11 +205,12 @@ export default function ThinkingProjectPage() {
   const openCard = cards.find((c) => c.id === openCardId) || null;
 
   // Stale = cards added since synthesized_at > threshold.
+  const synthAt = project?.synthesized_at;
   const cardsSinceSynth = useMemo(() => {
-    if (!project?.synthesized_at) return cards.length;
-    const t = new Date(project.synthesized_at).getTime();
+    if (!synthAt) return cards.length;
+    const t = new Date(synthAt).getTime();
     return cards.filter((c) => new Date(c.created_at).getTime() > t).length;
-  }, [cards, project?.synthesized_at]);
+  }, [cards, synthAt]);
   const showStaleBanner =
     project?.thesis &&
     cardsSinceSynth > STALE_THRESHOLD &&
@@ -320,7 +328,7 @@ export default function ThinkingProjectPage() {
               ))}
             </SelectContent>
           </Select>
-          {!userPickedKind.current && draft.trim().length >= 12 && (
+          {!userPickedKindState && draft.trim().length >= 12 && (
             <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground">auto</span>
           )}
           <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground">⌘+Enter to add</span>

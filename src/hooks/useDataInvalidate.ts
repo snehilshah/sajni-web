@@ -17,7 +17,12 @@ export function useDataInvalidate(
   debounceMs = 500,
 ) {
   const cb = useRef(onInvalidate);
-  cb.current = onInvalidate;
+  // Keep the latest callback without re-subscribing. Assigning in an effect
+  // (not during render) satisfies the React Compiler's no-ref-write-in-render
+  // rule; the handler only reads cb.current later, at event time.
+  useEffect(() => {
+    cb.current = onInvalidate;
+  });
   const key = prefixes.join('|');
 
   useEffect(() => {

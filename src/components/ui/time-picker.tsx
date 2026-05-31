@@ -50,35 +50,19 @@ function display(parts: Parts | null): string {
   return `${parts.h12}:${String(parts.min).padStart(2, "0")} ${parts.pm ? "PM" : "AM"}`
 }
 
-export function TimePicker({
-  value,
-  onChange,
-  placeholder = "Set time",
-  className,
-  disabled,
-  id,
-  name,
-}: TimePickerProps) {
-  const generatedId = React.useId()
-  const fieldId = id ?? generatedId
-  const [open, setOpen] = React.useState(false)
-  const parts = parse(value)
-
-  // Editing defaults: a fresh pick lands on 9:00 AM so the columns aren't
-  // arbitrary. Committed only once the user touches a column.
-  const current: Parts = parts ?? { h12: 9, min: 0, pm: false }
-
-  const emit = (next: Parts) => onChange?.(to24(next))
-
-  const Col = ({
-    items, selected, onPick, fmt, ariaLabel,
-  }: {
-    items: number[]
-    selected: number
-    onPick: (n: number) => void
-    fmt: (n: number) => string
-    ariaLabel: string
-  }) => (
+// One scroll column (hour / minute). Module-level so it isn't re-created on
+// every TimePicker render — the React Compiler forbids defining a component
+// during render (react-hooks/static-components).
+function Col({
+  items, selected, onPick, fmt, ariaLabel,
+}: {
+  items: number[]
+  selected: number
+  onPick: (n: number) => void
+  fmt: (n: number) => string
+  ariaLabel: string
+}) {
+  return (
     <ScrollArea className="h-[200px] w-14">
       <div className="flex flex-col gap-0.5 pr-2" role="listbox" aria-label={ariaLabel}>
         {items.map((n) => {
@@ -105,6 +89,27 @@ export function TimePicker({
       </div>
     </ScrollArea>
   )
+}
+
+export function TimePicker({
+  value,
+  onChange,
+  placeholder = "Set time",
+  className,
+  disabled,
+  id,
+  name,
+}: TimePickerProps) {
+  const generatedId = React.useId()
+  const fieldId = id ?? generatedId
+  const [open, setOpen] = React.useState(false)
+  const parts = parse(value)
+
+  // Editing defaults: a fresh pick lands on 9:00 AM so the columns aren't
+  // arbitrary. Committed only once the user touches a column.
+  const current: Parts = parts ?? { h12: 9, min: 0, pm: false }
+
+  const emit = (next: Parts) => onChange?.(to24(next))
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, subDays, startOfDay } from 'date-fns';
 
 import { habits as habitsApi } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import type { Habit } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,11 +85,14 @@ export default function HabitsPage() {
     setShowForm(true);
   };
 
-  const openEdit = (h: Habit) => {
+  // Function declaration (not const arrow) so it hoists above the deep-link
+  // effect that calls it — keeps the React Compiler's no-access-before-declare
+  // rule happy without reordering.
+  function openEdit(h: Habit) {
     setEditing(h);
     setForm({ name: h.name, frequency: h.frequency, color: h.color });
     setShowForm(true);
-  };
+  }
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
@@ -102,7 +106,7 @@ export default function HabitsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this habit and all its logs?')) return;
+    if (!(await confirmDialog('Delete this habit and all its logs?'))) return;
     await habitsApi.delete(id);
     load();
   };

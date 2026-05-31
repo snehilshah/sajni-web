@@ -190,6 +190,9 @@ export const habits = {
   toggleLogForDate: (id: number, date: string) => request<{ logged: boolean }>('/habits/' + id + '/log/' + date, { method: 'POST' }),
   statusForDate: (date: string) => request<any[]>('/habits/status?date=' + date),
   getLogs: (id: number, days = 30) => request<string[]>('/habits/' + id + '/logs?days=' + days),
+  // All habits' logged dates in one call, keyed by habit id. Avoids the
+  // per-habit N+1 on the Today page.
+  recentLogs: (days = 30) => request<Record<string, string[]>>('/habits/logs?days=' + days),
 };
 
 // --- Media ---

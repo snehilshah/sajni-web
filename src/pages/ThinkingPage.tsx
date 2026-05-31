@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { thinking, type ThinkingProject } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 
 export default function ThinkingPage() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export default function ThinkingPage() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm('Delete this thinking project and all its cards?')) return;
+    if (!(await confirmDialog('Delete this thinking project and all its cards?'))) return;
     await thinking.deleteProject(id);
     load();
   };

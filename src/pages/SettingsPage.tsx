@@ -6,7 +6,9 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { useAuth } from '@/auth/AuthContext';
 import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { account, themes as themesApi, type UserTheme } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
@@ -58,7 +60,7 @@ function AIThemes() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm('Delete this theme?')) return;
+    if (!(await confirmDialog('Delete this theme?'))) return;
     await themesApi.delete(id);
     if (active?.id === id) {
       apply(null);
@@ -341,7 +343,7 @@ export default function SettingsPage() {
   const onExport = async () => {
     setExporting(true);
     try { await account.exportData(); }
-    catch (e) { alert((e as Error).message); }
+    catch (e) { toast.error((e as Error).message); }
     finally { setExporting(false); }
   };
 
@@ -366,7 +368,7 @@ export default function SettingsPage() {
       setDelState({ scheduled: true, purge_after: res.purge_after });
       setConfirmDelete(false);
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setWorking(false);
     }
@@ -378,7 +380,7 @@ export default function SettingsPage() {
       await account.cancelDelete();
       setDelState({ scheduled: false });
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setWorking(false);
     }

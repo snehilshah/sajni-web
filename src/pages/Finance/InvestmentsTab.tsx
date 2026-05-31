@@ -4,6 +4,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from 'lucide-react';
 
 import { finance, type FinAccount, type FinInvestment } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -220,7 +221,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
 
   const remove = async () => {
     if (!investment) return;
-    if (!window.confirm('Delete this investment?')) return;
+    if (!(await confirmDialog('Delete this investment?'))) return;
     await finance.deleteInvestment(investment.id);
     onSaved();
   };

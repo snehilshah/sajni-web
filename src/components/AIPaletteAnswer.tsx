@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Sparkles, ArrowRight, Loader2, AlertCircle,
+  Sparkles, ArrowRight, AlertCircle,
   CheckSquare, Target, BookOpen, Film, Wallet,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';

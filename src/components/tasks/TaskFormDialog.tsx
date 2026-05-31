@@ -7,6 +7,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
 import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -167,7 +168,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
   const handleDelete = async () => {
     if (!editing) return;
-    if (!confirm(`Delete "${editing.title}"? Subtasks will be removed too.`)) return;
+    if (!(await confirmDialog(`Delete "${editing.title}"? Subtasks will be removed too.`))) return;
     await tasksApi.delete(editing.id);
     onOpenChange(false);
     onSaved();

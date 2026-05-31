@@ -468,12 +468,20 @@ export default function Layout() {
 
                 <div className="px-3">
                   <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground pb-2">places</div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <motion.div
+                    className="grid grid-cols-3 gap-2"
+                    initial="hidden"
+                    animate="show"
+                    variants={{ hidden: {}, show: { transition: { staggerChildren: 0.035, delayChildren: 0.05 } } }}
+                  >
                     {overflowItems.map(({ path, label, Icon }) => {
                       const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
                       return (
-                        <button
+                        <motion.button
                           key={path}
+                          variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+                          transition={{ type: 'spring', stiffness: 460, damping: 32 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => { navigate(path); setMoreOpen(false); }}
                           className={cn(
                             'flex flex-col items-center justify-center gap-2 px-1.5 py-4 text-xs font-medium rounded-2xl transition-colors',
@@ -484,10 +492,10 @@ export default function Layout() {
                         >
                           <Icon className="size-5" strokeWidth={isActive ? 2 : 1.7} />
                           {label}
-                        </button>
+                        </motion.button>
                       );
                     })}
-                  </div>
+                  </motion.div>
                 </div>
 
                 <div className="sajni-sep my-4" />

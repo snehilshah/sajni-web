@@ -23,6 +23,7 @@ import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { ConfirmRoot } from '@/lib/confirm';
 import { M3Shapes } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
@@ -45,6 +46,7 @@ export default function App() {
 			<TaskDetailProvider>
 				<M3Shapes />
 				<Toaster richColors closeButton position="bottom-right" />
+				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}
 				<Routes>

@@ -7,7 +7,6 @@ import { useEffect, useRef } from 'react';
 import pkg from 'flubber';
 import { M3_SHAPES_DATA } from './m3-shapes-data';
 
-// @ts-ignore
 const { interpolate } = pkg;
 
 export type MorphSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;

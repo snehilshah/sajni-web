@@ -4,6 +4,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { CreditCard, Plus, Check, AlertCircle, Trash2, Gift } from 'lucide-react';
 
 import { finance, type FinAccount, type FinStatement } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -117,7 +118,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
                       statement={s}
                       onUpdate={async (data) => { await finance.updateStatement(s.id, data); load(); }}
                       onDelete={async () => {
-                        if (!window.confirm('Delete this statement?')) return;
+                        if (!(await confirmDialog('Delete this statement?'))) return;
                         await finance.deleteStatement(s.id);
                         load();
                       }}

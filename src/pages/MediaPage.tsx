@@ -259,6 +259,13 @@ function TitleAutocomplete({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  // Local copy of the input text. Typing updates THIS (only re-rendering the
+  // autocomplete), and we sync up to the parent `form` only on the search
+  // debounce / blur / select. That keeps every keystroke off the heavy
+  // MediaPage render path — otherwise the controlled `value={form.title}`
+  // couldn't repaint until MediaPage finished committing, which is what froze
+  // the field during a TMDB search.
+  const [text, setText] = useState(value);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -271,6 +278,12 @@ function TitleAutocomplete({
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  // Re-seed local text when the parent value changes for an external reason
+  // (opening an edit, a picked suggestion filling the title, TMDB details).
+  // While typing, value only changes via our own debounced onChange to the
+  // same string, so this is a no-op mid-type and never reverts the input.
+  useEffect(() => { setText(value); }, [value]);
+
   const doSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return; }
     setLoading(true);
@@ -280,11 +293,29 @@ function TitleAutocomplete({
   }, [type]);
 
   const handleChange = (val: string) => {
-    onChange(val);
+    setText(val);            // instant, local — does NOT touch MediaPage
     setHighlight(0);
     setOpen(true);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => doSearch(val), 320);
+    // Sync the parent + fire the search together, after the user pauses.
+    timer.current = setTimeout(() => { onChange(val); doSearch(val); }, 320);
+  };
+
+  // Push the locally-typed text to the parent immediately — used on blur so a
+  // Save click (which blurs first) always sees the latest title.
+  const flush = () => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    onChange(text);
+  };
+
+  // Commit a picked suggestion: cancel any pending debounce, hand the row to
+  // the parent, mirror the title locally, and close.
+  const pick = (r: MediaSearchResult) => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    onSelect(r);
+    setText(r.title);
+    setOpen(false);
+    setResults([]);
   };
 
   const placeholder = type === 'book'
@@ -295,14 +326,15 @@ function TitleAutocomplete({
     <div className="relative group" ref={wrapRef}>
       <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10" />
       <Input
-        value={value}
+        value={text}
         onChange={(e) => handleChange(e.target.value)}
+        onBlur={flush}
         onFocus={() => { if (results.length > 0) setOpen(true); }}
         onKeyDown={(e) => {
           if (!open || results.length === 0) return;
           if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => Math.min(h + 1, results.length - 1)); }
           else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
-          else if (e.key === 'Enter')   { e.preventDefault(); const r = results[highlight]; if (r) { onSelect(r); setOpen(false); setResults([]); } }
+          else if (e.key === 'Enter')   { e.preventDefault(); const r = results[highlight]; if (r) pick(r); }
           else if (e.key === 'Escape')  { setOpen(false); }
         }}
         autoFocus={autoFocus}
@@ -337,7 +369,7 @@ function TitleAutocomplete({
                   highlight === i ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
                 )}
                 onMouseEnter={() => setHighlight(i)}
-                onClick={() => { onSelect(r); setOpen(false); setResults([]); }}
+                onClick={() => pick(r)}
               >
                 <div className="w-11 aspect-[2/3] rounded-lg bg-[hsl(var(--surface-container-highest))] shrink-0 overflow-hidden">
                   {r.poster_url ? (
@@ -418,12 +450,12 @@ export default function MediaPage() {
     try { localStorage.setItem('sajni:media:group', groupSeries ? '1' : '0'); } catch {}
   }, [groupSeries]);
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
-  const toggleSeries = (id: string) =>
+  const toggleSeries = useCallback((id: string) =>
     setExpandedSeries((s) => {
       const next = new Set(s);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
-    });
+    }), []);
   // Grid-view series open in a centered dialog rather than expanding
   // the card inline — that used to push the rest of the grid down and
   // looked jumpy. Same data, no layout shift.
@@ -531,7 +563,7 @@ export default function MediaPage() {
     return byStatus;
   }, [items]);
 
-  const openForm = (item?: MediaEntry) => {
+  const openForm = useCallback((item?: MediaEntry) => {
     if (item) {
       setEditItem(item);
       setForm({
@@ -550,7 +582,7 @@ export default function MediaPage() {
       setForm(blankForm());
     }
     setShowForm(true);
-  };
+  }, [blankForm]);
 
   const handleExternalSelect = async (r: MediaSearchResult) => {
     // Optimistic prefill from the search row.
@@ -608,6 +640,91 @@ export default function MediaPage() {
 
   const TypeIcon = TYPE_META[activeType]?.icon || Film;
 
+  // Memoize the grid/list subtree so typing in the Add/Edit dialog (which
+  // updates `form` on every keystroke) does NOT re-render the whole library.
+  // The framer-motion `layout` + AnimatePresence reconciliation per keystroke
+  // was what froze the title input during a TMDB search. Deps deliberately
+  // exclude `form` — the grid reads none of it.
+  const gridEl = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <M3CookieLoader size="lg" tone="primary" />
+          <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">
+            opening library…
+          </span>
+        </div>
+      );
+    }
+    if (filteredItems.length === 0) {
+      return (
+        <EmptyState type={activeType} hasFilter={!!statusFilter || !!searchQuery} onAdd={() => openForm()} onClear={() => { setStatusFilter(''); setSearchQuery(''); }} />
+      );
+    }
+    return viewMode === 'grid' ? (
+      <motion.div
+        layout
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      >
+        <AnimatePresence initial={false}>
+          {seriesRows.map((row) => (
+            row.kind === 'single' ? (
+              <motion.div
+                key={'item-' + row.item.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
+                transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
+              >
+                <PosterCard item={row.item} onClick={() => openForm(row.item)} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key={'series-' + row.collectionId}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
+                transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
+              >
+                <SeriesPosterCard
+                  row={row}
+                  onOpen={() => setSeriesDialog(row)}
+                />
+              </motion.div>
+            )
+          ))}
+        </AnimatePresence>
+      </motion.div>
+    ) : (
+      <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
+        <AnimatePresence initial={false}>
+          {seriesRows.map((row, idx) => (
+            row.kind === 'single' ? (
+              <MediaListRow
+                key={'item-' + row.item.id}
+                item={row.item}
+                index={idx}
+                first={idx === 0}
+                onClick={() => openForm(row.item)}
+              />
+            ) : (
+              <SeriesListRow
+                key={'series-' + row.collectionId}
+                row={row}
+                first={idx === 0}
+                expanded={expandedSeries.has(row.collectionId)}
+                onToggle={() => toggleSeries(row.collectionId)}
+                onPickItem={openForm}
+              />
+            )
+          ))}
+        </AnimatePresence>
+      </div>
+    );
+  }, [loading, filteredItems, seriesRows, viewMode, statusFilter, searchQuery, activeType, expandedSeries, openForm, toggleSeries]);
+
   return (
     <PageShell
       caption={`${items.length} ${items.length === 1 ? 'entry' : 'entries'} · ${counts['in_progress'] || 0} in progress`}
@@ -645,8 +762,10 @@ export default function MediaPage() {
       </div>
 
       <div className="flex flex-col gap-4 min-w-0">
-          {/* Toolbar: status chips + search */}
-          <div className="flex flex-wrap gap-3 items-center min-w-0 w-full">
+          {/* Toolbar: status chips + search. On mobile the chips wrap freely
+              (no horizontal scroll) and the sort/actions block drops to its
+              own row beneath them; on md+ it all sits on one row. */}
+          <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-3 min-w-0 w-full">
             <div className="flex flex-wrap gap-1">
               <FilterChip
                 active={statusFilter === ''}
@@ -672,7 +791,7 @@ export default function MediaPage() {
               })}
             </div>
             <div className={cn(
-              'ml-auto flex items-center gap-2 min-w-0',
+              'md:ml-auto flex items-center gap-2 min-w-0',
               isMobileMedia && searchExpanded ? 'w-full' : '',
             )}>
               {!(isMobileMedia && searchExpanded) && (
@@ -775,78 +894,8 @@ export default function MediaPage() {
             </div>
           </div>
 
-          {/* Grid / list */}
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <M3CookieLoader size="lg" tone="primary" />
-              <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">
-                opening library…
-              </span>
-            </div>
-          ) : filteredItems.length === 0 ? (
-            <EmptyState type={activeType} hasFilter={!!statusFilter || !!searchQuery} onAdd={() => openForm()} onClear={() => { setStatusFilter(''); setSearchQuery(''); }} />
-          ) : viewMode === 'grid' ? (
-            <motion.div
-              layout
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-            >
-              <AnimatePresence initial={false}>
-                {seriesRows.map((row) => (
-                  row.kind === 'single' ? (
-                    <motion.div
-                      key={'item-' + row.item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
-                      transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
-                    >
-                      <PosterCard item={row.item} onClick={() => openForm(row.item)} />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key={'series-' + row.collectionId}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
-                      transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
-                    >
-                      <SeriesPosterCard
-                        row={row}
-                        onOpen={() => setSeriesDialog(row)}
-                      />
-                    </motion.div>
-                  )
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          ) : (
-            <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
-              <AnimatePresence initial={false}>
-                {seriesRows.map((row, idx) => (
-                  row.kind === 'single' ? (
-                    <MediaListRow
-                      key={'item-' + row.item.id}
-                      item={row.item}
-                      index={idx}
-                      first={idx === 0}
-                      onClick={() => openForm(row.item)}
-                    />
-                  ) : (
-                    <SeriesListRow
-                      key={'series-' + row.collectionId}
-                      row={row}
-                      first={idx === 0}
-                      expanded={expandedSeries.has(row.collectionId)}
-                      onToggle={() => toggleSeries(row.collectionId)}
-                      onPickItem={openForm}
-                    />
-                  )
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
+          {/* Grid / list (memoized — see gridEl above) */}
+          {gridEl}
       </div>
 
       <Dialog
@@ -888,7 +937,7 @@ export default function MediaPage() {
                     type={form.type}
                     autoFocus={!editItem}
                     source={form.external_id}
-                    onChange={(v) => setForm({ ...form, title: v, external_id: form.external_id && v !== form.title ? '' : form.external_id })}
+                    onChange={(v) => setForm((f) => ({ ...f, title: v, external_id: f.external_id && v !== f.title ? '' : f.external_id }))}
                     onSelect={handleExternalSelect}
                   />
                 </div>

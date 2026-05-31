@@ -135,6 +135,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* Intl unavailable — skip */
     }
+    // Older browsers report the deprecated 'Asia/Calcutta' alias for IST; the
+    // API canonicalizes to 'Asia/Kolkata'. Match it here or the compare below
+    // never short-circuits and we re-POST every session.
+    if (tz === "Asia/Calcutta") tz = "Asia/Kolkata";
     if (!tz || tz === user.timezone) return;
     authFetch("/auth/timezone", {
       method: "POST",

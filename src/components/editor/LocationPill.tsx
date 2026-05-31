@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapPin, X } from 'lucide-react';
 
 import { places, type PlacePrediction, type JournalLocation } from '@/api';
@@ -89,7 +89,7 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
     }
   };
 
-  const useTyped = () => {
+  const applyTyped = () => {
     const q = query.trim();
     if (!q) return;
     onChange({ label: q, lat: null, lon: null });
@@ -136,7 +136,7 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
               pick(results[0]);
             } else if (e.key === 'Enter') {
               e.preventDefault();
-              useTyped();
+              applyTyped();
             }
           }}
           placeholder="Search a place…"
@@ -149,7 +149,7 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
             <div className="text-xs text-destructive px-2 py-3">{error}</div>
           ) : results.length === 0 && query.trim().length >= 2 ? (
             <button
-              onClick={useTyped}
+              onClick={applyTyped}
               className="w-full text-left text-xs px-2 py-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
             >
               Use “{query.trim()}” as-is

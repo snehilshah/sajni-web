@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles } from 'lucide-react';
 
+import { toast } from 'sonner';
 import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -218,6 +220,11 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   // Once the user picks a category by hand we stop auto-overwriting it,
   // even if they keep editing the title afterward.
   const userPickedCategoryRef = useRef(false);
+  // Render-time mirror of the ref. The ref stays the source of truth for the
+  // async infer guards below (they need the synchronous latest value mid-flight);
+  // this state exists only because the React Compiler forbids reading a ref
+  // during render (the "auto" hint at the Category field reads it).
+  const [userPickedCategory, setUserPickedCategory] = useState(false);
   const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -233,6 +240,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setNote(txn.note || '');
       setDate(txn.txn_date);
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
+      setUserPickedCategory(true);
     } else {
       setType('expense');
       setAccountId(accounts[0] ? String(accounts[0].id) : '');
@@ -243,6 +251,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setNote('');
       setDate(format(new Date(), 'yyyy-MM-dd'));
       userPickedCategoryRef.current = false;
+      setUserPickedCategory(false);
     }
   }, [txn, open, accounts]);
 
@@ -343,7 +352,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       onSaved();
     } catch (e) {
       // Surface the failure instead of silently leaving the dialog open.
-      alert('Could not save transaction: ' + (e as Error).message);
+      toast.error('Could not save transaction: ' + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -351,7 +360,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
 
   const remove = async () => {
     if (!txn) return;
-    if (!window.confirm('Delete this transaction?')) return;
+    if (!(await confirmDialog('Delete this transaction?'))) return;
     await finance.deleteTransaction(txn.id);
     onSaved();
   };
@@ -424,7 +433,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
                   <M3CookieLoader size="xs" tone="primary" />
                   Sajni is picking…
                 </span>
-              ) : categoryId && !userPickedCategoryRef.current && !txn ? (
+              ) : categoryId && !userPickedCategory && !txn ? (
                 <span className="inline-flex items-center gap-1 text-[10px] text-primary normal-case tracking-normal">
                   <Sparkles className="size-3" /> auto · change anytime
                 </span>
@@ -434,6 +443,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
                 value={categoryId || 'others'}
                 onValueChange={(v) => {
                   userPickedCategoryRef.current = true;
+                  setUserPickedCategory(true);
                   setCategoryId(!v || v === 'others' ? '' : v);
                 }}
                 items={[{ value: 'others', label: 'Others' }, ...filteredCats.map((c) => ({ value: String(c.id), label: c.name }))]}

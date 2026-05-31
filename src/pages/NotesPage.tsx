@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sh
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { confirmDialog } from '@/lib/confirm';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
@@ -169,7 +170,7 @@ export default function NotesPage() {
 
   const tree = useMemo(() => buildTree(notesList, folders), [notesList, folders]);
 
-  const selectNote = async (id: number) => {
+  async function selectNote(id: number) {
     setLoadingNote(true);
     setDrafting(false);
     dirtyRef.current = false;
@@ -196,7 +197,7 @@ export default function NotesPage() {
     } finally {
       setLoadingNote(false);
     }
-  };
+  }
 
   const handleNew = (parentFolder?: string) => {
     setSelectedId(null);
@@ -262,7 +263,7 @@ export default function NotesPage() {
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    if (!confirm(`Delete "${title || 'Untitled'}"?`)) return;
+    if (!(await confirmDialog(`Delete "${title || 'Untitled'}"?`))) return;
     await notesApi.delete(selectedId);
     handleNew();
     loadAll();
@@ -294,12 +295,12 @@ export default function NotesPage() {
   };
 
   const handleDeleteFolder = async (path: string) => {
-    if (!confirm(`Delete folder "${path}"? It must be empty.`)) return;
+    if (!(await confirmDialog(`Delete folder "${path}"? It must be empty.`))) return;
     try {
       await notesApi.deleteFolder(path);
       loadAll();
     } catch (e: any) {
-      alert(e.message || 'Cannot delete folder');
+      toast.error(e.message || 'Cannot delete folder');
     }
   };
 

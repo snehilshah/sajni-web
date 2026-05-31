@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { confirmDialog } from '@/lib/confirm';
 import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 import { formatMoney } from './utils';
 
@@ -203,7 +205,7 @@ function BillerRow({
   };
 
   const remove = async () => {
-    if (!confirm('Delete this biller? Existing payment history stays.')) return;
+    if (!(await confirmDialog('Delete this biller? Existing payment history stays.'))) return;
     try {
       await finance.deleteBiller(biller.id);
       onChanged();
@@ -349,7 +351,7 @@ function BillerDialog({
       onSaved();
     } catch (e) {
       console.error(e);
-      alert((e as Error).message || 'Save failed');
+      toast.error((e as Error).message || 'Save failed');
     } finally {
       setSaving(false);
     }

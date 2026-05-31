@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 
 import { memos as memosApi } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import type { Memo } from '@/types';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,7 @@ export default function MemosPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this memo?')) return;
+    if (!(await confirmDialog('Delete this memo?'))) return;
     await memosApi.delete(id);
     if (activeMemo?.id === id) setActiveMemo(null);
     load();

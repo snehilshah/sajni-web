@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles, Send, Plus, Trash2, ChevronDown, Loader2, AlertCircle,
+  Sparkles, Send, Plus, Trash2, ChevronDown, AlertCircle,
   CheckSquare, Target, BookOpen, Film, Wallet, ArrowRight,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';

@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
+  format, startOfMonth, endOfMonth, eachDayOfInterval,
   subMonths, addMonths, subDays, addDays, isSameMonth, isToday as isTodayFn,
   parseISO, startOfISOWeek, endOfISOWeek, getISOWeek, getISOWeekYear,
-  addWeeks, subWeeks, isSameDay,
+  addWeeks, subWeeks,
 } from 'date-fns';
 
 import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type JournalLocation } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
@@ -73,7 +74,7 @@ export default function JournalPage() {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) !== '0'; } catch { return true; }
   });
-  const [dailyOpen, setDailyOpen] = useState<boolean>(() => {
+  const [dailyOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(DAILY_KEY) !== '0'; } catch { return true; }
   });
   const [marginOpen, setMarginOpen] = useState<boolean>(() => {
@@ -244,7 +245,7 @@ export default function JournalPage() {
   };
 
   const deleteEntry = async () => {
-    if (!confirm(`Delete journal entry for ${selectedDate}?`)) return;
+    if (!(await confirmDialog(`Delete journal entry for ${selectedDate}?`))) return;
     await journalApi.delete(selectedDate);
     setContent(''); setMood(null); setLocation(null); setTags([]); setBacklinks([]);
     loadEntries();
@@ -504,7 +505,7 @@ export default function JournalPage() {
               }}
             />
           ) : (
-            <div className="max-w-3xl mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5">
+            <div className={`${!sidebarOpen && !marginOpen ? 'max-w-5xl' : sidebarOpen && marginOpen ? 'max-w-3xl' : 'max-w-4xl'} mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5 transition-[max-width] duration-300 ease-[cubic-bezier(0.2,0,0,1)]`}>
               {/* Date title — Obsidian-style serif hero per the design. */}
               <div>
                 {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
@@ -1309,6 +1310,10 @@ function SaveStatus({ state, onSave }: { state: 'idle' | 'saving' | 'saved'; onS
   );
 }
 
+// Dead code: the inline "Daily" section was removed from the Journal page and
+// this component is no longer rendered. Kept (disabled) for reference until a
+// deliberate prune — safe to delete along with the dailyOpen / DAILY_KEY state.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DailySection({
   open, onToggle, habitStatuses, loadingHabits, dueTasks, completedTasks, missedTasks, loadingTasks,
   onToggleHabit, onCompleteTask, onJumpDate,

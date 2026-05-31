@@ -105,17 +105,11 @@ export default function TodayPage() {
 				d.setDate(d.getDate() - i);
 				dayKeys.push(format(d, 'yyyy-MM-dd'));
 			}
-			await Promise.all(
-				habitsList.map(async (h) => {
-					try {
-						const logs = await habitsApi.getLogs(h.id, 14);
-						const set = new Set(logs);
-						week[h.id] = dayKeys.map((k) => set.has(k));
-					} catch {
-						week[h.id] = dayKeys.map(() => false);
-					}
-				}),
-			);
+			const byHabit = await habitsApi.recentLogs(14).catch(() => ({} as Record<string, string[]>));
+			for (const h of habitsList) {
+				const set = new Set(byHabit[String(h.id)] ?? []);
+				week[h.id] = dayKeys.map((k) => set.has(k));
+			}
 			if (!cancel) setHabitWeek(week);
 		})();
 		return () => {
@@ -413,6 +407,17 @@ export default function TodayPage() {
 							</div>
 						</Section>
 					)}
+
+					{/* At a glance — kept on the left so the two columns end at
+					    roughly the same height. */}
+					<Section title="At a glance">
+						<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] border border-border">
+							<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
+							<Stat label="Tasks closed" value={String(dueToday.filter((t) => t.status === 'done').length)} />
+							<Stat label="Journal streak" value={`${recentJournal.length}d`} />
+							<Stat label="Habits today" value={`${habitsDone}/${totalHabitsToday}`} />
+						</div>
+					</Section>
 				</div>
 
 				<div className="sajni-stagger flex flex-col gap-6">
@@ -507,16 +512,6 @@ export default function TodayPage() {
 								Write today's entry
 								<ArrowRight className="size-3" />
 							</button>
-						</div>
-					</Section>
-
-					{/* At a glance */}
-					<Section title="At a glance">
-						<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] border border-border">
-							<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
-							<Stat label="Tasks closed" value={String(dueToday.filter((t) => t.status === 'done').length)} />
-							<Stat label="Journal streak" value={`${recentJournal.length}d`} />
-							<Stat label="Habits today" value={`${habitsDone}/${totalHabitsToday}`} />
 						</div>
 					</Section>
 				</div>

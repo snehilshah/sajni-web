@@ -4,6 +4,7 @@ import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 import { finance, type FinBudget, type FinCategory } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -204,7 +205,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
 
   const remove = async () => {
     if (!budget) return;
-    if (!window.confirm('Delete this budget?')) return;
+    if (!(await confirmDialog('Delete this budget?'))) return;
     await finance.deleteBudget(budget.id);
     onSaved();
   };

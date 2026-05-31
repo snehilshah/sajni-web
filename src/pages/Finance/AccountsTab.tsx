@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 import { finance, type FinAccount, type FinSaving } from '@/api';
+import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -309,7 +310,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
 
   const remove = async () => {
     if (!account) return;
-    if (!window.confirm('Delete this account? Transactions on it will also be removed.')) return;
+    if (!(await confirmDialog('Delete this account? Transactions on it will also be removed.'))) return;
     await finance.deleteAccount(account.id);
     onSaved();
   };
@@ -459,7 +460,7 @@ function SavingsDialog({ account, savings, onClose }: {
   };
 
   const remove = async (id: number) => {
-    if (!window.confirm('Delete this savings bucket?')) return;
+    if (!(await confirmDialog('Delete this savings bucket?'))) return;
     await finance.deleteSaving(id);
     reload();
   };

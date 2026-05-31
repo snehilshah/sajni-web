@@ -10,6 +10,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { SMART_LISTS, type Selection } from './helpers';
+import { confirmDialog } from '@/lib/confirm';
 
 const SMART_ICON: Record<SmartList, typeof Sun> = {
   my_day: Sun,
@@ -147,8 +148,8 @@ export default function ListsRail({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onClick={() => {
-                        if (confirm(`Delete list "${l.name}"? Tasks inside move to Inbox.`)) onDelete(l.id);
+                      onClick={async () => {
+                        if (await confirmDialog(`Delete list "${l.name}"? Tasks inside move to Inbox.`)) onDelete(l.id);
                       }}
                     >
                       <Trash2 className="size-3.5 mr-2" /> Delete

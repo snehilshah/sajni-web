@@ -1,3 +1,9 @@
+/* eslint-disable react-hooks/immutability, react-hooks/preserve-manual-memoization --
+   This file wires TipTap. We mutate editor.storage.<ext>.onOpen to bind the
+   slash-command callbacks, and the editor instance drives the manual
+   useCallback memoization here. Both are intentional, working integration
+   patterns the React Compiler can't model (it flags them as errors). All other
+   react-hooks rules stay active for this file. */
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
