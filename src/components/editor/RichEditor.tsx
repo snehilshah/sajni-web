@@ -5,7 +5,7 @@
    patterns the React Compiler can't model (it flags them as errors). All other
    react-hooks rules stay active for this file. */
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -49,6 +49,13 @@ interface Props {
   autoFocus?: boolean;
   minHeight?: string;
   /**
+   * Fill mode — the editor's writing area grows to fill the remaining
+   * vertical space of its (flex-column) parent and shrinks when space is
+   * tight, instead of sitting at a fixed `minHeight`. The whole region
+   * stays a click target. Used by Notes/Journal so the page breathes.
+   */
+  fill?: boolean;
+  /**
    * Reserved hook for future task-creation callers. The /task slash
    * command itself only *references* tasks — creation happens from the
    * surrounding page (e.g. the journal right-rail "+ Add task" row).
@@ -57,7 +64,7 @@ interface Props {
 }
 
 export default function RichEditor({
-  value, onChange, placeholder, className, autoFocus, minHeight,
+  value, onChange, placeholder, className, autoFocus, minHeight, fill,
 }: Props) {
   const navigate = useNavigate();
   const isLocalUpdate = useRef(false);
@@ -335,14 +342,17 @@ export default function RichEditor({
   }, [editor, linkUrl, linkTitle]);
 
   return (
-    <div className={`relative w-full ${className || ''}`}>
+    <div className={`relative w-full ${fill ? 'flex flex-1 flex-col min-h-0' : ''} ${className || ''}`}>
       {editor && (
         <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 } as any}>
           <Toolbar editor={editor} onImage={() => imagePicker(uploadAndInsertImage)} />
         </BubbleMenu>
       )}
-      <div style={minHeight ? { minHeight } : undefined}>
-        <EditorContent editor={editor} />
+      <div
+        className={fill ? 'editor-fill flex flex-1 flex-col min-h-0 [&_.ProseMirror]:flex-1' : undefined}
+        style={!fill && minHeight ? { minHeight } : undefined}
+      >
+        <EditorContent editor={editor} className={fill ? 'flex flex-1 flex-col min-h-0' : undefined} />
       </div>
       <CommandDialog
         open={taskPicker}
@@ -467,6 +477,27 @@ function imagePicker(insert: (file: File) => void) {
 }
 
 function Toolbar({ editor, onImage }: { editor: Editor; onImage: () => void }) {
+  // Subscribe to editor transactions so isActive() recomputes on every
+  // selection change. Without this the BubbleMenu's React subtree doesn't
+  // re-render as the cursor moves, so the toolbar froze on whatever marks
+  // were active at mount (the "H2 always selected" bug).
+  const a = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      h1: editor.isActive('heading', { level: 1 }),
+      h2: editor.isActive('heading', { level: 2 }),
+      h3: editor.isActive('heading', { level: 3 }),
+      bold: editor.isActive('bold'),
+      italic: editor.isActive('italic'),
+      strike: editor.isActive('strike'),
+      code: editor.isActive('code'),
+      bulletList: editor.isActive('bulletList'),
+      orderedList: editor.isActive('orderedList'),
+      taskList: editor.isActive('taskList'),
+      blockquote: editor.isActive('blockquote'),
+      link: editor.isActive('link'),
+    }),
+  });
   const btn = (active: boolean, onClick: () => void, Icon: any, title: string) => (
     <button
       key={title}
@@ -480,29 +511,29 @@ function Toolbar({ editor, onImage }: { editor: Editor; onImage: () => void }) {
   );
   return (
     <div className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-lg p-1">
-      {btn(editor.isActive('heading', { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), Heading1, 'Heading 1')}
-      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), Heading2, 'Heading 2')}
-      {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), Heading3, 'Heading 3')}
+      {btn(a.h1, () => editor.chain().focus().toggleHeading({ level: 1 }).run(), Heading1, 'Heading 1')}
+      {btn(a.h2, () => editor.chain().focus().toggleHeading({ level: 2 }).run(), Heading2, 'Heading 2')}
+      {btn(a.h3, () => editor.chain().focus().toggleHeading({ level: 3 }).run(), Heading3, 'Heading 3')}
       <span className="w-px h-4 bg-border mx-0.5" />
-      {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), Bold, 'Bold')}
-      {btn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), Italic, 'Italic')}
-      {btn(editor.isActive('strike'), () => editor.chain().focus().toggleStrike().run(), Strikethrough, 'Strike')}
-      {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), Code, 'Inline code')}
+      {btn(a.bold, () => editor.chain().focus().toggleBold().run(), Bold, 'Bold')}
+      {btn(a.italic, () => editor.chain().focus().toggleItalic().run(), Italic, 'Italic')}
+      {btn(a.strike, () => editor.chain().focus().toggleStrike().run(), Strikethrough, 'Strike')}
+      {btn(a.code, () => editor.chain().focus().toggleCode().run(), Code, 'Inline code')}
       <span className="w-px h-4 bg-border mx-0.5" />
-      {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), List, 'Bullet list')}
-      {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), ListOrdered, 'Ordered list')}
-      {btn(editor.isActive('taskList'), () => editor.chain().focus().toggleTaskList().run(), ListChecks, 'Todo list')}
-      {btn(editor.isActive('blockquote'), () => editor.chain().focus().toggleBlockquote().run(), Quote, 'Quote')}
+      {btn(a.bulletList, () => editor.chain().focus().toggleBulletList().run(), List, 'Bullet list')}
+      {btn(a.orderedList, () => editor.chain().focus().toggleOrderedList().run(), ListOrdered, 'Ordered list')}
+      {btn(a.taskList, () => editor.chain().focus().toggleTaskList().run(), ListChecks, 'Todo list')}
+      {btn(a.blockquote, () => editor.chain().focus().toggleBlockquote().run(), Quote, 'Quote')}
       <span className="w-px h-4 bg-border mx-0.5" />
-      {btn(editor.isActive('link'), () => {
+      {btn(a.link, () => {
         const prev = (editor.getAttributes('link').href as string) || '';
         const url = window.prompt('Link URL', prev);
         if (url === null) return;                 // cancelled
         const chain = editor.chain().focus().extendMarkRange('link');
         if (url.trim() === '') chain.unsetLink().run();
         else chain.setLink({ href: url.trim() }).run();
-      }, Link2, editor.isActive('link') ? 'Edit link' : 'Link')}
-      {editor.isActive('link') && btn(false, () => editor.chain().focus().extendMarkRange('link').unsetLink().run(), Unlink, 'Remove link')}
+      }, Link2, a.link ? 'Edit link' : 'Link')}
+      {a.link && btn(false, () => editor.chain().focus().extendMarkRange('link').unsetLink().run(), Unlink, 'Remove link')}
       {btn(false, onImage, ImageIcon, 'Image')}
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), Minus, 'Divider')}
     </div>

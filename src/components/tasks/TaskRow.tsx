@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, ListChecks, Clock, Bell,
+  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X,
 } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -19,12 +19,16 @@ interface Props {
   depth?: number;
 }
 
-// TaskRow renders one task with inline status checkbox, star, and an
-// expander that reveals child subtasks (lazy-loaded). Clicking the body
-// opens the detail dialog (via onClick).
+// TaskRow renders one task with an inline status checkbox, star, a
+// right-aligned "add subtask" action, and a count chip that expands the
+// nested children. Children are list-embedded (prefetched) so expand is
+// instant; we lazy-fetch only as a fallback. Clicking the body opens the
+// detail dialog (via onClick).
 export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [subs, setSubs] = useState<Task[] | null>(null);
+  // Locally-refreshed children win; otherwise use the list-embedded prefetch.
+  const [fetched, setFetched] = useState<Task[] | null>(null);
+  const subs = fetched ?? task.subtasks ?? null;
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [subDraft, setSubDraft] = useState('');
@@ -50,22 +54,22 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
     onChange();
   };
 
-  const expand = async (e: React.MouseEvent) => {
+  // Fetch children only when we have no prefetch and none cached yet.
+  const ensureSubs = async () => {
+    if (subs !== null) return;
+    setLoadingSubs(true);
+    try {
+      setFetched(await tasksApi.subtasks(task.id));
+    } finally {
+      setLoadingSubs(false);
+    }
+  };
+
+  const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (expanded) {
-      setExpanded(false);
-      return;
-    }
-    setExpanded(true);
-    if (subs === null) {
-      setLoadingSubs(true);
-      try {
-        const data = await tasksApi.subtasks(task.id);
-        setSubs(data);
-      } finally {
-        setLoadingSubs(false);
-      }
-    }
+    const next = !expanded;
+    setExpanded(next);
+    if (next) ensureSubs();
   };
 
   const addSubtask = async () => {
@@ -79,8 +83,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
     setSubDraft('');
     setAddingSub(false);
     // Refetch subtasks; trigger parent refresh too.
-    const data = await tasksApi.subtasks(task.id);
-    setSubs(data);
+    setFetched(await tasksApi.subtasks(task.id));
     onChange();
   };
 
@@ -98,18 +101,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
           ${task.status === 'done' ? 'opacity-60' : ''}`}
         style={{ marginLeft: depth * 24 }}
       >
-        <div className="flex items-start gap-2 px-3 py-2.5">
-          {/* Subtask expander */}
-          {(task.subtask_count > 0 || expanded) && (
-            <button
-              onClick={expand}
-              className="size-5 rounded hover:bg-accent flex items-center justify-center mt-0.5 shrink-0"
-              aria-label={expanded ? 'Collapse subtasks' : 'Expand subtasks'}
-            >
-              <ChevronRight className={`size-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-            </button>
-          )}
-
+        <div className="flex items-start gap-2.5 px-3 py-2.5">
           {/* Completion checkbox */}
           <button
             onClick={toggleStatus}
@@ -162,11 +154,6 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                   <ListChecks className="size-3" /> {completedSteps}/{totalSteps}
                 </span>
               )}
-              {task.subtask_count > 0 && (
-                <span className="inline-flex items-center gap-1">
-                  <ChevronRight className="size-3" /> {task.subtasks_done}/{task.subtask_count} subtasks
-                </span>
-              )}
               {task.tags && task.tags.length > 0 && (
                 <span className="inline-flex gap-1 flex-wrap">
                   {task.tags.slice(0, 3).map((tag) => <TagPill key={tag} tag={tag} />)}
@@ -175,6 +162,21 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
               )}
             </div>
           </div>
+
+          {/* Subtasks toggle — arrow that expands/collapses the children. Count
+              label on desktop, arrow-only on mobile. */}
+          {task.subtask_count > 0 && (
+            <button
+              type="button"
+              onClick={toggleExpand}
+              aria-expanded={expanded}
+              title={expanded ? 'Hide subtasks' : 'Show subtasks'}
+              className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 sm:px-2 py-1 text-muted-foreground opacity-70 hover:opacity-100 hover:text-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+            >
+              <span className="hidden sm:inline text-[11px] font-mono tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
+              <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
+            </button>
+          )}
 
           <button
             onClick={toggleStar}
@@ -192,19 +194,19 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: 0.26, ease: [0.2, 0, 0, 1] }}
             className="overflow-hidden"
             style={{ marginLeft: (depth + 1) * 24 }}
           >
-            <div className="flex flex-col gap-1 mt-1">
+            <div className="mt-2 mb-1 flex flex-col gap-1.5 rounded-2xl border border-border/60 bg-[hsl(var(--surface-container-low))] p-2.5">
               {loadingSubs && (
-                <div className="text-xs text-muted-foreground flex items-center gap-2 px-3 py-1.5">
+                <div className="text-sm text-muted-foreground flex items-center gap-2.5 px-2 py-2.5">
                   <M3CookieLoader size="sm" tone="secondary" /> Loading…
                 </div>
               )}
 
               {subs && subs.length === 0 && !addingSub && (
-                <div className="text-xs text-muted-foreground italic px-3">No subtasks yet.</div>
+                <div className="text-sm text-muted-foreground italic px-2 py-2">No subtasks yet — break this down.</div>
               )}
 
               {subs?.map((sub) => (
@@ -214,14 +216,13 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                   onClick={onClick}
                   onChange={async () => {
                     onChange();
-                    const refreshed = await tasksApi.subtasks(task.id);
-                    setSubs(refreshed);
+                    setFetched(await tasksApi.subtasks(task.id));
                   }}
                 />
               ))}
 
               {addingSub ? (
-                <div className="px-3 py-1.5">
+                <div className="px-0.5 py-0.5">
                   <Input
                     name={`subtask-${task.id}`}
                     autoFocus
@@ -233,15 +234,15 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                       if (e.key === 'Enter') addSubtask();
                       if (e.key === 'Escape') { setAddingSub(false); setSubDraft(''); }
                     }}
-                    className="h-7 text-xs"
+                    className="h-10 text-sm"
                   />
                 </div>
               ) : (
                 <button
                   onClick={() => setAddingSub(true)}
-                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-3 py-1.5 self-start"
+                  className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:opacity-90 active:scale-[0.98] transition-all"
                 >
-                  <Plus className="size-3" /> Add subtask
+                  <Plus className="size-4" strokeWidth={2.5} /> Add subtask
                 </button>
               )}
             </div>
@@ -284,40 +285,77 @@ export function StepsEditor({
     setDraft('');
   };
 
+  const doneCount = steps.filter((s) => s.done).length;
+
   return (
-    <div className="flex flex-col gap-1.5">
-      {steps.map((s) => (
-        <div key={s.id} className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-accent/50 group">
-          <button
-            type="button"
-            onClick={() => update(s.id, { done: !s.done })}
-            className={`size-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-              ${s.done ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}`}
-          >
-            {s.done && (
-              <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M2 6.5L5 9L10 3" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
-          <Input
-            name={`step-${s.id}`}
-            value={s.text}
-            onChange={(e) => update(s.id, { text: e.target.value })}
-            className={`flex-1 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm ${s.done ? 'line-through text-muted-foreground' : ''}`}
-          />
-          <button
-            type="button"
-            onClick={() => remove(s.id)}
-            className="opacity-0 group-hover:opacity-60 hover:opacity-100 text-muted-foreground text-xs"
-            title="Remove step"
-          >
-            ✕
-          </button>
+    <div className="flex flex-col gap-0.5">
+      {steps.length > 0 && (
+        <div className="flex items-center gap-2 px-1.5 pb-1">
+          <div className="h-1 flex-1 rounded-full bg-[hsl(var(--surface-container-highest))] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={false}
+              animate={{ width: `${(doneCount / steps.length) * 100}%` }}
+              transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+            />
+          </div>
+          <span className="mono text-[10px] tabular-nums text-muted-foreground shrink-0">{doneCount}/{steps.length}</span>
         </div>
-      ))}
-      <div className="flex items-center gap-2 px-2 py-1">
-        <span className="size-4 rounded-full border-2 border-dashed border-muted-foreground/30 shrink-0" />
+      )}
+      <AnimatePresence initial={false}>
+        {steps.map((s) => (
+          <motion.div
+            key={s.id}
+            layout
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1 hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+          >
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+              onClick={() => update(s.id, { done: !s.done })}
+              className={`size-[18px] rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+                ${s.done ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
+              aria-pressed={s.done}
+            >
+              <AnimatePresence>
+                {s.done && (
+                  <motion.span
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+                  >
+                    <Check className="size-3" strokeWidth={3.5} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+            <Input
+              name={`step-${s.id}`}
+              value={s.text}
+              onChange={(e) => update(s.id, { text: e.target.value })}
+              className={`flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm ${s.done ? 'line-through text-muted-foreground' : ''}`}
+            />
+            <button
+              type="button"
+              onClick={() => remove(s.id)}
+              className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-all shrink-0"
+              title="Remove step"
+            >
+              <X className="size-3.5" />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+      <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-1">
+        <span className="size-[18px] rounded-md border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+          <Plus className="size-3" strokeWidth={2.5} />
+        </span>
         <Input
           name="new-step"
           value={draft}
@@ -326,10 +364,14 @@ export function StepsEditor({
             if (e.key === 'Enter') { e.preventDefault(); add(); }
           }}
           placeholder="Add a step"
-          className="flex-1 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+          className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
         />
         {draft && (
-          <button type="button" onClick={add} className="text-xs text-primary hover:underline">
+          <button
+            type="button"
+            onClick={add}
+            className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+          >
             Add
           </button>
         )}

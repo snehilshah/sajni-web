@@ -708,6 +708,10 @@ em, .italic { font-style: italic; }
    Tiptap surfaces.
    ============================================================ */
 .ProseMirror { outline: none !important; min-height: 100%; }
+/* Fill mode (Notes / Journal): the editable surface itself fills the viewport
+   so the whole tall area is writable — not just a short box at the top. Scoped
+   + more specific so it wins over the unlayered min-height:100% above. */
+.editor-fill .ProseMirror { min-height: 80vh; }
 .ProseMirror p.is-editor-empty:first-child::before {
   color: hsl(var(--muted-foreground) / 0.6);
   content: attr(data-placeholder);

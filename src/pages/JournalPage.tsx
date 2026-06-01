@@ -505,7 +505,7 @@ export default function JournalPage() {
               }}
             />
           ) : (
-            <div className={`${!sidebarOpen && !marginOpen ? 'max-w-5xl' : sidebarOpen && marginOpen ? 'max-w-3xl' : 'max-w-4xl'} mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5 transition-[max-width] duration-300 ease-[cubic-bezier(0.2,0,0,1)]`}>
+            <div className={`${!sidebarOpen && !marginOpen ? 'max-w-5xl' : sidebarOpen && marginOpen ? 'max-w-3xl' : 'max-w-4xl'} w-full mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5 min-h-full transition-[max-width] duration-300 ease-[cubic-bezier(0.2,0,0,1)]`}>
               {/* Date title — Obsidian-style serif hero per the design. */}
               <div>
                 {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
@@ -553,8 +553,8 @@ export default function JournalPage() {
                 <LocationPill value={location} onChange={handleLocationChange} />
               </div>
 
-              {/* Editor */}
-              <div className="flex flex-col">
+              {/* Editor — fills the available height (≈80–90%) like Notes. */}
+              <div className="flex flex-1 flex-col min-h-0">
                 {loading ? (
                   <Skeleton className="h-64 w-full" />
                 ) : (
@@ -562,7 +562,7 @@ export default function JournalPage() {
                     value={content}
                     onChange={handleContentChange}
                     placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
-                    minHeight="320px"
+                    fill
                     contextDate={selectedDate}
                   />
                 )}

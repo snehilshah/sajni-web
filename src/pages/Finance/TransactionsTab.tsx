@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles, Tags } from 'lucide-react';
+import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles, Tags, Hash } from 'lucide-react';
 
 import { toast } from 'sonner';
 import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
@@ -18,6 +19,20 @@ import { formatMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 
+// Mirror the server-side tag parser (links.go tagRe): #tag, first char a
+// letter/number/_, then letters/numbers/_-/; trailing -/_ trimmed; lowered.
+const HASHTAG_RE = /(?:^|[^\w&])#([\p{L}\p{N}_][\p{L}\p{N}_\-/]*)/gu;
+function extractHashtags(s: string): string[] {
+  if (!s) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const m of s.matchAll(HASHTAG_RE)) {
+    const tag = m[1].toLowerCase().replace(/^[-/_]+|[-/_]+$/g, '');
+    if (tag && !seen.has(tag)) { seen.add(tag); out.push(tag); }
+  }
+  return out;
+}
+
 interface Props {
   accounts: FinAccount[];
   categories: FinCategory[];
@@ -28,6 +43,7 @@ interface Props {
 }
 
 export default function TransactionsTab({ accounts, categories, transactions, loaded, reload, reloadCategories }: Props) {
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [creating, setCreating] = useState(false);
   const [manageCats, setManageCats] = useState(false);
@@ -35,10 +51,41 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
   const [accountFilter, setAccountFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
 
+  // Optimistic edits (esp. account switches). Keyed by txn id, layered over the
+  // parent's list so a row updates the instant you save — no wait for reload,
+  // no flash of a raw account id. We hold an override until the server's reload
+  // reflects the same account_id, so a slow/stale reload can't revert a newer
+  // change and rapid switches always settle on the latest pick.
+  const [overrides, setOverrides] = useState<Record<number, Partial<FinTransaction>>>({});
+  useEffect(() => {
+    // Reconcile against the freshly-reloaded list: drop an override once the
+    // server reflects the same account_id. Conditional + no-op when unchanged,
+    // so this can't cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOverrides((prev) => {
+      const ids = Object.keys(prev);
+      if (!ids.length) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const t of transactions) {
+        const ov = next[t.id];
+        if (ov && ov.account_id === t.account_id) { delete next[t.id]; changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, [transactions]);
+
+  const accountNameById = (id: number | null) => accounts.find((a) => a.id === id)?.name || '';
+
+  const merged = useMemo(
+    () => transactions.map((t) => (overrides[t.id] ? { ...t, ...overrides[t.id] } : t)),
+    [transactions, overrides],
+  );
+
   // Filter client-side off the parent's cached list so changes are instant.
   // (Backend filtering kicks in only when reload() is called after a mutation.)
   const filtered = useMemo(() => {
-    return transactions.filter((t) => {
+    return merged.filter((t) => {
       if (search && !t.description.toLowerCase().includes(search.toLowerCase()) &&
           !(t.category_name || '').toLowerCase().includes(search.toLowerCase())) return false;
       if (accountFilter && String(t.account_id) !== accountFilter) return false;
@@ -48,7 +95,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
       }
       return true;
     });
-  }, [transactions, search, accountFilter, typeFilter]);
+  }, [merged, search, accountFilter, typeFilter]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, FinTransaction[]>();
@@ -168,10 +215,28 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
                               {t.description || (isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'))}
                             </div>
                             <div className="font-mono text-[10px] text-muted-foreground truncate">
-                              {t.account_name}
+                              {accountNameById(t.account_id) || t.account_name}
                               {isTransfer && t.linked_account && ' → ' + linkedAccountName(t.linked_account)}
                               {!isTransfer && t.category_name && ' · ' + t.category_name}
                             </div>
+                            {(() => {
+                              const tags = extractHashtags(t.note);
+                              if (!tags.length) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {tags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      role="link"
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/tags/${encodeURIComponent(tag)}`); }}
+                                      className="inline-flex items-center gap-0.5 rounded-full bg-secondary/40 hover:bg-secondary/70 px-1.5 py-0.5 font-mono text-[9px] text-foreground/80 transition-colors"
+                                    >
+                                      <Hash className="size-2.5 opacity-70" strokeWidth={2.5} />{tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div className={`font-mono text-sm tabular-nums shrink-0 ${
                             isExpense ? 'text-destructive' :
@@ -197,7 +262,13 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
         accounts={accounts}
         categories={categories}
         onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); load(); }}
+        onSaved={(patch) => {
+          setCreating(false);
+          setEditing(null);
+          // Optimistic: show the edit immediately, reconcile on reload.
+          if (patch) setOverrides((prev) => ({ ...prev, [patch.id]: { ...prev[patch.id], ...patch } }));
+          load();
+        }}
       />
       <CategoryManager
         open={manageCats}
@@ -215,7 +286,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   accounts: FinAccount[];
   categories: FinCategory[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
 }) {
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [accountId, setAccountId] = useState('');
@@ -341,14 +412,35 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
     setSaving(true);
     try {
       if (txn) {
-        // Edit only — don't change type/account, just amount/category/description/note/date
+        // Edit — type stays locked, but account is now editable. Balances are
+        // computed from account_id server-side, so moving the txn rebalances
+        // both accounts automatically (the backend also syncs a transfer pair).
+        const acctId = parseInt(accountId);
+        const catId = categoryId ? parseInt(categoryId) : null;
         await finance.updateTransaction(txn.id, {
+          account_id: acctId,
           amount: amt,
           description,
           note,
           txn_date: date,
-          category_id: categoryId ? parseInt(categoryId) as any : null,
+          category_id: catId as any,
         } as any);
+        // Hand the parent an optimistic patch so the row reflects the new
+        // account/category/amount instantly (no reload flash, no raw id).
+        const cat = categories.find((c) => c.id === catId);
+        onSaved({
+          id: txn.id,
+          account_id: acctId,
+          account_name: accounts.find((a) => a.id === acctId)?.name || '',
+          amount: amt,
+          description,
+          note,
+          txn_date: date,
+          category_id: catId,
+          category_name: cat?.name ?? null,
+          category_color: cat?.color ?? null,
+        });
+        return;
       } else if (type === 'transfer') {
         await finance.createTransaction({
           account_id: parseInt(accountId),
@@ -418,7 +510,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             />
           </Field>
           <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2" error={errors.account}>
-            <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }} disabled={!!txn}
+            <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }}
               items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
               <SelectTrigger aria-invalid={!!errors.account}>
                 <SelectValue placeholder="Select account" />
@@ -497,7 +589,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note — context, who it was with, anything to remember"
+              placeholder="Optional note — context, who it was with. Use #tags to file it."
               rows={3}
               maxLength={1000}
               // Fixed height (field-sizing:fixed) — auto-growing inside the

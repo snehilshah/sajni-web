@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History } from 'lucide-react';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
-import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent } from '@/api';
+import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,10 @@ function eventText(e: TaskEvent): React.ReactNode {
       return <>Renamed to <b className="font-medium">“{e.to}”</b></>;
     case 'list':
       return <>Moved <b className="font-medium">{e.from}</b> → <b className="font-medium">{e.to}</b></>;
+    case 'rescheduled': {
+      const fmt = (s: string) => { try { return format(parseISO(s), 'MMM d'); } catch { return s; } };
+      return <>Rescheduled from <b className="font-medium">{fmt(e.from)}</b> → <b className="font-medium">{fmt(e.to)}</b></>;
+    }
     default:
       return e.kind;
   }
@@ -311,9 +316,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           </div>
 
-          {/* Time + reminder. A task with a time appears on the Today
-              agenda; with Remind on, Sajni emails a nudge ~5 min before. */}
-          <div className="flex flex-col gap-2 rounded-lg border border-border bg-card/50 p-3">
+          {/* Schedule — one section: the task's own time + ~5-min email nudge
+              on top, then any number of extra reminders below. */}
+          <div className="flex flex-col rounded-lg border border-border bg-card/50">
+            <div className="flex flex-col gap-2 p-3">
             <div className="flex flex-col sm:flex-row sm:items-end gap-3">
               <div className="flex flex-col gap-1.5 sm:w-44">
                 <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
@@ -358,9 +364,16 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                   ? 'Sajni will email you ~5 min before.'
                   : 'Shows on your Today agenda. Turn on Remind for an email nudge.'}
             </p>
+            </div>
+            {/* Extra reminders — any date/time, delivered by the cron. */}
+            {editing && (
+              <div className="border-t border-border/70 p-3">
+                <RemindersSection taskId={editing.id} />
+              </div>
+            )}
           </div>
 
-          {/* Steps editor */}
+          {/* Steps editor — a quick inline checklist (lighter than subtasks). */}
           <div className="flex flex-col gap-2">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
               <ListChecks className="size-3" /> Steps
@@ -379,6 +392,12 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           </div>
 
+          {/* Subtasks — real child tasks (own status/due). Only on an existing
+              task; a new task has no id to parent them to yet. */}
+          {editing && (
+            <SubtasksSection taskId={editing.id} listId={editing.list_id ?? null} onChanged={onSaved} />
+          )}
+
           {editing && history.length > 0 && (
             <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
               <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
@@ -388,7 +407,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               <div className="flex flex-col gap-1">
                 {history.map((h, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    <span className={`font-mono text-[10px] uppercase tracking-wider ${
+                      h.outcome === 'rescheduled'
+                        ? 'text-[hsl(var(--primary))]'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}>
                       {h.outcome}
                     </span>
                     <span className="text-muted-foreground">on</span>
@@ -453,5 +476,225 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// SubtasksSection — real child tasks under a parent. Each carries its own
+// status/due; toggling completes it, the title opens it in this same dialog,
+// and the inline row adds a new one. This is the explicit "add subtask" CTA
+// that previously only existed (hidden) behind the list-row expander.
+function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId: number | null; onChanged: () => void }) {
+  const [subs, setSubs] = useState<Task[] | null>(null);
+  const [draft, setDraft] = useState('');
+
+  const load = useCallback(() => {
+    tasksApi.subtasks(taskId).then(setSubs).catch(() => setSubs([]));
+  }, [taskId]);
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    const title = draft.trim();
+    if (!title) return;
+    setDraft('');
+    await tasksApi.create({ title, parent_task_id: taskId, list_id: listId });
+    load();
+    onChanged();
+  };
+  const toggle = async (s: Task) => {
+    await tasksApi.update(s.id, { status: s.status === 'done' ? 'todo' : 'done' });
+    load();
+    onChanged();
+  };
+  const remove = async (s: Task) => {
+    await tasksApi.delete(s.id);
+    load();
+    onChanged();
+  };
+
+  const done = subs?.filter((s) => s.status === 'done').length ?? 0;
+  const total = subs?.length ?? 0;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+          <GitBranch className="size-3" /> Subtasks
+        </Label>
+        {total > 0 && <span className="mono text-[10px] text-muted-foreground tabular-nums">{done}/{total} done</span>}
+      </div>
+      <div className="rounded-lg border border-border bg-card/50 px-1.5 py-1.5 flex flex-col gap-0.5">
+        <AnimatePresence initial={false}>
+          {subs?.map((s) => (
+            <motion.div
+              key={s.id}
+              layout
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+              className="group flex items-center gap-2.5 rounded-xl px-2 py-1 hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+            >
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.85 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                onClick={() => toggle(s)}
+                className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
+                  ${s.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
+                aria-pressed={s.status === 'done'}
+              >
+                {s.status === 'done' && <Check className="size-3" strokeWidth={3.5} />}
+              </motion.button>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: s.id } }))}
+                className={`flex-1 text-left text-sm truncate hover:text-primary transition-colors ${s.status === 'done' ? 'line-through text-muted-foreground' : ''}`}
+              >
+                {s.title}
+              </button>
+              {s.due_date && (
+                <span className="mono text-[10px] text-muted-foreground shrink-0">{format(parseISO(s.due_date), 'MMM d')}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => remove(s)}
+                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-all shrink-0"
+                title="Delete subtask"
+              >
+                <X className="size-3.5" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        <div className="flex items-center gap-2.5 rounded-xl px-2 py-1">
+          <span className="size-[18px] rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+            <Plus className="size-3" strokeWidth={2.5} />
+          </span>
+          <Input
+            name={`new-subtask-${taskId}`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); add(); }
+              if (e.key === 'Escape') setDraft('');
+            }}
+            placeholder={total === 0 ? 'Break this into smaller tasks…' : 'Add a subtask'}
+            className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+          />
+          {draft && (
+            <button
+              type="button"
+              onClick={add}
+              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+            >
+              Add
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// RemindersSection — any number of reminder instants on any date, delivered
+// by the reminder cron (currently email). Independent of the task's own time
+// and the single "remind ~5 min before" toggle above.
+function RemindersSection({ taskId }: { taskId: number }) {
+  const [rems, setRems] = useState<TaskReminder[] | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('09:00');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(() => {
+    tasksApi.reminders(taskId).then(setRems).catch(() => setRems([]));
+  }, [taskId]);
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!date || !time) return;
+    const d = new Date(`${date}T${time}`);
+    if (isNaN(d.getTime())) return;
+    setSaving(true);
+    try {
+      await tasksApi.addReminder(taskId, d.toISOString());
+      setAdding(false);
+      setDate('');
+      setTime('09:00');
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
+  const remove = async (rid: number) => {
+    await tasksApi.deleteReminder(taskId, rid);
+    load();
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+        <Bell className="size-3" /> Reminders
+      </Label>
+      <div className="flex flex-col gap-1.5">
+        <AnimatePresence initial={false}>
+          {rems?.map((r) => (
+            <motion.div
+              key={r.id}
+              layout
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+              className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 bg-[hsl(var(--surface-container-high))]"
+            >
+              <Bell className={`size-3.5 shrink-0 ${r.sent_at ? 'text-muted-foreground/50' : 'text-[hsl(var(--primary))]'}`} />
+              <span className={`text-sm flex-1 ${r.sent_at ? 'text-muted-foreground line-through' : ''}`}>
+                {(() => { try { return format(parseISO(r.remind_at), 'EEE, MMM d · h:mm a'); } catch { return r.remind_at; } })()}
+              </span>
+              {r.sent_at && <span className="mono text-[9px] uppercase tracking-wider text-muted-foreground">sent</span>}
+              <button
+                type="button"
+                onClick={() => remove(r.id)}
+                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-all shrink-0"
+                title="Remove reminder"
+              >
+                <X className="size-3.5" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {rems && rems.length === 0 && !adding && (
+          <p className="text-[11px] text-muted-foreground px-1">No extra reminders — add one for any date and time.</p>
+        )}
+
+        {adding ? (
+          <div className="flex flex-col gap-2 pt-0.5">
+            {/* Date is flexible, time pill is fixed-width beside it (stays on
+                one row even on mobile). */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1 min-w-0"><DatePicker value={date} onChange={setDate} placeholder="Pick a date" /></div>
+              <div className="w-24 shrink-0"><TimePicker value={time} onChange={setTime} placeholder="Time" /></div>
+            </div>
+            <div className="flex gap-1.5 justify-end">
+              <Button size="sm" onClick={add} disabled={!date || saving} className="gap-1.5">
+                {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
+                Add
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setAdding(true); if (!date) setDate(format(new Date(), 'yyyy-MM-dd')); }}
+            className="self-start inline-flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:opacity-90 transition-opacity"
+          >
+            <Plus className="size-3.5" /> Add reminder
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

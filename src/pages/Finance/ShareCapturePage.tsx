@@ -81,6 +81,7 @@ function Capture({ text }: { text: string }) {
   const [accountId, setAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
+  const [note, setNote] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [accountHint, setAccountHint] = useState('');
   const [matched, setMatched] = useState(false);
@@ -109,6 +110,9 @@ function Capture({ text }: { text: string }) {
           if (p.amount > 0) setAmount(String(p.amount));
           if (p.type === 'income' || p.type === 'expense') setType(p.type);
           if (p.description) setDescription(p.description);
+          if (p.note) setNote(p.note);
+          // Pre-fill the inferred / learned category (editable).
+          if (p.category_id != null) setCategoryId(String(p.category_id));
           if (p.date) setDate(p.date);
           if (p.account_hint) {
             setAccountHint(p.account_hint);
@@ -139,6 +143,7 @@ function Capture({ text }: { text: string }) {
         type,
         amount: amt,
         description: description.trim(),
+        note: note.trim(),
         txn_date: date,
         category_id: categoryId ? parseInt(categoryId) : null,
       });
@@ -239,8 +244,12 @@ function Capture({ text }: { text: string }) {
             </Select>
           </Field>
 
-          <Field label="Description" className="col-span-2">
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What it was for" maxLength={120} />
+          <Field label="Name" className="col-span-2">
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Merchant / who it was with" maxLength={120} />
+          </Field>
+
+          <Field label="Note" className="col-span-2">
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Extra context — ref no., purpose. Use #tags." maxLength={1000} />
           </Field>
 
           <Field label="Date" className="col-span-2">

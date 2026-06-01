@@ -141,13 +141,26 @@ export const tasks = {
     request<TaskHistoryEntry[]>('/tasks/' + id + '/history'),
   events: (id: number) =>
     request<TaskEvent[]>('/tasks/' + id + '/events'),
+  // Multiple reminders: arbitrary instants, independent of the task's time.
+  reminders: (id: number) =>
+    request<TaskReminder[]>('/tasks/' + id + '/reminders'),
+  addReminder: (id: number, remind_at: string) =>
+    request<{ id: number }>('/tasks/' + id + '/reminders', { method: 'POST', body: JSON.stringify({ remind_at }) }),
+  deleteReminder: (id: number, rid: number) =>
+    request('/tasks/' + id + '/reminders/' + rid, { method: 'DELETE' }),
 };
 
 export interface TaskEvent {
-  kind: 'created' | 'status' | 'title' | 'list';
+  kind: 'created' | 'status' | 'title' | 'list' | 'rescheduled';
   from: string;
   to: string;
   created_at: string;
+}
+
+export interface TaskReminder {
+  id: number;
+  remind_at: string;
+  sent_at: string | null;
 }
 
 // --- Task lists (groups) ---
@@ -668,7 +681,7 @@ export const finance = {
   // to "Others"). 429 means the user has exhausted their AI quota.
   // Parse a shared bank/UPI message into transaction fields (PWA share target).
   parseMessage: (text: string) =>
-    request<{ amount: number; type: 'expense' | 'income'; description: string; date: string; account_hint: string }>(
+    request<{ amount: number; type: 'expense' | 'income'; description: string; note: string; date: string; account_hint: string; category_id: number | null; category_name: string }>(
       '/finance/parse-message',
       { method: 'POST', body: JSON.stringify({ text }) },
     ),

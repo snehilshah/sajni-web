@@ -464,7 +464,7 @@ export default function NotesPage() {
               onNew={() => handleNew('')}
             />
           ) : (
-            <div className="max-w-3xl mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5">
+            <div className="max-w-3xl w-full mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5 min-h-full">
               {loadingNote ? (
                 <>
                   <Skeleton className="h-14 w-3/4" />
@@ -484,7 +484,7 @@ export default function NotesPage() {
                     value={content}
                     onChange={handleContentChange}
                     placeholder="Type / for commands. Use [[ to link to other notes."
-                    minHeight="320px"
+                    fill
                   />
                 </>
               )}

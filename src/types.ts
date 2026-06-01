@@ -33,6 +33,9 @@ export interface Task {
   sort_order: number;
   subtask_count: number;
   subtasks_done: number;
+  /** Brief children embedded by the list endpoint so subtasks expand
+   *  instantly without a per-row fetch. Absent on detail/subtask responses. */
+  subtasks?: Task[];
   created_at: string;
   updated_at: string;
 }

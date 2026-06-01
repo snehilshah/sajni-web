@@ -1390,7 +1390,7 @@ function SeriesPosterCard({
   return (
     <button
       onClick={onOpen}
-      className="group relative text-left flex flex-col gap-2"
+      className="group relative text-left flex flex-col gap-2 w-full"
       title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
     >
       {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster

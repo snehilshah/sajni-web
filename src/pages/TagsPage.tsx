@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { tags as tagsApi } from '@/api';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight } from 'lucide-react';
+import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 
 interface TagCount { tag: string; count: number; }
@@ -17,6 +17,7 @@ const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (
   note: { label: 'Note', icon: NotebookPen, route: (id) => `/notes?id=${id}` },
   journal: { label: 'Journal', icon: BookOpen, route: (id) => `/journal?id=${id}` },
   task: { label: 'Task', icon: CheckSquare, route: () => '/tasks' },
+  transaction: { label: 'Transaction', icon: Receipt, route: () => '/finance/transactions' },
 };
 
 export default function TagsPage() {
@@ -101,7 +102,7 @@ export default function TagsPage() {
               <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
                 <Hash className="size-8 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">
-                  {search ? 'No tags match your search.' : 'No tags yet — use #tag in any memo, note, journal, or task.'}
+                  {search ? 'No tags match your search.' : 'No tags yet — use #tag in any memo, note, journal, task, or transaction note.'}
                 </p>
               </div>
             ) : (
