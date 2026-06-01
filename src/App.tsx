@@ -13,6 +13,7 @@ import TagsPage from './pages/TagsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import InsightsPage from './pages/InsightsPage';
 import FinancePage from './pages/Finance/FinancePage';
+import ShareCapturePage from './pages/Finance/ShareCapturePage';
 import SettingsPage from './pages/SettingsPage';
 import SignInPage from './pages/Auth/SignIn';
 import OAuthDonePage from './pages/Auth/OAuthDone';
@@ -58,6 +59,9 @@ export default function App() {
           <Route path="/auth/done" element={<OAuthDonePage />} />
           {/* TOTP-link challenge after an unverified-email provider collision. */}
           <Route path="/auth/link" element={<LinkChallengePage />} />
+          {/* PWA share target — captures a shared UPI message; gates auth itself
+              (outside RequireAuth) so the shared text survives a login bounce. */}
+          <Route path="/share-target" element={<ShareCapturePage />} />
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/" element={<TodayPage />} />
             <Route path="/memos" element={<MemosPage />} />

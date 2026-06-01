@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,11 @@ function GitHubMark() {
 export default function SignIn() {
   const { beginOAuth, startEmail, verifyEmailCode } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Honor a `from` redirect (e.g. a shared UPI message routed to /share-target
+  // bounced here when logged out) so the user lands back where they intended.
+  const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  const afterLogin = from ? (from.pathname || '/') + (from.search || '') : '/';
 
   const [step, setStep] = useState<Step>('choose');
   const [email, setEmail] = useState('');
@@ -86,7 +91,7 @@ export default function SignIn() {
     setSubmitting(true);
     try {
       await verifyEmailCode(email.toLowerCase(), code);
-      navigate('/', { replace: true });
+      navigate(afterLogin, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Wrong or expired code');
     } finally {

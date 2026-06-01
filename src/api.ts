@@ -664,6 +664,12 @@ export const finance = {
   // AI category inference. Returns { category_id, category_name } where
   // category_id is null when no existing category matched (falls back
   // to "Others"). 429 means the user has exhausted their AI quota.
+  // Parse a shared bank/UPI message into transaction fields (PWA share target).
+  parseMessage: (text: string) =>
+    request<{ amount: number; type: 'expense' | 'income'; description: string; date: string; account_hint: string }>(
+      '/finance/parse-message',
+      { method: 'POST', body: JSON.stringify({ text }) },
+    ),
   categorizeTransaction: (data: { title: string; kind: 'expense' | 'income' }) =>
     request<{ category_id: number | null; category_name: string }>(
       '/finance/categorize',
