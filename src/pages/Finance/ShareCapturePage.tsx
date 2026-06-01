@@ -17,6 +17,22 @@ import { formatMoney } from './utils';
 const SHARE_KEY = 'sajni:shareText';
 const LAST_ACCT_KEY = 'sajni:lastTxnAccount';
 
+// Match a parsed account_hint (e.g. "XX7744", "HDFC Bank") to an account by its
+// comma-separated `match_hints` (set per account in the Accounts tab). Numeric
+// tokens match against the hint's digit run (last-4); text tokens (bank names)
+// match as a case-insensitive substring.
+function matchAccountByHint(hint: string, accounts: FinAccount[]): FinAccount | undefined {
+  const h = hint.toLowerCase();
+  const digits = h.replace(/\D/g, '');
+  return accounts.find((a) =>
+    (a.match_hints || '')
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean)
+      .some((tok) => (/^\d+$/.test(tok) ? digits.includes(tok) || h.includes(tok) : h.includes(tok))),
+  );
+}
+
 /**
  * PWA share-target landing. Android Chrome routes a shared bank/UPI SMS here as
  * `?text=…`. We capture that text immediately (so it survives an auth bounce),
@@ -67,6 +83,7 @@ function Capture({ text }: { text: string }) {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [accountHint, setAccountHint] = useState('');
+  const [matched, setMatched] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -93,7 +110,12 @@ function Capture({ text }: { text: string }) {
           if (p.type === 'income' || p.type === 'expense') setType(p.type);
           if (p.description) setDescription(p.description);
           if (p.date) setDate(p.date);
-          if (p.account_hint) setAccountHint(p.account_hint);
+          if (p.account_hint) {
+            setAccountHint(p.account_hint);
+            // Auto-select the account whose stored SMS identifiers match.
+            const m = matchAccountByHint(p.account_hint, accs);
+            if (m) { setAccountId(String(m.id)); setMatched(true); }
+          }
         } catch {
           // Parse failed/quota — seed the description so manual entry is easy.
           if (alive) setDescription((d) => d || text.slice(0, 120));
@@ -186,7 +208,7 @@ function Capture({ text }: { text: string }) {
             />
           </Field>
 
-          <Field label="Account" className="col-span-2" hint={accountHint ? `detected · ${accountHint}` : undefined}>
+          <Field label="Account" className="col-span-2" hint={accountHint ? `${matched ? 'matched' : 'detected'} · ${accountHint}` : undefined}>
             <Select
               value={accountId || undefined}
               onValueChange={(v) => setAccountId(v ?? '')}
