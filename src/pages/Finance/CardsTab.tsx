@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatMoney } from './utils';
 import { CardsSkeleton } from './Skeletons';
 
@@ -22,7 +23,13 @@ interface Props {
 
 export default function CardsTab({ accounts, statements, loaded, reload }: Props) {
   const [creating, setCreating] = useState<FinAccount | null>(null);
+  const [paying, setPaying] = useState<FinStatement | null>(null);
   const ccAccounts = useMemo(() => accounts.filter((a) => a.type === 'credit_card'), [accounts]);
+  // Accounts that can pay a card bill: anything with cash, not the card itself.
+  const payFrom = useMemo(
+    () => accounts.filter((a) => a.type !== 'credit_card' && !a.archived),
+    [accounts],
+  );
   const load = () => reload();
   useEffect(() => {}, []);
 
@@ -117,6 +124,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
                       key={s.id}
                       statement={s}
                       onUpdate={async (data) => { await finance.updateStatement(s.id, data); load(); }}
+                      onPay={() => setPaying(s)}
                       onDelete={async () => {
                         if (!(await confirmDialog('Delete this statement?'))) return;
                         await finance.deleteStatement(s.id);
@@ -136,7 +144,74 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
         onClose={() => setCreating(null)}
         onSaved={() => { setCreating(null); load(); }}
       />
+      <PayStatementDialog
+        statement={paying}
+        accounts={payFrom}
+        onClose={() => setPaying(null)}
+        onPaid={() => { setPaying(null); load(); }}
+      />
     </div>
+  );
+}
+
+// PayStatementDialog records a card payment: it marks the statement paid and
+// posts a transfer from the chosen bank account to the card, reducing what's
+// owed. Surfaced when the user taps "Mark paid".
+function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
+  statement: FinStatement | null;
+  accounts: FinAccount[];
+  onClose: () => void;
+  onPaid: () => void;
+}) {
+  const [accountId, setAccountId] = useState('');
+  useEffect(() => {
+    if (statement) setAccountId(accounts[0] ? String(accounts[0].id) : '');
+  }, [statement, accounts]);
+
+  if (!statement) return null;
+
+  const pay = async () => {
+    await finance.updateStatement(statement.id, {
+      paid: true,
+      ...(accountId ? { paid_from_account: parseInt(accountId) } : {}),
+    });
+    onPaid();
+  };
+
+  return (
+    <Dialog open={!!statement} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Pay {formatMoney(statement.amount_due)}</DialogTitle>
+        </DialogHeader>
+        <div className="text-xs text-muted-foreground -mt-2">
+          We'll post a transfer from the selected account to the card and mark this statement paid.
+        </div>
+        <Field label="Pay from">
+          <Select
+            value={accountId}
+            onValueChange={(v) => setAccountId(v ?? '')}
+            items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
+          >
+            <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+            <SelectContent>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        {accounts.length === 0 && (
+          <div className="text-xs text-muted-foreground">
+            No account to pay from. We'll just mark it paid without posting a transfer.
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={pay}>Confirm payment</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -164,15 +239,17 @@ function Stat({ label, value, tone = 'default', icon: Icon, small }: {
   );
 }
 
-function StatementRow({ statement, onUpdate, onDelete }: {
+function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   statement: FinStatement;
   onUpdate: (data: any) => Promise<void>;
+  onPay: () => void;
   onDelete: () => Promise<void>;
 }) {
   const dueDate = parseISO(statement.due_date);
   const daysUntil = differenceInDays(dueDate, new Date());
   const overdue = !statement.paid && daysUntil < 0;
   const dueSoon = !statement.paid && daysUntil >= 0 && daysUntil <= 5;
+  const isCredit = statement.amount_due <= 0; // overpaid → nothing to pay
 
   return (
     <div className={`rounded-md border p-2.5 ${
@@ -183,7 +260,7 @@ function StatementRow({ statement, onUpdate, onDelete }: {
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium tabular-nums">
-            {formatMoney(statement.amount_due)}
+            {isCredit ? formatMoney(-statement.amount_due) + ' credit' : formatMoney(statement.amount_due)}
           </div>
           <div className="font-mono text-[10px] text-muted-foreground">
             {format(parseISO(statement.statement_date), 'MMM d')} · due {format(dueDate, 'MMM d')}
@@ -195,6 +272,8 @@ function StatementRow({ statement, onUpdate, onDelete }: {
             <Check className="size-3" />
             Paid
           </span>
+        ) : isCredit ? (
+          <span className="font-mono text-[10px] text-primary shrink-0">in credit</span>
         ) : (
           <span className={`font-mono text-[10px] inline-flex items-center gap-1 shrink-0 ${
             overdue ? 'text-destructive' : dueSoon ? 'text-yellow-600' : 'text-muted-foreground'
@@ -204,16 +283,23 @@ function StatementRow({ statement, onUpdate, onDelete }: {
           </span>
         )}
       </div>
+
+      {/* Breakdown: previous balance carried in + this cycle's new charges. */}
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[10px] text-muted-foreground">
+        <span>Prev {formatMoney(statement.previous_balance)}</span>
+        <span>New {formatMoney(statement.new_charges)}</span>
+      </div>
+
       <div className="flex items-center justify-end gap-1 mt-1.5">
-        {!statement.paid ? (
-          <Button size="sm" variant="outline" onClick={() => onUpdate({ paid: true })}>
-            Mark paid
-          </Button>
-        ) : (
+        {statement.paid ? (
           <Button size="sm" variant="ghost" onClick={() => onUpdate({ paid: false })}>
             Undo
           </Button>
-        )}
+        ) : !isCredit ? (
+          <Button size="sm" variant="outline" onClick={onPay}>
+            Mark paid
+          </Button>
+        ) : null}
         <Button variant="ghost" size="icon-sm" onClick={onDelete}>
           <Trash2 className="size-3.5" />
         </Button>

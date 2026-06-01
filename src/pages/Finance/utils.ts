@@ -27,11 +27,15 @@ export function formatMoneyPrecise(amount: number, currency = 'INR'): string {
 export const ACCOUNT_TYPES: { value: string; label: string }[] = [
   { value: 'savings', label: 'Savings' },
   { value: 'checking', label: 'Checking' },
+  { value: 'salary', label: 'Salary' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'investment', label: 'Investment' },
+  { value: 'trading', label: 'Trading' },
   { value: 'cash', label: 'Cash' },
 ];
 
+// All instrument labels (lookup map). Guaranteed instruments live under the
+// Investments tab; the rest are market trades shown under Trading.
 export const INVESTMENT_TYPES: { value: string; label: string }[] = [
   { value: 'sip', label: 'SIP' },
   { value: 'rd', label: 'RD' },
@@ -41,6 +45,23 @@ export const INVESTMENT_TYPES: { value: string; label: string }[] = [
   { value: 'mutual_fund', label: 'Mutual Fund' },
   { value: 'other', label: 'Other' },
 ];
+
+// Guaranteed-return instruments — the only kinds allowed under Investments.
+export const GUARANTEED_TYPES: { value: string; label: string }[] = [
+  { value: 'fd', label: 'FD' },
+  { value: 'rd', label: 'RD' },
+  { value: 'other', label: 'Other' },
+];
+
+// Market instruments — bought against a trading account, shown under Trading.
+export const TRADING_TYPES: { value: string; label: string }[] = [
+  { value: 'stock', label: 'Stocks' },
+  { value: 'etf', label: 'ETF' },
+  { value: 'sip', label: 'SIP' },
+  { value: 'mutual_fund', label: 'Mutual Fund' },
+];
+
+export const TRADING_TYPE_VALUES = TRADING_TYPES.map((t) => t.value);
 
 export const ACCOUNT_COLORS = [
   '#2D5A4F', '#A14B4F', '#C49A6C', '#4F6FA1',

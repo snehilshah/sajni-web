@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { INVESTMENT_TYPES, formatMoney } from './utils';
+import { GUARANTEED_TYPES, INVESTMENT_TYPES, TRADING_TYPE_VALUES, formatMoney } from './utils';
 import { ListSkeleton } from './Skeletons';
 
 interface Props {
@@ -27,15 +27,22 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
   const [creating, setCreating] = useState(false);
   useEffect(() => {}, []);
 
+  // Investments tab = guaranteed instruments only (FD/RD/Other). Market
+  // instruments (stocks/ETF/SIP/MF) live under the Trading tab.
+  const guaranteed = useMemo(
+    () => investments.filter((i) => !TRADING_TYPE_VALUES.includes(i.type)),
+    [investments],
+  );
+
   const totals = useMemo(() => {
     let invested = 0, current = 0, monthly = 0;
-    for (const i of investments) {
+    for (const i of guaranteed) {
       invested += i.invested_amount;
       current += i.current_value;
       if (i.frequency === 'monthly') monthly += i.monthly_amount;
     }
     return { invested, current, monthly, gain: current - invested, gainPct: invested > 0 ? ((current - invested) / invested) * 100 : 0 };
-  }, [investments]);
+  }, [guaranteed]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,15 +66,15 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         </Button>
       </div>
 
-      {!loaded && investments.length === 0 ? (
+      {!loaded && guaranteed.length === 0 ? (
         <ListSkeleton rows={4} />
-      ) : investments.length === 0 ? (
+      ) : guaranteed.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No investments yet. Track your SIPs, RDs, stocks, ETFs, and mutual funds here.
+          No investments yet. Track guaranteed instruments — FDs, RDs, and other fixed-return savings — here. Stocks, ETFs, SIPs and mutual funds live in the Trading tab.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {investments.map((inv) => {
+          {guaranteed.map((inv) => {
             const gain = inv.current_value - inv.invested_amount;
             const gainPct = inv.invested_amount > 0 ? (gain / inv.invested_amount) * 100 : 0;
             const positive = gain >= 0;
@@ -165,7 +172,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [name, setName] = useState('');
-  const [type, setType] = useState('sip');
+  const [type, setType] = useState('fd');
   const [accountId, setAccountId] = useState('');
   const [invested, setInvested] = useState('');
   const [current, setCurrent] = useState('');
@@ -190,7 +197,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
       setExpectedReturn(String(investment.expected_return));
       setNotes(investment.notes);
     } else {
-      setName(''); setType('sip'); setAccountId(''); setInvested(''); setCurrent('');
+      setName(''); setType('fd'); setAccountId(''); setInvested(''); setCurrent('');
       setMonthly(''); setFrequency('monthly'); setStartDate(''); setMaturityDate('');
       setExpectedReturn(''); setNotes('');
     }
@@ -239,12 +246,12 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nifty 50 SIP" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType(v ?? '')} items={INVESTMENT_TYPES}>
+            <Select value={type} onValueChange={(v) => setType(v ?? '')} items={GUARANTEED_TYPES}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {INVESTMENT_TYPES.map((t) => (
+                {GUARANTEED_TYPES.map((t) => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
               </SelectContent>

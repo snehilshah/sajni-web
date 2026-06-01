@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import {
-  Receipt, Plus, Trash2, Repeat, Zap, CalendarClock, CheckCircle2, Pencil,
+  Receipt, Plus, Trash2, Zap, CalendarClock, CheckCircle2, Pencil,
 } from 'lucide-react';
 
 import {
@@ -55,9 +55,6 @@ export default function BillersTab({ accounts, categories }: Props) {
   // multi-tool turn coalesces into one refetch.
   useDataInvalidate(['biller_'], () => { load(); });
 
-  const subscriptions = useMemo(() => billers.filter((b) => b.is_subscription), [billers]);
-  const bills = useMemo(() => billers.filter((b) => !b.is_subscription), [billers]);
-
   const monthlyOutflow = useMemo(() => {
     return billers.reduce((sum, b) => {
       const f = b.frequency;
@@ -74,7 +71,7 @@ export default function BillersTab({ accounts, categories }: Props) {
     <div className="flex flex-col gap-5">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="serif text-lg font-semibold">Billers & subscriptions</h2>
+          <h2 className="serif text-lg font-semibold">Billers</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Estimated monthly outflow{' '}
             <span className="text-foreground font-mono tabular-nums">{formatMoney(monthlyOutflow)}</span>
@@ -96,23 +93,12 @@ export default function BillersTab({ accounts, categories }: Props) {
       <Section
         title="Bills"
         icon={Receipt}
-        items={bills}
+        items={billers}
         accounts={accounts}
         onEdit={setEditing}
         onPaid={load}
         onChanged={load}
-        emptyHint="No bills yet. Add rent, utilities, EMIs and one-off recurring charges."
-      />
-
-      <Section
-        title="Subscriptions"
-        icon={Repeat}
-        items={subscriptions}
-        accounts={accounts}
-        onEdit={setEditing}
-        onPaid={load}
-        onChanged={load}
-        emptyHint="No subscriptions tracked. Add Netflix, gym, cloud storage, etc."
+        emptyHint="Nothing tracked yet. Add rent, utilities, EMIs, subscriptions and any recurring charge."
       />
 
       {!loaded && billers.length === 0 ? (
@@ -225,7 +211,7 @@ function BillerRow({
         className="size-9 rounded-md shrink-0 grid place-items-center text-white"
         style={{ background: biller.color }}
       >
-        {biller.is_subscription ? <Repeat className="size-4" /> : <Receipt className="size-4" />}
+        <Receipt className="size-4" />
       </span>
 
       <div className="flex-1 min-w-0">
@@ -292,9 +278,9 @@ function BillerDialog({
   const [nextDueDate, setNextDueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [accountID, setAccountID] = useState<number | null>(null);
   const [categoryID, setCategoryID] = useState<number | null>(null);
-  const [isSubscription, setIsSubscription] = useState(false);
   const [autoRenew, setAutoRenew] = useState(false);
   const [remindTask, setRemindTask] = useState(false);
+  const [variable, setVariable] = useState(false);
   const [alertDays, setAlertDays] = useState(3);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -308,9 +294,9 @@ function BillerDialog({
       setNextDueDate(biller.next_due_date);
       setAccountID(biller.account_id);
       setCategoryID(biller.category_id);
-      setIsSubscription(biller.is_subscription);
       setAutoRenew(biller.auto_renew);
       setRemindTask(biller.remind_task);
+      setVariable(biller.variable);
       setAlertDays(biller.alert_days);
       setNotes(biller.notes);
     } else {
@@ -320,9 +306,9 @@ function BillerDialog({
       setNextDueDate(format(new Date(), 'yyyy-MM-dd'));
       setAccountID(null);
       setCategoryID(null);
-      setIsSubscription(false);
       setAutoRenew(false);
       setRemindTask(false);
+      setVariable(false);
       setAlertDays(3);
       setNotes('');
     }
@@ -339,10 +325,10 @@ function BillerDialog({
         next_due_date: nextDueDate,
         account_id: accountID,
         category_id: categoryID,
-        is_subscription: isSubscription,
         auto_renew: autoRenew,
         // Auto-renew self-pays, so a manual bill-pay reminder is moot there.
         remind_task: remindTask && !autoRenew,
+        variable,
         alert_days: alertDays,
         notes,
       };
@@ -437,49 +423,40 @@ function BillerDialog({
             </Field>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap text-sm">
-            <label className="inline-flex items-center gap-2 cursor-pointer">
-              <Checkbox
-                checked={isSubscription}
-                onCheckedChange={(c) => setIsSubscription(c === true)}
-              />
-              Subscription
-            </label>
-            <label className="inline-flex items-center gap-2 cursor-pointer" title="Auto-post the expense each cycle.">
-              <Checkbox
-                checked={autoRenew}
-                onCheckedChange={(c) => setAutoRenew(c === true)}
-                disabled={accountID == null}
-              />
-              Auto-renew
-            </label>
-            <label
-              className={'inline-flex items-center gap-2 ' + (autoRenew ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer')}
-              title="Each cycle, create a 'Pay {name}' task and email a reminder near the due date."
-            >
-              <Checkbox
-                checked={remindTask && !autoRenew}
-                onCheckedChange={(c) => setRemindTask(c === true)}
-                disabled={autoRenew}
-              />
-              Remind me to pay
-            </label>
-            <Field label="Alert days" className="flex-1 min-w-[120px]">
-              <Input
-                type="number"
-                min={0}
-                max={30}
-                value={alertDays}
-                onChange={(e) => setAlertDays(Number(e.target.value) || 0)}
-              />
-            </Field>
+          <div className="rounded-xl border border-border divide-y divide-border">
+            <CheckRow
+              label="Auto-renew"
+              desc="Auto-post the expense each cycle."
+              checked={autoRenew}
+              onChange={setAutoRenew}
+              disabled={accountID == null}
+              disabledReason="pick an account first"
+            />
+            <CheckRow
+              label="Remind me to pay"
+              desc="Each cycle, create a 'Pay …' task + email near the due date."
+              checked={remindTask && !autoRenew}
+              onChange={setRemindTask}
+              disabled={autoRenew}
+              disabledReason="auto-renew handles this"
+            />
+            <CheckRow
+              label="Variable amount"
+              desc="Amount isn't fixed (e.g. electricity). Auto-renew uses the last paid amount and flags it."
+              checked={variable}
+              onChange={setVariable}
+            />
           </div>
 
-          {autoRenew && accountID == null ? (
-            <div className="text-[11px] text-amber-600 dark:text-amber-400">
-              Pick an account before enabling auto-renew.
-            </div>
-          ) : null}
+          <Field label="Alert days · days before due to notify" className="max-w-[260px]">
+            <Input
+              type="number"
+              min={0}
+              max={30}
+              value={alertDays}
+              onChange={(e) => setAlertDays(Number(e.target.value) || 0)}
+            />
+          </Field>
 
           <Field label="Notes">
             <Textarea
@@ -508,5 +485,41 @@ function Field({ label, children, className }: { label: string; children: React.
       <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
+  );
+}
+
+// A labelled toggle row with a description and, when disabled, an inline reason
+// so it's obvious WHY the option can't be picked (the prior layout just dimmed
+// it with no explanation).
+function CheckRow({
+  label, desc, checked, onChange, disabled, disabledReason,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  disabledReason?: string;
+}) {
+  return (
+    <label className={'flex items-start gap-3 p-3 ' + (disabled ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer')}>
+      <Checkbox
+        checked={checked}
+        onCheckedChange={(c) => { if (!disabled) onChange(c === true); }}
+        disabled={disabled}
+        className="mt-0.5"
+      />
+      <div className="min-w-0">
+        <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
+          {label}
+          {disabled && disabledReason ? (
+            <span className="text-[9px] font-mono uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              · {disabledReason}
+            </span>
+          ) : null}
+        </div>
+        <div className="text-[11px] text-muted-foreground mt-1">{desc}</div>
+      </div>
+    </label>
   );
 }

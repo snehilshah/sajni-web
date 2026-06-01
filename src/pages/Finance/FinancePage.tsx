@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
-  TrendingUp, CreditCard, Download, Receipt,
+  TrendingUp, CreditCard, Download, Receipt, CandlestickChart,
 } from 'lucide-react';
 
 import {
@@ -17,6 +17,7 @@ import AccountsTab from './AccountsTab';
 import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
+import TradingTab from './TradingTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
 import { downloadCSV } from './utils';
@@ -29,6 +30,7 @@ const tabs = [
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
   { id: 'billers', label: 'Billers', icon: Receipt },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
+  { id: 'trading', label: 'Trading', icon: CandlestickChart },
   { id: 'cards', label: 'Cards', icon: CreditCard },
 ] as const;
 type TabId = (typeof tabs)[number]['id'];
@@ -226,7 +228,7 @@ export default function FinancePage() {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-2 md:px-8 mt-3 overflow-x-auto no-scrollbar">
+        <div className="max-w-6xl mx-auto px-2 md:px-8 mt-3 overflow-x-auto overflow-y-hidden no-scrollbar">
           <div className="flex gap-1 min-w-max">
             {tabs.map((t) => {
               const Icon = t.icon;
@@ -265,9 +267,10 @@ export default function FinancePage() {
           <TabPanel active={active === 'accounts'}>
             <AccountsTab
               accounts={data.accounts}
+              categories={data.categories}
               savings={data.savings}
               loaded={data.loaded.accounts}
-              reload={() => { loadAccounts(); loadSavings(); }}
+              reload={() => { loadAccounts(); loadSavings(); loadTransactions(); }}
             />
           </TabPanel>
           <TabPanel active={active === 'transactions'}>
@@ -277,6 +280,7 @@ export default function FinancePage() {
               transactions={data.transactions}
               loaded={data.loaded.transactions}
               reload={() => { loadTransactions(); loadAccounts(); }}
+              reloadCategories={loadCategories}
             />
           </TabPanel>
           <TabPanel active={active === 'budgets'}>
@@ -285,6 +289,7 @@ export default function FinancePage() {
               categories={data.categories}
               loaded={data.loaded.budgets}
               reload={loadBudgets}
+              reloadCategories={loadCategories}
             />
           </TabPanel>
           <TabPanel active={active === 'investments'}>
@@ -293,6 +298,14 @@ export default function FinancePage() {
               investments={data.investments}
               loaded={data.loaded.investments}
               reload={loadInvestments}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'trading'}>
+            <TradingTab
+              accounts={data.accounts}
+              investments={data.investments}
+              loaded={data.loaded.investments}
+              reload={() => { loadInvestments(); loadAccounts(); }}
             />
           </TabPanel>
           <TabPanel active={active === 'billers'}>

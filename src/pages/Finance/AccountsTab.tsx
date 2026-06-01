@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 import {
-  Landmark, CreditCard, TrendingUp, Coins,
-  Plus, Pencil, Trash2, Target,
+  Landmark, CreditCard, TrendingUp, Coins, CandlestickChart, Wallet,
+  Plus, Pencil, Trash2, Target, ArrowDownToLine, Gift,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { finance, type FinAccount, type FinSaving } from '@/api';
+import { finance, type FinAccount, type FinSaving, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ACCOUNT_TYPES, ACCOUNT_COLORS, formatMoney } from './utils';
@@ -19,7 +22,9 @@ const typeIcon = (type: string) => {
   switch (type) {
     case 'credit_card': return CreditCard;
     case 'investment': return TrendingUp;
+    case 'trading': return CandlestickChart;
     case 'cash': return Coins;
+    case 'salary': return Wallet;
     case 'savings':
     case 'checking':
     default: return Landmark;
@@ -28,12 +33,13 @@ const typeIcon = (type: string) => {
 
 interface Props {
   accounts: FinAccount[];
+  categories: FinCategory[];
   savings: FinSaving[];
   loaded: boolean;
   reload: () => void;
 }
 
-export default function AccountsTab({ accounts, savings: parentSavings, loaded, reload }: Props) {
+export default function AccountsTab({ accounts, categories, savings: parentSavings, loaded, reload }: Props) {
   const [editingAcct, setEditingAcct] = useState<FinAccount | null>(null);
   const [creating, setCreating] = useState(false);
   // Local copy so the bucket dialog can mutate without round-tripping every keystroke.
@@ -162,6 +168,10 @@ export default function AccountsTab({ accounts, savings: parentSavings, loaded, 
                   )}
                 </div>
 
+                {a.type === 'salary' && (
+                  <SalaryActions account={a} categories={categories} onDone={reload} />
+                )}
+
                 {/* Virtual savings on this account */}
                 {!isCC && (
                   <div className="mt-3 pt-3 border-t border-border/50">
@@ -259,6 +269,8 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   const [dueDay, setDueDay] = useState('');
   const [cashbackType, setCashbackType] = useState('none');
   const [cashbackValue, setCashbackValue] = useState('0');
+  const [salaryAmount, setSalaryAmount] = useState('0');
+  const [salaryDay, setSalaryDay] = useState('');
   const [color, setColor] = useState(ACCOUNT_COLORS[0]);
   const [archived, setArchived] = useState(false);
 
@@ -273,12 +285,15 @@ function AccountDialog({ open, account, onClose, onSaved }: {
       setDueDay(account.due_day != null ? String(account.due_day) : '');
       setCashbackType(account.cashback_type);
       setCashbackValue(String(account.cashback_value));
+      setSalaryAmount(String(account.salary_amount ?? 0));
+      setSalaryDay(account.salary_day != null ? String(account.salary_day) : '');
       setColor(account.color);
       setArchived(account.archived);
     } else {
       setName(''); setType('savings'); setInstitution(''); setOpeningBalance('0');
       setCreditLimit(''); setStatementDay(''); setDueDay('');
       setCashbackType('none'); setCashbackValue('0');
+      setSalaryAmount('0'); setSalaryDay('');
       setColor(ACCOUNT_COLORS[0]); setArchived(false);
     }
   }, [account, open]);
@@ -298,6 +313,10 @@ function AccountDialog({ open, account, onClose, onSaved }: {
       data.credit_limit = creditLimit ? parseFloat(creditLimit) : 0;
       data.statement_day = statementDay ? parseInt(statementDay) : null;
       data.due_day = dueDay ? parseInt(dueDay) : null;
+    }
+    if (type === 'salary') {
+      data.salary_amount = parseFloat(salaryAmount) || 0;
+      if (salaryDay) data.salary_day = parseInt(salaryDay);
     }
     if (account) {
       data.archived = archived;
@@ -354,6 +373,24 @@ function AccountDialog({ open, account, onClose, onSaved }: {
                   style={{ backgroundColor: c }}
                 />
               ))}
+              {/* Custom color — native picker, gives full freedom beyond the presets. */}
+              <label
+                className={`relative size-7 rounded-md cursor-pointer grid place-items-center transition-transform ${
+                  ACCOUNT_COLORS.includes(color)
+                    ? 'border border-dashed border-[hsl(var(--outline))]'
+                    : 'ring-2 ring-ring scale-110'
+                }`}
+                style={!ACCOUNT_COLORS.includes(color) ? { backgroundColor: color } : undefined}
+                title="Custom color"
+              >
+                {ACCOUNT_COLORS.includes(color) && <Plus className="size-3.5 text-muted-foreground" />}
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="absolute inset-0 size-full opacity-0 cursor-pointer"
+                />
+              </label>
             </div>
           </Field>
 
@@ -388,13 +425,24 @@ function AccountDialog({ open, account, onClose, onSaved }: {
               )}
             </>
           )}
+          {type === 'salary' && (
+            <>
+              <Field label="Monthly salary">
+                <Input type="number" inputMode="decimal" value={salaryAmount} onChange={(e) => setSalaryAmount(e.target.value)} placeholder="e.g. 90000" />
+              </Field>
+              <Field label="Salary day">
+                <Input type="number" inputMode="numeric" min={1} max={31} value={salaryDay} onChange={(e) => setSalaryDay(e.target.value)} placeholder="e.g. 1" />
+              </Field>
+            </>
+          )}
           {account && (
-            <Field label="" className="sm:col-span-2">
-              <label className="inline-flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <Input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} className="size-[18px] rounded-[3px] accent-primary border-2 border-[hsl(var(--on-surface-variant))]" />
-                Archived (hide from active view)
-              </label>
-            </Field>
+            <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium">Archived</div>
+                <div className="text-[11px] text-muted-foreground">Hide from the active view. Balance &amp; history stay intact.</div>
+              </div>
+              <Switch checked={archived} onCheckedChange={(c) => setArchived(c)} />
+            </div>
           )}
         </div>
         <DialogFooter className="sm:justify-between">
@@ -418,6 +466,92 @@ function Field({ label, className = '', children }: { label: string; className?:
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>}
       {children}
+    </div>
+  );
+}
+
+// Salary accounts get one-tap inflow controls right on the card: "Credit
+// salary" posts the stored monthly amount as income (categorized Salary),
+// and "Bonus" posts an ad-hoc amount. Both are plain income transactions —
+// no cron, deterministic, matches the manual-credit decision.
+function SalaryActions({ account, categories, onDone }: {
+  account: FinAccount;
+  categories: FinCategory[];
+  onDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [bonusOpen, setBonusOpen] = useState(false);
+  const [bonusAmt, setBonusAmt] = useState('');
+
+  const salaryCat = categories.find((c) => c.kind === 'income' && c.name.toLowerCase() === 'salary');
+  const amt = account.salary_amount || 0;
+
+  const post = async (amount: number, description: string) => {
+    if (amount <= 0 || busy) return;
+    setBusy(true);
+    try {
+      await finance.createTransaction({
+        account_id: account.id,
+        type: 'income',
+        amount,
+        description,
+        txn_date: format(new Date(), 'yyyy-MM-dd'),
+        category_id: salaryCat ? salaryCat.id : null,
+      });
+      toast.success(`${description} of ${formatMoney(amount)} credited`);
+      onDone();
+    } catch (e) {
+      toast.error((e as Error).message || 'Could not credit');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitBonus = () => {
+    const v = parseFloat(bonusAmt);
+    if (v > 0) { setBonusOpen(false); post(v, 'Bonus'); }
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50 flex items-center gap-2 flex-wrap">
+      <Button
+        size="sm"
+        onClick={() => post(amt, 'Salary')}
+        disabled={busy || amt <= 0}
+        title={amt <= 0 ? 'Set a monthly salary amount on this account first' : `Credit ${formatMoney(amt)}`}
+      >
+        <ArrowDownToLine className="size-3.5 mr-1" /> Credit salary
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => { setBonusAmt(''); setBonusOpen(true); }} disabled={busy}>
+        <Gift className="size-3.5 mr-1" /> Bonus
+      </Button>
+      {amt > 0 && (
+        <span className="font-mono text-[10px] text-muted-foreground ml-auto">
+          {formatMoney(amt)}/mo{account.salary_day ? ` · day ${account.salary_day}` : ''}
+        </span>
+      )}
+
+      <Dialog open={bonusOpen} onOpenChange={(o) => !o && setBonusOpen(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Add bonus to {account.name}</DialogTitle></DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Bonus amount</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={bonusAmt}
+              onChange={(e) => setBonusAmt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitBonus(); }}
+              placeholder="e.g. 25000"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBonusOpen(false)}>Cancel</Button>
+            <Button onClick={submitBonus} disabled={!(parseFloat(bonusAmt) > 0)}>Credit bonus</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

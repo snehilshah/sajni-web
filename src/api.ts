@@ -476,7 +476,7 @@ export const analytics = {
 export interface FinAccount {
   id: number;
   name: string;
-  type: 'savings' | 'checking' | 'credit_card' | 'investment' | 'cash';
+  type: 'savings' | 'checking' | 'credit_card' | 'investment' | 'trading' | 'cash' | 'salary';
   institution: string;
   currency: string;
   opening_balance: number;
@@ -486,6 +486,9 @@ export interface FinAccount {
   due_day: number | null;
   cashback_type: 'none' | 'percentage' | 'fixed';
   cashback_value: number;
+  /** Salary accounts: expected monthly inflow + day it lands (one-tap credit). */
+  salary_amount: number;
+  salary_day: number | null;
   color: string;
   archived: boolean;
   created_at: string;
@@ -506,7 +509,7 @@ export interface FinTransaction {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
-  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out';
+  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'buy' | 'sell';
   amount: number;
   description: string;
   note: string;
@@ -548,6 +551,11 @@ export interface FinInvestment {
   expected_return: number;
   notes: string;
   last_updated: string;
+  /** Trading holdings only: units held + cost basis + booked P/L + lifecycle. */
+  quantity: number;
+  avg_buy_price: number;
+  realized_pl: number;
+  status: 'open' | 'closed';
 }
 
 export interface FinSaving {
@@ -578,6 +586,8 @@ export interface FinBiller {
   auto_renew: boolean;
   /** Opt-in: cron spawns a 'Pay {name}' reminder task each cycle. */
   remind_task: boolean;
+  /** Amount not known upfront (e.g. electricity); auto-pay uses last amount. */
+  variable: boolean;
   alert_days: number;
   color: string;
   notes: string;
@@ -590,7 +600,7 @@ export interface FinBillerAlert {
   id: number;
   biller_id: number;
   biller_name: string;
-  kind: 'upcoming' | 'auto_paid';
+  kind: 'upcoming' | 'auto_paid' | 'auto_paid_variable';
   due_date: string;
   amount: number;
   seen: boolean;
@@ -603,7 +613,10 @@ export interface FinStatement {
   account_name: string;
   statement_date: string;
   due_date: string;
+  /** Payable total = previous_balance + new_charges (may be negative = credit). */
   amount_due: number;
+  new_charges: number;
+  previous_balance: number;
   cashback_earned: number;
   paid: boolean;
   paid_at: string | null;
@@ -674,6 +687,13 @@ export const finance = {
     request('/finance/investments/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInvestment: (id: number) =>
     request('/finance/investments/' + id, { method: 'DELETE' }),
+  // Sell a (partial or full) trading holding. units<=0 sells the whole lot;
+  // proceeds credit the linked trading account.
+  sellInvestment: (id: number, data: { units?: number; price?: number; amount?: number; date?: string }) =>
+    request<{ status: string; proceeds: number; realized_pl: number; remaining_units: number; closed: boolean }>(
+      '/finance/investments/' + id + '/sell',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
 
   // Virtual savings
   listSavings: (account_id?: number) =>
@@ -688,12 +708,12 @@ export const finance = {
   // Card statements
   listStatements: (account_id?: number) =>
     request<FinStatement[]>('/finance/cards/statements' + (account_id ? '?account_id=' + account_id : '')),
-  createStatement: (account_id: number, data: { statement_date: string; due_date: string; amount_due?: number; cashback_earned?: number }) =>
-    request<{ id: number; amount_due: number; cashback_earned: number }>(
+  createStatement: (account_id: number, data: { statement_date: string; due_date: string; amount_due?: number; new_charges?: number; cashback_earned?: number }) =>
+    request<{ id: number; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number }>(
       '/finance/cards/' + account_id + '/statements',
       { method: 'POST', body: JSON.stringify(data) },
     ),
-  updateStatement: (id: number, data: Partial<FinStatement>) =>
+  updateStatement: (id: number, data: Partial<FinStatement> & { paid_from_account?: number }) =>
     request('/finance/cards/statements/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteStatement: (id: number) =>
     request('/finance/cards/statements/' + id, { method: 'DELETE' }),

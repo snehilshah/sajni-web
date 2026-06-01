@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles, Tags } from 'lucide-react';
 
 import { toast } from 'sonner';
 import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { formatMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
+import CategoryManager from './CategoryManager';
 
 interface Props {
   accounts: FinAccount[];
@@ -23,11 +24,13 @@ interface Props {
   transactions: FinTransaction[];
   loaded: boolean;
   reload: () => void;
+  reloadCategories: () => void;
 }
 
-export default function TransactionsTab({ accounts, categories, transactions, loaded, reload }: Props) {
+export default function TransactionsTab({ accounts, categories, transactions, loaded, reload, reloadCategories }: Props) {
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [creating, setCreating] = useState(false);
+  const [manageCats, setManageCats] = useState(false);
   const [search, setSearch] = useState('');
   const [accountFilter, setAccountFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
@@ -100,6 +103,9 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
             <SelectItem value="transfer_out">Transfer</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" onClick={() => setManageCats(true)} title="Add / edit categories">
+          <Tags className="size-4 mr-1" /> Categories
+        </Button>
         <Button onClick={() => setCreating(true)}>
           <Plus className="size-4 mr-1" /> Add
         </Button>
@@ -193,6 +199,12 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); load(); }}
       />
+      <CategoryManager
+        open={manageCats}
+        categories={categories}
+        onClose={() => setManageCats(false)}
+        onChanged={reloadCategories}
+      />
     </div>
   );
 }
@@ -256,6 +268,15 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   }, [txn, open, accounts]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
+
+  // Salary accounts are the natural landing spot for income — when the user
+  // flips a fresh entry to "income", default the deposit-to account to a
+  // salary account if one exists. They can still pick another.
+  useEffect(() => {
+    if (txn || type !== 'income') return;
+    const sal = accounts.find((a) => a.type === 'salary');
+    if (sal) setAccountId(String(sal.id));
+  }, [type, txn, accounts]);
 
   // Debounced AI category inference. Fires when the user types a title
   // on a NEW transaction (not edit), as long as they haven't picked a

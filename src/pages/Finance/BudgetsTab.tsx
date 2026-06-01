@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tags } from 'lucide-react';
 
 import { finance, type FinBudget, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
@@ -13,17 +13,20 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatMoney } from './utils';
 import { CardsSkeleton } from './Skeletons';
+import CategoryManager from './CategoryManager';
 
 interface Props {
   budgets: FinBudget[];
   categories: FinCategory[];
   loaded: boolean;
   reload: () => void;
+  reloadCategories: () => void;
 }
 
-export default function BudgetsTab({ budgets, categories, loaded, reload }: Props) {
+export default function BudgetsTab({ budgets, categories, loaded, reload, reloadCategories }: Props) {
   const [editing, setEditing] = useState<FinBudget | null>(null);
   const [creating, setCreating] = useState(false);
+  const [manageCats, setManageCats] = useState(false);
   useEffect(() => {}, []);
   const expenseCats = useMemo(() => categories.filter((c) => c.kind === 'expense'), [categories]);
 
@@ -31,9 +34,14 @@ export default function BudgetsTab({ budgets, categories, loaded, reload }: Prop
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">Budgets</h2>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="size-4 mr-1" /> New budget
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setManageCats(true)}>
+            <Tags className="size-4 mr-1" /> Categories
+          </Button>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="size-4 mr-1" /> New budget
+          </Button>
+        </div>
       </div>
 
       {!loaded && budgets.length === 0 ? (
@@ -134,6 +142,12 @@ export default function BudgetsTab({ budgets, categories, loaded, reload }: Prop
         categories={expenseCats}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); reload(); }}
+      />
+      <CategoryManager
+        open={manageCats}
+        categories={categories}
+        onClose={() => setManageCats(false)}
+        onChanged={reloadCategories}
       />
     </div>
   );
@@ -240,8 +254,8 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
             </Select>
           </Field>
           {period === 'monthly' && !budget && (
-            <Field label="">
-              <Button variant="outline" size="sm" onClick={nextMonth}>Next month →</Button>
+            <Field label="Shortcut">
+              <Button variant="outline" onClick={nextMonth} className="w-full h-11">Next month →</Button>
             </Field>
           )}
           <Field label="Start">
@@ -272,6 +286,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
                   <Select
                     value={it.category_id == null ? 'none' : String(it.category_id)}
                     onValueChange={(v) => updateItem(idx, { category_id: !v || v === 'none' ? null : parseInt(v) })}
+                    items={[{ value: 'none', label: '— category —' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="— category —" />

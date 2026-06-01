@@ -77,11 +77,18 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected}
+          defaultMonth={selected}
           onSelect={(d) => {
             onChange?.(dateToIso(d))
             setOpen(false)
           }}
-          captionLayout="dropdown-months"
+          // `dropdown` gives editable month AND year selects (not just month).
+          captionLayout="dropdown"
+          startMonth={new Date(1970, 0)}
+          endMonth={new Date(2100, 11)}
+          // Always render 6 week rows so the popover height never jumps when
+          // moving between months with 4/5/6 weeks.
+          fixedWeeks
         />
       </PopoverContent>
     </Popover>
