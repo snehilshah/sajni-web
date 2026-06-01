@@ -489,6 +489,8 @@ export interface FinAccount {
   /** Salary accounts: expected monthly inflow + day it lands (one-tap credit). */
   salary_amount: number;
   salary_day: number | null;
+  /** Comma-separated SMS identifiers (last-4 / bank) → share-target auto-match. */
+  match_hints: string;
   color: string;
   archived: boolean;
   created_at: string;

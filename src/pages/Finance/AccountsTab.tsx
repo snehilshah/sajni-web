@@ -271,6 +271,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   const [cashbackValue, setCashbackValue] = useState('0');
   const [salaryAmount, setSalaryAmount] = useState('0');
   const [salaryDay, setSalaryDay] = useState('');
+  const [matchHints, setMatchHints] = useState('');
   const [color, setColor] = useState(ACCOUNT_COLORS[0]);
   const [archived, setArchived] = useState(false);
 
@@ -287,13 +288,14 @@ function AccountDialog({ open, account, onClose, onSaved }: {
       setCashbackValue(String(account.cashback_value));
       setSalaryAmount(String(account.salary_amount ?? 0));
       setSalaryDay(account.salary_day != null ? String(account.salary_day) : '');
+      setMatchHints(account.match_hints || '');
       setColor(account.color);
       setArchived(account.archived);
     } else {
       setName(''); setType('savings'); setInstitution(''); setOpeningBalance('0');
       setCreditLimit(''); setStatementDay(''); setDueDay('');
       setCashbackType('none'); setCashbackValue('0');
-      setSalaryAmount('0'); setSalaryDay('');
+      setSalaryAmount('0'); setSalaryDay(''); setMatchHints('');
       setColor(ACCOUNT_COLORS[0]); setArchived(false);
     }
   }, [account, open]);
@@ -307,6 +309,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
       opening_balance: parseFloat(openingBalance) || 0,
       cashback_type: type === 'credit_card' ? cashbackType : 'none',
       cashback_value: parseFloat(cashbackValue) || 0,
+      match_hints: matchHints.trim(),
       color,
     };
     if (type === 'credit_card') {
@@ -392,6 +395,18 @@ function AccountDialog({ open, account, onClose, onSaved }: {
                 />
               </label>
             </div>
+          </Field>
+
+          <Field label="SMS match (for shared messages)" className="sm:col-span-2">
+            <Input
+              value={matchHints}
+              onChange={(e) => setMatchHints(e.target.value)}
+              placeholder="e.g. 7744, HDFC"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Last 4 digits / bank name from this account's bank &amp; UPI SMS, comma-separated. When you share a
+              transaction message, Sajni auto-selects this account if the text mentions any of these.
+            </p>
           </Field>
 
           {type === 'credit_card' && (
