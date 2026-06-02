@@ -84,3 +84,48 @@ export async function downloadCSV(path: string, filename: string) {
 }
 
 export const _API_BASE = API_BASE;
+
+// ─── Transaction time (txn_at) ──────────────────────────────────────────
+// The API carries a transaction's instant as an RFC3339 string anchored to IST
+// (+05:30). Every Sajni user is IST, so we render and compose in Asia/Kolkata
+// explicitly — never the device timezone — keeping the wall clock stable on any
+// device. Intl with timeZone:'Asia/Kolkata' does the conversion bulletproofly.
+const IST_TZ = 'Asia/Kolkata';
+const IST_OFFSET = '+05:30';
+
+// Split an instant into IST { date:'yyyy-MM-dd', time:'HH:MM' } for the
+// Date + Time pickers. Falls back to "now" on an unparseable value.
+export function txnAtToParts(iso: string): { date: string; time: string } {
+  let d = new Date(iso);
+  if (isNaN(d.getTime())) d = new Date();
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: IST_TZ,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(d).map((p) => [p.type, p.value]),
+  );
+  const hour = parts.hour === '24' ? '00' : parts.hour; // some engines emit 24h at midnight
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${hour}:${parts.minute}` };
+}
+
+// Build an IST-anchored RFC3339 the server stores verbatim. The explicit +05:30
+// makes it device-timezone independent. Blank/invalid time → midnight.
+export function partsToTxnAt(date: string, time: string): string {
+  const t = /^\d{1,2}:\d{2}$/.test(time) ? time.padStart(5, '0') : '00:00';
+  return `${date}T${t}:00${IST_OFFSET}`;
+}
+
+// "2 Jun 2026" in IST.
+export function formatTxnDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+}
+
+// "2:30 PM" in IST.
+export function formatTxnTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TZ, hour: 'numeric', minute: '2-digit', hour12: true }).format(d);
+}
