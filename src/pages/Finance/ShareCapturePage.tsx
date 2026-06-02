@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import { formatMoney } from './utils';
+import { formatMoney, txnAtToParts, partsToTxnAt } from './utils';
 
 const SHARE_KEY = 'sajni:shareText';
 const LAST_ACCT_KEY = 'sajni:lastTxnAccount';
@@ -67,6 +68,7 @@ function Capture({ text }: { text: string }) {
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [time, setTime] = useState(() => txnAtToParts(new Date().toISOString()).time);
   const [accountHint, setAccountHint] = useState('');
   const [matched, setMatched] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -97,7 +99,8 @@ function Capture({ text }: { text: string }) {
           if (p.note) setNote(p.note);
           // Pre-fill the inferred / learned category (editable).
           if (p.category_id != null) setCategoryId(String(p.category_id));
-          if (p.date) setDate(p.date);
+          // txn_at = parsed date + parsed/fallback time (IST); split for the pickers.
+          if (p.txn_at) { const parts = txnAtToParts(p.txn_at); setDate(parts.date); setTime(parts.time); }
           if (p.account_hint) setAccountHint(p.account_hint);
           // Account match now resolved server-side (one source of truth for
           // web + android); pre-select the returned account.
@@ -129,7 +132,7 @@ function Capture({ text }: { text: string }) {
         amount: amt,
         description: description.trim(),
         note: note.trim(),
-        txn_date: date,
+        txn_at: partsToTxnAt(date, time),
         category_id: categoryId ? parseInt(categoryId) : null,
       });
       try { localStorage.setItem(LAST_ACCT_KEY, accountId); } catch { /* ignore */ }
@@ -200,7 +203,7 @@ function Capture({ text }: { text: string }) {
 
           <Field label="Account" className="col-span-2" hint={accountHint ? `${matched ? 'matched' : 'detected'} · ${accountHint}` : undefined}>
             <Select
-              value={accountId || undefined}
+              value={accountId || null}
               onValueChange={(v) => setAccountId(v ?? '')}
               items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
             >
@@ -237,8 +240,12 @@ function Capture({ text }: { text: string }) {
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Extra context — ref no., purpose. Use #tags." maxLength={1000} />
           </Field>
 
-          <Field label="Date" className="col-span-2">
+          <Field label="Date">
             <DatePicker value={date} onChange={setDate} />
+          </Field>
+
+          <Field label="Time">
+            <TimePicker value={time} onChange={setTime} />
           </Field>
         </div>
 

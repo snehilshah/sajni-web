@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import { formatMoney } from './utils';
+import { formatMoney, txnAtToParts, partsToTxnAt, formatTxnTime } from './utils';
 import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 
@@ -101,7 +102,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
     const map = new Map<string, FinTransaction[]>();
     for (const t of filtered) {
       if (t.type === 'transfer_in') continue;
-      const key = t.txn_date;
+      const key = txnAtToParts(t.txn_at).date; // group by IST calendar day
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(t);
     }
@@ -218,6 +219,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
                               {accountNameById(t.account_id) || t.account_name}
                               {isTransfer && t.linked_account && ' → ' + linkedAccountName(t.linked_account)}
                               {!isTransfer && t.category_name && ' · ' + t.category_name}
+                              {' · ' + formatTxnTime(t.txn_at)}
                             </div>
                             {(() => {
                               const tags = extractHashtags(t.note);
@@ -296,6 +298,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [time, setTime] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inferring, setInferring] = useState(false);
@@ -321,7 +324,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setAmount(String(txn.amount));
       setDescription(txn.description);
       setNote(txn.note || '');
-      setDate(txn.txn_date);
+      { const p = txnAtToParts(txn.txn_at); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
       setUserPickedCategory(true);
     } else {
@@ -332,7 +335,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setAmount('');
       setDescription('');
       setNote('');
-      setDate(format(new Date(), 'yyyy-MM-dd'));
+      { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
     }
@@ -408,6 +411,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     const amt = parseFloat(amount);
+    const txnAt = partsToTxnAt(date, time);
 
     setSaving(true);
     try {
@@ -422,7 +426,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           amount: amt,
           description,
           note,
-          txn_date: date,
+          txn_at: txnAt,
           category_id: catId as any,
         } as any);
         // Hand the parent an optimistic patch so the row reflects the new
@@ -435,7 +439,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           amount: amt,
           description,
           note,
-          txn_date: date,
+          txn_at: txnAt,
           category_id: catId,
           category_name: cat?.name ?? null,
           category_color: cat?.color ?? null,
@@ -448,7 +452,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           amount: amt,
           description,
           note,
-          txn_date: date,
+          txn_at: txnAt,
           linked_account: parseInt(linkedId),
         });
       } else {
@@ -458,7 +462,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           amount: amt,
           description,
           note,
-          txn_date: date,
+          txn_at: txnAt,
           category_id: categoryId ? parseInt(categoryId) : null,
         });
       }
@@ -573,7 +577,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
               </Select>
             </Field>
           )}
-          <Field label="Amount" error={errors.amount}>
+          <Field label="Amount" className="col-span-2" error={errors.amount}>
             <Input
               type="number"
               inputMode="decimal"
@@ -584,6 +588,9 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           </Field>
           <Field label="Date">
             <DatePicker value={date} onChange={setDate} />
+          </Field>
+          <Field label="Time">
+            <TimePicker value={time} onChange={setTime} />
           </Field>
           <Field label="Note" className="col-span-2">
             <Textarea

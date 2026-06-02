@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
 import {
   Landmark, CreditCard, TrendingUp, Coins, CandlestickChart, Wallet,
   Plus, Pencil, Trash2, Target, ArrowDownToLine, Gift,
@@ -510,7 +509,7 @@ function SalaryActions({ account, categories, onDone }: {
         type: 'income',
         amount,
         description,
-        txn_date: format(new Date(), 'yyyy-MM-dd'),
+        txn_at: new Date().toISOString(),
         category_id: salaryCat ? salaryCat.id : null,
       });
       toast.success(`${description} of ${formatMoney(amount)} credited`);

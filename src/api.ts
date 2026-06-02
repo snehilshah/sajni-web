@@ -528,7 +528,7 @@ export interface FinTransaction {
   amount: number;
   description: string;
   note: string;
-  txn_date: string;
+  txn_at: string; // RFC3339 in IST (carries +05:30)
   transfer_pair: number | null;
   linked_account: number | null;
   created_at: string;
@@ -670,7 +670,7 @@ export const finance = {
     const qs = q.toString();
     return request<FinTransaction[]>('/finance/transactions' + (qs ? '?' + qs : ''));
   },
-  createTransaction: (data: { account_id: number; category_id?: number | null; type: string; amount: number; description?: string; note?: string; txn_date: string; linked_account?: number }) =>
+  createTransaction: (data: { account_id: number; category_id?: number | null; type: string; amount: number; description?: string; note?: string; txn_at: string; linked_account?: number }) =>
     request<{ id: number }>('/finance/transactions', { method: 'POST', body: JSON.stringify(data) }),
   updateTransaction: (id: number, data: Partial<FinTransaction>) =>
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
@@ -681,7 +681,7 @@ export const finance = {
   // to "Others"). 429 means the user has exhausted their AI quota.
   // Parse a shared bank/UPI message into transaction fields (PWA share target).
   parseMessage: (text: string) =>
-    request<{ amount: number; type: 'expense' | 'income'; description: string; note: string; date: string; account_hint: string; account_id: number | null; category_id: number | null; category_name: string }>(
+    request<{ amount: number; type: 'expense' | 'income'; description: string; note: string; txn_at: string; account_hint: string; account_id: number | null; category_id: number | null; category_name: string }>(
       '/finance/parse-message',
       { method: 'POST', body: JSON.stringify({ text }) },
     ),
