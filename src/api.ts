@@ -681,7 +681,7 @@ export const finance = {
   // to "Others"). 429 means the user has exhausted their AI quota.
   // Parse a shared bank/UPI message into transaction fields (PWA share target).
   parseMessage: (text: string) =>
-    request<{ amount: number; type: 'expense' | 'income'; description: string; note: string; date: string; account_hint: string; category_id: number | null; category_name: string }>(
+    request<{ amount: number; type: 'expense' | 'income'; description: string; note: string; date: string; account_hint: string; account_id: number | null; category_id: number | null; category_name: string }>(
       '/finance/parse-message',
       { method: 'POST', body: JSON.stringify({ text }) },
     ),

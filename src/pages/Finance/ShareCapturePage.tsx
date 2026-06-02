@@ -17,22 +17,6 @@ import { formatMoney } from './utils';
 const SHARE_KEY = 'sajni:shareText';
 const LAST_ACCT_KEY = 'sajni:lastTxnAccount';
 
-// Match a parsed account_hint (e.g. "XX7744", "HDFC Bank") to an account by its
-// comma-separated `match_hints` (set per account in the Accounts tab). Numeric
-// tokens match against the hint's digit run (last-4); text tokens (bank names)
-// match as a case-insensitive substring.
-function matchAccountByHint(hint: string, accounts: FinAccount[]): FinAccount | undefined {
-  const h = hint.toLowerCase();
-  const digits = h.replace(/\D/g, '');
-  return accounts.find((a) =>
-    (a.match_hints || '')
-      .split(',')
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean)
-      .some((tok) => (/^\d+$/.test(tok) ? digits.includes(tok) || h.includes(tok) : h.includes(tok))),
-  );
-}
-
 /**
  * PWA share-target landing. Android Chrome routes a shared bank/UPI SMS here as
  * `?text=…`. We capture that text immediately (so it survives an auth bounce),
@@ -114,11 +98,12 @@ function Capture({ text }: { text: string }) {
           // Pre-fill the inferred / learned category (editable).
           if (p.category_id != null) setCategoryId(String(p.category_id));
           if (p.date) setDate(p.date);
-          if (p.account_hint) {
-            setAccountHint(p.account_hint);
-            // Auto-select the account whose stored SMS identifiers match.
-            const m = matchAccountByHint(p.account_hint, accs);
-            if (m) { setAccountId(String(m.id)); setMatched(true); }
+          if (p.account_hint) setAccountHint(p.account_hint);
+          // Account match now resolved server-side (one source of truth for
+          // web + android); pre-select the returned account.
+          if (p.account_id != null) {
+            setAccountId(String(p.account_id));
+            setMatched(true);
           }
         } catch {
           // Parse failed/quota — seed the description so manual entry is easy.
