@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Sajni named mehendi logo light">
+  <defs>
+    <g id="paisley-light">
+      <path d="M0-32C-20-18-26 8-10 25C-3 32 8 31 15 22C29 4 20-20 0-32Z" fill="#F8EEDB"/>
+      <path d="M2-20C-7-5-7 11 2 20" fill="none" stroke="#6F473C" stroke-width="3.2" stroke-linecap="round"/>
+      <circle cx="0" cy="-21" r="3.8" fill="#F8EEDB"/>
+      <circle cx="-13" cy="-1" r="3.4" fill="#F8EEDB"/>
+      <circle cx="14" cy="6" r="3.4" fill="#F8EEDB"/>
+    </g>
+    <g id="cluster-light">
+      <circle cx="0" cy="0" r="3.3" fill="#F8EEDB"/>
+      <circle cx="-7" cy="7" r="2.9" fill="#F8EEDB"/>
+      <circle cx="7" cy="7" r="2.9" fill="#F8EEDB"/>
+    </g>
+  </defs>
+
+  <g transform="translate(128 128)">
+    <use href="#paisley-light" transform="rotate(0) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(45) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(90) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(135) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(180) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(225) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(270) translate(0 -82)"/>
+    <use href="#paisley-light" transform="rotate(315) translate(0 -82)"/>
+    <use href="#cluster-light" transform="rotate(22.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(67.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(112.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(157.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(202.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(247.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(292.5) translate(0 -103)"/>
+    <use href="#cluster-light" transform="rotate(337.5) translate(0 -103)"/>
+  </g>
+
+  <g transform="rotate(-8 128 128)">
+    <circle cx="128" cy="128" r="50" fill="none" stroke="#F8EEDB" stroke-width="5.5"/>
+    <circle cx="128" cy="108" r="6.8" fill="#B53A2D"/>
+    <text x="128" y="142" text-anchor="middle" fill="#F8EEDB" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-style="italic" font-weight="700">sajni</text>
+  </g>
+</svg>

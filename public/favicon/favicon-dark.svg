@@ -1,6 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="18" fill="#17130f"/>
-  <circle cx="32" cy="32" r="19" fill="#f2b8ae"/>
-  <circle cx="25" cy="25" r="6" fill="#17130f"/>
-  <path d="M21 39c7 7 15 7 22 0" fill="none" stroke="#17130f" stroke-width="5" stroke-linecap="round"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Sajni favicon dark surface">
+  <rect width="256" height="256" rx="56" fill="#17130F"/>
+  <defs>
+    <g id="paisley-light">
+      <path d="M0-37C-23-21-31 9-12 29C-3 38 10 36 19 25C34 5 24-24 0-37Z" fill="#F8EEDB"/>
+      <path d="M3-24C-8-8-8 13 4 25" fill="none" stroke="#6F473C" stroke-width="3.8" stroke-linecap="round"/>
+      <circle cx="-16" cy="-3" r="3.7" fill="#F8EEDB"/>
+      <circle cx="16" cy="8" r="3.7" fill="#F8EEDB"/>
+      <circle cx="0" cy="-25" r="4.1" fill="#F8EEDB"/>
+    </g>
+    <g id="cluster-light">
+      <circle cx="0" cy="0" r="3.8" fill="#F8EEDB"/>
+      <circle cx="-8" cy="8" r="3.4" fill="#F8EEDB"/>
+      <circle cx="8" cy="8" r="3.4" fill="#F8EEDB"/>
+    </g>
+  </defs>
+
+  <g transform="translate(128 128)">
+    <use href="#paisley-light" transform="rotate(0) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(45) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(90) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(135) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(180) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(225) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(270) translate(0 -72)"/>
+    <use href="#paisley-light" transform="rotate(315) translate(0 -72)"/>
+    <use href="#cluster-light" transform="rotate(22.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(67.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(112.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(157.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(202.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(247.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(292.5) translate(0 -102)"/>
+    <use href="#cluster-light" transform="rotate(337.5) translate(0 -102)"/>
+  </g>
+
+  <circle cx="128" cy="128" r="17" fill="#B53A2D"/>
 </svg>

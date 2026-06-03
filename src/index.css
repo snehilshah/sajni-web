@@ -535,14 +535,14 @@ body {
 }
 
 /* ============================================================
-   Brand mark — Sajni logo (public/logo.svg). The mark is dark mehendi
-   line-work, so it always sits on a light tile (both light and dark mode)
+   Brand mark — Sajni logo (public/logo.svg). The mark is light mehendi
+   line-work, so it always sits on a dark tile (both light and dark mode)
    to stay legible.
    ============================================================ */
 .sajni-logo {
   width: 28px; height: 28px;
   border-radius: 28%;
-  background-color: #f4ecdb;            /* light tile, always — dark mark needs it */
+  background-color: #17130f;            /* dark tile, always; light mark needs it */
   background-image: url('/logo.svg');
   background-size: 80%;                  /* inset the mark for a little breathing room */
   background-position: center;
