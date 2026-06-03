@@ -464,7 +464,7 @@ export default function NotesPage() {
               onNew={() => handleNew('')}
             />
           ) : (
-            <div className="max-w-3xl w-full mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5 min-h-full">
+            <div className={`${sidebarOpen && !isMobile ? 'max-w-4xl' : 'max-w-5xl'} w-full mx-auto px-4 md:px-12 pt-10 pb-32 flex flex-col gap-5 min-h-full transition-[max-width] duration-300 ease-[cubic-bezier(0.2,0,0,1)]`}>
               {loadingNote ? (
                 <>
                   <Skeleton className="h-14 w-3/4" />
