@@ -179,8 +179,8 @@ export default function FinancePage() {
   };
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20">
+    <div className="flex flex-col h-screen overflow-hidden page-fade-in">
+      <header className="border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 shrink-0">
         <div className="px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none">accounts · ledger · plans</div>
@@ -256,7 +256,7 @@ export default function FinancePage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-6xl mx-auto px-3 md:px-8 py-5 relative">
           {/* All tabs always mounted; only active is visible.
               This eliminates the "wrong UI flash" entirely — content for every
