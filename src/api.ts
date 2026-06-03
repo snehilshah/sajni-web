@@ -729,6 +729,11 @@ export const finance = {
   // Card statements
   listStatements: (account_id?: number) =>
     request<FinStatement[]>('/finance/cards/statements' + (account_id ? '?account_id=' + account_id : '')),
+  previewStatement: (account_id: number, data: { statement_date: string; amount_due?: number; new_charges?: number; cashback_earned?: number }) =>
+    request<{ statement_date: string; due_date: string; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; payments: number }>(
+      '/finance/cards/' + account_id + '/statement-preview',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
   createStatement: (account_id: number, data: { statement_date: string; due_date: string; amount_due?: number; new_charges?: number; cashback_earned?: number }) =>
     request<{ id: number; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number }>(
       '/finance/cards/' + account_id + '/statements',

@@ -317,6 +317,16 @@ function StatementDialog({ card, onClose, onSaved }: {
   const [dueDate, setDueDate] = useState('');
   const [amountOverride, setAmountOverride] = useState('');
   const [cashbackOverride, setCashbackOverride] = useState('');
+  const [amountTouched, setAmountTouched] = useState(false);
+  const [cashbackTouched, setCashbackTouched] = useState(false);
+  const [preview, setPreview] = useState<{
+    amount_due: number;
+    new_charges: number;
+    previous_balance: number;
+    cashback_earned: number;
+    payments: number;
+  } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     if (card) {
@@ -329,16 +339,41 @@ function StatementDialog({ card, onClose, onSaved }: {
       setDueDate(format(dd, 'yyyy-MM-dd'));
       setAmountOverride('');
       setCashbackOverride('');
+      setAmountTouched(false);
+      setCashbackTouched(false);
+      setPreview(null);
     }
   }, [card]);
 
+  useEffect(() => {
+    if (!card || !stmtDate) return;
+    let alive = true;
+    setPreviewLoading(true);
+    finance.previewStatement(card.id, { statement_date: stmtDate })
+      .then((res) => {
+        if (!alive) return;
+        setPreview(res);
+        setDueDate((current) => current || res.due_date);
+      })
+      .catch(() => {
+        if (alive) setPreview(null);
+      })
+      .finally(() => {
+        if (alive) setPreviewLoading(false);
+      });
+    return () => { alive = false; };
+  }, [card, stmtDate]);
+
   if (!card) return null;
+
+  const amountValue = amountTouched ? amountOverride : formatInputAmount(preview?.amount_due);
+  const cashbackValue = cashbackTouched ? cashbackOverride : formatInputAmount(preview?.cashback_earned);
 
   const save = async () => {
     if (!stmtDate || !dueDate) return;
     const data: any = { statement_date: stmtDate, due_date: dueDate };
-    if (amountOverride) data.amount_due = parseFloat(amountOverride);
-    if (cashbackOverride) data.cashback_earned = parseFloat(cashbackOverride);
+    if (amountValue) data.amount_due = parseFloat(amountValue);
+    if (cashbackValue) data.cashback_earned = parseFloat(cashbackValue);
     await finance.createStatement(card.id, data);
     onSaved();
   };
@@ -350,7 +385,7 @@ function StatementDialog({ card, onClose, onSaved }: {
           <DialogTitle>New statement · {card.name}</DialogTitle>
         </DialogHeader>
         <div className="text-xs text-muted-foreground -mt-2">
-          We'll auto-compute the amount and cashback from this card's transactions. Override below if needed.
+          Calculated from previous balance, this cycle's charges, payments, and card cashback. Edit the fields if the bank statement differs.
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Statement date">
@@ -359,12 +394,37 @@ function StatementDialog({ card, onClose, onSaved }: {
           <Field label="Due date">
             <DatePicker value={dueDate} onChange={setDueDate} />
           </Field>
-          <Field label="Amount (optional)">
-            <Input type="number" inputMode="decimal" value={amountOverride} onChange={(e) => setAmountOverride(e.target.value)} placeholder="Auto-compute" />
+          <Field label="Amount due">
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={amountValue}
+              onChange={(e) => { setAmountTouched(true); setAmountOverride(e.target.value); }}
+              placeholder="0"
+            />
           </Field>
-          <Field label="Cashback (optional)">
-            <Input type="number" inputMode="decimal" value={cashbackOverride} onChange={(e) => setCashbackOverride(e.target.value)} placeholder="Auto-compute" />
+          <Field label="Cashback">
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={cashbackValue}
+              onChange={(e) => { setCashbackTouched(true); setCashbackOverride(e.target.value); }}
+              placeholder="0"
+            />
           </Field>
+        </div>
+        <div className="rounded-lg bg-muted/40 px-3 py-2 font-mono text-[10px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+          {previewLoading && !preview ? (
+            <span>Calculating…</span>
+          ) : preview ? (
+            <>
+              <span>Prev {formatMoney(preview.previous_balance)}</span>
+              <span>New {formatMoney(preview.new_charges)}</span>
+              <span>Payments {formatMoney(preview.payments)}</span>
+            </>
+          ) : (
+            <span>Preview unavailable. Generate will still calculate from server records.</span>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -373,6 +433,11 @@ function StatementDialog({ card, onClose, onSaved }: {
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatInputAmount(value: number | undefined) {
+  if (value === undefined || !Number.isFinite(value)) return '';
+  return String(Math.round(value * 100) / 100);
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
