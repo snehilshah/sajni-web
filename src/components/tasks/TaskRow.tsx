@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X,
+  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight,
 } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -98,7 +98,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
       <div
         onClick={onClick}
         className={`group rounded-lg border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-[box-shadow,border-color] cursor-pointer
-          ${task.status === 'done' ? 'opacity-60' : ''}`}
+          ${task.status === 'done' || task.status === 'scratched' ? 'opacity-60' : ''}`}
         style={{ marginLeft: depth * 24 }}
       >
         <div className="flex items-start gap-2.5 px-3 py-2.5">
@@ -121,13 +121,24 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className={`size-1.5 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
-              <span className={`font-medium text-sm leading-tight flex-1 truncate ${task.status === 'done' ? 'line-through' : ''}`}>
+              <span className={`font-medium text-sm leading-tight flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
                 {task.title}
               </span>
             </div>
 
             {/* Meta row */}
             <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
+              {/* Subtask hint — only when shown as a flat row (smart/missed/all
+                  views). Stops a child task from reading as a normal top-level
+                  task, which is what made "Talk with chandan once" confusing. */}
+              {depth === 0 && task.parent_task_id != null && (
+                <span className="inline-flex items-center gap-0.5 text-muted-foreground/80" title="This is a subtask">
+                  <CornerDownRight className="size-3" /> subtask
+                </span>
+              )}
+              {task.status === 'scratched' && (
+                <span className="inline-flex items-center rounded-full px-1.5 py-px bg-[hsl(var(--on-surface)/0.08)]">scratched</span>
+              )}
               {task.due_date && (
                 <span className={`inline-flex items-center gap-1 ${overdue ? 'text-destructive' : ''}`}>
                   <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">

@@ -131,6 +131,13 @@ export const tasks = {
   update: (id: number, data: Record<string, any>) =>
     request('/tasks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/tasks/' + id, { method: 'DELETE' }),
+  // Scratch = abandon-but-keep (reversible). Distinct from delete.
+  scratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'scratched' }) }),
+  unscratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'todo' }) }),
+  // Reschedule a (usually overdue) task. Server records the move off a past
+  // day as a 'rescheduled' lifecycle entry, not a miss.
+  reschedule: (id: number, due_date: string) =>
+    request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ due_date }) }),
   reorder: (ids: number[]) =>
     request('/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
   subtasks: (id: number) =>

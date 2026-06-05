@@ -3,7 +3,7 @@ import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch } from 'lucide-react';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
@@ -101,6 +101,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [events, setEvents] = useState<TaskEvent[]>([]);
   const [saving, setSaving] = useState(false);
+  // The parent task when editing a subtask — drives the "Subtask of …" banner
+  // so a child never reads as a standalone task, and so the user can promote it.
+  const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -119,12 +122,19 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       });
       setHistory([]);
       setEvents([]);
+      setParent(null);
       tasksApi.history(editing.id).then(setHistory).catch(() => {});
       tasksApi.events(editing.id).then(setEvents).catch(() => {});
+      if (editing.parent_task_id != null) {
+        tasksApi.get(editing.parent_task_id)
+          .then((p) => setParent({ id: p.id, title: p.title }))
+          .catch(() => setParent(null));
+      }
     } else {
       setForm({ ...blank, ...defaults });
       setHistory([]);
       setEvents([]);
+      setParent(null);
     }
   }, [open, editing, defaults]);
 
@@ -136,6 +146,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     const remind = scheduledISO ? form.remind : false;
     try {
       if (editing) {
+        const listChanged = form.list_id !== (editing.list_id ?? null);
         await tasksApi.update(editing.id, {
           title: form.title,
           description: form.description,
@@ -147,6 +158,13 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           clear_scheduled: scheduledISO === null,
           remind,
           list_id: form.list_id,
+          // list_id:null alone is ignored by the API ("leave alone"); clear_list
+          // is what actually moves a task to Inbox.
+          clear_list: form.list_id === null,
+          // A subtask only ever renders under its parent, so assigning it a
+          // different list does nothing visible unless we also detach it.
+          // Promote it to a real top-level task in the chosen list.
+          ...(parent && listChanged ? { clear_parent: true } : {}),
           important: form.important,
           steps: form.steps,
         });
@@ -175,6 +193,24 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     if (!editing) return;
     if (!(await confirmDialog(`Delete "${editing.title}"? Subtasks will be removed too.`))) return;
     await tasksApi.delete(editing.id);
+    onOpenChange(false);
+    onSaved();
+  };
+
+  // Promote a subtask to a standalone top-level task (keeps it in its current
+  // list). The banner action; list changes auto-detach via handleSave too.
+  const handleDetach = async () => {
+    if (!editing) return;
+    await tasksApi.update(editing.id, { clear_parent: true });
+    setParent(null);
+    onSaved();
+  };
+
+  // Scratch = abandon-but-keep (reversible). Toggles between scratched/todo.
+  const handleScratch = async () => {
+    if (!editing) return;
+    const next = form.status === 'scratched' ? 'todo' : 'scratched';
+    await tasksApi.update(editing.id, { status: next });
     onOpenChange(false);
     onSaved();
   };
@@ -216,6 +252,26 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         </DialogHeader>
 
         <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5">
+          {/* Subtask context — makes parentage explicit (a child must never
+              read as a normal task) and lets the user promote it out so it can
+              live in its own list. */}
+          {parent && (
+            <div className="flex items-center gap-2.5 rounded-xl border border-border bg-[hsl(var(--surface-container))] px-3 py-2 text-sm">
+              <GitBranch className="size-3.5 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground shrink-0">Subtask of</span>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: parent.id } }))}
+                className="font-medium truncate hover:text-primary transition-colors"
+              >
+                {parent.title}
+              </button>
+              <Button variant="outline" size="sm" className="ml-auto h-7 shrink-0" onClick={handleDetach}>
+                Move out
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Title</Label>
             <Input
@@ -460,13 +516,25 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
         <DialogFooter className="shrink-0 px-4 md:px-6 py-3 md:py-4 border-t border-border bg-muted/20">
           {editing && (
-            <Button
-              variant="ghost"
-              onClick={handleDelete}
-              className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
-            >
-              <Trash2 className="size-3.5" /> Delete
-            </Button>
+            <div className="mr-auto flex items-center gap-1">
+              <Button
+                variant="ghost"
+                onClick={handleScratch}
+                className="text-muted-foreground hover:text-foreground gap-1.5"
+                title={form.status === 'scratched' ? 'Restore this task' : 'Scratch (abandon, but keep)'}
+              >
+                {form.status === 'scratched'
+                  ? <><RotateCcw className="size-3.5" /> Unscratch</>
+                  : <><Ban className="size-3.5" /> Scratch</>}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleDelete}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
+              >
+                <Trash2 className="size-3.5" /> Delete
+              </Button>
+            </div>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">

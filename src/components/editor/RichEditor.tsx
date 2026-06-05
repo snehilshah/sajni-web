@@ -277,7 +277,7 @@ export default function RichEditor({
       setTaskLoading(true);
       tasksApi
         .list({ smart: 'all' })
-        .then((list) => setTaskList(list.filter((t) => t.status !== 'done')))
+        .then((list) => setTaskList(list.filter((t) => t.status !== 'done' && t.status !== 'scratched')))
         .catch(() => setTaskList([]))
         .finally(() => setTaskLoading(false));
     };

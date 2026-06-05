@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
 import TaskFormDialog from '@/components/tasks/TaskFormDialog';
+import MissedBanner from '@/components/tasks/MissedBanner';
 import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel,
 } from '@/components/tasks/helpers';
@@ -39,6 +40,7 @@ export default function TasksPage() {
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [missedCount, setMissedCount] = useState(0);
 
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -55,6 +57,14 @@ export default function TasksPage() {
     try {
       const data = await listsApi.list();
       setLists(data);
+    } catch {/* ignore */}
+  }, []);
+
+  // Overdue count powers the Missed pill badge. Cheap; refreshed alongside lists.
+  const reloadMissed = useCallback(async () => {
+    try {
+      const data = await tasksApi.list({ smart: 'missed' });
+      setMissedCount(data.length);
     } catch {/* ignore */}
   }, []);
 
@@ -79,6 +89,7 @@ export default function TasksPage() {
 
   useEffect(() => { reloadLists(); }, [reloadLists]);
   useEffect(() => { reloadTasks(); }, [reloadTasks]);
+  useEffect(() => { reloadMissed(); }, [reloadMissed]);
 
   // Deep-link support: /tasks?focus=<id> opens that task's edit dialog
   // once it appears in the loaded list. Default smart filter is "my_day"
@@ -101,23 +112,26 @@ export default function TasksPage() {
   // Refresh after AI tools mutate tasks (`data:invalidate` from AIChat).
   // Debounced so a multi-tool turn coalesces into one refetch. The `task_`
   // prefix covers task_created/updated/completed/deleted + task_list_*.
-  useDataInvalidate(['task_'], () => { reloadTasks(); reloadLists(); });
+  useDataInvalidate(['task_'], () => { reloadTasks(); reloadLists(); reloadMissed(); });
 
   const grouped = useMemo(() => {
-    const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], done: [] };
+    const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], done: [], scratched: [] };
     for (const t of tasksList) map[t.status]?.push(t);
     return map;
   }, [tasksList]);
 
-  const open = tasksList.filter((t) => t.status !== 'done');
+  // Scratched (abandoned) tasks are neither open nor completed — their own
+  // collapsible group, so the open list stays clean.
+  const open = tasksList.filter((t) => t.status !== 'done' && t.status !== 'scratched');
   const completed = tasksList.filter((t) => t.status === 'done');
+  const scratched = tasksList.filter((t) => t.status === 'scratched');
 
   const openCreate = (overrides: Record<string, any> = {}) => {
     setEditingTask(null);
     setFormDefaults({
       list_id: selection.kind === 'list' ? selection.id : null,
       ...(selection.kind === 'smart' && selection.smart === 'my_day'
-        ? { due_date: new Date().toISOString().slice(0, 10) }
+        ? { due_date: new Date().toLocaleDateString('en-CA') }
         : {}),
       ...(selection.kind === 'smart' && selection.smart === 'important'
         ? { important: true }
@@ -138,7 +152,7 @@ export default function TasksPage() {
     const overrides: any = { title };
     if (selection.kind === 'list') overrides.list_id = selection.id;
     if (selection.kind === 'smart' && selection.smart === 'my_day') {
-      overrides.due_date = new Date().toISOString().slice(0, 10);
+      overrides.due_date = new Date().toLocaleDateString('en-CA');
     }
     if (selection.kind === 'smart' && selection.smart === 'important') {
       overrides.important = true;
@@ -186,6 +200,7 @@ export default function TasksPage() {
         <PillScroller
           lists={lists}
           selection={selection}
+          smartCounts={{ missed: missedCount }}
           onSelect={setSelection}
           onCreate={async (name) => {
             await listsApi.create({ name });
@@ -204,6 +219,12 @@ export default function TasksPage() {
             reloadTasks();
           }}
         />
+
+        {/* Missed-tasks highlight + reschedule CTA. Hidden while actually
+            viewing the Missed list (would be redundant). Self-hides when empty. */}
+        {!(selection.kind === 'smart' && selection.smart === 'missed') && (
+          <MissedBanner onChanged={() => { reloadTasks(); reloadLists(); reloadMissed(); }} />
+        )}
 
         {/* Inline quick-add — desktop only. Mobile uses the FAB → full sheet. */}
         {!isMobile && (
@@ -237,10 +258,11 @@ export default function TasksPage() {
             <ListView
               open={open}
               completed={completed}
+              scratched={scratched}
               showCompleted={showCompleted}
               onToggleCompleted={() => setShowCompleted((v) => !v)}
               onClick={openEdit}
-              onChange={() => { reloadTasks(); reloadLists(); }}
+              onChange={() => { reloadTasks(); reloadLists(); reloadMissed(); }}
             />
           ) : (
             <BoardView
@@ -272,7 +294,7 @@ export default function TasksPage() {
         editing={editingTask}
         defaults={formDefaults}
         lists={lists}
-        onSaved={() => { reloadTasks(); reloadLists(); }}
+        onSaved={() => { reloadTasks(); reloadLists(); reloadMissed(); }}
       />
 
       {/* Mobile FAB — sits above the bottom tabbar. */}
@@ -297,16 +319,18 @@ export default function TasksPage() {
 // --- List view ---
 
 function ListView({
-  open, completed, showCompleted, onToggleCompleted, onClick, onChange,
+  open, completed, scratched, showCompleted, onToggleCompleted, onClick, onChange,
 }: {
   open: Task[];
   completed: Task[];
+  scratched: Task[];
   showCompleted: boolean;
   onToggleCompleted: () => void;
   onClick: (t: Task) => void;
   onChange: () => void;
 }) {
-  if (open.length === 0 && completed.length === 0) {
+  const [showScratched, setShowScratched] = useState(false);
+  if (open.length === 0 && completed.length === 0 && scratched.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
         <ListChecks className="size-9 mx-auto mb-3 opacity-30" />
@@ -335,6 +359,25 @@ function ListView({
           {showCompleted && (
             <div className="flex flex-col gap-2 mt-2">
               {completed.map((t) => (
+                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} onChange={onChange} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {scratched.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowScratched((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            <ChevronDown className={`size-3.5 transition-transform ${showScratched ? '' : '-rotate-90'}`} />
+            Scratched ({scratched.length})
+          </button>
+          {showScratched && (
+            <div className="flex flex-col gap-2 mt-2">
+              {scratched.map((t) => (
                 <TaskRow key={t.id} task={t} onClick={() => onClick(t)} onChange={onChange} />
               ))}
             </div>

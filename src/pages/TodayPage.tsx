@@ -9,6 +9,7 @@ import { tasks as tasksApi, habits as habitsApi, memos as memosApi, journal as j
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
+import MissedBanner from '@/components/tasks/MissedBanner';
 import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 import type { Task, Habit } from '@/types';
 
@@ -130,7 +131,7 @@ export default function TodayPage() {
 	const habitsLeft = habitStatus.filter((h) => !h.logged).length;
 	const habitsDone = habitStatus.filter((h) => h.logged).length;
 	const totalHabitsToday = habitStatus.length;
-	const dueOpen = dueToday.filter((t) => t.status !== 'done');
+	const dueOpen = dueToday.filter((t) => t.status !== 'done' && t.status !== 'scratched');
 
 	// Agenda order: timed tasks first in clock order, untimed after.
 	const dueOpenSorted = useMemo(() => {
@@ -271,6 +272,12 @@ export default function TodayPage() {
 						</kbd>
 					</button>
 				</div>
+			</div>
+
+			{/* Missed tasks — surfaced up top so yesterday's slips don't vanish.
+			    Self-hides when nothing is overdue. */}
+			<div className="mt-6">
+				<MissedBanner onChanged={refreshTasks} />
 			</div>
 
 			{/* Two-column grid */}

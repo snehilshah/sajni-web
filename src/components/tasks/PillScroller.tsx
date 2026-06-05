@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Star, Calendar, AlarmClock, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Sun, Star, Calendar, AlarmClock, CalendarX2, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 
 import type { TaskList, SmartList } from '@/types';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ const SMART_ICON: Record<SmartList, typeof Sun> = {
   important: Star,
   planned: Calendar,
   scheduled: AlarmClock,
+  missed: CalendarX2,
   inbox: Inbox,
   all: ListTodo,
 };
@@ -25,13 +26,15 @@ interface Props {
   onCreate: (name: string) => Promise<void>;
   onRename?: (id: number, name: string) => Promise<void>;
   onDelete?: (id: number) => Promise<void>;
+  /** Live counts for smart pills (only Missed renders one today). */
+  smartCounts?: Partial<Record<SmartList, number>>;
 }
 
 // PillScroller — horizontal swipeable row replacing the old vertical
 // rail. Works identically on mobile and desktop, snaps cleanly, hides
 // its scrollbar, and forwards vertical wheel scroll to horizontal so
 // trackpad/mouse users can still pan with two fingers.
-export default function PillScroller({ lists, selection, onSelect, onCreate, onRename, onDelete }: Props) {
+export default function PillScroller({ lists, selection, onSelect, onCreate, onRename, onDelete, smartCounts }: Props) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -64,6 +67,10 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       {SMART_LISTS.map((s) => {
         const Icon = SMART_ICON[s.smart];
         const active = selection.kind === 'smart' && selection.smart === s.smart;
+        const count = smartCounts?.[s.smart] ?? 0;
+        // Missed is the one smart pill that flags a count, tinted as an alert
+        // so a pile of overdue tasks reads at a glance.
+        const isMissedAlert = s.smart === 'missed' && count > 0;
         return (
           <button
             key={s.smart}
@@ -71,10 +78,19 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
             className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12.5px] font-medium whitespace-nowrap shrink-0 transition-colors
               ${active
                 ? 'bg-primary/15 text-primary border border-primary/40'
-                : 'bg-muted/40 text-foreground/85 border border-border/60 hover:bg-muted/80'}`}
+                : isMissedAlert
+                  ? 'bg-[hsl(var(--error-container)/0.6)] text-[hsl(var(--on-error-container))] border border-[hsl(var(--error)/0.4)]'
+                  : 'bg-muted/40 text-foreground/85 border border-border/60 hover:bg-muted/80'}`}
             title={s.description}
           >
             <Icon className="size-3.5" /> {s.label}
+            {count > 0 && (
+              <span className={`mono text-[10px] tabular-nums rounded-full px-1.5 leading-[1.4] ${
+                isMissedAlert && !active ? 'bg-[hsl(var(--error)/0.85)] text-[hsl(var(--on-error))]' : 'bg-foreground/10'
+              }`}>
+                {count}
+              </span>
+            )}
           </button>
         );
       })}

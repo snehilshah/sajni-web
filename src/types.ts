@@ -17,7 +17,9 @@ export interface Task {
   id: number;
   title: string;
   description: string;
-  status: 'todo' | 'in_progress' | 'done';
+  /** 'scratched' = abandoned-but-kept: struck through, dropped from open
+   *  lists / smart views / reminders, reversible back to 'todo'. */
+  status: 'todo' | 'in_progress' | 'done' | 'scratched';
   priority: 'low' | 'medium' | 'high';
   tags?: string[];
   due_date?: string | null;
@@ -51,7 +53,7 @@ export interface TaskList {
   updated_at: string;
 }
 
-export type SmartList = 'my_day' | 'important' | 'planned' | 'scheduled' | 'inbox' | 'all';
+export type SmartList = 'my_day' | 'important' | 'planned' | 'scheduled' | 'missed' | 'inbox' | 'all';
 
 export interface Habit {
   id: number;

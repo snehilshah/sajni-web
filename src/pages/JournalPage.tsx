@@ -192,7 +192,7 @@ export default function JournalPage() {
         tasksApi.list({ completed_date: selectedDate }),
         tasksApi.missed(selectedDate),
       ]);
-      setDueTasks(due.filter((t: TaskItem) => t.status !== 'done'));
+      setDueTasks(due.filter((t: TaskItem) => t.status !== 'done' && t.status !== 'scratched'));
       setCompletedTasks(done);
       setMissedTasks(missed);
       tasksLoadedDateRef.current = selectedDate;
