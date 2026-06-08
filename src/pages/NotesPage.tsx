@@ -258,6 +258,19 @@ export default function NotesPage() {
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [title, content, performSave, loadingNote]);
 
+  // Ctrl/Cmd+S forces an immediate save and swallows the browser's
+  // "save page" dialog. Autosave still runs; this is the muscle-memory path.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        if (title.trim() || content.trim()) performSave();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [performSave, title, content]);
+
   const handleTitleChange = (v: string) => { dirtyRef.current = true; setTitle(v); };
   const handleContentChange = (v: string) => { dirtyRef.current = true; setContent(v); };
 

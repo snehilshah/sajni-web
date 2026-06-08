@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
   TrendingUp, CreditCard, Download, Receipt, CandlestickChart,
+  Eye, VenetianMask,
 } from 'lucide-react';
 
 import {
@@ -20,7 +21,7 @@ import InvestmentsTab from './InvestmentsTab';
 import TradingTab from './TradingTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
-import { downloadCSV } from './utils';
+import { downloadCSV, isPrivacyMode, setPrivacyMode } from './utils';
 import { Input } from '@/components/ui/input';
 
 const tabs = [
@@ -79,6 +80,16 @@ export default function FinancePage() {
   });
 
   const [exportOpen, setExportOpen] = useState(false);
+  // Local state is the re-render driver. setPrivacyMode() updates the module flag
+  // (read by every formatMoney across all tabs) + localStorage; setPrivacy() then
+  // forces this component — and its always-mounted tab children — to re-render,
+  // so figures flip live without a reload.
+  const [privacy, setPrivacy] = useState<boolean>(isPrivacyMode());
+  const togglePrivacy = () => {
+    const next = !privacy;
+    setPrivacyMode(next);
+    setPrivacy(next);
+  };
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -186,6 +197,25 @@ export default function FinancePage() {
             <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none">accounts · ledger · plans</div>
             <h1 className="serif text-base md:text-lg font-semibold tracking-tight leading-tight mt-0.5">Finance</h1>
           </div>
+          <div className="flex items-center gap-2">
+          <motion.button
+            onClick={togglePrivacy}
+            aria-pressed={privacy}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 26 }}
+            title={privacy ? 'Privacy on — figures hidden. Tap to reveal.' : 'Hide all figures'}
+            className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors tap-highlight-none ${
+              privacy
+                ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-sm'
+                : 'border border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {privacy ? <VenetianMask className="size-3.5" /> : <Eye className="size-3.5" />}
+            <span className="hidden sm:inline">{privacy ? 'Private' : 'Privacy'}</span>
+            {privacy && (
+              <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[hsl(var(--primary))] ring-2 ring-[hsl(var(--background))] motion-safe:animate-pulse" />
+            )}
+          </motion.button>
           <div className="relative">
             <button
               onClick={() => setExportOpen((v) => !v)}
@@ -226,6 +256,7 @@ export default function FinancePage() {
               </>
             )}
           </div>
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-2 md:px-8 mt-3 overflow-x-auto overflow-y-hidden no-scrollbar">
@@ -257,7 +288,13 @@ export default function FinancePage() {
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-3 md:px-8 py-5 relative">
+        {/* key changes with privacy so the whole tab subtree remounts on toggle.
+            The React Compiler memoizes each formatMoney(x) on x alone — it can't
+            see the module-level privacy flag — so a plain re-render reuses the
+            cached (real) figures. Remounting gives a fresh compiler cache, which
+            recomputes every figure against the current flag. The scroll
+            container above stays mounted, so scroll position is preserved. */}
+        <div key={privacy ? 'priv' : 'real'} className="max-w-6xl mx-auto px-3 md:px-8 py-5 relative">
           {/* All tabs always mounted; only active is visible.
               This eliminates the "wrong UI flash" entirely — content for every
               tab is already in the DOM by the time the user taps it. */}

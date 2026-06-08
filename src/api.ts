@@ -578,6 +578,15 @@ export interface FinInvestment {
   avg_buy_price: number;
   realized_pl: number;
   status: 'open' | 'closed';
+  /** Stocks/ETFs only: market symbol + exchange drive EOD auto-pricing. */
+  symbol: string;
+  exchange: string;
+  /** Last auto-fetched price/unit; current_value = quantity × last_price. */
+  last_price: number;
+  /** Last fetch failure ('' = ok); set when a symbol stops resolving. */
+  price_error: string;
+  /** RFC3339 (IST) of the last successful refresh; null = never priced. */
+  price_at: string | null;
 }
 
 export interface FinSaving {

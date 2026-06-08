@@ -17,6 +17,9 @@ import PageShell from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
+// Mon..Sun letters, shared by the desktop header and the mobile week strip.
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
 // Habits — single-card week grid. Mon..Sun ending today. Each cell is
 // clickable to toggle that day's log; the small streak column on the
 // right shows the longest current streak. Clicking the row name (or its
@@ -124,8 +127,6 @@ export default function HabitsPage() {
     setHabitsList(fresh);
   };
 
-  const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
   const caption = `${habitsList.length} active ${habitsList.length === 1 ? 'habit' : 'habits'}${longestStreak > 0 ? ` · longest streak ${longestStreak} ${longestStreak === 1 ? 'day' : 'days'}` : ''}`;
 
   return (
@@ -135,55 +136,41 @@ export default function HabitsPage() {
       actions={<Button onClick={openCreate}><Plus className="size-3.5" /> New habit</Button>}
     >
       {loading ? (
-        <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-40 w-full rounded-[28px]" />)}
         </div>
       ) : habitsList.length === 0 ? (
-        <div className="rounded-lg text-center py-16 text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
-          <div className="text-4xl mb-3 opacity-30">◉</div>
+        <div className="rounded-[28px] text-center py-20 text-muted-foreground bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))]">
+          <div className="text-5xl mb-3 opacity-25">◉</div>
           <p className="text-sm">No habits yet. Build something small.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={openCreate}>
+          <Button variant="outline" size="sm" className="mt-4 rounded-full" onClick={openCreate}>
             <Plus className="size-3.5" /> Add your first habit
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
-          {/* Header row */}
-          <div
-            className="hidden md:grid items-center px-5 md:px-6 py-3 border-b border-border/50"
-            style={{ gridTemplateColumns: 'minmax(0, 1.6fr) repeat(7, minmax(0, 60px)) 100px' }}
-          >
-            <div className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground">Habit</div>
-            {dayLetters.map((d, i) => (
-              <div key={i} className="mono text-[10px] text-muted-foreground text-center">{d}</div>
+        <div className="sajni-stagger grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+          <AnimatePresence initial={false}>
+            {habitsList.map((habit) => (
+              <motion.div
+                key={habit.id}
+                layout
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.14 } }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              >
+                <HabitCard
+                  habit={habit}
+                  weekKeys={weekKeys}
+                  loggedDays={habitLogs[habit.id] || new Set()}
+                  todayKey={todayKey}
+                  onToggleDay={(d) => toggleDay(habit, d)}
+                  onEdit={() => openEdit(habit)}
+                  onDelete={() => handleDelete(habit.id)}
+                />
+              </motion.div>
             ))}
-            <div className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground text-right">Streak</div>
-          </div>
-
-          <div className="sajni-stagger">
-            <AnimatePresence initial={false}>
-              {habitsList.map((habit) => (
-                <motion.div
-                  key={habit.id}
-                  layout="position"
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
-                  transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
-                >
-                  <HabitWeekRow
-                    habit={habit}
-                    weekKeys={weekKeys}
-                    loggedDays={habitLogs[habit.id] || new Set()}
-                    todayKey={todayKey}
-                    onToggleDay={(d) => toggleDay(habit, d)}
-                    onEdit={() => openEdit(habit)}
-                    onDelete={() => handleDelete(habit.id)}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          </AnimatePresence>
         </div>
       )}
 
@@ -256,7 +243,12 @@ export default function HabitsPage() {
   );
 }
 
-function HabitWeekRow({
+// HabitCard — one expressive MD3 card per habit. The week is a single row of
+// circular day toggles (letter above each), so there's no separate date header
+// to clutter the layout. "Today" is marked the Material way: a semantic primary
+// outline + a primary dot beneath (never the habit's own color), so it reads as
+// a UI state rather than a stray colored circle on the last day.
+function HabitCard({
   habit, weekKeys, loggedDays, todayKey, onToggleDay, onEdit, onDelete,
 }: {
   habit: Habit;
@@ -267,81 +259,92 @@ function HabitWeekRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const weekDone = weekKeys.reduce((n, d) => n + (loggedDays.has(d) ? 1 : 0), 0);
+
   return (
-    <div
-      className="group items-center px-5 md:px-6 py-4 border-b border-border/30 last:border-b-0
-                 grid md:grid"
-      style={{ gridTemplateColumns: 'minmax(0, 1.6fr) repeat(7, minmax(0, 60px)) 100px' }}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <span
-          onClick={onEdit}
-          className="size-2.5 rounded-full shrink-0 cursor-pointer"
-          style={{ backgroundColor: habit.color }}
-          title="Edit"
-        />
-        <button onClick={onEdit} className="text-left min-w-0">
-          <div className="text-[14.5px] font-medium text-foreground truncate">{habit.name}</div>
-          <div className="mono text-[10.5px] text-muted-foreground mt-0.5 capitalize">
-            {habit.frequency} · {habit.total_logs} total
-          </div>
+    <div className="group relative h-full overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-5 transition-shadow hover:shadow-[0_10px_34px_-16px_hsl(var(--on-surface)/0.22)]">
+      {/* Soft accent wash in the habit's color — atmosphere, not noise. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        style={{ background: `radial-gradient(130% 90% at 100% 0%, ${habit.color}, transparent 62%)` }}
+      />
+
+      {/* Header: identity + streak */}
+      <div className="relative flex items-start gap-3">
+        <button onClick={onEdit} className="flex min-w-0 flex-1 items-center gap-3 text-left tap-highlight-none" title="Edit habit">
+          <span className="grid size-10 shrink-0 place-items-center rounded-2xl" style={{ background: `${habit.color}22` }}>
+            <span className="size-3.5 rounded-full" style={{ background: habit.color }} />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-medium text-foreground">{habit.name}</span>
+            <span className="mt-0.5 block mono text-[10.5px] capitalize text-muted-foreground">{habit.frequency} · {habit.total_logs} total</span>
+          </span>
         </button>
-        <div className="ml-auto md:hidden flex items-center gap-1 text-[12px] text-muted-foreground">
-          <Flame className="size-3 text-secondary" />
-          <span className="mono">{habit.current_streak}d</span>
+
+        <div
+          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1"
+          style={{ background: `${habit.color}1f`, color: habit.color }}
+          title={`${habit.current_streak} day streak`}
+        >
+          <Flame className="size-3.5" />
+          <span className="mono text-[13px] font-semibold leading-none tabular-nums">{habit.current_streak}</span>
         </div>
       </div>
 
-      {weekKeys.map((d, i) => {
-        const on = loggedDays.has(d);
-        const isToday = d === todayKey;
-        return (
-          <div key={i} className="hidden md:flex justify-center">
-            <button
-              onClick={() => onToggleDay(d)}
-              title={`${d}${on ? ' — logged' : ''}${isToday ? ' (today)' : ''}`}
-              className="size-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-              style={{
-                background: on ? habit.color : 'hsl(var(--muted-foreground) / 0.08)',
-                color: 'hsl(var(--primary-foreground))',
-                boxShadow: on ? `0 4px 12px -4px ${habit.color}66` : 'none',
-                outline: isToday ? `1.5px solid ${habit.color}` : 'none',
-                outlineOffset: isToday ? 2 : 0,
-              }}
-            >
-              {on && <Check className="size-3" strokeWidth={3} />}
-            </button>
-          </div>
-        );
-      })}
+      {/* Week — circular day toggles, letter above, today dot below */}
+      <div className="relative mt-5 grid grid-cols-7 gap-1.5">
+        {weekKeys.map((d, i) => {
+          const on = loggedDays.has(d);
+          const isToday = d === todayKey;
+          return (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <span className={`mono text-[10px] leading-none ${isToday ? 'font-semibold text-[hsl(var(--primary))]' : 'text-muted-foreground'}`}>
+                {DAY_LETTERS[i]}
+              </span>
+              <motion.button
+                onClick={() => onToggleDay(d)}
+                whileTap={{ scale: 0.82 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                aria-pressed={on}
+                title={`${d}${on ? ' — done' : ''}${isToday ? ' · today' : ''}`}
+                className="relative grid aspect-square w-full place-items-center rounded-full tap-highlight-none"
+                style={{
+                  background: on ? habit.color : 'hsl(var(--surface-container-highest))',
+                  color: 'hsl(var(--primary-foreground))',
+                  boxShadow: isToday
+                    ? (on
+                        ? `0 0 0 2px hsl(var(--surface-container-low)), 0 0 0 4px hsl(var(--primary))`
+                        : 'inset 0 0 0 2px hsl(var(--primary))')
+                    : (on ? `0 6px 16px -8px ${habit.color}` : 'none'),
+                }}
+              >
+                {on && <Check className="size-3.5" strokeWidth={3} />}
+              </motion.button>
+              <span className={`size-1 rounded-full ${isToday ? 'bg-[hsl(var(--primary))]' : 'bg-transparent'}`} />
+            </div>
+          );
+        })}
+      </div>
 
-      <div className="hidden md:flex items-center justify-end gap-1.5 group">
-        <Flame className="size-3.5 text-secondary" />
-        <span className="mono text-[14px] font-semibold tabular-nums">{habit.current_streak}</span>
-        <span className="mono text-[11px] text-muted-foreground">d</span>
-        <div className="flex gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Footer: this-week progress + hover actions */}
+      <div className="relative mt-4 flex items-center gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+          <motion.span
+            className="block h-full rounded-full"
+            style={{ background: habit.color }}
+            initial={false}
+            animate={{ width: `${(weekDone / 7) * 100}%` }}
+            transition={{ type: 'spring', stiffness: 200, damping: 30 }}
+          />
+        </div>
+        <span className="shrink-0 mono text-[10px] tabular-nums text-muted-foreground">{weekDone}/7 wk</span>
+        <div className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <Button variant="ghost" size="icon-xs" onClick={onEdit} title="Edit"><Pencil className="size-3" /></Button>
           <Button variant="ghost" size="icon-xs" onClick={onDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">
             <Trash2 className="size-3" />
           </Button>
         </div>
-      </div>
-
-      {/* Mobile: simple 7-dot row */}
-      <div className="md:hidden col-span-full mt-2 flex gap-1.5">
-        {weekKeys.map((d, i) => {
-          const on = loggedDays.has(d);
-          return (
-            <button
-              key={i}
-              onClick={() => onToggleDay(d)}
-              className="flex-1 h-6 rounded-md flex items-center justify-center"
-              style={{ background: on ? habit.color : 'hsl(var(--muted-foreground) / 0.1)' }}
-            >
-              {on && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

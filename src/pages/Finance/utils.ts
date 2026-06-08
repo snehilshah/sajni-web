@@ -1,6 +1,50 @@
 import { authFetch, API_BASE } from '@/auth/client';
 
+// ─── Privacy mode ──────────────────────────────────────────────────────────
+// A single global flag. When on, every money formatter emits stable random
+// digits instead of the real figure. "Stable" = seeded by the real value, so
+// the same amount always renders the same decoy and nothing flickers between
+// renders. Covers all finance tabs because every rupee flows through
+// formatMoney / formatMoneyPrecise. Charts are shapes, not text, so they are
+// intentionally unaffected.
+//
+// Reactivity note: this is a plain module flag, NOT a React store. The React
+// Compiler memoizes each formatMoney(x) call on x alone and can't see this
+// flag, so a re-render won't recompute figures. FinancePage instead remounts
+// the tab subtree (via a key keyed on privacy) when the flag flips, giving a
+// fresh compiler cache that recomputes everything against the current value.
+const PRIVACY_KEY = 'sajni.finance.privacy';
+// Default ON: figures are hidden unless the user has explicitly revealed them
+// (stored '0'). Anything else — including a fresh device — starts private.
+let privacyOn = (() => {
+  try { return localStorage.getItem(PRIVACY_KEY) !== '0'; } catch { return true; }
+})();
+
+export function isPrivacyMode(): boolean { return privacyOn; }
+
+export function setPrivacyMode(on: boolean): void {
+  privacyOn = on;
+  try { localStorage.setItem(PRIVACY_KEY, on ? '1' : '0'); } catch { /* ignore */ }
+}
+
+export function togglePrivacyMode(): void { setPrivacyMode(!privacyOn); }
+
+// Deterministic decoy: same input → same output, sign + digit count preserved
+// so the layout doesn't jump. mulberry-ish hash seeded by the rounded value.
+function decoyAmount(amount: number): number {
+  const real = Math.round(Math.abs(amount));
+  const digits = real === 0 ? 1 : Math.floor(Math.log10(real)) + 1;
+  let seed = (real ^ 0x9e3779b9) >>> 0;
+  seed = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b) >>> 0;
+  const rnd = ((seed ^ (seed >>> 13)) >>> 0) / 4294967296;
+  const lo = digits === 1 ? 0 : Math.pow(10, digits - 1);
+  const hi = Math.pow(10, digits) - 1;
+  const val = Math.floor(lo + rnd * (hi - lo + 1));
+  return amount < 0 ? -val : val;
+}
+
 export function formatMoney(amount: number, currency = 'INR'): string {
+  if (privacyOn) amount = decoyAmount(amount);
   try {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -13,6 +57,7 @@ export function formatMoney(amount: number, currency = 'INR'): string {
 }
 
 export function formatMoneyPrecise(amount: number, currency = 'INR'): string {
+  if (privacyOn) amount = decoyAmount(amount);
   try {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',

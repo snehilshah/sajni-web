@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, CircleDollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, CircleDollarSign, AlertTriangle, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { finance, type FinAccount, type FinInvestment } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
@@ -19,6 +20,25 @@ interface Props {
   investments: FinInvestment[];
   loaded: boolean;
   reload: () => void;
+}
+
+// Types whose price is auto-fetched EOD — they require a market symbol.
+const PRICED_TYPES = ['stock', 'etf'];
+const EXCHANGES = [{ value: 'NSE', label: 'NSE' }, { value: 'BSE', label: 'BSE' }];
+
+// Compact "x ago" for price freshness. Input is RFC3339 with an IST offset,
+// so Date parsing is reliable across browsers.
+function priceAge(iso: string | null): string {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const s = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (s < 90) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
 }
 
 export default function TradingTab({ accounts, investments, loaded, reload }: Props) {
@@ -111,7 +131,8 @@ export default function TradingTab({ accounts, investments, loaded, reload }: Pr
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{inv.name}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                      {inv.symbol && <span className="text-foreground/60">{inv.symbol}·{inv.exchange} · </span>}
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label}
                       {inv.quantity > 0 && ' · ' + inv.quantity + ' @ ' + formatMoney(inv.avg_buy_price)}
                     </div>
@@ -138,6 +159,32 @@ export default function TradingTab({ accounts, investments, loaded, reload }: Pr
                   Invested {formatMoney(inv.invested_amount)}
                   {inv.realized_pl !== 0 && ' · realized ' + (inv.realized_pl >= 0 ? '+' : '') + formatMoney(inv.realized_pl)}
                 </div>
+
+                {/* Auto-priced instruments: last traded price + freshness, or a
+                    badge when the last EOD fetch failed (e.g. a bad symbol). */}
+                {inv.symbol && (
+                  <div className="font-mono text-[10px] mt-1">
+                    {inv.price_error ? (
+                      <span
+                        title={inv.price_error}
+                        className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5"
+                      >
+                        <AlertTriangle className="size-2.5" /> price error
+                      </span>
+                    ) : inv.last_price > 0 ? (
+                      <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                        <span>LTP <span className="text-foreground tabular-nums">{formatMoney(inv.last_price)}</span></span>
+                        {inv.price_at && (
+                          <span className="inline-flex items-center gap-1 text-muted-foreground/70">
+                            <Clock className="size-2.5" /> {priceAge(inv.price_at)}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/70">awaiting first price…</span>
+                    )}
+                  </div>
+                )}
 
                 <div className="mt-3 pt-3 border-t border-border/50 flex justify-end">
                   <Button size="sm" variant="outline" onClick={() => setSelling(inv)}>
@@ -215,6 +262,8 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('stock');
+  const [symbol, setSymbol] = useState('');
+  const [exchange, setExchange] = useState('NSE');
   const [accountId, setAccountId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [buyPrice, setBuyPrice] = useState('');
@@ -222,11 +271,17 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
   const [frequency, setFrequency] = useState('lumpsum');
   const [startDate, setStartDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Auto-priced instruments require a market symbol (validated on submit).
+  const priced = PRICED_TYPES.includes(type);
 
   useEffect(() => {
     if (holding) {
       setName(holding.name);
       setType(holding.type);
+      setSymbol(holding.symbol || '');
+      setExchange(holding.exchange || 'NSE');
       setAccountId(holding.account_id ? String(holding.account_id) : '');
       setQuantity(holding.quantity ? String(holding.quantity) : '');
       setBuyPrice(holding.avg_buy_price ? String(holding.avg_buy_price) : '');
@@ -236,6 +291,7 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
       setNotes(holding.notes);
     } else {
       setName(''); setType('stock');
+      setSymbol(''); setExchange('NSE');
       setAccountId(tradingAccounts[0] ? String(tradingAccounts[0].id) : '');
       setQuantity(''); setBuyPrice(''); setCurrent('');
       setFrequency('lumpsum'); setStartDate(''); setNotes('');
@@ -254,6 +310,10 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
 
   const save = async () => {
     if (!name.trim() || !accountId) return;
+    if (priced && !symbol.trim()) {
+      toast.error('Enter the stock symbol, e.g. RELIANCE');
+      return;
+    }
     const data: any = {
       name: name.trim(),
       type,
@@ -265,13 +325,24 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
       frequency,
       start_date: startDate || null,
       notes,
+      symbol: priced ? symbol.trim().toUpperCase() : '',
+      exchange: priced ? exchange : '',
     };
-    if (holding) {
-      await finance.updateInvestment(holding.id, data);
-    } else {
-      await finance.createInvestment(data);
+    setSaving(true);
+    try {
+      // createInvestment validates the symbol on the server (validate-on-submit):
+      // a typo surfaces here as the thrown error message.
+      if (holding) {
+        await finance.updateInvestment(holding.id, data);
+      } else {
+        await finance.createInvestment(data);
+      }
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save the trade');
+    } finally {
+      setSaving(false);
     }
-    onSaved();
   };
 
   const remove = async () => {
@@ -296,6 +367,31 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
           <Field label="Name" className="col-span-2">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. INFY, Nifty 50 ETF" />
           </Field>
+          {priced && (
+            <>
+              <Field label="Symbol">
+                <Input
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  placeholder="e.g. RELIANCE"
+                  className="font-mono uppercase"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+              </Field>
+              <Field label="Exchange">
+                <Select value={exchange} onValueChange={(v) => setExchange(v ?? 'NSE')} items={EXCHANGES}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {EXCHANGES.map((x) => (
+                      <SelectItem key={x.value} value={x.value}>{x.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </>
+          )}
           <Field label="Type">
             <Select value={type} onValueChange={(v) => setType(v ?? 'stock')} items={TRADING_TYPES}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -358,8 +454,10 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={save} disabled={!name.trim() || !accountId}>{holding ? 'Save' : 'Buy'}</Button>
+            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button onClick={save} disabled={saving || !name.trim() || !accountId || (priced && !symbol.trim())}>
+              {saving ? 'Saving…' : holding ? 'Save' : 'Buy'}
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>

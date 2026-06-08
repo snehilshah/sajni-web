@@ -624,7 +624,19 @@ export default function MediaPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const payload = { ...form, rating: form.rating || null };
+      const payload: Omit<typeof form, 'rating'> & { rating: number | null } = { ...form, rating: form.rating || null };
+      // Marking complete snaps progress to the end — last season, last episode —
+      // so the S?E? label and bar read 100% instead of wherever the user stopped.
+      if (form.status === 'complete') {
+        const totalEps = form.season_episodes.length > 0
+          ? form.season_episodes.reduce((s, n) => s + n, 0)
+          : form.episodes_total;
+        if (totalEps > 0) payload.episodes_watched = totalEps;
+        if (form.type === 'show') {
+          const totalSeasons = form.season_episodes.length > 0 ? form.season_episodes.length : form.seasons_total;
+          if (totalSeasons > 0) payload.seasons_watched = totalSeasons;
+        }
+      }
       if (editItem) await mediaApi.update(editItem.id, payload);
       else await mediaApi.create(payload);
       setShowForm(false);
