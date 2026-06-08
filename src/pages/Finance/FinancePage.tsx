@@ -150,7 +150,9 @@ export default function FinancePage() {
   useEffect(() => {
     if (active === 'transactions' && !data.loaded.transactions) loadTransactions();
     if (active === 'budgets' && !data.loaded.budgets) loadBudgets();
-    if (active === 'investments' && !data.loaded.investments) loadInvestments();
+    // Trading + Investments tabs both read the shared `investments` set, so
+    // either one landed on directly must trigger the lazy load.
+    if ((active === 'investments' || active === 'trading') && !data.loaded.investments) loadInvestments();
     if (active === 'cards' && !data.loaded.statements) loadStatements();
     if (active === 'accounts' && !data.loaded.savings) loadSavings();
   }, [
