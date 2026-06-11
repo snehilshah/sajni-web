@@ -201,7 +201,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
             >
               {s.label}
               {s.count !== undefined && s.count > 0 && (
-                <span className="font-mono text-[10px] opacity-70">{s.count}</span>
+                <span className="font-mono text-xs opacity-70">{s.count}</span>
               )}
             </button>
           ))}
@@ -225,7 +225,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <M3CookieLoader size="lg" tone="primary" />
-          <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">
+          <span className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground">
             opening bookmarks…
           </span>
         </div>
@@ -302,7 +302,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
           <div className="grid gap-4 py-1">
             {!editItem && (
               <div className="grid gap-1.5">
-                <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Link</Label>
+                <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Link</Label>
                 <Input
                   value={formUrl}
                   onChange={(e) => setFormUrl(e.target.value)}
@@ -313,7 +313,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
               </div>
             )}
             <div className="grid gap-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Title</Label>
+              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Title</Label>
               <Input
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
@@ -322,7 +322,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Note</Label>
+              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Note</Label>
               <Textarea
                 value={formNote}
                 onChange={(e) => setFormNote(e.target.value)}
@@ -419,7 +419,7 @@ function BookmarkRow({ b, first, onOpen, menu }: {
         <p className={cn('text-sm truncate leading-snug', b.unread ? 'font-medium text-foreground' : 'text-foreground/80')}>
           {b.title}
         </p>
-        <p className="text-[11px] text-muted-foreground truncate">
+        <p className="text-xs text-muted-foreground truncate">
           {siteLabel(b)} · {agoShort(b.created_at)}
           {b.note ? <> · {b.note}</> : null}
         </p>
@@ -454,7 +454,7 @@ function VideoCard({ b, onOpen, menu }: { b: Bookmark; onOpen: () => void; menu:
           </div>
         )}
         {b.unread && (
-          <span className="absolute top-2 left-2 h-5 px-2 inline-flex items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-[10px] font-medium tracking-wide">
+          <span className="absolute top-2 left-2 h-5 px-2 inline-flex items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-xs font-medium tracking-wide">
             unread
           </span>
         )}
@@ -465,7 +465,7 @@ function VideoCard({ b, onOpen, menu }: { b: Bookmark; onOpen: () => void; menu:
           <p className={cn('text-[13px] leading-snug line-clamp-2', b.unread ? 'font-medium' : 'text-foreground/80')}>
             {b.title}
           </p>
-          <p className="text-[11px] text-muted-foreground truncate">{siteLabel(b)} · {agoShort(b.created_at)}</p>
+          <p className="text-xs text-muted-foreground truncate">{siteLabel(b)} · {agoShort(b.created_at)}</p>
         </div>
         <span onClick={(e) => e.stopPropagation()}>{menu}</span>
       </div>

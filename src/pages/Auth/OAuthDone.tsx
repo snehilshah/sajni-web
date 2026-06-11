@@ -53,7 +53,7 @@ export default function OAuthDone() {
           <div className="serif text-base text-destructive">{error}</div>
           <button
             onClick={() => navigate('/signin', { replace: true })}
-            className="mono text-[10px] uppercase tracking-[0.22em] underline"
+            className="mono text-xs uppercase tracking-[0.22em] underline"
           >
             try again
           </button>
@@ -61,7 +61,7 @@ export default function OAuthDone() {
       ) : (
         <>
           <M3CookieLoader size="xl" tone="primary" />
-          <span className="mono text-[10px] uppercase tracking-[0.22em]">opening sajni</span>
+          <span className="mono text-xs uppercase tracking-[0.22em]">opening sajni</span>
         </>
       )}
     </div>

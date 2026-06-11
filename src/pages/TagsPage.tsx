@@ -134,7 +134,7 @@ export default function TagsPage() {
                         >
                           <Hash className="size-3 opacity-70" strokeWidth={2.5} />
                           <span>{t.tag}</span>
-                          <span className="opacity-60 text-[9px]">·{t.count}</span>
+                          <span className="opacity-60 text-xs">·{t.count}</span>
                         </Link>
                       </motion.div>
                     );
@@ -196,7 +196,7 @@ export default function TagsPage() {
                       const Icon = meta?.icon || FileText;
                       return (
                         <div key={type}>
-                          <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                          <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
                             <Icon className="size-3" />
                             {meta?.label || type} <span className="opacity-60">({list.length})</span>
                           </h3>
@@ -211,12 +211,12 @@ export default function TagsPage() {
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm font-medium truncate">{e.title}</div>
                                   {e.subtitle && (
-                                    <div className="font-mono text-[10px] text-muted-foreground capitalize mt-0.5">
+                                    <div className="font-mono text-xs text-muted-foreground capitalize mt-0.5">
                                       {e.subtitle.replace('_', ' ')}
                                     </div>
                                   )}
                                   {e.type === 'journal' && (
-                                    <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                                    <div className="font-mono text-xs text-muted-foreground mt-0.5">
                                       {(() => {
                                         try { return formatDistanceToNow(new Date(e.title), { addSuffix: true }); }
                                         catch { return ''; }
@@ -245,7 +245,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
-      className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors ${
+      className={`font-mono text-xs uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors ${
         active
           ? 'bg-foreground text-background border-foreground'
           : 'border-border text-muted-foreground hover:bg-accent/40'

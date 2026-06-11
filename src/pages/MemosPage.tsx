@@ -114,7 +114,7 @@ export default function MemosPage() {
               className="min-h-[88px] text-[15px] leading-relaxed resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-4 pt-3"
             />
             <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-border/60">
-              <span className="text-[11px] text-muted-foreground font-mono">⌘ + Enter to save</span>
+              <span className="text-xs text-muted-foreground font-mono">⌘ + Enter to save</span>
               <Button onClick={handleCreate} disabled={!draft.trim() || creating} size="sm" className="gap-1.5">
                 {creating && <Loader2 className="size-3.5 animate-spin" />}
                 Save memo
@@ -136,7 +136,7 @@ export default function MemosPage() {
             <div className="flex flex-col gap-8">
               {grouped.map(({ key, label, items }) => (
                 <section key={key} className="flex flex-col gap-3">
-                  <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground sticky top-[1px] py-1">
+                  <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground sticky top-[1px] py-1">
                     {label}
                   </h2>
                   <AnimatePresence initial={false}>
@@ -219,7 +219,7 @@ function MemoCard({ memo, onOpen, onPin }: {
         {memo.pinned && (
           <div className="mb-2 inline-flex items-center gap-1 text-secondary">
             <Pin className="size-3" />
-            <span className="text-[10px] font-mono uppercase tracking-wider">Pinned</span>
+            <span className="text-xs font-mono uppercase tracking-wider">Pinned</span>
           </div>
         )}
 
@@ -230,7 +230,7 @@ function MemoCard({ memo, onOpen, onPin }: {
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60 gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span
-              className="font-mono text-[10px] text-muted-foreground shrink-0"
+              className="font-mono text-xs text-muted-foreground shrink-0"
               title={new Date(memo.created_at).toLocaleString()}
             >
               {formatDistanceToNow(new Date(memo.created_at), { addSuffix: true })}
@@ -307,7 +307,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
                 {memo.pinned && <Pin className="size-4 text-secondary shrink-0" />}
                 Memo
               </DialogTitle>
-              <div className="flex items-center gap-3 mt-1 font-mono text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-3 mt-1 font-mono text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <CalendarIcon className="size-3" />
                   {format(created, 'MMM d, yyyy')}
@@ -318,7 +318,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
                 </span>
               </div>
               {wasEdited && (
-                <div className="font-mono text-[10px] text-muted-foreground/70 mt-0.5">
+                <div className="font-mono text-xs text-muted-foreground/70 mt-0.5">
                   edited {format(updated, 'MMM d, yyyy · h:mm a')}
                 </div>
               )}

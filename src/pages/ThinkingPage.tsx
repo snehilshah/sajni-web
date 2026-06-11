@@ -100,7 +100,7 @@ export default function ThinkingPage() {
                   {p.thesis}
                 </div>
               )}
-              <div className="mt-3 flex items-center justify-between text-[10px] mono uppercase tracking-wider text-muted-foreground">
+              <div className="mt-3 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
                 <span>{p.card_count} {p.card_count === 1 ? 'card' : 'cards'}</span>
                 <span>{formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}</span>
               </div>

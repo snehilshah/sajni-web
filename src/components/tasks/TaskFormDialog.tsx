@@ -244,7 +244,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </button>
             <div className="min-w-0">
               <DialogTitle>{editing ? 'Edit task' : 'New task'}</DialogTitle>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 {editing ? 'Update details below' : 'Capture something to do'}
               </p>
             </div>
@@ -413,7 +413,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 />
               </label>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {!form.scheduled_time
                 ? 'Set a time — scheduled for the due date, or today if none is set.'
                 : form.remind
@@ -456,14 +456,14 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
           {editing && history.length > 0 && (
             <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
-              <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                 <CalendarClock className="size-3" />
                 Lifecycle ({history.length})
               </h4>
               <div className="flex flex-col gap-1">
                 {history.map((h, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className={`font-mono text-[10px] uppercase tracking-wider ${
+                    <span className={`font-mono text-xs uppercase tracking-wider ${
                       h.outcome === 'rescheduled'
                         ? 'text-[hsl(var(--primary))]'
                         : 'text-amber-600 dark:text-amber-400'
@@ -482,7 +482,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               / list moves). Note edits are intentionally not tracked. */}
           {editing && events.length > 0 && (
             <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
-              <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                 <History className="size-3" /> Activity ({events.length})
               </h4>
               <ol className="relative ml-1 flex flex-col gap-3 border-l border-border/60 pl-4 pt-1">
@@ -490,7 +490,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                   <li key={i} className="relative">
                     <span className="absolute -left-[21px] top-1 size-2.5 rounded-full bg-[hsl(var(--secondary))] ring-2 ring-[hsl(var(--card))]" />
                     <div className="text-xs text-foreground/90 leading-snug">{eventText(e)}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                    <div className="font-mono text-xs text-muted-foreground mt-0.5">
                       {formatDistanceToNow(parseISO(e.created_at), { addSuffix: true })}
                     </div>
                   </li>
@@ -501,8 +501,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
           <div className="flex flex-col flex-1 min-h-[140px] md:min-h-[200px] border border-border rounded-lg overflow-hidden bg-card">
             <div className="bg-muted/30 border-b border-border px-3 py-1.5 flex items-center justify-between shrink-0">
-              <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Notes</Label>
-              <span className="text-[10px] text-muted-foreground/80">/ commands · # tags · [[ links</span>
+              <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Notes</Label>
+              <span className="text-xs text-muted-foreground/80">/ commands · # tags · [[ links</span>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <RichEditor
@@ -588,7 +588,7 @@ function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId
         <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
           <GitBranch className="size-3" /> Subtasks
         </Label>
-        {total > 0 && <span className="mono text-[10px] text-muted-foreground tabular-nums">{done}/{total} done</span>}
+        {total > 0 && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
       </div>
       <div className="rounded-lg border border-border bg-card/50 px-1.5 py-1.5 flex flex-col gap-0.5">
         <AnimatePresence initial={false}>
@@ -621,7 +621,7 @@ function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId
                 {s.title}
               </button>
               {s.due_date && (
-                <span className="mono text-[10px] text-muted-foreground shrink-0">{format(parseISO(s.due_date), 'MMM d')}</span>
+                <span className="mono text-xs text-muted-foreground shrink-0">{format(parseISO(s.due_date), 'MMM d')}</span>
               )}
               <button
                 type="button"
@@ -720,7 +720,7 @@ function RemindersSection({ taskId }: { taskId: number }) {
               <span className={`text-sm flex-1 ${r.sent_at ? 'text-muted-foreground line-through' : ''}`}>
                 {(() => { try { return format(parseISO(r.remind_at), 'EEE, MMM d · h:mm a'); } catch { return r.remind_at; } })()}
               </span>
-              {r.sent_at && <span className="mono text-[9px] uppercase tracking-wider text-muted-foreground">sent</span>}
+              {r.sent_at && <span className="mono text-xs uppercase tracking-wider text-muted-foreground">sent</span>}
               <button
                 type="button"
                 onClick={() => remove(r.id)}
@@ -734,7 +734,7 @@ function RemindersSection({ taskId }: { taskId: number }) {
         </AnimatePresence>
 
         {rems && rems.length === 0 && !adding && (
-          <p className="text-[11px] text-muted-foreground px-1">No extra reminders — add one for any date and time.</p>
+          <p className="text-xs text-muted-foreground px-1">No extra reminders — add one for any date and time.</p>
         )}
 
         {adding ? (

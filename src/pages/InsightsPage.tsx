@@ -140,12 +140,12 @@ function InsightCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-serif text-base font-semibold">{insight.title}</span>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             {insight.window_key} · score {insight.score.toFixed(2)}
           </span>
         </div>
         <p className="text-sm text-foreground/85 mt-1 leading-relaxed">{insight.body}</p>
-        <div className="font-mono text-[10px] text-muted-foreground mt-2 inline-flex items-center gap-1">
+        <div className="font-mono text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
           <Clock className="size-3" />
           {format(parseISO(insight.generated_at), 'MMM d, h:mm a')}
         </div>
@@ -227,7 +227,7 @@ function TimeTravelSearch() {
     <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
       <div className="flex items-center gap-2 mb-3">
         <Search className="size-3.5 text-muted-foreground" />
-        <h2 className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Time travel</h2>
+        <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time travel</h2>
       </div>
       <Input
         value={q}
@@ -273,7 +273,7 @@ function HitRow({ hit, onOpen }: { hit: TimeTravelHit; onOpen: () => void }) {
       </span>
       <div className="flex-1 min-w-0">
         <div className="text-sm truncate">{hit.title}</div>
-        <div className="font-mono text-[10px] text-muted-foreground truncate">
+        <div className="font-mono text-xs text-muted-foreground truncate">
           {hit.date} · {hit.type}
           {hit.excerpt ? ` · ${hit.excerpt}` : ''}
         </div>

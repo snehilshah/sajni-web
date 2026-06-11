@@ -68,7 +68,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-mono text-[10px] uppercase tracking-wider opacity-80">
+                  <div className="font-mono text-xs uppercase tracking-wider opacity-80">
                     {card.institution || 'Credit card'}
                   </div>
                   <div className="font-medium truncate text-lg mt-0.5">{card.name}</div>
@@ -77,16 +77,16 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               </div>
               <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <div className="font-mono text-[9px] uppercase tracking-wider opacity-80">Outstanding</div>
+                  <div className="font-mono text-xs uppercase tracking-wider opacity-80">Outstanding</div>
                   <div className="font-serif text-2xl md:text-3xl font-semibold tabular-nums">
                     {formatMoney(owed)}
                   </div>
                 </div>
                 {card.credit_limit ? (
                   <div className="text-right">
-                    <div className="font-mono text-[9px] uppercase tracking-wider opacity-80">Limit</div>
+                    <div className="font-mono text-xs uppercase tracking-wider opacity-80">Limit</div>
                     <div className="font-mono text-sm tabular-nums">{formatMoney(card.credit_limit)}</div>
-                    <div className="font-mono text-[10px] tabular-nums opacity-80">
+                    <div className="font-mono text-xs tabular-nums opacity-80">
                       {((owed / card.credit_limit) * 100).toFixed(0)}% used
                     </div>
                   </div>
@@ -228,7 +228,7 @@ function Stat({ label, value, tone = 'default', icon: Icon, small }: {
   };
   return (
     <div className="rounded-lg bg-muted/40 p-2.5">
-      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
         {Icon && <Icon className="size-2.5" />}
         {label}
       </div>
@@ -262,20 +262,20 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
           <div className="text-sm font-medium tabular-nums">
             {isCredit ? formatMoney(-statement.amount_due) + ' credit' : formatMoney(statement.amount_due)}
           </div>
-          <div className="font-mono text-[10px] text-muted-foreground">
+          <div className="font-mono text-xs text-muted-foreground">
             {format(parseISO(statement.statement_date), 'MMM d')} · due {format(dueDate, 'MMM d')}
             {statement.cashback_earned > 0 && ' · ' + formatMoney(statement.cashback_earned) + ' cashback'}
           </div>
         </div>
         {statement.paid ? (
-          <span className="font-mono text-[10px] text-primary inline-flex items-center gap-1 shrink-0">
+          <span className="font-mono text-xs text-primary inline-flex items-center gap-1 shrink-0">
             <Check className="size-3" />
             Paid
           </span>
         ) : isCredit ? (
-          <span className="font-mono text-[10px] text-primary shrink-0">in credit</span>
+          <span className="font-mono text-xs text-primary shrink-0">in credit</span>
         ) : (
-          <span className={`font-mono text-[10px] inline-flex items-center gap-1 shrink-0 ${
+          <span className={`font-mono text-xs inline-flex items-center gap-1 shrink-0 ${
             overdue ? 'text-destructive' : dueSoon ? 'text-yellow-600' : 'text-muted-foreground'
           }`}>
             {(overdue || dueSoon) && <AlertCircle className="size-3" />}
@@ -285,7 +285,7 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
       </div>
 
       {/* Breakdown: previous balance carried in + this cycle's new charges. */}
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[10px] text-muted-foreground">
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-muted-foreground">
         <span>Prev {formatMoney(statement.previous_balance)}</span>
         <span>New {formatMoney(statement.new_charges)}</span>
       </div>
@@ -413,7 +413,7 @@ function StatementDialog({ card, onClose, onSaved }: {
             />
           </Field>
         </div>
-        <div className="rounded-lg bg-muted/40 px-3 py-2 font-mono text-[10px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+        <div className="rounded-lg bg-muted/40 px-3 py-2 font-mono text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
           {previewLoading && !preview ? (
             <span>Calculating…</span>
           ) : preview ? (
@@ -443,7 +443,7 @@ function formatInputAmount(value: number | undefined) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
   );

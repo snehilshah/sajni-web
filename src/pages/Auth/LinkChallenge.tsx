@@ -64,7 +64,7 @@ export default function LinkChallenge() {
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-3">
-              <Label className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Label className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 6-digit code
               </Label>
               <InputOTP

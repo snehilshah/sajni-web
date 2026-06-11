@@ -95,7 +95,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{inv.name}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label}
                       {inv.frequency === 'monthly' && inv.monthly_amount > 0 && ' · ' + formatMoney(inv.monthly_amount) + '/mo'}
                     </div>
@@ -112,13 +112,13 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                     {positive ? '+' : ''}{formatMoney(gain)} ({gainPct.toFixed(1)}%)
                   </div>
                 </div>
-                <div className="font-mono text-[10px] text-muted-foreground mt-1">
+                <div className="font-mono text-xs text-muted-foreground mt-1">
                   Invested {formatMoney(inv.invested_amount)}
                   {inv.last_updated && ' · updated ' + format(parseISO(inv.last_updated), 'MMM d')}
                 </div>
 
                 {(inv.frequency === 'monthly' || inv.maturity_date) && (
-                  <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                  <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-3 text-xs text-muted-foreground">
                     {inv.frequency === 'monthly' && (
                       <span className="inline-flex items-center gap-1">
                         <Repeat className="size-3" />
@@ -158,7 +158,7 @@ function SummaryCard({ label, value, tone = 'default', className = '' }: { label
   };
   return (
     <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
-      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`font-serif text-xl md:text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}>{value}</div>
     </div>
   );
@@ -331,7 +331,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
   );

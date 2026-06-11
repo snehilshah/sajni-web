@@ -203,7 +203,7 @@ export default function TodayPage() {
 		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-14 pb-20">
 			{/* Hero */}
 			<div className="sajni-stagger">
-				<div className="mono text-[11px] tracking-[0.22em] uppercase text-muted-foreground mb-3">{dateLabel}</div>
+				<div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-3">{dateLabel}</div>
 				<h1 className="serif text-4xl md:text-[56px] font-normal tracking-[-0.025em] leading-[1.05] text-foreground">
 					{greeting}.
 				</h1>
@@ -224,9 +224,9 @@ export default function TodayPage() {
 			<div className="m3-expressive-panel rounded-xl p-5 mt-9 fade-in">
 				<div className="flex items-center gap-2.5 mb-2.5">
 					<div className="sajni-logo" style={{ width: 22, height: 22, borderRadius: 6 }} />
-					<span className="mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">Capture</span>
+					<span className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">Capture</span>
 					<div className="flex-1" />
-					<span className="text-[11px] text-muted-foreground hidden md:inline">I'll route to the right place</span>
+					<span className="text-xs text-muted-foreground hidden md:inline">I'll route to the right place</span>
 				</div>
 				<Textarea
 					value={capture}
@@ -267,7 +267,7 @@ export default function TodayPage() {
 					>
 						{saving ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : null}
 						Save
-						<kbd className="mono text-[10px] px-1 py-px rounded bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground/85">
+						<kbd className="mono text-xs px-1 py-px rounded bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground/85">
 							⌘↵
 						</kbd>
 					</button>
@@ -321,7 +321,7 @@ export default function TodayPage() {
 										/>
 										<div className="flex-1 min-w-0">
 											<div className="text-[14px] text-foreground font-medium truncate">{t.title}</div>
-											<div className="flex gap-2 mt-1 text-[11px] text-muted-foreground">
+											<div className="flex gap-2 mt-1 text-xs text-muted-foreground">
 												{t.scheduled_at ? (
 													<span
 														className={`mono inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
@@ -381,7 +381,7 @@ export default function TodayPage() {
 										<div className="prose-sajni text-[14.5px] leading-[1.55] line-clamp-3">
 											<ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
 										</div>
-										<div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-border/50 text-[10.5px]">
+										<div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-border/50 text-xs">
 											<span className="mono text-muted-foreground">
 												{formatDistanceToNow(parseISO(m.created_at), { addSuffix: true })}
 											</span>
@@ -408,7 +408,7 @@ export default function TodayPage() {
 										.replace(/\[\[|\]\]/g, '')
 										.slice(0, 220)}
 								</p>
-								<div className="mono text-[10.5px] tracking-[0.1em] uppercase text-muted-foreground">
+								<div className="mono text-xs tracking-[0.1em] uppercase text-muted-foreground">
 									YOU · {formatDistanceToNow(parseISO(echo.created_at), { addSuffix: true })}
 								</div>
 							</div>
@@ -491,7 +491,7 @@ export default function TodayPage() {
 													})}
 												</div>
 											</div>
-											<div className="flex items-center gap-1 text-[11.5px] text-muted-foreground">
+											<div className="flex items-center gap-1 text-xs text-muted-foreground">
 												<Flame className="size-3 text-secondary" />
 												<span className="mono">{streak}</span>
 											</div>
@@ -508,7 +508,7 @@ export default function TodayPage() {
 							className="rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border"
 							style={{ background: 'hsl(var(--surface-container))' }}
 						>
-							<div className="mono text-[9.5px] tracking-[0.18em] uppercase text-primary mb-2.5">
+							<div className="mono text-xs tracking-[0.18em] uppercase text-primary mb-2.5">
 								continued from yesterday
 							</div>
 							<p className="serif italic text-[18px] leading-[1.45] text-foreground mb-3.5">{journalPrompt}</p>
@@ -533,7 +533,7 @@ function Section({ title, hint, action, children }: { title: string; hint?: stri
 			<div className="flex items-baseline justify-between gap-3 mb-3.5">
 				<div>
 					<h2 className="serif text-[20px] font-semibold tracking-[-0.01em] leading-tight">{title}</h2>
-					{hint && <div className="mono text-[11px] text-muted-foreground mt-0.5">{hint}</div>}
+					{hint && <div className="mono text-xs text-muted-foreground mt-0.5">{hint}</div>}
 				</div>
 				{action}
 			</div>
@@ -545,7 +545,7 @@ function Section({ title, hint, action, children }: { title: string; hint?: stri
 function Stat({ label, value }: { label: string; value: string }) {
 	return (
 		<div>
-			<div className="mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground mb-1.5">{label}</div>
+			<div className="mono text-xs tracking-[0.12em] uppercase text-muted-foreground mb-1.5">{label}</div>
 			<div className="serif text-2xl font-medium tracking-[-0.01em] tabular-nums">{value}</div>
 		</div>
 	);

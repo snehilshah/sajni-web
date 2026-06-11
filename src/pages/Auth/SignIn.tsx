@@ -108,7 +108,7 @@ export default function SignIn() {
             <span className="sajni-logo" aria-hidden="true" />
             <div>
               <div className="serif text-[20px] font-semibold leading-tight">sajni</div>
-              <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">codex</div>
+              <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">codex</div>
             </div>
           </div>
 
@@ -122,7 +122,7 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
             ohmysajni.com
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function SignIn() {
               <span className="sajni-logo" aria-hidden="true" />
               <div>
                 <div className="serif text-[18px] font-semibold leading-tight">sajni</div>
-                <div className="mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">codex</div>
+                <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">codex</div>
               </div>
             </div>
 
@@ -183,13 +183,13 @@ export default function SignIn() {
 
                 <div className="my-6 flex items-center gap-3 text-muted-foreground">
                   <span className="flex-1 h-px bg-border" />
-                  <span className="mono text-[10px] uppercase tracking-[0.22em]">or email</span>
+                  <span className="mono text-xs uppercase tracking-[0.22em]">or email</span>
                   <span className="flex-1 h-px bg-border" />
                 </div>
 
                 <form onSubmit={onRequestCode} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Email</Label>
+                    <Label htmlFor="email" className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground">Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -223,7 +223,7 @@ export default function SignIn() {
             ) : (
               <form onSubmit={onVerifyCode} className="space-y-5">
                 <div className="space-y-3">
-                  <Label className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <Label className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     6-digit code
                   </Label>
                   <InputOTP

@@ -120,7 +120,7 @@ export default function OverviewTab({ accounts }: Props) {
                         style={{ backgroundColor: c.color }}
                       />
                     </div>
-                    <span className="font-mono text-[10px] tabular-nums w-16 text-right">{formatMoney(c.amount)}</span>
+                    <span className="font-mono text-xs tabular-nums w-16 text-right">{formatMoney(c.amount)}</span>
                   </div>
                 );
               })}
@@ -148,7 +148,7 @@ export default function OverviewTab({ accounts }: Props) {
                           {b.name}
                           {b.auto_renew ? <Zap className="size-3 text-primary" /> : null}
                         </div>
-                        <div className="font-mono text-[10px] text-muted-foreground">
+                        <div className="font-mono text-xs text-muted-foreground">
                           {b.account_name || 'no account'} · {days < 0 ? `${-days}d overdue` : days === 0 ? 'today' : `${days}d`}
                         </div>
                       </div>
@@ -174,7 +174,7 @@ export default function OverviewTab({ accounts }: Props) {
                   <div key={d.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
                     <div className="min-w-0">
                       <div className="text-sm truncate">{d.account_name}</div>
-                      <div className="font-mono text-[10px] text-muted-foreground">
+                      <div className="font-mono text-xs text-muted-foreground">
                         Due {format(parseISO(d.due_date), 'MMM d')} · {days < 0 ? `${-days}d overdue` : days === 0 ? 'today' : `${days}d`}
                       </div>
                     </div>
@@ -207,7 +207,7 @@ export default function OverviewTab({ accounts }: Props) {
                         className="h-full rounded-full bg-primary"
                       />
                     </div>
-                    <span className="font-mono text-[10px] tabular-nums w-16 text-right">{formatMoney(i.amount)}</span>
+                    <span className="font-mono text-xs tabular-nums w-16 text-right">{formatMoney(i.amount)}</span>
                   </div>
                 );
               })}
@@ -242,7 +242,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
     >
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-wider opacity-80">Net worth</div>
+          <div className="font-mono text-xs uppercase tracking-wider opacity-80">Net worth</div>
           <div className="font-serif text-4xl md:text-5xl font-semibold tabular-nums mt-1">
             {formatMoney(data.net_worth)}
           </div>
@@ -252,7 +252,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
               {positive ? '+' : ''}{formatMoney(change)} ({changePct.toFixed(1)}%) since last snapshot
             </div>
           ) : (
-            <div className="font-mono text-[10px] mt-2 opacity-75">
+            <div className="font-mono text-xs mt-2 opacity-75">
               {lastSnap ? `Last snapshot ${format(parseISO(lastSnap.date), 'MMM d, yyyy')}` : 'No snapshots yet — take one to start the trend.'}
             </div>
           )}
@@ -287,7 +287,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
 function HeroStat({ label, value, className = '' }: { label: string; value: string; className?: string }) {
   return (
     <div className={`bg-white/10 rounded-lg px-3 py-2 ${className}`}>
-      <div className="font-mono text-[9px] uppercase tracking-wider opacity-80">{label}</div>
+      <div className="font-mono text-xs uppercase tracking-wider opacity-80">{label}</div>
       <div className="font-serif text-lg font-semibold tabular-nums">{value}</div>
     </div>
   );
@@ -324,7 +324,7 @@ function MonthCard({ label, value, tone, icon: Icon }: {
   };
   return (
     <div className="rounded-xl border border-border bg-card p-3">
-      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
         <Icon className="size-3" />
         {label}
       </div>
@@ -370,10 +370,10 @@ function Distribution({ accounts, invested }: { accounts: OverviewData['accounts
           <div key={i.key} className="flex items-center gap-2">
             <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: i.color }} />
             <span className="text-xs flex-1 truncate">{i.name}</span>
-            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
               {((i.amount / total) * 100).toFixed(0)}%
             </span>
-            <span className="font-mono text-[10px] tabular-nums w-20 text-right">{formatMoney(i.amount)}</span>
+            <span className="font-mono text-xs tabular-nums w-20 text-right">{formatMoney(i.amount)}</span>
           </div>
         ))}
       </div>
@@ -424,7 +424,7 @@ function Panel({ title, subtitle, children, className = '' }: { title: string; s
     >
       <header className="flex items-baseline justify-between gap-2 mb-3">
         <h2 className="font-serif text-base font-semibold">{title}</h2>
-        {subtitle && <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{subtitle}</span>}
+        {subtitle && <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{subtitle}</span>}
       </header>
       {children}
     </motion.section>

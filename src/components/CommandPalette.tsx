@@ -304,7 +304,7 @@ export default function CommandPalette() {
                   Click X (or backspace from start of empty input) to drop
                   it and return to plain search. */}
               {aiChip && (
-                <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-primary/15 text-primary mono text-[11px] font-medium">
+                <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-primary/15 text-primary mono text-xs font-medium">
                   @sajni
                   <button
                     type="button"
@@ -335,17 +335,17 @@ export default function CommandPalette() {
               {/* Hint shown while the user has typed @sajni but not yet
                   committed it — confirms the chip is one keystroke away. */}
               {parsed.aiMode && !aiChip && (
-                <span className="mono text-[10px] uppercase tracking-wider text-primary/80 hidden sm:inline">
+                <span className="mono text-xs uppercase tracking-wider text-primary/80 hidden sm:inline">
                   press space →
                 </span>
               )}
 
               {!parsed.aiMode && parsed.typeBoost && (
-                <span className="mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                <span className="mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                   {SEARCH_TYPE_LABELS[parsed.typeBoost as SearchType]}
                 </span>
               )}
-              <kbd className="hidden sm:inline-flex mono text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5">
+              <kbd className="hidden sm:inline-flex mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
                 Esc
               </kbd>
             </div>
@@ -367,7 +367,7 @@ export default function CommandPalette() {
                     >
                       <a.Icon className="size-4 shrink-0 text-muted-foreground" />
                       <span className="flex-1 text-sm">{a.label}</span>
-                      {a.hint && <span className="mono text-[10px] text-muted-foreground">{a.hint}</span>}
+                      {a.hint && <span className="mono text-xs text-muted-foreground">{a.hint}</span>}
                       <ChevronRight className="size-3 text-muted-foreground/60" />
                     </button>
                   ))
@@ -393,7 +393,7 @@ export default function CommandPalette() {
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-border bg-muted/30 font-mono text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-border bg-muted/30 font-mono text-xs text-muted-foreground">
               <div className="flex items-center gap-3">
                 {parsed.aiMode ? (
                   <span className="inline-flex items-center gap-1">
@@ -462,12 +462,12 @@ function PaletteRow({
           )}
         </div>
         {hit.subtitle && (
-          <div className="font-mono text-[10px] text-muted-foreground truncate mt-0.5">
+          <div className="font-mono text-xs text-muted-foreground truncate mt-0.5">
             {hit.subtitle}
           </div>
         )}
       </div>
-      <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground shrink-0">
+      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
         {label}
       </span>
     </button>

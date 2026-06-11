@@ -329,9 +329,9 @@ export default function ThinkingProjectPage() {
             </SelectContent>
           </Select>
           {!userPickedKindState && draft.trim().length >= 12 && (
-            <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground">auto</span>
+            <span className="mono text-xs uppercase tracking-wider text-muted-foreground">auto</span>
           )}
-          <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground">⌘+Enter to add</span>
+          <span className="mono text-xs uppercase tracking-wider text-muted-foreground">⌘+Enter to add</span>
           <div className="flex-1" />
           <Button size="sm" onClick={addCard} disabled={!draft.trim() || adding}>
             <Plus className="size-4 mr-1" /> {adding ? 'Adding…' : 'Add'}
@@ -347,7 +347,7 @@ export default function ThinkingProjectPage() {
             {activeKinds.size > 0 && (
               <button
                 onClick={() => setActiveKinds(new Set())}
-                className="text-[10px] mono uppercase tracking-wider text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                className="text-xs mono uppercase tracking-wider text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
                 <X className="size-3" /> Clear
               </button>
@@ -360,7 +360,7 @@ export default function ThinkingProjectPage() {
                 <button
                   key={k}
                   onClick={() => toggleKind(k)}
-                  className={`h-8 px-2 rounded-full border text-[11px] mono uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
+                  className={`h-8 px-2 rounded-full border text-xs mono uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
                     on
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-[hsl(var(--on-surface))]'
@@ -388,7 +388,7 @@ export default function ThinkingProjectPage() {
               className={`${CARD_SURFACE} text-left p-3 hover:bg-[hsl(var(--surface-container))] transition-colors group`}
             >
               <div className="flex items-start gap-2">
-                <span className={`shrink-0 inline-flex items-center justify-center w-24 text-[10px] mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
+                <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
                   {c.kind}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -401,7 +401,7 @@ export default function ThinkingProjectPage() {
                     </div>
                   )}
                   {c.ai_enrichment?.connections && c.ai_enrichment.connections.length > 0 && (
-                    <div className="mt-1.5 flex items-center gap-1 text-[10px] mono uppercase tracking-wider text-muted-foreground">
+                    <div className="mt-1.5 flex items-center gap-1 text-xs mono uppercase tracking-wider text-muted-foreground">
                       <Link2 className="size-3" />
                       {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
                     </div>
@@ -416,7 +416,7 @@ export default function ThinkingProjectPage() {
                   <Trash2 className="size-3.5" />
                 </button>
               </div>
-              <div className="mt-2 flex items-center justify-between text-[10px] mono uppercase tracking-wider text-muted-foreground">
+              <div className="mt-2 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
                 <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
                 <ChevronRight className="size-3" />
               </div>
@@ -450,7 +450,7 @@ export default function ThinkingProjectPage() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mono text-[10px] uppercase tracking-wider text-muted-foreground">
+    <div className="mono text-xs uppercase tracking-wider text-muted-foreground">
       {children}
     </div>
   );
@@ -516,7 +516,7 @@ function CardDetail({
       <SheetHeader className="px-5 pt-5 pb-3 border-b border-border space-y-2 pr-12">
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)}>
-            <SelectTrigger className="h-7 w-auto text-[10px] mono uppercase tracking-wider rounded-full">
+            <SelectTrigger className="h-7 w-auto text-xs mono uppercase tracking-wider rounded-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -525,7 +525,7 @@ function CardDetail({
               ))}
             </SelectContent>
           </Select>
-          <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
             {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
           </span>
         </div>
@@ -552,7 +552,7 @@ function CardDetail({
             <SectionLabel>Enrichment</SectionLabel>
             <div className="flex items-center gap-2">
               {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
-                <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
                   confidence {Math.round((e.confidence ?? 0) * 100)}%
                 </span>
               )}
@@ -618,11 +618,11 @@ function CardDetail({
                             onClick={() => target && onJump(c.card_id)}
                             className="w-full text-left rounded-lg border border-border bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <span className="mono text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+                            <span className="mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
                               {c.relation.replace('_', ' ')}
                             </span>
                             {target && (
-                              <span className={`shrink-0 text-[10px] mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
+                              <span className={`shrink-0 text-xs mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
                                 {target.kind}
                               </span>
                             )}

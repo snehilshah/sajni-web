@@ -150,7 +150,7 @@ function ActivityPanel() {
                   {heatmap.monthLabels.map((m) => (
                     <span
                       key={`${m.month}-${m.weekIndex}`}
-                      className="absolute font-mono text-[9px] uppercase tracking-wider text-muted-foreground"
+                      className="absolute font-mono text-xs uppercase tracking-wider text-muted-foreground"
                       style={{ left: `${m.weekIndex * 14}px` }}
                     >
                       {MONTH_LABELS[m.month]}
@@ -161,7 +161,7 @@ function ActivityPanel() {
                   {/* Weekday labels */}
                   <div className="flex flex-col gap-[3px] w-6 shrink-0">
                     {WEEKDAY_LABELS.map((w, i) => (
-                      <div key={i} className="font-mono text-[9px] text-muted-foreground h-[11px] leading-[11px]">
+                      <div key={i} className="font-mono text-xs text-muted-foreground h-[11px] leading-[11px]">
                         {w}
                       </div>
                     ))}
@@ -181,7 +181,7 @@ function ActivityPanel() {
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center justify-end gap-2 mt-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                <div className="flex items-center justify-end gap-2 mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                   <span>Less</span>
                   {['', 'l1', 'l2', 'l3', 'l4'].map((lvl) => (
                     <div key={lvl} className={`heatmap-cell ${lvl}`} />
@@ -218,10 +218,10 @@ function ActivityPanel() {
                     {data.journal_consistency.days_logged}
                     <span className="text-muted-foreground text-base"> / {data.journal_consistency.total_days}</span>
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+                  <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground mt-1">
                     Days logged
                   </div>
-                  <Link to="/journal" className="font-mono text-[10px] text-primary hover:underline mt-3 inline-block">
+                  <Link to="/journal" className="font-mono text-xs text-primary hover:underline mt-3 inline-block">
                     Open journal →
                   </Link>
                 </div>
@@ -238,7 +238,7 @@ function ActivityPanel() {
                     const color = moduleColors[mod] || 'hsl(var(--primary))';
                     return (
                       <div key={mod} className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] text-muted-foreground w-16 text-right capitalize">{mod}</span>
+                        <span className="font-mono text-xs text-muted-foreground w-16 text-right capitalize">{mod}</span>
                         <div className="flex-1 h-5 bg-muted/60 rounded-sm overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
@@ -248,7 +248,7 @@ function ActivityPanel() {
                             style={{ backgroundColor: color }}
                           />
                         </div>
-                        <span className="font-mono text-[11px] tabular-nums text-foreground/70 w-7 text-right">{count}</span>
+                        <span className="font-mono text-xs tabular-nums text-foreground/70 w-7 text-right">{count}</span>
                       </div>
                     );
                   })}
@@ -266,7 +266,7 @@ function ActivityPanel() {
                     const pct = (v.completed / maxVelocity) * 100;
                     return (
                       <div key={v.week} className="flex-1 flex flex-col items-center gap-1 group" title={`${v.week}: ${v.completed}`}>
-                        <div className="font-mono text-[10px] tabular-nums text-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="font-mono text-xs tabular-nums text-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity">
                           {v.completed}
                         </div>
                         <div className="w-full flex items-end justify-center" style={{ height: '92px' }}>
@@ -277,7 +277,7 @@ function ActivityPanel() {
                             className="w-full bg-primary/80 rounded-t-sm group-hover:bg-primary"
                           />
                         </div>
-                        <span className="font-mono text-[9px] text-muted-foreground truncate max-w-full">
+                        <span className="font-mono text-xs text-muted-foreground truncate max-w-full">
                           {v.week.slice(5)}
                         </span>
                       </div>
@@ -303,11 +303,11 @@ function ActivityPanel() {
                         <span className="inline-flex items-center gap-1">
                           {s.current > 0 && <Flame className="size-3 text-orange-500" />}
                           <span className="tabular-nums">{s.current}</span>
-                          <span className="text-[9px] text-muted-foreground uppercase">cur</span>
+                          <span className="text-xs text-muted-foreground uppercase">cur</span>
                         </span>
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
                           <span className="tabular-nums">{s.longest}</span>
-                          <span className="text-[9px] uppercase">best</span>
+                          <span className="text-xs uppercase">best</span>
                         </span>
                       </div>
                     </div>
@@ -342,7 +342,7 @@ function ActivityPanel() {
                             className="h-full bg-primary/70 rounded-full"
                           />
                         </div>
-                        <span className="font-mono text-[10px] tabular-nums text-muted-foreground w-6 text-right">{t.count}</span>
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground w-6 text-right">{t.count}</span>
                       </Link>
                     );
                   })}
@@ -363,17 +363,17 @@ function ActivityPanel() {
                     <div className="font-serif text-2xl font-semibold text-primary tabular-nums">
                       {data.media_stats[key] || 0}
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
+                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
                   </div>
                 ))}
               </div>
               {(data.media_stats.in_progress || 0) > 0 && (
-                <div className="font-mono text-[10px] text-muted-foreground flex items-center justify-center gap-1.5">
+                <div className="font-mono text-xs text-muted-foreground flex items-center justify-center gap-1.5">
                   <TrendingUp className="size-3" />
                   {data.media_stats.in_progress} in progress
                 </div>
               )}
-              <Link to="/media" className="font-mono text-[10px] text-primary hover:underline mt-2 inline-block">
+              <Link to="/media" className="font-mono text-xs text-primary hover:underline mt-2 inline-block">
                 Open library →
               </Link>
             </Panel>
@@ -392,7 +392,7 @@ function Panel({ title, subtitle, children }: { title: string; subtitle?: string
     >
       <header className="flex items-baseline justify-between gap-2 mb-4">
         <h2 className="font-serif text-base font-semibold">{title}</h2>
-        {subtitle && <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{subtitle}</span>}
+        {subtitle && <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{subtitle}</span>}
       </header>
       {children}
     </motion.section>

@@ -72,7 +72,7 @@ export const SuggestionList = forwardRef<unknown, SuggestionListProps>((props, r
           {item.icon && <span className="text-base leading-none mt-px shrink-0">{item.icon}</span>}
           <div className="flex flex-col min-w-0">
             <span className="font-medium truncate">{item.title}</span>
-            {item.subtitle && <span className="text-[11px] opacity-70 truncate">{item.subtitle}</span>}
+            {item.subtitle && <span className="text-xs opacity-70 truncate">{item.subtitle}</span>}
           </div>
         </button>
       ))}

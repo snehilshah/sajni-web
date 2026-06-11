@@ -404,11 +404,11 @@ export default function NotesPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden page-fade-in">
+    <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
       {/* App-consistent full-width header — vault toggle + breadcrumb +
           save / move / delete actions. Page body (vault + editor) lives
           BELOW this header so the chrome stays uninterrupted. */}
-      <header className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16 shrink-0">
+      <header className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background sticky top-0 z-20 h-14 md:h-16 shrink-0">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Button
             variant="ghost" size="icon-sm"
@@ -490,7 +490,7 @@ export default function NotesPage() {
                     placeholder="Untitled"
                     value={title}
                     onChange={(e) => handleTitleChange(e.target.value)}
-                    className="w-full bg-transparent border-none outline-none font-serif text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
+                    className="w-full h-auto px-0 py-1 bg-transparent border-none outline-none focus-visible:shadow-none text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
                   />
 
                   <RichEditor
@@ -517,7 +517,7 @@ export default function NotesPage() {
                   <div className="p-2">
                     {backlinks.map((bl: any, i: number) => (
                       <div key={i} className="text-sm py-1 px-1 flex items-center gap-1.5">
-                        <Badge variant="secondary" className="text-[9px] capitalize shrink-0">{bl.source_type}</Badge>
+                        <Badge variant="secondary" className="text-xs capitalize shrink-0">{bl.source_type}</Badge>
                         <span className="truncate">{bl.title || 'Untitled'}</span>
                       </div>
                     ))}
@@ -534,7 +534,7 @@ export default function NotesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Move note</DialogTitle>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>
+            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>
           </DialogHeader>
           <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
             <FolderRow
@@ -820,7 +820,7 @@ function NotesAtlas({
     <div className="max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-12 pb-16">
       <div className="flex items-end justify-between mb-7 flex-wrap gap-3">
         <div>
-          <div className="mono text-[11px] tracking-[0.22em] uppercase text-muted-foreground mb-2.5">
+          <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-2.5">
             {totalNotes} {totalNotes === 1 ? 'note' : 'notes'} · {totalTags} {totalTags === 1 ? 'tag' : 'tags'}
           </div>
           <h1 className="serif text-4xl md:text-[44px] font-medium tracking-[-0.02em]">Notes</h1>
@@ -866,7 +866,7 @@ function NotesAtlas({
                   style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--backdrop-blob-${meshIdx})), transparent 70%)` }}
                 />
                 <div className="relative">
-                  <div className="mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground mb-2.5">
+                  <div className="mono text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2.5">
                     {fmtRelTime(n.updated_at)}
                     {n.folder ? <> · <span className="text-foreground/70">{n.folder}</span></> : null}
                   </div>

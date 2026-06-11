@@ -75,18 +75,18 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
           <button
             key={s.smart}
             onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
-            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12.5px] font-medium whitespace-nowrap shrink-0 transition-colors
+            className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
               ${active
-                ? 'bg-primary/15 text-primary border border-primary/40'
+                ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
                 : isMissedAlert
-                  ? 'bg-[hsl(var(--error-container)/0.6)] text-[hsl(var(--on-error-container))] border border-[hsl(var(--error)/0.4)]'
-                  : 'bg-muted/40 text-foreground/85 border border-border/60 hover:bg-muted/80'}`}
+                  ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] border border-transparent'
+                  : 'bg-transparent text-foreground/85 border border-[hsl(var(--outline-variant))] hover:bg-[hsl(var(--on-surface)/0.08)]'}`}
             title={s.description}
           >
-            <Icon className="size-3.5" /> {s.label}
+            <Icon className="size-4" /> {s.label}
             {count > 0 && (
-              <span className={`mono text-[10px] tabular-nums rounded-full px-1.5 leading-[1.4] ${
-                isMissedAlert && !active ? 'bg-[hsl(var(--error)/0.85)] text-[hsl(var(--on-error))]' : 'bg-foreground/10'
+              <span className={`text-xs tabular-nums rounded-full px-1.5 leading-[1.4] ${
+                isMissedAlert && !active ? 'bg-[hsl(var(--error))] text-[hsl(var(--on-error))]' : 'bg-foreground/10'
               }`}>
                 {count}
               </span>
@@ -103,10 +103,10 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
         return (
           <div
             key={l.id}
-            className={`group inline-flex items-center gap-1 h-8 pl-3 pr-1 rounded-full text-[12.5px] font-medium whitespace-nowrap shrink-0 transition-colors
+            className={`group inline-flex items-center gap-1 h-9 pl-3.5 pr-1.5 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
               ${active
-                ? 'bg-primary/15 text-primary border border-primary/40'
-                : 'bg-muted/40 text-foreground/85 border border-border/60 hover:bg-muted/80'}`}
+                ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
+                : 'bg-transparent text-foreground/85 border border-[hsl(var(--outline-variant))] hover:bg-[hsl(var(--on-surface)/0.08)]'}`}
           >
             <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
             {isEditing ? (
@@ -131,7 +131,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
               </button>
             )}
             {!isEditing && l.task_count > 0 && (
-              <span className="mono text-[10px] text-muted-foreground ml-1">{l.task_count}</span>
+              <span className="text-xs tabular-nums opacity-70 ml-1">{l.task_count}</span>
             )}
             {!isEditing && (onRename || onDelete) && (
               <DropdownMenu>
@@ -170,7 +170,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       })}
 
       {adding ? (
-        <div className="inline-flex items-center h-8 px-2 rounded-full border border-dashed border-border bg-background/60 shrink-0">
+        <div className="inline-flex items-center h-9 px-2 rounded-full border border-dashed border-border bg-background shrink-0">
           <Input
             name="new-list-name"
             autoFocus
@@ -188,7 +188,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12.5px] font-medium whitespace-nowrap shrink-0 border border-dashed border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 border border-dashed border-border text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
         >
           <Plus className="size-3.5" /> New list
         </button>

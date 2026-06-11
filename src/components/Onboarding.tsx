@@ -8,6 +8,7 @@ import {
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Step {
   key: string;
@@ -131,6 +132,7 @@ function Spotlight({ anchor }: { anchor: Anchor | null }) {
 // bubble centers itself like a modal.
 export default function Onboarding() {
   const { user, markOnboarded } = useAuth();
+  const isMobile = useIsMobile();
   const [doc, setDoc] = useState<OnboardingDoc | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
   const [closing, setClosing] = useState(false);
@@ -195,6 +197,80 @@ export default function Onboarding() {
   const pos = computePosition(anchor);
   const total = steps.length;
 
+  // Mobile: the desktop spotlight/bubble has nothing to anchor to (the
+  // nav rail is md+ only) and its centered fallback blanketed the whole
+  // screen. Render a compact bottom sheet instead — content stays
+  // visible above a light scrim, steps swipe through with the buttons.
+  if (isMobile) {
+    return (
+      <>
+        <div
+          className="fixed inset-0 z-[90] bg-[hsl(var(--scrim)/0.45)]"
+          aria-hidden="true"
+        />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={step.title}
+          className="fixed inset-x-0 bottom-0 z-[100] rounded-t-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-4)] px-6 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]"
+        >
+          <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground">
+              {stepIdx + 1} / {total}
+            </span>
+            <button
+              type="button"
+              onClick={finish}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground px-2 py-1 -mr-2"
+            >
+              Skip
+            </button>
+          </div>
+
+          <h2 className="text-xl font-semibold tracking-tight">{step.title}</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.blurb}</p>
+
+          <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">
+            {steps.map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  i === stepIdx ? 'w-5 bg-[hsl(var(--primary))]' : 'w-1.5 bg-[hsl(var(--outline-variant))]',
+                )}
+              />
+            ))}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={stepIdx === 0}
+              onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+            >
+              Back
+            </Button>
+            {isLast ? (
+              <Button type="button" onClick={finish} className="rounded-full">
+                Open Sajni
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => setStepIdx((i) => Math.min(steps.length - 1, i + 1))}
+                className="rounded-full"
+              >
+                Next
+              </Button>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Spotlight anchor={anchor} />
@@ -209,13 +285,13 @@ export default function Onboarding() {
         style={{ width: BUBBLE_WIDTH, ...pos }}
       >
         <div className="flex items-center justify-between mb-3">
-          <span className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <span className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
             {stepIdx + 1} / {total}
           </span>
           <button
             type="button"
             onClick={finish}
-            className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
+            className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
           >
             skip
           </button>

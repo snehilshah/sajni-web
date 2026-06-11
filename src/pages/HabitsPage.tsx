@@ -278,7 +278,7 @@ function HabitCard({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[15px] font-medium text-foreground">{habit.name}</span>
-            <span className="mt-0.5 block mono text-[10.5px] capitalize text-muted-foreground">{habit.frequency} · {habit.total_logs} total</span>
+            <span className="mt-0.5 block mono text-xs capitalize text-muted-foreground">{habit.frequency} · {habit.total_logs} total</span>
           </span>
         </button>
 
@@ -299,7 +299,7 @@ function HabitCard({
           const isToday = d === todayKey;
           return (
             <div key={i} className="flex flex-col items-center gap-1.5">
-              <span className={`mono text-[10px] leading-none ${isToday ? 'font-semibold text-[hsl(var(--primary))]' : 'text-muted-foreground'}`}>
+              <span className={`mono text-xs leading-none ${isToday ? 'font-semibold text-[hsl(var(--primary))]' : 'text-muted-foreground'}`}>
                 {DAY_LETTERS[i]}
               </span>
               <motion.button
@@ -338,7 +338,7 @@ function HabitCard({
             transition={{ type: 'spring', stiffness: 200, damping: 30 }}
           />
         </div>
-        <span className="shrink-0 mono text-[10px] tabular-nums text-muted-foreground">{weekDone}/7 wk</span>
+        <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">{weekDone}/7 wk</span>
         <div className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <Button variant="ghost" size="icon-xs" onClick={onEdit} title="Edit"><Pencil className="size-3" /></Button>
           <Button variant="ghost" size="icon-xs" onClick={onDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">

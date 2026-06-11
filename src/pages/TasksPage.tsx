@@ -303,10 +303,9 @@ export default function TasksPage() {
           type="button"
           aria-label="New task"
           onClick={() => openCreate()}
-          className="md:hidden fixed right-4 z-40 size-14 inline-flex items-center justify-center bg-primary text-primary-foreground shadow-lg active:translate-y-px"
+          className="md:hidden fixed right-4 z-40 size-14 inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-[var(--m3-elev-3)] active:translate-y-px"
           style={{
             bottom: 'calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px)',
-            borderRadius: '50%',
           }}
         >
           <Plus className="size-6" />
@@ -351,7 +350,7 @@ function ListView({
         <div className="mt-4">
           <button
             onClick={onToggleCompleted}
-            className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
           >
             <ChevronDown className={`size-3.5 transition-transform ${showCompleted ? '' : '-rotate-90'}`} />
             Completed ({completed.length})
@@ -370,7 +369,7 @@ function ListView({
         <div className="mt-4">
           <button
             onClick={() => setShowScratched((v) => !v)}
-            className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
           >
             <ChevronDown className={`size-3.5 transition-transform ${showScratched ? '' : '-rotate-90'}`} />
             Scratched ({scratched.length})
@@ -425,10 +424,10 @@ function BoardView({
                 status === 'todo' ? 'bg-muted-foreground/40' :
                 status === 'in_progress' ? 'bg-secondary' : 'bg-primary'
               }`} />
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+              <span className="text-[13px] font-medium text-muted-foreground">
                 {STATUS_LABELS[status]}
               </span>
-              <Badge variant="secondary" className="font-mono text-[10px]">{grouped[status].length}</Badge>
+              <Badge variant="secondary" className="text-xs tabular-nums">{grouped[status].length}</Badge>
             </div>
             <Button variant="ghost" size="icon-xs" onClick={() => { setAdding(status); setDraft(''); }}>
               <Plus className="size-3.5" />
@@ -541,7 +540,7 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onChange }
         </div>
 
         {(task.subtask_count > 0 || (task.steps?.length ?? 0) > 0) && (
-          <div className="flex items-center gap-3 mt-2 ml-4 text-[10px] font-mono text-muted-foreground">
+          <div className="flex items-center gap-3 mt-2 ml-4 text-xs font-mono text-muted-foreground">
             {(task.steps?.length ?? 0) > 0 && (
               <span>{task.steps.filter((s) => s.done).length}/{task.steps.length} steps</span>
             )}
@@ -552,7 +551,7 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onChange }
         )}
 
         {task.due_date && (
-          <div className="flex items-center gap-1 mt-2 ml-4 text-[10px] font-mono text-muted-foreground">
+          <div className="flex items-center gap-1 mt-2 ml-4 text-xs font-mono text-muted-foreground">
             <Loader2 className="size-3 hidden" />
             <span>{task.due_date}</span>
           </div>

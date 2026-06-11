@@ -50,10 +50,10 @@ export default function TweaksPanel() {
       style={{ borderRadius: 0 }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <div className="mono text-[10px] tracking-[0.18em] uppercase">tweaks</div>
+        <div className="mono text-xs tracking-[0.18em] uppercase">tweaks</div>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground"
+          className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground"
         >
           {open ? <X className="size-3.5" /> : 'open'}
         </button>
@@ -62,7 +62,7 @@ export default function TweaksPanel() {
         <div className="p-3 flex flex-col gap-3">
           {TWEAKS.map((t) => (
             <label key={t.key} className="block">
-              <div className="flex items-center justify-between text-[11px] mb-1">
+              <div className="flex items-center justify-between text-xs mb-1">
                 <span>{t.label}</span>
                 <span className="mono text-muted-foreground">{values[t.key].toFixed(2)}{t.unit ?? ''}</span>
               </div>
@@ -77,7 +77,7 @@ export default function TweaksPanel() {
               />
             </label>
           ))}
-          <div className="mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground pt-1 border-t border-border">
+          <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground pt-1 border-t border-border">
             ?tweaks=1 · runtime preview only
           </div>
         </div>

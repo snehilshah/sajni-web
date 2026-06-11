@@ -12,6 +12,30 @@ import { Button } from '@/components/ui/button';
 import { ai, type AIEvent, type AISessionMeta } from '@/api';
 import { SKILLS } from '@/lib/aiSkills';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+// Tracks the *visual* viewport height while the chat is open so the
+// composer stays above the on-screen keyboard. On iOS Safari the
+// layout viewport keeps its size when the keyboard appears — dvh units
+// don't shrink — so a fixed full-height sheet leaves the input hidden
+// behind the keyboard. visualViewport reports the truth on both
+// platforms; offsetTop covers iOS pushing the viewport upward.
+function useVisualViewportBox(active: boolean) {
+  const [box, setBox] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!active || !vv) { setBox(null); return; }
+    const update = () => setBox({ height: Math.round(vv.height), top: Math.round(vv.offsetTop) });
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [active]);
+  return box;
+}
 
 interface ToolResultMeta {
   kind: string;
@@ -266,11 +290,19 @@ export default function AIChat({ open, onOpenChange }: Props) {
 
   const showEmptyState = messages.length === 0 && !streaming;
 
+  const isMobile = useIsMobile();
+  const vvBox = useVisualViewportBox(open && isMobile);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="!max-w-md w-full flex flex-col p-0 gap-0"
+        className="md:!max-w-md w-full max-md:!max-w-full max-md:!rounded-none flex flex-col p-0 gap-0"
+        style={
+          isMobile && vvBox
+            ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' }
+            : undefined
+        }
       >
         <SheetHeader className="p-4 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
@@ -282,7 +314,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               size="sm"
               variant="ghost"
               onClick={() => setShowSessions((v) => !v)}
-              className="font-mono text-[10px] uppercase tracking-wider"
+              className="font-mono text-xs uppercase tracking-wider"
               title="Switch chat"
             >
               History <ChevronDown className={`size-3 ml-1 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
@@ -292,7 +324,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               variant="ghost"
               onClick={newChat}
               title="Start a new chat"
-              className="font-mono text-[10px] uppercase tracking-wider"
+              className="font-mono text-xs uppercase tracking-wider"
             >
               <Plus className="size-3 mr-1" /> New
             </Button>
@@ -311,7 +343,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm truncate">{s.title || 'New chat'}</div>
-                      <div className="font-mono text-[9px] text-muted-foreground">{s.updated_at?.slice(0, 10)}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{s.updated_at?.slice(0, 10)}</div>
                     </div>
                     <button
                       onClick={(e) => removeSession(s.id, e)}
@@ -384,7 +416,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
           )}
         </div>
 
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="flex items-end gap-2">
             <textarea
               ref={inputRef}
@@ -406,7 +438,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               {streaming ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : <Send className="size-4" />}
             </Button>
           </div>
-          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground mt-2 text-center">
+          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground mt-2 text-center">
             Sajni can make mistakes. Verify before acting.
           </div>
         </div>
@@ -436,7 +468,7 @@ function AssistantMessage({
             {calls.map((t, i) => (
               <span
                 key={i}
-                className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                className={`font-mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded ${
                   t.ok ? 'bg-muted text-muted-foreground' : 'bg-rose-500/10 text-rose-600'
                 }`}
                 title={t.error || t.name}
@@ -474,7 +506,7 @@ function AssistantMessage({
                   className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"
                 >
                   <Icon className="size-4 shrink-0 text-primary" />
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{label}</span>
+                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</span>
                   <span className="text-sm flex-1 truncate">{a.meta?.title}</span>
                   {route && <ArrowRight className="size-3.5 text-muted-foreground" />}
                 </button>

@@ -106,7 +106,7 @@ function MenuRow({
     >
       <Icon className={cn('size-4 shrink-0', spinning && 'animate-spin')} />
       <span className="flex-1">{label}</span>
-      {hint && <span className="mono text-[10px] text-muted-foreground tracking-[0.05em]">{hint}</span>}
+      {hint && <span className="mono text-xs text-muted-foreground tracking-[0.05em]">{hint}</span>}
     </button>
   );
 }
@@ -133,7 +133,7 @@ function UserMenuBody({
         <Avatar size={40} ring label={email.slice(0, 2).toUpperCase()} />
         <div className="min-w-0">
           <div className="serif text-sm font-semibold leading-tight truncate">{email}</div>
-          <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">signed in</div>
+          <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground mt-1">signed in</div>
         </div>
       </div>
       <div className="sajni-sep my-2" />
@@ -219,7 +219,7 @@ function DesktopRail({
         {expanded && (
           <span className="flex items-center gap-2 min-w-0">
             <span className="flex-1 truncate">Ask Sajni</span>
-            <span className="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1 shrink-0">
+            <span className="mono text-xs uppercase tracking-wider px-1.5 py-0.5 bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))] rounded-full inline-flex items-center gap-1 shrink-0">
               <Sparkles className="size-2.5" /> AI
             </span>
           </span>
@@ -279,7 +279,7 @@ function DesktopRail({
                 <span className="justify-self-center"><Avatar size={28} label={initials} /></span>
                 {expanded && (
                   <span className="min-w-0">
-                    <span className="mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground block">account</span>
+                    <span className="mono text-xs uppercase tracking-[0.16em] text-muted-foreground block">account</span>
                   </span>
                 )}
               </button>
@@ -316,7 +316,7 @@ function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; path
             aria-selected={isActive}
             className={cn(
               'group relative flex flex-col items-center justify-center gap-1 px-1 py-2',
-              'text-[10px] tracking-[0.02em] font-medium',
+              'text-xs tracking-[0.02em] font-medium',
               isActive ? 'text-[hsl(var(--on-secondary-container))]' : 'text-muted-foreground',
             )}
           >
@@ -336,7 +336,7 @@ function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; path
       <button
         type="button"
         onClick={onMoreClick}
-        className="flex flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] tracking-[0.02em] font-medium text-muted-foreground"
+        className="flex flex-col items-center justify-center gap-1 px-1 py-2 text-xs tracking-[0.02em] font-medium text-muted-foreground"
       >
         <span className="relative inline-flex items-center justify-center h-8 w-16 rounded-full">
           <MoreHorizontal className="size-[22px]" strokeWidth={1.6} />
@@ -447,7 +447,7 @@ export default function Layout() {
                   <Avatar size={44} ring label={initials} />
                   <div className="min-w-0">
                     <div className="serif text-base font-semibold leading-tight truncate">{email}</div>
-                    <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-0.5">signed in</div>
+                    <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground mt-0.5">signed in</div>
                   </div>
                 </div>
 
@@ -467,7 +467,7 @@ export default function Layout() {
                 </div>
 
                 <div className="px-3">
-                  <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground pb-2">places</div>
+                  <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground pb-2">places</div>
                   <motion.div
                     className="grid grid-cols-3 gap-2"
                     initial="hidden"

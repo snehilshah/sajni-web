@@ -21,7 +21,7 @@ function Input({ className, type, id, name, ...props }: React.ComponentProps<"in
       data-slot="input"
       className={cn(
         // base
-        "flex h-11 w-full min-w-0 rounded-xl border border-[hsl(var(--outline))]",
+        "flex h-11 w-full min-w-0 rounded-md border border-[hsl(var(--outline))]",
         "bg-transparent px-3.5 py-2.5 text-sm text-foreground",
         "placeholder:text-muted-foreground",
         // transitions

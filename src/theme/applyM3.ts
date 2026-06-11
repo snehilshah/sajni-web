@@ -28,17 +28,16 @@ function palettes(seeds: ThemeSeeds) {
   if (seeds.neutral) {
     neutral = TonalPalette.fromInt(argbFromHex(seeds.neutral));
   } else {
-    // Take the primary hue and keep a real (but restrained) chroma so the
-    // surface family carries a visible hint of the accent — the page
-    // background should feel tinted, not flat grey. Stays light enough at
-    // the high surface tones to avoid the "dull" mid-tone wash.
+    // M3-spec neutral: primary hue at very low chroma so the surface
+    // family reads as a faintly tinted grey. Higher chroma here was the
+    // root of the "random wash" complaint — surfaces fought the accents.
     const h = Hct.fromInt(argbFromHex(seeds.primary)).hue;
-    neutral = TonalPalette.fromHueAndChroma(h, 10);
+    neutral = TonalPalette.fromHueAndChroma(h, 5);
   }
   // Neutral-variant carries a touch more chroma — used for outline tokens
   // and on-surface-variant where a clearer hint of color reads well.
   const neutralVariantHue = Hct.fromInt(argbFromHex(seeds.primary)).hue;
-  const neutralVariant = TonalPalette.fromHueAndChroma(neutralVariantHue, 16);
+  const neutralVariant = TonalPalette.fromHueAndChroma(neutralVariantHue, 10);
   // Error is fixed across all themes — M3 reference red.
   const error = TonalPalette.fromHueAndChroma(25, 84);
   return { primary, secondary, tertiary, neutral, neutralVariant, error };
@@ -113,10 +112,11 @@ const tokens: Record<string, Plan> = {
   'inverse-surface':         (p) => mode(p.neutral, 20, 90),
   'inverse-on-surface':      (p) => mode(p.neutral, 95, 20),
   'inverse-primary':         (p) => mode(p.primary, 80, 40),
-  // Backdrop washes (faint primary/secondary/tertiary in their light tones).
-  'backdrop-blob-1':         (p) => mode(p.primary, 92, 24),
-  'backdrop-blob-2':         (p) => mode(p.secondary, 92, 22),
-  'backdrop-blob-3':         (p) => mode(p.tertiary, 92, 22),
+  // Decorative tints (NotesPage card mesh) — one hue family, stepped
+  // tones, so any cycled pick stays cohesive instead of mixing accents.
+  'backdrop-blob-1':         (p) => mode(p.primary, 92, 26),
+  'backdrop-blob-2':         (p) => mode(p.primary, 94, 22),
+  'backdrop-blob-3':         (p) => mode(p.primary, 90, 18),
   'backdrop-blob-4':         (p) => mode(p.neutralVariant, 94, 18),
   'backdrop-blob-5':         (p) => mode(p.neutral, 98, 8),
   // Status accents — bias toward tertiary (calm) and secondary (cool).

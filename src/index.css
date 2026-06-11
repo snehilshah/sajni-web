@@ -5,7 +5,9 @@
 /* ============================================================
    Sajni — Material 3 Expressive
    ------------------------------------------------------------
-   Type   : Roboto Flex (body) + Roboto Serif (display)
+   Type   : Roboto Flex — single family, expressive axes
+            (wdth/opsz carry display vs body; JetBrains Mono is
+            reserved for actual code via --font-code)
    Color  : M3 tonal palette (seed -> primary/secondary/tertiary +
             container variants, plus surface-container layering)
    Shape  : Rounded scale 4→32px, full-pill for chips/FAB
@@ -13,7 +15,6 @@
    ============================================================ */
 
 @import "@fontsource-variable/roboto-flex/index.css";
-@import "@fontsource-variable/roboto-serif/index.css";
 @import "@fontsource-variable/jetbrains-mono/index.css";
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
@@ -420,10 +421,13 @@
   --radius-2xl: 28px;
   --radius-3xl: 32px;
 
-  /* Typography */
+  /* Typography — one family. Legacy `font-serif` / `font-mono` utility
+     usages resolve to the same sans so the whole app converges on the
+     M3 type scale without touching every call site. Real code surfaces
+     opt back into mono through --font-code (defined in :root below). */
   --font-sans:  'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Roboto Serif Variable', Georgia, 'Times New Roman', serif;
-  --font-mono:  'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Courier New', monospace;
+  --font-serif: 'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:  'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 /* ============================================================
@@ -456,6 +460,10 @@
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
+
+  /* Real monospace, reserved for code: editor code blocks, prose code,
+     anything that renders source. UI labels never use this. */
+  --font-code: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Courier New', monospace;
 }
 
 /* ============================================================
@@ -484,34 +492,14 @@ body {
 .app-h, .screen-h { height: 100vh; height: 100dvh; }
 
 /* ============================================================
-   Backdrop — soft tonal washes (replaces paper grain).
+   Backdrop — solid M3 surface. The old multi-hue blob wash mixed
+   primary/secondary/tertiary under translucent panels and produced
+   unpredictable colors; M3 wants flat tonal surfaces.
    ============================================================ */
 .sajni-backdrop {
   position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
-  overflow: hidden;
   background: hsl(var(--background));
-}
-.sajni-backdrop::before {
-  content: "";
-  position: absolute; inset: -10%;
-  background:
-    radial-gradient(ellipse 65% 50% at 12% 5%,   hsl(var(--backdrop-blob-1) / 0.55), transparent 60%),
-    radial-gradient(ellipse 55% 45% at 90% 15%,  hsl(var(--backdrop-blob-2) / 0.45), transparent 60%),
-    radial-gradient(ellipse 50% 45% at 85% 95%,  hsl(var(--backdrop-blob-3) / 0.40), transparent 65%),
-    radial-gradient(ellipse 55% 40% at 5% 90%,   hsl(var(--backdrop-blob-4) / 0.35), transparent 65%);
-  filter: blur(90px);
-  opacity: var(--backdrop-intensity);
-}
-.sajni-backdrop::after {
-  content: ""; position: absolute; inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0 0.10  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  opacity: var(--backdrop-grain);
-  mix-blend-mode: multiply;
-}
-[data-mode="dark"] .sajni-backdrop::after {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.95  0 0 0 0 1.00  0 0 0 0.40 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  mix-blend-mode: screen;
 }
 .sajni-mesh { @apply pointer-events-none; }
 
@@ -555,10 +543,10 @@ body {
    ============================================================ */
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
-  height: 26px; padding: 0 12px;
+  height: 30px; padding: 0 13px;
   font-family: var(--font-sans);
-  font-size: 11.5px; font-weight: 500;
-  letter-spacing: 0.04em;
+  font-size: 12.5px; font-weight: 500;
+  letter-spacing: 0.02em;
   border-radius: 9999px;
   background: hsl(var(--surface-container-high));
   border: 1px solid hsl(var(--outline-variant));
@@ -585,8 +573,8 @@ body {
   display: inline-flex; align-items: center; gap: 1px;
   padding: 2px 7px;
   border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 10.5px; font-weight: 600;
+  font-family: var(--font-sans);
+  font-size: 11.5px; font-weight: 600;
   background: hsl(var(--surface-container-highest));
   border: 1px solid hsl(var(--outline-variant));
   color: hsl(var(--on-surface-variant));
@@ -594,10 +582,27 @@ body {
 }
 
 /* ============================================================
-   Type helpers.
+   Type helpers — M3 Expressive scale on one variable family.
+   `.serif` / `font-serif` call sites become expressive display
+   (wide width axis, large optical size); `font-mono` call sites
+   fall through to the sans stack and read as emphasized labels.
+   Floors: body 14px, label 12px.
    ============================================================ */
-.serif { font-family: var(--font-serif); font-optical-sizing: auto; letter-spacing: -0.005em; }
-.mono  { font-family: var(--font-mono); }
+.serif, .font-serif {
+  font-family: var(--font-sans);
+  font-variation-settings: "wdth" 118, "opsz" 32;
+  letter-spacing: -0.015em;
+}
+.mono { font-family: var(--font-sans); }
+
+/* M3 type roles */
+.m3-display  { font-size: 2.25rem;   line-height: 1.12; font-weight: 600; font-variation-settings: "wdth" 122, "opsz" 36; letter-spacing: -0.02em; }
+.m3-headline { font-size: 1.5rem;    line-height: 1.2;  font-weight: 600; font-variation-settings: "wdth" 118, "opsz" 32; letter-spacing: -0.015em; }
+.m3-title    { font-size: 1.125rem;  line-height: 1.3;  font-weight: 600; font-variation-settings: "wdth" 112, "opsz" 24; letter-spacing: -0.01em; }
+.m3-title-sm { font-size: 0.9375rem; line-height: 1.35; font-weight: 600; }
+.m3-body     { font-size: 0.875rem;  line-height: 1.5;  font-weight: 400; }
+.m3-label    { font-size: 0.8125rem; line-height: 1.35; font-weight: 500; letter-spacing: 0.01em; }
+.m3-label-sm { font-size: 0.75rem;   line-height: 1.3;  font-weight: 500; letter-spacing: 0.02em; }
 
 .sajni-sep { height: 1px; background: linear-gradient(to right, transparent, hsl(var(--outline-variant)), transparent); }
 
@@ -630,16 +635,16 @@ body {
 }
 
 /* ============================================================
-   Headings — M3 display + headline scales (serif).
+   Headings — M3 display + headline scales, expressive sans.
    ============================================================ */
 h1, h2, h3, h4 {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  letter-spacing: -0.012em;
-  line-height: 1.12;
-  font-variation-settings: "opsz" 32;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  line-height: 1.15;
+  font-variation-settings: "wdth" 116, "opsz" 32;
 }
-h1 { font-weight: 600; letter-spacing: -0.018em; }
+h1 { font-weight: 650; letter-spacing: -0.02em; font-variation-settings: "wdth" 120, "opsz" 36; }
 em, .italic { font-style: italic; }
 
 /* ============================================================
@@ -675,7 +680,7 @@ em, .italic { font-style: italic; }
 .prose-sajni li { margin: 0.125rem 0; }
 .prose-sajni li > p { margin: 0; }
 .prose-sajni code {
-  font-family: var(--font-mono); font-size: 0.85em;
+  font-family: var(--font-code); font-size: 0.85em;
   background: hsl(var(--surface-container));
   padding: 0.15em 0.45em; border-radius: 4px;
 }
@@ -739,7 +744,7 @@ em, .italic { font-style: italic; }
   border-radius: 9999px;
   background: hsl(var(--tertiary-container));
   color: hsl(var(--on-tertiary-container));
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11.5px; font-weight: 600;
   letter-spacing: 0.04em;
   vertical-align: 2px;
@@ -764,7 +769,7 @@ em, .italic { font-style: italic; }
   border-radius: 9999px;
   background: hsl(var(--secondary-container));
   color: hsl(var(--on-secondary-container));
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11px; font-weight: 600;
   letter-spacing: 0.02em;
   vertical-align: 1px;
@@ -821,7 +826,7 @@ em, .italic { font-style: italic; }
   border-radius: 12px;
   padding: 0.85rem 1.1rem; overflow-x: auto;
 }
-.tiptap-code-block code { font-family: var(--font-mono); font-size: 0.85em; }
+.tiptap-code-block code { font-family: var(--font-code); font-size: 0.85em; }
 
 /* ============================================================
    Heatmap.
@@ -848,9 +853,7 @@ em, .italic { font-style: italic; }
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: stretch;
-  background: color-mix(in oklch, hsl(var(--surface-container)) 95%, transparent);
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  background: hsl(var(--surface-container));
   border-top: 1px solid hsl(var(--outline-variant));
   z-index: 30;
 }

@@ -18,11 +18,11 @@ export default function PageShell({
   return (
     <div className="page-fade-in flex-1 flex flex-col min-h-0">
       <header
-        className="sticky top-0 z-20 h-14 md:h-16 border-b border-border bg-background/85 backdrop-blur flex items-center gap-3 px-4 md:px-8 shrink-0"
+        className="sticky top-0 z-20 h-14 md:h-16 border-b border-border bg-background flex items-center gap-3 px-4 md:px-8 shrink-0"
       >
         <div className="min-w-0 flex-1">
           {caption && (
-            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none truncate">
+            <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground leading-none truncate">
               {caption}
             </div>
           )}

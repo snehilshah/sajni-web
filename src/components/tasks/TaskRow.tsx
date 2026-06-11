@@ -101,33 +101,37 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
           ${task.status === 'done' || task.status === 'scratched' ? 'opacity-60' : ''}`}
         style={{ marginLeft: depth * 24 }}
       >
-        <div className="flex items-start gap-2.5 px-3 py-2.5">
-          {/* Completion checkbox */}
+        <div className="flex items-start gap-3 px-3.5 py-3 min-h-12">
+          {/* Completion checkbox — 24px visual, padded to a comfortable target */}
           <button
             onClick={toggleStatus}
-            className={`size-5 mt-0.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-              ${task.status === 'done'
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-muted-foreground/40 hover:border-primary'}`}
+            className="shrink-0 -m-2 p-2 flex items-center justify-center"
             title={task.status === 'done' ? 'Mark incomplete' : 'Complete'}
           >
-            {task.status === 'done' && (
-              <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
+            <span
+              className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors
+                ${task.status === 'done'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-muted-foreground/40 group-hover:border-primary'}`}
+            >
+              {task.status === 'done' && (
+                <svg viewBox="0 0 12 12" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
           </button>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`size-1.5 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
-              <span className={`font-medium text-sm leading-tight flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
+              <span className={`size-2 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
+              <span className={`font-medium text-[0.9375rem] leading-snug flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
                 {task.title}
               </span>
             </div>
 
             {/* Meta row */}
-            <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
               {/* Subtask hint — only when shown as a flat row (smart/missed/all
                   views). Stops a child task from reading as a normal top-level
                   task, which is what made "Talk with chandan once" confusing. */}
@@ -168,7 +172,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
               {task.tags && task.tags.length > 0 && (
                 <span className="inline-flex gap-1 flex-wrap">
                   {task.tags.slice(0, 3).map((tag) => <TagPill key={tag} tag={tag} />)}
-                  {task.tags.length > 3 && <span className="text-[10px]">+{task.tags.length - 3}</span>}
+                  {task.tags.length > 3 && <span className="text-xs">+{task.tags.length - 3}</span>}
                 </span>
               )}
             </div>
@@ -182,19 +186,19 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
               onClick={toggleExpand}
               aria-expanded={expanded}
               title={expanded ? 'Hide subtasks' : 'Show subtasks'}
-              className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 sm:px-2 py-1 text-muted-foreground opacity-70 hover:opacity-100 hover:text-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+              className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 sm:px-2.5 py-1.5 text-muted-foreground opacity-70 hover:opacity-100 hover:text-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors"
             >
-              <span className="hidden sm:inline text-[11px] font-mono tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
+              <span className="hidden sm:inline text-xs tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
               <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
             </button>
           )}
 
           <button
             onClick={toggleStar}
-            className={`opacity-60 hover:opacity-100 transition-opacity shrink-0 ${task.important ? 'text-amber-500 opacity-100' : ''}`}
+            className={`-m-1.5 p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-[hsl(var(--surface-container-high))] transition-all shrink-0 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
             title={task.important ? 'Remove from Important' : 'Mark important'}
           >
-            <Star className={`size-4 ${task.important ? 'fill-current' : ''}`} />
+            <Star className={`size-[18px] ${task.important ? 'fill-current' : ''}`} />
           </button>
         </div>
       </div>
@@ -310,7 +314,7 @@ export function StepsEditor({
               transition={{ type: 'spring', stiffness: 260, damping: 30 }}
             />
           </div>
-          <span className="mono text-[10px] tabular-nums text-muted-foreground shrink-0">{doneCount}/{steps.length}</span>
+          <span className="mono text-xs tabular-nums text-muted-foreground shrink-0">{doneCount}/{steps.length}</span>
         </div>
       )}
       <AnimatePresence initial={false}>

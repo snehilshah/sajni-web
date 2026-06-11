@@ -71,7 +71,7 @@ export default function BudgetsTab({ budgets, categories, loaded, reload, reload
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{b.name}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                       {format(new Date(b.start_date), 'MMM d')} → {format(new Date(b.end_date), 'MMM d, yyyy')}
                     </div>
                   </div>
@@ -95,7 +95,7 @@ export default function BudgetsTab({ budgets, categories, loaded, reload, reload
                     }}
                   />
                 </div>
-                <div className="font-mono text-[10px] text-muted-foreground mt-1">
+                <div className="font-mono text-xs text-muted-foreground mt-1">
                   {pct.toFixed(0)}% used{overBudget && ' · over by ' + formatMoney(b.spent - b.total_amount)}
                 </div>
 
@@ -112,7 +112,7 @@ export default function BudgetsTab({ budgets, categories, loaded, reload, reload
                               <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat?.color || '#6B7280' }} />
                               <span className="text-xs truncate">{cat?.name || 'Uncategorized'}</span>
                             </div>
-                            <span className={`font-mono text-[10px] tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            <span className={`font-mono text-xs tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
                               {formatMoney(it.spent)} / {formatMoney(it.amount)}
                             </span>
                           </div>
@@ -268,7 +268,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
 
         <div className="border-t border-border pt-3">
           <div className="flex items-center justify-between mb-2">
-            <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
               Category caps · Total {formatMoney(total)}
             </Label>
             <Button variant="outline" size="sm" onClick={addItem}>
@@ -333,7 +333,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>}
+      {label && <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>}
       {children}
     </div>
   );

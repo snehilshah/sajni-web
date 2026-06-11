@@ -131,7 +131,7 @@ export default function TradingTab({ accounts, investments, loaded, reload }: Pr
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{inv.name}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground truncate">
                       {inv.symbol && <span className="text-foreground/60">{inv.symbol}·{inv.exchange} · </span>}
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label}
                       {inv.quantity > 0 && ' · ' + inv.quantity + ' @ ' + formatMoney(inv.avg_buy_price)}
@@ -155,7 +155,7 @@ export default function TradingTab({ accounts, investments, loaded, reload }: Pr
                     {positive ? '+' : ''}{formatMoney(gain)} ({gainPct.toFixed(1)}%)
                   </div>
                 </div>
-                <div className="font-mono text-[10px] text-muted-foreground mt-1">
+                <div className="font-mono text-xs text-muted-foreground mt-1">
                   Invested {formatMoney(inv.invested_amount)}
                   {inv.realized_pl !== 0 && ' · realized ' + (inv.realized_pl >= 0 ? '+' : '') + formatMoney(inv.realized_pl)}
                 </div>
@@ -163,7 +163,7 @@ export default function TradingTab({ accounts, investments, loaded, reload }: Pr
                 {/* Auto-priced instruments: last traded price + freshness, or a
                     badge when the last EOD fetch failed (e.g. a bad symbol). */}
                 {inv.symbol && (
-                  <div className="font-mono text-[10px] mt-1">
+                  <div className="font-mono text-xs mt-1">
                     {inv.price_error ? (
                       <span
                         title={inv.price_error}
@@ -199,13 +199,13 @@ export default function TradingTab({ accounts, investments, loaded, reload }: Pr
 
       {closed.length > 0 && (
         <div className="mt-2">
-          <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Closed positions</h3>
+          <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">Closed positions</h3>
           <div className="flex flex-col gap-1.5">
             {closed.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
                 <div className="min-w-0">
                   <span className="text-sm truncate">{inv.name}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground ml-2">
+                  <span className="font-mono text-xs text-muted-foreground ml-2">
                     {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label}
                   </span>
                 </div>
@@ -244,7 +244,7 @@ function SummaryCard({ label, value, tone = 'default', icon: Icon, className = '
   };
   return (
     <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
-      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
         {Icon && <Icon className="size-2.5" />}
         {label}
       </div>
@@ -538,7 +538,7 @@ function SellDialog({ holding, onClose, onSold }: {
             <span>Realized {estGain >= 0 ? 'gain' : 'loss'}</span>
             <span className={`tabular-nums ${estGain >= 0 ? 'text-primary' : 'text-destructive'}`}>{estGain >= 0 ? '+' : ''}{formatMoney(estGain)}</span>
           </div>
-          {fullExit && <div className="font-mono text-[10px] text-muted-foreground">Closes the position.</div>}
+          {fullExit && <div className="font-mono text-xs text-muted-foreground">Closes the position.</div>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -552,7 +552,7 @@ function SellDialog({ holding, onClose, onSold }: {
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
   );

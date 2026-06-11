@@ -76,7 +76,7 @@ export default function MissedBanner({ onChanged }: { onChanged?: () => void }) 
           <div className="text-sm font-semibold leading-tight">
             {missed.length} missed {missed.length === 1 ? 'task' : 'tasks'}
           </div>
-          <div className="text-[11px] opacity-80 leading-tight mt-0.5">
+          <div className="text-xs opacity-80 leading-tight mt-0.5">
             Overdue and still open — reschedule or scratch them.
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function MissedBanner({ onChanged }: { onChanged?: () => void }) 
               >
                 <span className="text-sm truncate block">{t.title}</span>
               </button>
-              <span className="mono text-[10px] tabular-nums shrink-0 rounded-full px-1.5 py-0.5 bg-[hsl(var(--error)/0.16)]">
+              <span className="mono text-xs tabular-nums shrink-0 rounded-full px-1.5 py-0.5 bg-[hsl(var(--error)/0.16)]">
                 {ageLabel(t.due_date)}
               </span>
               <button
@@ -118,7 +118,7 @@ export default function MissedBanner({ onChanged }: { onChanged?: () => void }) 
                 onClick={() => rescheduleOne(t.id)}
                 disabled={busy !== null}
                 title="Reschedule to today"
-                className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 h-7 text-[11px] font-medium bg-[hsl(var(--on-error-container)/0.1)] hover:bg-[hsl(var(--on-error-container)/0.18)] transition disabled:opacity-50"
+                className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 h-7 text-xs font-medium bg-[hsl(var(--on-error-container)/0.1)] hover:bg-[hsl(var(--on-error-container)/0.18)] transition disabled:opacity-50"
               >
                 {busy === t.id ? <Loader2 className="size-3 animate-spin" /> : 'Today'}
               </button>

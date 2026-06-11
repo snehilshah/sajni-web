@@ -110,7 +110,7 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
           }`}
         >
           <MapPin className="size-3.5" />
-          <span className="font-mono text-[11px] tracking-wide truncate max-w-[160px]">
+          <span className="font-mono text-xs tracking-wide truncate max-w-[160px]">
             {value ? value.label : triggerLabel}
           </span>
           {value ? (
@@ -163,7 +163,7 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
               >
                 <span className="text-sm">{r.primary}</span>
                 {r.secondary ? (
-                  <span className="text-[11px] text-muted-foreground">{r.secondary}</span>
+                  <span className="text-xs text-muted-foreground">{r.secondary}</span>
                 ) : null}
               </button>
             ))

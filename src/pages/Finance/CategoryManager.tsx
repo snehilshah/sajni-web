@@ -140,7 +140,7 @@ export default function CategoryManager({
 
         {/* Add */}
         <div className="border-t border-border pt-3 flex flex-col gap-2">
-          <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             New {kind} category
           </Label>
           <div className="flex items-center gap-2">

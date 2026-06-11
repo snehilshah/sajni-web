@@ -126,7 +126,7 @@ function AIThemes() {
                       <Sparkles className="size-3 text-primary shrink-0" />
                     )}
                   </div>
-                  <div className="font-mono text-[10px] text-muted-foreground truncate">
+                  <div className="font-mono text-xs text-muted-foreground truncate">
                     {t.prompt || (t.source === 'manual' ? 'custom' : t.source)}
                   </div>
                 </div>
@@ -159,7 +159,7 @@ function AIThemes() {
         </div>
       )}
 
-      <div className="text-[10px] font-mono text-muted-foreground inline-flex items-center gap-1">
+      <div className="text-xs font-mono text-muted-foreground inline-flex items-center gap-1">
         <Pencil className="size-3" /> Tip: Sajni mixes seeds for primary, secondary, tertiary, neutral; the rest of the
         M3 token set is derived per mode.
       </div>
@@ -170,7 +170,7 @@ function AIThemes() {
 function Section({ title, caption, children }: { title: string; caption?: string; children: React.ReactNode }) {
   return (
     <section className="border-t border-border first:border-t-0 py-6 first:pt-0">
-      <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground mb-1">{title}</div>
+      <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mb-1">{title}</div>
       {caption && <div className="serif italic text-sm text-muted-foreground mb-4">{caption}</div>}
       {!caption && <div className="h-3" />}
       {children}
@@ -390,7 +390,7 @@ export default function SettingsPage() {
     <div className="page-fade-in flex-1 overflow-y-auto">
       <div className="max-w-2xl mx-auto px-5 md:px-10 pt-10 pb-24">
         <header className="mb-8">
-          <div className="mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground mb-2">preferences</div>
+          <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mb-2">preferences</div>
           <h1 className="serif text-4xl md:text-5xl font-medium tracking-tight">Settings</h1>
           <p className="text-base text-muted-foreground mt-1">Tune how Sajni looks and feels.</p>
         </header>
@@ -455,13 +455,13 @@ export default function SettingsPage() {
         <Section title="Account" caption="Who you are and how you sign in.">
           <div className="flex flex-col gap-5">
             <div className="grid sm:grid-cols-[120px_1fr] gap-y-3 gap-x-4 text-sm">
-              <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground self-center">Name</div>
+              <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground self-center">Name</div>
               <div><NameEditor /></div>
 
-              <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground self-center">Email</div>
+              <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground self-center">Email</div>
               <div className="serif font-semibold break-all">{user?.email || '—'}</div>
 
-              <div className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground self-start mt-1">Sign-in</div>
+              <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground self-start mt-1">Sign-in</div>
               <div className="flex flex-wrap gap-2">
                 {(user?.identities ?? []).length === 0 && (
                   <span className="text-xs text-muted-foreground">No methods linked.</span>
@@ -586,7 +586,7 @@ export default function SettingsPage() {
           <span className="sajni-logo" aria-hidden="true" />
           <div>
             <div className="serif text-base font-semibold leading-tight">sajni</div>
-            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">
+            <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mt-0.5">
               your second brain · v1
             </div>
           </div>

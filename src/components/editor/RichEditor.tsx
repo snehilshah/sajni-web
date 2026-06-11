@@ -383,7 +383,7 @@ export default function RichEditor({
                     }`} />
                     <span className="flex-1 truncate">{t.title}</span>
                     {t.due_date && (
-                      <span className="mono text-[10px] tracking-wider text-muted-foreground">
+                      <span className="mono text-xs tracking-wider text-muted-foreground">
                         {t.due_date}
                       </span>
                     )}

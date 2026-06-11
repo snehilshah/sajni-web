@@ -13,7 +13,7 @@ function Textarea({ className, id, name, ...props }: React.ComponentProps<"texta
       className={cn(
         // base — no padding/border-width change on focus so caret/placeholder
         // never shift. Focus highlight is an inset box-shadow instead.
-        "flex field-sizing-content min-h-20 w-full resize-none rounded-xl border border-[hsl(var(--outline))]",
+        "flex field-sizing-content min-h-20 w-full resize-none rounded-md border border-[hsl(var(--outline))]",
         "bg-transparent px-3.5 py-2.5 text-sm text-foreground",
         "placeholder:text-muted-foreground",
         "transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",

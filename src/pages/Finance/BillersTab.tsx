@@ -80,7 +80,7 @@ export default function BillersTab({ accounts, categories }: Props) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowArchived((v) => !v)}
-            className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            className="text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
           >
             {showArchived ? 'Hide archived' : 'Show archived'}
           </button>
@@ -131,7 +131,7 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
         <Icon className="size-3" />
         <span>{title}</span>
         <span className="tabular-nums">· {items.length}</span>
@@ -218,12 +218,12 @@ function BillerRow({
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-medium text-sm truncate">{biller.name}</span>
           {biller.auto_renew ? (
-            <span className="inline-flex items-center gap-0.5 text-[9px] font-mono uppercase tracking-wider text-primary">
+            <span className="inline-flex items-center gap-0.5 text-xs font-mono uppercase tracking-wider text-primary">
               <Zap className="size-3" /> auto
             </span>
           ) : null}
         </div>
-        <div className="text-[11px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+        <div className="text-xs text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
           <span>{FREQ_LABEL[biller.frequency]}</span>
           <span>·</span>
           <span>{acct ? acct.name : 'No account'}</span>
@@ -233,7 +233,7 @@ function BillerRow({
       <div className="text-right shrink-0">
         <div className="font-mono font-semibold tabular-nums text-sm">{formatMoney(biller.amount)}</div>
         <div
-          className={`text-[10px] font-mono tabular-nums mt-0.5 inline-flex items-center gap-1 ${
+          className={`text-xs font-mono tabular-nums mt-0.5 inline-flex items-center gap-1 ${
             overdue ? 'text-destructive' : soon ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
           }`}
         >
@@ -482,7 +482,7 @@ function BillerDialog({
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={'flex flex-col gap-1 ' + (className || '')}>
-      <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -513,12 +513,12 @@ function CheckRow({
         <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
           {label}
           {disabled && disabledReason ? (
-            <span className="text-[9px] font-mono uppercase tracking-wider text-amber-600 dark:text-amber-400">
+            <span className="text-xs font-mono uppercase tracking-wider text-amber-600 dark:text-amber-400">
               · {disabledReason}
             </span>
           ) : null}
         </div>
-        <div className="text-[11px] text-muted-foreground mt-1">{desc}</div>
+        <div className="text-xs text-muted-foreground mt-1">{desc}</div>
       </div>
     </label>
   );

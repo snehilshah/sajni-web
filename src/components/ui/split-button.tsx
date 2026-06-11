@@ -106,7 +106,7 @@ export function SplitButton<V extends string = string>({
               >
                 {O && <O className="size-4 mr-1.5 opacity-80" />}
                 {o.label}
-                {o.value === value && <span className="ml-auto mono text-[10px] text-muted-foreground">●</span>}
+                {o.value === value && <span className="ml-auto mono text-xs text-muted-foreground">●</span>}
               </DropdownMenuItem>
             );
           })}

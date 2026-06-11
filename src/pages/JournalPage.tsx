@@ -322,8 +322,8 @@ export default function JournalPage() {
       {/* Tasks today */}
       <section>
         <div className="flex items-baseline justify-between mb-2.5">
-          <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground">tasks today</div>
-          <button onClick={() => navigate('/tasks')} className="mono text-[9.5px] tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
+          <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">tasks today</div>
+          <button onClick={() => navigate('/tasks')} className="mono text-xs tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
         </div>
         {loadingTasks ? (
           <Skeleton className="h-16 w-full" />
@@ -366,7 +366,7 @@ export default function JournalPage() {
         <QuickAddTask dueDate={selectedDate} onCreated={loadTasks} />
         {missedTasks.length > 0 && (
           <div className="mt-3 pt-2 border-t border-border/60">
-            <div className="mono text-[9px] tracking-[0.18em] uppercase text-destructive/80 mb-1.5 flex items-center gap-1.5">
+            <div className="mono text-xs tracking-[0.18em] uppercase text-destructive/80 mb-1.5 flex items-center gap-1.5">
               <AlertCircle className="size-3" /> missed
             </div>
             <div className="flex flex-col gap-1.5">
@@ -388,8 +388,8 @@ export default function JournalPage() {
       {/* Habits today */}
       <section>
         <div className="flex items-baseline justify-between mb-2.5">
-          <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground">habits</div>
-          <button onClick={() => navigate('/habits')} className="mono text-[9.5px] tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
+          <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">habits</div>
+          <button onClick={() => navigate('/habits')} className="mono text-xs tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
         </div>
         {loadingHabits ? (
           <Skeleton className="h-16 w-full" />
@@ -422,7 +422,7 @@ export default function JournalPage() {
 
       {/* Backlinks */}
       <section>
-        <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2.5">backlinks</div>
+        <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground mb-2.5">backlinks</div>
         {backlinks.length === 0 ? (
           <div className="text-xs italic text-muted-foreground">Nothing points here yet.</div>
         ) : (
@@ -430,7 +430,7 @@ export default function JournalPage() {
             {backlinks.map((bl: any, i: number) => (
               <div key={i} className="text-[12.5px] text-primary">
                 <div className="underline underline-offset-2 decoration-primary/30 truncate">[[{bl.title || 'Untitled'}]]</div>
-                <div className="mono text-[9.5px] text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
+                <div className="mono text-xs text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
               </div>
             ))}
           </div>
@@ -440,10 +440,10 @@ export default function JournalPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden page-fade-in">
+    <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
       {/* App-consistent full-width header. Vault (left) + context (right)
           panels live BELOW this header so chrome is continuous. */}
-      <header className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 h-14 md:h-16 shrink-0">
+      <header className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background sticky top-0 z-20 h-14 md:h-16 shrink-0">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Button
             variant="ghost" size="icon-sm"
@@ -509,7 +509,7 @@ export default function JournalPage() {
               {/* Date title — Obsidian-style serif hero per the design. */}
               <div>
                 {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
-                  <div className="mono text-[10.5px] tracking-[0.22em] uppercase text-primary/80 mb-3">
+                  <div className="mono text-xs tracking-[0.22em] uppercase text-primary/80 mb-3">
                     ── continued from yesterday
                   </div>
                 )}
@@ -537,14 +537,14 @@ export default function JournalPage() {
                       }`}
                     >
                       <span className="text-base leading-none">{m.emoji}</span>
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.label}</span>
+                      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{m.label}</span>
                     </button>
                   );
                 })}
                 {mood && (
                   <button
                     onClick={() => handleMoodChange(null)}
-                    className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
+                    className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
                   >
                     Clear
                   </button>
@@ -624,10 +624,10 @@ export default function JournalPage() {
           >
             {/* Streak header — small but visible cue at the top of the rail. */}
             <div className="px-4 py-3.5 border-b border-sidebar-border/60">
-              <div className="mono text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground mb-1">journal</div>
+              <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground mb-1">journal</div>
               <div className="flex items-baseline gap-2">
                 <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
-                <span className="text-[11px] text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
+                <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
               </div>
               <div className="flex gap-[3px] mt-2">
                 {Array.from({ length: 14 }).map((_, i) => {
@@ -661,7 +661,7 @@ export default function JournalPage() {
                   <button onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
                     <ChevronLeft className="size-3.5" />
                   </button>
-                  <span className="font-mono text-[10px] font-medium tracking-widest uppercase">
+                  <span className="font-mono text-xs font-medium tracking-widest uppercase">
                     {format(viewMonth, 'MMM yyyy')}
                   </span>
                   <button onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
@@ -696,7 +696,7 @@ export default function JournalPage() {
                       >
                         <ChevronRight className={`size-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                         <span className="flex-1 text-left truncate">{monthLabel}</span>
-                        <span className="text-[9px] opacity-60">{list.length}</span>
+                        <span className="text-xs opacity-60">{list.length}</span>
                       </button>
                       <AnimatePresence initial={false}>
                         {isExpanded && (
@@ -826,7 +826,7 @@ function WeekView({
       {/* Title + week shift controls. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
+          <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
             weekly entry
           </div>
           <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
@@ -840,7 +840,7 @@ function WeekView({
           <Button variant="ghost" size="icon-sm" onClick={() => onShiftWeek(-1)} title="Previous week">
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="mono text-[10px] text-muted-foreground tabular-nums px-1 min-w-[52px] text-center">
+          <span className="mono text-xs text-muted-foreground tabular-nums px-1 min-w-[52px] text-center">
             {saving === 'saving' ? 'Saving' : saving === 'saved' ? 'Saved' : ''}
           </span>
           <Button variant="ghost" size="icon-sm" onClick={() => onShiftWeek(1)} title="Next week">
@@ -877,14 +877,14 @@ function WeekView({
               }`}
             >
               <span className="text-base leading-none">{m.emoji}</span>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.label}</span>
+              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{m.label}</span>
             </button>
           );
         })}
         {mood && (
           <button
             onClick={() => handleMood(null)}
-            className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
           >
             Clear
           </button>
@@ -911,7 +911,7 @@ function WeekView({
       <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
           <CheckSquare className="size-3.5 text-secondary" />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Tasks by day</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Tasks by day</span>
         </div>
         <div className="divide-y divide-border/40">
           {weekDays.map((day, i) => {
@@ -931,7 +931,7 @@ function WeekView({
                 <div className={`flex flex-col items-center w-14 shrink-0 ${
                   isCurrent ? 'text-primary' : 'text-muted-foreground'
                 }`}>
-                  <span className="mono text-[10px] uppercase tracking-wider">{format(day, 'EEE')}</span>
+                  <span className="mono text-xs uppercase tracking-wider">{format(day, 'EEE')}</span>
                   <span className={`serif text-2xl font-medium leading-none tabular-nums ${
                     isCurrent ? 'text-primary' : 'text-foreground/90'
                   }`}>
@@ -944,7 +944,7 @@ function WeekView({
                       {format(day, 'MMMM')}
                     </span>
                     {stat?.has_entry && (
-                      <span className="mono text-[9.5px] tracking-wider uppercase text-primary/70">entry</span>
+                      <span className="mono text-xs tracking-wider uppercase text-primary/70">entry</span>
                     )}
                     {stat?.mood && <span className="text-sm leading-none">{stat.mood}</span>}
                   </div>
@@ -956,15 +956,15 @@ function WeekView({
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
-                  <span className="mono text-[11px] text-foreground/80 tabular-nums">
+                  <span className="mono text-xs text-foreground/80 tabular-nums">
                     {stat ? `${stat.tasks_done}/${totalForDay}` : '—'}
                   </span>
                   {stat && stat.tasks_missed > 0 ? (
-                    <span className="mono text-[9.5px] text-destructive/80 tabular-nums">
+                    <span className="mono text-xs text-destructive/80 tabular-nums">
                       {stat.tasks_missed} missed
                     </span>
                   ) : (
-                    <span className="mono text-[9.5px] text-muted-foreground/60">on track</span>
+                    <span className="mono text-xs text-muted-foreground/60">on track</span>
                   )}
                 </div>
               </button>
@@ -978,11 +978,11 @@ function WeekView({
       <section className="rounded-3xl border border-border bg-card/40 overflow-hidden">
         <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center gap-2">
           <Target className="size-4 text-primary" />
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/80">
+          <span className="font-mono text-xs uppercase tracking-[0.18em] text-foreground/80">
             Habits this week
           </span>
           {summary && summary.habits.length > 0 && (
-            <span className="ml-auto mono text-[10px] uppercase tracking-wider text-muted-foreground tabular-nums">
+            <span className="ml-auto mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums">
               {summary.habits.reduce((acc, h) => acc + h.logged_days.length, 0)}/
               {summary.habits.length * 7} checked
             </span>
@@ -992,7 +992,7 @@ function WeekView({
           {!summary || summary.habits.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
               <p className="serif italic text-base text-muted-foreground">No habits tracked yet.</p>
-              <p className="mono text-[10px] uppercase tracking-wider text-muted-foreground/70 mt-2">
+              <p className="mono text-xs uppercase tracking-wider text-muted-foreground/70 mt-2">
                 Add habits from the Habits page to start the streak.
               </p>
             </div>
@@ -1020,7 +1020,7 @@ function WeekView({
                         {h.name}
                       </span>
                       <span
-                        className={`mono text-[10.5px] uppercase tracking-wider tabular-nums rounded-full px-2.5 py-0.5 ${
+                        className={`mono text-xs uppercase tracking-wider tabular-nums rounded-full px-2.5 py-0.5 ${
                           isPerfect
                             ? 'bg-primary text-primary-foreground'
                             : ratio >= 0.5
@@ -1047,7 +1047,7 @@ function WeekView({
                             title={`${format(day, 'EEE d')} · ${on ? 'logged' : 'not logged'}`}
                             className="flex flex-col items-center gap-1"
                           >
-                            <span className="mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+                            <span className="mono text-xs uppercase tracking-wider text-muted-foreground/70">
                               {format(day, 'EEEEE')}
                             </span>
                             <span
@@ -1087,7 +1087,7 @@ function WeekView({
                           }}
                         />
                       </div>
-                      <span className="mono text-[9.5px] uppercase tracking-wider text-muted-foreground tabular-nums w-10 text-right">
+                      <span className="mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums w-10 text-right">
                         {Math.round(ratio * 100)}%
                       </span>
                     </div>
@@ -1116,7 +1116,7 @@ function StatTile({ label, value, tone }: {
   };
   return (
     <div className={`rounded-2xl px-4 py-3.5 flex flex-col gap-1.5 ${toneClasses[tone]}`}>
-      <span className="mono text-[9.5px] uppercase tracking-[0.18em] opacity-80">{label}</span>
+      <span className="mono text-xs uppercase tracking-[0.18em] opacity-80">{label}</span>
       <span className="serif text-2xl font-medium tabular-nums leading-none">{value}</span>
     </div>
   );
@@ -1201,7 +1201,7 @@ function EntryRow({ entry, selected, onClick }: { entry: JournalEntry; selected:
       }`}
       style={{ paddingLeft: '20px' }}
     >
-      <span className="font-mono text-[10px] tabular-nums text-muted-foreground w-7 shrink-0">
+      <span className="font-mono text-xs tabular-nums text-muted-foreground w-7 shrink-0">
         {format(date, 'd')}
       </span>
       <span className="flex-1 truncate text-[13px]">{format(date, 'EEEE')}</span>
@@ -1239,7 +1239,7 @@ function CalendarGrid({
       {['W', 'M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
         <div
           key={`${d}${i}`}
-          className={`text-center font-mono text-[8px] uppercase py-1 ${
+          className={`text-center font-mono text-xs uppercase py-1 ${
             i === 0 ? 'text-muted-foreground/50' : 'text-muted-foreground/70'
           }`}
         >
@@ -1259,7 +1259,7 @@ function CalendarGrid({
             <button
               onClick={() => onPickWeek(isoYear, isoWeek)}
               title={`Week ${isoWeek}, ${isoYear}`}
-              className={`aspect-square flex items-center justify-center text-[10px] font-mono rounded transition-colors
+              className={`aspect-square flex items-center justify-center text-xs font-mono rounded transition-colors
                 ${isActiveWeek ? 'bg-primary text-primary-foreground font-semibold' : ''}
                 ${!isActiveWeek && isCurrentWeek ? 'ring-1 ring-primary/40 text-foreground/80' : ''}
                 ${!isActiveWeek && !isCurrentWeek ? 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-foreground' : ''}
@@ -1276,7 +1276,7 @@ function CalendarGrid({
                 <button
                   key={dateStr}
                   onClick={() => onPick(dateStr)}
-                  className={`aspect-square flex items-center justify-center text-[11px] rounded transition-colors relative
+                  className={`aspect-square flex items-center justify-center text-xs rounded transition-colors relative
                     ${isSelected ? 'bg-primary text-primary-foreground font-semibold' : ''}
                     ${!isSelected && hasEntry ? 'bg-primary/10 text-primary font-medium' : ''}
                     ${!isSelected && !hasEntry && isCurrent ? 'ring-1 ring-primary/40 text-foreground' : ''}
@@ -1347,9 +1347,9 @@ function DailySection({
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
       >
         <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${open ? '' : '-rotate-90'}`} />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Daily</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Daily</span>
         {summary && (
-          <span className="font-mono text-[10px] text-muted-foreground/80 ml-auto truncate">{summary}</span>
+          <span className="font-mono text-xs text-muted-foreground/80 ml-auto truncate">{summary}</span>
         )}
       </button>
       <AnimatePresence initial={false}>
@@ -1410,7 +1410,7 @@ function DailySection({
 
                     {missedTasks.length > 0 && (
                       <div className="mt-1 pt-1 border-t border-border/60">
-                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-[9px] uppercase tracking-widest text-secondary">
+                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-xs uppercase tracking-widest text-secondary">
                           <AlertCircle className="size-3" />
                           Missed
                         </div>
@@ -1439,7 +1439,7 @@ function DailyColumn({ icon, title, children }: { icon: React.ReactNode; title: 
     <div className="rounded-md border border-border/60 bg-background/60 overflow-hidden">
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-border/40 bg-muted/20">
         {icon}
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{title}</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{title}</span>
       </div>
       <div className="p-1.5">{children}</div>
     </div>
@@ -1447,7 +1447,7 @@ function DailyColumn({ icon, title, children }: { icon: React.ReactNode; title: 
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] text-muted-foreground py-1.5 px-1.5">{children}</p>;
+  return <p className="text-xs text-muted-foreground py-1.5 px-1.5">{children}</p>;
 }
 
 function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: string) => void }) {
@@ -1465,13 +1465,13 @@ function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: stri
         {wasRescheduled && targetDate ? (
           <button
             onClick={() => onJump(targetDate)}
-            className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:text-primary inline-flex items-center gap-1 mt-0.5 transition-colors"
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-primary inline-flex items-center gap-1 mt-0.5 transition-colors"
           >
             <ArrowRight className="size-2.5" />
             moved to {format(parseISO(targetDate), 'MMM d')}
           </button>
         ) : (
-          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             {isDone ? 'completed later' : 'still pending'}
           </span>
         )}

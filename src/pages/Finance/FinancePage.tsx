@@ -192,11 +192,11 @@ export default function FinancePage() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden page-fade-in">
-      <header className="border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20 shrink-0">
+    <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
+      <header className="border-b border-border bg-background sticky top-0 z-20 shrink-0">
         <div className="px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none">accounts · ledger · plans</div>
+            <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground leading-none">accounts · ledger · plans</div>
             <h1 className="serif text-base md:text-lg font-semibold tracking-tight leading-tight mt-0.5">Finance</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export default function FinancePage() {
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 500, damping: 26 }}
             title={privacy ? 'Privacy on — figures hidden. Tap to reveal.' : 'Hide all figures'}
-            className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors tap-highlight-none ${
+            className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors tap-highlight-none ${
               privacy
                 ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-sm'
                 : 'border border-border text-muted-foreground hover:text-foreground'
@@ -221,7 +221,7 @@ export default function FinancePage() {
           <div className="relative">
             <button
               onClick={() => setExportOpen((v) => !v)}
-              className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5 border border-border rounded-md px-3 py-1.5 active:scale-[0.97] tap-highlight-none"
+              className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5 border border-border rounded-md px-3 py-1.5 active:scale-[0.97] tap-highlight-none"
             >
               <Download className="size-3.5" /> Export
             </button>
@@ -251,7 +251,7 @@ export default function FinancePage() {
                       {opt.label}
                     </button>
                   ))}
-                  <div className="border-t border-border mt-1 pt-1 px-3 py-1.5 text-[10px] text-muted-foreground font-mono">
+                  <div className="border-t border-border mt-1 pt-1 px-3 py-1.5 text-xs text-muted-foreground font-mono">
                     Open with Google Sheets → File › Import
                   </div>
                 </motion.div>

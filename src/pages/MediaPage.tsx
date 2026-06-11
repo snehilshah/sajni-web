@@ -192,7 +192,7 @@ function SegmentedBar({
   return (
     <div className="flex flex-col gap-1">
       {showLabel && (
-        <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-muted-foreground">
           <span>{headerLabel || label}</span>
           <span>{watched}/{total} · {pct}%</span>
         </div>
@@ -361,7 +361,7 @@ function TitleAutocomplete({
         <span className="absolute right-5 top-1/2 -translate-y-1/2"><M3CookieLoader size="sm" tone="primary" /></span>
       )}
       {source && !loading && (
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 chip chip-sage h-7 px-2.5 text-[10px]">
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 chip chip-sage h-7 px-2.5 text-xs">
           {source.startsWith('tmdb') ? 'TMDB' : 'Open Library'}
         </span>
       )}
@@ -396,12 +396,12 @@ function TitleAutocomplete({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{r.title}</div>
-                  {r.year && <div className="font-mono text-[10px] opacity-70">{r.year}</div>}
+                  {r.year && <div className="font-mono text-xs opacity-70">{r.year}</div>}
                   {r.overview && <div className="text-xs opacity-75 line-clamp-2 mt-0.5">{r.overview}</div>}
                 </div>
               </button>
             ))}
-            <div className="px-3 pt-2.5 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
+            <div className="px-3 pt-2.5 pb-1 mono text-xs uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
               Press Enter to pick · Esc to keep typing
             </div>
           </motion.div>
@@ -700,7 +700,7 @@ export default function MediaPage() {
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <M3CookieLoader size="lg" tone="primary" />
-          <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">
+          <span className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground">
             opening library…
           </span>
         </div>
@@ -970,7 +970,7 @@ export default function MediaPage() {
               <TypeIcon className="size-5 text-muted-foreground" />
               {editItem ? 'Edit' : 'Add'} {TYPE_META[form.type]?.label || 'Entry'}
             </DialogTitle>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               {editItem ? 'Update details below' : 'Search a database or fill it in manually'}
             </p>
           </DialogHeader>
@@ -988,7 +988,7 @@ export default function MediaPage() {
 
               <div className="flex flex-col gap-3 min-w-0">
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
                     Title <span className="text-destructive">*</span>
                   </Label>
                   <TitleAutocomplete
@@ -1012,7 +1012,7 @@ export default function MediaPage() {
                   </FieldSimple>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Rating</Label>
+                  <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Rating</Label>
                   <StarRating value={form.rating} interactive size="md" onChange={(v) => setForm({ ...form, rating: v })} />
                 </div>
               </div>
@@ -1142,7 +1142,7 @@ function FilterChip({ active, onClick, children, count, dot }: { active: boolean
       )}
       {dot && !active && <span className={`size-1.5 rounded-full ${dot}`} />}
       {children}
-      <span className={`font-mono text-[10px] tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
+      <span className={`font-mono text-xs tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
     </motion.button>
   );
 }
@@ -1158,7 +1158,7 @@ function CheckIconCircle() {
 function FieldSimple({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -1173,7 +1173,7 @@ function FieldSelect({ label, value, onChange, options, renderValue }: {
 }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
       <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
         <SelectTrigger className="h-9 text-sm">
           <SelectValue>{renderValue ? renderValue(value) : options.find((o) => o.value === value)?.label}</SelectValue>
@@ -1196,7 +1196,7 @@ function FieldSelect({ label, value, onChange, options, renderValue }: {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-3">
-      <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{title}</h4>
+      <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{title}</h4>
       {children}
     </div>
   );
@@ -1256,7 +1256,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
         {/* Status pill — color-coded per status */}
         <div className="absolute top-2 left-2">
           <span
-            className="inline-flex items-center gap-1 bg-background/88 backdrop-blur px-2 py-0.5 text-[10px] font-mono font-medium shadow-sm ring-1 ring-foreground/5"
+            className="inline-flex items-center gap-1 bg-background px-2 py-0.5 text-xs font-mono font-medium shadow-sm ring-1 ring-foreground/5"
             style={{
               color: statusPillColor(item.status),
               borderLeft: `2px solid ${statusPillColor(item.status)}`,
@@ -1270,7 +1270,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
 
         {/* Rating */}
         {item.rating ? (
-          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-background/88 backdrop-blur px-1.5 py-0.5 text-[10px] font-mono shadow-sm ring-1 ring-foreground/5">
+          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-background px-1.5 py-0.5 text-xs font-mono shadow-sm ring-1 ring-foreground/5">
             <Star className="size-2.5 fill-amber-400 text-amber-400" />
             <span>{item.rating}</span>
           </div>
@@ -1296,7 +1296,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
         <div className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
           {item.title}
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground mt-0.5">
+        <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground mt-0.5">
           {item.year && (
             <span className="inline-flex items-center gap-1">
               <Calendar className="size-2.5" />
@@ -1310,7 +1310,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
             </>
           )}
         </div>
-        <div className="font-mono text-[9.5px] text-muted-foreground mt-0.5 truncate">
+        <div className="font-mono text-xs text-muted-foreground mt-0.5 truncate">
           {watchAgeLabel(item)}
         </div>
       </div>
@@ -1468,16 +1468,16 @@ function SeriesPosterCard({
             <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
           </div>
         )}
-        <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-[10px]">
+        <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-xs">
           <Film className="size-3" /> Series
         </span>
-        <span className="absolute bottom-2 right-2 mono text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
+        <span className="absolute bottom-2 right-2 mono text-xs px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
           {watched}/{row.members.length}
         </span>
       </div>
       <div className="mt-2 px-0.5">
         <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
-        <div className="mono text-[10px] text-muted-foreground mt-0.5">{row.members.length} movies</div>
+        <div className="mono text-xs text-muted-foreground mt-0.5">{row.members.length} movies</div>
       </div>
     </button>
   );
@@ -1507,7 +1507,7 @@ function SeriesDialog({
           )}
           <div className="flex-1 min-w-0 text-left">
             <DialogTitle className="serif text-lg font-medium truncate">{row.collectionName}</DialogTitle>
-            <div className="mono text-[11px] text-muted-foreground mt-0.5">
+            <div className="mono text-xs text-muted-foreground mt-0.5">
               {row.members.length} movies · {watched}/{row.members.length} watched
             </div>
           </div>
@@ -1520,16 +1520,16 @@ function SeriesDialog({
               className={`m3-state w-full flex items-center gap-3 px-5 py-3 text-left transition-colors
                 ${mi === 0 ? '' : 'border-t border-border/40'}`}
             >
-              <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right shrink-0">
+              <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right shrink-0">
                 {mi + 1}
               </span>
               <MediaThumb item={m} index={mi} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <div className="text-[14px] font-medium truncate">{m.title}</div>
-                  {m.year ? <span className="mono text-[11px] text-muted-foreground">{m.year}</span> : null}
+                  {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
                 </div>
-                <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
+                <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
                   {watchAgeLabel(m)}
                 </div>
               </div>
@@ -1571,15 +1571,15 @@ function MediaListRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
           <div className="serif text-[16px] font-medium truncate">{item.title || 'Untitled'}</div>
-          {item.year ? <span className="mono text-[11px] text-muted-foreground">{item.year}</span> : null}
+          {item.year ? <span className="mono text-xs text-muted-foreground">{item.year}</span> : null}
           {item.rating ? (
             <span className="inline-flex items-center gap-0.5 text-secondary">
               <Star className="size-3 fill-current" />
-              <span className="mono text-[10px]">{item.rating}</span>
+              <span className="mono text-xs">{item.rating}</span>
             </span>
           ) : null}
         </div>
-        <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
+        <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
           {item.type}{progressLabel(item) ? ' · ' + progressLabel(item) : ''}
           {item.platform ? ' · ' + platformLabel(item.platform) : ''}
           {' · '}{watchAgeLabel(item)}
@@ -1644,14 +1644,14 @@ function SeriesListRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
             <div className="serif text-[16px] font-medium truncate">{row.collectionName}</div>
-            {yearLabel && <span className="mono text-[11px] text-muted-foreground">{yearLabel}</span>}
-            <span className="chip chip-sage text-[10px]"><Film className="size-3" /> Series</span>
+            {yearLabel && <span className="mono text-xs text-muted-foreground">{yearLabel}</span>}
+            <span className="chip chip-sage text-xs"><Film className="size-3" /> Series</span>
           </div>
-          <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
+          <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
             {row.members.length} movies · {watched}/{row.members.length} watched
           </div>
         </div>
-        <span className={`mono text-[10px] text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`}>
+        <span className={`mono text-xs text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`}>
           ▶
         </span>
       </button>
@@ -1664,22 +1664,22 @@ function SeriesListRow({
               className={`w-full flex items-center gap-4 pl-4 md:pl-6 pr-5 md:pr-6 py-2.5 text-left hover:bg-[hsl(var(--surface-container-high))] transition-colors
                 ${mi === 0 ? '' : 'border-t border-border/30'}`}
             >
-              <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right shrink-0">
+              <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right shrink-0">
                 {mi + 1}
               </span>
               <MediaThumb item={m} index={mi} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <div className="text-[14px] font-medium truncate">{m.title}</div>
-                  {m.year ? <span className="mono text-[11px] text-muted-foreground">{m.year}</span> : null}
+                  {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
                   {m.rating ? (
                     <span className="inline-flex items-center gap-0.5 text-secondary">
                       <Star className="size-3 fill-current" />
-                      <span className="mono text-[10px]">{m.rating}</span>
+                      <span className="mono text-xs">{m.rating}</span>
                     </span>
                   ) : null}
                 </div>
-                <div className="mono text-[11px] text-muted-foreground mt-0.5 truncate">
+                <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
                   {watchAgeLabel(m)}
                 </div>
               </div>
@@ -1734,12 +1734,12 @@ function ActivityTimeline({ mediaId }: { mediaId: number }) {
                 <div className="min-w-0">
                   <span className="font-medium">{eventLabel(e)}</span>
                   {eventSublabel(e) && (
-                    <span className="ml-1.5 mono text-[11px] text-muted-foreground">
+                    <span className="ml-1.5 mono text-xs text-muted-foreground">
                       {eventSublabel(e)}
                     </span>
                   )}
                 </div>
-                <span className="mono text-[10.5px] text-muted-foreground" title={e.created_at}>
+                <span className="mono text-xs text-muted-foreground" title={e.created_at}>
                   {formatTimelineDate(e.created_at)}
                 </span>
               </div>
@@ -1960,7 +1960,7 @@ function ShowProgressSection({
     <Section title="Watch progress">
       {knownSeasons ? (
         <>
-          <div className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
+          <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
             {totalSeasons} {totalSeasons === 1 ? 'season' : 'seasons'} · {totalEpisodes} total episodes
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -1981,7 +1981,7 @@ function ShowProgressSection({
               onChange={setEpisodeInSeason}
             />
           </div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             {form.episodes_watched} of {totalEpisodes} episodes watched
           </div>
           {totalEpisodes > 0 && (
@@ -1990,7 +1990,7 @@ function ShowProgressSection({
         </>
       ) : (
         <>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Per-season counts weren't returned. Enter totals manually, or re-pick the show from search to fetch them.
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -2094,7 +2094,7 @@ function CollectionBadge({
                     key={p.external_id}
                     className={`flex items-center gap-3 px-3 py-2 text-sm ${i === 0 ? '' : 'border-t border-border/40'}`}
                   >
-                    <span className="mono text-[10px] text-muted-foreground w-5 tabular-nums text-right">
+                    <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right">
                       {i + 1}
                     </span>
                     {p.poster_url ? (
@@ -2104,13 +2104,13 @@ function CollectionBadge({
                     )}
                     <div className="flex-1 min-w-0">
                       <div className={`truncate ${isCurrent ? 'font-medium' : ''}`}>{p.title}</div>
-                      {p.year && <div className="font-mono text-[10px] text-muted-foreground">{p.year}</div>}
+                      {p.year && <div className="font-mono text-xs text-muted-foreground">{p.year}</div>}
                     </div>
                     {isCurrent && (
-                      <span className="chip chip-amber text-[10px]">this one</span>
+                      <span className="chip chip-amber text-xs">this one</span>
                     )}
                     {!isCurrent && owned && (
-                      <span className="chip chip-sage text-[10px]">in library</span>
+                      <span className="chip chip-sage text-xs">in library</span>
                     )}
                   </div>
                 );
@@ -2120,7 +2120,7 @@ function CollectionBadge({
         </div>
       )}
       {mine && parts && (
-        <div className="text-[11px] text-muted-foreground mt-1">
+        <div className="text-xs text-muted-foreground mt-1">
           {mine.length} of {parts.length} in your library
         </div>
       )}

@@ -182,11 +182,11 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
                   exit={{ opacity: 0 }}
                 >
                   <div className="px-3 md:px-4 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                       {format(dateObj, 'EEE, MMM d')}
                     </div>
                     {total !== 0 && (
-                      <div className={`font-mono text-[11px] tabular-nums ${total > 0 ? 'text-primary' : 'text-destructive'}`}>
+                      <div className={`font-mono text-xs tabular-nums ${total > 0 ? 'text-primary' : 'text-destructive'}`}>
                         {total > 0 ? '+' : ''}{formatMoney(total)}
                       </div>
                     )}
@@ -215,7 +215,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
                             <div className="text-sm font-medium truncate">
                               {t.description || (isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'))}
                             </div>
-                            <div className="font-mono text-[10px] text-muted-foreground truncate">
+                            <div className="font-mono text-xs text-muted-foreground truncate">
                               {accountNameById(t.account_id) || t.account_name}
                               {isTransfer && t.linked_account && ' → ' + linkedAccountName(t.linked_account)}
                               {!isTransfer && t.category_name && ' · ' + t.category_name}
@@ -231,7 +231,7 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
                                       key={tag}
                                       role="link"
                                       onClick={(e) => { e.stopPropagation(); navigate(`/tags/${encodeURIComponent(tag)}`); }}
-                                      className="inline-flex items-center gap-0.5 rounded-full bg-secondary/40 hover:bg-secondary/70 px-1.5 py-0.5 font-mono text-[9px] text-foreground/80 transition-colors"
+                                      className="inline-flex items-center gap-0.5 rounded-full bg-secondary/40 hover:bg-secondary/70 px-1.5 py-0.5 font-mono text-xs text-foreground/80 transition-colors"
                                     >
                                       <Hash className="size-2.5 opacity-70" strokeWidth={2.5} />{tag}
                                     </span>
@@ -546,12 +546,12 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
               label="Category"
               className="col-span-2"
               hint={inferring ? (
-                <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground normal-case tracking-normal">
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground normal-case tracking-normal">
                   <M3CookieLoader size="xs" tone="primary" />
                   Sajni is picking…
                 </span>
               ) : categoryId && !userPickedCategory && !txn ? (
-                <span className="inline-flex items-center gap-1 text-[10px] text-primary normal-case tracking-normal">
+                <span className="inline-flex items-center gap-1 text-xs text-primary normal-case tracking-normal">
                   <Sparkles className="size-3" /> auto · change anytime
                 </span>
               ) : undefined}
@@ -629,11 +629,11 @@ function Field({ label, className = '', children, hint, error }: { label: string
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <div className="flex items-center justify-between gap-2 min-h-[14px]">
-        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+        <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
         {hint}
       </div>
       {children}
-      {error && <p className="text-[11px] text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
