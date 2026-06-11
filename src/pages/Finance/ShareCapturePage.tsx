@@ -5,7 +5,8 @@ import { ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/auth/AuthContext';
-import { finance, type FinAccount, type FinCategory } from '@/api';
+import { bookmarks as bookmarksApi, finance, type FinAccount, type FinCategory } from '@/api';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +52,127 @@ export default function ShareCapturePage() {
   if (!user) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
+  // A shared URL means "save this link", not a bank SMS — branch to the
+  // bookmark sheet. Anything else stays on the transaction flow.
+  const sharedUrl = extractUrl(text);
+  if (sharedUrl) {
+    return <BookmarkCapture text={text} url={sharedUrl} />;
+  }
   return <Capture text={text} />;
+}
+
+const URL_RE = /https?:\/\/[^\s<>"')\]]+/i;
+
+function extractUrl(text: string): string {
+  const m = text.match(URL_RE);
+  return m ? m[0] : '';
+}
+
+const VIDEO_HOSTS = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv', 'dailymotion.com'];
+
+function guessKind(raw: string): 'video' | 'site' {
+  try {
+    const host = new URL(raw).hostname.replace(/^(www|m)\./, '');
+    return VIDEO_HOSTS.includes(host) ? 'video' : 'site';
+  } catch {
+    return 'site';
+  }
+}
+
+function BookmarkCapture({ text, url }: { text: string; url: string }) {
+  const navigate = useNavigate();
+  // Whatever surrounds the URL in the share payload is usually the page
+  // title (YouTube shares "Title\nhttps://…"). Server-side fetch fills the
+  // rest when this is blank.
+  const [title, setTitle] = useState(() =>
+    text.replace(URL_RE, '').replace(/\s+/g, ' ').trim().slice(0, 200),
+  );
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
+
+  const done = (route?: string) => {
+    try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
+    if (route) navigate(route, { replace: true });
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const b = await bookmarksApi.create({ url, title: title.trim(), note: note.trim() });
+      toast.success('Bookmark saved');
+      done(`/media?tab=${b.kind === 'video' ? 'videos' : 'sites'}`);
+    } catch (e) {
+      toast.error('Could not save: ' + (e as Error).message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[100dvh] bg-background grid place-items-start sm:place-items-center px-4 py-6">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => done(`/media?tab=${guessKind(url) === 'video' ? 'videos' : 'sites'}`)}
+            className="size-8 grid place-items-center rounded-md hover:bg-accent text-muted-foreground"
+            aria-label="Back"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="serif text-lg font-semibold leading-tight">Save bookmark</h1>
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="size-3" /> review &amp; save
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-muted/40 p-3 min-w-0">
+          <img
+            src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+            alt=""
+            className="size-8 rounded-md shrink-0 bg-background object-contain"
+            onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+          />
+          <div className="min-w-0">
+            <p className="mono text-[10px] uppercase tracking-wider text-muted-foreground">{host || 'link'}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{url}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3">
+          <Field label="Title" className="col-span-2">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Fetched from the page when left blank"
+              maxLength={200}
+              autoFocus
+            />
+          </Field>
+          <Field label="Note" className="col-span-2">
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Why save this? Use #tags."
+              rows={2}
+              maxLength={1000}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <Button variant="outline" onClick={() => done('/')} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving} className="gap-1.5">
+            {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Capture({ text }: { text: string }) {

@@ -1,4 +1,5 @@
 import { authFetch, requestJSON, API_BASE } from './auth/client';
+import type { Bookmark } from './types';
 
 const request = requestJSON;
 
@@ -269,6 +270,24 @@ export const media = {
     request<CollectionPayload>('/media/collection?id=' + encodeURIComponent(id)),
   events: (id: number) =>
     request<MediaEventRow[]>('/media/' + id + '/events'),
+};
+
+// --- Bookmarks ---
+export const bookmarks = {
+  list: (params?: { kind?: 'video' | 'site'; unread?: boolean; archived?: boolean; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.kind) q.set('kind', params.kind);
+    if (params?.unread !== undefined) q.set('unread', String(params.unread));
+    if (params?.archived) q.set('archived', 'true');
+    if (params?.search) q.set('search', params.search);
+    const qs = q.toString();
+    return request<Bookmark[]>('/bookmarks' + (qs ? '?' + qs : ''));
+  },
+  create: (data: { url: string; title?: string; note?: string }) =>
+    request<Bookmark>('/bookmarks', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: { title?: string; note?: string; unread?: boolean; archived?: boolean }) =>
+    request<Bookmark>('/bookmarks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request('/bookmarks/' + id, { method: 'DELETE' }),
 };
 
 export type MediaEventKind =

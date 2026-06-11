@@ -20,7 +20,12 @@ const WINDOWS: { id: InsightWindow; label: string; long: string }[] = [
   { id: '1y', label: '1y', long: 'Past year' },
 ];
 
-export default function InsightsPage() {
+/**
+ * Insights now renders as a tab inside AnalyticsPage — this component is
+ * the tab body (toolbar + time travel + cards); the page chrome lives in
+ * the Analytics wrapper. The old /insights route redirects there.
+ */
+export default function InsightsPanel() {
   const [window, setWindow] = useState<InsightWindow>('1w');
   const [items, setItems] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,23 +65,10 @@ export default function InsightsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full page-fade-in">
-      <header className="border-b border-border bg-background/85 backdrop-blur sticky top-0 z-20">
-        <div className="px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mono text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground leading-none">
-              correlations · time travel
-            </div>
-            <h1 className="serif text-base md:text-lg font-semibold tracking-tight leading-tight mt-0.5">Insights</h1>
-          </div>
-          <Button size="sm" variant="ghost" onClick={runNow} disabled={running}>
-            <RefreshCw className={`size-3.5 ${running ? 'animate-spin' : ''}`} />
-            {running ? 'Computing…' : 'Re-run'}
-          </Button>
-        </div>
-
-        {/* Window pills */}
-        <div className="px-4 md:px-8 pb-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+    <div className="w-full max-w-3xl mx-auto flex flex-col gap-5">
+      {/* Toolbar: window pills + re-run */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {WINDOWS.map((w) => {
             const active = w.id === window;
             return (
@@ -100,29 +92,29 @@ export default function InsightsPage() {
             );
           })}
         </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 md:px-8 py-5 flex flex-col gap-6">
-          <TimeTravelSearch />
-
-          {loading ? (
-            <div className="grid place-items-center py-16">
-              <Spinner />
-            </div>
-          ) : items.length === 0 ? (
-            <Empty onRun={runNow} running={running} />
-          ) : (
-            <ul className="flex flex-col gap-3">
-              <AnimatePresence initial={false}>
-                {items.map((it) => (
-                  <InsightCard key={it.id} insight={it} onPin={togglePin} onDismiss={dismiss} />
-                ))}
-              </AnimatePresence>
-            </ul>
-          )}
-        </div>
+        <Button size="sm" variant="ghost" onClick={runNow} disabled={running}>
+          <RefreshCw className={`size-3.5 ${running ? 'animate-spin' : ''}`} />
+          {running ? 'Computing…' : 'Re-run'}
+        </Button>
       </div>
+
+      <TimeTravelSearch />
+
+      {loading ? (
+        <div className="grid place-items-center py-16">
+          <Spinner />
+        </div>
+      ) : items.length === 0 ? (
+        <Empty onRun={runNow} running={running} />
+      ) : (
+        <ul className="flex flex-col gap-3">
+          <AnimatePresence initial={false}>
+            {items.map((it) => (
+              <InsightCard key={it.id} insight={it} onPin={togglePin} onDismiss={dismiss} />
+            ))}
+          </AnimatePresence>
+        </ul>
+      )}
     </div>
   );
 }

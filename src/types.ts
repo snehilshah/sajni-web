@@ -95,6 +95,21 @@ export interface MediaEntry {
   last_completed_at: string;
 }
 
+export interface Bookmark {
+  id: number;
+  url: string;
+  kind: 'video' | 'site';
+  title: string;
+  site_name: string;
+  favicon_url: string;
+  image_url: string;
+  note: string;
+  unread: boolean;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MediaSearchResult {
   external_id: string;
   title: string;

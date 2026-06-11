@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
+import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import PageShell from '@/components/PageShell';
@@ -15,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown } from 'lucide-react';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe } from 'lucide-react';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
 const MEDIA_SORT_KEY = 'sajni:media:sort';
@@ -95,7 +97,19 @@ const TYPE_META: Record<string, { label: string; plural: string; icon: typeof Fi
   movie: { label: 'Movie', plural: 'Movies', icon: Film },
   show: { label: 'Show', plural: 'Shows', icon: Tv },
   book: { label: 'Book', plural: 'Books', icon: BookOpen },
+  // Bookmark shelves — same tab strip, different panel underneath.
+  video: { label: 'Video', plural: 'Videos', icon: MonitorPlay },
+  site: { label: 'Site', plural: 'Sites', icon: Globe },
 };
+const BOOKMARK_TYPES = new Set(['video', 'site']);
+
+// `?tab=` ↔ activeType. The share-capture flow deep-links here.
+const TAB_TO_TYPE: Record<string, string> = {
+  movies: 'movie', shows: 'show', books: 'book', videos: 'video', sites: 'site',
+};
+const TYPE_TO_TAB: Record<string, string> = Object.fromEntries(
+  Object.entries(TAB_TO_TYPE).map(([tab, t]) => [t, tab]),
+);
 
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
@@ -425,7 +439,13 @@ interface FormState {
 }
 
 export default function MediaPage() {
-  const [activeType, setActiveType] = useState('movie');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeType, setActiveType] = useState(
+    () => TAB_TO_TYPE[searchParams.get('tab') ?? ''] || 'movie',
+  );
+  const isBookmarkTab = BOOKMARK_TYPES.has(activeType);
+  // Page-level Add button → bookmark panel's dialog (see BookmarksPanel).
+  const [bookmarkAddSignal, setBookmarkAddSignal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [items, setItems] = useState<MediaEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -495,7 +515,25 @@ export default function MediaPage() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load();   }, [activeType, statusFilter]);
+  useEffect(() => {
+    if (isBookmarkTab) return; // bookmark tabs load their own data
+    load();
+  }, [activeType, statusFilter]);
+
+  // Deep-links (`/media?tab=videos` from the share flow) can land while
+  // the page is already mounted — follow the param.
+  useEffect(() => {
+    const t = TAB_TO_TYPE[searchParams.get('tab') ?? ''];
+    if (t && t !== activeType) setActiveType(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const switchType = useCallback((key: string) => {
+    setActiveType(key);
+    setStatusFilter('');
+    setSearchQuery('');
+    setSearchParams(key === 'movie' ? {} : { tab: TYPE_TO_TAB[key] }, { replace: true });
+  }, [setSearchParams]);
 
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -739,26 +777,31 @@ export default function MediaPage() {
 
   return (
     <PageShell
-      caption={`${items.length} ${items.length === 1 ? 'entry' : 'entries'} · ${counts['in_progress'] || 0} in progress`}
+      caption={isBookmarkTab
+        ? 'saved links · open to mark read'
+        : `${items.length} ${items.length === 1 ? 'entry' : 'entries'} · ${counts['in_progress'] || 0} in progress`}
       title="Library"
-      subtitle="Movies, shows, books — one shelf."
+      subtitle="Movies, shows, books, links — one shelf."
       actions={
-        <Button onClick={() => openForm()} className="gap-1.5">
+        <Button
+          onClick={() => (isBookmarkTab ? setBookmarkAddSignal((s) => s + 1) : openForm())}
+          className="gap-1.5"
+        >
           <Plus className="size-4" /> Add
         </Button>
       }
     >
-      {/* Type tabs */}
+      {/* Type tabs — horizontally scrollable on narrow screens */}
       <div className="border-b border-border -mt-3">
-        <div className="flex gap-1 -mb-px">
+        <div className="flex gap-1 -mb-px overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {Object.entries(TYPE_META).map(([key, meta]) => {
             const Icon = meta.icon;
             const active = activeType === key;
             return (
               <button
                 key={key}
-                onClick={() => { setActiveType(key); setStatusFilter(''); setSearchQuery(''); }}
-                className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                onClick={() => switchType(key)}
+                className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${
                   active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -773,6 +816,9 @@ export default function MediaPage() {
         </div>
       </div>
 
+      {isBookmarkTab ? (
+        <BookmarksPanel kind={activeType as 'video' | 'site'} addSignal={bookmarkAddSignal} />
+      ) : (
       <div className="flex flex-col gap-4 min-w-0">
           {/* Toolbar: status chips + search. On mobile the chips wrap freely
               (no horizontal scroll) and the sort/actions block drops to its
@@ -909,6 +955,7 @@ export default function MediaPage() {
           {/* Grid / list (memoized — see gridEl above) */}
           {gridEl}
       </div>
+      )}
 
       <Dialog
         open={showForm}

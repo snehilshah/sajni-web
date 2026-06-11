@@ -5,6 +5,7 @@ import {
   Sparkles, BookOpen, CheckSquare, Target, FileText, Film,
   Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft, X,
   Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight,
+  Bookmark as BookmarkIcon,
 } from 'lucide-react';
 
 import { search as searchApi, type SearchHit } from '@/api';
@@ -32,6 +33,7 @@ const TYPE_ICONS: Record<string, typeof SearchIcon> = {
   tag: Hash,
   account: Wallet,
   transaction: ArrowLeftRight,
+  bookmark: BookmarkIcon,
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -44,6 +46,7 @@ const TYPE_COLORS: Record<string, string> = {
   tag: 'text-cyan-600 dark:text-cyan-400',
   account: 'text-teal-600 dark:text-teal-400',
   transaction: 'text-indigo-600 dark:text-indigo-400',
+  bookmark: 'text-orange-600 dark:text-orange-400',
 };
 
 interface RankedHit extends SearchHit {

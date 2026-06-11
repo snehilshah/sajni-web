@@ -52,7 +52,7 @@
     {
       "key": "media",
       "title": "Media",
-      "blurb": "Track movies, shows, books, games. Sajni keeps episode counts and recommends what's next.",
+      "blurb": "Track movies, shows, books — plus saved links. Share a page or video to Sajni and it lands here to read later.",
       "icon": "Film"
     },
     {
@@ -70,14 +70,8 @@
     {
       "key": "analytics",
       "title": "Analytics",
-      "blurb": "Streaks, mood trends, time-of-day patterns. Quiet charts that reward consistency.",
+      "blurb": "Streaks, mood trends, time-of-day patterns — and weekly Insights: one warm paragraph on what worked and what slipped.",
       "icon": "Compass"
-    },
-    {
-      "key": "insights",
-      "title": "Insights",
-      "blurb": "Sajni reads your week and writes you one warm paragraph: what worked, what slipped, what to try next.",
-      "icon": "Lightbulb"
     },
     {
       "key": "ai",

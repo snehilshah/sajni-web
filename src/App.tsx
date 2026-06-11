@@ -11,7 +11,6 @@ import MediaPage from './pages/MediaPage';
 import NotesPage from './pages/NotesPage';
 import TagsPage from './pages/TagsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
-import InsightsPage from './pages/InsightsPage';
 import FinancePage from './pages/Finance/FinancePage';
 import ShareCapturePage from './pages/Finance/ShareCapturePage';
 import SettingsPage from './pages/SettingsPage';
@@ -77,7 +76,8 @@ export default function App() {
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/tags/:tag" element={<TagsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/insights" element={<InsightsPage />} />
+            {/* Insights merged into Analytics as a tab. */}
+            <Route path="/insights" element={<Navigate to="/analytics?tab=insights" replace />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>

@@ -5,7 +5,7 @@ import {
   BookOpen, Target, Film, FileText, Hash, Compass,
   ChevronRight, LogOut, Wallet, MessageSquare, Sparkles,
   Search, Settings, Loader2, Home, ListChecks, MoreHorizontal,
-  Brain, Lightbulb,
+  Brain,
 } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import CommandPalette from '@/components/CommandPalette';
@@ -42,8 +42,8 @@ const NAV_ITEMS = [
   { path: '/media', label: 'Media', Icon: Film, key: 'media' },
   { path: '/finance', label: 'Finance', Icon: Wallet, key: 'finance' },
   { path: '/tags', label: 'Tags', Icon: Hash, key: 'tags' },
+  // Insights lives inside Analytics now (?tab=insights).
   { path: '/analytics', label: 'Analytics', Icon: Compass, key: 'analytics' },
-  { path: '/insights', label: 'Insights', Icon: Lightbulb, key: 'insights' },
 ] as const;
 
 const PRIMARY_MOBILE = new Set(['/', '/notes', '/tasks', '/journal']);

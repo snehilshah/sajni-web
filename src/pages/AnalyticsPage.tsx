@@ -1,17 +1,63 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { analytics as analyticsApi } from '@/api';
 import type { Analytics } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, CalendarDays, Sparkles } from 'lucide-react';
+import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from 'lucide-react';
 import PageShell from '@/components/PageShell';
+import InsightsPanel from '@/pages/InsightsPage';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
+const TABS = [
+  { key: 'activity', label: 'Activity', icon: Activity },
+  { key: 'insights', label: 'Insights', icon: Lightbulb },
+] as const;
+type Tab = (typeof TABS)[number]['key'];
+
+// Activity (the old Analytics page) + Insights merged under one nav item.
+// `/insights` redirects to `?tab=insights` (see App routes).
 export default function AnalyticsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: Tab = searchParams.get('tab') === 'insights' ? 'insights' : 'activity';
+
+  return (
+    <PageShell
+      caption={tab === 'insights' ? 'correlations · time travel' : 'Patterns from your second brain'}
+      title="Analytics"
+    >
+      <div className="border-b border-border -mt-3">
+        <div className="flex gap-1 -mb-px">
+          {TABS.map(({ key, label, icon: Icon }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setSearchParams(key === 'activity' ? {} : { tab: key }, { replace: true })}
+                className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                  active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {label}
+                {active && (
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 bg-primary rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {tab === 'insights' ? <InsightsPanel /> : <ActivityPanel />}
+    </PageShell>
+  );
+}
+
+function ActivityPanel() {
   const [data, setData] = useState<Analytics | null>(null);
 
   useEffect(() => {
@@ -60,14 +106,12 @@ export default function AnalyticsPage() {
 
   if (!data || !heatmap) {
     return (
-      <PageShell caption="Patterns from your second brain" title="Insights">
-        <div className="grid gap-4">
-          <Skeleton className="h-44 w-full rounded-lg" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-44 w-full rounded-lg" />)}
-          </div>
+      <div className="grid gap-4">
+        <Skeleton className="h-44 w-full rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-44 w-full rounded-lg" />)}
         </div>
-      </PageShell>
+      </div>
     );
   }
 
@@ -96,19 +140,9 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <PageShell
-      caption="Patterns from your second brain"
-      title="Insights"
-      actions={
-        <div className="flex gap-4 font-mono text-[11px] text-muted-foreground">
-          <Stat icon={Sparkles} label="Total entries" value={heatmap.total} />
-          <Stat icon={CalendarDays} label="Active days" value={heatmap.activeDays} />
-        </div>
-      }
-    >
       <div className="flex flex-col gap-5">
           {/* Heatmap */}
-          <Panel title="Activity (last 365 days)" subtitle={`${heatmap.total} contributions`}>
+          <Panel title="Activity (last 365 days)" subtitle={`${heatmap.total} contributions · ${heatmap.activeDays} active days`}>
             <div className="overflow-x-auto -mx-1 px-1">
               <div className="inline-flex flex-col gap-1 min-w-full">
                 {/* Month labels */}
@@ -345,7 +379,6 @@ export default function AnalyticsPage() {
             </Panel>
           </div>
       </div>
-    </PageShell>
   );
 }
 
@@ -370,12 +403,3 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-muted-foreground py-4 text-center">{children}</p>;
 }
 
-function Stat({ icon: Icon, label, value }: { icon: typeof Flame; label: string; value: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Icon className="size-3.5" />
-      <span className="tabular-nums font-medium text-foreground">{value}</span>
-      <span className="opacity-70">{label}</span>
-    </div>
-  );
-}
