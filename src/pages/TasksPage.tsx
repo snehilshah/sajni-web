@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge';
 
 import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
-import TaskFormDialog from '@/components/tasks/TaskFormDialog';
+// Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
+const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel,
@@ -288,14 +289,16 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <TaskFormDialog
-        open={showForm}
-        onOpenChange={setShowForm}
-        editing={editingTask}
-        defaults={formDefaults}
-        lists={lists}
-        onSaved={() => { reloadTasks(); reloadLists(); reloadMissed(); }}
-      />
+      <Suspense fallback={null}>
+        <TaskFormDialog
+          open={showForm}
+          onOpenChange={setShowForm}
+          editing={editingTask}
+          defaults={formDefaults}
+          lists={lists}
+          onSaved={() => { reloadTasks(); reloadLists(); reloadMissed(); }}
+        />
+      </Suspense>
 
       {/* Mobile FAB — sits above the bottom tabbar. */}
       {isMobile && (

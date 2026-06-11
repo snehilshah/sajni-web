@@ -69,11 +69,10 @@ export default function TodayPage() {
 		setDueToday(data);
 	};
 	const refreshHabits = async () => {
-		const [status, list] = await Promise.all([
-			habitsApi.statusForDate(today).catch(() => [] as HabitDayStatus[]),
-			habitsApi.list().catch(() => [] as Habit[]),
-		]);
-		setHabitStatus(status);
+		// /habits already carries logged_today, so the day status is derived
+		// instead of fetched from /habits/status.
+		const list = await habitsApi.list().catch(() => [] as Habit[]);
+		setHabitStatus(list.map((h) => ({ id: h.id, name: h.name, color: h.color, logged: h.logged_today })));
 		setHabitsList(list);
 	};
 	const refreshMemos = async () => {

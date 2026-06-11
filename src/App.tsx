@@ -1,22 +1,25 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import TodayPage from './pages/TodayPage';
-import MemosPage from './pages/MemosPage';
-import ThinkingPage from './pages/ThinkingPage';
-import ThinkingProjectPage from './pages/ThinkingProjectPage';
-import JournalPage from './pages/JournalPage';
-import TasksPage from './pages/TasksPage';
-import HabitsPage from './pages/HabitsPage';
-import MediaPage from './pages/MediaPage';
-import NotesPage from './pages/NotesPage';
-import TagsPage from './pages/TagsPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import FinancePage from './pages/Finance/FinancePage';
-import ShareCapturePage from './pages/Finance/ShareCapturePage';
-import SettingsPage from './pages/SettingsPage';
-import SignInPage from './pages/Auth/SignIn';
-import OAuthDonePage from './pages/Auth/OAuthDone';
-import LinkChallengePage from './pages/Auth/LinkChallenge';
+// Pages are lazy route-level chunks so heavy per-page deps (recharts,
+// tiptap, markdown) stay out of the boot bundle.
+const TodayPage = lazy(() => import('./pages/TodayPage'));
+const MemosPage = lazy(() => import('./pages/MemosPage'));
+const ThinkingPage = lazy(() => import('./pages/ThinkingPage'));
+const ThinkingProjectPage = lazy(() => import('./pages/ThinkingProjectPage'));
+const JournalPage = lazy(() => import('./pages/JournalPage'));
+const TasksPage = lazy(() => import('./pages/TasksPage'));
+const HabitsPage = lazy(() => import('./pages/HabitsPage'));
+const MediaPage = lazy(() => import('./pages/MediaPage'));
+const NotesPage = lazy(() => import('./pages/NotesPage'));
+const TagsPage = lazy(() => import('./pages/TagsPage'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+const FinancePage = lazy(() => import('./pages/Finance/FinancePage'));
+const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const SignInPage = lazy(() => import('./pages/Auth/SignIn'));
+const OAuthDonePage = lazy(() => import('./pages/Auth/OAuthDone'));
+const LinkChallengePage = lazy(() => import('./pages/Auth/LinkChallenge'));
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import RequireAuth from './auth/RequireAuth';
 import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
@@ -24,7 +27,7 @@ import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { ConfirmRoot } from '@/lib/confirm';
-import { M3Shapes } from '@/components/ui/shapes';
+import { M3Shapes, M3CookieLoader } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { Analytics } from '@vercel/analytics/react';
@@ -49,6 +52,7 @@ export default function App() {
 				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}
+				<Suspense fallback={<div className="flex h-dvh items-center justify-center"><M3CookieLoader /></div>}>
 				<Routes>
           <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
           {/* Legacy paths fold into /signin so old bookmarks still work. */}
@@ -81,6 +85,7 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
+				</Suspense>
       <Analytics />
       <SpeedInsights />
 			</TaskDetailProvider>

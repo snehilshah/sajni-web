@@ -1,10 +1,12 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type ReactNode,
 } from 'react';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList } from '@/types';
-import TaskFormDialog from './TaskFormDialog';
+// Lazy: TaskFormDialog drags the whole tiptap editor along; this provider
+// wraps every page, so an eager import would put tiptap in the boot bundle.
+const TaskFormDialog = lazy(() => import('./TaskFormDialog'));
 
 /**
  * Global task-detail surface. Any component anywhere in the app can call
@@ -118,15 +120,17 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={value}>
       {children}
-      <TaskFormDialog
-        open={open}
-        onOpenChange={handleOpenChange}
-        onCloseComplete={handleCloseComplete}
-        editing={editingTask}
-        defaults={defaults}
-        lists={lists}
-        onSaved={handleSaved}
-      />
+      <Suspense fallback={null}>
+        <TaskFormDialog
+          open={open}
+          onOpenChange={handleOpenChange}
+          onCloseComplete={handleCloseComplete}
+          editing={editingTask}
+          defaults={defaults}
+          lists={lists}
+          onSaved={handleSaved}
+        />
+      </Suspense>
     </Ctx.Provider>
   );
 }
