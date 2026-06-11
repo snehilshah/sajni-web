@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, parseISO, subDays, startOfDay } from 'date-fns';
 
 import { habits as habitsApi } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
@@ -17,8 +17,13 @@ import PageShell from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
-// Mon..Sun letters, shared by the desktop header and the mobile week strip.
-const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+// Day letter for a yyyy-MM-dd key. The week strip is a rolling window
+// ending today (not a fixed Mon..Sun), so letters must come from the
+// actual dates — a static M..S list mislabeled every column and made the
+// today-circle look pinned to "Sunday".
+function dayLetter(key: string): string {
+  return format(parseISO(key), 'EEEEE');
+}
 
 // Habits — single-card week grid. Mon..Sun ending today. Each cell is
 // clickable to toggle that day's log; the small streak column on the
@@ -300,7 +305,7 @@ function HabitCard({
           return (
             <div key={i} className="flex flex-col items-center gap-1.5">
               <span className={`mono text-xs leading-none ${isToday ? 'font-semibold text-[hsl(var(--primary))]' : 'text-muted-foreground'}`}>
-                {DAY_LETTERS[i]}
+                {dayLetter(d)}
               </span>
               <motion.button
                 onClick={() => onToggleDay(d)}

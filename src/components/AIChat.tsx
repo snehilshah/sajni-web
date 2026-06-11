@@ -305,7 +305,9 @@ export default function AIChat({ open, onOpenChange }: Props) {
         }
       >
         <SheetHeader className="p-4 pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
+          {/* pr-10 clears the sheet's absolute close X (top-4 right-4) so
+              the New button never sits underneath it. */}
+          <div className="flex items-center gap-2 pr-10">
             <div className="size-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
               <Sparkles className="size-4" />
             </div>

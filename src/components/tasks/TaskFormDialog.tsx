@@ -739,11 +739,12 @@ function RemindersSection({ taskId }: { taskId: number }) {
 
         {adding ? (
           <div className="flex flex-col gap-2 pt-0.5">
-            {/* Date is flexible, time pill is fixed-width beside it (stays on
-                one row even on mobile). */}
+            {/* Date flexes, time is fixed-width beside it. The time trigger
+                needs ~120px for icon + "12:55 PM" + clear button — anything
+                narrower truncates the value into invisibility. */}
             <div className="flex items-end gap-2">
               <div className="flex-1 min-w-0"><DatePicker value={date} onChange={setDate} placeholder="Pick a date" /></div>
-              <div className="w-24 shrink-0"><TimePicker value={time} onChange={setTime} placeholder="Time" /></div>
+              <div className="w-[7.5rem] shrink-0"><TimePicker value={time} onChange={setTime} placeholder="Time" /></div>
             </div>
             <div className="flex gap-1.5 justify-end">
               <Button size="sm" onClick={add} disabled={!date || saving} className="gap-1.5">
