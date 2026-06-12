@@ -814,10 +814,11 @@ em, .italic { font-style: italic; }
 .link-favicon {
   width: 14px; height: 14px;
   border-radius: 3px;
-  vertical-align: -2px;
+  vertical-align: middle;
   margin-right: 3px;
   object-fit: contain;
   display: inline-block;
+  line-height: 1;
 }
 .tiptap-image { max-width: 100%; border-radius: 12px; }
 .tiptap-code-block {
