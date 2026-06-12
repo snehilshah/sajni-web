@@ -70,7 +70,7 @@ export function DatePicker({
           className
         )}
       >
-        <span className="truncate">{display}</span>
+        <span className="min-w-0 flex-1 truncate text-left">{display}</span>
         <CalendarIcon className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-2">

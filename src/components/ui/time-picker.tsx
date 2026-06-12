@@ -128,9 +128,9 @@ export function TimePicker({
           className,
         )}
       >
-        <span className="inline-flex items-center gap-2 truncate">
+        <span className="inline-flex min-w-0 flex-1 items-center gap-2">
           <Clock className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
-          <span className="truncate">{parts ? display(parts) : placeholder}</span>
+          <span className="min-w-0 truncate">{parts ? display(parts) : placeholder}</span>
         </span>
         {parts && !disabled && (
           <span

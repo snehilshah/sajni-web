@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle, CircleHelp } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -7,6 +8,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
@@ -67,6 +69,8 @@ export function ConfirmRoot() {
     window.setTimeout(() => setReq(null), 150);
   };
 
+  const destructive = req?.destructive !== false;
+
   return (
     <AlertDialog
       open={open}
@@ -76,6 +80,13 @@ export function ConfirmRoot() {
     >
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
+          <AlertDialogMedia
+            className={destructive
+              ? undefined
+              : 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'}
+          >
+            {destructive ? <AlertTriangle /> : <CircleHelp />}
+          </AlertDialogMedia>
           <AlertDialogTitle>{req?.title ?? 'Are you sure?'}</AlertDialogTitle>
           <AlertDialogDescription>{req?.description}</AlertDialogDescription>
         </AlertDialogHeader>
@@ -84,7 +95,7 @@ export function ConfirmRoot() {
             {req?.cancelText ?? 'Cancel'}
           </AlertDialogCancel>
           <AlertDialogAction
-            variant={req?.destructive === false ? 'default' : 'destructive'}
+            variant={destructive ? 'destructive' : 'default'}
             onClick={() => settle(true)}
           >
             {req?.confirmText ?? 'Delete'}
