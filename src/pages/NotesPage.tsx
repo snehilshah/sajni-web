@@ -308,9 +308,14 @@ export default function NotesPage() {
   };
 
   const handleDeleteFolder = async (path: string) => {
-    if (!(await confirmDialog(`Delete folder "${path}"? It must be empty.`))) return;
+    if (!(await confirmDialog({
+      title: 'Delete folder?',
+      description: `Delete folder "${path}" and all notes inside it? This cannot be undone.`,
+      confirmText: 'Delete folder',
+    }))) return;
     try {
       await notesApi.deleteFolder(path);
+      if (selectedId && (folder === path || folder.startsWith(`${path}/`))) handleNew();
       loadAll();
     } catch (e: any) {
       toast.error(e.message || 'Cannot delete folder');
