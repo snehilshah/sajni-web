@@ -55,10 +55,13 @@ export default function ShareCapturePage() {
   if (!user) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
-  // A shared URL means "save this link", not a bank SMS — branch to the
-  // bookmark sheet. Anything else stays on the transaction flow.
+  // A shared URL usually means "save this link" → bookmark sheet. But bank
+  // / UPI SMS carry a trailing fraud-report URL ("Not you? Report at
+  // https://…"), so a bare URL check would mis-route every transaction SMS
+  // to bookmarks. Only treat it as a link share when the text does NOT also
+  // look like a transaction (amount + debit/credit verb).
   const sharedUrl = extractUrl(text);
-  if (sharedUrl) {
+  if (sharedUrl && !looksLikeTxn(text)) {
     return <BookmarkCapture text={text} url={sharedUrl} />;
   }
   return <Capture text={text} />;
@@ -69,6 +72,16 @@ const URL_RE = /https?:\/\/[^\s<>"')\]]+/i;
 function extractUrl(text: string): string {
   const m = text.match(URL_RE);
   return m ? m[0] : '';
+}
+
+// A bank / UPI SMS reliably has both an amount and a debit/credit verb.
+// Require both so an ordinary link share (e.g. a product page that merely
+// mentions a price) is not mistaken for a transaction.
+const TXN_VERB_RE = /\b(?:debited|credited|spent|withdrawn|received|deposited|paid|sent|transferred|debit|credit)\b/i;
+const TXN_AMOUNT_RE = /(?:₹|\brs\.?\b|\binr\b)\s*[\d,]+(?:\.\d+)?|\b\d[\d,]*(?:\.\d+)?\s*(?:rs\.?|inr)\b/i;
+
+function looksLikeTxn(text: string): boolean {
+  return TXN_VERB_RE.test(text) && TXN_AMOUNT_RE.test(text);
 }
 
 const VIDEO_HOSTS = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv', 'dailymotion.com'];
