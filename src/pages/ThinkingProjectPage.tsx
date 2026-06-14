@@ -19,10 +19,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  thinking, type ThinkingProject, type ThinkingCard, type ThinkingKind,
+  thinking, type ThinkingCard, type ThinkingKind,
   type ThinkingConnection, type ThinkingRelation, type ThinkingEnrichment,
 } from '@/api';
+import { useThinkingProject } from '@/queries/thinking';
+import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 
 const KINDS: ThinkingKind[] = [
@@ -66,9 +69,10 @@ export default function ThinkingProjectPage() {
   const { id } = useParams<{ id: string }>();
   const pid = Number(id);
   const navigate = useNavigate();
-  const [project, setProject] = useState<ThinkingProject | null>(null);
-  const [cards, setCards] = useState<ThinkingCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const { data: projectData, isLoading: loading } = useThinkingProject(pid, Number.isFinite(pid));
+  const project = projectData?.project ?? null;
+  const cards = projectData?.cards ?? [];
   const [draft, setDraft] = useState('');
   const [kind, setKind] = useState<ThinkingKind>('note');
   // Tracks whether the user has manually chosen the kind for the
@@ -88,17 +92,12 @@ export default function ThinkingProjectPage() {
   const [synthesizing, setSynthesizing] = useState(false);
   const [staleDismissed, setStaleDismissed] = useState<boolean>(false);
 
-  const load = useCallback(async () => {
-    try {
-      const r = await thinking.getProject(pid);
-      setProject(r.project);
-      setCards(r.cards);
-    } finally {
-      setLoading(false);
-    }
-  }, [pid]);
-
-  useEffect(() => { load(); }, [load]);
+  // Card writes go through thinkingApi (project-scoped editor); this refreshes
+  // the cached project + cards after each mutation, including the delayed poll
+  // for async server-side enrichment.
+  const load = useCallback(() => {
+    qc.invalidateQueries({ queryKey: qk.thinking.project(pid) });
+  }, [qc, pid]);
 
   useEffect(() => {
     try {

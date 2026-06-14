@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { analytics as analyticsApi } from '@/api';
-import type { Analytics } from '@/types';
+import { useAnalytics } from '@/queries/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from 'lucide-react';
 import PageShell from '@/components/PageShell';
@@ -58,11 +57,7 @@ export default function AnalyticsPage() {
 }
 
 function ActivityPanel() {
-  const [data, setData] = useState<Analytics | null>(null);
-
-  useEffect(() => {
-    analyticsApi.get().then(setData);
-  }, []);
+  const { data } = useAnalytics();
 
   const heatmap = useMemo(() => {
     if (!data) return null;

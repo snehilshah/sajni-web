@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
-import { bookmarks as bookmarksApi } from '@/api';
+import {
+  useBookmarks, useCreateBookmark, useUpdateBookmark, useDeleteBookmark,
+} from '@/queries/bookmarks';
 import type { Bookmark } from '@/types';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -80,8 +82,6 @@ export default function BookmarksPanel({ kind, addSignal }: {
   addSignal: number;
 }) {
   const isMobile = useIsMobile();
-  const [items, setItems] = useState<Bookmark[]>([]);
-  const [loading, setLoading] = useState(true);
   const [shelf, setShelf] = useState<Shelf>('all');
   const [search, setSearch] = useState('');
 
@@ -92,14 +92,10 @@ export default function BookmarksPanel({ kind, addSignal }: {
   const [formNote, setFormNote] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await bookmarksApi.list({ kind, archived: shelf === 'archived' });
-      setItems(data);
-    } finally { setLoading(false); }
-  }, [kind, shelf]);
-
-  useEffect(() => { setLoading(true); load(); }, [load]);
+  const { data: items = [], isLoading: loading } = useBookmarks({ kind, archived: shelf === 'archived' });
+  const createBookmark = useCreateBookmark();
+  const updateBookmark = useUpdateBookmark();
+  const deleteBookmark = useDeleteBookmark();
 
   const openForm = useCallback((b?: Bookmark) => {
     setEditItem(b ?? null);
@@ -116,7 +112,10 @@ export default function BookmarksPanel({ kind, addSignal }: {
   }, [addSignal, openForm]);
 
   const visible = useMemo(() => {
-    let out = items;
+    // The optimistic archive/restore patch flips `archived` in the cache before
+    // the refetch lands; this client filter makes the row leave its shelf at
+    // once instead of waiting a round-trip.
+    let out = items.filter((b) => (shelf === 'archived' ? b.archived : !b.archived));
     if (shelf === 'unread') out = out.filter((b) => b.unread);
     const q = search.trim().toLowerCase();
     if (q) {
@@ -129,47 +128,37 @@ export default function BookmarksPanel({ kind, addSignal }: {
     return out;
   }, [items, shelf, search]);
 
-  const unreadCount = useMemo(() => items.filter((b) => b.unread).length, [items]);
-
-  const patch = (id: number, p: Partial<Bookmark>) =>
-    setItems((xs) => xs.map((b) => (b.id === id ? { ...b, ...p } : b)));
+  const unreadCount = useMemo(() => items.filter((b) => b.unread && !b.archived).length, [items]);
 
   // Opening a link is the read action — the queue clears itself.
   const open = (b: Bookmark) => {
     window.open(b.url, '_blank', 'noopener,noreferrer');
-    if (b.unread) {
-      patch(b.id, { unread: false });
-      bookmarksApi.update(b.id, { unread: false }).catch(() => patch(b.id, { unread: true }));
-    }
+    if (b.unread) updateBookmark.mutate({ id: b.id, data: { unread: false } });
   };
 
   const toggleRead = (b: Bookmark) => {
-    patch(b.id, { unread: !b.unread });
-    bookmarksApi.update(b.id, { unread: !b.unread }).catch(() => patch(b.id, { unread: b.unread }));
+    updateBookmark.mutate({ id: b.id, data: { unread: !b.unread } });
   };
 
   const setArchived = (b: Bookmark, archived: boolean) => {
-    setItems((xs) => xs.filter((x) => x.id !== b.id));
-    bookmarksApi.update(b.id, { archived })
-      .then(() => toast.success(archived ? 'Archived' : 'Restored'))
-      .catch(() => { toast.error('Failed'); load(); });
+    updateBookmark.mutate(
+      { id: b.id, data: { archived } },
+      { onSuccess: () => toast.success(archived ? 'Archived' : 'Restored') },
+    );
   };
 
   const remove = (b: Bookmark) => {
-    setItems((xs) => xs.filter((x) => x.id !== b.id));
-    bookmarksApi.delete(b.id).catch(() => { toast.error('Delete failed'); load(); });
+    deleteBookmark.mutate(b.id);
   };
 
   const save = async () => {
     setSaving(true);
     try {
       if (editItem) {
-        const upd = await bookmarksApi.update(editItem.id, { title: formTitle.trim(), note: formNote.trim() });
-        patch(editItem.id, upd);
+        await updateBookmark.mutateAsync({ id: editItem.id, data: { title: formTitle.trim(), note: formNote.trim() } });
       } else {
-        const created = await bookmarksApi.create({ url: formUrl.trim(), title: formTitle.trim(), note: formNote.trim() });
-        if (created.kind === kind) setItems((xs) => [created, ...xs]);
-        else toast.success(`Saved under ${created.kind === 'video' ? 'Videos' : 'Sites'}`);
+        const created = await createBookmark.mutateAsync({ url: formUrl.trim(), title: formTitle.trim(), note: formNote.trim() });
+        if (created.kind !== kind) toast.success(`Saved under ${created.kind === 'video' ? 'Videos' : 'Sites'}`);
       }
       setShowForm(false);
     } catch (e) {

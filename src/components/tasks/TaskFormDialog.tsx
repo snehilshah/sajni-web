@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { format, formatDistanceToNow, parseISO, startOfWeek, endOfWeek } from 'date-fns';
+import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';

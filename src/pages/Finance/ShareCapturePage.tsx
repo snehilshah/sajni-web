@@ -4,8 +4,11 @@ import { format } from 'date-fns';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthContext';
-import { bookmarks as bookmarksApi, finance, type FinAccount, type FinCategory } from '@/api';
+import { finance, type FinAccount, type FinCategory } from '@/api';
+import { useCreateBookmark } from '@/queries/bookmarks';
+import { qk } from '@/queries/keys';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +92,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
   );
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const createBookmark = useCreateBookmark();
 
   let host = '';
   try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
@@ -101,7 +105,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
   const save = async () => {
     setSaving(true);
     try {
-      const b = await bookmarksApi.create({ url, title: title.trim(), note: note.trim() });
+      const b = await createBookmark.mutateAsync({ url, title: title.trim(), note: note.trim() });
       toast.success('Bookmark saved');
       done(`/media?tab=${b.kind === 'video' ? 'videos' : 'sites'}`);
     } catch (e) {
@@ -177,6 +181,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
 
 function Capture({ text }: { text: string }) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const [accounts, setAccounts] = useState<FinAccount[]>([]);
   const [categories, setCategories] = useState<FinCategory[]>([]);
@@ -258,6 +263,8 @@ function Capture({ text }: { text: string }) {
       });
       try { localStorage.setItem(LAST_ACCT_KEY, accountId); } catch { /* ignore */ }
       try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
+      // Refresh any warm finance views (balances, ledger, overview).
+      qc.invalidateQueries({ queryKey: qk.finance.all });
       toast.success('Transaction added');
       navigate('/finance/transactions', { replace: true });
     } catch (e) {

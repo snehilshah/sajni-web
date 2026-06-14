@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isYesterday, differenceInCalendarDays } from 'date-fns';
 import { CalendarX2, ArrowRight, X, Loader2 } from 'lucide-react';
 
-import { tasks as tasksApi } from '@/api';
-import type { Task } from '@/types';
+import { useMissedTasks, useRescheduleTask, useScratchTask } from '@/queries/tasks';
 
 // MissedBanner surfaces every still-open overdue task (accumulates, oldest
 // first) with a one-tap reschedule-to-today CTA — per task and in bulk — plus
@@ -15,36 +14,27 @@ import type { Task } from '@/types';
 // Rendered on an M3 error-container tonal surface so a pile of misses reads as
 // a gentle alert, not decoration. Renders nothing when there's nothing missed.
 export default function MissedBanner({ onChanged }: { onChanged?: () => void }) {
-  const [missed, setMissed] = useState<Task[]>([]);
+  const { data: missed = [] } = useMissedTasks();
+  const reschedule = useRescheduleTask();
+  const scratch = useScratchTask();
   const [busy, setBusy] = useState<number | 'all' | null>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  const load = useCallback(async () => {
-    try {
-      setMissed(await tasksApi.list({ smart: 'missed' }));
-    } catch {
-      setMissed([]);
-    }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const after = async () => { await load(); onChanged?.(); };
-
   const rescheduleOne = async (id: number) => {
     setBusy(id);
-    try { await tasksApi.reschedule(id, today); await after(); }
+    try { await reschedule.mutateAsync({ id, date: today }); onChanged?.(); }
     finally { setBusy(null); }
   };
   const scratchOne = async (id: number) => {
     setBusy(id);
-    try { await tasksApi.scratch(id); await after(); }
+    try { await scratch.mutateAsync(id); onChanged?.(); }
     finally { setBusy(null); }
   };
   const rescheduleAll = async () => {
     setBusy('all');
     try {
-      await Promise.all(missed.map((t) => tasksApi.reschedule(t.id, today)));
-      await after();
+      await Promise.all(missed.map((t) => reschedule.mutateAsync({ id: t.id, date: today })));
+      onChanged?.();
     } finally { setBusy(null); }
   };
 

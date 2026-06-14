@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -9,33 +9,26 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { thinking, type ThinkingProject } from '@/api';
+import {
+  useThinkingProjects, useCreateThinkingProject, useDeleteThinkingProject,
+} from '@/queries/thinking';
 import { confirmDialog } from '@/lib/confirm';
 
 export default function ThinkingPage() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<ThinkingProject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: projects = [], isLoading: loading } = useThinkingProjects();
+  const createProject = useCreateThinkingProject();
+  const deleteProject = useDeleteThinkingProject();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const load = async () => {
-    try {
-      const data = await thinking.listProjects();
-      setProjects(data);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => { load(); }, []);
-
   const create = async () => {
     if (!title.trim()) return;
     setCreating(true);
     try {
-      const r = await thinking.createProject({ title: title.trim(), description: desc.trim() });
+      const r = await createProject.mutateAsync({ title: title.trim(), description: desc.trim() });
       setOpen(false);
       setTitle(''); setDesc('');
       navigate(`/thinking/${r.id}`);
@@ -46,8 +39,7 @@ export default function ThinkingPage() {
 
   const remove = async (id: number) => {
     if (!(await confirmDialog('Delete this thinking project and all its cards?'))) return;
-    await thinking.deleteProject(id);
-    load();
+    await deleteProject.mutateAsync(id);
   };
 
   return (

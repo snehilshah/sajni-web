@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 
-import { memos as memosApi } from '@/api';
+import { useMemos, useCreateMemo, useUpdateMemo, useDeleteMemo } from '@/queries/memos';
 import { confirmDialog } from '@/lib/confirm';
 import type { Memo } from '@/types';
 import TagPill from '@/components/TagPill';
@@ -17,37 +17,37 @@ import { Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check,
 import PageShell from '@/components/PageShell';
 
 export default function MemosPage() {
-  const [memosList, setMemosList] = useState<Memo[]>([]);
   const [draft, setDraft] = useState('');
   const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
   const [creating, setCreating] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [activeMemo, setActiveMemo] = useState<Memo | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
   const draftRef = useRef<HTMLTextAreaElement>(null);
 
-  const load = async () => {
-    try {
-      const data = await memosApi.list(search ? { search } : undefined);
-      setMemosList(data);
-      setActiveMemo((prev) => prev ? data.find((m: Memo) => m.id === prev.id) || null : null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Debounce search into the query param so each keystroke doesn't refetch.
   useEffect(() => {
-    const t = setTimeout(load, search ? 200 : 0);
+    const t = setTimeout(() => setDebounced(search), search ? 200 : 0);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  const { data, isLoading: loading } = useMemos(debounced ? { search: debounced } : undefined);
+  const memosList = (data ?? []) as Memo[];
+  const createMemo = useCreateMemo();
+  const updateMemo = useUpdateMemo();
+  const deleteMemo = useDeleteMemo();
+
+  // Derive the open memo from the live list so pin/edit reflect immediately.
+  const activeMemo = useMemo(
+    () => (activeId != null ? memosList.find((m) => m.id === activeId) ?? null : null),
+    [memosList, activeId],
+  );
 
   const handleCreate = async () => {
     if (!draft.trim()) return;
     setCreating(true);
     try {
-      await memosApi.create(draft);
+      await createMemo.mutateAsync({ content: draft });
       setDraft('');
-      load();
       draftRef.current?.focus();
     } finally {
       setCreating(false);
@@ -63,19 +63,14 @@ export default function MemosPage() {
 
   const handleDelete = async (id: number) => {
     if (!(await confirmDialog('Delete this memo?'))) return;
-    await memosApi.delete(id);
-    if (activeMemo?.id === id) setActiveMemo(null);
-    load();
+    await deleteMemo.mutateAsync(id);
+    if (activeId === id) setActiveId(null);
   };
   const handlePin = async (m: Memo) => {
-    await memosApi.update(m.id, { pinned: !m.pinned });
-    setActiveMemo((prev) => prev && prev.id === m.id ? { ...prev, pinned: !prev.pinned } : prev);
-    load();
+    await updateMemo.mutateAsync({ id: m.id, data: { pinned: !m.pinned } });
   };
   const handleSaveEdit = async (id: number, content: string) => {
-    await memosApi.update(id, { content });
-    setActiveMemo((prev) => prev && prev.id === id ? { ...prev, content } : prev);
-    load();
+    await updateMemo.mutateAsync({ id, data: { content } });
   };
 
   const grouped = useMemo(() => groupByDay(memosList), [memosList]);
@@ -144,7 +139,7 @@ export default function MemosPage() {
                       <MemoCard
                         key={memo.id}
                         memo={memo}
-                        onOpen={() => setActiveMemo(memo)}
+                        onOpen={() => setActiveId(memo.id)}
                         onPin={handlePin}
                       />
                     ))}
@@ -157,7 +152,7 @@ export default function MemosPage() {
 
       <MemoDetailDialog
         memo={activeMemo}
-        onClose={() => setActiveMemo(null)}
+        onClose={() => setActiveId(null)}
         onPin={handlePin}
         onDelete={handleDelete}
         onSave={handleSaveEdit}

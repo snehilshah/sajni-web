@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -12,7 +13,11 @@ import {
   type FinAccount, type FinCategory, type FinTransaction,
   type FinBudget, type FinInvestment, type FinSaving, type FinStatement,
 } from '@/api';
-import { useDataInvalidate } from '@/hooks/useDataInvalidate';
+import {
+  useFinAccounts, useFinCategories, useFinTransactions, useFinBudgets,
+  useFinInvestments, useFinSavings, useFinStatements,
+} from '@/queries/finance';
+import { qk } from '@/queries/keys';
 import OverviewTab from './OverviewTab';
 import AccountsTab from './AccountsTab';
 import TransactionsTab from './TransactionsTab';
@@ -65,19 +70,53 @@ export default function FinancePage() {
     [tab],
   );
 
-  const [data, setData] = useState<FinanceData>({
-    accounts: [],
-    categories: [],
-    transactions: [],
-    budgets: [],
-    investments: [],
-    savings: [],
-    statements: [],
+  const qc = useQueryClient();
+
+  // Heavy per-tab sets load lazily: a query turns on once its tab has been
+  // visited, then stays cached. accounts + categories are cheap and always on.
+  const [activated, setActivated] = useState<Set<string>>(() => new Set([active]));
+  useEffect(() => {
+    setActivated((prev) => (prev.has(active) ? prev : new Set(prev).add(active)));
+  }, [active]);
+  const want = (k: string) => activated.has(k);
+
+  const accountsQ = useFinAccounts();
+  const categoriesQ = useFinCategories();
+  const transactionsQ = useFinTransactions({ limit: 200 }, want('transactions'));
+  const budgetsQ = useFinBudgets(want('budgets'));
+  const investmentsQ = useFinInvestments(want('investments') || want('trading'));
+  const savingsQ = useFinSavings(want('accounts'));
+  const statementsQ = useFinStatements(want('cards'));
+
+  const data: FinanceData = {
+    accounts: accountsQ.data ?? [],
+    categories: categoriesQ.data ?? [],
+    transactions: transactionsQ.data ?? [],
+    budgets: budgetsQ.data ?? [],
+    investments: investmentsQ.data ?? [],
+    savings: savingsQ.data ?? [],
+    statements: statementsQ.data ?? [],
     loaded: {
-      accounts: false, categories: false, transactions: false,
-      budgets: false, investments: false, savings: false, statements: false,
+      accounts: accountsQ.isSuccess,
+      categories: categoriesQ.isSuccess,
+      transactions: transactionsQ.isSuccess,
+      budgets: budgetsQ.isSuccess,
+      investments: investmentsQ.isSuccess,
+      savings: savingsQ.isSuccess,
+      statements: statementsQ.isSuccess,
     },
-  });
+  };
+
+  // Tabs call these after their own writes; the InvalidateBridge calls the same
+  // root on AI finance events. Either way every enabled finance query refetches.
+  const reloadAll = () => qc.invalidateQueries({ queryKey: qk.finance.all });
+  const loadCategories = () => qc.invalidateQueries({ queryKey: qk.finance.categories() });
+  const loadAccounts = () => qc.invalidateQueries({ queryKey: qk.finance.accounts() });
+  const loadSavings = () => qc.invalidateQueries({ queryKey: qk.finance.savings() });
+  const loadTransactions = () => qc.invalidateQueries({ queryKey: qk.finance.transactions({ limit: 200 }) });
+  const loadBudgets = () => qc.invalidateQueries({ queryKey: qk.finance.budgets() });
+  const loadInvestments = () => qc.invalidateQueries({ queryKey: qk.finance.investments() });
+  const loadStatements = () => qc.invalidateQueries({ queryKey: qk.finance.statements() });
 
   const [exportOpen, setExportOpen] = useState(false);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag
@@ -91,104 +130,8 @@ export default function FinancePage() {
     setPrivacy(next);
   };
 
-  const loadAccounts = useCallback(async () => {
-    try {
-      const accounts = await finance.listAccounts();
-      setData((d) => ({ ...d, accounts, loaded: { ...d.loaded, accounts: true } }));
-    } catch { }
-  }, []);
-
-  const loadCategories = useCallback(async () => {
-    try {
-      const categories = await finance.listCategories();
-      setData((d) => ({ ...d, categories, loaded: { ...d.loaded, categories: true } }));
-    } catch { }
-  }, []);
-
-  const loadTransactions = useCallback(async () => {
-    try {
-      const transactions = await finance.listTransactions({ limit: 200 });
-      setData((d) => ({ ...d, transactions, loaded: { ...d.loaded, transactions: true } }));
-    } catch { }
-  }, []);
-
-  const loadBudgets = useCallback(async () => {
-    try {
-      const budgets = await finance.listBudgets();
-      setData((d) => ({ ...d, budgets, loaded: { ...d.loaded, budgets: true } }));
-    } catch { }
-  }, []);
-
-  const loadInvestments = useCallback(async () => {
-    try {
-      const investments = await finance.listInvestments();
-      setData((d) => ({ ...d, investments, loaded: { ...d.loaded, investments: true } }));
-    } catch { }
-  }, []);
-
-  const loadSavings = useCallback(async () => {
-    try {
-      const savings = await finance.listSavings();
-      setData((d) => ({ ...d, savings, loaded: { ...d.loaded, savings: true } }));
-    } catch { }
-  }, []);
-
-  const loadStatements = useCallback(async () => {
-    try {
-      const statements = await finance.listStatements();
-      setData((d) => ({ ...d, statements, loaded: { ...d.loaded, statements: true } }));
-    } catch { }
-  }, []);
-
-  // Initial load — fetch the lightweight stuff every tab needs (accounts, categories).
-  useEffect(() => {
-    loadAccounts();
-    loadCategories();
-  }, [loadAccounts, loadCategories]);
-
-  // Lazy-load on tab activation; subsequent visits use cached state instantly.
-  useEffect(() => {
-    if (active === 'transactions' && !data.loaded.transactions) loadTransactions();
-    if (active === 'budgets' && !data.loaded.budgets) loadBudgets();
-    // Trading + Investments tabs both read the shared `investments` set, so
-    // either one landed on directly must trigger the lazy load.
-    if ((active === 'investments' || active === 'trading') && !data.loaded.investments) loadInvestments();
-    if (active === 'cards' && !data.loaded.statements) loadStatements();
-    if (active === 'accounts' && !data.loaded.savings) loadSavings();
-  }, [
-    active, data.loaded,
-    loadTransactions, loadBudgets, loadInvestments, loadStatements, loadSavings,
-  ]);
-
-  // AI finance mutations (transaction_* / biller_*) refresh the open tab.
-  // Debounced so a multi-tool AI turn triggers one refetch, not several.
-  // Always refresh the cheap shared sets (accounts balances + categories);
-  // only re-fetch the heavy lazy sets that have actually been loaded so we
-  // don't eagerly pull tabs the user never opened.
-  useDataInvalidate(['transaction_', 'biller_'], () => {
-    loadAccounts();
-    loadCategories();
-    if (data.loaded.transactions) loadTransactions();
-    if (data.loaded.budgets) loadBudgets();
-    if (data.loaded.investments) loadInvestments();
-    if (data.loaded.savings) loadSavings();
-    if (data.loaded.statements) loadStatements();
-  });
-
   const setActive = (id: TabId) => {
     navigate(id === 'overview' ? '/finance' : '/finance/' + id, { replace: true });
-  };
-
-  // After a mutation in any tab, the affected loaders should refire.
-  // We expose a unified `reload` map so children don't need to know about the others.
-  const reloadAll = () => {
-    loadAccounts();
-    loadCategories();
-    loadTransactions();
-    loadBudgets();
-    loadInvestments();
-    loadSavings();
-    loadStatements();
   };
 
   return (

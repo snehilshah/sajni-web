@@ -1,14 +1,20 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 
-import { tasks as tasksApi, taskLists as listsApi } from '@/api';
-import type { Task, TaskList } from '@/types';
+import type { Task } from '@/types';
+import {
+  useTasks, useTaskLists, useMissedTasks,
+  useCreateTask, useToggleTaskStatus, useToggleTaskImportant,
+  useCreateTaskList, useUpdateTaskList, useDeleteTaskList,
+  type TaskListParams,
+} from '@/queries/tasks';
+import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,7 +36,7 @@ type ViewMode = 'list' | 'board';
 const VIEW_KEY = 'sajni:tasks:view';
 
 export default function TasksPage() {
-  const [lists, setLists] = useState<TaskList[]>([]);
+  const qc = useQueryClient();
   const [selection, setSelection] = useState<Selection>({ kind: 'smart', smart: 'my_day' });
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
@@ -38,59 +44,42 @@ export default function TasksPage() {
     } catch { return 'list'; }
   });
 
-  const [tasksList, setTasksList] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [missedCount, setMissedCount] = useState(0);
-
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formDefaults, setFormDefaults] = useState<Record<string, any>>({});
 
   const [quickTitle, setQuickTitle] = useState('');
-  const loadedTasksKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, viewMode); } catch {}
   }, [viewMode]);
 
-  const reloadLists = useCallback(async () => {
-    try {
-      const data = await listsApi.list();
-      setLists(data);
-    } catch {/* ignore */}
-  }, []);
+  // Selection -> list query params. Smart filters carry a `smart` key; a user
+  // list filters by id and only shows top-level tasks.
+  const params: TaskListParams = useMemo(() => (
+    selection.kind === 'smart'
+      ? { smart: selection.smart }
+      : { list: selection.id, parent: 'null' }
+  ), [selection]);
 
-  // Overdue count powers the Missed pill badge. Cheap; refreshed alongside lists.
-  const reloadMissed = useCallback(async () => {
-    try {
-      const data = await tasksApi.list({ smart: 'missed' });
-      setMissedCount(data.length);
-    } catch {/* ignore */}
-  }, []);
+  const { data: lists = [] } = useTaskLists();
+  const { data: tasksList = [], isLoading: loading } = useTasks(params);
+  const { data: missed = [] } = useMissedTasks();
+  const missedCount = missed.length;
 
-  const reloadTasks = useCallback(async () => {
-    const key = selection.kind === 'smart' ? `smart:${selection.smart}` : `list:${selection.id}`;
-    if (loadedTasksKeyRef.current !== key) setLoading(true);
-    try {
-      const params: Parameters<typeof tasksApi.list>[0] = {};
-      if (selection.kind === 'smart') {
-        params.smart = selection.smart;
-      } else {
-        params.list = selection.id;
-        params.parent = 'null';
-      }
-      const data = await tasksApi.list(params);
-      setTasksList(data);
-      loadedTasksKeyRef.current = key;
-    } finally {
-      setLoading(false);
-    }
-  }, [selection]);
+  const createTask = useCreateTask();
+  const moveStatus = useToggleTaskStatus();
+  const toggleImportant = useToggleTaskImportant();
+  const createList = useCreateTaskList();
+  const updateList = useUpdateTaskList();
+  const deleteList = useDeleteTaskList();
 
-  useEffect(() => { reloadLists(); }, [reloadLists]);
-  useEffect(() => { reloadTasks(); }, [reloadTasks]);
-  useEffect(() => { reloadMissed(); }, [reloadMissed]);
+  // Both the dialog and the missed banner write through paths that don't carry
+  // our hooks; invalidating the roots refreshes every mounted task view.
+  const refreshTasks = () => {
+    qc.invalidateQueries({ queryKey: qk.tasks.all });
+    qc.invalidateQueries({ queryKey: qk.taskLists.all });
+  };
 
   // Deep-link support: /tasks?focus=<id> opens that task's edit dialog
   // once it appears in the loaded list. Default smart filter is "my_day"
@@ -110,11 +99,6 @@ export default function TasksPage() {
     }
   }, [focusId, tasksList, searchParams, setSearchParams]);
 
-  // Refresh after AI tools mutate tasks (`data:invalidate` from AIChat).
-  // Debounced so a multi-tool turn coalesces into one refetch. The `task_`
-  // prefix covers task_created/updated/completed/deleted + task_list_*.
-  useDataInvalidate(['task_'], () => { reloadTasks(); reloadLists(); reloadMissed(); });
-
   const grouped = useMemo(() => {
     const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], done: [], scratched: [] };
     for (const t of tasksList) map[t.status]?.push(t);
@@ -126,6 +110,8 @@ export default function TasksPage() {
   const open = tasksList.filter((t) => t.status !== 'done' && t.status !== 'scratched');
   const completed = tasksList.filter((t) => t.status === 'done');
   const scratched = tasksList.filter((t) => t.status === 'scratched');
+
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const openCreate = (overrides: Record<string, any> = {}) => {
     setEditingTask(null);
@@ -164,10 +150,8 @@ export default function TasksPage() {
     if (selection.kind === 'smart' && selection.smart === 'important') {
       overrides.important = true;
     }
-    await tasksApi.create(overrides);
     setQuickTitle('');
-    reloadTasks();
-    reloadLists();
+    await createTask.mutateAsync(overrides);
   };
 
   const headerLabel = selectionLabel(selection, lists);
@@ -209,28 +193,20 @@ export default function TasksPage() {
           selection={selection}
           smartCounts={{ missed: missedCount }}
           onSelect={setSelection}
-          onCreate={async (name) => {
-            await listsApi.create({ name });
-            reloadLists();
-          }}
-          onRename={async (id, name) => {
-            await listsApi.update(id, { name });
-            reloadLists();
-          }}
+          onCreate={async (name) => { await createList.mutateAsync({ name }); }}
+          onRename={async (id, name) => { await updateList.mutateAsync({ id, data: { name } }); }}
           onDelete={async (id) => {
-            await listsApi.delete(id);
+            await deleteList.mutateAsync(id);
             if (selection.kind === 'list' && selection.id === id) {
               setSelection({ kind: 'smart', smart: 'all' });
             }
-            reloadLists();
-            reloadTasks();
           }}
         />
 
         {/* Missed-tasks highlight + reschedule CTA. Hidden while actually
             viewing the Missed list (would be redundant). Self-hides when empty. */}
         {!(selection.kind === 'smart' && selection.smart === 'missed') && (
-          <MissedBanner onChanged={() => { reloadTasks(); reloadLists(); reloadMissed(); }} />
+          <MissedBanner onChanged={refreshTasks} />
         )}
 
         {/* Inline quick-add — desktop only. Mobile uses the FAB → full sheet. */}
@@ -269,27 +245,22 @@ export default function TasksPage() {
               showCompleted={showCompleted}
               onToggleCompleted={() => setShowCompleted((v) => !v)}
               onClick={openEdit}
-              onChange={() => { reloadTasks(); reloadLists(); reloadMissed(); }}
             />
           ) : (
             <BoardView
               grouped={grouped}
               onClick={openEdit}
-              onMove={async (id, status) => {
+              onMove={(id, status) => {
                 const t = tasksList.find((x) => x.id === id);
                 if (!t || t.status === status) return;
-                setTasksList((arr) => arr.map((x) => (x.id === id ? { ...x, status } : x)));
-                await tasksApi.update(id, { status });
-                reloadLists();
+                moveStatus.mutate({ id, status });
               }}
               onQuickAdd={async (status, title) => {
                 const overrides: any = { title, status };
                 if (selection.kind === 'list') overrides.list_id = selection.id;
-                await tasksApi.create(overrides);
-                reloadTasks();
-                reloadLists();
+                await createTask.mutateAsync(overrides);
               }}
-              onChange={() => { reloadTasks(); reloadLists(); }}
+              onToggleImportant={(id, important) => toggleImportant.mutate({ id, important })}
             />
           )}
         </div>
@@ -302,7 +273,7 @@ export default function TasksPage() {
           editing={editingTask}
           defaults={formDefaults}
           lists={lists}
-          onSaved={() => { reloadTasks(); reloadLists(); reloadMissed(); }}
+          onSaved={refreshTasks}
         />
       </Suspense>
 
@@ -327,7 +298,7 @@ export default function TasksPage() {
 // --- List view ---
 
 function ListView({
-  open, completed, scratched, showCompleted, onToggleCompleted, onClick, onChange,
+  open, completed, scratched, showCompleted, onToggleCompleted, onClick,
 }: {
   open: Task[];
   completed: Task[];
@@ -335,7 +306,6 @@ function ListView({
   showCompleted: boolean;
   onToggleCompleted: () => void;
   onClick: (t: Task) => void;
-  onChange: () => void;
 }) {
   const [showScratched, setShowScratched] = useState(false);
   if (open.length === 0 && completed.length === 0 && scratched.length === 0) {
@@ -351,7 +321,7 @@ function ListView({
     <div className="flex flex-col gap-2">
       <AnimatePresence initial={false}>
         {open.map((t) => (
-          <TaskRow key={t.id} task={t} onClick={() => onClick(t)} onChange={onChange} />
+          <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
         ))}
       </AnimatePresence>
 
@@ -367,7 +337,7 @@ function ListView({
           {showCompleted && (
             <div className="flex flex-col gap-2 mt-2">
               {completed.map((t) => (
-                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} onChange={onChange} />
+                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
               ))}
             </div>
           )}
@@ -386,7 +356,7 @@ function ListView({
           {showScratched && (
             <div className="flex flex-col gap-2 mt-2">
               {scratched.map((t) => (
-                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} onChange={onChange} />
+                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
               ))}
             </div>
           )}
@@ -399,13 +369,13 @@ function ListView({
 // --- Board view (kanban kept for users who prefer it) ---
 
 function BoardView({
-  grouped, onClick, onMove, onQuickAdd, onChange,
+  grouped, onClick, onMove, onQuickAdd, onToggleImportant,
 }: {
   grouped: Record<Task['status'], Task[]>;
   onClick: (t: Task) => void;
   onMove: (id: number, status: Task['status']) => void;
   onQuickAdd: (status: Task['status'], title: string) => Promise<void>;
-  onChange: () => void;
+  onToggleImportant: (id: number, important: boolean) => void;
 }) {
   const [hover, setHover] = useState<Task['status'] | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -480,7 +450,7 @@ function BoardView({
                   onDragStart={(e) => { setDraggingId(task.id); e.dataTransfer.setData('text/task-id', String(task.id)); }}
                   onDragEnd={() => setDraggingId(null)}
                   onClick={() => onClick(task)}
-                  onChange={onChange}
+                  onToggleImportant={onToggleImportant}
                 />
               ))}
             </AnimatePresence>
@@ -496,22 +466,17 @@ function BoardView({
   );
 }
 
-function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onChange }: {
+function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleImportant }: {
   task: Task;
   dragging: boolean;
   onClick: () => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
-  onChange: () => void;
+  onToggleImportant: (id: number, important: boolean) => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const toggleStar = async (e: React.MouseEvent) => {
+  const toggleStar = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setBusy(true);
-    try {
-      await tasksApi.update(task.id, { important: !task.important });
-      onChange();
-    } finally { setBusy(false); }
+    onToggleImportant(task.id, !task.important);
   };
 
   return (
@@ -538,7 +503,6 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onChange }
           </span>
           <button
             onClick={toggleStar}
-            disabled={busy}
             className={`opacity-60 hover:opacity-100 transition-opacity shrink-0 ${task.important ? 'text-secondary opacity-100' : ''}`}
             title={task.important ? 'Remove from Important' : 'Mark important'}
           >

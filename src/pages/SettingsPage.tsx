@@ -7,7 +7,10 @@ import { useAuth } from '@/auth/AuthContext';
 import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { account, themes as themesApi, type UserTheme } from '@/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { account, themes as themesApi } from '@/api';
+import { useThemes } from '@/queries/themes';
+import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
@@ -19,19 +22,15 @@ import { getPreset } from '@/theme/presets';
 // the moment activate fires.
 function AIThemes() {
   const { mode, apply, active, refresh } = useUserTheme();
-  const [list, setList] = useState<UserTheme[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const { data: list = [], isLoading: loading } = useThemes();
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    try { setList(await themesApi.list()); }
-    catch {}
-    setLoading(false);
-  };
-  useEffect(() => { load(); }, []);
+  // Theme mutations stay on themesApi (tied to the provider's apply/refresh);
+  // refreshing the cached list keeps this management view in sync.
+  const reloadThemes = () => qc.invalidateQueries({ queryKey: qk.themes.all });
 
   const generate = async () => {
     const p = prompt.trim();
@@ -42,7 +41,7 @@ function AIThemes() {
       const t = await themesApi.generate(p, { activate: true });
       setPrompt('');
       apply(t);
-      await load();
+      reloadThemes();
       await refresh();
     } catch (e) {
       setError((e as Error).message || 'Generation failed');
@@ -55,7 +54,7 @@ function AIThemes() {
     try {
       const t = await themesApi.activate(id);
       apply(t);
-      await load();
+      reloadThemes();
     } catch (e) { console.error(e); }
   };
 
@@ -65,7 +64,7 @@ function AIThemes() {
     if (active?.id === id) {
       apply(null);
     }
-    await load();
+    reloadThemes();
   };
 
   return (

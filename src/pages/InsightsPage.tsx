@@ -6,7 +6,8 @@ import {
   BookOpen, FileText, StickyNote, Wallet, Film,
 } from 'lucide-react';
 
-import { insights, timeTravel, type Insight, type InsightWindow, type TimeTravelHit } from '@/api';
+import { timeTravel, type Insight, type InsightWindow, type TimeTravelHit } from '@/api';
+import { useInsights, useRunInsights, usePinInsight, useDismissInsight } from '@/queries/analytics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -27,42 +28,15 @@ const WINDOWS: { id: InsightWindow; label: string; long: string }[] = [
  */
 export default function InsightsPanel() {
   const [window, setWindow] = useState<InsightWindow>('1w');
-  const [items, setItems] = useState<Insight[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
+  const { data: items = [], isLoading: loading } = useInsights(window);
+  const runInsights = useRunInsights();
+  const pinInsight = usePinInsight();
+  const dismissInsight = useDismissInsight();
+  const running = runInsights.isPending;
 
-  const load = async (w: InsightWindow = window) => {
-    setLoading(true);
-    try {
-      const rows = await insights.list(w);
-      setItems(rows);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(window);   }, [window]);
-
-  const runNow = async () => {
-    setRunning(true);
-    try {
-      await insights.run(window);
-      await load(window);
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const togglePin = async (it: Insight) => {
-    if (it.pinned) await insights.unpin(it.id);
-    else await insights.pin(it.id);
-    load(window);
-  };
-
-  const dismiss = async (it: Insight) => {
-    await insights.dismiss(it.id);
-    setItems((arr) => arr.filter((x) => x.id !== it.id));
-  };
+  const runNow = () => { runInsights.mutate(window); };
+  const togglePin = (it: Insight) => { pinInsight.mutate({ id: it.id, pinned: !it.pinned }); };
+  const dismiss = (it: Insight) => { dismissInsight.mutate(it.id); };
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col gap-5">

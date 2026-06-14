@@ -5,13 +5,15 @@ import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { tasks as tasksApi, habits as habitsApi, memos as memosApi, journal as journalApi } from '@/api';
+import { journal as journalApi } from '@/api';
+import { useTasks, useToggleTaskStatus, useCreateTask } from '@/queries/tasks';
+import { useHabits, useHabitRecentLogs, useToggleHabitLog } from '@/queries/habits';
+import { useMemos, useCreateMemo } from '@/queries/memos';
+import { useJournalList, useSaveJournal } from '@/queries/journal';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import MissedBanner from '@/components/tasks/MissedBanner';
-import { useDataInvalidate } from '@/hooks/useDataInvalidate';
-import type { Task, Habit } from '@/types';
 
 interface Memo {
 	id: number;
@@ -44,13 +46,6 @@ export default function TodayPage() {
 	const navigate = useNavigate();
 	const { openTask } = useTaskDetail();
 
-	const [dueToday, setDueToday] = useState<Task[]>([]);
-	const [habitStatus, setHabitStatus] = useState<HabitDayStatus[]>([]);
-	const [habitsList, setHabitsList] = useState<Habit[]>([]);
-	const [habitWeek, setHabitWeek] = useState<Record<number, boolean[]>>({});
-	const [recentMemos, setRecentMemos] = useState<Memo[]>([]);
-	const [recentJournal, setRecentJournal] = useState<JournalMeta[]>([]);
-
 	const [hour, setHour] = useState(new Date().getHours());
 	const [capture, setCapture] = useState('');
 	const [captureKind, setCaptureKind] = useState<CaptureKind>('memo');
@@ -64,68 +59,48 @@ export default function TodayPage() {
 		return () => clearInterval(t);
 	}, []);
 
-	const refreshTasks = async () => {
-		const data = await tasksApi.list({ smart: 'my_day' }).catch(() => [] as Task[]);
-		setDueToday(data);
-	};
-	const refreshHabits = async () => {
-		// /habits already carries logged_today, so the day status is derived
-		// instead of fetched from /habits/status.
-		const list = await habitsApi.list().catch(() => [] as Habit[]);
-		setHabitStatus(list.map((h) => ({ id: h.id, name: h.name, color: h.color, logged: h.logged_today })));
-		setHabitsList(list);
-	};
-	const refreshMemos = async () => {
-		const data = await memosApi.list().catch(() => [] as Memo[]);
-		setRecentMemos((data as Memo[]).slice(0, 3));
-	};
-	const refreshJournal = async () => {
-		const data = await journalApi.list().catch(() => [] as JournalMeta[]);
-		setRecentJournal((data as JournalMeta[]).slice(0, 4));
-	};
-	const refreshAll = async () => {
-		await Promise.all([refreshTasks(), refreshHabits(), refreshMemos(), refreshJournal()]);
-	};
+	// Cached reads — refetch automatically when their roots are invalidated
+	// (post-mutation here, or via the AI InvalidateBridge).
+	const { data: dueToday = [] } = useTasks({ smart: 'my_day' });
+	const { data: habitsList = [] } = useHabits();
+	const { data: recentLogsMap = {} } = useHabitRecentLogs(14);
+	const { data: memosData = [] } = useMemos();
+	const { data: journalData = [] } = useJournalList();
 
-	useEffect(() => {
-		refreshAll();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	const recentMemos = (memosData as Memo[]).slice(0, 3);
+	const recentJournal = (journalData as JournalMeta[]).slice(0, 4);
+
+	// /habits already carries logged_today, so the day status is derived.
+	const habitStatus: HabitDayStatus[] = habitsList.map((h) => ({
+		id: h.id, name: h.name, color: h.color, logged: h.logged_today,
+	}));
+
+	const toggleTask = useToggleTaskStatus();
+	const toggleHabit = useToggleHabitLog(today);
+	const createMemo = useCreateMemo();
+	const createTask = useCreateTask();
+	const saveJournal = useSaveJournal();
 
 	// Derive the per-habit completion for the current calendar week (Mon..Sun),
 	// so today sits in its real weekday slot rather than always at the end.
-	useEffect(() => {
-		if (habitsList.length === 0) return;
-		let cancel = false;
-		(async () => {
-			const week: Record<number, boolean[]> = {};
-			const todayDate = new Date();
-			const monday = new Date(todayDate);
-			monday.setDate(monday.getDate() - ((todayDate.getDay() + 6) % 7));
-			const dayKeys: string[] = [];
-			for (let i = 0; i < 7; i++) {
-				const d = new Date(monday);
-				d.setDate(monday.getDate() + i);
-				dayKeys.push(format(d, 'yyyy-MM-dd'));
-			}
-			const byHabit = await habitsApi.recentLogs(14).catch(() => ({} as Record<string, string[]>));
-			for (const h of habitsList) {
-				const set = new Set(byHabit[String(h.id)] ?? []);
-				week[h.id] = dayKeys.map((k) => set.has(k));
-			}
-			if (!cancel) setHabitWeek(week);
-		})();
-		return () => {
-			cancel = true;
-		};
-	}, [habitsList]);
-
-	// React to AI mutations — refresh only the relevant domain, debounced so
-	// a multi-tool turn coalesces into one refetch per domain.
-	useDataInvalidate(['task_'], () => refreshTasks());
-	useDataInvalidate(['habit_'], () => refreshHabits());
-	useDataInvalidate(['memo_'], () => refreshMemos());
-	useDataInvalidate(['journal_'], () => refreshJournal());
+	const habitWeek = useMemo(() => {
+		const week: Record<number, boolean[]> = {};
+		if (habitsList.length === 0) return week;
+		const todayDate = new Date();
+		const monday = new Date(todayDate);
+		monday.setDate(monday.getDate() - ((todayDate.getDay() + 6) % 7));
+		const dayKeys: string[] = [];
+		for (let i = 0; i < 7; i++) {
+			const d = new Date(monday);
+			d.setDate(monday.getDate() + i);
+			dayKeys.push(format(d, 'yyyy-MM-dd'));
+		}
+		for (const h of habitsList) {
+			const set = new Set(recentLogsMap[String(h.id)] ?? []);
+			week[h.id] = dayKeys.map((k) => set.has(k));
+		}
+		return week;
+	}, [habitsList, recentLogsMap]);
 
 	const greeting =
 		hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Winding down';
@@ -170,23 +145,16 @@ export default function TodayPage() {
 		setSaving(true);
 		try {
 			if (captureKind === 'memo') {
-				await memosApi.create(text);
+				await createMemo.mutateAsync({ content: text });
 			} else if (captureKind === 'task') {
-				await tasksApi.create({ title: text, due_date: today });
+				await createTask.mutateAsync({ title: text, due_date: today });
 			} else if (captureKind === 'journal') {
 				// Append onto today's entry if present, else create.
-				try {
-					const existing = await journalApi.get(today).catch(() => null as any);
-					const next = existing?.content ? `${existing.content}\n\n${text}` : text;
-					await journalApi.save(today, next, existing?.mood ?? null);
-				} catch {
-					await journalApi.save(today, text, null);
-				}
+				const existing = await journalApi.get(today).catch(() => null as any);
+				const next = existing?.content ? `${existing.content}\n\n${text}` : text;
+				await saveJournal.mutateAsync({ date: today, content: next, mood: existing?.mood ?? null });
 			}
 			setCapture('');
-			if (captureKind === 'memo') refreshMemos();
-			else if (captureKind === 'task') refreshTasks();
-			else if (captureKind === 'journal') refreshJournal();
 		} finally {
 			setSaving(false);
 		}
@@ -279,7 +247,7 @@ export default function TodayPage() {
 			{/* Missed tasks — surfaced up top so yesterday's slips don't vanish.
 			    Self-hides when nothing is overdue. */}
 			<div className="mt-6">
-				<MissedBanner onChanged={refreshTasks} />
+				<MissedBanner />
 			</div>
 
 			{/* Two-column grid */}
@@ -313,10 +281,9 @@ export default function TodayPage() {
 									>
 										<button
 											type="button"
-											onClick={async (e) => {
+											onClick={(e) => {
 												e.stopPropagation();
-												await tasksApi.update(t.id, { status: 'done' });
-												refreshTasks();
+												toggleTask.mutate({ id: t.id, status: 'done' });
 											}}
 											aria-label="Mark complete"
 											className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 hover:border-primary hover:bg-primary/10 transition-colors"
@@ -450,10 +417,9 @@ export default function TodayPage() {
 											className={`flex items-center gap-3 py-2.5 cursor-pointer hover:bg-[hsl(var(--surface-container-high))] -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
 										>
 											<button
-												onClick={async (e) => {
+												onClick={(e) => {
 													e.stopPropagation();
-													await habitsApi.toggleLogForDate(h.id, today);
-													refreshHabits();
+													toggleHabit.mutate({ id: h.id, date: today });
 												}}
 												className="size-[26px] rounded-lg flex items-center justify-center transition-all"
 												style={{

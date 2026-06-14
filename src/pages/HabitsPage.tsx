@@ -3,7 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, startOfWeek, addDays } from 'date-fns';
 
-import { habits as habitsApi } from '@/api';
+import {
+  useHabits, useHabitRecentLogs, useToggleHabitLog,
+  useCreateHabit, useUpdateHabit, useDeleteHabit,
+} from '@/queries/habits';
 import { confirmDialog } from '@/lib/confirm';
 import type { Habit } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -28,13 +31,24 @@ function dayLetter(key: string): string {
 // right shows the longest current streak. Clicking the row name (or its
 // dot) opens the edit dialog.
 export default function HabitsPage() {
-  const [habitsList, setHabitsList] = useState<Habit[]>([]);
-  const [habitLogs, setHabitLogs] = useState<Record<number, Set<string>>>({});
-  const [loading, setLoading] = useState(true);
+  const { data: habitsList = [], isLoading: loading } = useHabits();
+  const { data: recentLogsMap = {} } = useHabitRecentLogs(14);
+  const toggleLog = useToggleHabitLog(format(new Date(), 'yyyy-MM-dd'));
+  const createHabit = useCreateHabit();
+  const updateHabit = useUpdateHabit();
+  const deleteHabit = useDeleteHabit();
+
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
   const [form, setForm] = useState({ name: '', frequency: 'daily', color: SWATCHES[0] });
   const [saving, setSaving] = useState(false);
+
+  // Per-habit logged-date sets, derived from the single recent-logs call.
+  const habitLogs = useMemo(() => {
+    const out: Record<number, Set<string>> = {};
+    for (const h of habitsList) out[h.id] = new Set(recentLogsMap[String(h.id)] ?? []);
+    return out;
+  }, [habitsList, recentLogsMap]);
 
   const week = useMemo(() => {
     // Fixed calendar week, Monday..Sunday (matches the journal). Today lands in
@@ -49,26 +63,6 @@ export default function HabitsPage() {
     () => habitsList.reduce((m, h) => Math.max(m, h.current_streak), 0),
     [habitsList],
   );
-
-  const load = async () => {
-    try {
-      const data = await habitsApi.list();
-      setHabitsList(data);
-      const entries = await Promise.all(
-        data.map(async (h) => {
-          try { return [h.id, await habitsApi.getLogs(h.id, 14)] as const; }
-          catch { return [h.id, [] as string[]] as const; }
-        })
-      );
-      const logs: Record<number, Set<string>> = {};
-      for (const [id, arr] of entries) logs[id] = new Set(arr);
-      setHabitLogs(logs);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
 
   // Deep-link: /habits?focus=<id> opens that habit's edit dialog once loaded.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -104,32 +98,21 @@ export default function HabitsPage() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      if (editing) await habitsApi.update(editing.id, form);
-      else await habitsApi.create(form);
+      if (editing) await updateHabit.mutateAsync({ id: editing.id, data: form });
+      else await createHabit.mutateAsync(form);
       setShowForm(false);
-      load();
     } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
     if (!(await confirmDialog('Delete this habit and all its logs?'))) return;
-    await habitsApi.delete(id);
-    load();
+    await deleteHabit.mutateAsync(id);
   };
 
-  const toggleDay = async (habit: Habit, dateStr: string) => {
+  const toggleDay = (habit: Habit, dateStr: string) => {
     // Future days in the current week aren't loggable yet.
     if (dateStr > todayKey) return;
-    setHabitLogs((prev) => {
-      const next = { ...prev };
-      const set = new Set(next[habit.id] || []);
-      if (set.has(dateStr)) set.delete(dateStr); else set.add(dateStr);
-      next[habit.id] = set;
-      return next;
-    });
-    await habitsApi.toggleLogForDate(habit.id, dateStr);
-    const fresh = await habitsApi.list();
-    setHabitsList(fresh);
+    toggleLog.mutate({ id: habit.id, date: dateStr });
   };
 
   const caption = `${habitsList.length} active ${habitsList.length === 1 ? 'habit' : 'habits'}${longestStreak > 0 ? ` · longest streak ${longestStreak} ${longestStreak === 1 ? 'day' : 'days'}` : ''}`;

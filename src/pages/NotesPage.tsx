@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { notes as notesApi } from '@/api';
+import { useNotes, useNoteFolders } from '@/queries/notes';
+import { qk } from '@/queries/keys';
 import RichEditor from '@/components/editor/RichEditor';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
@@ -101,8 +104,7 @@ function buildTree(notes: NoteListItem[], folders: string[]): TreeNode {
 
 export default function NotesPage() {
   const [params, setParams] = useSearchParams();
-  const [notesList, setNotesList] = useState<NoteListItem[]>([]);
-  const [folders, setFolders] = useState<string[]>([]);
+  const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [folder, setFolder] = useState('');
@@ -110,8 +112,8 @@ export default function NotesPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [backlinks, setBacklinks] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [loading, setLoading] = useState(true);
   const [loadingNote, setLoadingNote] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) !== '0'; } catch { return true; }
@@ -139,24 +141,22 @@ export default function NotesPage() {
     try { localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expandedFolders))); } catch {}
   }, [expandedFolders]);
 
-  const loadAll = useCallback(async () => {
-    try {
-      const [list, fs] = await Promise.all([
-        notesApi.list(search ? { search } : undefined),
-        notesApi.listFolders(),
-      ]);
-      setNotesList(list);
-      setFolders(fs);
-    } finally {
-      setLoading(false);
-    }
-     
+  // Debounce search into the query param so each keystroke doesn't refetch.
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search), search ? 200 : 0);
+    return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => {
-    const t = setTimeout(loadAll, search ? 200 : 0);
-    return () => clearTimeout(t);
-  }, [loadAll, search]);
+  const { data: notesData, isLoading: loading } = useNotes(debounced ? { search: debounced } : undefined);
+  const { data: foldersData } = useNoteFolders();
+  const notesList = (notesData ?? []) as NoteListItem[];
+  const folders = (foldersData ?? []) as string[];
+
+  // Editor writes go straight through notesApi (single-doc surface); this
+  // refreshes the cached list/folders + any other notes view after a write.
+  const loadAll = useCallback(() => {
+    qc.invalidateQueries({ queryKey: qk.notes.all });
+  }, [qc]);
 
   // Initial select via URL ?id=X
   useEffect(() => {

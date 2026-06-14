@@ -8,7 +8,10 @@ import {
   addWeeks, subWeeks,
 } from 'date-fns';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type JournalLocation } from '@/api';
+import { useJournalList } from '@/queries/journal';
+import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
 import LocationPill from '@/components/editor/LocationPill';
@@ -56,10 +59,10 @@ export default function JournalPage() {
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [viewMonth, setViewMonth] = useState(parseISO(initialDate));
+  const qc = useQueryClient();
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<string | null>(null);
   const [location, setLocation] = useState<JournalLocation | null>(null);
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [backlinks, setBacklinks] = useState<any[]>([]);
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -153,12 +156,13 @@ export default function JournalPage() {
   }, [goWeek]);
   void goWeekFromDate;
 
-  const loadEntries = useCallback(async () => {
-    const list = await journalApi.list();
-    setEntries(list as JournalEntry[]);
-  }, []);
-
-  useEffect(() => { loadEntries(); }, [loadEntries]);
+  const { data: entriesData } = useJournalList();
+  const entries = (entriesData ?? []) as JournalEntry[];
+  // Editor writes go through journalApi (day-scoped); refresh the cached list
+  // (and any other journal view) after a save/delete.
+  const loadEntries = useCallback(() => {
+    qc.invalidateQueries({ queryKey: qk.journal.all });
+  }, [qc]);
 
   const loadEntry = useCallback(async () => {
     setLoading(true);
@@ -237,12 +241,14 @@ export default function JournalPage() {
   const toggleHabit = async (habitId: number) => {
     setHabitStatuses((prev) => prev.map((h) => h.id === habitId ? { ...h, logged: !h.logged } : h));
     await habitsApi.toggleLogForDate(habitId, selectedDate);
+    qc.invalidateQueries({ queryKey: qk.habits.all });
   };
 
   const completeTask = async (taskId: number) => {
     setDueTasks((prev) => prev.filter((t) => t.id !== taskId));
     await tasksApi.update(taskId, { status: 'done' });
     loadTasks();
+    qc.invalidateQueries({ queryKey: qk.tasks.all });
   };
 
   const deleteEntry = async () => {
@@ -769,6 +775,7 @@ function WeekView({
 
   // Week-scoped tasks (week_of = this Monday) — the "This week" section. Kept
   // separate from the per-day breakdown since they have no specific day.
+  const qc = useQueryClient();
   const [weekTasks, setWeekTasks] = useState<Task[]>([]);
   const loadWeekTasks = useCallback(() => {
     tasksApi.list({ week_of: mondayKey }).then(setWeekTasks).catch(() => setWeekTasks([]));
@@ -779,10 +786,12 @@ function WeekView({
     const next = t.status === 'done' ? 'todo' : 'done';
     setWeekTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
     await tasksApi.update(t.id, { status: next });
+    qc.invalidateQueries({ queryKey: qk.tasks.all });
   };
   const addWeekTask = async (title: string) => {
     await tasksApi.create({ title, week_of: mondayKey });
     loadWeekTasks();
+    qc.invalidateQueries({ queryKey: qk.tasks.all });
   };
 
   // Load entry + summary whenever the week changes.
@@ -1152,6 +1161,7 @@ function StatTile({ label, value, tone }: {
 }
 
 function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () => void }) {
+  const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -1169,6 +1179,7 @@ function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () =
       await tasksApi.create({ title, due_date: dueDate });
       setValue('');
       onCreated();
+      qc.invalidateQueries({ queryKey: qk.tasks.all });
     } finally {
       setSubmitting(false);
       // Stay in edit mode for rapid entry; reset value cleared above.

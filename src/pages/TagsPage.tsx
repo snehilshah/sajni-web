@@ -1,15 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 
-import { tags as tagsApi } from '@/api';
+import { useTags, useTagEntities } from '@/queries/tags';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 
-interface TagCount { tag: string; count: number; }
 interface TagEntity { type: string; id: number; title: string; subtitle?: string; }
 
 const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (id: number) => string }> = {
@@ -23,24 +22,13 @@ const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (
 export default function TagsPage() {
   const { tag: activeTag } = useParams();
   const navigate = useNavigate();
-  const [tagsList, setTagsList] = useState<TagCount[]>([]);
-  const [entities, setEntities] = useState<TagEntity[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingEntities, setLoadingEntities] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  useEffect(() => {
-    tagsApi.list().then((data) => { setTagsList(data); setLoading(false); });
-  }, []);
-
-  useEffect(() => {
-    if (!activeTag) { setEntities(null); return; }
-    setLoadingEntities(true);
-    tagsApi.get(activeTag)
-      .then((res) => setEntities(res.entities as TagEntity[]))
-      .finally(() => setLoadingEntities(false));
-  }, [activeTag]);
+  const { data: tagsList = [], isLoading: loading } = useTags();
+  const entitiesQ = useTagEntities(activeTag);
+  const entities = activeTag ? ((entitiesQ.data?.entities as TagEntity[] | undefined) ?? null) : null;
+  const loadingEntities = !!activeTag && entitiesQ.isLoading;
 
   const filteredTags = useMemo(() => {
     const q = search.trim().toLowerCase();

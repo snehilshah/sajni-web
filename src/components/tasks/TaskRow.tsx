@@ -9,13 +9,14 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import type { Task, TaskStep } from '@/types';
 import TagPill from '@/components/TagPill';
 import { Input } from '@/components/ui/input';
-import { tasks as tasksApi } from '@/api';
+import {
+  useToggleTaskStatus, useToggleTaskImportant, useCreateTask, useSubtasks,
+} from '@/queries/tasks';
 import { PRIORITY_COLORS } from './helpers';
 
 interface Props {
   task: Task;
   onClick: () => void;
-  onChange: () => void;
   depth?: number;
 }
 
@@ -24,14 +25,18 @@ interface Props {
 // nested children. Children are list-embedded (prefetched) so expand is
 // instant; we lazy-fetch only as a fallback. Clicking the body opens the
 // detail dialog (via onClick).
-export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
+export default function TaskRow({ task, onClick, depth = 0 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  // Locally-refreshed children win; otherwise use the list-embedded prefetch.
-  const [fetched, setFetched] = useState<Task[] | null>(null);
-  const subs = fetched ?? task.subtasks ?? null;
-  const [loadingSubs, setLoadingSubs] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [subDraft, setSubDraft] = useState('');
+
+  const toggleStatus = useToggleTaskStatus();
+  const toggleImportant = useToggleTaskImportant();
+  const createTask = useCreateTask();
+
+  // Children: seeded by the list-embedded prefetch (instant expand), refetched
+  // fresh once the row is opened. Mutations invalidate the cache automatically.
+  const { data: subs, isFetching: loadingSubs } = useSubtasks(task.id, expanded, task.subtasks);
 
   const overdue = task.due_date && task.status !== 'done' && (() => {
     const d = parseISO(task.due_date);
@@ -41,50 +46,31 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
   const completedSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
 
-  const toggleStatus = async (e: React.MouseEvent) => {
+  const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = task.status === 'done' ? 'todo' : 'done';
-    await tasksApi.update(task.id, { status: next });
-    onChange();
+    toggleStatus.mutate({ id: task.id, status: task.status === 'done' ? 'todo' : 'done' });
   };
 
-  const toggleStar = async (e: React.MouseEvent) => {
+  const handleToggleStar = (e: React.MouseEvent) => {
     e.stopPropagation();
-    await tasksApi.update(task.id, { important: !task.important });
-    onChange();
-  };
-
-  // Fetch children only when we have no prefetch and none cached yet.
-  const ensureSubs = async () => {
-    if (subs !== null) return;
-    setLoadingSubs(true);
-    try {
-      setFetched(await tasksApi.subtasks(task.id));
-    } finally {
-      setLoadingSubs(false);
-    }
+    toggleImportant.mutate({ id: task.id, important: !task.important });
   };
 
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = !expanded;
-    setExpanded(next);
-    if (next) ensureSubs();
+    setExpanded((v) => !v);
   };
 
   const addSubtask = async () => {
     const title = subDraft.trim();
     if (!title) { setAddingSub(false); setSubDraft(''); return; }
-    await tasksApi.create({
+    setSubDraft('');
+    setAddingSub(false);
+    await createTask.mutateAsync({
       title,
       parent_task_id: task.id,
       list_id: task.list_id ?? null,
     });
-    setSubDraft('');
-    setAddingSub(false);
-    // Refetch subtasks; trigger parent refresh too.
-    setFetched(await tasksApi.subtasks(task.id));
-    onChange();
   };
 
   return (
@@ -104,7 +90,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
         <div className="flex items-start gap-3 px-3.5 py-3 min-h-12">
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
           <button
-            onClick={toggleStatus}
+            onClick={handleToggleStatus}
             className="shrink-0 -m-2 p-2 flex items-center justify-center"
             title={task.status === 'done' ? 'Mark incomplete' : 'Complete'}
           >
@@ -202,7 +188,7 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
           )}
 
           <button
-            onClick={toggleStar}
+            onClick={handleToggleStar}
             className={`-m-1.5 p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-[hsl(var(--surface-container-high))] transition-all shrink-0 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
             title={task.important ? 'Remove from Important' : 'Mark important'}
           >
@@ -237,10 +223,6 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                   key={sub.id}
                   task={sub}
                   onClick={onClick}
-                  onChange={async () => {
-                    onChange();
-                    setFetched(await tasksApi.subtasks(task.id));
-                  }}
                 />
               ))}
 

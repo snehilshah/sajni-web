@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Receipt, Plus, Trash2, Zap, CalendarClock, CheckCircle2, Pencil,
 } from 'lucide-react';
@@ -9,6 +10,8 @@ import {
   finance,
   type FinAccount, type FinCategory, type FinBiller, type BillerFrequency,
 } from '@/api';
+import { useFinBillers } from '@/queries/finance';
+import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +22,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
-import { useDataInvalidate } from '@/hooks/useDataInvalidate';
 import { formatMoney } from './utils';
 
 interface Props {
@@ -35,25 +37,15 @@ const FREQ_LABEL: Record<BillerFrequency, string> = {
 };
 
 export default function BillersTab({ accounts, categories }: Props) {
-  const [billers, setBillers] = useState<FinBiller[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const qc = useQueryClient();
   const [editing, setEditing] = useState<FinBiller | null>(null);
   const [creating, setCreating] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
-  const load = async () => {
-    try {
-      const rows = await finance.listBillers(showArchived);
-      setBillers(rows);
-    } catch {}
-    setLoaded(true);
-  };
-
-  useEffect(() => { load(); }, [showArchived]);
-
-  // AI biller mutations (create / pay) refresh this list, debounced so a
-  // multi-tool turn coalesces into one refetch.
-  useDataInvalidate(['biller_'], () => { load(); });
+  // List comes from the shared cache, so manual writes AND AI biller_ events
+  // (bridged to qk.finance.all by InvalidateBridge) both refresh it.
+  const { data: billers = [], isLoading } = useFinBillers(showArchived);
+  const refresh = () => qc.invalidateQueries({ queryKey: qk.finance.all });
 
   const monthlyOutflow = useMemo(() => {
     return billers.reduce((sum, b) => {
@@ -96,12 +88,12 @@ export default function BillersTab({ accounts, categories }: Props) {
         items={billers}
         accounts={accounts}
         onEdit={setEditing}
-        onPaid={load}
-        onChanged={load}
+        onPaid={refresh}
+        onChanged={refresh}
         emptyHint="Nothing tracked yet. Add rent, utilities, EMIs, subscriptions and any recurring charge."
       />
 
-      {!loaded && billers.length === 0 ? (
+      {isLoading && billers.length === 0 ? (
         <div className="text-xs text-muted-foreground text-center py-8">Loading…</div>
       ) : null}
 
@@ -111,7 +103,7 @@ export default function BillersTab({ accounts, categories }: Props) {
         accounts={accounts}
         categories={categories}
         onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); load(); }}
+        onSaved={() => { setCreating(false); setEditing(null); refresh(); }}
       />
     </div>
   );

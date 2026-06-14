@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
+import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/queries/media';
 import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
@@ -445,11 +446,9 @@ export default function MediaPage() {
   // Page-level Add button → bookmark panel's dialog (see BookmarksPanel).
   const [bookmarkAddSignal, setBookmarkAddSignal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
-  const [items, setItems] = useState<MediaEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
   const isMobileMedia = useIsMobile();
-  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     try { return (localStorage.getItem(MEDIA_VIEW_KEY) as 'grid' | 'list') || 'list'; }
     catch { return 'list'; }
@@ -499,24 +498,19 @@ export default function MediaPage() {
 
   const [form, setForm] = useState<FormState>(blankForm());
 
-  const load = async () => {
-    // Only show full-page skeletons on the very first load; subsequent
-    // refetches (filter switch, mutation) keep existing items in place
-    // so AnimatePresence can do its enter/exit anim instead of the whole
-    // grid flickering through skeleton → re-enter.
-    if (items.length === 0) setLoading(true);
-    try {
-      const params: any = { type: activeType };
-      if (statusFilter) params.status = statusFilter;
-      const data = await mediaApi.list(params);
-      setItems(data);
-    } finally { setLoading(false); }
+  // Cached library. keepPreviousData (in useMedia) holds the current shelf
+  // visible while a filter switch refetches; bookmark tabs load their own data
+  // so the media query is disabled there.
+  const mediaParams = useMemo(
+    () => ({ type: activeType, ...(statusFilter ? { status: statusFilter } : {}) }),
+    [activeType, statusFilter],
+  );
+  const { data: items = [], isLoading: loading } = useMedia(mediaParams, !isBookmarkTab) as {
+    data: MediaEntry[]; isLoading: boolean;
   };
-
-  useEffect(() => {
-    if (isBookmarkTab) return; // bookmark tabs load their own data
-    load();
-  }, [activeType, statusFilter]);
+  const createMedia = useCreateMedia();
+  const updateMedia = useUpdateMedia();
+  const deleteMedia = useDeleteMedia();
 
   // Deep-links (`/media?tab=videos` from the share flow) can land while
   // the page is already mounted — follow the param.
@@ -673,17 +667,15 @@ export default function MediaPage() {
           if (totalSeasons > 0) payload.seasons_watched = totalSeasons;
         }
       }
-      if (editItem) await mediaApi.update(editItem.id, payload);
-      else await mediaApi.create(payload);
+      if (editItem) await updateMedia.mutateAsync({ id: editItem.id, data: payload });
+      else await createMedia.mutateAsync(payload);
       setShowForm(false);
-      load();
     } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    await mediaApi.delete(id);
+    await deleteMedia.mutateAsync(id);
     setShowForm(false);
-    load();
   };
 
   const TypeIcon = TYPE_META[activeType]?.icon || Film;
