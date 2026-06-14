@@ -151,6 +151,14 @@ export default function TaskRow({ task, onClick, onChange, depth = 0 }: Props) {
                   {format(parseISO(task.due_date), 'MMM d')}
                 </span>
               )}
+              {task.week_of && !task.due_date && (
+                <span className="inline-flex items-center gap-1" title="Week task">
+                  <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
+                  </svg>
+                  wk of {format(parseISO(task.week_of), 'MMM d')}
+                </span>
+              )}
               {task.scheduled_at && (
                 <span
                   className={`inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${

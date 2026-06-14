@@ -4,7 +4,7 @@
    useCallback memoization here. Both are intentional, working integration
    patterns the React Compiler can't model (it flags them as errors). All other
    react-hooks rules stay active for this file. */
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState, lazy, Suspense } from 'react';
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -18,8 +18,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
-import { uploads, notes as notesApi, tasks as tasksApi, links as linksApi } from '@/api';
-import type { Task } from '@/types';
+import { uploads, notes as notesApi, tasks as tasksApi, taskLists as listsApi, links as linksApi } from '@/api';
+import type { Task, TaskList as TaskListModel } from '@/types';
 import { WikiLink, TagSuggest } from './wikilink';
 import { SlashCommand } from './slashMenu';
 import { TimeChip, TimeChipSuggest } from './timeChip';
@@ -35,10 +35,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+// Lazy + dynamic import breaks the RichEditor ⇄ TaskFormDialog import cycle
+// (the dialog renders a RichEditor for its notes field) and keeps the dialog's
+// tiptap/date-picker weight out of the base editor chunk.
+const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 
 import {
   Bold, Italic, Strikethrough, Code, Link2, Unlink, List, ListOrdered, ListChecks,
-  Quote, Heading1, Heading2, Heading3, Image as ImageIcon, Minus,
+  Quote, Heading1, Heading2, Heading3, Image as ImageIcon, Minus, Plus,
 } from 'lucide-react';
 
 interface Props {
@@ -64,17 +68,23 @@ interface Props {
 }
 
 export default function RichEditor({
-  value, onChange, placeholder, className, autoFocus, minHeight, fill,
+  value, onChange, placeholder, className, autoFocus, minHeight, fill, contextDate,
 }: Props) {
   const navigate = useNavigate();
   const isLocalUpdate = useRef(false);
 
-  // Picker for /task — search-and-pick over existing tasks. No create UI
-  // here per design: /task references only, creation lives outside the
-  // editor (journal right rail, /tasks page, etc).
+  // Picker for /task — search-and-pick over existing tasks, plus a "Create
+  // task" affordance that opens the generic add-task panel and inserts the
+  // new task as a chip on save. taskQuery tracks the search box so a created
+  // task can pre-fill its title from what the user typed.
   const [taskPicker, setTaskPicker] = useState(false);
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [taskLoading, setTaskLoading] = useState(false);
+  const [taskQuery, setTaskQuery] = useState('');
+  // Generic add-task panel launched from the picker.
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createLists, setCreateLists] = useState<TaskListModel[]>([]);
+  const [createDefaults, setCreateDefaults] = useState<Record<string, any>>({});
 
   // /link dialog state.
   const [linkOpen, setLinkOpen] = useState(false);
@@ -272,6 +282,7 @@ export default function RichEditor({
       // the insertion point.
       editor.chain().focus().deleteRange(range).run();
       setTaskList([]);
+      setTaskQuery('');
       setTaskPicker(true);
       // Fetch lazily so users who never invoke /task never pay the cost.
       setTaskLoading(true);
@@ -298,6 +309,19 @@ export default function RichEditor({
       .run();
     setTaskPicker(false);
   }, [editor]);
+
+  // Open the generic add-task panel from the picker, pre-filling the title
+  // from the search box and the due date from the surrounding page context
+  // (e.g. the journal day being edited). Lists are fetched lazily.
+  const openCreateTask = useCallback(() => {
+    setTaskPicker(false);
+    setCreateDefaults({
+      title: taskQuery.trim(),
+      ...(contextDate ? { due_date: contextDate } : {}),
+    });
+    setCreateOpen(true);
+    listsApi.list().then(setCreateLists).catch(() => setCreateLists([]));
+  }, [taskQuery, contextDate]);
 
   // Bind the /link slash command → M3 link dialog (title + url).
   useEffect(() => {
@@ -360,15 +384,19 @@ export default function RichEditor({
         modal={false}
         showOverlay={false}
         title="Reference a task"
-        description="Pick an existing task to insert as an inline chip. Create new tasks from the right rail or the Tasks page."
+        description="Pick an existing task to insert as an inline chip, or create a new one."
       >
-        <CommandInput placeholder="Search tasks…" />
+        <CommandInput
+          placeholder="Search tasks…"
+          value={taskQuery}
+          onValueChange={setTaskQuery}
+        />
         <CommandList>
           {taskLoading ? (
             <div className="px-3 py-6 text-center text-xs text-muted-foreground">Loading…</div>
           ) : (
             <>
-              <CommandEmpty>No matching tasks. Create one from the right rail or /tasks.</CommandEmpty>
+              <CommandEmpty>No matching tasks.</CommandEmpty>
               <CommandGroup heading="Open tasks">
                 {taskList.map((t) => (
                   <CommandItem
@@ -393,7 +421,35 @@ export default function RichEditor({
             </>
           )}
         </CommandList>
+        {/* Create affordance — always visible (outside the filtered list) so
+            "/task" can spin up a brand-new task via the generic add panel. */}
+        <div className="border-t border-[hsl(var(--outline-variant))] p-2">
+          <button
+            type="button"
+            onClick={openCreateTask}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-left transition-colors hover:bg-[hsl(var(--secondary-container))] hover:text-[hsl(var(--on-secondary-container))]"
+          >
+            <span className="grid size-5 place-items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+              <Plus className="size-3.5" />
+            </span>
+            <span className="flex-1 truncate">
+              {taskQuery.trim() ? <>Create “<span className="font-medium">{taskQuery.trim()}</span>”</> : 'Create a new task'}
+            </span>
+          </button>
+        </div>
       </CommandDialog>
+
+      <Suspense fallback={null}>
+        <TaskFormDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          editing={null}
+          defaults={createDefaults}
+          lists={createLists}
+          onSaved={() => {}}
+          onCreated={(t) => insertTaskChip({ id: t.id, title: t.title } as Task)}
+        />
+      </Suspense>
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent className="max-w-md">

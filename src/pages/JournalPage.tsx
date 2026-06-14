@@ -23,11 +23,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { MissedTask } from '@/api';
+import type { Task } from '@/types';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
   PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FilePlus, Calendar as CalendarIcon,
-  ChevronDown, Check as LucideCheck,
+  ChevronDown, Check as LucideCheck, Plus, CalendarRange,
 } from 'lucide-react';
 
 const MOODS = [
@@ -760,10 +761,29 @@ function WeekView({
 
   const monday = useMemo(() => isoWeekDateFromKey(year, week), [year, week]);
   const sunday = useMemo(() => endOfISOWeek(monday), [monday]);
+  const mondayKey = useMemo(() => format(monday, 'yyyy-MM-dd'), [monday]);
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
     [monday],
   );
+
+  // Week-scoped tasks (week_of = this Monday) — the "This week" section. Kept
+  // separate from the per-day breakdown since they have no specific day.
+  const [weekTasks, setWeekTasks] = useState<Task[]>([]);
+  const loadWeekTasks = useCallback(() => {
+    tasksApi.list({ week_of: mondayKey }).then(setWeekTasks).catch(() => setWeekTasks([]));
+  }, [mondayKey]);
+  useEffect(() => { loadWeekTasks(); }, [loadWeekTasks]);
+
+  const toggleWeekTask = async (t: Task) => {
+    const next = t.status === 'done' ? 'todo' : 'done';
+    setWeekTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    await tasksApi.update(t.id, { status: next });
+  };
+  const addWeekTask = async (title: string) => {
+    await tasksApi.create({ title, week_of: mondayKey });
+    loadWeekTasks();
+  };
 
   // Load entry + summary whenever the week changes.
   useEffect(() => {
@@ -903,9 +923,18 @@ function WeekView({
             onChange={handleContent}
             placeholder="What do you want this week to be about? Use / for commands, [[ to link, /task to reference…"
             minHeight="280px"
+            contextDate={mondayKey}
           />
         )}
       </div>
+
+      {/* This week — week-scoped tasks (no specific day), checkable inline. */}
+      <WeekTasksSection
+        tasks={weekTasks}
+        onToggle={toggleWeekTask}
+        onAdd={addWeekTask}
+        onOpen={(id) => window.dispatchEvent(new CustomEvent('task:open', { detail: { id } }))}
+      />
 
       {/* 7-day task breakdown */}
       <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
@@ -1448,6 +1477,105 @@ function DailyColumn({ icon, title, children }: { icon: React.ReactNode; title: 
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground py-1.5 px-1.5">{children}</p>;
+}
+
+// WeekTasksSection — the journal's "This week" list: week-scoped tasks
+// (week_of = this Monday) shown as checkable rows with an inline quick-add.
+// Sits above the per-day breakdown; week tasks have no specific day.
+function WeekTasksSection({
+  tasks, onToggle, onAdd, onOpen,
+}: {
+  tasks: Task[];
+  onToggle: (t: Task) => void;
+  onAdd: (title: string) => void;
+  onOpen: (id: number) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const open = tasks.filter((t) => t.status !== 'done' && t.status !== 'scratched');
+  const done = tasks.filter((t) => t.status === 'done');
+
+  const submit = () => {
+    const title = draft.trim();
+    if (!title) return;
+    setDraft('');
+    onAdd(title);
+  };
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+        <CalendarRange className="size-3.5 text-secondary" />
+        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">This week</span>
+        {open.length > 0 && (
+          <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{open.length} open</span>
+        )}
+      </div>
+
+      <div className="flex flex-col">
+        <AnimatePresence initial={false}>
+          {[...open, ...done].map((t) => {
+            const isDone = t.status === 'done';
+            return (
+              <motion.div
+                key={t.id}
+                layout
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                className="group flex items-center gap-3 px-4 py-2.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => onToggle(t)}
+                  className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    isDone ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'
+                  }`}
+                  aria-pressed={isDone}
+                  title={isDone ? 'Mark not done' : 'Mark done'}
+                >
+                  {isDone && <LucideCheck className="size-3" strokeWidth={3.5} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpen(t.id)}
+                  className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
+                >
+                  {t.title}
+                </button>
+                {t.priority === 'high' && !isDone && (
+                  <span className="size-2 rounded-full bg-destructive shrink-0" title="High priority" />
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+
+        {/* Inline quick-add — creates a week task for this week. */}
+        <div className="flex items-center gap-2.5 px-4 py-2.5">
+          <span className="size-[18px] rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+            <Plus className="size-3" strokeWidth={2.5} />
+          </span>
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+            placeholder={tasks.length === 0 ? 'Add a goal for this week…' : 'Add a week task'}
+            className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+          />
+          {draft.trim() && (
+            <button
+              type="button"
+              onClick={submit}
+              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+            >
+              Add
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: string) => void }) {

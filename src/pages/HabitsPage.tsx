@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, parseISO, subDays, startOfDay } from 'date-fns';
+import { format, parseISO, startOfWeek, addDays } from 'date-fns';
 
 import { habits as habitsApi } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
@@ -17,10 +17,8 @@ import PageShell from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
-// Day letter for a yyyy-MM-dd key. The week strip is a rolling window
-// ending today (not a fixed Mon..Sun), so letters must come from the
-// actual dates — a static M..S list mislabeled every column and made the
-// today-circle look pinned to "Sunday".
+// Day letter for a yyyy-MM-dd key. Derived from the actual date so the fixed
+// Mon..Sun strip labels each column correctly.
 function dayLetter(key: string): string {
   return format(parseISO(key), 'EEEEE');
 }
@@ -39,10 +37,10 @@ export default function HabitsPage() {
   const [saving, setSaving] = useState(false);
 
   const week = useMemo(() => {
-    // Mon..Sun ending on the most recent Sunday or today, whichever
-    // sweeps in today. Simpler: last 7 days ending today.
-    const today = startOfDay(new Date());
-    return Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
+    // Fixed calendar week, Monday..Sunday (matches the journal). Today lands in
+    // its real weekday slot; days after today render as disabled placeholders.
+    const mon = startOfWeek(new Date(), { weekStartsOn: 1 });
+    return Array.from({ length: 7 }, (_, i) => addDays(mon, i));
   }, []);
   const weekKeys = useMemo(() => week.map((d) => format(d, 'yyyy-MM-dd')), [week]);
   const todayKey = format(new Date(), 'yyyy-MM-dd');
@@ -120,6 +118,8 @@ export default function HabitsPage() {
   };
 
   const toggleDay = async (habit: Habit, dateStr: string) => {
+    // Future days in the current week aren't loggable yet.
+    if (dateStr > todayKey) return;
     setHabitLogs((prev) => {
       const next = { ...prev };
       const set = new Set(next[habit.id] || []);
@@ -302,20 +302,28 @@ function HabitCard({
         {weekKeys.map((d, i) => {
           const on = loggedDays.has(d);
           const isToday = d === todayKey;
+          const isFuture = d > todayKey;
           return (
             <div key={i} className="flex flex-col items-center gap-1.5">
-              <span className={`mono text-xs leading-none ${isToday ? 'font-semibold text-[hsl(var(--primary))]' : 'text-muted-foreground'}`}>
+              <span className={`mono text-xs leading-none ${
+                isToday ? 'font-semibold text-[hsl(var(--primary))]' : isFuture ? 'text-muted-foreground/40' : 'text-muted-foreground'
+              }`}>
                 {dayLetter(d)}
               </span>
               <motion.button
                 onClick={() => onToggleDay(d)}
-                whileTap={{ scale: 0.82 }}
+                disabled={isFuture}
+                whileTap={isFuture ? undefined : { scale: 0.82 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 aria-pressed={on}
-                title={`${d}${on ? ' — done' : ''}${isToday ? ' · today' : ''}`}
-                className="relative grid aspect-square w-full place-items-center rounded-full tap-highlight-none"
+                title={isFuture ? d : `${d}${on ? ' — done' : ''}${isToday ? ' · today' : ''}`}
+                className={`relative grid aspect-square w-full place-items-center rounded-full tap-highlight-none ${isFuture ? 'cursor-default' : ''}`}
                 style={{
-                  background: on ? habit.color : 'hsl(var(--surface-container-highest))',
+                  background: on
+                    ? habit.color
+                    : isFuture
+                      ? 'hsl(var(--surface-container-highest) / 0.4)'
+                      : 'hsl(var(--surface-container-highest))',
                   color: 'hsl(var(--primary-foreground))',
                   boxShadow: isToday
                     ? (on

@@ -173,11 +173,9 @@ function SegmentedBar({
     if (status === 'dropped' || status === 'scratched') {
       return watched >= barEnd ? 'var(--progress-dropped)' : 'var(--progress-idle)';
     }
-    if (status === 'pending' || status === 'waiting' || status === 'archived') {
-      return 'var(--progress-inactive)';
-    }
 
-    // in_progress (default):
+    // pending / waiting / archived / in_progress all show real watched
+    // progress — a parked show shouldn't hide how far you actually got.
     if (watched >= barEnd)   return 'var(--progress-complete)';
     if (watched > barStart)  return 'var(--progress-active)';
     return 'var(--progress-idle)';

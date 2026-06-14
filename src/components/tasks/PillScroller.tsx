@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Star, Calendar, AlarmClock, CalendarX2, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Sun, Star, Calendar, CalendarRange, AlarmClock, CalendarX2, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 
 import type { TaskList, SmartList } from '@/types';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ const SMART_ICON: Record<SmartList, typeof Sun> = {
   my_day: Sun,
   important: Star,
   planned: Calendar,
+  week: CalendarRange,
   scheduled: AlarmClock,
   missed: CalendarX2,
   inbox: Inbox,

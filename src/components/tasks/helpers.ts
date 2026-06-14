@@ -1,4 +1,12 @@
+import { startOfWeek, format } from 'date-fns';
 import type { Task, SmartList } from '@/types';
+
+// weekMondayKey returns the Monday (YYYY-MM-DD) of the week containing `d`
+// (default today). week_of on a week task always stores this Monday, matching
+// the journal's Monday-anchored weekly view.
+export function weekMondayKey(d: Date = new Date()): string {
+  return format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+}
 
 export const STATUSES: Task['status'][] = ['todo', 'in_progress', 'done'];
 
@@ -38,6 +46,7 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'my_day', label: 'My Day', description: 'Tasks due today' },
   { smart: 'important', label: 'Important', description: 'Starred tasks' },
   { smart: 'planned', label: 'Planned', description: 'Tasks with a due date' },
+  { smart: 'week', label: 'This Week', description: 'Week-scoped tasks due this week' },
   { smart: 'scheduled', label: 'Scheduled', description: 'Tasks with a time / reminder' },
   { smart: 'missed', label: 'Missed', description: 'Overdue & still open' },
   { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },

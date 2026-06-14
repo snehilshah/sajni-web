@@ -100,6 +100,7 @@ export const tasks = {
   list: (params?: {
     status?: string;
     due_date?: string;
+    week_of?: string;
     completed_date?: string;
     list?: number | 'none';
     parent?: number | 'null';
@@ -108,6 +109,7 @@ export const tasks = {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
     if (params?.due_date) q.set('due_date', params.due_date);
+    if (params?.week_of) q.set('week_of', params.week_of);
     if (params?.completed_date) q.set('completed_date', params.completed_date);
     if (params?.list !== undefined) q.set('list', String(params.list));
     if (params?.parent !== undefined) q.set('parent', String(params.parent));
@@ -121,8 +123,10 @@ export const tasks = {
     priority?: string;
     status?: string;
     due_date?: string;
+    week_of?: string;
     scheduled_at?: string;
     remind?: boolean;
+    notify_emails?: string[];
     list_id?: number | null;
     parent_task_id?: number | null;
     important?: boolean;

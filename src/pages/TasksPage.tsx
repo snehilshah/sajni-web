@@ -20,7 +20,7 @@ import TaskRow from '@/components/tasks/TaskRow';
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import {
-  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel,
+  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel, weekMondayKey,
 } from '@/components/tasks/helpers';
 import PageShell from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
@@ -134,6 +134,9 @@ export default function TasksPage() {
       ...(selection.kind === 'smart' && selection.smart === 'my_day'
         ? { due_date: new Date().toLocaleDateString('en-CA') }
         : {}),
+      ...(selection.kind === 'smart' && selection.smart === 'week'
+        ? { due_type: 'week', week_of: weekMondayKey() }
+        : {}),
       ...(selection.kind === 'smart' && selection.smart === 'important'
         ? { important: true }
         : {}),
@@ -154,6 +157,9 @@ export default function TasksPage() {
     if (selection.kind === 'list') overrides.list_id = selection.id;
     if (selection.kind === 'smart' && selection.smart === 'my_day') {
       overrides.due_date = new Date().toLocaleDateString('en-CA');
+    }
+    if (selection.kind === 'smart' && selection.smart === 'week') {
+      overrides.week_of = weekMondayKey();
     }
     if (selection.kind === 'smart' && selection.smart === 'important') {
       overrides.important = true;

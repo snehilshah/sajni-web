@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, startOfWeek, endOfWeek } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw } from 'lucide-react';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail } from 'lucide-react';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
@@ -23,7 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL,
+  STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey,
 } from './helpers';
 import { StepsEditor } from './TaskRow';
 
@@ -32,11 +32,17 @@ interface FormState {
   description: string;
   priority: Task['priority'];
   status: Task['status'];
+  /** 'day' = a dated task (due_date); 'week' = a week-scoped task (week_of). */
+  due_type: 'day' | 'week';
   due_date: string;
+  /** Monday (YYYY-MM-DD) of the chosen week when due_type === 'week'. */
+  week_of: string;
   /** Local HH:MM clock time; '' = no time (all-day). */
   scheduled_time: string;
   /** Email the user ~5 min before scheduled_time. */
   remind: boolean;
+  /** Extra recipients also emailed when this task's reminders fire. */
+  notify_emails: string[];
   list_id: number | null;
   important: boolean;
   steps: TaskStep[];
@@ -44,8 +50,8 @@ interface FormState {
 
 const blank: FormState = {
   title: '', description: '', priority: 'medium', status: 'todo',
-  due_date: '', scheduled_time: '', remind: false,
-  list_id: null, important: false, steps: [],
+  due_type: 'day', due_date: '', week_of: '', scheduled_time: '', remind: false,
+  notify_emails: [], list_id: null, important: false, steps: [],
 };
 
 // Local "HH:MM" from an ISO instant, in the browser's tz. '' when null.
@@ -94,9 +100,12 @@ interface Props {
   defaults?: Partial<FormState>;
   lists: TaskList[];
   onSaved: () => void;
+  /** Fired only on a *new* task create, with the created row — lets callers
+   *  (e.g. the journal /task picker) act on it, like inserting a chip. */
+  onCreated?: (saved: { id: number; title: string }) => void;
 }
 
-export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved }: Props) {
+export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, onCreated }: Props) {
   const [form, setForm] = useState<FormState>(blank);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [events, setEvents] = useState<TaskEvent[]>([]);
@@ -113,9 +122,12 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         description: editing.description || '',
         priority: editing.priority,
         status: editing.status,
+        due_type: editing.week_of ? 'week' : 'day',
         due_date: editing.due_date || '',
+        week_of: editing.week_of || '',
         scheduled_time: timeFromISO(editing.scheduled_at),
         remind: editing.remind ?? false,
+        notify_emails: editing.notify_emails ?? [],
         list_id: editing.list_id ?? null,
         important: editing.important,
         steps: editing.steps || [],
@@ -141,9 +153,13 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    // A time only makes sense with a day; remind only with a time.
-    const scheduledISO = toScheduledISO(form.due_date, form.scheduled_time);
+    // A week task has no specific day → no time/reminder. Otherwise a time
+    // only makes sense with a day, and remind only with a time.
+    const isWeek = form.due_type === 'week';
+    const scheduledISO = isWeek ? null : toScheduledISO(form.due_date, form.scheduled_time);
     const remind = scheduledISO ? form.remind : false;
+    // Custom recipients only matter when something actually fires.
+    const notify_emails = form.notify_emails;
     try {
       if (editing) {
         const listChanged = form.list_id !== (editing.list_id ?? null);
@@ -152,11 +168,18 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           description: form.description,
           priority: form.priority,
           status: form.status,
-          due_date: form.due_date || null,
-          // null clears the time; clear_scheduled lets the server NULL it.
-          scheduled_at: scheduledISO,
-          clear_scheduled: scheduledISO === null,
-          remind,
+          // Day vs week are exclusive — set one column, clear the other so a
+          // switch never leaves a stale due_date / week_of behind.
+          ...(isWeek
+            ? { week_of: form.week_of, clear_due: true, clear_scheduled: true, remind: false }
+            : {
+                due_date: form.due_date || null,
+                week_of: null, clear_week: true,
+                scheduled_at: scheduledISO,
+                clear_scheduled: scheduledISO === null,
+                remind,
+              }),
+          notify_emails,
           list_id: form.list_id,
           // list_id:null alone is ignored by the API ("leave alone"); clear_list
           // is what actually moves a task to Inbox.
@@ -168,22 +191,27 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           important: form.important,
           steps: form.steps,
         });
+        onOpenChange(false);
+        onSaved();
       } else {
-        await tasksApi.create({
+        const res = await tasksApi.create({
           title: form.title,
           description: form.description,
           priority: form.priority,
           status: form.status,
-          due_date: form.due_date || undefined,
+          due_date: isWeek ? undefined : (form.due_date || undefined),
+          week_of: isWeek ? form.week_of : undefined,
           scheduled_at: scheduledISO ?? undefined,
           remind,
+          notify_emails,
           list_id: form.list_id ?? null,
           important: form.important,
           steps: form.steps,
         });
+        onOpenChange(false);
+        onSaved();
+        onCreated?.({ id: res.id, title: form.title.trim() });
       }
-      onOpenChange(false);
-      onSaved();
     } finally {
       setSaving(false);
     }
@@ -335,14 +363,47 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due date</Label>
-              <DatePicker
-                id="task-due-date"
-                name="task-due-date"
-                value={form.due_date}
-                onChange={(v) => setForm({ ...form, due_date: v })}
-                placeholder="No date"
-              />
+              <div className="flex items-center justify-between gap-1">
+                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due</Label>
+                {/* Day vs week scope — a week task lands in the This Week list. */}
+                <div className="inline-flex rounded-full bg-[hsl(var(--surface-container-high))] p-0.5">
+                  {(['day', 'week'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm({
+                        ...form,
+                        due_type: t,
+                        ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
+                      })}
+                      className={cn(
+                        'rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize transition-colors',
+                        form.due_type === t
+                          ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {form.due_type === 'day' ? (
+                <DatePicker
+                  id="task-due-date"
+                  name="task-due-date"
+                  value={form.due_date}
+                  onChange={(v) => setForm({ ...form, due_date: v })}
+                  placeholder="No date"
+                />
+              ) : (
+                // Picking any day snaps to that week's Monday (week_of anchor).
+                <DatePicker
+                  value={form.week_of}
+                  onChange={(v) => setForm({ ...form, week_of: v ? weekMondayKey(parseISO(v)) : '' })}
+                  placeholder="Pick a week"
+                />
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -372,54 +433,70 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           </div>
 
-          {/* Schedule — one section: the task's own time + ~5-min email nudge
-              on top, then any number of extra reminders below. */}
+          {/* Schedule — the task's own time + ~5-min email nudge, then custom
+              recipients and any number of extra reminders below. A week task
+              has no specific time, so the time row is replaced by a note. */}
           <div className="flex flex-col rounded-lg border border-border bg-card/50">
-            <div className="flex flex-col gap-2 p-3">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <div className="flex flex-col gap-1.5 sm:w-44">
-                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                  <Clock className="size-3" /> Time
-                </Label>
-                <TimePicker
-                  id="task-time"
-                  name="task-time"
-                  value={form.scheduled_time}
-                  placeholder="Set time"
-                  onChange={(v) => setForm({
-                    ...form,
-                    scheduled_time: v,
-                    // A reminder needs a concrete day — default to today when
-                    // none is picked so a quick "remind me at 5pm" works
-                    // without first choosing a due date. The user can still
-                    // move the date freely with the Due date picker.
-                    due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
-                    remind: v ? form.remind : false,
-                  })}
-                />
+            {form.due_type === 'day' ? (
+              <div className="flex flex-col gap-2 p-3">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <div className="flex flex-col gap-1.5 sm:w-44">
+                    <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                      <Clock className="size-3" /> Time
+                    </Label>
+                    <TimePicker
+                      id="task-time"
+                      name="task-time"
+                      value={form.scheduled_time}
+                      placeholder="Set time"
+                      onChange={(v) => setForm({
+                        ...form,
+                        scheduled_time: v,
+                        // A reminder needs a concrete day — default to today when
+                        // none is picked so a quick "remind me at 5pm" works
+                        // without first choosing a due date. The user can still
+                        // move the date freely with the Due date picker.
+                        due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
+                        remind: v ? form.remind : false,
+                      })}
+                    />
+                  </div>
+                  <label
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 transition-colors',
+                      form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
+                    )}
+                  >
+                    <Bell className="size-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm flex-1">Remind me by email</span>
+                    <Switch
+                      checked={form.remind}
+                      disabled={!form.scheduled_time}
+                      onCheckedChange={(v) => setForm({ ...form, remind: v })}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {!form.scheduled_time
+                    ? 'Set a time — scheduled for the due date, or today if none is set.'
+                    : form.remind
+                      ? 'Sajni will email you ~5 min before.'
+                      : 'Shows on your Today agenda. Turn on Remind for an email nudge.'}
+                </p>
               </div>
-              <label
-                className={cn(
-                  'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 transition-colors',
-                  form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
-                )}
-              >
-                <Bell className="size-4 text-muted-foreground shrink-0" />
-                <span className="text-sm flex-1">Remind me by email</span>
-                <Switch
-                  checked={form.remind}
-                  disabled={!form.scheduled_time}
-                  onCheckedChange={(v) => setForm({ ...form, remind: v })}
-                />
-              </label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {!form.scheduled_time
-                ? 'Set a time — scheduled for the due date, or today if none is set.'
-                : form.remind
-                  ? 'Sajni will email you ~5 min before.'
-                  : 'Shows on your Today agenda. Turn on Remind for an email nudge.'}
-            </p>
+            ) : (
+              <div className="p-3">
+                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                  <Clock className="size-3" /> Week tasks have no specific time. Add a reminder below for a nudge.
+                </p>
+              </div>
+            )}
+            {/* Custom recipients — also email these people when reminders fire. */}
+            <div className="border-t border-border/70 p-3">
+              <EmailRecipients
+                value={form.notify_emails}
+                onChange={(em) => setForm({ ...form, notify_emails: em })}
+              />
             </div>
             {/* Extra reminders — any date/time, delivered by the cron. */}
             {editing && (
@@ -660,6 +737,89 @@ function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// EmailRecipients — extra addresses also emailed when this task's reminders
+// fire (e.g. a friend for a meet-up). The owner is always notified anyway;
+// these are email-only. Capped at MAX (server enforces the same) with a
+// lightweight format check so obvious typos don't get saved.
+const MAX_NOTIFY_EMAILS = 3;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const [draft, setDraft] = useState('');
+  const [err, setErr] = useState('');
+
+  const add = () => {
+    const e = draft.trim().toLowerCase();
+    if (!e) return;
+    if (!EMAIL_RE.test(e)) { setErr('Enter a valid email address.'); return; }
+    if (value.includes(e)) { setDraft(''); return; }
+    if (value.length >= MAX_NOTIFY_EMAILS) { setErr(`Up to ${MAX_NOTIFY_EMAILS} recipients.`); return; }
+    onChange([...value, e]);
+    setDraft('');
+    setErr('');
+  };
+  const remove = (e: string) => onChange(value.filter((x) => x !== e));
+
+  const full = value.length >= MAX_NOTIFY_EMAILS;
+  return (
+    <div className="flex flex-col gap-2">
+      <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+        <Mail className="size-3" /> Also email
+      </Label>
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <AnimatePresence initial={false}>
+            {value.map((e) => (
+              <motion.span
+                key={e}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.14, ease: [0.2, 0, 0, 1] }}
+                className="group inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] pl-2.5 pr-1.5 py-1 text-xs"
+              >
+                <span className="max-w-[14rem] truncate">{e}</span>
+                <button
+                  type="button"
+                  onClick={() => remove(e)}
+                  className="size-4 inline-flex items-center justify-center rounded-full hover:bg-[hsl(var(--on-surface)/0.12)] transition-colors"
+                  title="Remove recipient"
+                >
+                  <X className="size-3" />
+                </button>
+              </motion.span>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+      {!full && (
+        <div className="flex items-center gap-2">
+          <Input
+            type="email"
+            inputMode="email"
+            value={draft}
+            onChange={(e) => { setDraft(e.target.value); if (err) setErr(''); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+            }}
+            placeholder="friend@example.com"
+            className="h-9 flex-1 text-sm"
+          />
+          {draft.trim() && (
+            <Button type="button" size="sm" variant="outline" className="h-9 shrink-0" onClick={add}>
+              <Plus className="size-3.5" /> Add
+            </Button>
+          )}
+        </div>
+      )}
+      <p className={cn('text-xs', err ? 'text-destructive' : 'text-muted-foreground')}>
+        {err || 'They get an email-only nudge when this task reminds. You’re always notified too.'}
+      </p>
     </div>
   );
 }

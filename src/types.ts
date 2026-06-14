@@ -23,9 +23,14 @@ export interface Task {
   priority: 'low' | 'medium' | 'high';
   tags?: string[];
   due_date?: string | null;
+  /** Monday-anchored week (YYYY-MM-DD) for a week-scoped task (no specific
+   *  day). Mutually exclusive with due_date; drives the "This Week" list. */
+  week_of?: string | null;
   scheduled_at?: string | null;
   /** Email the user ~5 min before scheduled_at. */
   remind?: boolean;
+  /** Extra recipients also emailed when this task's reminders fire. */
+  notify_emails?: string[];
   /** Sent-sentinel; null until the reminder email has gone out. */
   reminded_at?: string | null;
   list_id?: number | null;
@@ -53,7 +58,7 @@ export interface TaskList {
   updated_at: string;
 }
 
-export type SmartList = 'my_day' | 'important' | 'planned' | 'scheduled' | 'missed' | 'inbox' | 'all';
+export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'scheduled' | 'missed' | 'inbox' | 'all';
 
 export interface Habit {
   id: number;

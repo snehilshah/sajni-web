@@ -75,12 +75,15 @@ function CommandInput({
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
+    // M3 Expressive filled search field — rounded surface-container tonal fill
+    // with a leading search icon and a primary focus ring, instead of the flat
+    // command-palette underline.
     <div data-slot="command-input-wrapper" className="p-2">
-      <InputGroup className="border-transparent border-b-[hsl(var(--outline-variant))] bg-transparent px-4 py-1.5">
+      <InputGroup className="rounded-2xl border-transparent bg-[hsl(var(--surface-container-high))] px-4 transition-shadow focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            "w-full px-3 py-2.5 text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground",
+            "w-full px-2 py-2.5 text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground",
             className
           )}
           {...props}

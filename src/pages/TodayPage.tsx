@@ -92,17 +92,20 @@ export default function TodayPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// Derive the per-habit last-7-days completion (Mon..Sun ending today).
+	// Derive the per-habit completion for the current calendar week (Mon..Sun),
+	// so today sits in its real weekday slot rather than always at the end.
 	useEffect(() => {
 		if (habitsList.length === 0) return;
 		let cancel = false;
 		(async () => {
 			const week: Record<number, boolean[]> = {};
 			const todayDate = new Date();
+			const monday = new Date(todayDate);
+			monday.setDate(monday.getDate() - ((todayDate.getDay() + 6) % 7));
 			const dayKeys: string[] = [];
-			for (let i = 6; i >= 0; i--) {
-				const d = new Date(todayDate);
-				d.setDate(d.getDate() - i);
+			for (let i = 0; i < 7; i++) {
+				const d = new Date(monday);
+				d.setDate(monday.getDate() + i);
 				dayKeys.push(format(d, 'yyyy-MM-dd'));
 			}
 			const byHabit = await habitsApi.recentLogs(14).catch(() => ({} as Record<string, string[]>));
@@ -435,6 +438,7 @@ export default function TodayPage() {
 							) : (
 								habitStatus.map((h, i) => {
 									const week = habitWeek[h.id] || [];
+									const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0 … Sun=6
 									const habit = habitsList.find((x) => x.id === h.id);
 									const streak = habit?.current_streak ?? 0;
 									return (
@@ -476,14 +480,21 @@ export default function TodayPage() {
 												<div className="flex items-center gap-1.5 mt-1">
 													{Array.from({ length: 7 }).map((_, idx) => {
 														const filled = week[idx];
+														const isToday = idx === todayIdx;
+														const isFuture = idx > todayIdx;
 														return (
 															<div
 																key={idx}
 																className="rounded-[2px]"
 																style={{
 																	width: 14,
-																	height: 4,
-																	background: filled ? h.color : 'hsl(var(--muted-foreground) / 0.18)',
+																	height: isToday ? 6 : 4,
+																	background: filled
+																		? h.color
+																		: isFuture
+																			? 'hsl(var(--muted-foreground) / 0.08)'
+																			: 'hsl(var(--muted-foreground) / 0.18)',
+																	boxShadow: isToday ? '0 0 0 1.5px hsl(var(--primary))' : 'none',
 																}}
 															/>
 														);
