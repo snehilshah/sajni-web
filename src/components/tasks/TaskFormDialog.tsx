@@ -22,6 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { SegmentedButton } from '@/components/ui/segmented-button';
 import {
   STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey,
 } from './helpers';
@@ -315,7 +316,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 shrink-0">
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Status</Label>
+              <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue>
@@ -339,7 +340,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Priority</Label>
+              <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">Priority</Label>
               <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: (v as Task['priority']) || 'medium' })}>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue>
@@ -363,30 +364,24 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-1">
+              <div className="flex h-6 items-center justify-between gap-1">
                 <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due</Label>
                 {/* Day vs week scope — a week task lands in the This Week list. */}
-                <div className="inline-flex rounded-full bg-[hsl(var(--surface-container-high))] p-0.5">
-                  {(['day', 'week'] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setForm({
-                        ...form,
-                        due_type: t,
-                        ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
-                      })}
-                      className={cn(
-                        'rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize transition-colors',
-                        form.due_type === t
-                          ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedButton
+                  size="sm"
+                  showCheck={false}
+                  aria-label="Due scope"
+                  value={form.due_type}
+                  onChange={(t) => setForm({
+                    ...form,
+                    due_type: t,
+                    ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
+                  })}
+                  options={[
+                    { value: 'day', label: 'Day' },
+                    { value: 'week', label: 'Week' },
+                  ]}
+                />
               </div>
               {form.due_type === 'day' ? (
                 <DatePicker
@@ -407,7 +402,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">List</Label>
+              <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">List</Label>
               <Select
                 value={form.list_id ? String(form.list_id) : 'inbox'}
                 onValueChange={(v) =>
