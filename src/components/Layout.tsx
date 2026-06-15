@@ -6,7 +6,7 @@ import {
   ChevronRight, LogOut, Wallet, MessageSquare, Sparkles,
   Search, Settings, Loader2, Home, ListChecks, MoreHorizontal,
   Brain,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { useAuth } from '@/auth/AuthContext';
 import CommandPalette from '@/components/CommandPalette';
 import AIChat from '@/components/AIChat';

@@ -6,7 +6,7 @@ import {
   Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft, X,
   Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight,
   Bookmark as BookmarkIcon,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { search as searchApi, type SearchHit } from '@/api';
 import {

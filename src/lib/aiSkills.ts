@@ -1,7 +1,7 @@
 import {
   CalendarDays, Clock, ListChecks, Film, Inbox, BookOpen,
   type LucideIcon,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 // Each Skill is a templated message the user can fire with one click.
 // The agent resolves dates/IDs at runtime via tool calls — these strings

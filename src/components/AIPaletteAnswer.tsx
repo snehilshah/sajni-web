@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Sparkles, ArrowRight, AlertCircle,
   CheckSquare, Target, BookOpen, Film, Wallet,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { M3CookieLoader } from '@/components/ui/shapes';

@@ -1,42 +1,36 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isYesterday, differenceInCalendarDays } from 'date-fns';
-import { CalendarX2, ArrowRight, X, Loader2 } from 'lucide-react';
+import { CalendarX2, ArrowRight, X, Loader2, ChevronDown } from '@/components/ui/icons';
 
-import { useMissedTasks, useRescheduleTask, useScratchTask } from '@/queries/tasks';
+import { useMissedTasks, useRescheduleTask, useRescheduleTasks, useScratchTask } from '@/queries/tasks';
 
-// MissedBanner surfaces every still-open overdue task (accumulates, oldest
-// first) with a one-tap reschedule-to-today CTA — per task and in bulk — plus
-// a quick scratch for things that are simply not happening. Self-fetching so
-// both Today and Tasks can drop it in; calls onChanged so the host can
-// refresh its own lists/counts after a move.
+// MissedBanner surfaces every still-open overdue task with one-tap
+// reschedule-to-today (per task + bulk) and a quick scratch.
 //
-// Rendered on an M3 error-container tonal surface so a pile of misses reads as
-// a gentle alert, not decoration. Renders nothing when there's nothing missed.
-export default function MissedBanner({ onChanged }: { onChanged?: () => void }) {
+// It reads as a CALM summary, not an alarm: a single neutral surface-container
+// chip ("N missed · review") the user taps to expand the full list — no
+// persistent red wall, the old error-container treatment shouted on every
+// visit. Accent is the calm `--color-waiting` tone, never error-red.
+//
+// Fully react-query driven: the list (useMissedTasks) auto-refetches whenever a
+// task mutation invalidates the tasks cache, and per-row / bulk spinners read
+// straight off each mutation's isPending + variables — no local busy state, no
+// onChanged callback. Renders nothing when there's nothing missed.
+export default function MissedBanner() {
   const { data: missed = [] } = useMissedTasks();
   const reschedule = useRescheduleTask();
+  const rescheduleAll = useRescheduleTasks();
   const scratch = useScratchTask();
-  const [busy, setBusy] = useState<number | 'all' | null>(null);
+  const [open, setOpen] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  const rescheduleOne = async (id: number) => {
-    setBusy(id);
-    try { await reschedule.mutateAsync({ id, date: today }); onChanged?.(); }
-    finally { setBusy(null); }
-  };
-  const scratchOne = async (id: number) => {
-    setBusy(id);
-    try { await scratch.mutateAsync(id); onChanged?.(); }
-    finally { setBusy(null); }
-  };
-  const rescheduleAll = async () => {
-    setBusy('all');
-    try {
-      await Promise.all(missed.map((t) => reschedule.mutateAsync({ id: t.id, date: today })));
-      onChanged?.();
-    } finally { setBusy(null); }
-  };
+  // Any in-flight mutation locks the controls so a row can't be double-acted.
+  const busy = reschedule.isPending || rescheduleAll.isPending || scratch.isPending;
+  const rescheduleOne = (id: number) => reschedule.mutate({ id, date: today });
+  const scratchOne = (id: number) => scratch.mutate(id);
+  const doRescheduleAll = () =>
+    rescheduleAll.mutate({ ids: missed.map((t) => t.id), date: today });
 
   if (missed.length === 0) return null;
 
@@ -53,78 +47,102 @@ export default function MissedBanner({ onChanged }: { onChanged?: () => void }) 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -6 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
-      className="rounded-2xl border border-[hsl(var(--error)/0.4)] bg-[hsl(var(--error-container)/0.55)] text-[hsl(var(--on-error-container))] p-3.5"
+      transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+      className="rounded-2xl border border-border bg-[hsl(var(--surface-container))] overflow-hidden"
     >
-      <div className="flex items-center gap-2.5">
-        <span className="grid place-items-center size-8 rounded-full bg-[hsl(var(--error)/0.18)] shrink-0">
-          <CalendarX2 className="size-4" />
+      {/* Summary row — the whole strip toggles the detail list. */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[hsl(var(--on-surface)/0.04)] transition-colors"
+      >
+        <span className="grid place-items-center size-7 rounded-full bg-[hsl(var(--color-waiting)/0.16)] text-[hsl(var(--color-waiting))] shrink-0">
+          <CalendarX2 className="size-3.5" />
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold leading-tight">
-            {missed.length} missed {missed.length === 1 ? 'task' : 'tasks'}
-          </div>
-          <div className="text-xs opacity-80 leading-tight mt-0.5">
-            Overdue and still open — reschedule or scratch them.
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={rescheduleAll}
-          disabled={busy !== null}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-medium bg-[hsl(var(--error)/0.9)] text-[hsl(var(--on-error))] hover:opacity-90 active:scale-[0.98] transition disabled:opacity-50"
-        >
-          {busy === 'all' ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
-          All to today
-        </button>
-      </div>
+        <span className="text-sm font-medium leading-tight flex-1 min-w-0">
+          {missed.length} missed {missed.length === 1 ? 'task' : 'tasks'}
+          <span className="text-muted-foreground font-normal"> · review</span>
+        </span>
+        <ChevronDown
+          className={`size-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+        />
+      </button>
 
-      <div className="mt-2.5 flex flex-col gap-1">
-        <AnimatePresence initial={false}>
-          {missed.map((t) => (
-            <motion.div
-              key={t.id}
-              layout
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-              className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-[hsl(var(--on-error-container)/0.06)] transition-colors"
-            >
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: t.id } }))}
-                className="flex-1 min-w-0 text-left"
-              >
-                <span className="text-sm truncate block">{t.title}</span>
-              </button>
-              <span className="mono text-xs tabular-nums shrink-0 rounded-full px-1.5 py-0.5 bg-[hsl(var(--error)/0.16)]">
-                {ageLabel(t.due_date)}
-              </span>
-              <button
-                type="button"
-                onClick={() => rescheduleOne(t.id)}
-                disabled={busy !== null}
-                title="Reschedule to today"
-                className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 h-7 text-xs font-medium bg-[hsl(var(--on-error-container)/0.1)] hover:bg-[hsl(var(--on-error-container)/0.18)] transition disabled:opacity-50"
-              >
-                {busy === t.id ? <Loader2 className="size-3 animate-spin" /> : 'Today'}
-              </button>
-              <button
-                type="button"
-                onClick={() => scratchOne(t.id)}
-                disabled={busy !== null}
-                title="Scratch (abandon) this task"
-                className="shrink-0 size-7 inline-flex items-center justify-center rounded-full text-current/70 hover:bg-[hsl(var(--on-error-container)/0.12)] transition disabled:opacity-50"
-              >
-                <X className="size-3.5" />
-              </button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="px-2.5 pb-2.5 pt-0.5">
+              {missed.length > 1 && (
+                <div className="flex justify-end pb-1.5">
+                  <button
+                    type="button"
+                    onClick={doRescheduleAll}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-medium bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:opacity-90 active:scale-[0.98] transition disabled:opacity-50"
+                  >
+                    {rescheduleAll.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
+                    All to today
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-0.5">
+                <AnimatePresence initial={false}>
+                  {missed.map((t) => (
+                    <motion.div
+                      key={t.id}
+                      layout
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                      className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-[hsl(var(--on-surface)/0.05)] transition-colors"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: t.id } }))}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <span className="text-sm truncate block">{t.title}</span>
+                      </button>
+                      <span className="mono text-xs tabular-nums shrink-0 rounded-full px-1.5 py-0.5 bg-[hsl(var(--color-waiting)/0.14)] text-[hsl(var(--color-waiting))]">
+                        {ageLabel(t.due_date)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => rescheduleOne(t.id)}
+                        disabled={busy}
+                        title="Reschedule to today"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 h-7 text-xs font-medium bg-[hsl(var(--on-surface)/0.08)] hover:bg-[hsl(var(--on-surface)/0.14)] transition disabled:opacity-50"
+                      >
+                        {reschedule.isPending && reschedule.variables?.id === t.id ? <Loader2 className="size-3 animate-spin" /> : 'Today'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scratchOne(t.id)}
+                        disabled={busy}
+                        title="Scratch (abandon) this task"
+                        className="shrink-0 size-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.1)] hover:text-foreground transition disabled:opacity-50"
+                      >
+                        {scratch.isPending && scratch.variables === t.id ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

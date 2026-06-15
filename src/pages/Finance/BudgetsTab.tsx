@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
-import { Plus, Pencil, Trash2, Tags } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tags } from '@/components/ui/icons';
 
 import { finance, type FinBudget, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';

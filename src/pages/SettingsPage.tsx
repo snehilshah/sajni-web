@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Sparkles, Star, Wand2, Pencil, Mail, Check, X } from 'lucide-react';
+import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Sparkles, Star, Wand2, Pencil, Mail, Check, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { M3CookieLoader } from '@/components/ui/shapes';

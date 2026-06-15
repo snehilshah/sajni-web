@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, CircleDollarSign, AlertTriangle, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, CircleDollarSign, AlertTriangle, Clock } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
 import { finance, type FinAccount, type FinInvestment } from '@/api';

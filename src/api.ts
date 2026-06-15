@@ -424,9 +424,9 @@ export const notes = {
     return request<any[]>('/notes' + (qs ? '?' + qs : ''));
   },
   get: (id: number) => request<any>('/notes/' + id),
-  create: (title: string, content: string, folder?: string) =>
-    request<{ id: number; folder: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '' }) }),
-  update: (id: number, data: { title?: string; content?: string; folder?: string }) =>
+  create: (title: string, content: string, folder?: string, description?: string) =>
+    request<{ id: number; folder: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }) }),
+  update: (id: number, data: { title?: string; content?: string; folder?: string; description?: string }) =>
     request('/notes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/notes/' + id, { method: 'DELETE' }),
   // Folders

@@ -4,7 +4,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Receipt, Plus, Trash2, Zap, CalendarClock, CheckCircle2, Pencil,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import {
   finance,
@@ -337,12 +337,14 @@ function BillerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{biller ? 'Edit biller' : 'New biller'}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 mt-2">
+        {/* Tall form — cap height and scroll the fields so the modal never
+            runs off-screen; header + footer stay pinned. */}
+        <div className="flex flex-col gap-3 mt-2 max-h-[62vh] overflow-y-auto overscroll-contain -mx-1 px-1">
           <Field label="Name">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Electricity" autoFocus />
           </Field>
@@ -418,7 +420,7 @@ function BillerDialog({
           <div className="rounded-xl border border-border divide-y divide-border">
             <CheckRow
               label="Auto-renew"
-              desc="Auto-post the expense each cycle."
+              desc="Auto-post the expense each cycle (works like a subscription — renews on its own, no manual pay)."
               checked={autoRenew}
               onChange={setAutoRenew}
               disabled={accountID == null}

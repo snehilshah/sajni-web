@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
   TrendingUp, CreditCard, Download, Receipt, CandlestickChart,
   Eye, VenetianMask,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import {
   finance,

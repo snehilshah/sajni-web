@@ -1,5 +1,5 @@
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
-import { Check, X } from "lucide-react"
+import { Check, X } from "@/components/ui/icons"
 
 import { cn } from "@/lib/utils"
 

@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import {
   ArrowLeft, Plus, Sparkles, Trash2, RefreshCw, ChevronRight, X,
   Edit3, Save, Link2,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import PageShell from '@/components/PageShell';
 import { Button } from '@/components/ui/button';

@@ -32,7 +32,7 @@ import {
   Trash2, AlertCircle, ArrowRight,
   PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FilePlus, Calendar as CalendarIcon,
   ChevronDown, Check as LucideCheck, Plus, CalendarRange,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 const MOODS = [
   { emoji: '😊', label: 'Happy' },

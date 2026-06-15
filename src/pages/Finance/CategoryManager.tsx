@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X } from '@/components/ui/icons';
 
 import { finance, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';

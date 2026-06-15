@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import type { Task } from '@/types';
@@ -74,8 +74,9 @@ export default function TasksPage() {
   const updateList = useUpdateTaskList();
   const deleteList = useDeleteTaskList();
 
-  // Both the dialog and the missed banner write through paths that don't carry
-  // our hooks; invalidating the roots refreshes every mounted task view.
+  // The task dialog saves through paths that don't carry our hooks; invalidating
+  // the roots refreshes every mounted task view. (The missed banner is fully
+  // react-query now and self-invalidates — it needs no callback.)
   const refreshTasks = () => {
     qc.invalidateQueries({ queryKey: qk.tasks.all });
     qc.invalidateQueries({ queryKey: qk.taskLists.all });
@@ -206,7 +207,7 @@ export default function TasksPage() {
         {/* Missed-tasks highlight + reschedule CTA. Hidden while actually
             viewing the Missed list (would be redundant). Self-hides when empty. */}
         {!(selection.kind === 'smart' && selection.smart === 'missed') && (
-          <MissedBanner onChanged={refreshTasks} />
+          <MissedBanner />
         )}
 
         {/* Inline quick-add — desktop only. Mobile uses the FAB → full sheet. */}

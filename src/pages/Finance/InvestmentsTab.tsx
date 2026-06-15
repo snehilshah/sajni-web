@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from '@/components/ui/icons';
 
 import { finance, type FinAccount, type FinInvestment } from '@/api';
 import { confirmDialog } from '@/lib/confirm';

@@ -24,7 +24,7 @@ import {
 import {
   Globe, Search, X, MoreVertical, Archive, ArchiveRestore,
   CircleCheck, Circle, Trash2, ExternalLink, Pencil, MonitorPlay, BookmarkPlus,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 // Pretty names for hosts whose favicon alone isn't label enough. Everything
 // else shows its fetched site_name or bare host — the favicon carries the

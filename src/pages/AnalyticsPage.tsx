@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { useAnalytics } from '@/queries/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from 'lucide-react';
+import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from '@/components/ui/icons';
 import PageShell from '@/components/PageShell';
 import InsightsPanel from '@/pages/InsightsPage';
 

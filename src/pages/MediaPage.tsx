@@ -18,7 +18,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe } from 'lucide-react';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe } from '@/components/ui/icons';
+
+// Pixel-art platform glyphs (pixelarticons), imported as raw SVG strings so
+// they bundle offline (no runtime fetch) and render at a fixed size. Each
+// platform maps to a DISTINCT glyph + brand-color tint so they stay
+// tell-apart even though the set has no real brand logos.
+import pxTv from 'pixelarticons/svg/tv.svg?raw';
+import pxVideo from 'pixelarticons/svg/video.svg?raw';
+import pxCastle from 'pixelarticons/svg/castle.svg?raw';
+import pxMonitor from 'pixelarticons/svg/monitor.svg?raw';
+import pxAirplay from 'pixelarticons/svg/airplay.svg?raw';
+import pxSparkles from 'pixelarticons/svg/sparkles.svg?raw';
+import pxPlay from 'pixelarticons/svg/play.svg?raw';
+import pxBuilding from 'pixelarticons/svg/building.svg?raw';
+import pxDownload from 'pixelarticons/svg/download.svg?raw';
+import pxImage from 'pixelarticons/svg/image.svg?raw';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
 const MEDIA_SORT_KEY = 'sajni:media:sort';
@@ -90,7 +105,7 @@ const PLATFORM_OPTIONS = [
   { value: 'hulu', label: 'Hulu' },
   { value: 'cinema', label: 'Cinema' },
   { value: 'youtube', label: 'YouTube' },
-  { value: 'torrent', label: 'Other download' },
+  { value: 'torrent', label: 'Downloaded' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -114,6 +129,56 @@ const TYPE_TO_TAB: Record<string, string> = Object.fromEntries(
 
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
+
+// Per-platform pixel glyph (distinct each) + brand-color tint. The pixel set
+// has no real brand logos, so a varied glyph + colour keeps platforms apart.
+// Colour is an intentional exception to the theme-token rule so a platform
+// reads as itself; `currentColor` ones inherit the surrounding text colour.
+const PIXEL_SVGS: Record<string, string> = {
+  tv: pxTv, video: pxVideo, castle: pxCastle, monitor: pxMonitor, airplay: pxAirplay,
+  sparkles: pxSparkles, play: pxPlay, building: pxBuilding, download: pxDownload, image: pxImage,
+};
+
+const PLATFORM_PIXEL: Record<string, { glyph: keyof typeof PIXEL_SVGS; color: string }> = {
+  netflix: { glyph: 'tv',       color: '#E50914' },
+  amazon:  { glyph: 'video',    color: '#00A8E1' },
+  disney:  { glyph: 'castle',   color: '#113CCF' },
+  hbo:     { glyph: 'monitor',  color: '#9D4EDD' },
+  apple:   { glyph: 'airplay',  color: 'currentColor' },
+  hulu:    { glyph: 'sparkles', color: '#1CE783' },
+  youtube: { glyph: 'play',     color: '#FF0000' },
+  cinema:  { glyph: 'building', color: 'currentColor' },
+  torrent: { glyph: 'download', color: 'currentColor' },
+  other:   { glyph: 'image',    color: 'currentColor' },
+};
+
+// Renders a raw pixelarticons SVG string at a FIXED size. The source SVG uses
+// `fill="currentColor"`, so a `color` on the wrapper tints it; the child-svg
+// size utilities override the file's intrinsic 24×24 so every glyph is uniform.
+function PixelIcon({ glyph, className, style }: { glyph: string; className?: string; style?: React.CSSProperties }) {
+  const svg = PIXEL_SVGS[glyph];
+  if (!svg) return null;
+  return (
+    <span
+      aria-hidden
+      className={cn('inline-grid place-items-center shrink-0 size-4 [&>svg]:size-full', className)}
+      style={style}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
+
+// Pixel glyph + label for a media entry's platform. `showLabel=false` renders
+// the mark alone (tight rows / dropdown trigger). Fixed-size glyph throughout.
+function PlatformLogo({ platform, showLabel = true, className }: { platform: string; showLabel?: boolean; className?: string }) {
+  const meta = PLATFORM_PIXEL[platform] || PLATFORM_PIXEL.other;
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 align-middle min-w-0', className)}>
+      <PixelIcon glyph={meta.glyph} style={{ color: meta.color }} />
+      {showLabel && <span className="truncate">{platformLabel(platform)}</span>}
+    </span>
+  );
+}
 
 // Returns the accent color for status-colored UI elements (poster pill, etc.)
 function statusPillColor(status: MediaStatus): string {
@@ -1035,6 +1100,12 @@ export default function MediaPage() {
                 value={form.platform || 'none'}
                 onChange={(v) => setForm({ ...form, platform: !v || v === 'none' ? '' : v })}
                 options={[{ value: 'none', label: 'Not specified' }, ...PLATFORM_OPTIONS]}
+                renderValue={(v) => (v && v !== 'none'
+                  ? <PlatformLogo platform={v} />
+                  : <span className="text-muted-foreground">Not specified</span>)}
+                renderOption={(o) => (o.value === 'none'
+                  ? <span className="text-muted-foreground">Not specified</span>
+                  : <PlatformLogo platform={o.value} />)}
               />
             </div>
 
@@ -1154,12 +1225,13 @@ function FieldSimple({ label, children }: { label: string; children: React.React
   );
 }
 
-function FieldSelect({ label, value, onChange, options, renderValue }: {
+function FieldSelect({ label, value, onChange, options, renderValue, renderOption }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string; dot?: string }[];
   renderValue?: (v: string) => React.ReactNode;
+  renderOption?: (o: { value: string; label: string; dot?: string }) => React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
@@ -1171,10 +1243,12 @@ function FieldSelect({ label, value, onChange, options, renderValue }: {
         <SelectContent>
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
-              <span className="flex items-center gap-2">
-                {o.dot && <span className={`size-2 rounded-full ${o.dot}`} />}
-                {o.label}
-              </span>
+              {renderOption ? renderOption(o) : (
+                <span className="flex items-center gap-2">
+                  {o.dot && <span className={`size-2 rounded-full ${o.dot}`} />}
+                  {o.label}
+                </span>
+              )}
             </SelectItem>
           ))}
         </SelectContent>
@@ -1296,7 +1370,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
           {item.platform && (
             <>
               {item.year && <span className="opacity-50">·</span>}
-              <span className="truncate">{platformLabel(item.platform)}</span>
+              <PlatformLogo platform={item.platform} className="truncate" />
             </>
           )}
         </div>
@@ -1571,7 +1645,7 @@ function MediaListRow({
         </div>
         <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
           {item.type}{progressLabel(item) ? ' · ' + progressLabel(item) : ''}
-          {item.platform ? ' · ' + platformLabel(item.platform) : ''}
+          {item.platform ? <> · <PlatformLogo platform={item.platform} className="inline-flex" /></> : null}
           {' · '}{watchAgeLabel(item)}
         </div>
       </div>

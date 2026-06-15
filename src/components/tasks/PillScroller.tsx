@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Star, Calendar, CalendarRange, AlarmClock, CalendarX2, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Sun, Star, Calendar, CalendarRange, AlarmClock, CalendarX2, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2 } from '@/components/ui/icons';
 
 import type { TaskList, SmartList } from '@/types';
 import { Input } from '@/components/ui/input';

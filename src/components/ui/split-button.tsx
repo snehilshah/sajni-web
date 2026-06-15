@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { motion } from 'framer-motion';
 
 import { cn } from '@/lib/utils';

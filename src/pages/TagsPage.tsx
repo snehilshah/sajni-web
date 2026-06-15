@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useTags, useTagEntities } from '@/queries/tags';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt } from 'lucide-react';
+import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt } from '@/components/ui/icons';
 import PageShell from '@/components/PageShell';
 
 interface TagEntity { type: string; id: number; title: string; subtitle?: string; }

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
   Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskStep } from '@/types';

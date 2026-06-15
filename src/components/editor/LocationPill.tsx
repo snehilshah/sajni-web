@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, X } from 'lucide-react';
+import { MapPin, X } from '@/components/ui/icons';
 
 import { places, type PlacePrediction, type JournalLocation } from '@/api';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

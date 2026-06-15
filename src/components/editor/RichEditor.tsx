@@ -43,7 +43,7 @@ const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import {
   Bold, Italic, Strikethrough, Code, Link2, Unlink, List, ListOrdered, ListChecks,
   Quote, Heading1, Heading2, Heading3, Image as ImageIcon, Minus, Plus,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 interface Props {
   value: string;

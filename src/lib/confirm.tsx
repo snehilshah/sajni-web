@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CircleHelp } from 'lucide-react';
+import { AlertTriangle, CircleHelp } from '@/components/ui/icons';
 import {
   AlertDialog,
   AlertDialogAction,

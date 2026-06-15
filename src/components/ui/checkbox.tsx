@@ -4,7 +4,7 @@ import * as React from "react"
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
 
 import { cn } from "@/lib/utils"
-import { CheckIcon } from "lucide-react"
+import { CheckIcon } from "@/components/ui/icons"
 
 /**
  * M3 Checkbox — 18px square, 2px corner, primary-container fill on checked.

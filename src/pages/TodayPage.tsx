@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from 'lucide-react';
+import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from '@/components/ui/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 

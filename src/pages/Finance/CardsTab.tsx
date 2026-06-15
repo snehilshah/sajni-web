@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { CreditCard, Plus, Check, AlertCircle, Trash2, Gift } from 'lucide-react';
+import { CreditCard, Plus, Check, AlertCircle, Trash2, Gift } from '@/components/ui/icons';
 
 import { finance, type FinAccount, type FinStatement } from '@/api';
 import { confirmDialog } from '@/lib/confirm';

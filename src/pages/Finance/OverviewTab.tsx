@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { TrendingUp, TrendingDown, Wallet, Camera, AlertCircle, Receipt, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Camera, AlertCircle, Receipt, Zap } from '@/components/ui/icons';
 
 import { finance, type FinAccount } from '@/api';
 import { Button } from '@/components/ui/button';

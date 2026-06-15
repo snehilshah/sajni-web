@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Landmark, CreditCard, TrendingUp, Coins, CandlestickChart, Wallet,
   Plus, Pencil, Trash2, Target, ArrowDownToLine, Gift,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { toast } from 'sonner';
 
 import { finance, type FinAccount, type FinSaving, type FinCategory } from '@/api';

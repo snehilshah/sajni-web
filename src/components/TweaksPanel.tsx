@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X } from '@/components/ui/icons';
 import { Input } from './ui/input';
 
 type Tweak = {

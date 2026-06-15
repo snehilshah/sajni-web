@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 import {
   Sparkles, Pin, PinOff, X, RefreshCw, Clock, Search,
   BookOpen, FileText, StickyNote, Wallet, Film,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { timeTravel, type Insight, type InsightWindow, type TimeTravelHit } from '@/api';
 import { useInsights, useRunInsights, usePinInsight, useDismissInsight } from '@/queries/analytics';

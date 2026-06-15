@@ -22,7 +22,7 @@ import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
   PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 function deriveTitle(content: string): string {
   for (const raw of content.split('\n')) {
@@ -34,7 +34,7 @@ function deriveTitle(content: string): string {
 }
 
 interface NoteListItem {
-  id: number; title: string; folder: string; tags: string[]; created_at: string; updated_at: string;
+  id: number; title: string; folder: string; description: string; tags: string[]; created_at: string; updated_at: string;
 }
 
 interface TreeNode {
@@ -108,6 +108,7 @@ export default function NotesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [folder, setFolder] = useState('');
+  const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [backlinks, setBacklinks] = useState<any[]>([]);
@@ -179,6 +180,7 @@ export default function NotesPage() {
       setSelectedId(note.id);
       setTitle(note.title);
       setFolder(note.folder || '');
+      setDescription(note.description || '');
       setContent(note.content || '');
       setTags(note.tags || []);
       setBacklinks(note.backlinks || []);
@@ -203,6 +205,7 @@ export default function NotesPage() {
     setSelectedId(null);
     setTitle('');
     setFolder(parentFolder || '');
+    setDescription('');
     setContent('');
     setTags([]);
     setBacklinks([]);
@@ -223,9 +226,9 @@ export default function NotesPage() {
     try {
       let id = selectedId;
       if (id) {
-        await notesApi.update(id, { title: effectiveTitle, content });
+        await notesApi.update(id, { title: effectiveTitle, content, description });
       } else {
-        const res = await notesApi.create(effectiveTitle, content, folder);
+        const res = await notesApi.create(effectiveTitle, content, folder, description);
         id = res.id;
         setSelectedId(id);
         const next = new URLSearchParams(params);
@@ -246,7 +249,7 @@ export default function NotesPage() {
       toast.error(`Couldn't save note: ${err?.message || 'unknown error'}`);
       setSavingState('idle');
     }
-  }, [title, content, folder, selectedId, params, setParams, loadAll]);
+  }, [title, content, description, folder, selectedId, params, setParams, loadAll]);
 
   // Debounced auto-save — fires once content OR title becomes non-empty.
   useEffect(() => {
@@ -256,7 +259,7 @@ export default function NotesPage() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => performSave(true), 1200);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [title, content, performSave, loadingNote]);
+  }, [title, content, description, performSave, loadingNote]);
 
   // Ctrl/Cmd+S forces an immediate save and swallows the browser's
   // "save page" dialog. Autosave still runs; this is the muscle-memory path.
@@ -273,6 +276,7 @@ export default function NotesPage() {
 
   const handleTitleChange = (v: string) => { dirtyRef.current = true; setTitle(v); };
   const handleContentChange = (v: string) => { dirtyRef.current = true; setContent(v); };
+  const handleDescriptionChange = (v: string) => { dirtyRef.current = true; setDescription(v); };
 
   const handleDelete = async () => {
     if (!selectedId) return;
@@ -496,6 +500,15 @@ export default function NotesPage() {
                     value={title}
                     onChange={(e) => handleTitleChange(e.target.value)}
                     className="w-full h-auto px-0 py-1 bg-transparent border-none outline-none focus-visible:shadow-none text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
+                  />
+
+                  {/* One-line description — surfaces on the Notes home cards. */}
+                  <Input
+                    type="text"
+                    placeholder="Add a description…"
+                    value={description}
+                    onChange={(e) => handleDescriptionChange(e.target.value)}
+                    className="w-full h-auto -mt-2 px-0 py-0.5 bg-transparent border-none outline-none focus-visible:shadow-none text-base md:text-lg text-muted-foreground placeholder:text-muted-foreground/30"
                   />
 
                   <RichEditor
@@ -864,25 +877,38 @@ function NotesAtlas({
               <button
                 key={n.id}
                 onClick={() => onPick(n.id)}
-                className="rounded-xl p-5 text-left relative min-h-[160px] bg-[hsl(var(--surface-container))] border border-border transition-shadow hover:shadow-[0_6px_30px_-12px_hsl(var(--foreground)/0.15)]"
+                className="group rounded-2xl p-5 text-left relative min-h-[176px] flex flex-col bg-[hsl(var(--surface-container))] border border-border transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_34px_-14px_hsl(var(--foreground)/0.22)]"
               >
+                {/* Accent bar — a quiet per-note color cue down the left edge. */}
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full opacity-70"
+                  style={{ background: `hsl(var(--backdrop-blob-${meshIdx}))` }}
+                />
                 <div
-                  className="absolute top-0 right-0 w-[80px] h-[80px] pointer-events-none rounded-xl opacity-50"
+                  className="absolute top-0 right-0 w-[88px] h-[88px] pointer-events-none rounded-2xl opacity-50 transition-opacity group-hover:opacity-80"
                   style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--backdrop-blob-${meshIdx})), transparent 70%)` }}
                 />
-                <div className="relative">
+                <div className="relative flex flex-col flex-1 min-h-0 pl-2.5">
                   <div className="mono text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2.5">
                     {fmtRelTime(n.updated_at)}
                     {n.folder ? <> · <span className="text-foreground/70">{n.folder}</span></> : null}
                   </div>
-                  <h3 className="serif text-[19px] font-medium tracking-[-0.01em] leading-[1.25] text-foreground mb-3 line-clamp-2">
+                  <h3 className="serif text-[19px] font-medium tracking-[-0.01em] leading-[1.25] text-foreground mb-1.5 line-clamp-2 group-hover:text-primary transition-colors">
                     {n.title || 'Untitled'}
                   </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(n.tags || []).slice(0, 4).map((t) => (
-                      <span key={t} className="chip chip-sage">#{t}</span>
-                    ))}
-                  </div>
+                  {n.description ? (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 mb-3">
+                      {n.description}
+                    </p>
+                  ) : null}
+                  {(n.tags || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
+                      {(n.tags || []).slice(0, 4).map((t) => (
+                        <span key={t} className="chip chip-sage">#{t}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             );

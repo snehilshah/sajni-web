@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, Sparkles, Trash2 } from '@/components/ui/icons';
 import { formatDistanceToNow } from 'date-fns';
 
 import PageShell from '@/components/PageShell';

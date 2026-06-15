@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, Send, Plus, Trash2, ChevronDown, AlertCircle,
   CheckSquare, Target, BookOpen, Film, Wallet, ArrowRight,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
