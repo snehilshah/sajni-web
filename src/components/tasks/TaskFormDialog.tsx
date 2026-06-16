@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail } from '@/components/ui/icons';
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import {
-  STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey,
+  STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey, monthFirstKey,
 } from './helpers';
 import { StepsEditor } from './TaskRow';
 
@@ -33,11 +34,14 @@ interface FormState {
   description: string;
   priority: Task['priority'];
   status: Task['status'];
-  /** 'day' = a dated task (due_date); 'week' = a week-scoped task (week_of). */
-  due_type: 'day' | 'week';
+  /** 'day' = a dated task (due_date); 'week' = a week-scoped task (week_of);
+   *  'month' = a month goal (month_of), broken into dated child sessions. */
+  due_type: 'day' | 'week' | 'month';
   due_date: string;
   /** Monday (YYYY-MM-DD) of the chosen week when due_type === 'week'. */
   week_of: string;
+  /** 1st (YYYY-MM-DD) of the chosen month when due_type === 'month'. */
+  month_of: string;
   /** Local HH:MM clock time; '' = no time (all-day). */
   scheduled_time: string;
   /** Email the user ~5 min before scheduled_time. */
@@ -47,12 +51,15 @@ interface FormState {
   list_id: number | null;
   important: boolean;
   steps: TaskStep[];
+  /** Extra reminders (ISO instants) buffered while creating — flushed to the
+   *  task after it's created. Unused when editing (those load from the API). */
+  reminders: string[];
 }
 
 const blank: FormState = {
   title: '', description: '', priority: 'medium', status: 'todo',
-  due_type: 'day', due_date: '', week_of: '', scheduled_time: '', remind: false,
-  notify_emails: [], list_id: null, important: false, steps: [],
+  due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
+  notify_emails: [], list_id: null, important: false, steps: [], reminders: [],
 };
 
 // Local "HH:MM" from an ISO instant, in the browser's tz. '' when null.
@@ -123,15 +130,17 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         description: editing.description || '',
         priority: editing.priority,
         status: editing.status,
-        due_type: editing.week_of ? 'week' : 'day',
+        due_type: editing.month_of ? 'month' : editing.week_of ? 'week' : 'day',
         due_date: editing.due_date || '',
         week_of: editing.week_of || '',
+        month_of: editing.month_of || '',
         scheduled_time: timeFromISO(editing.scheduled_at),
         remind: editing.remind ?? false,
         notify_emails: editing.notify_emails ?? [],
         list_id: editing.list_id ?? null,
         important: editing.important,
         steps: editing.steps || [],
+        reminders: [],
       });
       setHistory([]);
       setEvents([]);
@@ -154,10 +163,12 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    // A week task has no specific day → no time/reminder. Otherwise a time
-    // only makes sense with a day, and remind only with a time.
+    // A week task or month goal has no specific day → no time/reminder.
+    // Otherwise a time only makes sense with a day, and remind only with a time.
     const isWeek = form.due_type === 'week';
-    const scheduledISO = isWeek ? null : toScheduledISO(form.due_date, form.scheduled_time);
+    const isMonth = form.due_type === 'month';
+    const noDay = isWeek || isMonth;
+    const scheduledISO = noDay ? null : toScheduledISO(form.due_date, form.scheduled_time);
     const remind = scheduledISO ? form.remind : false;
     // Custom recipients only matter when something actually fires.
     const notify_emails = form.notify_emails;
@@ -169,13 +180,16 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           description: form.description,
           priority: form.priority,
           status: form.status,
-          // Day vs week are exclusive — set one column, clear the other so a
-          // switch never leaves a stale due_date / week_of behind.
-          ...(isWeek
-            ? { week_of: form.week_of, clear_due: true, clear_scheduled: true, remind: false }
+          // Day / week / month are exclusive — set one column, clear the others
+          // so a switch never leaves a stale due_date / week_of / month_of behind.
+          ...(isMonth
+            ? { month_of: form.month_of, clear_due: true, clear_week: true, clear_scheduled: true, remind: false }
+            : isWeek
+            ? { week_of: form.week_of, clear_due: true, clear_month: true, clear_scheduled: true, remind: false }
             : {
                 due_date: form.due_date || null,
                 week_of: null, clear_week: true,
+                month_of: null, clear_month: true,
                 scheduled_at: scheduledISO,
                 clear_scheduled: scheduledISO === null,
                 remind,
@@ -200,8 +214,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           description: form.description,
           priority: form.priority,
           status: form.status,
-          due_date: isWeek ? undefined : (form.due_date || undefined),
+          due_date: noDay ? undefined : (form.due_date || undefined),
           week_of: isWeek ? form.week_of : undefined,
+          month_of: isMonth ? form.month_of : undefined,
           scheduled_at: scheduledISO ?? undefined,
           remind,
           notify_emails,
@@ -209,6 +224,17 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           important: form.important,
           steps: form.steps,
         });
+        // Flush buffered extra reminders to the new task (parity with edit,
+        // where RemindersSection talks to the API directly). The task is
+        // already saved — a failed reminder shouldn't lose it, so surface a
+        // soft toast and carry on.
+        if (form.reminders.length > 0) {
+          const results = await Promise.allSettled(
+            form.reminders.map((iso) => tasksApi.addReminder(res.id, iso)),
+          );
+          const failed = results.filter((r) => r.status === 'rejected').length;
+          if (failed > 0) toast.error(`Task saved, but ${failed} reminder${failed > 1 ? 's' : ''} failed to add.`);
+        }
         onOpenChange(false);
         onSaved();
         onCreated?.({ id: res.id, title: form.title.trim() });
@@ -314,7 +340,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 shrink-0">
             <div className="flex flex-col gap-1.5">
               <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}>
@@ -364,44 +390,6 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex h-6 items-center justify-between gap-1">
-                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due</Label>
-                {/* Day vs week scope — a week task lands in the This Week list. */}
-                <SegmentedButton
-                  size="sm"
-                  showCheck={false}
-                  aria-label="Due scope"
-                  value={form.due_type}
-                  onChange={(t) => setForm({
-                    ...form,
-                    due_type: t,
-                    ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
-                  })}
-                  options={[
-                    { value: 'day', label: 'Day' },
-                    { value: 'week', label: 'Week' },
-                  ]}
-                />
-              </div>
-              {form.due_type === 'day' ? (
-                <DatePicker
-                  id="task-due-date"
-                  name="task-due-date"
-                  value={form.due_date}
-                  onChange={(v) => setForm({ ...form, due_date: v })}
-                  placeholder="No date"
-                />
-              ) : (
-                // Picking any day snaps to that week's Monday (week_of anchor).
-                <DatePicker
-                  value={form.week_of}
-                  onChange={(v) => setForm({ ...form, week_of: v ? weekMondayKey(parseISO(v)) : '' })}
-                  placeholder="Pick a week"
-                />
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
               <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">List</Label>
               <Select
                 value={form.list_id ? String(form.list_id) : 'inbox'}
@@ -426,6 +414,54 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Due scope — its own full-width row (a 3-way toggle crammed into a
+              grid cell overran the List label). Connected M3 button-group picks
+              the scope; the picker below adapts. Day → date, Week → Monday
+              anchor, Month → 1st-of-month goal (broken into dated sessions). */}
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due</Label>
+            <SegmentedButton
+              showCheck={false}
+              stretch
+              aria-label="Due scope"
+              value={form.due_type}
+              onChange={(t) => setForm({
+                ...form,
+                due_type: t as FormState['due_type'],
+                ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
+                ...(t === 'month' && !form.month_of ? { month_of: monthFirstKey() } : {}),
+              })}
+              options={[
+                { value: 'day', label: 'Day' },
+                { value: 'week', label: 'Week' },
+                { value: 'month', label: 'Month' },
+              ]}
+            />
+            {form.due_type === 'day' ? (
+              <DatePicker
+                id="task-due-date"
+                name="task-due-date"
+                value={form.due_date}
+                onChange={(v) => setForm({ ...form, due_date: v })}
+                placeholder="No date"
+              />
+            ) : form.due_type === 'week' ? (
+              // Picking any day snaps to that week's Monday (week_of anchor).
+              <DatePicker
+                value={form.week_of}
+                onChange={(v) => setForm({ ...form, week_of: v ? weekMondayKey(parseISO(v)) : '' })}
+                placeholder="Pick a week"
+              />
+            ) : (
+              // Picking any day snaps to that month's 1st (month_of anchor).
+              <DatePicker
+                value={form.month_of}
+                onChange={(v) => setForm({ ...form, month_of: v ? monthFirstKey(parseISO(v)) : '' })}
+                placeholder="Pick a month"
+              />
+            )}
           </div>
 
           {/* Schedule — the task's own time + ~5-min email nudge, then custom
@@ -482,7 +518,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             ) : (
               <div className="p-3">
                 <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
-                  <Clock className="size-3" /> Week tasks have no specific time. Add a reminder below for a nudge.
+                  <Clock className="size-3" /> {form.due_type === 'month' ? 'Month goals have no specific time — break them into dated sessions below.' : 'Week tasks have no specific time. Add a reminder below for a nudge.'}
                 </p>
               </div>
             )}
@@ -493,12 +529,19 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 onChange={(em) => setForm({ ...form, notify_emails: em })}
               />
             </div>
-            {/* Extra reminders — any date/time, delivered by the cron. */}
-            {editing && (
-              <div className="border-t border-border/70 p-3">
+            {/* Extra reminders — any date/time, delivered by the cron. Editing
+                talks to the API directly; creating buffers them in form state
+                and the create handler flushes them once the task exists. */}
+            <div className="border-t border-border/70 p-3">
+              {editing ? (
                 <RemindersSection taskId={editing.id} />
-              </div>
-            )}
+              ) : (
+                <RemindersSection
+                  draft={form.reminders}
+                  onDraftChange={(r) => setForm({ ...form, reminders: r })}
+                />
+              )}
+            </div>
           </div>
 
           {/* Steps editor — a quick inline checklist (lighter than subtasks). */}
@@ -523,7 +566,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           {/* Subtasks — real child tasks (own status/due). Only on an existing
               task; a new task has no id to parent them to yet. */}
           {editing && (
-            <SubtasksSection taskId={editing.id} listId={editing.list_id ?? null} onChanged={onSaved} />
+            <SubtasksSection taskId={editing.id} listId={editing.list_id ?? null} isGoal={!!editing.month_of} onChanged={onSaved} />
           )}
 
           {editing && history.length > 0 && (
@@ -623,9 +666,12 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 // status/due; toggling completes it, the title opens it in this same dialog,
 // and the inline row adds a new one. This is the explicit "add subtask" CTA
 // that previously only existed (hidden) behind the list-row expander.
-function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId: number | null; onChanged: () => void }) {
+function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId: number; listId: number | null; isGoal?: boolean; onChanged: () => void }) {
   const [subs, setSubs] = useState<Task[] | null>(null);
   const [draft, setDraft] = useState('');
+  // Month-goal sessions can carry a date as they're added (the "+ add session"
+  // flow); a plain subtask stays dateless and gets a date via its own dialog.
+  const [dateDraft, setDateDraft] = useState('');
 
   const load = useCallback(() => {
     tasksApi.subtasks(taskId).then(setSubs).catch(() => setSubs([]));
@@ -636,7 +682,8 @@ function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId
     const title = draft.trim();
     if (!title) return;
     setDraft('');
-    await tasksApi.create({ title, parent_task_id: taskId, list_id: listId });
+    setDateDraft('');
+    await tasksApi.create({ title, parent_task_id: taskId, list_id: listId, due_date: dateDraft || undefined });
     load();
     onChanged();
   };
@@ -658,7 +705,7 @@ function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-          <GitBranch className="size-3" /> Subtasks
+          <GitBranch className="size-3" /> {isGoal ? 'Sessions' : 'Subtasks'}
         </Label>
         {total > 0 && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
       </div>
@@ -718,9 +765,14 @@ function SubtasksSection({ taskId, listId, onChanged }: { taskId: number; listId
               if (e.key === 'Enter') { e.preventDefault(); add(); }
               if (e.key === 'Escape') setDraft('');
             }}
-            placeholder={total === 0 ? 'Break this into smaller tasks…' : 'Add a subtask'}
+            placeholder={isGoal ? (total === 0 ? 'Add a session…' : 'Add a session') : (total === 0 ? 'Break this into smaller tasks…' : 'Add a subtask')}
             className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
           />
+          {isGoal && draft && (
+            <div className="shrink-0 w-32">
+              <DatePicker value={dateDraft} onChange={setDateDraft} placeholder="Date" />
+            </div>
+          )}
           {draft && (
             <button
               type="button"
@@ -822,25 +874,47 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
 // RemindersSection — any number of reminder instants on any date, delivered
 // by the reminder cron (currently email). Independent of the task's own time
 // and the single "remind ~5 min before" toggle above.
-function RemindersSection({ taskId }: { taskId: number }) {
-  const [rems, setRems] = useState<TaskReminder[] | null>(null);
+// RemindersSection works in two modes:
+//  • API mode (taskId)        — reads/writes reminders straight to the task.
+//  • draft mode (draft/onDraftChange) — for a not-yet-created task; reminders
+//    live in parent form state as ISO strings and the create handler flushes
+//    them once the task exists. Same UI either way (parity create⇄edit).
+function RemindersSection({ taskId, draft, onDraftChange }: {
+  taskId?: number;
+  draft?: string[];
+  onDraftChange?: (v: string[]) => void;
+}) {
+  const isDraft = taskId == null;
+  const [apiRems, setApiRems] = useState<TaskReminder[] | null>(null);
   const [adding, setAdding] = useState(false);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('09:00');
   const [saving, setSaving] = useState(false);
 
+  // Unified display list. Draft reminders have no real id (key by ISO); they
+  // can't be "sent" yet, so sent_at is always null.
+  const rems: TaskReminder[] | null = isDraft
+    ? (draft ?? []).map((iso, i) => ({ id: i, remind_at: iso, sent_at: null }))
+    : apiRems;
+
   const load = useCallback(() => {
-    tasksApi.reminders(taskId).then(setRems).catch(() => setRems([]));
-  }, [taskId]);
+    if (isDraft || taskId == null) return;
+    tasksApi.reminders(taskId).then(setApiRems).catch(() => setApiRems([]));
+  }, [isDraft, taskId]);
   useEffect(() => { load(); }, [load]);
 
   const add = async () => {
     if (!date || !time) return;
     const d = new Date(`${date}T${time}`);
     if (isNaN(d.getTime())) return;
+    if (isDraft) {
+      onDraftChange?.([...(draft ?? []), d.toISOString()]);
+      setAdding(false); setDate(''); setTime('09:00');
+      return;
+    }
     setSaving(true);
     try {
-      await tasksApi.addReminder(taskId, d.toISOString());
+      await tasksApi.addReminder(taskId!, d.toISOString());
       setAdding(false);
       setDate('');
       setTime('09:00');
@@ -850,7 +924,11 @@ function RemindersSection({ taskId }: { taskId: number }) {
     }
   };
   const remove = async (rid: number) => {
-    await tasksApi.deleteReminder(taskId, rid);
+    if (isDraft) {
+      onDraftChange?.((draft ?? []).filter((_, i) => i !== rid));
+      return;
+    }
+    await tasksApi.deleteReminder(taskId!, rid);
     load();
   };
 

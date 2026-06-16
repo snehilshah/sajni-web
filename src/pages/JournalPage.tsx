@@ -30,7 +30,7 @@ import type { Task } from '@/types';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
-  PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FilePlus, Calendar as CalendarIcon,
+  PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Calendar as CalendarIcon,
   ChevronDown, Check as LucideCheck, Plus, CalendarRange,
 } from '@/components/ui/icons';
 
@@ -113,20 +113,28 @@ export default function JournalPage() {
   }, [expandedMonths]);
 
   // View mode is derived from URL: `?view=week&week=YYYY-Www` triggers the
-  // weekly entry surface; otherwise we render the daily editor. Day clicks
-  // strip the `view`/`week` params back out (see setSelectedDate wrapper).
+  // weekly entry surface, `?view=month&month=YYYY-MM` the monthly one;
+  // otherwise we render the daily editor. Day clicks strip the view params
+  // back out (see the date-sync effect below).
   const viewParam = params.get('view');
   const weekParam = params.get('week');
   const weekMatch = weekParam ? weekParam.match(/^(\d{4})-W(\d{1,2})$/) : null;
-  const viewMode: 'day' | 'week' = viewParam === 'week' && weekMatch ? 'week' : 'day';
+  const monthParam = params.get('month');
+  const monthMatch = monthParam ? monthParam.match(/^(\d{4})-(\d{1,2})$/) : null;
+  const viewMode: 'day' | 'week' | 'month' =
+    viewParam === 'week' && weekMatch ? 'week'
+    : viewParam === 'month' && monthMatch ? 'month'
+    : 'day';
   const weekYear = weekMatch ? parseInt(weekMatch[1], 10) : getISOWeekYear(parseISO(selectedDate));
   const weekNumber = weekMatch ? parseInt(weekMatch[2], 10) : getISOWeek(parseISO(selectedDate));
   const activeWeekKey = viewMode === 'week'
     ? `${weekYear}-W${String(weekNumber).padStart(2, '0')}`
     : null;
+  const monthYear = monthMatch ? parseInt(monthMatch[1], 10) : parseISO(selectedDate).getFullYear();
+  const monthNumber = monthMatch ? parseInt(monthMatch[2], 10) : parseISO(selectedDate).getMonth() + 1;
 
-  // Sync URL when date changes. Also clear week-view params so picking a
-  // day in week mode reverts to the daily editor.
+  // Sync URL when date changes. Also clear week/month-view params so picking a
+  // day in either aggregate view reverts to the daily editor.
   useEffect(() => {
     const next = new URLSearchParams(params);
     let touched = false;
@@ -134,9 +142,10 @@ export default function JournalPage() {
       next.set('date', selectedDate);
       touched = true;
     }
-    if (params.get('view') === 'week') {
+    if (params.get('view') === 'week' || params.get('view') === 'month') {
       next.delete('view');
       next.delete('week');
+      next.delete('month');
       touched = true;
     }
     if (touched) setParams(next, { replace: true });
@@ -148,6 +157,15 @@ export default function JournalPage() {
     const next = new URLSearchParams(params);
     next.set('view', 'week');
     next.set('week', `${year}-W${String(week).padStart(2, '0')}`);
+    next.delete('month');
+    setParams(next, { replace: true });
+  }, [params, setParams]);
+
+  const goMonth = useCallback((year: number, month: number) => {
+    const next = new URLSearchParams(params);
+    next.set('view', 'month');
+    next.set('month', `${year}-${String(month).padStart(2, '0')}`);
+    next.delete('week');
     setParams(next, { replace: true });
   }, [params, setParams]);
 
@@ -511,6 +529,16 @@ export default function JournalPage() {
                 goWeek(getISOWeekYear(shifted), getISOWeek(shifted));
               }}
             />
+          ) : viewMode === 'month' ? (
+            <MonthView
+              year={monthYear}
+              month={monthNumber}
+              onPickWeek={goWeek}
+              onShiftMonth={(delta) => {
+                const ref = addMonths(new Date(monthYear, monthNumber - 1, 1), delta);
+                goMonth(ref.getFullYear(), ref.getMonth() + 1);
+              }}
+            />
           ) : (
             <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-5 min-h-full">
               {/* Date title — Obsidian-style serif hero per the design. */}
@@ -655,11 +683,6 @@ export default function JournalPage() {
                 <Button onClick={goToday} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
                   <CalendarIcon className="size-3.5" /> Today
                 </Button>
-                {!entryDates.has(selectedDate) && (
-                  <Button onClick={() => performSave()} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
-                    <FilePlus className="size-3.5" /> New entry
-                  </Button>
-                )}
               </div>
 
               {/* Calendar */}
@@ -668,9 +691,20 @@ export default function JournalPage() {
                   <button onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
                     <ChevronLeft className="size-3.5" />
                   </button>
-                  <span className="font-mono text-xs font-medium tracking-widest uppercase">
+                  {/* Clicking the month name opens the monthly journal view
+                      (parallel to clicking a week number for the weekly view). */}
+                  <button
+                    type="button"
+                    onClick={() => goMonth(viewMonth.getFullYear(), viewMonth.getMonth() + 1)}
+                    title="Open monthly entry"
+                    className={`rounded px-1.5 py-0.5 font-mono text-xs font-medium tracking-widest uppercase transition-colors hover:bg-sidebar-accent hover:text-foreground ${
+                      viewMode === 'month' && monthYear === viewMonth.getFullYear() && monthNumber === viewMonth.getMonth() + 1
+                        ? 'bg-primary/15 text-primary'
+                        : ''
+                    }`}
+                  >
                     {format(viewMonth, 'MMM yyyy')}
-                  </span>
+                  </button>
                   <button onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
                     <ChevronRight className="size-3.5" />
                   </button>
@@ -1572,6 +1606,342 @@ function WeekTasksSection({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
             placeholder={tasks.length === 0 ? 'Add a goal for this week…' : 'Add a week task'}
+            className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+          />
+          {draft.trim() && (
+            <button
+              type="button"
+              onClick={submit}
+              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+            >
+              Add
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// MonthView — the monthly journal surface, parallel to WeekView. A long-form
+// month entry + mood + stat tiles, the "This month" goals (tasks.month_of),
+// and a per-week task breakdown that drills into the weekly view.
+function MonthView({
+  year, month, onPickWeek, onShiftMonth,
+}: {
+  year: number;
+  month: number;
+  onPickWeek: (year: number, week: number) => void;
+  onShiftMonth: (delta: number) => void;
+}) {
+  const [content, setContent] = useState('');
+  const [mood, setMood] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [summary, setSummary] = useState<import('@/api').MonthlySummary | null>(null);
+  const dirtyRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const monthStart = useMemo(() => new Date(year, month - 1, 1), [year, month]);
+  const monthKey = useMemo(() => format(monthStart, 'yyyy-MM-dd'), [monthStart]);
+
+  // Month goals (month_of = 1st of this month) — the "This month" section.
+  const qc = useQueryClient();
+  const [monthTasks, setMonthTasks] = useState<Task[]>([]);
+  const loadMonthTasks = useCallback(() => {
+    tasksApi.list({ month_of: monthKey }).then(setMonthTasks).catch(() => setMonthTasks([]));
+  }, [monthKey]);
+  useEffect(() => { loadMonthTasks(); }, [loadMonthTasks]);
+
+  const toggleMonthTask = async (t: Task) => {
+    const next = t.status === 'done' ? 'todo' : 'done';
+    setMonthTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    await tasksApi.update(t.id, { status: next });
+    loadMonthTasks();
+    qc.invalidateQueries({ queryKey: qk.tasks.all });
+  };
+  const addMonthTask = async (title: string) => {
+    await tasksApi.create({ title, month_of: monthKey });
+    loadMonthTasks();
+    qc.invalidateQueries({ queryKey: qk.tasks.all });
+  };
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    dirtyRef.current = false;
+    (async () => {
+      try {
+        const [entry, summ] = await Promise.all([
+          journalApi.month.get(year, month),
+          journalApi.month.summary(year, month),
+        ]);
+        if (!alive) return;
+        setContent(entry.content || '');
+        setMood(entry.mood || null);
+        setSummary(summ);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [year, month]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!dirtyRef.current) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving('saving');
+      try {
+        await journalApi.month.save(year, month, content, mood);
+        setSaving('saved');
+        setTimeout(() => setSaving((s) => (s === 'saved' ? 'idle' : s)), 1400);
+        dirtyRef.current = false;
+      } catch {
+        setSaving('idle');
+      }
+    }, 1000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [content, mood, loading, year, month]);
+
+  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
+  const handleMood = (v: string | null) => { dirtyRef.current = true; setMood(v); };
+
+  const formatMoney = (n: number) => {
+    const code = summary?.expense_currency || 'INR';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n); }
+    catch { return `${code} ${n.toFixed(0)}`; }
+  };
+
+  const totalDone = summary?.total_done ?? 0;
+  const totalDue = summary?.total_due ?? 0;
+  const totalMissed = summary?.total_missed ?? 0;
+  const entriesWritten = summary?.entries_written ?? 0;
+  const daysInMonth = summary?.days_in_month ?? 30;
+
+  return (
+    <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-8">
+      {/* Title + month shift controls. */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
+            monthly entry
+          </div>
+          <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
+            {format(monthStart, 'MMMM')}
+          </h1>
+          <div className="serif italic text-lg md:text-xl text-muted-foreground mt-1.5">
+            {format(monthStart, 'yyyy')}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 mt-1 shrink-0">
+          <Button variant="ghost" size="icon-sm" onClick={() => onShiftMonth(-1)} title="Previous month">
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="mono text-xs text-muted-foreground tabular-nums px-1 min-w-[52px] text-center">
+            {saving === 'saving' ? 'Saving' : saving === 'saved' ? 'Saved' : ''}
+          </span>
+          <Button variant="ghost" size="icon-sm" onClick={() => onShiftMonth(1)} title="Next month">
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* At-a-glance stats — same tiles as the week view, month-scoped. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatTile label="Tasks done" value={`${totalDone}/${totalDue}`} tone="primary" />
+        <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
+        <StatTile label="Entries" value={`${entriesWritten}/${daysInMonth}`} tone="tertiary" />
+        <StatTile label="Expenses" value={summary ? formatMoney(summary.expense_total) : '—'} tone="secondary" />
+      </div>
+
+      {/* Mood pills (same set as daily/weekly). */}
+      <div className="flex gap-1.5 flex-wrap items-center">
+        {MOODS.map((m) => {
+          const active = mood === m.emoji;
+          return (
+            <button
+              key={m.emoji}
+              onClick={() => handleMood(active ? null : m.emoji)}
+              title={m.label}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all ${
+                active
+                  ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
+                  : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
+              }`}
+            >
+              <span className="text-base leading-none">{m.emoji}</span>
+              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{m.label}</span>
+            </button>
+          );
+        })}
+        {mood && (
+          <button
+            onClick={() => handleMood(null)}
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Editor — full-width, matches the daily/weekly layout. */}
+      <div className="flex flex-col">
+        {loading ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
+          <RichEditor
+            value={content}
+            onChange={handleContent}
+            placeholder="What's this month about? Use / for commands, [[ to link, /task to reference…"
+            minHeight="280px"
+            contextDate={monthKey}
+          />
+        )}
+      </div>
+
+      {/* This month — month goals (no specific day), checkable inline. */}
+      <MonthTasksSection
+        tasks={monthTasks}
+        onToggle={toggleMonthTask}
+        onAdd={addMonthTask}
+        onOpen={(id) => window.dispatchEvent(new CustomEvent('task:open', { detail: { id } }))}
+      />
+
+      {/* Per-week breakdown — drills into the weekly view on click. */}
+      <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+          <CheckSquare className="size-3.5 text-secondary" />
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Tasks by week</span>
+        </div>
+        <div className="divide-y divide-border/40">
+          {(summary?.weeks ?? []).map((wk) => {
+            const total = wk.tasks_due + wk.tasks_done;
+            const ratio = total > 0 ? wk.tasks_done / total : 0;
+            return (
+              <button
+                key={`${wk.iso_year}-${wk.iso_week}`}
+                onClick={() => onPickWeek(wk.iso_year, wk.iso_week)}
+                className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex flex-col w-16 shrink-0 text-muted-foreground">
+                  <span className="mono text-xs uppercase tracking-wider">Week</span>
+                  <span className="serif text-lg leading-none tabular-nums">{wk.iso_week}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-foreground/80">
+                    {format(parseISO(wk.start_date), 'MMM d')} – {format(parseISO(wk.end_date), 'MMM d')}
+                  </div>
+                  <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${ratio * 100}%` }} />
+                  </div>
+                </div>
+                <div className="flex flex-col items-end shrink-0 w-20">
+                  <span className="mono text-xs tabular-nums text-muted-foreground">{wk.tasks_done}/{total} done</span>
+                  {wk.tasks_missed > 0 && (
+                    <span className="mono text-xs tabular-nums text-destructive">{wk.tasks_missed} missed</span>
+                  )}
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground/60 shrink-0" />
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// MonthTasksSection — the journal's "This month" list: month goals
+// (tasks.month_of) shown as checkable rows with a progress chip (done/total
+// sessions) and an inline quick-add. Parallels WeekTasksSection.
+function MonthTasksSection({
+  tasks, onToggle, onAdd, onOpen,
+}: {
+  tasks: Task[];
+  onToggle: (t: Task) => void;
+  onAdd: (title: string) => void;
+  onOpen: (id: number) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const open = tasks.filter((t) => t.status !== 'done' && t.status !== 'scratched');
+  const done = tasks.filter((t) => t.status === 'done');
+
+  const submit = () => {
+    const title = draft.trim();
+    if (!title) return;
+    setDraft('');
+    onAdd(title);
+  };
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+        <Target className="size-3.5 text-secondary" />
+        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">This month</span>
+        {open.length > 0 && (
+          <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{open.length} open</span>
+        )}
+      </div>
+
+      <div className="flex flex-col">
+        <AnimatePresence initial={false}>
+          {[...open, ...done].map((t) => {
+            const isDone = t.status === 'done';
+            return (
+              <motion.div
+                key={t.id}
+                layout
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                className="group flex items-center gap-3 px-4 py-2.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => onToggle(t)}
+                  className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    isDone ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'
+                  }`}
+                  aria-pressed={isDone}
+                  title={isDone ? 'Mark not done' : 'Mark done'}
+                >
+                  {isDone && <LucideCheck className="size-3" strokeWidth={3.5} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpen(t.id)}
+                  className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
+                >
+                  {t.title}
+                </button>
+                {/* Session progress — month goals are broken into dated child
+                    sessions; show done/total so the rollup is visible here. */}
+                {t.subtask_count > 0 && (
+                  <span className="mono text-xs tabular-nums text-muted-foreground shrink-0" title="Sessions done">
+                    {t.subtasks_done}/{t.subtask_count}
+                  </span>
+                )}
+                {t.priority === 'high' && !isDone && (
+                  <span className="size-2 rounded-full bg-destructive shrink-0" title="High priority" />
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+
+        {/* Inline quick-add — creates a month goal for this month. */}
+        <div className="flex items-center gap-2.5 px-4 py-2.5">
+          <span className="size-[18px] rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+            <Plus className="size-3" strokeWidth={2.5} />
+          </span>
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+            placeholder={tasks.length === 0 ? 'Add a goal for this month…' : 'Add a month goal'}
             className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
           />
           {draft.trim() && (

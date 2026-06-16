@@ -1,4 +1,4 @@
-import { startOfWeek, format } from 'date-fns';
+import { startOfWeek, startOfMonth, format } from 'date-fns';
 import type { Task, SmartList } from '@/types';
 
 // weekMondayKey returns the Monday (YYYY-MM-DD) of the week containing `d`
@@ -6,6 +6,12 @@ import type { Task, SmartList } from '@/types';
 // the journal's Monday-anchored weekly view.
 export function weekMondayKey(d: Date = new Date()): string {
   return format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+}
+
+// monthFirstKey returns the 1st (YYYY-MM-DD) of the month containing `d`
+// (default today). month_of on a month goal always stores this 1st.
+export function monthFirstKey(d: Date = new Date()): string {
+  return format(startOfMonth(d), 'yyyy-MM-dd');
 }
 
 export const STATUSES: Task['status'][] = ['todo', 'in_progress', 'done'];
@@ -47,6 +53,7 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'important', label: 'Important', description: 'Starred tasks' },
   { smart: 'planned', label: 'Planned', description: 'Tasks with a due date' },
   { smart: 'week', label: 'This Week', description: 'Week-scoped tasks due this week' },
+  { smart: 'month', label: 'This Month', description: 'Month goals — long agendas broken into sessions' },
   { smart: 'scheduled', label: 'Scheduled', description: 'Tasks with a time / reminder' },
   { smart: 'missed', label: 'Missed', description: 'Overdue & still open' },
   { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },

@@ -26,6 +26,10 @@ export interface Task {
   /** Monday-anchored week (YYYY-MM-DD) for a week-scoped task (no specific
    *  day). Mutually exclusive with due_date; drives the "This Week" list. */
   week_of?: string | null;
+  /** 1st-of-month-anchored (YYYY-MM-DD) for a month goal: a long agenda with
+   *  no specific day, broken into dated child sessions. Mutually exclusive
+   *  with due_date/week_of; drives the "This Month" list. */
+  month_of?: string | null;
   scheduled_at?: string | null;
   /** Email the user ~5 min before scheduled_at. */
   remind?: boolean;
@@ -58,7 +62,7 @@ export interface TaskList {
   updated_at: string;
 }
 
-export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'scheduled' | 'missed' | 'inbox' | 'all';
+export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'month' | 'scheduled' | 'missed' | 'inbox' | 'all';
 
 export interface Habit {
   id: number;

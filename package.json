@@ -16,6 +16,7 @@
     "@base-ui/react": "^1.4.1",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource-variable/roboto-flex": "^5.2.8",
+    "@hackernoon/pixel-icon-library": "^1.1.0",
     "@material/material-color-utilities": "^0.4.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.1",

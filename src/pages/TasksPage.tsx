@@ -26,7 +26,7 @@ import TaskRow from '@/components/tasks/TaskRow';
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import {
-  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel, weekMondayKey,
+  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel, weekMondayKey, monthFirstKey,
 } from '@/components/tasks/helpers';
 import PageShell from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
@@ -124,6 +124,9 @@ export default function TasksPage() {
       ...(selection.kind === 'smart' && selection.smart === 'week'
         ? { due_type: 'week', week_of: weekMondayKey() }
         : {}),
+      ...(selection.kind === 'smart' && selection.smart === 'month'
+        ? { due_type: 'month', month_of: monthFirstKey() }
+        : {}),
       ...(selection.kind === 'smart' && selection.smart === 'important'
         ? { important: true }
         : {}),
@@ -147,6 +150,9 @@ export default function TasksPage() {
     }
     if (selection.kind === 'smart' && selection.smart === 'week') {
       overrides.week_of = weekMondayKey();
+    }
+    if (selection.kind === 'smart' && selection.smart === 'month') {
+      overrides.month_of = monthFirstKey();
     }
     if (selection.kind === 'smart' && selection.smart === 'important') {
       overrides.important = true;

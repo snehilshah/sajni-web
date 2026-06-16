@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  BookOpen, Target, Film, FileText, Hash, Compass,
-  ChevronRight, LogOut, Wallet, MessageSquare, Sparkles,
-  Search, Settings, Loader2, Home, ListChecks, MoreHorizontal,
-  Brain,
+  ChevronRight, LogOut, MessageSquare, Sparkles,
+  Search, Settings, Loader2, MoreHorizontal,
 } from '@/components/ui/icons';
+import { PixelIcon, type PixelIconName } from '@/components/ui/pixel-icon';
 import { useAuth } from '@/auth/AuthContext';
 import CommandPalette from '@/components/CommandPalette';
 import AIChat from '@/components/AIChat';
@@ -31,20 +30,21 @@ const SIDEBAR_KEY = 'sajni:sidebar-expanded';
 // `key` matches the entry in /public/onboarding.json — the Onboarding
 // overlay looks up rendered items by `data-onboarding-key` to anchor
 // each tour bubble.
-const NAV_ITEMS = [
-  { path: '/', label: 'Today', Icon: Home, key: 'today' },
-  { path: '/memos', label: 'Memos', Icon: Brain, key: 'memos' },
-  { path: '/thinking', label: 'Thinking', Icon: Sparkles, key: 'thinking' },
-  { path: '/journal', label: 'Journal', Icon: BookOpen, key: 'journal' },
-  { path: '/tasks', label: 'Tasks', Icon: ListChecks, key: 'tasks' },
-  { path: '/habits', label: 'Habits', Icon: Target, key: 'habits' },
-  { path: '/notes', label: 'Notes', Icon: FileText, key: 'notes' },
-  { path: '/media', label: 'Media', Icon: Film, key: 'media' },
-  { path: '/finance', label: 'Finance', Icon: Wallet, key: 'finance' },
-  { path: '/tags', label: 'Tags', Icon: Hash, key: 'tags' },
+// icon = PixelIcon glyph name; the active/selected item renders its solid twin.
+const NAV_ITEMS: { path: string; label: string; icon: PixelIconName; key: string }[] = [
+  { path: '/', label: 'Today', icon: 'home', key: 'today' },
+  { path: '/memos', label: 'Memos', icon: 'notebook', key: 'memos' },
+  { path: '/thinking', label: 'Thinking', icon: 'sparkles', key: 'thinking' },
+  { path: '/journal', label: 'Journal', icon: 'book', key: 'journal' },
+  { path: '/tasks', label: 'Tasks', icon: 'check-list', key: 'tasks' },
+  { path: '/habits', label: 'Habits', icon: 'fire', key: 'habits' },
+  { path: '/notes', label: 'Notes', icon: 'pen-nib', key: 'notes' },
+  { path: '/media', label: 'Media', icon: 'video-camera', key: 'media' },
+  { path: '/finance', label: 'Finance', icon: 'wallet', key: 'finance' },
+  { path: '/tags', label: 'Tags', icon: 'hashtag', key: 'tags' },
   // Insights lives inside Analytics now (?tab=insights).
-  { path: '/analytics', label: 'Analytics', Icon: Compass, key: 'analytics' },
-] as const;
+  { path: '/analytics', label: 'Analytics', icon: 'analytics', key: 'analytics' },
+];
 
 const PRIMARY_MOBILE = new Set(['/', '/notes', '/tasks', '/journal']);
 
@@ -229,7 +229,7 @@ function DesktopRail({
       <div className="mx-3 my-1.5 border-t border-border" />
 
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-0.5">
-        {NAV_ITEMS.map(({ path, label, Icon, key }) => {
+        {NAV_ITEMS.map(({ path, label, icon, key }) => {
           const isActive = path === '/'
             ? pathname === '/'
             : pathname === path || pathname.startsWith(path + '/');
@@ -255,9 +255,10 @@ function DesktopRail({
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
-              <Icon
+              <PixelIcon
+                name={icon}
+                solid={isActive}
                 className="size-[18px] justify-self-center relative z-10"
-                strokeWidth={isActive ? 2.2 : 1.7}
               />
               {expanded && (
                 <span className="truncate relative z-10">{label}</span>
@@ -304,7 +305,7 @@ function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; path
   const tabs = NAV_ITEMS.filter((i) => PRIMARY_MOBILE.has(i.path));
   return (
     <nav className="tabbar md:hidden" aria-label="Primary">
-      {tabs.map(({ path, label, Icon }) => {
+      {tabs.map(({ path, label, icon }) => {
         const isActive = path === '/'
           ? pathname === '/'
           : pathname === path || pathname.startsWith(path + '/');
@@ -327,7 +328,7 @@ function TabbarMobile({ onMoreClick, pathname }: { onMoreClick: () => void; path
                 isActive ? 'bg-[hsl(var(--secondary-container))]' : 'bg-transparent',
               )}
             >
-              <Icon className="size-[22px]" strokeWidth={isActive ? 2 : 1.6} />
+              <PixelIcon name={icon} solid={isActive} className="size-[22px]" />
             </span>
             <span>{label}</span>
           </NavLink>
@@ -474,7 +475,7 @@ export default function Layout() {
                     animate="show"
                     variants={{ hidden: {}, show: { transition: { staggerChildren: 0.035, delayChildren: 0.05 } } }}
                   >
-                    {overflowItems.map(({ path, label, Icon }) => {
+                    {overflowItems.map(({ path, label, icon }) => {
                       const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
                       return (
                         <motion.button
@@ -490,7 +491,7 @@ export default function Layout() {
                               : 'bg-[hsl(var(--surface-container))] text-foreground/85 hover:bg-[hsl(var(--surface-container-high))]',
                           )}
                         >
-                          <Icon className="size-5" strokeWidth={isActive ? 2 : 1.7} />
+                          <PixelIcon name={icon} solid={isActive} className="size-5" />
                           {label}
                         </motion.button>
                       );

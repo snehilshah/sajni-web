@@ -30,12 +30,14 @@ export interface SegmentedButtonProps<V extends string = string> {
   size?: 'sm' | 'md';
   /** M3 shows a check on the selected segment; drop it where width is tight. */
   showCheck?: boolean;
+  /** Fill the container width with equal-width segments (full-row M3 group). */
+  stretch?: boolean;
   className?: string;
   'aria-label'?: string;
 }
 
 export function SegmentedButton<V extends string = string>({
-  value, options, onChange, size = 'md', showCheck = true, className, ...props
+  value, options, onChange, size = 'md', showCheck = true, stretch = false, className, ...props
 }: SegmentedButtonProps<V>) {
   const compact = size === 'sm';
   const iconSize = compact ? 'size-3' : 'size-4';
@@ -43,7 +45,8 @@ export function SegmentedButton<V extends string = string>({
     <div
       role="group"
       className={cn(
-        'inline-flex shrink-0 items-stretch overflow-hidden rounded-full border border-[hsl(var(--outline))]',
+        'items-stretch overflow-hidden rounded-full border border-[hsl(var(--outline))]',
+        stretch ? 'flex w-full' : 'inline-flex shrink-0',
         className,
       )}
       {...props}
@@ -63,6 +66,7 @@ export function SegmentedButton<V extends string = string>({
               'transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] outline-none',
               'focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
               i > 0 && 'border-l border-[hsl(var(--outline))]',
+              stretch && 'flex-1',
               compact ? 'h-6 px-2.5 text-[11px]' : 'h-9 px-4 text-sm',
               active
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'

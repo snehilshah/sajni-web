@@ -101,6 +101,7 @@ export const tasks = {
     status?: string;
     due_date?: string;
     week_of?: string;
+    month_of?: string;
     completed_date?: string;
     list?: number | 'none';
     parent?: number | 'null';
@@ -110,6 +111,7 @@ export const tasks = {
     if (params?.status) q.set('status', params.status);
     if (params?.due_date) q.set('due_date', params.due_date);
     if (params?.week_of) q.set('week_of', params.week_of);
+    if (params?.month_of) q.set('month_of', params.month_of);
     if (params?.completed_date) q.set('completed_date', params.completed_date);
     if (params?.list !== undefined) q.set('list', String(params.list));
     if (params?.parent !== undefined) q.set('parent', String(params.parent));
@@ -124,6 +126,7 @@ export const tasks = {
     status?: string;
     due_date?: string;
     week_of?: string;
+    month_of?: string;
     scheduled_at?: string;
     remind?: boolean;
     notify_emails?: string[];
@@ -358,6 +361,40 @@ export interface WeeklySummary {
   expense_currency: string;
 }
 
+export interface MonthlyEntry {
+  id: number;
+  year: number;
+  month: number;
+  mood: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlySummary {
+  year: number;
+  month: number;
+  start_date: string;
+  end_date: string;
+  days_in_month: number;
+  weeks: Array<{
+    iso_year: number;
+    iso_week: number;
+    start_date: string;
+    end_date: string;
+    tasks_done: number;
+    tasks_due: number;
+    tasks_missed: number;
+  }>;
+  total_done: number;
+  total_due: number;
+  total_missed: number;
+  entries_written: number;
+  expense_total: number;
+  expense_top_category: { id: number; name: string; amount: number } | null;
+  expense_currency: string;
+}
+
 export const journal = {
   list: () => request<any[]>('/journal'),
   get: (date: string) => request<any>('/journal/' + date),
@@ -393,6 +430,22 @@ export const journal = {
       request(`/journal/week/${year}/${week}`, { method: 'DELETE' }),
     summary: (year: number, week: number) =>
       request<WeeklySummary>(`/journal/week/${year}/${week}/summary`),
+  },
+
+  // --- Monthly entry. Same shape as weekly but keyed by calendar year + month. ---
+  month: {
+    list: () => request<MonthlyEntry[]>('/journal/months'),
+    get: (year: number, month: number) =>
+      request<MonthlyEntry>(`/journal/month/${year}/${month}`),
+    save: (year: number, month: number, content: string, mood?: string | null) =>
+      request(`/journal/month/${year}/${month}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content, mood: mood ?? null }),
+      }),
+    delete: (year: number, month: number) =>
+      request(`/journal/month/${year}/${month}`, { method: 'DELETE' }),
+    summary: (year: number, month: number) =>
+      request<MonthlySummary>(`/journal/month/${year}/${month}/summary`),
   },
 };
 
