@@ -906,45 +906,51 @@ export default function MediaPage() {
               })}
             </div>
             <div className={cn(
-              'md:ml-auto flex items-center gap-2 min-w-0',
+              'md:ml-auto flex flex-wrap items-center gap-2 min-w-0',
               isMobileMedia && searchExpanded ? 'w-full' : '',
             )}>
               {!(isMobileMedia && searchExpanded) && (
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
-                <SelectTrigger size="sm" className="h-9 min-w-[180px] gap-2 text-xs">
-                  <ArrowUpDown className="size-3.5 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="start" alignItemWithTrigger={false} sideOffset={6}>
-                  {SORT_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <div className="min-w-[132px] flex-1 md:min-w-[180px] md:flex-none">
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
+                    <SelectTrigger size="sm" className="h-9 w-full min-w-0 gap-2 text-xs">
+                      <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent align="start" alignItemWithTrigger={false} sideOffset={6}>
+                      {SORT_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-              {activeType === 'movie' && !isMobileMedia && (
+              {activeType === 'movie' && !(isMobileMedia && searchExpanded) && (
                 <motion.button
                   onClick={() => setGroupSeries((v) => !v)}
                   whileTap={{ scale: 0.94 }}
                   animate={groupSeries ? { rotate: [0, -6, 6, 0] } : { rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 420, damping: 18 }}
                   className={cn(
-                    'h-9 px-3.5 rounded-full text-xs inline-flex items-center gap-1.5 border transition-colors',
+                    'h-9 rounded-full text-xs inline-flex items-center justify-center gap-1.5 border transition-colors',
+                    isMobileMedia ? 'w-9 px-0' : 'px-3.5',
                     groupSeries
                       ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
                       : 'border-[hsl(var(--outline))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
                   )}
                   title="Group movies that share a series (e.g. Mission Impossible)"
+                  aria-label="Group movie series"
                 >
-                  <Film className="size-3.5" /> Series
+                  <Film className="size-3.5" />
+                  {!isMobileMedia && 'Series'}
                 </motion.button>
               )}
-              {/* List/grid switch — desktop only; mobile defaults to grid.
+              {/* List/grid switch.
                   M3 split button: primary toggles the OTHER view instantly,
                   chevron opens a menu with both options. */}
-              {!isMobileMedia && (
+              {!(isMobileMedia && searchExpanded) && (
                 <SplitButton
                   size="sm"
+                  iconOnly={isMobileMedia}
                   value={viewMode}
                   options={[
                     { value: 'grid', label: 'Grid', icon: LayoutGrid },

@@ -36,6 +36,7 @@ export interface SplitButtonProps<V extends string = string> {
   onPrimary?: () => void;
   className?: string;
   size?: 'sm' | 'default';
+  iconOnly?: boolean;
   /**
    * tonal | filled | outlined — defaults to tonal (M3 secondary-container).
    */
@@ -43,7 +44,7 @@ export interface SplitButtonProps<V extends string = string> {
 }
 
 export function SplitButton<V extends string = string>({
-  value, options, onChange, onPrimary, className, size = 'default', variant = 'tonal',
+  value, options, onChange, onPrimary, className, size = 'default', iconOnly = false, variant = 'tonal',
 }: SplitButtonProps<V>) {
   const [open, setOpen] = React.useState(false);
   const current = options.find((o) => o.value === value) ?? options[0];
@@ -69,12 +70,13 @@ export function SplitButton<V extends string = string>({
         onClick={onPrimary ?? (() => setOpen(true))}
         className={cn(
           'inline-flex items-center gap-2 rounded-l-full font-medium text-sm tracking-[0.005em] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97]',
-          h, px, bgClasses,
+          h, iconOnly ? (size === 'sm' ? 'w-9 justify-center px-0' : 'w-11 justify-center px-0') : px, bgClasses,
         )}
         title={current?.label}
+        aria-label={current?.label}
       >
         {Icon && <Icon className="size-4" />}
-        <span className="whitespace-nowrap">{current?.label}</span>
+        {!iconOnly && <span className="whitespace-nowrap">{current?.label}</span>}
       </button>
       <span className={cn('w-px self-center', divider)} style={{ height: '60%' }} />
       <DropdownMenu open={open} onOpenChange={setOpen}>
