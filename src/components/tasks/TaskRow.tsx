@@ -13,11 +13,15 @@ import {
   useToggleTaskStatus, useToggleTaskImportant, useCreateTask, useSubtasks,
 } from '@/queries/tasks';
 import { PRIORITY_COLORS } from './helpers';
+import { cn } from '@/lib/utils';
 
 interface Props {
   task: Task;
   onClick: () => void;
   depth?: number;
+  compact?: boolean;
+  attached?: boolean;
+  first?: boolean;
 }
 
 // TaskRow renders one task with an inline status checkbox, star, a
@@ -25,7 +29,9 @@ interface Props {
 // nested children. Children are list-embedded (prefetched) so expand is
 // instant; we lazy-fetch only as a fallback. Clicking the body opens the
 // detail dialog (via onClick).
-export default function TaskRow({ task, onClick, depth = 0 }: Props) {
+export default function TaskRow({
+  task, onClick, depth = 0, compact = false, attached = false, first = false,
+}: Props) {
   const [expanded, setExpanded] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [subDraft, setSubDraft] = useState('');
@@ -45,6 +51,11 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
 
   const completedSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
+  const hasSubtasks = task.subtask_count > 0;
+  const subtaskPct = hasSubtasks
+    ? Math.round((task.subtasks_done / task.subtask_count) * 100)
+    : 0;
+  const dimmed = task.status === 'done' || task.status === 'scratched';
 
   const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,21 +84,21 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
     });
   };
 
-  return (
-    <motion.div
-      layout="position"
-      initial={{ opacity: 0, y: -2 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.12 } }}
-      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-    >
+  const row = (
       <div
         onClick={onClick}
-        className={`group rounded-lg border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-[box-shadow,border-color] cursor-pointer
-          ${task.status === 'done' || task.status === 'scratched' ? 'opacity-60' : ''}`}
-        style={{ marginLeft: depth * 24 }}
+        className={cn(
+          'group cursor-pointer transition-[background-color,border-color,box-shadow] text-left',
+          attached
+            ? cn('rounded-none border-0 bg-[hsl(var(--surface-container-low))]', !first && 'border-t border-[hsl(var(--outline-variant))]')
+            : hasSubtasks
+              ? 'rounded-none border-0 bg-[hsl(var(--surface-container-low))] hover:bg-[hsl(var(--surface-container))]'
+              : 'rounded-lg border border-border bg-card hover:border-primary/40 hover:shadow-sm',
+          dimmed && 'opacity-60',
+        )}
+        style={!attached && !hasSubtasks ? { marginLeft: depth * 24 } : undefined}
       >
-        <div className="flex items-start gap-3 px-3.5 py-3 min-h-12">
+        <div className={cn('flex items-start gap-3', compact ? 'min-h-[68px] px-3 py-2.5' : 'min-h-12 px-3.5 py-3')}>
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
           <button
             onClick={handleToggleStatus}
@@ -121,7 +132,7 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
               {/* Subtask hint — only when shown as a flat row (smart/missed/all
                   views). Stops a child task from reading as a normal top-level
                   task, which is what made "Talk with chandan once" confusing. */}
-              {depth === 0 && task.parent_task_id != null && (
+              {depth === 0 && task.parent_task_id != null && !attached && (
                 <span className="inline-flex items-center gap-0.5 text-muted-foreground/80" title="This is a subtask">
                   <CornerDownRight className="size-3" /> subtask
                 </span>
@@ -180,19 +191,25 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
             </div>
           </div>
 
-          {/* Subtasks toggle — arrow that expands/collapses the children. Count
-              label on desktop, arrow-only on mobile. */}
-          {task.subtask_count > 0 && (
-            <button
-              type="button"
-              onClick={toggleExpand}
-              aria-expanded={expanded}
-              title={expanded ? 'Hide subtasks' : 'Show subtasks'}
-              className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 sm:px-2.5 py-1.5 text-muted-foreground opacity-70 hover:opacity-100 hover:text-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors"
-            >
-              <span className="hidden sm:inline text-xs tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
-              <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
-            </button>
+          {hasSubtasks && (
+            <div className="shrink-0 flex flex-col items-end gap-1.5">
+              <button
+                type="button"
+                onClick={toggleExpand}
+                aria-expanded={expanded}
+                title={expanded ? 'Hide subtasks' : 'Show subtasks'}
+                className="inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+              >
+                <span className="mono text-xs tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
+                <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
+              </button>
+              <div className="h-1 w-16 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+                  style={{ width: `${subtaskPct}%` }}
+                />
+              </div>
+            </div>
           )}
 
           <button
@@ -204,7 +221,9 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
           </button>
         </div>
       </div>
+  );
 
+  const children = (
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
@@ -212,30 +231,36 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.26, ease: [0.2, 0, 0, 1] }}
-            className="overflow-hidden"
-            style={{ marginLeft: (depth + 1) * 24 }}
+            className={cn('overflow-hidden', hasSubtasks ? 'flex flex-col' : '')}
+            style={!hasSubtasks ? { marginLeft: (depth + 1) * 24 } : undefined}
           >
-            <div className="mt-2 mb-1 flex flex-col gap-1.5 rounded-2xl border border-border/60 bg-[hsl(var(--surface-container-low))] p-2.5">
+            <div className={cn(
+              'flex flex-col',
+              hasSubtasks ? '' : 'mt-2 mb-1 gap-1.5 rounded-2xl border border-border/60 bg-[hsl(var(--surface-container-low))] p-2.5',
+            )}>
               {loadingSubs && (
-                <div className="text-sm text-muted-foreground flex items-center gap-2.5 px-2 py-2.5">
+                <div className={cn('text-sm text-muted-foreground flex items-center gap-2.5 px-3 py-3', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>
                   <M3CookieLoader size="sm" tone="secondary" /> Loading…
                 </div>
               )}
 
               {subs && subs.length === 0 && !addingSub && (
-                <div className="text-sm text-muted-foreground italic px-2 py-2">No subtasks yet — break this down.</div>
+                <div className={cn('text-sm text-muted-foreground italic px-3 py-3', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>No subtasks yet — break this down.</div>
               )}
 
-              {subs?.map((sub) => (
+              {subs?.map((sub, idx) => (
                 <TaskRow
                   key={sub.id}
                   task={sub}
-                  onClick={onClick}
+                  onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
+                  compact
+                  attached={hasSubtasks}
+                  first={idx === 0}
                 />
               ))}
 
               {addingSub ? (
-                <div className="px-0.5 py-0.5">
+                <div className={cn('px-3 py-2.5', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>
                   <Input
                     name={`subtask-${task.id}`}
                     autoFocus
@@ -253,7 +278,12 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
               ) : (
                 <button
                   onClick={() => setAddingSub(true)}
-                  className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:opacity-90 active:scale-[0.98] transition-all"
+                  className={cn(
+                    'inline-flex items-center gap-1.5 text-sm font-medium text-[hsl(var(--on-secondary-container))] transition-colors',
+                    hasSubtasks
+                      ? 'min-h-11 w-full border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-3.5 py-2.5 text-left hover:bg-[hsl(var(--secondary-container))]'
+                      : 'self-start rounded-full bg-[hsl(var(--secondary-container))] px-3.5 py-2 hover:opacity-90 active:scale-[0.98] transition-all',
+                  )}
                 >
                   <Plus className="size-4" strokeWidth={2.5} /> Add subtask
                 </button>
@@ -262,6 +292,28 @@ export default function TaskRow({ task, onClick, depth = 0 }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+  );
+
+  return (
+    <motion.div
+      layout="position"
+      initial={{ opacity: 0, y: -2 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+      style={!attached && hasSubtasks ? { marginLeft: depth * 24 } : undefined}
+    >
+      {hasSubtasks && !attached ? (
+        <div className="overflow-hidden rounded-[24px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+          {row}
+          {children}
+        </div>
+      ) : (
+        <>
+          {row}
+          {children}
+        </>
+      )}
     </motion.div>
   );
 }

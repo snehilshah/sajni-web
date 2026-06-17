@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { ChevronDown } from '@/components/ui/icons';
-import { motion } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
 import {
@@ -91,9 +90,9 @@ export function SplitButton<V extends string = string>({
               )}
               aria-label="More options"
             >
-              <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 360, damping: 28 }}>
+              <span className={cn('transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]', open && 'rotate-180')}>
                 <ChevronDown className="size-4" />
-              </motion.span>
+              </span>
             </button>
           }
         />

@@ -170,11 +170,18 @@ function PixelIcon({ glyph, className, style }: { glyph: string; className?: str
 
 // Pixel glyph + label for a media entry's platform. `showLabel=false` renders
 // the mark alone (tight rows / dropdown trigger). Fixed-size glyph throughout.
-function PlatformLogo({ platform, showLabel = true, className }: { platform: string; showLabel?: boolean; className?: string }) {
+function PlatformLogo({
+  platform, showLabel = true, className, iconClassName,
+}: {
+  platform: string;
+  showLabel?: boolean;
+  className?: string;
+  iconClassName?: string;
+}) {
   const meta = PLATFORM_PIXEL[platform] || PLATFORM_PIXEL.other;
   return (
     <span className={cn('inline-flex items-center gap-1.5 align-middle min-w-0', className)}>
-      <PixelIcon glyph={meta.glyph} style={{ color: meta.color }} />
+      <PixelIcon glyph={meta.glyph} className={iconClassName} style={{ color: meta.color }} />
       {showLabel && <span className="truncate">{platformLabel(platform)}</span>}
     </span>
   );
@@ -777,10 +784,10 @@ export default function MediaPage() {
               <motion.div
                 key={'item-' + row.item.id}
                 layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
-                transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
+                transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
               >
                 <PosterCard item={row.item} onClick={() => openForm(row.item)} />
               </motion.div>
@@ -788,10 +795,10 @@ export default function MediaPage() {
               <motion.div
                 key={'series-' + row.collectionId}
                 layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
-                transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
+                transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
               >
                 <SeriesPosterCard
                   row={row}
@@ -925,11 +932,8 @@ export default function MediaPage() {
                 </div>
               )}
               {activeType === 'movie' && !(isMobileMedia && searchExpanded) && (
-                <motion.button
+                <button
                   onClick={() => setGroupSeries((v) => !v)}
-                  whileTap={{ scale: 0.94 }}
-                  animate={groupSeries ? { rotate: [0, -6, 6, 0] } : { rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 420, damping: 18 }}
                   className={cn(
                     'h-9 rounded-full text-xs inline-flex items-center justify-center gap-1.5 border transition-colors',
                     isMobileMedia ? 'w-9 px-0' : 'px-3.5',
@@ -942,7 +946,7 @@ export default function MediaPage() {
                 >
                   <Film className="size-3.5" />
                   {!isMobileMedia && 'Series'}
-                </motion.button>
+                </button>
               )}
               {/* List/grid switch.
                   M3 split button: primary toggles the OTHER view instantly,
@@ -1188,10 +1192,8 @@ export default function MediaPage() {
 
 function FilterChip({ active, onClick, children, count, dot }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; dot?: string }) {
   return (
-    <motion.button
+    <button
       onClick={onClick}
-      whileTap={{ scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 24 }}
       className={cn(
         'inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium transition-[background-color,color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] border',
         active
@@ -1200,19 +1202,14 @@ function FilterChip({ active, onClick, children, count, dot }: { active: boolean
       )}
     >
       {active && (
-        <motion.span
-          layout
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-        >
+        <span>
           <CheckIconCircle />
-        </motion.span>
+        </span>
       )}
       {dot && !active && <span className={`size-1.5 rounded-full ${dot}`} />}
       {children}
       <span className={`font-mono text-xs tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
-    </motion.button>
+    </button>
   );
 }
 
@@ -1692,29 +1689,39 @@ function MediaListRow({
         <MediaThumb item={item} index={index} variant={compact ? 'sm' : 'card'} />
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <div className={cn('serif min-w-0 flex-1 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
-                    {item.title || 'Untitled'}
-                  </div>
-                  {item.year ? <span className="mono shrink-0 text-xs text-muted-foreground">{item.year}</span> : null}
-                  {item.rating ? (
-                    <span className="mono inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary">
-                      <Star className="size-3 fill-current" />
-                      <span className="tabular-nums">{item.rating}</span>
-                    </span>
-                  ) : null}
+                <div className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
+                  {item.title || 'Untitled'}
                 </div>
+                {(item.year || item.rating) && (
+                  <div className="mt-0.5 flex min-w-0 items-center gap-2 mono text-xs text-muted-foreground">
+                    {item.year ? <span className="shrink-0">{item.year}</span> : null}
+                    {item.rating ? (
+                      <span className="inline-flex shrink-0 items-center gap-0.5 text-secondary">
+                        <Star className="size-3 fill-current" />
+                        <span className="tabular-nums">{item.rating}</span>
+                      </span>
+                    ) : null}
+                  </div>
+                )}
               </div>
-              <span className={cn('chip shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', chipClassFor(item.status))}>
-                {(statusMeta(item.status)?.label || item.status).toLowerCase()}
-              </span>
+              <div className={cn('flex shrink-0 flex-col items-end gap-1.5 text-right', compact ? 'max-w-[92px]' : 'max-w-[118px]')}>
+                {item.platform ? (
+                  <PlatformLogo
+                    platform={item.platform}
+                    className={cn('justify-end font-medium leading-tight text-foreground', compact ? 'text-[12px]' : 'text-[13px]')}
+                    iconClassName={compact ? 'size-[17px]' : 'size-5'}
+                  />
+                ) : null}
+                <span className={cn('chip shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', chipClassFor(item.status))}>
+                  {(statusMeta(item.status)?.label || item.status).toLowerCase()}
+                </span>
+              </div>
             </div>
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
               <span className="shrink-0 capitalize">{TYPE_META[item.type]?.label || item.type}</span>
               {progressLabel(item) ? <span className="shrink-0">{progressLabel(item)}</span> : null}
-              {item.platform ? <PlatformLogo platform={item.platform} className="max-w-full min-w-0" /> : null}
               {age ? <span className="min-w-0 truncate">{age}</span> : null}
             </div>
           </div>
