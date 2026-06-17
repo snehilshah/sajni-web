@@ -511,14 +511,16 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                   {!form.scheduled_time
                     ? 'Set a time — scheduled for the due date, or today if none is set.'
                     : form.remind
-                      ? 'Sajni will email you ~5 min before.'
-                      : 'Shows on your Today agenda. Turn on Remind for an email nudge.'}
+                      ? "You'll be emailed 5 min before this task. Want a different time? Add a custom reminder below."
+                      : 'Shows on your Today agenda. Turn on Remind for an email nudge 5 min before.'}
                 </p>
               </div>
             ) : (
               <div className="p-3">
-                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
-                  <Clock className="size-3" /> {form.due_type === 'month' ? 'Month goals have no specific time — break them into dated sessions below.' : 'Week tasks have no specific time. Add a reminder below for a nudge.'}
+                <p className="text-xs text-muted-foreground inline-flex items-start gap-1.5">
+                  <Clock className="size-3 mt-0.5 shrink-0" /> <span>{form.due_type === 'month'
+                    ? 'Month goals have no set time. Sajni emails your pending month tasks on the last day of the month — break them into dated sessions below.'
+                    : 'Week tasks have no set time. Sajni emails your pending week tasks every Friday morning. Add a reminder below for a custom nudge.'}</span>
                 </p>
               </div>
             )}
