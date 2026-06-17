@@ -85,6 +85,7 @@ export default function JournalPage() {
     try { return localStorage.getItem(MARGIN_KEY) !== '0'; } catch { return true; }
   });
   const [mobileMarginOpen, setMobileMarginOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { openTask } = useTaskDetail();
@@ -464,6 +465,123 @@ export default function JournalPage() {
     </div>
   );
 
+  // Vault rail body (streak + mini-calendar + entries list). Shared between the
+  // desktop left aside and the mobile left Sheet so mobile regains the calendar
+  // grid + week/month entry nav (previously md:flex-only). On mobile, a pick
+  // that navigates closes the drawer; in-place toggles (month nav, expand) don't.
+  const closeMobileSidebar = () => setMobileSidebarOpen(false);
+  const sidebarContent = (
+    <>
+      {/* Streak header — small but visible cue at the top of the rail. */}
+      <div className="px-4 py-3.5 border-b border-sidebar-border/60">
+        <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground mb-1">journal</div>
+        <div className="flex items-baseline gap-2">
+          <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
+          <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
+        </div>
+        <div className="flex gap-[3px] mt-2">
+          {Array.from({ length: 14 }).map((_, i) => {
+            const d = format(subDays(new Date(), 13 - i), 'yyyy-MM-dd');
+            const has = entryDates.has(d);
+            return (
+              <div
+                key={i}
+                className="flex-1 h-1 rounded-sm"
+                style={{ background: has ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.18)' }}
+              />
+            );
+          })}
+        </div>
+      </div>
+      <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
+        <div className="flex gap-1">
+          <Button onClick={() => { goToday(); closeMobileSidebar(); }} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
+            <CalendarIcon className="size-3.5" /> Today
+          </Button>
+        </div>
+
+        {/* Calendar */}
+        <div className="px-1 pt-1.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <button onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
+              <ChevronLeft className="size-3.5" />
+            </button>
+            {/* Clicking the month name opens the monthly journal view
+                (parallel to clicking a week number for the weekly view). */}
+            <button
+              type="button"
+              onClick={() => { goMonth(viewMonth.getFullYear(), viewMonth.getMonth() + 1); closeMobileSidebar(); }}
+              title="Open monthly entry"
+              className={`rounded px-1.5 py-0.5 font-mono text-xs font-medium tracking-widest uppercase transition-colors hover:bg-sidebar-accent hover:text-foreground ${
+                viewMode === 'month' && monthYear === viewMonth.getFullYear() && monthNumber === viewMonth.getMonth() + 1
+                  ? 'bg-primary/15 text-primary'
+                  : ''
+              }`}
+            >
+              {format(viewMonth, 'MMM yyyy')}
+            </button>
+            <button onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
+              <ChevronRight className="size-3.5" />
+            </button>
+          </div>
+          <CalendarGrid
+            viewMonth={viewMonth}
+            selectedDate={selectedDate}
+            entryDates={entryDates}
+            activeWeekKey={activeWeekKey}
+            onPick={(d) => { setSelectedDate(d); closeMobileSidebar(); }}
+            onPickWeek={(y, w) => { goWeek(y, w); closeMobileSidebar(); }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-1.5 px-1">
+        {groupedByMonth.length === 0 ? (
+          <div className="text-center text-xs text-muted-foreground py-12 px-3">
+            No entries yet
+          </div>
+        ) : (
+          groupedByMonth.map(([monthKey, list]) => {
+            const isExpanded = expandedMonths.has(monthKey);
+            const monthLabel = format(parseISO(monthKey + '-01'), 'MMMM yyyy');
+            return (
+              <div key={monthKey}>
+                <button
+                  onClick={() => toggleMonth(monthKey)}
+                  className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] font-mono uppercase tracking-wider text-muted-foreground transition-colors"
+                >
+                  <ChevronRight className={`size-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                  <span className="flex-1 text-left truncate">{monthLabel}</span>
+                  <span className="text-xs opacity-60">{list.length}</span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15, ease: 'easeOut' }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      {list.map((e) => (
+                        <EntryRow
+                          key={e.date}
+                          entry={e}
+                          selected={selectedDate === e.date}
+                          onClick={() => { setSelectedDate(e.date); closeMobileSidebar(); }}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
       {/* App-consistent full-width header. Vault (left) + context (right)
@@ -472,11 +590,11 @@ export default function JournalPage() {
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Button
             variant="ghost" size="icon-sm"
-            onClick={() => setSidebarOpen((v) => !v)}
-            className="hidden md:flex shrink-0"
-            title={sidebarOpen ? 'Hide journal' : 'Show journal'}
+            onClick={() => isMobile ? setMobileSidebarOpen(true) : setSidebarOpen((v) => !v)}
+            className="shrink-0"
+            title={isMobile ? 'Journal & calendar' : (sidebarOpen ? 'Hide journal' : 'Show journal')}
           >
-            {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
+            {isMobile ? <PanelLeft className="size-4" /> : (sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />)}
           </Button>
           <SaveStatus state={savingState} onSave={() => performSave()} />
         </div>
@@ -657,116 +775,25 @@ export default function JournalPage() {
             transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
             className="hidden md:flex border-r border-border bg-sidebar/40 flex-col shrink-0 overflow-hidden order-1"
           >
-            {/* Streak header — small but visible cue at the top of the rail. */}
-            <div className="px-4 py-3.5 border-b border-sidebar-border/60">
-              <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground mb-1">journal</div>
-              <div className="flex items-baseline gap-2">
-                <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
-                <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
-              </div>
-              <div className="flex gap-[3px] mt-2">
-                {Array.from({ length: 14 }).map((_, i) => {
-                  const d = format(subDays(new Date(), 13 - i), 'yyyy-MM-dd');
-                  const has = entryDates.has(d);
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 h-1 rounded-sm"
-                      style={{ background: has ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.18)' }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-            <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
-              <div className="flex gap-1">
-                <Button onClick={goToday} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
-                  <CalendarIcon className="size-3.5" /> Today
-                </Button>
-              </div>
-
-              {/* Calendar */}
-              <div className="px-1 pt-1.5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <button onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
-                    <ChevronLeft className="size-3.5" />
-                  </button>
-                  {/* Clicking the month name opens the monthly journal view
-                      (parallel to clicking a week number for the weekly view). */}
-                  <button
-                    type="button"
-                    onClick={() => goMonth(viewMonth.getFullYear(), viewMonth.getMonth() + 1)}
-                    title="Open monthly entry"
-                    className={`rounded px-1.5 py-0.5 font-mono text-xs font-medium tracking-widest uppercase transition-colors hover:bg-sidebar-accent hover:text-foreground ${
-                      viewMode === 'month' && monthYear === viewMonth.getFullYear() && monthNumber === viewMonth.getMonth() + 1
-                        ? 'bg-primary/15 text-primary'
-                        : ''
-                    }`}
-                  >
-                    {format(viewMonth, 'MMM yyyy')}
-                  </button>
-                  <button onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
-                    <ChevronRight className="size-3.5" />
-                  </button>
-                </div>
-                <CalendarGrid
-                  viewMonth={viewMonth}
-                  selectedDate={selectedDate}
-                  entryDates={entryDates}
-                  activeWeekKey={activeWeekKey}
-                  onPick={(d) => setSelectedDate(d)}
-                  onPickWeek={goWeek}
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-1.5 px-1">
-              {groupedByMonth.length === 0 ? (
-                <div className="text-center text-xs text-muted-foreground py-12 px-3">
-                  No entries yet
-                </div>
-              ) : (
-                groupedByMonth.map(([monthKey, list]) => {
-                  const isExpanded = expandedMonths.has(monthKey);
-                  const monthLabel = format(parseISO(monthKey + '-01'), 'MMMM yyyy');
-                  return (
-                    <div key={monthKey}>
-                      <button
-                        onClick={() => toggleMonth(monthKey)}
-                        className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] font-mono uppercase tracking-wider text-muted-foreground transition-colors"
-                      >
-                        <ChevronRight className={`size-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                        <span className="flex-1 text-left truncate">{monthLabel}</span>
-                        <span className="text-xs opacity-60">{list.length}</span>
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.15, ease: 'easeOut' }}
-                            style={{ overflow: 'hidden' }}
-                          >
-                            {list.map((e) => (
-                              <EntryRow
-                                key={e.date}
-                                entry={e}
-                                selected={selectedDate === e.date}
-                                onClick={() => setSelectedDate(e.date)}
-                              />
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            {sidebarContent}
           </motion.aside>
         )}
       </AnimatePresence>
+
+      {/* Mobile vault — left drawer. Same rail as desktop so phones regain the
+          calendar grid + week/month entry nav (the desktop aside is md:flex). */}
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="md:hidden w-[86vw] max-w-[20rem] p-0 pt-[env(safe-area-inset-top)] flex flex-col bg-sidebar"
+        >
+          <SheetHeader className="sr-only p-0">
+            <SheetTitle>Journal & calendar</SheetTitle>
+          </SheetHeader>
+          {sidebarContent}
+        </SheetContent>
+      </Sheet>
 
       </div>
     </div>
