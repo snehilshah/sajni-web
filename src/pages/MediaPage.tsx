@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe } from '@/components/ui/icons';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight } from '@/components/ui/icons';
 
 // Pixel-art platform glyphs (pixelarticons), imported as raw SVG strings so
 // they bundle offline (no runtime fetch) and render at a fixed size. Each
@@ -803,7 +803,7 @@ export default function MediaPage() {
         </AnimatePresence>
       </motion.div>
     ) : (
-      <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
+      <div className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
         <AnimatePresence initial={false}>
           {seriesRows.map((row, idx) => (
             row.kind === 'single' ? (
@@ -811,6 +811,7 @@ export default function MediaPage() {
                 key={'item-' + row.item.id}
                 item={row.item}
                 index={idx}
+                attached
                 first={idx === 0}
                 onClick={() => openForm(row.item)}
               />
@@ -837,6 +838,7 @@ export default function MediaPage() {
         : `${items.length} ${items.length === 1 ? 'entry' : 'entries'} · ${counts['in_progress'] || 0} in progress`}
       title="Library"
       subtitle="Movies, shows, books, links — one shelf."
+      hideScrollbar
       actions={
         <Button
           onClick={() => (isBookmarkTab ? setBookmarkAddSignal((s) => s + 1) : openForm())}
@@ -1385,14 +1387,23 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
 // MediaThumb — small thumbnail used in the design's list view. Uses the
 // real poster when available, otherwise an index-derived gradient panel
 // matching the redesign aesthetic.
-function MediaThumb({ item, index }: { item: MediaEntry; index: number }) {
+function MediaThumb({ item, index, variant = 'sm', className }: {
+  item: MediaEntry;
+  index: number;
+  variant?: 'sm' | 'card';
+  className?: string;
+}) {
+  const sizeClass = variant === 'card'
+    ? 'w-[52px] h-[76px] rounded-xl'
+    : 'w-11 h-[60px] rounded-md';
+  const classes = cn(sizeClass, 'object-cover ring-1 ring-border/60 shrink-0', className);
   if (item.poster_url) {
     return (
       <img
         src={item.poster_url}
         alt=""
         loading="lazy"
-        className="w-11 h-[60px] rounded-md object-cover ring-1 ring-border/60 shrink-0"
+        className={classes}
       />
     );
   }
@@ -1400,7 +1411,7 @@ function MediaThumb({ item, index }: { item: MediaEntry; index: number }) {
   const b = ((index + 2) % 5) + 1;
   return (
     <div
-      className="w-11 h-[60px] rounded-md ring-1 ring-border/60 shrink-0"
+      className={cn(sizeClass, 'ring-1 ring-border/60 shrink-0', className)}
       style={{ background: `linear-gradient(135deg, hsl(var(--m${a})), hsl(var(--m${b})))` }}
     />
   );
@@ -1456,6 +1467,36 @@ function relativeShort(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function watchAgeLabelShort(item: MediaEntry): string {
+  if (item.last_completed_at) {
+    return 'done ' + relativeTiny(item.last_completed_at);
+  }
+  if (item.created_at) {
+    return 'added ' + relativeTiny(item.created_at);
+  }
+  return '';
+}
+
+function relativeTiny(iso: string): string {
+  let long = '';
+  try {
+    long = formatDistanceToNow(parseISO(iso), { addSuffix: true });
+  } catch {
+    return iso;
+  }
+  return long
+    .replace(/^less than a minute ago$/, 'now')
+    .replace(/^about /, '')
+    .replace(/^over /, '')
+    .replace(/^almost /, '')
+    .replace(/ minutes? ago$/, 'm ago')
+    .replace(/ hours? ago$/, 'h ago')
+    .replace(/ days? ago$/, 'd ago')
+    .replace(/ weeks? ago$/, 'w ago')
+    .replace(/ months? ago$/, 'mo ago')
+    .replace(/ years? ago$/, 'y ago');
 }
 
 function progressLabel(item: MediaEntry): string {
@@ -1612,14 +1653,19 @@ function SeriesDialog({
 // thin progress bar at the bottom for in-progress shows/books without
 // duplicating the row markup inline).
 function MediaListRow({
-  item, index, first, onClick,
+  item, index, onClick, compact = false, attached = false, first = false,
 }: {
   item: MediaEntry;
   index: number;
-  first: boolean;
   onClick: () => void;
+  compact?: boolean;
+  attached?: boolean;
+  first?: boolean;
 }) {
   const hasProgress = listProgressPct(item) !== null;
+  const progress = hasProgress ? progressDetailLabel(item) : '';
+  const pct = listProgressPct(item);
+  const age = watchAgeLabelShort(item);
   return (
     <motion.button
       layout="position"
@@ -1628,43 +1674,61 @@ function MediaListRow({
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
       transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
       onClick={onClick}
-      className={`m3-state relative w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left transition-colors
-        ${first ? '' : 'border-t border-border/40'}`}
+      className={cn(
+        'm3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]',
+        attached
+          ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
+          : 'rounded-2xl border border-[hsl(var(--outline-variant))] hover:border-[hsl(var(--outline))]',
+        compact ? 'min-h-[82px] p-2.5' : 'min-h-[96px] p-3 md:p-3.5',
+      )}
     >
-      <MediaThumb item={item} index={index} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <div className="serif text-[16px] font-medium truncate">{item.title || 'Untitled'}</div>
-          {item.year ? <span className="mono text-xs text-muted-foreground">{item.year}</span> : null}
-          {item.rating ? (
-            <span className="inline-flex items-center gap-0.5 text-secondary">
-              <Star className="size-3 fill-current" />
-              <span className="mono text-xs">{item.rating}</span>
-            </span>
-          ) : null}
-        </div>
-        <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
-          {item.type}{progressLabel(item) ? ' · ' + progressLabel(item) : ''}
-          {item.platform ? <> · <PlatformLogo platform={item.platform} className="inline-flex" /></> : null}
-          {' · '}{watchAgeLabel(item)}
+      <div className={cn('flex min-w-0 gap-3', compact ? 'items-center' : 'items-stretch')}>
+        <MediaThumb item={item} index={index} variant={compact ? 'sm' : 'card'} />
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <div className={cn('serif min-w-0 flex-1 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
+                    {item.title || 'Untitled'}
+                  </div>
+                  {item.year ? <span className="mono shrink-0 text-xs text-muted-foreground">{item.year}</span> : null}
+                  {item.rating ? (
+                    <span className="mono inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary">
+                      <Star className="size-3 fill-current" />
+                      <span className="tabular-nums">{item.rating}</span>
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <span className={cn('chip shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', chipClassFor(item.status))}>
+                {(statusMeta(item.status)?.label || item.status).toLowerCase()}
+              </span>
+            </div>
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
+              <span className="shrink-0 capitalize">{TYPE_META[item.type]?.label || item.type}</span>
+              {progressLabel(item) ? <span className="shrink-0">{progressLabel(item)}</span> : null}
+              {item.platform ? <PlatformLogo platform={item.platform} className="max-w-full min-w-0" /> : null}
+              {age ? <span className="min-w-0 truncate">{age}</span> : null}
+            </div>
+          </div>
+          {hasProgress && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
+                <span className="min-w-0 truncate">{progress}</span>
+                {pct !== null && <span className="shrink-0 tabular-nums">{pct}%</span>}
+              </div>
+              <SegmentedBar
+                watched={item.episodes_watched}
+                total={item.episodes_total}
+                status={item.status}
+                units={item.type === 'show' ? item.seasons_total : undefined}
+                boxH={compact ? 4 : 6}
+              />
+            </div>
+          )}
         </div>
       </div>
-      <span className={`chip ${chipClassFor(item.status)}`}>
-        {(statusMeta(item.status)?.label || item.status).toLowerCase()}
-      </span>
-      {/* Segmented progress — flush bottom edge; color-codes both
-          progress AND the item's health state at a glance. */}
-      {hasProgress && (
-        <span className="absolute left-0 right-0 bottom-0">
-          <SegmentedBar
-            watched={item.episodes_watched}
-            total={item.episodes_total}
-            status={item.status}
-            units={item.type === 'show' ? item.seasons_total : undefined}
-            boxH={4}
-          />
-        </span>
-      )}
     </motion.button>
   );
 }
@@ -1679,17 +1743,28 @@ function listProgressPct(item: MediaEntry): number | null {
   return pct;
 }
 
+function progressDetailLabel(item: MediaEntry): string {
+  if (item.type === 'show') {
+    const pos = progressLabel(item);
+    return `${pos || 'Progress'} · ${item.episodes_watched}/${item.episodes_total} eps`;
+  }
+  if (item.type === 'book') {
+    return `p. ${item.episodes_watched}/${item.episodes_total}`;
+  }
+  return '';
+}
+
 // SeriesListRow — list-view representation. Expandable: shows a single
 // row with the cover + "X/N watched" summary; click expands to reveal
 // each chronological part inline.
 function SeriesListRow({
-  row, first, expanded, onToggle, onPickItem,
+  row, expanded, onToggle, onPickItem, first,
 }: {
   row: Extract<SeriesRow, { kind: 'series' }>;
-  first: boolean;
   expanded: boolean;
   onToggle: () => void;
   onPickItem: (m: MediaEntry) => void;
+  first: boolean;
 }) {
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
@@ -1698,63 +1773,74 @@ function SeriesListRow({
   const yearLabel = oldest && newest && oldest !== newest ? `${oldest}–${newest}` : oldest ? String(oldest) : '';
 
   return (
-    <>
+    <motion.div
+      layout="position"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+      className="flex flex-col"
+    >
       <button
         onClick={onToggle}
-        className={`m3-state w-full flex items-center gap-4 px-5 md:px-6 py-3.5 text-left transition-colors
-          ${first ? '' : 'border-t border-border/40'}`}
+        className={cn(
+          'm3-state group relative w-full overflow-hidden rounded-none border-0 bg-[hsl(var(--surface-container-low))] p-3 md:p-3.5 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]',
+          !first && 'border-t border-[hsl(var(--outline-variant))]',
+        )}
       >
-        <MediaThumb item={cover} index={0} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <div className="serif text-[16px] font-medium truncate">{row.collectionName}</div>
-            {yearLabel && <span className="mono text-xs text-muted-foreground">{yearLabel}</span>}
-            <span className="chip chip-sage text-xs"><Film className="size-3" /> Series</span>
-          </div>
-          <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
-            {row.members.length} movies · {watched}/{row.members.length} watched
+        <div className="flex min-w-0 gap-3">
+          <MediaThumb item={cover} index={0} variant="card" />
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="serif text-[16px] font-medium leading-snug truncate">{row.collectionName}</div>
+                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
+                    {yearLabel && <span className="shrink-0">{yearLabel}</span>}
+                    <span className="shrink-0">{row.members.length} movies</span>
+                  </div>
+                </div>
+                <span className="chip chip-sage h-7 shrink-0 px-2.5 text-xs leading-none">
+                  <Film className="size-3" /> Series
+                </span>
+              </div>
+              <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
+                <span>{watched}/{row.members.length} watched</span>
+                <ChevronRight className={cn('size-4 shrink-0 transition-transform', expanded && 'rotate-90')} />
+              </div>
+            </div>
+            <SegmentedBar
+              watched={watched}
+              total={row.members.length}
+              status={watched === row.members.length ? 'complete' : 'in_progress'}
+              units={row.members.length}
+              boxH={6}
+            />
           </div>
         </div>
-        <span className={`mono text-xs text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`}>
-          ▶
-        </span>
       </button>
       {expanded && (
-        <div className="bg-[hsl(var(--surface-container-low))] border-t border-border/40">
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+          className="flex flex-col"
+        >
           {row.members.map((m, mi) => (
-            <button
+            <MediaListRow
               key={m.id}
+              item={m}
+              index={mi}
+              compact
+              attached
+              first={false}
               onClick={() => onPickItem(m)}
-              className={`w-full flex items-center gap-4 pl-4 md:pl-6 pr-5 md:pr-6 py-2.5 text-left hover:bg-[hsl(var(--surface-container-high))] transition-colors
-                ${mi === 0 ? '' : 'border-t border-border/30'}`}
-            >
-              <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right shrink-0">
-                {mi + 1}
-              </span>
-              <MediaThumb item={m} index={mi} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <div className="text-[14px] font-medium truncate">{m.title}</div>
-                  {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
-                  {m.rating ? (
-                    <span className="inline-flex items-center gap-0.5 text-secondary">
-                      <Star className="size-3 fill-current" />
-                      <span className="mono text-xs">{m.rating}</span>
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
-                  {watchAgeLabel(m)}
-                </div>
-              </div>
-              <span className={`chip ${chipClassFor(m.status)}`}>
-                {(statusMeta(m.status)?.label || m.status).toLowerCase()}
-              </span>
-            </button>
+            />
           ))}
-        </div>
+        </motion.div>
       )}
-    </>
+    </motion.div>
   );
 }
 

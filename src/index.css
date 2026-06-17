@@ -663,6 +663,16 @@ em, .italic { font-style: italic; }
   background-clip: padding-box;
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 /* ============================================================
    Prose / Markdown.
    ============================================================ */

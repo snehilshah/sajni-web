@@ -5,7 +5,7 @@ import { type ReactNode } from 'react';
 // the left, actions slot on the right. Body scrolls inside a centered
 // max-w-6xl gutter, identical across pages.
 export default function PageShell({
-  caption, title, actions, children, contentClassName,
+  caption, title, actions, children, contentClassName, hideScrollbar = false,
 }: {
   caption?: ReactNode;
   title: ReactNode;
@@ -14,6 +14,7 @@ export default function PageShell({
   actions?: ReactNode;
   children: ReactNode;
   contentClassName?: string;
+  hideScrollbar?: boolean;
 }) {
   return (
     <div className="page-fade-in flex-1 flex flex-col min-h-0">
@@ -33,7 +34,7 @@ export default function PageShell({
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${hideScrollbar ? 'no-scrollbar' : ''}`}>
         <div className={contentClassName ?? 'max-w-6xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-8 pb-20 flex flex-col gap-6'}>
           {children}
         </div>

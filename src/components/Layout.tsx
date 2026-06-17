@@ -409,7 +409,7 @@ export default function Layout() {
     <>
       <Backdrop />
 
-      <div className="relative z-10 flex min-h-[100dvh] text-foreground">
+      <div className="relative z-10 flex h-[100dvh] overflow-hidden text-foreground">
         <DesktopRail
           expanded={expanded}
           setExpanded={setExpanded}
@@ -423,7 +423,7 @@ export default function Layout() {
         />
 
         <main
-          className="flex-1 min-w-0 min-h-[100dvh] flex flex-col"
+          className="flex-1 min-w-0 h-full min-h-0 overflow-hidden flex flex-col"
           style={
             isMobile
               ? { paddingBottom: 'calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px))' }
