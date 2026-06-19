@@ -267,9 +267,9 @@ export const media = {
   update: (id: number, data: Record<string, any>) =>
     request('/media/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/media/' + id, { method: 'DELETE' }),
-  search: (query: string, type: string) => {
+  search: (query: string, type: string, signal?: AbortSignal) => {
     const q = new URLSearchParams({ q: query, type });
-    return request<any[]>('/media/search?' + q.toString());
+    return request<any[]>('/media/search?' + q.toString(), { signal });
   },
   details: (externalId: string) =>
     request<MediaDetails>('/media/details?external_id=' + encodeURIComponent(externalId)),

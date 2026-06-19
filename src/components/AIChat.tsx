@@ -13,29 +13,7 @@ import { ai, type AIEvent, type AISessionMeta } from '@/api';
 import { SKILLS } from '@/lib/aiSkills';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-// Tracks the *visual* viewport height while the chat is open so the
-// composer stays above the on-screen keyboard. On iOS Safari the
-// layout viewport keeps its size when the keyboard appears — dvh units
-// don't shrink — so a fixed full-height sheet leaves the input hidden
-// behind the keyboard. visualViewport reports the truth on both
-// platforms; offsetTop covers iOS pushing the viewport upward.
-function useVisualViewportBox(active: boolean) {
-  const [box, setBox] = useState<{ height: number; top: number } | null>(null);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!active || !vv) { setBox(null); return; }
-    const update = () => setBox({ height: Math.round(vv.height), top: Math.round(vv.offsetTop) });
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-    };
-  }, [active]);
-  return box;
-}
+import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 
 interface ToolResultMeta {
   kind: string;

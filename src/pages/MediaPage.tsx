@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetClose, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight } from '@/components/ui/icons';
@@ -323,6 +325,15 @@ function StarRating({ value, interactive = false, onChange, size = 'sm' }: { val
   );
 }
 
+// Movie/Show badge label for a search row. Derived from the external_id
+// the backend mints (tmdb:movie:… / tmdb:tv:…) so combined results stay
+// tell-apart; null for Open Library books (no badge).
+function tmdbKindLabel(ext: string): 'Movie' | 'Show' | null {
+  if (ext.startsWith('tmdb:tv:')) return 'Show';
+  if (ext.startsWith('tmdb:movie:')) return 'Movie';
+  return null;
+}
+
 /**
  * TitleAutocomplete — single Title field with inline TMDB / Open Library
  * suggestions. Replaces the old split "Search DB" + "Title" inputs so
@@ -353,6 +364,10 @@ function TitleAutocomplete({
   const [text, setText] = useState(value);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  // Cancels the in-flight search so a slow earlier request can't resolve
+  // after a newer one and clobber the dropdown (or pin the spinner open).
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Close dropdown when clicking outside.
   useEffect(() => {
@@ -371,10 +386,18 @@ function TitleAutocomplete({
 
   const doSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return; }
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     setLoading(true);
-    try { setResults(await mediaApi.search(q, type)); }
-    catch { setResults([]); }
-    finally { setLoading(false); }
+    try {
+      const res = await mediaApi.search(q, type, ac.signal);
+      if (!ac.signal.aborted) { setResults(res); setLoading(false); }
+    } catch {
+      // A superseded request rejects with AbortError — ignore it; the
+      // newer request now owns the spinner + results.
+      if (!ac.signal.aborted) { setResults([]); setLoading(false); }
+    }
   }, [type]);
 
   const handleChange = (val: string) => {
@@ -405,7 +428,7 @@ function TitleAutocomplete({
 
   const placeholder = type === 'book'
     ? 'Title — search Open Library or type manually'
-    : `Title — search ${TYPE_META[type]?.plural || 'titles'} on TMDB or type manually`;
+    : 'Title — search movies & shows on TMDB or type manually';
 
   return (
     <div className="relative group" ref={wrapRef}>
@@ -445,7 +468,9 @@ function TitleAutocomplete({
             transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
             className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 rounded-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-80 overflow-y-auto p-2 origin-top"
           >
-            {results.map((r, i) => (
+            {results.map((r, i) => {
+              const kind = tmdbKindLabel(r.external_id);
+              return (
               <button
                 key={r.external_id + i}
                 type="button"
@@ -467,11 +492,20 @@ function TitleAutocomplete({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{r.title}</div>
-                  {r.year && <div className="font-mono text-xs opacity-70">{r.year}</div>}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {kind && (
+                      <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md border border-current text-[10px] font-medium uppercase tracking-wide opacity-60 shrink-0">
+                        {kind === 'Show' ? <Tv className="size-2.5" /> : <Film className="size-2.5" />}
+                        {kind}
+                      </span>
+                    )}
+                    {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
+                  </div>
                   {r.overview && <div className="text-xs opacity-75 line-clamp-2 mt-0.5">{r.overview}</div>}
                 </div>
               </button>
-            ))}
+              );
+            })}
             <div className="px-3 pt-2.5 pb-1 mono text-xs uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
               Press Enter to pick · Esc to keep typing
             </div>
@@ -559,6 +593,9 @@ export default function MediaPage() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MediaEntry | null>(null);
   const [saving, setSaving] = useState(false);
+  // On phones the form is a full-height bottom Sheet; track the visual
+  // viewport so the sticky footer + focused field stay above the keyboard.
+  const vvBox = useVisualViewportBox(showForm && isMobileMedia);
 
   const blankForm = useCallback((): FormState => ({
     title: '', type: activeType, status: 'pending' as MediaStatus, rating: 0, notes: '',
@@ -687,10 +724,16 @@ export default function MediaPage() {
   }, [blankForm]);
 
   const handleExternalSelect = async (r: MediaSearchResult) => {
+    // Combined movie+show search: the picked row's kind (carried in its
+    // external_id) sets the form type, so picking a show from the movie
+    // tab flips to 'show' and reveals the show-progress section. Books
+    // keep their type (Open Library ids carry no tmdb kind).
+    const kind = tmdbKindLabel(r.external_id);
     // Optimistic prefill from the search row.
     setForm((f) => ({
       ...f,
       title: r.title,
+      type: kind === 'Show' ? 'show' : kind === 'Movie' ? 'movie' : f.type,
       poster_url: r.poster_url,
       year: r.year ? parseInt(r.year) : null,
       genre: r.genre,
@@ -837,6 +880,146 @@ export default function MediaPage() {
       </div>
     );
   }, [loading, filteredItems, seriesRows, viewMode, statusFilter, searchQuery, activeType, expandedSeries, openForm, toggleSeries]);
+
+  // ---- Add/Edit form: shared title + body + footer, hosted in a centered
+  // Dialog on desktop and a full-height, keyboard-safe bottom Sheet on phones.
+  const mediaFormTitle = (
+    <>
+      <TypeIcon className="size-5 text-muted-foreground" />
+      {editItem ? 'Edit' : 'Add'} {TYPE_META[form.type]?.label || 'Entry'}
+    </>
+  );
+  const mediaFormSubtitle = editItem ? 'Update details below' : 'Search a database or fill it in manually';
+
+  // Grids collapse to one column on narrow screens so nothing shrinks
+  // below a usable size; the poster shrinks 120→96px on phones.
+  const mediaFormFields = (
+    <>
+      <div className="grid grid-cols-[96px_1fr] sm:grid-cols-[120px_1fr] gap-4 sm:gap-5">
+        {/* Poster preview */}
+        <div className="aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden flex items-center justify-center text-muted-foreground">
+          {form.poster_url ? (
+            <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <ImageIcon className="size-8 opacity-30" />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 min-w-0">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+              Title <span className="text-destructive">*</span>
+            </Label>
+            <TitleAutocomplete
+              value={form.title}
+              type={form.type}
+              autoFocus={!editItem}
+              source={form.external_id}
+              onChange={(v) => setForm((f) => ({ ...f, title: v, external_id: f.external_id && v !== f.title ? '' : f.external_id }))}
+              onSelect={handleExternalSelect}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <FieldSimple label="Year">
+              <YearField value={form.year} onChange={(y) => setForm({ ...form, year: y })} />
+            </FieldSimple>
+            <FieldSimple label="Genre">
+              <Input value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} placeholder="Action, Drama" />
+            </FieldSimple>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Rating</Label>
+            <StarRating value={form.rating} interactive size="md" onChange={(v) => setForm({ ...form, rating: v })} />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <FieldSelect
+          label="Type"
+          value={form.type}
+          onChange={(v) => setForm({ ...form, type: v || 'movie' })}
+          options={Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))}
+        />
+        <FieldSelect
+          label="Status"
+          value={form.status}
+          onChange={(v) => setForm({ ...form, status: (v as MediaStatus) || 'pending' })}
+          options={STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, dot: s.dot }))}
+          renderValue={(value) => {
+            const meta = statusMeta(value as MediaStatus);
+            return (
+              <span className="flex items-center gap-2">
+                <span className={`size-2 rounded-full ${meta?.dot}`} />
+                {meta?.label}
+              </span>
+            );
+          }}
+        />
+        <FieldSelect
+          label="Platform"
+          value={form.platform || 'none'}
+          onChange={(v) => setForm({ ...form, platform: !v || v === 'none' ? '' : v })}
+          options={[{ value: 'none', label: 'Not specified' }, ...PLATFORM_OPTIONS]}
+          renderValue={(v) => (v && v !== 'none'
+            ? <PlatformLogo platform={v} />
+            : <span className="text-muted-foreground">Not specified</span>)}
+          renderOption={(o) => (o.value === 'none'
+            ? <span className="text-muted-foreground">Not specified</span>
+            : <PlatformLogo platform={o.value} />)}
+        />
+      </div>
+
+      {form.type === 'show' && (
+        <ShowProgressSection form={form} setForm={setForm} />
+      )}
+
+      {form.type === 'book' && (
+        <Section title="Reading progress">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField label="Pages read" value={form.episodes_watched} onChange={(n) => setForm({ ...form, episodes_watched: n })} />
+            <NumberField label="Total pages" value={form.episodes_total} onChange={(n) => setForm({ ...form, episodes_total: n })} />
+          </div>
+          {form.episodes_total > 0 && <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Pages" itemStatus={form.status} />}
+        </Section>
+      )}
+
+      {/* Movie collection callout — when TMDB tells us the movie is
+          part of a series (e.g. "Mission: Impossible Collection"). */}
+      {form.type === 'movie' && form.collection_id && (
+        <CollectionBadge
+          collectionId={form.collection_id}
+          collectionName={form.collection_name}
+          currentExternalID={form.external_id}
+        />
+      )}
+
+      <FieldSimple label="Poster URL">
+        <Input value={form.poster_url} onChange={(e) => setForm({ ...form, poster_url: e.target.value })} placeholder="https://…" />
+      </FieldSimple>
+
+      <FieldSimple label="Notes">
+        <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder="Your thoughts…" />
+      </FieldSimple>
+
+      {editItem && <ActivityTimeline mediaId={editItem.id} />}
+    </>
+  );
+
+  const mediaFormFooter = (
+    <>
+      {editItem && (
+        <Button variant="ghost" onClick={() => handleDelete(editItem.id)} className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5">
+          <Trash2 className="size-3.5" /> Delete
+        </Button>
+      )}
+      <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+      <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
+        {saving && <M3CookieLoader size="xs" tone="primary" />}
+        {editItem ? 'Save' : 'Add to library'}
+      </Button>
+    </>
+  );
 
   return (
     <PageShell
@@ -1024,160 +1207,73 @@ export default function MediaPage() {
       </div>
       )}
 
-      <Dialog
-        open={showForm}
-        onOpenChange={setShowForm}
-        onOpenChangeComplete={(open) => {
-          if (!open) setEditItem(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-3xl w-full max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
-          <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
-            <DialogTitle className="flex items-center gap-2">
-              <TypeIcon className="size-5 text-muted-foreground" />
-              {editItem ? 'Edit' : 'Add'} {TYPE_META[form.type]?.label || 'Entry'}
-            </DialogTitle>
-            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-              {editItem ? 'Update details below' : 'Search a database or fill it in manually'}
-            </p>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-            <div className="grid grid-cols-[120px_1fr] gap-5">
-              {/* Poster preview */}
-              <div className="aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden flex items-center justify-center text-muted-foreground">
-                {form.poster_url ? (
-                  <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon className="size-8 opacity-30" />
-                )}
+      {isMobileMedia ? (
+        /* Phones: full-height bottom Sheet pinned to the visual viewport so
+           the focused field + sticky footer stay above the keyboard. */
+        <Sheet
+          open={showForm}
+          onOpenChange={setShowForm}
+          onOpenChangeComplete={(open) => {
+            if (!open) setEditItem(null);
+          }}
+        >
+          <SheetContent
+            side="bottom"
+            showCloseButton={false}
+            style={vvBox ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' } : { height: '100dvh' }}
+            className="max-w-full p-0 gap-0 rounded-t-[28px]"
+          >
+            <div className="shrink-0 flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-border">
+              <div className="flex flex-col gap-1 min-w-0">
+                <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
+                  {mediaFormTitle}
+                </SheetTitle>
+                <SheetDescription className="mt-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  {mediaFormSubtitle}
+                </SheetDescription>
               </div>
-
-              <div className="flex flex-col gap-3 min-w-0">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Title <span className="text-destructive">*</span>
-                  </Label>
-                  <TitleAutocomplete
-                    value={form.title}
-                    type={form.type}
-                    autoFocus={!editItem}
-                    source={form.external_id}
-                    onChange={(v) => setForm((f) => ({ ...f, title: v, external_id: f.external_id && v !== f.title ? '' : f.external_id }))}
-                    onSelect={handleExternalSelect}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FieldSimple label="Year">
-                    <YearField
-                      value={form.year}
-                      onChange={(y) => setForm({ ...form, year: y })}
-                    />
-                  </FieldSimple>
-                  <FieldSimple label="Genre">
-                    <Input value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} placeholder="Action, Drama" />
-                  </FieldSimple>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Rating</Label>
-                  <StarRating value={form.rating} interactive size="md" onChange={(v) => setForm({ ...form, rating: v })} />
-                </div>
-              </div>
+              <SheetClose render={<Button variant="ghost" size="icon-sm" className="shrink-0 bg-secondary" />}>
+                <X className="size-4" />
+              </SheetClose>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <FieldSelect
-                label="Type"
-                value={form.type}
-                onChange={(v) => setForm({ ...form, type: v || 'movie' })}
-                options={Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))}
-              />
-              <FieldSelect
-                label="Status"
-                value={form.status}
-                onChange={(v) => setForm({ ...form, status: (v as MediaStatus) || 'pending' })}
-                options={STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, dot: s.dot }))}
-                renderValue={(value) => {
-                  const meta = statusMeta(value as MediaStatus);
-                  return (
-                    <span className="flex items-center gap-2">
-                      <span className={`size-2 rounded-full ${meta?.dot}`} />
-                      {meta?.label}
-                    </span>
-                  );
-                }}
-              />
-              <FieldSelect
-                label="Platform"
-                value={form.platform || 'none'}
-                onChange={(v) => setForm({ ...form, platform: !v || v === 'none' ? '' : v })}
-                options={[{ value: 'none', label: 'Not specified' }, ...PLATFORM_OPTIONS]}
-                renderValue={(v) => (v && v !== 'none'
-                  ? <PlatformLogo platform={v} />
-                  : <span className="text-muted-foreground">Not specified</span>)}
-                renderOption={(o) => (o.value === 'none'
-                  ? <span className="text-muted-foreground">Not specified</span>
-                  : <PlatformLogo platform={o.value} />)}
-              />
+            <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
+              {mediaFormFields}
             </div>
 
-            {form.type === 'show' && (
-              <ShowProgressSection form={form} setForm={setForm} />
-            )}
+            <div className="shrink-0 flex items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border bg-muted/20">
+              {mediaFormFooter}
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog
+          open={showForm}
+          onOpenChange={setShowForm}
+          onOpenChangeComplete={(open) => {
+            if (!open) setEditItem(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-3xl w-full max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+            <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
+              <DialogTitle className="flex items-center gap-2">
+                {mediaFormTitle}
+              </DialogTitle>
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                {mediaFormSubtitle}
+              </p>
+            </DialogHeader>
 
-            {form.type === 'book' && (
-              <Section title="Reading progress">
-                <div className="grid grid-cols-2 gap-3">
-                  <NumberField
-                    label="Pages read"
-                    value={form.episodes_watched}
-                    onChange={(n) => setForm({ ...form, episodes_watched: n })}
-                  />
-                  <NumberField
-                    label="Total pages"
-                    value={form.episodes_total}
-                    onChange={(n) => setForm({ ...form, episodes_total: n })}
-                  />
-                </div>
-                {form.episodes_total > 0 && <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Pages" itemStatus={form.status} />}
-              </Section>
-            )}
+            <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+              {mediaFormFields}
+            </div>
 
-            {/* Movie collection callout — when TMDB tells us the movie is
-                part of a series (e.g. "Mission: Impossible Collection"). */}
-            {form.type === 'movie' && form.collection_id && (
-              <CollectionBadge
-                collectionId={form.collection_id}
-                collectionName={form.collection_name}
-                currentExternalID={form.external_id}
-              />
-            )}
-
-            <FieldSimple label="Poster URL">
-              <Input value={form.poster_url} onChange={(e) => setForm({ ...form, poster_url: e.target.value })} placeholder="https://…" />
-            </FieldSimple>
-
-            <FieldSimple label="Notes">
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder="Your thoughts…" />
-            </FieldSimple>
-
-            {editItem && <ActivityTimeline mediaId={editItem.id} />}
-          </div>
-
-          <DialogFooter className="shrink-0 px-6 py-4 border-t border-border bg-muted/20">
-            {editItem && (
-              <Button variant="ghost" onClick={() => handleDelete(editItem.id)} className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5">
-                <Trash2 className="size-3.5" /> Delete
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
-              {saving && <M3CookieLoader size="xs" tone="primary" />}
-              {editItem ? 'Save' : 'Add to library'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter className="shrink-0 px-6 py-4 border-t border-border bg-muted/20">
+              {mediaFormFooter}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <SeriesDialog
         row={seriesDialog}
