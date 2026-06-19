@@ -52,7 +52,7 @@ export default function App() {
 				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}
-				<Suspense fallback={<div className="flex h-dvh items-center justify-center"><M3CookieLoader /></div>}>
+				<Suspense fallback={<div className="flex h-dvh items-center justify-center"><M3CookieLoader size="xl" tone="primary" /></div>}>
 				<Routes>
           <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
           {/* Legacy paths fold into /signin so old bookmarks still work. */}
