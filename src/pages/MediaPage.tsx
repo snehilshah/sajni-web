@@ -511,6 +511,7 @@ export default function MediaPage() {
     try { localStorage.setItem('sajni:media:group', groupSeries ? '1' : '0'); } catch {}
   }, [groupSeries]);
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
+  const [seriesDialog, setSeriesDialog] = useState<Extract<SeriesRow, { kind: 'series' }> | null>(null);
   const toggleSeries = useCallback((id: string) =>
     setExpandedSeries((s) => {
       const next = new Set(s);
@@ -754,13 +755,10 @@ export default function MediaPage() {
           row.kind === 'single' ? (
             <PosterCard key={'item-' + row.item.id} item={row.item} onClick={() => openForm(row.item)} />
           ) : (
-            <SeriesListRow
+            <SeriesPosterCard
               key={'series-' + row.collectionId}
               row={row}
-              className="col-span-full"
-              expanded={expandedSeries.has(row.collectionId)}
-              onToggle={() => toggleSeries(row.collectionId)}
-              onPickItem={openForm}
+              onOpen={() => setSeriesDialog(row)}
             />
           )
         ))}
@@ -791,7 +789,7 @@ export default function MediaPage() {
         ))}
       </div>
     );
-  }, [loading, filteredItems, seriesRows, viewMode, statusFilter, searchQuery, activeType, expandedSeries, openForm, toggleSeries]);
+  }, [loading, filteredItems, seriesRows, viewMode, statusFilter, searchQuery, activeType, expandedSeries, openForm, toggleSeries, setSeriesDialog]);
 
   // ---- Add/Edit form: shared title + body + footer, hosted in a centered
   // Dialog on desktop and a full-height, keyboard-safe bottom Sheet on phones.
@@ -1186,6 +1184,11 @@ export default function MediaPage() {
           </DialogContent>
         </Dialog>
       )}
+      <SeriesDialog
+        row={seriesDialog}
+        onClose={() => setSeriesDialog(null)}
+        onPickItem={openForm}
+      />
 
     </PageShell>
   );
@@ -1648,6 +1651,117 @@ function progressDetailLabel(item: MediaEntry): string {
     return `Pages ${item.episodes_watched}/${item.episodes_total}`;
   }
   return '';
+}
+
+function SeriesPosterCard({
+  row, onOpen,
+}: {
+  row: Extract<SeriesRow, { kind: 'series' }>;
+  onOpen: () => void;
+}) {
+  const cover = row.members[0];
+  const watched = row.members.filter((m) => m.status === 'complete').length;
+  return (
+    <button
+      onClick={onOpen}
+      className="group relative text-left flex flex-col gap-2 w-full"
+      title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
+    >
+      {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster
+          fills it edge-to-edge. The stacked-card depth shadow is desktop-
+          only; on mobile the offsets visually shrink the poster relative
+          to single-movie tiles, so the series card matches PosterCard's
+          plain border on small screens. */}
+      <div
+        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]"
+      >
+        {cover.poster_url ? (
+          <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-muted-foreground">
+            <Film className="size-7 opacity-40" />
+            <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
+          </div>
+        )}
+        <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-xs">
+          <Film className="size-3" /> Series
+        </span>
+        <span className="absolute bottom-2 right-2 mono text-xs px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
+          {watched}/{row.members.length}
+        </span>
+      </div>
+      <div className="mt-2 px-0.5">
+        <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
+        <div className="mono text-xs text-muted-foreground mt-0.5">{row.members.length} movies</div>
+      </div>
+    </button>
+  );
+}
+
+function SeriesDialog({
+  row, onClose, onPickItem,
+}: {
+  row: Extract<SeriesRow, { kind: 'series' }> | null;
+  onClose: () => void;
+  onPickItem: (m: MediaEntry) => void;
+}) {
+  if (!row) return null;
+  const cover = row.members[0];
+  const watched = row.members.filter((m) => m.status === 'complete').length;
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogHeader className="shrink-0 p-5 border-b border-border flex flex-row items-center gap-4">
+          {cover.poster_url ? (
+            <img src={cover.poster_url} alt="" className="w-12 h-[68px] rounded object-cover ring-1 ring-border/60 shrink-0" />
+          ) : (
+            <div className="w-12 h-[68px] rounded bg-muted shrink-0" />
+          )}
+          <div className="flex-1 min-w-0 text-left">
+            <DialogTitle className="serif text-lg font-medium truncate">{row.collectionName}</DialogTitle>
+            <div className="mono text-xs text-muted-foreground mt-0.5">
+              {row.members.length} movies · {watched}/{row.members.length} watched
+            </div>
+            <div className="mt-2 w-48">
+              <SegmentedBar
+                watched={watched}
+                total={row.members.length}
+                status={watched === row.members.length ? 'complete' : 'in_progress'}
+                units={row.members.length}
+                boxH={5}
+              />
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto">
+          {row.members.map((m, mi) => (
+            <button
+              key={m.id}
+              onClick={() => { onPickItem(m); onClose(); }}
+              className={`m3-state w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${mi === 0 ? '' : 'border-t border-border/40'}`}
+            >
+              <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right shrink-0">
+                {mi + 1}
+              </span>
+              <MediaThumb item={m} index={mi} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <div className="text-[14px] font-medium truncate">{m.title}</div>
+                  {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
+                </div>
+                <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
+                  {watchAgeLabel(m)}
+                </div>
+              </div>
+              <span className={cn('chip shrink-0 px-2.5 text-xs leading-none h-6', chipClassFor(m.status))}>
+                {statusMeta(m.status)?.label || m.status}
+              </span>
+            </button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // SeriesListRow shares Today’s compact review-disclosure pattern. It spans a

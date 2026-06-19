@@ -68,14 +68,31 @@ export function SplitButton<V extends string = string>({
         type="button"
         onClick={onPrimary ?? (() => setOpen(true))}
         className={cn(
-          'inline-flex items-center gap-2 rounded-l-full font-medium text-sm tracking-[0.005em] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97]',
-          h, iconOnly ? (size === 'sm' ? 'w-9 justify-center px-0' : 'w-11 justify-center px-0') : px, bgClasses,
+          'inline-flex items-center justify-center rounded-l-full font-medium text-sm tracking-[0.005em] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97]',
+          h, iconOnly ? (size === 'sm' ? 'w-9 px-0' : 'w-11 px-0') : px, bgClasses,
         )}
         title={current?.label}
         aria-label={current?.label}
       >
-        {Icon && <Icon className="size-4" />}
-        {!iconOnly && <span className="whitespace-nowrap">{current?.label}</span>}
+        <span className="grid grid-cols-1 grid-rows-1 items-center justify-center">
+          {options.map((o) => {
+            const O = o.icon;
+            const isActive = o.value === value;
+            return (
+              <span
+                key={o.value}
+                aria-hidden={!isActive}
+                className={cn(
+                  'col-start-1 row-start-1 inline-flex items-center gap-2 transition-opacity duration-200 ease-in-out',
+                  isActive ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                )}
+              >
+                {O && <O className="size-4" />}
+                {!iconOnly && <span className="whitespace-nowrap">{o.label}</span>}
+              </span>
+            );
+          })}
+        </span>
       </button>
       <span className={cn('w-px self-center', divider)} style={{ height: '60%' }} />
       <DropdownMenu open={open} onOpenChange={setOpen}>
