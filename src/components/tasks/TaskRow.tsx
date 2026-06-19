@@ -10,10 +10,11 @@ import type { Task, TaskStep } from '@/types';
 import TagPill from '@/components/TagPill';
 import { Input } from '@/components/ui/input';
 import {
-  useToggleTaskStatus, useToggleTaskImportant, useCreateTask, useSubtasks,
+  useToggleTaskStatus, useToggleTaskImportant, useCreateTask, useSubtasks, usePrefetchSubtasks,
 } from '@/queries/tasks';
 import { PRIORITY_COLORS } from './helpers';
 import { cn } from '@/lib/utils';
+import { SegmentedProgress } from '@/components/ui/segmented-progress';
 
 interface Props {
   task: Task;
@@ -39,10 +40,11 @@ export default function TaskRow({
   const toggleStatus = useToggleTaskStatus();
   const toggleImportant = useToggleTaskImportant();
   const createTask = useCreateTask();
+  const prefetchSubtasks = usePrefetchSubtasks();
 
   // Children: seeded by the list-embedded prefetch (instant expand), refetched
   // fresh once the row is opened. Mutations invalidate the cache automatically.
-  const { data: subs, isFetching: loadingSubs } = useSubtasks(task.id, expanded, task.subtasks);
+  const { data: subs, isLoading: loadingSubs } = useSubtasks(task.id, expanded, task.subtasks);
 
   const overdue = task.due_date && task.status !== 'done' && (() => {
     const d = parseISO(task.due_date);
@@ -196,19 +198,25 @@ export default function TaskRow({
               <button
                 type="button"
                 onClick={toggleExpand}
+                onPointerEnter={() => { void prefetchSubtasks(task.id); }}
+                onFocus={() => { void prefetchSubtasks(task.id); }}
                 aria-expanded={expanded}
-                title={expanded ? 'Hide subtasks' : 'Show subtasks'}
-                className="inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+                aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count} subtasks`}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1.5 text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] transition-[background-color,filter]"
               >
                 <span className="mono text-xs tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
+                <span className="hidden sm:inline text-xs font-medium">{expanded ? 'Hide' : 'View'} subtasks</span>
                 <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
               </button>
-              <div className="h-1 w-16 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-                <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
-                  style={{ width: `${subtaskPct}%` }}
-                />
-              </div>
+              <SegmentedProgress
+                value={task.subtasks_done}
+                total={task.subtask_count}
+                units={Math.min(6, task.subtask_count)}
+                state={subtaskPct === 100 ? 'complete' : 'active'}
+                height={5}
+                className="w-28"
+                label="Subtasks"
+              />
             </div>
           )}
 

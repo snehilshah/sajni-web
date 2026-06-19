@@ -10,6 +10,7 @@ import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import PageShell from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -204,18 +205,6 @@ function statusPillColor(status: MediaStatus): string {
 
 
 
-/**
- * SegmentedBar — one bar per *unit* (a season for shows, a chunk for
- * books). Each bar is colored by the COMPLETION STATE OF THAT UNIT, not
- * by the global percentage. So a 5-season show watched through s3 reads
- * as: 3 green bars + 1 active bar + 1 idle bar.
- *
- * Inputs are still cumulative (episodes_watched / episodes_total) so the
- * call sites don't change.
- *
- *   variant='row'  → single grid row (list rows, poster overlays)
- *   variant='wrap' → wrapping squares (dialog form)
- */
 function SegmentedBar({
   watched, total, status, units,
   showLabel = false, label = '', variant = 'row',
@@ -232,68 +221,17 @@ function SegmentedBar({
   variant?: 'row' | 'wrap';
   boxH?: number;
 }) {
-  if (total <= 0) return null;
-  // Default unit count: prefer caller-provided (seasons); else 10 chunks.
-  const numBars = Math.max(1, units && units > 0 ? units : Math.min(10, total));
-  const perBar = total / numBars;
-  const pct = Math.round((watched / total) * 100);
-
-  // Per-bar state: complete / current / pending — overridden by item status.
-  function barColor(idx: number): string {
-    const barEnd = (idx + 1) * perBar;
-    const barStart = idx * perBar;
-
-    // Item-level overrides paint every bar regardless of progress.
-    if (status === 'complete') return 'var(--progress-complete)';
-    if (status === 'dropped' || status === 'scratched') {
-      return watched >= barEnd ? 'var(--progress-dropped)' : 'var(--progress-idle)';
-    }
-
-    // pending / waiting / archived / in_progress all show real watched
-    // progress — a parked show shouldn't hide how far you actually got.
-    if (watched >= barEnd)   return 'var(--progress-complete)';
-    if (watched > barStart)  return 'var(--progress-active)';
-    return 'var(--progress-idle)';
-  }
-
-  const bars = Array.from({ length: numBars }, (_, i) => i);
-  const isRow = variant === 'row';
-  const headerLabel = units && units > 0
-    ? `${units} ${units === 1 ? 'season' : 'seasons'}`
-    : label;
-
   return (
-    <div className="flex flex-col gap-1">
-      {showLabel && (
-        <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-muted-foreground">
-          <span>{headerLabel || label}</span>
-          <span>{watched}/{total} · {pct}%</span>
-        </div>
-      )}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${numBars}, 1fr)`,
-          gap: isRow ? '3px' : '4px',
-        }}
-      >
-        {bars.map((i) => (
-          <motion.div
-            key={i}
-            initial={{ scaleY: 0.4, opacity: 0 }}
-            animate={{ scaleY: 1, opacity: 1 }}
-            transition={{ duration: 0.22, delay: i * 0.025, ease: [0.2, 0, 0, 1] }}
-            style={{
-              height: `${boxH}px`,
-              borderRadius: '9999px',
-              background: barColor(i),
-              transition: 'background 250ms ease',
-              transformOrigin: 'center',
-            }}
-          />
-        ))}
-      </div>
-    </div>
+    <SegmentedProgress
+      value={watched}
+      total={total}
+      units={units}
+      state={status === 'complete' ? 'complete' : status === 'dropped' || status === 'scratched' ? 'dropped' : 'active'}
+      height={boxH}
+      variant={variant}
+      label={units && units > 0 ? `${units} ${units === 1 ? 'season' : 'seasons'}` : label}
+      showLabel={showLabel}
+    />
   );
 }
 
@@ -579,10 +517,6 @@ export default function MediaPage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     }), []);
-  // Grid-view series open in a centered dialog rather than expanding
-  // the card inline — that used to push the rest of the grid down and
-  // looked jumpy. Same data, no layout shift.
-  const [seriesDialog, setSeriesDialog] = useState<Extract<SeriesRow, { kind: 'series' }> | null>(null);
   useEffect(() => {
     try { localStorage.setItem(MEDIA_VIEW_KEY, viewMode); } catch {}
   }, [viewMode]);
@@ -795,11 +729,9 @@ export default function MediaPage() {
 
   const TypeIcon = TYPE_META[activeType]?.icon || Film;
 
-  // Memoize the grid/list subtree so typing in the Add/Edit dialog (which
-  // updates `form` on every keystroke) does NOT re-render the whole library.
-  // The framer-motion `layout` + AnimatePresence reconciliation per keystroke
-  // was what froze the title input during a TMDB search. Deps deliberately
-  // exclude `form` — the grid reads none of it.
+  // Memoize shelf rendering so typing in the dialog never rerenders it. Motion
+  // stays limited to disclosures; filtering and sorting update without layout
+  // choreography that previously made the shelf feel unstable.
   const gridEl = useMemo(() => {
     if (loading) {
       return (
@@ -817,66 +749,46 @@ export default function MediaPage() {
       );
     }
     return viewMode === 'grid' ? (
-      <motion.div
-        layout
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
-        <AnimatePresence initial={false}>
-          {seriesRows.map((row) => (
-            row.kind === 'single' ? (
-              <motion.div
-                key={'item-' + row.item.id}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
-                transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-              >
-                <PosterCard item={row.item} onClick={() => openForm(row.item)} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key={'series-' + row.collectionId}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.3, 0, 0.8, 0.15] } }}
-                transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-              >
-                <SeriesPosterCard
-                  row={row}
-                  onOpen={() => setSeriesDialog(row)}
-                />
-              </motion.div>
-            )
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      <div className="grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
+        {seriesRows.map((row) => (
+          row.kind === 'single' ? (
+            <PosterCard key={'item-' + row.item.id} item={row.item} onClick={() => openForm(row.item)} />
+          ) : (
+            <SeriesListRow
+              key={'series-' + row.collectionId}
+              row={row}
+              className="col-span-full"
+              expanded={expandedSeries.has(row.collectionId)}
+              onToggle={() => toggleSeries(row.collectionId)}
+              onPickItem={openForm}
+            />
+          )
+        ))}
+      </div>
     ) : (
       <div className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
-        <AnimatePresence initial={false}>
-          {seriesRows.map((row, idx) => (
-            row.kind === 'single' ? (
-              <MediaListRow
-                key={'item-' + row.item.id}
-                item={row.item}
-                index={idx}
-                attached
-                first={idx === 0}
-                onClick={() => openForm(row.item)}
-              />
-            ) : (
-              <SeriesListRow
-                key={'series-' + row.collectionId}
-                row={row}
-                first={idx === 0}
-                expanded={expandedSeries.has(row.collectionId)}
-                onToggle={() => toggleSeries(row.collectionId)}
-                onPickItem={openForm}
-              />
-            )
-          ))}
-        </AnimatePresence>
+        {seriesRows.map((row, idx) => (
+          row.kind === 'single' ? (
+            <MediaListRow
+              key={'item-' + row.item.id}
+              item={row.item}
+              index={idx}
+              attached
+              first={idx === 0}
+              onClick={() => openForm(row.item)}
+            />
+          ) : (
+            <SeriesListRow
+              key={'series-' + row.collectionId}
+              row={row}
+              attached
+              first={idx === 0}
+              expanded={expandedSeries.has(row.collectionId)}
+              onToggle={() => toggleSeries(row.collectionId)}
+              onPickItem={openForm}
+            />
+          )
+        ))}
       </div>
     );
   }, [loading, filteredItems, seriesRows, viewMode, statusFilter, searchQuery, activeType, expandedSeries, openForm, toggleSeries]);
@@ -1275,11 +1187,6 @@ export default function MediaPage() {
         </Dialog>
       )}
 
-      <SeriesDialog
-        row={seriesDialog}
-        onClose={() => setSeriesDialog(null)}
-        onPickItem={openForm}
-      />
     </PageShell>
   );
 }
@@ -1409,7 +1316,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
             src={item.poster_url}
             alt=""
             loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-muted-foreground">
@@ -1552,10 +1459,10 @@ function sortMedia(items: MediaEntry[], by: SortKey): MediaEntry[] {
 // falls back to "added" so brand-new items still have provenance.
 function watchAgeLabel(item: MediaEntry): string {
   if (item.last_completed_at) {
-    return 'completed ' + relativeShort(item.last_completed_at);
+    return 'Completed ' + relativeShort(item.last_completed_at);
   }
   if (item.created_at) {
-    return 'added ' + relativeShort(item.created_at);
+    return 'Added ' + relativeShort(item.created_at);
   }
   return '';
 }
@@ -1570,16 +1477,16 @@ function relativeShort(iso: string): string {
 
 function watchAgeLabelShort(item: MediaEntry): string {
   if (item.last_completed_at) {
-    return 'done ' + relativeTiny(item.last_completed_at);
+    return 'Done ' + relativeTiny(item.last_completed_at);
   }
   if (item.created_at) {
-    return 'added ' + relativeTiny(item.created_at);
+    return 'Added ' + relativeTiny(item.created_at);
   }
   return '';
 }
 
 function relativeTiny(iso: string): string {
-  let long = '';
+  let long: string;
   try {
     long = formatDistanceToNow(parseISO(iso), { addSuffix: true });
   } catch {
@@ -1639,115 +1546,6 @@ function chipClassFor(status: MediaStatus): string {
   }
 }
 
-// SeriesPosterCard — grid-view representation of a movie series.
-// Static button: click opens a centered dialog with the parts.
-// (The previous inline expansion shifted the surrounding grid.)
-function SeriesPosterCard({
-  row, onOpen,
-}: {
-  row: Extract<SeriesRow, { kind: 'series' }>;
-  onOpen: () => void;
-}) {
-  const cover = row.members[0];
-  const watched = row.members.filter((m) => m.status === 'complete').length;
-  return (
-    <button
-      onClick={onOpen}
-      className="group relative text-left flex flex-col gap-2 w-full"
-      title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
-    >
-      {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster
-          fills it edge-to-edge. The stacked-card depth shadow is desktop-
-          only; on mobile the offsets visually shrink the poster relative
-          to single-movie tiles, so the series card matches PosterCard's
-          plain border on small screens. */}
-      <div
-        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]"
-      >
-        {cover.poster_url ? (
-          <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-muted-foreground">
-            <Film className="size-7 opacity-40" />
-            <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
-          </div>
-        )}
-        <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-xs">
-          <Film className="size-3" /> Series
-        </span>
-        <span className="absolute bottom-2 right-2 mono text-xs px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
-          {watched}/{row.members.length}
-        </span>
-      </div>
-      <div className="mt-2 px-0.5">
-        <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
-        <div className="mono text-xs text-muted-foreground mt-0.5">{row.members.length} movies</div>
-      </div>
-    </button>
-  );
-}
-
-// SeriesDialog — centered dialog listing every part of a series in
-// release order. Click any row to jump into the edit form for that
-// movie. Replaces the inline grid expansion.
-function SeriesDialog({
-  row, onClose, onPickItem,
-}: {
-  row: Extract<SeriesRow, { kind: 'series' }> | null;
-  onClose: () => void;
-  onPickItem: (m: MediaEntry) => void;
-}) {
-  if (!row) return null;
-  const cover = row.members[0];
-  const watched = row.members.filter((m) => m.status === 'complete').length;
-  return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
-        <DialogHeader className="shrink-0 p-5 border-b border-border flex flex-row items-center gap-4">
-          {cover.poster_url ? (
-            <img src={cover.poster_url} alt="" className="w-12 h-[68px] rounded object-cover ring-1 ring-border/60 shrink-0" />
-          ) : (
-            <div className="w-12 h-[68px] rounded bg-muted shrink-0" />
-          )}
-          <div className="flex-1 min-w-0 text-left">
-            <DialogTitle className="serif text-lg font-medium truncate">{row.collectionName}</DialogTitle>
-            <div className="mono text-xs text-muted-foreground mt-0.5">
-              {row.members.length} movies · {watched}/{row.members.length} watched
-            </div>
-          </div>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto">
-          {row.members.map((m, mi) => (
-            <button
-              key={m.id}
-              onClick={() => { onPickItem(m); onClose(); }}
-              className={`m3-state w-full flex items-center gap-3 px-5 py-3 text-left transition-colors
-                ${mi === 0 ? '' : 'border-t border-border/40'}`}
-            >
-              <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right shrink-0">
-                {mi + 1}
-              </span>
-              <MediaThumb item={m} index={mi} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <div className="text-[14px] font-medium truncate">{m.title}</div>
-                  {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
-                </div>
-                <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
-                  {watchAgeLabel(m)}
-                </div>
-              </div>
-              <span className={`chip ${chipClassFor(m.status)}`}>
-                {(statusMeta(m.status)?.label || m.status).toLowerCase()}
-              </span>
-            </button>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // MediaListRow — single-entry list row (split out so we can render a
 // thin progress bar at the bottom for in-progress shows/books without
 // duplicating the row markup inline).
@@ -1766,12 +1564,7 @@ function MediaListRow({
   const pct = listProgressPct(item);
   const age = watchAgeLabelShort(item);
   return (
-    <motion.button
-      layout="position"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.12 } }}
-      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+    <button
       onClick={onClick}
       className={cn(
         'm3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]',
@@ -1790,33 +1583,27 @@ function MediaListRow({
                 <div className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
                   {item.title || 'Untitled'}
                 </div>
-                {(item.year || item.rating) && (
-                  <div className="mt-0.5 flex min-w-0 items-center gap-2 mono text-xs text-muted-foreground">
-                    {item.year ? <span className="shrink-0">{item.year}</span> : null}
-                    {item.rating ? (
-                      <span className="inline-flex shrink-0 items-center gap-0.5 text-secondary">
-                        <Star className="size-3 fill-current" />
-                        <span className="tabular-nums">{item.rating}</span>
-                      </span>
-                    ) : null}
-                  </div>
-                )}
               </div>
-              <div className={cn('flex shrink-0 flex-col items-end gap-1.5 text-right', compact ? 'max-w-[92px]' : 'max-w-[118px]')}>
-                {item.platform ? (
-                  <PlatformLogo
-                    platform={item.platform}
-                    className={cn('justify-end font-medium leading-tight text-foreground', compact ? 'text-[12px]' : 'text-[13px]')}
-                    iconClassName={compact ? 'size-[17px]' : 'size-5'}
-                  />
-                ) : null}
-                <span className={cn('chip shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', chipClassFor(item.status))}>
-                  {(statusMeta(item.status)?.label || item.status).toLowerCase()}
-                </span>
-              </div>
+              <span className={cn('chip shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', chipClassFor(item.status))}>
+                {statusMeta(item.status)?.label || item.status}
+              </span>
             </div>
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
-              <span className="shrink-0 capitalize">{TYPE_META[item.type]?.label || item.type}</span>
+              <span className="shrink-0">{TYPE_META[item.type]?.label || item.type}</span>
+              {item.year ? <span className="shrink-0">{item.year}</span> : null}
+              {item.rating ? (
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-secondary">
+                  <Star className="size-3 fill-current" />
+                  <span className="tabular-nums">{item.rating}</span>
+                </span>
+              ) : null}
+              {item.platform ? (
+                <PlatformLogo
+                  platform={item.platform}
+                  className="shrink-0"
+                  iconClassName={compact ? 'size-[15px]' : 'size-4'}
+                />
+              ) : null}
               {progressLabel(item) ? <span className="shrink-0">{progressLabel(item)}</span> : null}
               {age ? <span className="min-w-0 truncate">{age}</span> : null}
             </div>
@@ -1838,7 +1625,7 @@ function MediaListRow({
           )}
         </div>
       </div>
-    </motion.button>
+    </button>
   );
 }
 
@@ -1855,25 +1642,26 @@ function listProgressPct(item: MediaEntry): number | null {
 function progressDetailLabel(item: MediaEntry): string {
   if (item.type === 'show') {
     const pos = progressLabel(item);
-    return `${pos || 'Progress'} · ${item.episodes_watched}/${item.episodes_total} eps`;
+    return `${pos || 'Progress'} · ${item.episodes_watched}/${item.episodes_total} episodes`;
   }
   if (item.type === 'book') {
-    return `p. ${item.episodes_watched}/${item.episodes_total}`;
+    return `Pages ${item.episodes_watched}/${item.episodes_total}`;
   }
   return '';
 }
 
-// SeriesListRow — list-view representation. Expandable: shows a single
-// row with the cover + "X/N watched" summary; click expands to reveal
-// each chronological part inline.
+// SeriesListRow shares Today’s compact review-disclosure pattern. It spans a
+// grid row when needed, so a collection expands without moving poster tiles.
 function SeriesListRow({
-  row, expanded, onToggle, onPickItem, first,
+  row, expanded, onToggle, onPickItem, className, attached = false, first = false,
 }: {
   row: Extract<SeriesRow, { kind: 'series' }>;
   expanded: boolean;
   onToggle: () => void;
   onPickItem: (m: MediaEntry) => void;
-  first: boolean;
+  className?: string;
+  attached?: boolean;
+  first?: boolean;
 }) {
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
@@ -1882,20 +1670,17 @@ function SeriesListRow({
   const yearLabel = oldest && newest && oldest !== newest ? `${oldest}–${newest}` : oldest ? String(oldest) : '';
 
   return (
-    <motion.div
-      layout="position"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.12 } }}
-      transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-      className="flex flex-col"
-    >
+    <div className={cn(
+      'overflow-hidden bg-[hsl(var(--surface-container-low))]',
+      attached
+        ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
+        : 'rounded-2xl border border-[hsl(var(--outline-variant))]',
+      className,
+    )}>
       <button
         onClick={onToggle}
-        className={cn(
-          'm3-state group relative w-full overflow-hidden rounded-none border-0 bg-[hsl(var(--surface-container-low))] p-3 md:p-3.5 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]',
-          !first && 'border-t border-[hsl(var(--outline-variant))]',
-        )}
+        aria-expanded={expanded}
+        className="m3-state group relative w-full bg-[hsl(var(--surface-container-low))] p-3 md:p-3.5 text-left transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))]"
       >
         <div className="flex min-w-0 gap-3">
           <MediaThumb item={cover} index={0} variant="card" />
@@ -1909,13 +1694,16 @@ function SeriesListRow({
                     <span className="shrink-0">{row.members.length} movies</span>
                   </div>
                 </div>
-                <span className="chip chip-sage h-7 shrink-0 px-2.5 text-xs leading-none">
-                  <Film className="size-3" /> Series
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="chip chip-sage h-7 px-2.5 text-xs leading-none">
+                    <Film className="size-3" /> Series
+                  </span>
+                  <ChevronRight className={cn('size-4 transition-transform duration-200', expanded && 'rotate-90')} />
+                </div>
               </div>
               <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
-                <span>{watched}/{row.members.length} watched</span>
-                <ChevronRight className={cn('size-4 shrink-0 transition-transform', expanded && 'rotate-90')} />
+                <span>Watched {watched}/{row.members.length}</span>
+                <span className="font-medium text-foreground/80">{expanded ? 'Hide movies' : 'View movies'}</span>
               </div>
             </div>
             <SegmentedBar
@@ -1928,28 +1716,30 @@ function SeriesListRow({
           </div>
         </div>
       </button>
-      {expanded && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-          className="flex flex-col"
-        >
-          {row.members.map((m, mi) => (
-            <MediaListRow
-              key={m.id}
-              item={m}
-              index={mi}
-              compact
-              attached
-              first={false}
-              onClick={() => onPickItem(m)}
-            />
-          ))}
-        </motion.div>
-      )}
-    </motion.div>
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+            className="overflow-hidden border-t border-[hsl(var(--outline-variant))]"
+          >
+            {row.members.map((m, mi) => (
+              <MediaListRow
+                key={m.id}
+                item={m}
+                index={mi}
+                compact
+                attached
+                first={mi === 0}
+                onClick={() => onPickItem(m)}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -2366,10 +2156,10 @@ function CollectionBadge({
                       {p.year && <div className="font-mono text-xs text-muted-foreground">{p.year}</div>}
                     </div>
                     {isCurrent && (
-                      <span className="chip chip-amber text-xs">this one</span>
+                      <span className="chip chip-amber text-xs">This movie</span>
                     )}
                     {!isCurrent && owned && (
-                      <span className="chip chip-sage text-xs">in library</span>
+                      <span className="chip chip-sage text-xs">In library</span>
                     )}
                   </div>
                 );

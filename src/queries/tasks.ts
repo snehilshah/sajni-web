@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
@@ -39,7 +40,19 @@ export function useSubtasks(id: number, enabled: boolean, prefetch?: Task[]) {
     enabled,
     initialData: prefetch,
     initialDataUpdatedAt: 0,
+    staleTime: 30_000,
   });
+}
+
+// Warm children before a user opens a task's disclosure. The same query key is
+// then consumed by useSubtasks, so opening is immediate without a second call.
+export function usePrefetchSubtasks() {
+  const qc = useQueryClient();
+  return useCallback((id: number) => qc.prefetchQuery({
+    queryKey: qk.tasks.subtasks(id),
+    queryFn: () => tasksApi.subtasks(id),
+    staleTime: 30_000,
+  }), [qc]);
 }
 
 // --- Cache helpers ---

@@ -170,6 +170,7 @@ export default function TodayPage() {
 	const dateLabel = format(new Date(), 'EEEE, MMMM d');
 
 	return (
+		<div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
 		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-14 pb-20">
 			{/* Hero */}
 			<div className="sajni-stagger">
@@ -499,6 +500,7 @@ export default function TodayPage() {
 					</Section>
 				</div>
 			</div>
+		</div>
 		</div>
 	);
 }
