@@ -50,6 +50,12 @@ function siteLabel(b: Bookmark): string {
   return b.site_name || host || 'link';
 }
 
+// Never render a blank title — an empty <p> collapses the card. Fall back
+// to the site label, then the raw URL.
+function displayTitle(b: Bookmark): string {
+  return b.title.trim() || siteLabel(b) || b.url;
+}
+
 function agoShort(iso: string): string {
   try {
     return formatDistanceToNowStrict(parseISO(iso), { addSuffix: false })
@@ -406,7 +412,7 @@ function BookmarkRow({ b, first, onOpen, menu }: {
       </span>
       <div className="min-w-0 flex-1">
         <p className={cn('text-sm truncate leading-snug', b.unread ? 'font-medium text-foreground' : 'text-foreground/80')}>
-          {b.title}
+          {displayTitle(b)}
         </p>
         <p className="text-xs text-muted-foreground truncate">
           {siteLabel(b)} · {agoShort(b.created_at)}
@@ -452,7 +458,7 @@ function VideoCard({ b, onOpen, menu }: { b: Bookmark; onOpen: () => void; menu:
         <Favicon b={b} className="size-7 rounded-md shrink-0" />
         <div className="min-w-0 flex-1">
           <p className={cn('text-[13px] leading-snug line-clamp-2', b.unread ? 'font-medium' : 'text-foreground/80')}>
-            {b.title}
+            {displayTitle(b)}
           </p>
           <p className="text-xs text-muted-foreground truncate">{siteLabel(b)} · {agoShort(b.created_at)}</p>
         </div>
