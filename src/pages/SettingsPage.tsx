@@ -102,9 +102,12 @@ function AIThemes() {
             return (
               <div
                 key={t.id}
+                onClick={() => !isActive && activate(t.id)}
                 className={cn(
-                  'flex items-center gap-3 rounded-2xl border p-3',
-                  isActive ? 'border-primary ring-1 ring-primary/30' : 'border-border',
+                  'flex items-center gap-3 rounded-2xl border p-3 transition-all',
+                  isActive
+                    ? 'border-primary ring-1 ring-primary/30'
+                    : 'border-border hover:border-muted-foreground/30 cursor-pointer',
                 )}
               >
                 <div className="flex shrink-0">
@@ -133,7 +136,7 @@ function AIThemes() {
                 <div className="flex items-center gap-1 shrink-0">
                   {!isActive && (
                     <button
-                      onClick={() => activate(t.id)}
+                      onClick={(e) => { e.stopPropagation(); activate(t.id); }}
                       className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-primary hover:bg-accent"
                       title="Activate"
                     >
@@ -146,7 +149,7 @@ function AIThemes() {
                     </span>
                   )}
                   <button
-                    onClick={() => remove(t.id)}
+                    onClick={(e) => { e.stopPropagation(); remove(t.id); }}
                     className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-destructive hover:bg-accent"
                     title="Delete"
                   >
@@ -321,9 +324,10 @@ export default function SettingsPage() {
   const { hash } = useLocation();
   const { user, logout } = useAuth();
   const { theme, setTheme, themes } = useTheme();
-  const { apply: applyUserTheme, mode: resolvedMode } = useUserTheme();
+  const { apply: applyUserTheme, active: activeUserTheme, mode: resolvedMode } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
+  const qc = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
 
   // Data — takeout / import / delete
@@ -417,14 +421,19 @@ export default function SettingsPage() {
         <Section title="Theme" caption="Each theme has light and dark variants — toggle with Appearance above.">
           <div className="flex flex-wrap gap-2">
             {themes.map((t) => {
-              const active = theme === t.id;
+              const active = !activeUserTheme && theme === t.id;
               const swatches = previewSwatches(getPreset(t.id).seeds, resolvedMode);
               return (
                 <button
                   key={t.id}
                   // Pick the preset (data-theme) and clear any active AI/custom
                   // theme's inline vars so the preset's colors win.
-                  onClick={() => { setTheme(t.id); applyUserTheme(null); }}
+                  onClick={async () => {
+                    setTheme(t.id);
+                    applyUserTheme(null);
+                    await themesApi.deactivate().catch(console.error);
+                    qc.invalidateQueries({ queryKey: qk.themes.all });
+                  }}
                   className={cn(
                     'h-10 pl-2 pr-5 inline-flex items-center gap-2.5 border text-sm rounded-full transition-colors',
                     active

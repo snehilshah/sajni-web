@@ -165,7 +165,43 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
             <div className="flex-1 min-w-0">
               {answer ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children, ...props }) => {
+                        const isInternal = href?.startsWith('/');
+                        if (isInternal && href) {
+                          return (
+                            <a
+                              href={href}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(href);
+                                onClose();
+                                const [_, hash] = href.split('#');
+                                if (hash) {
+                                  setTimeout(() => {
+                                    document.getElementById(hash)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                                  }, 100);
+                                }
+                              }}
+                              className="text-primary hover:underline cursor-pointer"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          );
+                        }
+                        return (
+                          <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                            {children}
+                          </a>
+                        );
+                      }
+                    }}
+                  >
+                    {answer}
+                  </ReactMarkdown>
                 </div>
               ) : streaming ? (
                 <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
@@ -213,6 +249,12 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                       if (route) {
                         navigate(route);
                         onClose();
+                        const [_, hash] = route.split('#');
+                        if (hash) {
+                          setTimeout(() => {
+                            document.getElementById(hash)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                          }, 100);
+                        }
                       }
                     }}
                     className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"

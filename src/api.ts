@@ -926,6 +926,8 @@ export const themes = {
   delete: (id: number) => request('/themes/' + id, { method: 'DELETE' }),
   activate: (id: number) =>
     request<UserTheme>('/themes/' + id + '/activate', { method: 'POST' }),
+  deactivate: () =>
+    request<unknown>('/themes/0/activate', { method: 'POST' }),
 };
 
 // --- Insights (cross-module correlation engine) ---

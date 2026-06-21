@@ -387,6 +387,12 @@ export default function AIChat({ open, onOpenChange }: Props) {
                 onActionClick={(route) => {
                   navigate(route);
                   onOpenChange(false);
+                  const [_, hash] = route.split('#');
+                  if (hash) {
+                    setTimeout(() => {
+                      document.getElementById(hash)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                    }, 100);
+                  }
                 }}
               />
             ),
@@ -465,7 +471,36 @@ function AssistantMessage({
 
         {msg.text ? (
           <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children, ...props }) => {
+                  const isInternal = href?.startsWith('/');
+                  if (isInternal && href) {
+                    return (
+                      <a
+                        href={href}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onActionClick(href);
+                        }}
+                        className="text-primary hover:underline cursor-pointer"
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    );
+                  }
+                  return (
+                    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                      {children}
+                    </a>
+                  );
+                }
+              }}
+            >
+              {msg.text}
+            </ReactMarkdown>
           </div>
         ) : msg.streaming ? (
           <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
