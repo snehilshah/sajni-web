@@ -49,6 +49,8 @@ const ACTION_ICONS: Record<string, typeof CheckSquare> = {
   media_added: Film,
   transaction_created: Wallet,
   transaction_updated: Wallet,
+  theme_created: Sparkles,
+  theme_activated: Sparkles,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -62,6 +64,8 @@ const ACTION_LABELS: Record<string, string> = {
   media_added: 'Added to library',
   transaction_created: 'Recorded transaction',
   transaction_updated: 'Updated transaction',
+  theme_created: 'Created theme',
+  theme_activated: 'Activated theme',
 };
 
 interface Props {
@@ -482,6 +486,7 @@ function AssistantMessage({
               return (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => route && onActionClick(route)}
                   className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"
                 >

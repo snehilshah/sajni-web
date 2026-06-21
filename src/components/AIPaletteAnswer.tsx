@@ -28,6 +28,8 @@ const ACTION_ICONS: Record<string, typeof CheckSquare> = {
   journal_created: BookOpen,
   media_added: Film,
   transaction_created: Wallet,
+  theme_created: Sparkles,
+  theme_activated: Sparkles,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -40,6 +42,8 @@ const ACTION_LABELS: Record<string, string> = {
   journal_created: 'Saved journal entry',
   media_added: 'Added to library',
   transaction_created: 'Recorded transaction',
+  theme_created: 'Created theme',
+  theme_activated: 'Activated theme',
 };
 
 interface Props {
@@ -202,6 +206,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                 return (
                   <motion.button
                     key={i}
+                    type="button"
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => {

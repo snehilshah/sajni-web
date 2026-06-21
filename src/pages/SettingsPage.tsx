@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Sparkles, Star, Wand2, Pencil, Mail, Check, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -166,9 +167,9 @@ function AIThemes() {
   );
 }
 
-function Section({ title, caption, children }: { title: string; caption?: string; children: React.ReactNode }) {
+function Section({ id, title, caption, children }: { id?: string; title: string; caption?: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-border first:border-t-0 py-6 first:pt-0">
+    <section id={id} className="border-t border-border first:border-t-0 py-6 first:pt-0 scroll-mt-6">
       <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mb-1">{title}</div>
       {caption && <div className="serif italic text-sm text-muted-foreground mb-4">{caption}</div>}
       {!caption && <div className="h-3" />}
@@ -317,6 +318,7 @@ function NameEditor() {
 }
 
 export default function SettingsPage() {
+  const { hash } = useLocation();
   const { user, logout } = useAuth();
   const { theme, setTheme, themes } = useTheme();
   const { apply: applyUserTheme, mode: resolvedMode } = useUserTheme();
@@ -334,6 +336,16 @@ export default function SettingsPage() {
   const [delState, setDelState] = useState<{ scheduled: boolean; purge_after?: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [working, setWorking] = useState(false);
+
+  // AI action cards use /settings#themes. Settings loads lazily, so browser
+  // anchor scrolling can run before target exists. Scroll after mount.
+  useEffect(() => {
+    if (hash !== '#themes') return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById('themes')?.scrollIntoView({ block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash]);
 
   useEffect(() => {
     account.deletionStatus().then(setDelState).catch(() => setDelState({ scheduled: false }));
@@ -437,6 +449,7 @@ export default function SettingsPage() {
         </Section>
 
         <Section
+          id="themes"
           title="AI themes"
           caption='Describe a vibe — "moss & bone, calm, dark-leaning" — and Sajni will mix you an M3 palette.'
         >
