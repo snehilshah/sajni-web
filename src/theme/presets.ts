@@ -21,6 +21,10 @@ export interface ThemePreset {
   label: string;
   emoji: string;
   seeds: ThemeSeeds;
+  overrides?: {
+    light?: Record<string, string>;
+    dark?: Record<string, string>;
+  };
 }
 
 export const PRESETS: ThemePreset[] = [
@@ -40,7 +44,37 @@ export const PRESETS: ThemePreset[] = [
     id: 'gruvbox',
     label: 'Gruvbox',
     emoji: '🍂',
-    seeds: { primary: '#A9B665', secondary: '#D8A657', tertiary: '#D3869B' },
+    seeds: { primary: '#458588', secondary: '#D8A657', tertiary: '#D3869B', neutral: '#FBF1C7' },
+    overrides: {
+      light: {
+        surface: '48 84% 88%',
+        'on-surface': '20 5% 22%',
+        'surface-dim': '43 56% 81%',
+        'surface-bright': '48 100% 95%',
+        'surface-container-lowest': '0 0% 100%',
+        'surface-container-low': '48 84% 92%',
+        'surface-container': '48 79% 87%',
+        'surface-container-high': '48 60% 84%',
+        'surface-container-highest': '48 50% 80%',
+        'on-surface-variant': '20 6% 38%',
+        outline: '20 6% 52%',
+        'outline-variant': '20 8% 82%',
+      },
+      dark: {
+        surface: '0 0% 16%',
+        'on-surface': '43 56% 81%',
+        'surface-dim': '195 6% 12%',
+        'surface-bright': '20 7% 29%',
+        'surface-container-lowest': '0 0% 10%',
+        'surface-container-low': '0 0% 13%',
+        'surface-container': '20 5% 22%',
+        'surface-container-high': '20 7% 29%',
+        'surface-container-highest': '24 10% 37%',
+        'on-surface-variant': '43 35% 72%',
+        outline: '43 20% 50%',
+        'outline-variant': '43 25% 30%',
+      },
+    },
   },
   {
     id: 'peach',
@@ -79,6 +113,12 @@ export function getPreset(id: string | null | undefined): ThemePreset {
 export function presetStylesheet(): string {
   return PRESETS.map((p) => {
     const pal = buildPalette(p.seeds);
+    if (p.overrides?.light) {
+      pal.light = { ...pal.light, ...p.overrides.light };
+    }
+    if (p.overrides?.dark) {
+      pal.dark = { ...pal.dark, ...p.overrides.dark };
+    }
     const block = (m: Record<string, string>) =>
       Object.entries(m)
         .map(([k, v]) => `--${k}:${v}`)
