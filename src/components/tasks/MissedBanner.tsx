@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isYesterday, differenceInCalendarDays } from 'date-fns';
-import { CalendarX2, ArrowRight, X, Loader2, ChevronDown } from '@/components/ui/icons';
+import { CalendarX2, X, Loader2, ChevronDown } from '@/components/ui/icons';
 
-import { useMissedTasks, useRescheduleTask, useRescheduleTasks, useScratchTask } from '@/queries/tasks';
+import { useMissedTasks, useRescheduleTask, useScratchTask } from '@/queries/tasks';
 
 // MissedBanner surfaces every still-open overdue task with one-tap
 // reschedule-to-today (per task + bulk) and a quick scratch.
@@ -20,17 +20,14 @@ import { useMissedTasks, useRescheduleTask, useRescheduleTasks, useScratchTask }
 export default function MissedBanner() {
   const { data: missed = [] } = useMissedTasks();
   const reschedule = useRescheduleTask();
-  const rescheduleAll = useRescheduleTasks();
   const scratch = useScratchTask();
   const [open, setOpen] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Any in-flight mutation locks the controls so a row can't be double-acted.
-  const busy = reschedule.isPending || rescheduleAll.isPending || scratch.isPending;
+  const busy = reschedule.isPending || scratch.isPending;
   const rescheduleOne = (id: number) => reschedule.mutate({ id, date: today });
   const scratchOne = (id: number) => scratch.mutate(id);
-  const doRescheduleAll = () =>
-    rescheduleAll.mutate({ ids: missed.map((t) => t.id), date: today });
 
   if (missed.length === 0) return null;
 
@@ -81,20 +78,6 @@ export default function MissedBanner() {
             style={{ overflow: 'hidden' }}
           >
             <div className="px-2.5 pb-2.5 pt-0.5">
-              {missed.length > 1 && (
-                <div className="flex justify-end pb-1.5">
-                  <button
-                    type="button"
-                    onClick={doRescheduleAll}
-                    disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-medium bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:opacity-90 active:scale-[0.98] transition disabled:opacity-50"
-                  >
-                    {rescheduleAll.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
-                    All to today
-                  </button>
-                </div>
-              )}
-
               <div className="flex flex-col gap-0.5">
                 <AnimatePresence initial={false}>
                   {missed.map((t) => (
