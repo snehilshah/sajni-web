@@ -15,7 +15,7 @@ const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (
   memo: { label: 'Memo', icon: FileText, route: () => '/memos' },
   note: { label: 'Note', icon: NotebookPen, route: (id) => `/notes?id=${id}` },
   journal: { label: 'Journal', icon: BookOpen, route: (id) => `/journal?id=${id}` },
-  task: { label: 'Task', icon: CheckSquare, route: () => '/tasks' },
+  task: { label: 'Task', icon: CheckSquare, route: (id) => `/tasks?focus=${id}` },
   transaction: { label: 'Transaction', icon: Receipt, route: () => '/finance/transactions' },
 };
 
