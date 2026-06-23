@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { Sparkles, CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from '@/components/ui/icons';
+import { PixelIcon } from '@/components/ui/pixel-icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -213,7 +214,7 @@ export default function TodayPage() {
 							kind="memo"
 							current={captureKind}
 							onPick={setCaptureKind}
-							icon={<Sparkles className="size-3" />}
+							icon={<PixelIcon name="notebook" solid={captureKind === 'memo'} className="size-3" />}
 							label="Memo"
 						/>
 						<CaptureChip
