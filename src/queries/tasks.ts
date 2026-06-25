@@ -83,6 +83,7 @@ export function useCreateTask() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
     },
   });
 }
@@ -96,6 +97,7 @@ export function useUpdateTask() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
     },
   });
 }
@@ -108,6 +110,7 @@ export function useDeleteTask() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
     },
   });
 }

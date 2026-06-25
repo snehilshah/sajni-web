@@ -13,7 +13,8 @@ import { qk } from './keys';
 const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   // task_list_* affects both the list groups and the tasks grouped under them.
   { prefix: 'task_list_', keys: [qk.taskLists.all, qk.tasks.all] },
-  { prefix: 'task_', keys: [qk.tasks.all] },
+  // A task create, edit, or delete can change its hashtag index too.
+  { prefix: 'task_', keys: [qk.tasks.all, qk.tags.all] },
   { prefix: 'habit_', keys: [qk.habits.all] },
   { prefix: 'memo_', keys: [qk.memos.all] },
   { prefix: 'note_', keys: [qk.notes.all] },

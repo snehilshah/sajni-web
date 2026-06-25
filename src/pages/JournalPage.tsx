@@ -853,6 +853,7 @@ function WeekView({
     await tasksApi.create({ title, week_of: mondayKey });
     loadWeekTasks();
     qc.invalidateQueries({ queryKey: qk.tasks.all });
+    qc.invalidateQueries({ queryKey: qk.tags.all });
   };
 
   // Load entry + summary whenever the week changes.
@@ -1241,6 +1242,7 @@ function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () =
       setValue('');
       onCreated();
       qc.invalidateQueries({ queryKey: qk.tasks.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
     } finally {
       setSubmitting(false);
       // Stay in edit mode for rapid entry; reset value cleared above.
@@ -1691,6 +1693,7 @@ function MonthView({
     await tasksApi.create({ title, month_of: monthKey });
     loadMonthTasks();
     qc.invalidateQueries({ queryKey: qk.tasks.all });
+    qc.invalidateQueries({ queryKey: qk.tags.all });
   };
 
   useEffect(() => {
