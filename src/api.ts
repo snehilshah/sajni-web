@@ -229,6 +229,8 @@ export interface MediaDetails {
   type: 'show' | 'movie';
   title: string;
   year: string;
+  release_date?: string;
+  release_state?: 'released' | 'upcoming' | 'unknown';
   poster_url: string;
   genre: string;
   overview: string;

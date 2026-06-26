@@ -44,7 +44,7 @@ interface FormState {
   month_of: string;
   /** Local HH:MM clock time; '' = no time (all-day). */
   scheduled_time: string;
-  /** Email the user ~5 min before scheduled_time. */
+  /** Email the user at scheduled_time. */
   remind: boolean;
   /** Extra recipients also emailed when this task's reminders fire. */
   notify_emails: string[];
@@ -464,7 +464,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             )}
           </div>
 
-          {/* Schedule — the task's own time + ~5-min email nudge, then custom
+          {/* Schedule — the task's own time + email nudge, then custom
               recipients and any number of extra reminders below. A week task
               has no specific time, so the time row is replaced by a note. */}
           <div className="flex flex-col rounded-lg border border-border bg-card/50">
@@ -511,8 +511,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                   {!form.scheduled_time
                     ? 'Set a time — scheduled for the due date, or today if none is set.'
                     : form.remind
-                      ? "You'll be emailed 5 min before this task. Want a different time? Add a custom reminder below."
-                      : 'Shows on your Today agenda. Turn on Remind for an email nudge 5 min before.'}
+                      ? "You'll be emailed at this task's scheduled time. Want another nudge too? Add a custom reminder below."
+                      : 'Shows on your Today agenda. Turn on Remind for an email nudge at the scheduled time.'}
                 </p>
               </div>
             ) : (
@@ -875,7 +875,7 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
 
 // RemindersSection — any number of reminder instants on any date, delivered
 // by the reminder cron (currently email). Independent of the task's own time
-// and the single "remind ~5 min before" toggle above.
+// and the single "remind at scheduled time" toggle above.
 // RemindersSection works in two modes:
 //  • API mode (taskId)        — reads/writes reminders straight to the task.
 //  • draft mode (draft/onDraftChange) — for a not-yet-created task; reminders

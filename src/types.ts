@@ -31,7 +31,7 @@ export interface Task {
    *  with due_date/week_of; drives the "This Month" list. */
   month_of?: string | null;
   scheduled_at?: string | null;
-  /** Email the user ~5 min before scheduled_at. */
+  /** Email the user at scheduled_at. */
   remind?: boolean;
   /** Extra recipients also emailed when this task's reminders fire. */
   notify_emails?: string[];
@@ -123,6 +123,8 @@ export interface MediaSearchResult {
   external_id: string;
   title: string;
   year: string;
+  release_date?: string;
+  release_state?: 'released' | 'upcoming' | 'unknown';
   poster_url: string;
   overview: string;
   genre: string;

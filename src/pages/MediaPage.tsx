@@ -438,6 +438,11 @@ function TitleAutocomplete({
                       </span>
                     )}
                     {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
+                    {r.release_state === 'upcoming' && (
+                      <span className="chip chip-amber h-5 px-1.5 text-[10px] uppercase tracking-wide">
+                        Upcoming{r.release_date ? ` ${r.release_date}` : ''}
+                      </span>
+                    )}
                   </div>
                   {r.overview && <div className="text-xs opacity-75 line-clamp-2 mt-0.5">{r.overview}</div>}
                 </div>
