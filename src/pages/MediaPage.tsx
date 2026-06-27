@@ -1087,8 +1087,8 @@ export default function MediaPage() {
           {/* Toolbar: status chips + search. On mobile the chips wrap freely
               (no horizontal scroll) and the sort/actions block drops to its
               own row beneath them; on md+ it all sits on one row. */}
-          <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-3 min-w-0 w-full">
-            <div className="flex flex-wrap gap-1">
+          <div className="flex flex-col md:flex-row md:flex-nowrap md:items-center gap-3 min-w-0 w-full">
+            <div className="flex flex-wrap gap-1 shrink-0">
               <FilterChip
                 active={statusFilter === ''}
                 onClick={() => setStatusFilter('')}
@@ -1113,11 +1113,11 @@ export default function MediaPage() {
               })}
             </div>
             <div className={cn(
-              'md:ml-auto flex flex-wrap items-center gap-2 min-w-0',
+              'md:ml-auto flex items-center justify-end gap-2 min-w-0 flex-1',
               isMobileMedia && searchExpanded ? 'w-full' : '',
             )}>
               {!(isMobileMedia && searchExpanded) && (
-                <div className="min-w-[132px] flex-1 md:min-w-[180px] md:flex-none">
+                <div className="min-w-[132px] flex-1 md:min-w-[160px] md:flex-none">
                   <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
                     <SelectTrigger size="sm" className="h-9 w-full min-w-0 gap-2 text-xs">
                       <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
@@ -1198,7 +1198,7 @@ export default function MediaPage() {
                   </button>
                 )
               ) : (
-                <div className="relative w-64">
+                <div className="relative flex-1 max-w-[256px] min-w-[140px]">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                   <Input
                     value={searchQuery}
@@ -1550,11 +1550,20 @@ function sortMedia(items: MediaEntry[], by: SortKey): MediaEntry[] {
       if (!bx) return -1;
       return bx.localeCompare(ax);
     };
+  // Helper: ascending date — empty pushes to end.
+  const byDateAsc = (key: 'created_at' | 'updated_at' | 'last_completed_at') =>
+    (a: MediaEntry, b: MediaEntry) => {
+      const ax = a[key] || ''; const bx = b[key] || '';
+      if (!ax && !bx) return 0;
+      if (!ax) return 1;
+      if (!bx) return -1;
+      return ax.localeCompare(bx);
+    };
   const out = [...items];
   switch (by) {
     case 'updated_desc':   out.sort(byDateDesc('updated_at')); break;
     case 'added_desc':     out.sort(byDateDesc('created_at')); break;
-    case 'added_asc':      out.sort((a, b) => cmpStr(a.created_at || '', b.created_at || '')); break;
+    case 'added_asc':      out.sort(byDateAsc('created_at')); break;
     case 'completed_desc': out.sort(byDateDesc('last_completed_at')); break;
     case 'rating_desc':    out.sort((a, b) => (b.rating || 0) - (a.rating || 0) || byDateDesc('updated_at')(a, b)); break;
     case 'year_desc':      out.sort((a, b) => (b.year || 0) - (a.year || 0) || cmpStr(a.title, b.title)); break;
