@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { startTransition, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -384,18 +384,28 @@ function TitleAutocomplete({
   }, [value]);
 
   const doSearch = useCallback(async (q: string) => {
-    if (q.length < 2) { setResults([]); return; }
+    if (q.length < 2) { startTransition(() => setResults([])); return; }
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
-    setLoading(true);
+    startTransition(() => setLoading(true));
     try {
       const res = await mediaApi.search(q, type, ac.signal);
-      if (!ac.signal.aborted) { setResults(res); setLoading(false); }
+      if (!ac.signal.aborted) {
+        startTransition(() => {
+          setResults(res);
+          setLoading(false);
+        });
+      }
     } catch {
       // A superseded request rejects with AbortError — ignore it; the
       // newer request now owns the spinner + results.
-      if (!ac.signal.aborted) { setResults([]); setLoading(false); }
+      if (!ac.signal.aborted) {
+        startTransition(() => {
+          setResults([]);
+          setLoading(false);
+        });
+      }
     }
   }, [type]);
 
@@ -408,7 +418,7 @@ function TitleAutocomplete({
     timer.current = setTimeout(() => {
       timer.current = null;
       emittedValue.current = val;
-      onChange(val);
+      startTransition(() => onChange(val));
       doSearch(val);
     }, 320);
   };
@@ -489,7 +499,7 @@ function TitleAutocomplete({
               >
                 <div className="w-11 aspect-[2/3] rounded-lg bg-[hsl(var(--surface-container-highest))] shrink-0 overflow-hidden">
                   {r.poster_url ? (
-                    <img src={r.poster_url} alt="" className="w-full h-full object-cover" />
+                    <img src={r.poster_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <ImageIcon className="size-4" />
