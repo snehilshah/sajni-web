@@ -47,7 +47,6 @@ export function SplitButton<V extends string = string>({
 }: SplitButtonProps<V>) {
   const [open, setOpen] = React.useState(false);
   const current = options.find((o) => o.value === value) ?? options[0];
-  const Icon = current?.icon;
 
   const h = size === 'sm' ? 'h-9' : 'h-11';
   const px = size === 'sm' ? 'px-3' : 'px-4';
