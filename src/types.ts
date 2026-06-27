@@ -118,7 +118,7 @@ export interface HabitStatus {
 
 export type HabitPatch = Partial<Pick<Habit, 'name' | 'frequency' | 'color'>>;
 
-export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'archived' | 'dropped' | 'scratched';
+export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'archived' | 'dropped' | 'scratched' | 'upcoming';
 
 export interface MediaEntry {
   id: number;

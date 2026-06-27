@@ -68,12 +68,13 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 // in-progress / pending stay near the top and dropped/scratched sink.
 const STATUS_ORDER: Record<MediaStatus, number> = {
   in_progress: 0,
-  pending: 1,
-  waiting: 2,
-  complete: 3,
-  archived: 4,
-  dropped: 5,
-  scratched: 6,
+  upcoming: 1,
+  pending: 2,
+  waiting: 3,
+  complete: 4,
+  archived: 5,
+  dropped: 6,
+  scratched: 7,
 };
 
 // SeriesRow — what we actually render. A "single" row is one entry; a
@@ -91,6 +92,7 @@ type SeriesRow =
 
 const STATUS_OPTIONS: { value: MediaStatus; label: string; dot: string }[] = [
   { value: 'in_progress', label: 'In progress', dot: 'bg-blue-500' },
+  { value: 'upcoming', label: 'Upcoming', dot: 'bg-amber-500' },
   { value: 'pending', label: 'Pending', dot: 'bg-amber-500' },
   { value: 'waiting', label: 'Waiting', dot: 'bg-purple-500' },
   { value: 'complete', label: 'Complete', dot: 'bg-emerald-500' },
@@ -163,7 +165,7 @@ function formatReleaseDate(value?: string | null): string {
 
 function isUpcomingRelease(item: Pick<MediaEntry, 'status' | 'release_date'>): boolean {
   const d = dateOnly(item.release_date);
-  return item.status === 'pending' && !!d && d > todayISODate();
+  return (item.status === 'pending' || item.status === 'upcoming') && !!d && d > todayISODate();
 }
 
 function isUpcomingCollectionPart(part: Pick<CollectionPart, 'release_date' | 'release_state'>): boolean {
@@ -259,6 +261,7 @@ function statusPillColor(status: MediaStatus): string {
     case 'scratched':   return 'hsl(var(--destructive))';
     case 'waiting':     return 'hsl(var(--color-waiting))';
     case 'pending':     return 'hsl(var(--muted-foreground))';
+    case 'upcoming':    return 'hsl(var(--primary))';
     default:            return 'hsl(var(--muted-foreground))';
   }
 }
@@ -754,11 +757,13 @@ export default function MediaPage() {
     // tab flips to 'show' and reveals the show-progress section. Books
     // keep their type (Open Library ids carry no tmdb kind).
     const kind = tmdbKindLabel(r.external_id);
+    const isUpcoming = r.release_date && dateOnly(r.release_date) > todayISODate();
     // Optimistic prefill from the search row.
     setForm((f) => ({
       ...f,
       title: r.title,
       type: kind === 'Show' ? 'show' : kind === 'Movie' ? 'movie' : f.type,
+      status: isUpcoming ? 'upcoming' : 'pending',
       poster_url: r.poster_url,
       year: r.year ? parseInt(r.year) : null,
       release_date: r.release_date || '',
@@ -770,10 +775,12 @@ export default function MediaPage() {
     if (!r.external_id.startsWith('tmdb:')) return;
     try {
       const d = await mediaApi.details(r.external_id);
+      const isUpcomingDetailed = d.release_date && dateOnly(d.release_date) > todayISODate();
       setForm((f) => ({
         ...f,
         // Don't clobber the title if the user already started typing.
         title: f.title || d.title,
+        status: isUpcomingDetailed ? 'upcoming' : f.status,
         poster_url: f.poster_url || d.poster_url,
         year: f.year || (d.year ? parseInt(d.year) : null),
         release_date: d.release_date || f.release_date,
@@ -1646,6 +1653,7 @@ function chipClassFor(status: MediaStatus): string {
     case 'waiting':     return 'chip-sky';     // slate — on hold
     case 'dropped':
     case 'scratched':   return 'chip-rose';
+    case 'upcoming':    return 'chip-amber';
     default:            return '';
   }
 }
