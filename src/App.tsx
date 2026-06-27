@@ -41,6 +41,15 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 	return <>{children}</>;
 }
 
+function AppLoader() {
+	return (
+		<div className="flex h-dvh flex-col items-center justify-center gap-4 text-muted-foreground">
+			<M3CookieLoader size="xl" tone="primary" />
+			<span className="mono text-xs uppercase tracking-[0.22em]">opening sajni</span>
+		</div>
+	);
+}
+
 export default function App() {
 	return (
 		<AuthProvider>
@@ -52,7 +61,7 @@ export default function App() {
 				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}
-				<Suspense fallback={<div className="flex h-dvh items-center justify-center"><M3CookieLoader size="xl" tone="primary" /></div>}>
+				<Suspense fallback={<AppLoader />}>
 				<Routes>
           <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
           {/* Legacy paths fold into /signin so old bookmarks still work. */}
