@@ -61,7 +61,6 @@ export default function OAuthDone() {
       ) : (
         <>
           <M3CookieLoader size="xl" tone="primary" />
-          <span className="mono text-xs uppercase tracking-[0.22em]">opening sajni</span>
         </>
       )}
     </div>
