@@ -133,6 +133,60 @@ const TYPE_TO_TAB: Record<string, string> = Object.fromEntries(
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
 
+function dateOnly(value?: string | null): string {
+  const raw = (value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : '';
+}
+
+function todayISODate(): string {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function formatReleaseDate(value?: string | null): string {
+  const d = dateOnly(value);
+  if (!d) return '';
+  try {
+    return format(parseISO(d), 'MMM d, yyyy');
+  } catch {
+    return d;
+  }
+}
+
+function isUpcomingRelease(item: Pick<MediaEntry, 'status' | 'release_date'>): boolean {
+  const d = dateOnly(item.release_date);
+  return item.status === 'pending' && !!d && d > todayISODate();
+}
+
+function isUpcomingCollectionPart(part: Pick<CollectionPart, 'release_date' | 'release_state'>): boolean {
+  const d = dateOnly(part.release_date);
+  return part.release_state === 'upcoming' || (!!d && d > todayISODate());
+}
+
+function mediaStatusDisplay(item: MediaEntry): { label: string; color: string; chipClass: string } {
+  if (isUpcomingRelease(item)) {
+    const when = formatReleaseDate(item.release_date);
+    return {
+      label: when ? `Upcoming ${when}` : 'Upcoming',
+      color: 'hsl(var(--primary))',
+      chipClass: 'chip-amber',
+    };
+  }
+  return {
+    label: statusMeta(item.status)?.label || item.status,
+    color: statusPillColor(item.status),
+    chipClass: chipClassFor(item.status),
+  };
+}
+
+function nextUpcomingMember(members: MediaEntry[]): MediaEntry | null {
+  return members
+    .filter(isUpcomingRelease)
+    .sort((a, b) => dateOnly(a.release_date).localeCompare(dateOnly(b.release_date)))[0] || null;
+}
+
 // Per-platform pixel glyph (distinct each) + brand-color tint. The pixel set
 // has no real brand logos, so a varied glyph + colour keeps platforms apart.
 // Colour is an intentional exception to the theme-token rule so a platform
@@ -301,6 +355,7 @@ function TitleAutocomplete({
   // the field during a TMDB search.
   const [text, setText] = useState(value);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emittedValue = useRef<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   // Cancels the in-flight search so a slow earlier request can't resolve
   // after a newer one and clobber the dropdown (or pin the spinner open).
@@ -320,7 +375,13 @@ function TitleAutocomplete({
   // (opening an edit, a picked suggestion filling the title, TMDB details).
   // While typing, value only changes via our own debounced onChange to the
   // same string, so this is a no-op mid-type and never reverts the input.
-  useEffect(() => { setText(value); }, [value]);
+  useEffect(() => {
+    if (emittedValue.current === value) {
+      emittedValue.current = null;
+      return;
+    }
+    setText(value);
+  }, [value]);
 
   const doSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return; }
@@ -344,13 +405,19 @@ function TitleAutocomplete({
     setOpen(true);
     if (timer.current) clearTimeout(timer.current);
     // Sync the parent + fire the search together, after the user pauses.
-    timer.current = setTimeout(() => { onChange(val); doSearch(val); }, 320);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      emittedValue.current = val;
+      onChange(val);
+      doSearch(val);
+    }, 320);
   };
 
   // Push the locally-typed text to the parent immediately — used on blur so a
   // Save click (which blurs first) always sees the latest title.
   const flush = () => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    emittedValue.current = text;
     onChange(text);
   };
 
@@ -358,6 +425,7 @@ function TitleAutocomplete({
   // the parent, mirror the title locally, and close.
   const pick = (r: MediaSearchResult) => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    emittedValue.current = null;
     onSelect(r);
     setText(r.title);
     setOpen(false);
@@ -440,7 +508,7 @@ function TitleAutocomplete({
                     {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
                     {r.release_state === 'upcoming' && (
                       <span className="chip chip-amber h-5 px-1.5 text-[10px] uppercase tracking-wide">
-                        Upcoming{r.release_date ? ` ${r.release_date}` : ''}
+                        Upcoming{r.release_date ? ` ${formatReleaseDate(r.release_date)}` : ''}
                       </span>
                     )}
                   </div>
@@ -468,6 +536,7 @@ interface FormState {
   platform: string;
   poster_url: string;
   year: number | null;
+  release_date: string;
   genre: string;
   external_id: string;
   // Cumulative episodes watched across all seasons. Derived from
@@ -539,7 +608,7 @@ export default function MediaPage() {
 
   const blankForm = useCallback((): FormState => ({
     title: '', type: activeType, status: 'pending' as MediaStatus, rating: 0, notes: '',
-    platform: '', poster_url: '', year: null as number | null, genre: '',
+    platform: '', poster_url: '', year: null as number | null, release_date: '', genre: '',
     external_id: '', episodes_watched: 0, episodes_total: 0,
     seasons_watched: 0, seasons_total: 0,
     season_episodes: [], collection_id: '', collection_name: '',
@@ -648,7 +717,7 @@ export default function MediaPage() {
       setForm({
         title: item.title, type: item.type, status: item.status,
         rating: item.rating || 0, notes: item.notes, platform: item.platform,
-        poster_url: item.poster_url, year: item.year || null, genre: item.genre,
+        poster_url: item.poster_url, year: item.year || null, release_date: item.release_date || '', genre: item.genre,
         external_id: item.external_id,
         episodes_watched: item.episodes_watched, episodes_total: item.episodes_total,
         seasons_watched: item.seasons_watched, seasons_total: item.seasons_total,
@@ -676,6 +745,7 @@ export default function MediaPage() {
       type: kind === 'Show' ? 'show' : kind === 'Movie' ? 'movie' : f.type,
       poster_url: r.poster_url,
       year: r.year ? parseInt(r.year) : null,
+      release_date: r.release_date || '',
       genre: r.genre,
       external_id: r.external_id,
     }));
@@ -690,6 +760,7 @@ export default function MediaPage() {
         title: f.title || d.title,
         poster_url: f.poster_url || d.poster_url,
         year: f.year || (d.year ? parseInt(d.year) : null),
+        release_date: d.release_date || f.release_date,
         genre: f.genre || d.genre,
         seasons_total: d.seasons_total || f.seasons_total,
         episodes_total: d.episodes_total || f.episodes_total,
@@ -830,7 +901,15 @@ export default function MediaPage() {
               type={form.type}
               autoFocus={!editItem}
               source={form.external_id}
-              onChange={(v) => setForm((f) => ({ ...f, title: v, external_id: f.external_id && v !== f.title ? '' : f.external_id }))}
+              onChange={(v) => setForm((f) => {
+                const changedExternalTitle = !!f.external_id && v !== f.title;
+                return {
+                  ...f,
+                  title: v,
+                  external_id: changedExternalTitle ? '' : f.external_id,
+                  release_date: changedExternalTitle ? '' : f.release_date,
+                };
+              })}
               onSelect={handleExternalSelect}
             />
           </div>
@@ -1308,7 +1387,7 @@ function EmptyState({ type, hasFilter, onAdd, onClear }: { type: string; hasFilt
 }
 
 function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }) {
-  const meta = statusMeta(item.status);
+  const statusDisplay = mediaStatusDisplay(item);
   const Icon = TYPE_META[item.type]?.icon || Film;
   const showProgress = item.episodes_total > 0;
 
@@ -1336,15 +1415,16 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
         {/* Status pill — color-coded per status */}
         <div className="absolute top-2 left-2">
           <span
-            className="inline-flex items-center gap-1 bg-background px-2 py-0.5 text-xs font-mono font-medium shadow-sm ring-1 ring-foreground/5"
+            className="inline-flex max-w-[calc(100%-0.5rem)] items-center gap-1 bg-background px-2 py-0.5 text-xs font-mono font-medium shadow-sm ring-1 ring-foreground/5"
             style={{
-              color: statusPillColor(item.status),
-              borderLeft: `2px solid ${statusPillColor(item.status)}`,
+              color: statusDisplay.color,
+              borderLeft: `2px solid ${statusDisplay.color}`,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}
+            title={statusDisplay.label}
           >
-            {meta?.label}
+            <span className="truncate">{statusDisplay.label}</span>
           </span>
         </div>
 
@@ -1571,6 +1651,7 @@ function MediaListRow({
   const progress = hasProgress ? progressDetailLabel(item) : '';
   const pct = listProgressPct(item);
   const age = watchAgeLabelShort(item);
+  const statusDisplay = mediaStatusDisplay(item);
   return (
     <button
       onClick={onClick}
@@ -1592,8 +1673,8 @@ function MediaListRow({
                   {item.title || 'Untitled'}
                 </div>
               </div>
-              <span className={cn('chip shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', chipClassFor(item.status))}>
-                {statusMeta(item.status)?.label || item.status}
+              <span className={cn('chip max-w-[11rem] shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', statusDisplay.chipClass)} title={statusDisplay.label}>
+                <span className="truncate">{statusDisplay.label}</span>
               </span>
             </div>
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
@@ -1666,6 +1747,8 @@ function SeriesPosterCard({
 }) {
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
+  const upcoming = nextUpcomingMember(row.members);
+  const upcomingDate = upcoming ? formatReleaseDate(upcoming.release_date) : '';
   return (
     <button
       onClick={onOpen}
@@ -1691,13 +1774,20 @@ function SeriesPosterCard({
         <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-xs">
           <Film className="size-3" /> Series
         </span>
+        {upcoming && (
+          <span className="absolute top-2 right-2 chip chip-amber h-6 max-w-[calc(100%-5.75rem)] px-2.5 text-xs" title={`Upcoming ${upcomingDate}`}>
+            <span className="truncate">Upcoming</span>
+          </span>
+        )}
         <span className="absolute bottom-2 right-2 mono text-xs px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
           {watched}/{row.members.length}
         </span>
       </div>
       <div className="mt-2 px-0.5">
         <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
-        <div className="mono text-xs text-muted-foreground mt-0.5">{row.members.length} movies</div>
+        <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
+          {row.members.length} movies{upcomingDate ? ` · ${upcomingDate}` : ''}
+        </div>
       </div>
     </button>
   );
@@ -1713,6 +1803,8 @@ function SeriesDialog({
   if (!row) return null;
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
+  const upcoming = nextUpcomingMember(row.members);
+  const upcomingDate = upcoming ? formatReleaseDate(upcoming.release_date) : '';
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
@@ -1725,7 +1817,7 @@ function SeriesDialog({
           <div className="flex-1 min-w-0 text-left">
             <DialogTitle className="serif text-lg font-medium truncate">{row.collectionName}</DialogTitle>
             <div className="mono text-xs text-muted-foreground mt-0.5">
-              {row.members.length} movies · {watched}/{row.members.length} watched
+              {row.members.length} movies · {watched}/{row.members.length} watched{upcomingDate ? ` · upcoming ${upcomingDate}` : ''}
             </div>
             <div className="mt-2 w-48">
               <SegmentedBar
@@ -1739,7 +1831,9 @@ function SeriesDialog({
           </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
-          {row.members.map((m, mi) => (
+          {row.members.map((m, mi) => {
+            const statusDisplay = mediaStatusDisplay(m);
+            return (
             <button
               key={m.id}
               onClick={() => { onPickItem(m); onClose(); }}
@@ -1758,11 +1852,12 @@ function SeriesDialog({
                   {watchAgeLabel(m)}
                 </div>
               </div>
-              <span className={cn('chip shrink-0 px-2.5 text-xs leading-none h-6', chipClassFor(m.status))}>
-                {statusMeta(m.status)?.label || m.status}
+              <span className={cn('chip max-w-[11rem] shrink-0 px-2.5 text-xs leading-none h-6', statusDisplay.chipClass)} title={statusDisplay.label}>
+                <span className="truncate">{statusDisplay.label}</span>
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </DialogContent>
     </Dialog>
@@ -1784,6 +1879,8 @@ function SeriesListRow({
 }) {
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
+  const upcoming = nextUpcomingMember(row.members);
+  const upcomingDate = upcoming ? formatReleaseDate(upcoming.release_date) : '';
   const oldest = row.members[0]?.year;
   const newest = row.members[row.members.length - 1]?.year;
   const yearLabel = oldest && newest && oldest !== newest ? `${oldest}–${newest}` : oldest ? String(oldest) : '';
@@ -1811,9 +1908,15 @@ function SeriesListRow({
                   <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
                     {yearLabel && <span className="shrink-0">{yearLabel}</span>}
                     <span className="shrink-0">{row.members.length} movies</span>
+                    {upcomingDate && <span className="shrink-0">Upcoming {upcomingDate}</span>}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  {upcoming && (
+                    <span className="chip chip-amber h-7 max-w-[11rem] px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
+                      <span className="truncate">Upcoming</span>
+                    </span>
+                  )}
                   <span className="chip chip-sage h-7 px-2.5 text-xs leading-none">
                     <Film className="size-3" /> Series
                   </span>
@@ -2257,6 +2360,8 @@ function CollectionBadge({
               {parts.map((p, i) => {
                 const owned = mine?.find((m) => m.external_id === p.external_id);
                 const isCurrent = p.external_id === currentExternalID;
+                const upcoming = isUpcomingCollectionPart(p);
+                const releaseLabel = formatReleaseDate(p.release_date);
                 return (
                   <div
                     key={p.external_id}
@@ -2272,8 +2377,15 @@ function CollectionBadge({
                     )}
                     <div className="flex-1 min-w-0">
                       <div className={`truncate ${isCurrent ? 'font-medium' : ''}`}>{p.title}</div>
-                      {p.year && <div className="font-mono text-xs text-muted-foreground">{p.year}</div>}
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {releaseLabel || p.year}
+                      </div>
                     </div>
+                    {upcoming && (
+                      <span className="chip chip-amber text-xs" title={releaseLabel ? `Upcoming ${releaseLabel}` : 'Upcoming'}>
+                        Upcoming
+                      </span>
+                    )}
                     {isCurrent && (
                       <span className="chip chip-amber text-xs">This movie</span>
                     )}

@@ -245,6 +245,8 @@ export interface CollectionPart {
   external_id: string;
   title: string;
   year: string;
+  release_date?: string;
+  release_state?: 'released' | 'upcoming' | 'unknown';
   poster_url: string;
   overview: string;
 }

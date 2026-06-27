@@ -87,6 +87,7 @@ export interface MediaEntry {
   platform: string;
   poster_url: string;
   year?: number | null;
+  release_date?: string;
   genre: string;
   external_id: string;
   episodes_watched: number;
