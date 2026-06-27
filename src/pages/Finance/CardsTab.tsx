@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { CreditCard, Plus, Check, AlertCircle, Trash2, Gift } from '@/components/ui/icons';
 
-import { finance, type FinAccount, type FinStatement } from '@/api';
+import { finance, type FinAccount, type FinStatement, type StmtDraft, type StmtPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -241,7 +241,7 @@ function Stat({ label, value, tone = 'default', icon: Icon, small }: {
 
 function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   statement: FinStatement;
-  onUpdate: (data: any) => Promise<void>;
+  onUpdate: (data: StmtPatch) => Promise<void>;
   onPay: () => void;
   onDelete: () => Promise<void>;
 }) {
@@ -371,7 +371,7 @@ function StatementDialog({ card, onClose, onSaved }: {
 
   const save = async () => {
     if (!stmtDate || !dueDate) return;
-    const data: any = { statement_date: stmtDate, due_date: dueDate };
+    const data: StmtDraft = { statement_date: stmtDate, due_date: dueDate };
     if (amountValue) data.amount_due = parseFloat(amountValue);
     if (cashbackValue) data.cashback_earned = parseFloat(cashbackValue);
     await finance.createStatement(card.id, data);

@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | Json[]
+  | { [key: string]: Json };
+
 export interface Memo {
   id: number;
   content: string;
@@ -51,6 +59,31 @@ export interface Task {
   updated_at: string;
 }
 
+export type TaskPatch = Partial<Pick<
+  Task,
+  | 'title'
+  | 'description'
+  | 'priority'
+  | 'status'
+  | 'due_date'
+  | 'week_of'
+  | 'month_of'
+  | 'scheduled_at'
+  | 'remind'
+  | 'notify_emails'
+  | 'list_id'
+  | 'parent_task_id'
+  | 'important'
+  | 'steps'
+>> & {
+  clear_due?: boolean;
+  clear_week?: boolean;
+  clear_month?: boolean;
+  clear_scheduled?: boolean;
+  clear_list?: boolean;
+  clear_parent?: boolean;
+};
+
 export interface TaskList {
   id: number;
   name: string;
@@ -74,6 +107,16 @@ export interface Habit {
   total_logs: number;
   current_streak: number;
 }
+
+export interface HabitStatus {
+  id: number;
+  name: string;
+  frequency: Habit['frequency'];
+  color: string;
+  logged: boolean;
+}
+
+export type HabitPatch = Partial<Pick<Habit, 'name' | 'frequency' | 'color'>>;
 
 export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'archived' | 'dropped' | 'scratched';
 
@@ -104,6 +147,28 @@ export interface MediaEntry {
   /** Latest 'completed' event timestamp; empty when not yet finished. */
   last_completed_at: string;
 }
+
+export type MediaPatch = Partial<Pick<
+  MediaEntry,
+  | 'title'
+  | 'type'
+  | 'status'
+  | 'rating'
+  | 'notes'
+  | 'platform'
+  | 'poster_url'
+  | 'year'
+  | 'release_date'
+  | 'genre'
+  | 'external_id'
+  | 'episodes_watched'
+  | 'episodes_total'
+  | 'seasons_watched'
+  | 'seasons_total'
+  | 'season_episodes'
+  | 'collection_id'
+  | 'collection_name'
+>>;
 
 export interface Bookmark {
   id: number;
@@ -136,6 +201,9 @@ export interface JournalEntry {
   date: string;
   mood?: string | null;
   content?: string;
+  location_label?: string;
+  location_lat?: number | null;
+  location_lon?: number | null;
   tags: string[];
   backlinks: BacklinkRef[];
   created_at: string;
@@ -145,6 +213,8 @@ export interface JournalEntry {
 export interface Note {
   id: number;
   title: string;
+  folder: string;
+  description: string;
   content?: string;
   tags: string[];
   backlinks: BacklinkRef[];

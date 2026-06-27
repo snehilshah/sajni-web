@@ -6,6 +6,8 @@ import { M3_SHAPES_DATA } from './m3-shapes-data';
 
 const { interpolate } = pkg;
 
+type PathFn = (t: number) => string;
+
 export type MorphSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
 export type MorphTone = 'primary' | 'secondary' | 'tertiary';
 export type MorphPreset = 'android16' | 'cookies' | 'polygons' | 'playful';
@@ -77,10 +79,10 @@ export function MorphLoader({
   const durSec = duration || shapeList.length * 0.65;
   const pathRef = useRef<SVGPathElement>(null);
   const groupRef = useRef<SVGGElement>(null);
-  const interpolatorsRef = useRef<any[]>([]);
+  const interpolatorsRef = useRef<PathFn[]>([]);
 
   useEffect(() => {
-    const list: any[] = [];
+    const list: PathFn[] = [];
     for (let i = 0; i < shapeList.length; i++) {
       try {
         list.push(interpolate(

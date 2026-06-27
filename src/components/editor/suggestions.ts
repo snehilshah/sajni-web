@@ -2,16 +2,20 @@ import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import { PluginKey } from '@tiptap/pm/state';
+import type { ComponentProps } from 'react';
 import { SuggestionList } from './SuggestionList';
 import { tags, notes } from '@/api';
+import type { Item, ItemRef, KeyProps, PopProps } from './types';
+
+type ListProps = ComponentProps<typeof SuggestionList>;
 
 function createRender() {
   return () => {
-    let component: ReactRenderer;
+    let component: ReactRenderer<ItemRef, ListProps> | null = null;
     let popupNode: HTMLDivElement | null = null;
 
     return {
-      onStart: (props: any) => {
+      onStart: (props: PopProps<Item>) => {
         component = new ReactRenderer(SuggestionList, {
           props,
           editor: props.editor,
@@ -27,29 +31,32 @@ function createRender() {
         popupNode.appendChild(component.element);
 
         const rect = props.clientRect();
+        if (!rect) return;
         popupNode.style.left = `${rect.left + window.scrollX}px`;
         popupNode.style.top = `${rect.bottom + window.scrollY}px`;
       },
-      onUpdate(props: any) {
-        component.updateProps(props);
+      onUpdate(props: PopProps<Item>) {
+        component?.updateProps(props);
         if (!props.clientRect || !popupNode) return;
         
         const rect = props.clientRect();
+        if (!rect) return;
         popupNode.style.left = `${rect.left + window.scrollX}px`;
         popupNode.style.top = `${rect.bottom + window.scrollY}px`;
       },
-      onKeyDown(props: any) {
+      onKeyDown(props: KeyProps) {
         if (props.event.key === 'Escape') {
           if (popupNode) popupNode.style.display = 'none';
           return true;
         }
-        return (component.ref as any)?.onKeyDown(props);
+        return Boolean(component?.ref?.onKeyDown?.(props));
       },
       onExit() {
         if (popupNode && popupNode.parentNode) {
           popupNode.parentNode.removeChild(popupNode);
         }
-        component.destroy();
+        component?.destroy();
+        component = null;
       },
     };
   };
@@ -60,7 +67,7 @@ export const AutocompleteExtension = Extension.create({
 
   addProseMirrorPlugins() {
     return [
-      Suggestion({
+      Suggestion<Item, Item>({
         editor: this.editor,
         char: '#',
         pluginKey: new PluginKey('tagsSuggestion'),
@@ -69,7 +76,7 @@ export const AutocompleteExtension = Extension.create({
             const res = await tags.list();
             return res
               .filter((t) => t.tag.toLowerCase().includes(query.toLowerCase()))
-              .map((t) => ({ title: t.tag, subtitle: `${t.count} items` }))
+              .map((t) => ({ id: t.tag, title: t.tag, subtitle: `${t.count} items` }))
               .slice(0, 5);
           } catch {
             return [];
@@ -80,14 +87,14 @@ export const AutocompleteExtension = Extension.create({
           editor.chain().focus().insertContentAt(range, `#${props.title} `).run();
         },
       }),
-      Suggestion({
+      Suggestion<Item, Item>({
         editor: this.editor,
         char: '[[',
         pluginKey: new PluginKey('backlinkSuggestion'),
         items: async ({ query }) => {
           try {
             const res = await notes.list({ search: query });
-            return res.map((n) => ({ title: n.title })).slice(0, 5);
+            return res.map((n) => ({ id: n.title, title: n.title || 'Untitled' })).slice(0, 5);
           } catch {
             return [];
           }

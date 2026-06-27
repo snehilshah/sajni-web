@@ -29,7 +29,7 @@ import {
 } from './helpers';
 import { StepsEditor } from './TaskRow';
 
-interface FormState {
+export interface FormState {
   title: string;
   description: string;
   priority: Task['priority'];
@@ -55,6 +55,8 @@ interface FormState {
    *  task after it's created. Unused when editing (those load from the API). */
   reminders: string[];
 }
+
+export type TaskDefaults = Partial<FormState>;
 
 const blank: FormState = {
   title: '', description: '', priority: 'medium', status: 'todo',
@@ -105,7 +107,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onCloseComplete?: () => void;
   editing: Task | null;
-  defaults?: Partial<FormState>;
+  defaults?: TaskDefaults;
   lists: TaskList[];
   onSaved: () => void;
   /** Fired only on a *new* task create, with the created row — lets callers

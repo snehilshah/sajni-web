@@ -26,6 +26,7 @@ import { TimeChip, TimeChipSuggest } from './timeChip';
 import { TaskChip } from './taskChip';
 import { LinkEntry } from './linkEntry';
 import { LinkFavicon } from './linkFavicon';
+import { store, type Icon, type MdMark, type MdNode } from './types';
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
 } from '@/components/ui/command';
@@ -39,6 +40,7 @@ import { Label } from '@/components/ui/label';
 // (the dialog renders a RichEditor for its notes field) and keeps the dialog's
 // tiptap/date-picker weight out of the base editor chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
+import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 
 import {
   Bold, Italic, Strikethrough, Code, Link2, Unlink, List, ListOrdered, ListChecks,
@@ -84,7 +86,7 @@ export default function RichEditor({
   // Generic add-task panel launched from the picker.
   const [createOpen, setCreateOpen] = useState(false);
   const [createLists, setCreateLists] = useState<TaskListModel[]>([]);
-  const [createDefaults, setCreateDefaults] = useState<Record<string, any>>({});
+  const [createDefaults, setCreateDefaults] = useState<TaskDefaults>({});
 
   // /link dialog state.
   const [linkOpen, setLinkOpen] = useState(false);
@@ -218,7 +220,7 @@ export default function RichEditor({
     },
     onUpdate: ({ editor: ed }) => {
       isLocalUpdate.current = true;
-      const md = (ed.storage as any).markdown.getMarkdown();
+      const md = store(ed).markdown.getMarkdown();
       onChange(md);
       queueMicrotask(() => { isLocalUpdate.current = false; });
     },
@@ -245,7 +247,7 @@ export default function RichEditor({
     // Try to find a note with that title
     try {
       const list = await notesApi.list({ search: t });
-      const exact = list.find((n: any) => (n.title || '').toLowerCase() === t.toLowerCase());
+      const exact = list.find((n) => (n.title || '').toLowerCase() === t.toLowerCase());
       if (exact) {
         navigate(`/notes?id=${exact.id}`);
         return;
@@ -262,9 +264,9 @@ export default function RichEditor({
   useEffect(() => {
     if (!editor) return;
     if (isLocalUpdate.current) return;
-    const current = (editor.storage as any).markdown.getMarkdown();
+    const current = store(editor).markdown.getMarkdown();
     if (value !== current) {
-      editor.commands.setContent(value || '', { emitUpdate: false } as any);
+      editor.commands.setContent(value || '', { emitUpdate: false });
     }
   }, [editor, value]);
 
@@ -274,7 +276,7 @@ export default function RichEditor({
   // dialog opens, otherwise both popups overlap.
   useEffect(() => {
     if (!editor) return;
-    const storage = (editor.storage as any).taskchip;
+    const storage = store(editor).taskchip;
     if (!storage) return;
     storage.onOpen = (range: { from: number; to: number }) => {
       // Drop the "/task" trigger immediately. This forces the underlying
@@ -297,7 +299,7 @@ export default function RichEditor({
     };
   }, [editor]);
 
-  const insertTaskChip = useCallback((t: Task) => {
+  const insertTaskChip = useCallback((t: Pick<Task, 'id' | 'title'>) => {
     if (!editor) return;
     editor
       .chain()
@@ -326,7 +328,7 @@ export default function RichEditor({
   // Bind the /link slash command → M3 link dialog (title + url).
   useEffect(() => {
     if (!editor) return;
-    const storage = (editor.storage as any).linkEntry;
+    const storage = store(editor).linkEntry;
     if (!storage) return;
     storage.onOpen = (range: { from: number; to: number }) => {
       editor.chain().focus().deleteRange(range).run();
@@ -368,7 +370,7 @@ export default function RichEditor({
   return (
     <div className={`relative w-full ${fill ? 'flex flex-1 flex-col min-h-0' : ''} ${className || ''}`}>
       {editor && (
-        <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 } as any}>
+        <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }}>
           <Toolbar editor={editor} onImage={() => imagePicker(uploadAndInsertImage)} />
         </BubbleMenu>
       )}
@@ -447,7 +449,7 @@ export default function RichEditor({
           defaults={createDefaults}
           lists={createLists}
           onSaved={() => {}}
-          onCreated={(t) => insertTaskChip({ id: t.id, title: t.title } as Task)}
+          onCreated={(t) => insertTaskChip({ id: t.id, title: t.title })}
         />
       </Suspense>
 
@@ -507,9 +509,9 @@ const BARE_URL = /^https?:\/\/\S+$/i;
 // the URL (robust to cursor movement after paste).
 function upgradeLink(editor: Editor, href: string, title: string) {
   let found: { from: number; to: number } | null = null;
-  editor.state.doc.descendants((node: any, pos: number) => {
+  editor.state.doc.descendants((node: MdNode, pos: number) => {
     if (found) return false;
-    if (node.isText && node.text === href && node.marks.some((m: any) => m.type.name === 'link' && m.attrs.href === href)) {
+    if (node.isText && node.text === href && node.marks.some((m: MdMark) => m.type.name === 'link' && m.attrs.href === href)) {
       found = { from: pos, to: pos + node.nodeSize };
     }
     return undefined;
@@ -554,7 +556,7 @@ function Toolbar({ editor, onImage }: { editor: Editor; onImage: () => void }) {
       link: editor.isActive('link'),
     }),
   });
-  const btn = (active: boolean, onClick: () => void, Icon: any, title: string) => (
+  const btn = (active: boolean, onClick: () => void, Icon: Icon, title: string) => (
     <button
       key={title}
       type="button"

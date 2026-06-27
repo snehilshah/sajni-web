@@ -1,10 +1,14 @@
 import { ReactRenderer } from '@tiptap/react';
+import type { ComponentProps } from 'react';
 import { SuggestionList } from './SuggestionList';
+import type { Item, ItemRef, KeyProps, PopProps } from './types';
+
+type ListProps = ComponentProps<typeof SuggestionList>;
 
 // Renders a SuggestionList in a fixed-positioned popup that follows the caret.
-export function makePopupRenderer(emptyText?: string) {
+export function makePopupRenderer<T extends Item = Item>(emptyText?: string) {
   return () => {
-    let component: ReactRenderer | null = null;
+    let component: ReactRenderer<ItemRef, ListProps> | null = null;
     let popup: HTMLDivElement | null = null;
 
     const place = (rect: DOMRect | null) => {
@@ -29,7 +33,7 @@ export function makePopupRenderer(emptyText?: string) {
     };
 
     return {
-      onStart: (props: any) => {
+      onStart: (props: PopProps<T>) => {
         component = new ReactRenderer(SuggestionList, {
           props: { ...props, emptyText },
           editor: props.editor,
@@ -48,9 +52,9 @@ export function makePopupRenderer(emptyText?: string) {
         popup.style.pointerEvents = 'auto';
         document.body.appendChild(popup);
         popup.appendChild(component.element);
-        requestAnimationFrame(() => place(props.clientRect?.()));
+        requestAnimationFrame(() => place(props.clientRect?.() ?? null));
       },
-      onUpdate(props: any) {
+      onUpdate(props: PopProps<T>) {
         component?.updateProps({ ...props, emptyText });
         const hasItems = (props.items?.length ?? 0) > 0;
         if (hasItems && !popup && props.clientRect && component) {
@@ -61,7 +65,8 @@ export function makePopupRenderer(emptyText?: string) {
           popup.style.zIndex = '9999';
           popup.style.pointerEvents = 'auto';
           document.body.appendChild(popup);
-          popup.appendChild(component.element);
+          const el = component.element;
+          popup.appendChild(el);
         }
         if (!hasItems && popup) {
           // Items vanished — drop the popup so we don't show a "No matches"
@@ -70,15 +75,14 @@ export function makePopupRenderer(emptyText?: string) {
           popup = null;
           return;
         }
-        place(props.clientRect?.());
+        place(props.clientRect?.() ?? null);
       },
-      onKeyDown(props: any) {
+      onKeyDown(props: KeyProps) {
         if (props.event.key === 'Escape') {
           if (popup) popup.style.display = 'none';
           return true;
         }
-        const ref = component?.ref as { onKeyDown?: (props: any) => boolean } | null;
-        return Boolean(ref?.onKeyDown?.(props));
+        return Boolean(component?.ref?.onKeyDown?.(props));
       },
       onExit() {
         if (popup && popup.parentNode) popup.parentNode.removeChild(popup);

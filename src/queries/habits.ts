@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { habits as habitsApi } from '@/api';
-import type { Habit } from '@/types';
+import type { Habit, HabitPatch } from '@/types';
 import { qk } from './keys';
 
 export function useHabits() {
   return useQuery({
     queryKey: qk.habits.list(),
-    queryFn: () => habitsApi.list() as Promise<Habit[]>,
+    queryFn: () => habitsApi.list(),
   });
 }
 
@@ -81,7 +81,7 @@ export function useCreateHabit() {
 export function useUpdateHabit() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, any> }) =>
+    mutationFn: ({ id, data }: { id: number; data: HabitPatch }) =>
       habitsApi.update(id, data),
     onError: () => toast.error('Could not update habit'),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.habits.all }),

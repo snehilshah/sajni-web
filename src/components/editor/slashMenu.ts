@@ -2,13 +2,10 @@ import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
 import { makePopupRenderer } from './popupRenderer';
+import { store, type Cmd, type Item, type RunProps } from './types';
 
-export interface SlashCommandItem {
-  id: string;
-  title: string;
-  subtitle?: string;
-  icon?: string;
-  command: (props: { editor: any; range: any }) => void;
+export interface SlashCommandItem extends Item {
+  command: (props: RunProps) => void;
 }
 
 const SLASH_COMMANDS: SlashCommandItem[] = [
@@ -53,7 +50,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     // so the title+url dialog + title-fetch can live outside the editor.
     id: 'link', title: 'Link', subtitle: 'Insert a titled link', icon: '🔗',
     command: ({ editor, range }) => {
-      const open = (editor.storage as any)?.linkEntry?.onOpen;
+      const open = store(editor).linkEntry?.onOpen;
       if (typeof open === 'function') open(range);
       else editor.chain().focus().deleteRange(range).run();
     },
@@ -63,7 +60,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     // so the title dialog and tasksApi.create call can live outside the editor.
     id: 'task', title: 'Task', subtitle: 'Create + reference inline', icon: '☑',
     command: ({ editor, range }) => {
-      const open = (editor.storage as any)?.taskchip?.onOpen;
+      const open = store(editor).taskchip?.onOpen;
       if (typeof open === 'function') {
         open(range);
       } else {
@@ -79,7 +76,7 @@ export const SlashCommand = Extension.create({
 
   addProseMirrorPlugins() {
     return [
-      Suggestion({
+      Suggestion<SlashCommandItem, SlashCommandItem>({
         editor: this.editor,
         char: '/',
         startOfLine: false,
@@ -89,9 +86,9 @@ export const SlashCommand = Extension.create({
           SLASH_COMMANDS.filter((c) =>
             c.title.toLowerCase().includes(query.toLowerCase())
           ),
-        render: makePopupRenderer('No commands match'),
-        command: ({ editor, range, props }: any) => {
-          (props as SlashCommandItem).command({ editor, range });
+        render: makePopupRenderer<SlashCommandItem>('No commands match'),
+        command: ({ editor, range, props }: Cmd<SlashCommandItem>) => {
+          props.command({ editor, range });
         },
       }),
     ];

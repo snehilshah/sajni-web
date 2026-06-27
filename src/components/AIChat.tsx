@@ -9,31 +9,19 @@ import remarkGfm from 'remark-gfm';
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ai, type AIEvent, type AISessionMeta } from '@/api';
+import { ai, type AIEvent, type AISessionMeta, type AIToolResult } from '@/api';
 import { SKILLS } from '@/lib/aiSkills';
+import { aborted, msg } from '@/lib/errors';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
-
-interface ToolResultMeta {
-  kind: string;
-  id?: number;
-  title?: string;
-  route?: string;
-}
-interface ToolResultEvent {
-  name: string;
-  ok: boolean;
-  error?: string;
-  meta?: ToolResultMeta;
-}
 
 type Message =
   | { role: 'user'; text: string }
   | {
       role: 'assistant';
       text: string;
-      tools: ToolResultEvent[];
+      tools: AIToolResult[];
       streaming: boolean;
       error?: string | null;
     };
@@ -99,28 +87,6 @@ export default function AIChat({ open, onOpenChange }: Props) {
     if (!open || !enabled) return;
     ai.listSessions().then(setSessions).catch(() => {});
   }, [open, enabled]);
-
-  // External event opens the panel and optionally:
-  //   • adopts an existing session id (palette → "Continue in chat" hands
-  //     off the persisted exchange so the chat picks up mid-stream), or
-  //   • seeds a message to send immediately (legacy fallback).
-  useEffect(() => {
-    const onChatOpen = (e: Event) => {
-      onOpenChange(true);
-      const detail = (e as CustomEvent).detail || {};
-      const sid = detail.sessionId as number | undefined;
-      const seed = detail.seedMessage as string | undefined;
-      if (sid) {
-        setTimeout(() => { void loadSession(sid); }, 50);
-      } else if (seed) {
-        setInput(seed);
-        setTimeout(() => { void send(seed); }, 50);
-      }
-    };
-    window.addEventListener('chat:open', onChatOpen);
-    return () => window.removeEventListener('chat:open', onChatOpen);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Autoscroll on new content.
   useEffect(() => {
@@ -213,7 +179,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               if (ev.data?.text) nextLast.text = (nextLast.text || '') + ev.data.text;
               break;
             case 'tool_result':
-              nextLast.tools = [...nextLast.tools, ev.data as ToolResultEvent];
+              nextLast.tools = [...nextLast.tools, ev.data];
               break;
             case 'error':
               nextLast.error = ev.data?.message || 'AI error';
@@ -228,10 +194,10 @@ export default function AIChat({ open, onOpenChange }: Props) {
 
         // Hook: when the AI mutates user data, broadcast a refresh ping
         // so any open page can refetch. Pages that don't listen are no-ops.
-        if (ev.type === 'tool_result' && (ev.data as ToolResultEvent)?.meta?.kind) {
+        if (ev.type === 'tool_result' && ev.data.meta?.kind) {
           window.dispatchEvent(
             new CustomEvent('data:invalidate', {
-              detail: (ev.data as ToolResultEvent).meta,
+              detail: ev.data.meta,
             }),
           );
         }
@@ -243,14 +209,15 @@ export default function AIChat({ open, onOpenChange }: Props) {
           onEvent,
           ac.signal,
         );
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return;
-        setError(e?.message || 'AI error');
+      } catch (e) {
+        if (aborted(e)) return;
+        const text = msg(e, 'AI error');
+        setError(text);
         setMessages((arr) => {
           const out = [...arr];
           const last = out[out.length - 1];
           if (last && last.role === 'assistant') {
-            out[out.length - 1] = { ...last, streaming: false, error: e?.message || 'AI error' };
+            out[out.length - 1] = { ...last, streaming: false, error: text };
           }
           return out;
         });
@@ -262,6 +229,27 @@ export default function AIChat({ open, onOpenChange }: Props) {
     },
     [ensureSession, streaming],
   );
+
+  // External event opens the panel and optionally:
+  //   • adopts an existing session id (palette → "Continue in chat" hands
+  //     off the persisted exchange so the chat picks up mid-stream), or
+  //   • seeds a message to send immediately (legacy fallback).
+  useEffect(() => {
+    const onChatOpen = (e: Event) => {
+      onOpenChange(true);
+      const detail = (e as CustomEvent).detail || {};
+      const sid = detail.sessionId as number | undefined;
+      const seed = detail.seedMessage as string | undefined;
+      if (sid) {
+        setTimeout(() => { void loadSession(sid); }, 50);
+      } else if (seed) {
+        setInput(seed);
+        setTimeout(() => { void send(seed); }, 50);
+      }
+    };
+    window.addEventListener('chat:open', onChatOpen);
+    return () => window.removeEventListener('chat:open', onChatOpen);
+  }, [loadSession, onOpenChange, send]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

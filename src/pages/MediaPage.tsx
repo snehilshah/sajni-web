@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
 import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/queries/media';
 import BookmarksPanel from '@/pages/BookmarksPanel';
-import type { MediaEntry, MediaStatus, MediaSearchResult } from '@/types';
+import type { MediaEntry, MediaStatus, MediaSearchResult, MediaPatch } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import PageShell from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
@@ -121,6 +121,7 @@ const TYPE_META: Record<string, { label: string; plural: string; icon: typeof Fi
   site: { label: 'Site', plural: 'Sites', icon: Globe },
 };
 const BOOKMARK_TYPES = new Set(['video', 'site']);
+type MediaKind = MediaEntry['type'];
 
 // `?tab=` ↔ activeType. The share-capture flow deep-links here.
 const TAB_TO_TYPE: Record<string, string> = {
@@ -132,6 +133,11 @@ const TYPE_TO_TAB: Record<string, string> = Object.fromEntries(
 
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
+
+function mediaKind(value: string): MediaKind {
+  if (value === 'show' || value === 'book') return value;
+  return 'movie';
+}
 
 function dateOnly(value?: string | null): string {
   const raw = (value || '').trim();
@@ -539,7 +545,7 @@ function TitleAutocomplete({
 
 interface FormState {
   title: string;
-  type: string;
+  type: MediaKind;
   status: MediaStatus;
   rating: number;
   notes: string;
@@ -617,7 +623,7 @@ export default function MediaPage() {
   const vvBox = useVisualViewportBox(showForm && isMobileMedia);
 
   const blankForm = useCallback((): FormState => ({
-    title: '', type: activeType, status: 'pending' as MediaStatus, rating: 0, notes: '',
+    title: '', type: mediaKind(activeType), status: 'pending', rating: 0, notes: '',
     platform: '', poster_url: '', year: null as number | null, release_date: '', genre: '',
     external_id: '', episodes_watched: 0, episodes_total: 0,
     seasons_watched: 0, seasons_total: 0,
@@ -790,7 +796,7 @@ export default function MediaPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const payload: Omit<typeof form, 'rating'> & { rating: number | null } = { ...form, rating: form.rating || null };
+      const payload: MediaPatch = { ...form, rating: form.rating || null };
       // Marking complete snaps progress to the end — last season, last episode —
       // so the S?E? label and bar read 100% instead of wherever the user stopped.
       if (form.status === 'complete') {
@@ -942,7 +948,7 @@ export default function MediaPage() {
         <FieldSelect
           label="Type"
           value={form.type}
-          onChange={(v) => setForm({ ...form, type: v || 'movie' })}
+          onChange={(v) => setForm({ ...form, type: mediaKind(v || 'movie') })}
           options={Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))}
         />
         <FieldSelect

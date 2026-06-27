@@ -182,8 +182,8 @@ function firstLine(s: string) {
 // otherwise a 32-hex fallback. Used purely as a session token, not a
 // security primitive.
 function makeSession(): string {
-  if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
-    return (crypto as any).randomUUID();
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
   }
   return Array.from({ length: 4 }).map(() =>
     Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0'),

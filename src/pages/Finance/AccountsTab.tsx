@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
-import { finance, type FinAccount, type FinSaving, type FinCategory } from '@/api';
+import { finance, type AccountDraft, type FinAccount, type FinSaving, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,9 @@ const typeIcon = (type: string) => {
     default: return Landmark;
   }
 };
+
+type AcctType = FinAccount['type'];
+type CashType = FinAccount['cashback_type'];
 
 interface Props {
   accounts: FinAccount[];
@@ -260,13 +263,13 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [name, setName] = useState('');
-  const [type, setType] = useState('savings');
+  const [type, setType] = useState<AcctType>('savings');
   const [institution, setInstitution] = useState('');
   const [openingBalance, setOpeningBalance] = useState('0');
   const [creditLimit, setCreditLimit] = useState('');
   const [statementDay, setStatementDay] = useState('');
   const [dueDay, setDueDay] = useState('');
-  const [cashbackType, setCashbackType] = useState('none');
+  const [cashbackType, setCashbackType] = useState<CashType>('none');
   const [cashbackValue, setCashbackValue] = useState('0');
   const [salaryAmount, setSalaryAmount] = useState('0');
   const [salaryDay, setSalaryDay] = useState('');
@@ -301,7 +304,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
 
   const save = async () => {
     if (!name.trim()) return;
-    const data: any = {
+    const data: AccountDraft = {
       name: name.trim(),
       type,
       institution: institution.trim(),
@@ -347,7 +350,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. HDFC Savings" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType(v ?? '')} items={ACCOUNT_TYPES}>
+            <Select value={type} onValueChange={(v) => setType((v as AcctType) || 'savings')} items={ACCOUNT_TYPES}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -420,7 +423,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
                 <Input type="number" inputMode="numeric" value={dueDay} onChange={(e) => setDueDay(e.target.value)} placeholder="e.g. 15" />
               </Field>
               <Field label="Cashback type">
-                <Select value={cashbackType} onValueChange={(v) => setCashbackType(v ?? 'none')}
+                <Select value={cashbackType} onValueChange={(v) => setCashbackType((v as CashType) || 'none')}
                   items={[{ value: 'none', label: 'None' }, { value: 'percentage', label: 'Percentage' }, { value: 'fixed', label: 'Fixed' }]}>
                   <SelectTrigger>
                     <SelectValue />

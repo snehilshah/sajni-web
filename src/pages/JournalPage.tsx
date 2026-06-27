@@ -26,7 +26,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { MissedTask } from '@/api';
-import type { Task } from '@/types';
+import type { BacklinkRef, Task } from '@/types';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
@@ -47,6 +47,11 @@ const MOODS = [
 interface HabitStatus { id: number; name: string; color: string; logged: boolean; }
 interface TaskItem { id: number; title: string; status: string; priority: string; due_date?: string | null; }
 interface JournalEntry { id: number; date: string; mood: string | null; tags: string[]; updated_at: string; }
+type RingStyle = React.CSSProperties & { '--tw-ring-color': string };
+
+function ringStyle(color: string): RingStyle {
+  return { background: color, '--tw-ring-color': `${color}55` };
+}
 
 const SIDEBAR_KEY = 'sajni:journal-sidebar';
 const DAILY_KEY = 'sajni:journal-daily';
@@ -64,7 +69,7 @@ export default function JournalPage() {
   const [mood, setMood] = useState<string | null>(null);
   const [location, setLocation] = useState<JournalLocation | null>(null);
   const [tags, setTags] = useState<string[]>([]);
-  const [backlinks, setBacklinks] = useState<any[]>([]);
+  const [backlinks, setBacklinks] = useState<BacklinkRef[]>([]);
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [loading, setLoading] = useState(true);
 
@@ -453,7 +458,7 @@ export default function JournalPage() {
           <div className="text-xs italic text-muted-foreground">Nothing points here yet.</div>
         ) : (
           <div className="flex flex-col gap-2">
-            {backlinks.map((bl: any, i: number) => (
+            {backlinks.map((bl, i) => (
               <div key={i} className="text-[12.5px] text-primary">
                 <div className="underline underline-offset-2 decoration-primary/30 truncate">[[{bl.title || 'Untitled'}]]</div>
                 <div className="mono text-xs text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
@@ -1111,10 +1116,7 @@ function WeekView({
                     <div className="flex items-center gap-3">
                       <span
                         className="size-3 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-background"
-                        style={{
-                          background: h.color,
-                          ['--tw-ring-color' as any]: `${h.color}55`,
-                        }}
+                        style={ringStyle(h.color)}
                       />
                       <span className="text-[14px] font-medium text-foreground/90 flex-1 truncate">
                         {h.name}

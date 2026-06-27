@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { media as mediaApi } from '@/api';
+import type { MediaPatch } from '@/types';
 import { qk } from './keys';
 
 export type MediaListParams = Parameters<typeof mediaApi.list>[0];
@@ -27,7 +28,7 @@ export function useMediaEvents(id: number, enabled = true) {
 export function useCreateMedia() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, any>) => mediaApi.create(data),
+    mutationFn: (data: MediaPatch) => mediaApi.create(data),
     onError: () => toast.error('Could not add'),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.media.all }),
   });
@@ -36,7 +37,7 @@ export function useCreateMedia() {
 export function useUpdateMedia() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, any> }) =>
+    mutationFn: ({ id, data }: { id: number; data: MediaPatch }) =>
       mediaApi.update(id, data),
     onError: () => toast.error('Could not update'),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.media.all }),

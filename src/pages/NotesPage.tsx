@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { notes as notesApi } from '@/api';
+import type { BacklinkRef } from '@/types';
 import { useNotes, useNoteFolders } from '@/queries/notes';
 import { qk } from '@/queries/keys';
 import RichEditor from '@/components/editor/RichEditor';
@@ -18,6 +19,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
+import { msg } from '@/lib/errors';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
@@ -111,7 +113,7 @@ export default function NotesPage() {
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [backlinks, setBacklinks] = useState<any[]>([]);
+  const [backlinks, setBacklinks] = useState<BacklinkRef[]>([]);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -244,9 +246,9 @@ export default function NotesPage() {
       dirtyRef.current = false;
       setDrafting(false);
       loadAll();
-    } catch (err: any) {
+    } catch (err) {
       console.error('[notes] save failed', err);
-      toast.error(`Couldn't save note: ${err?.message || 'unknown error'}`);
+      toast.error(`Couldn't save note: ${msg(err, 'unknown error')}`);
       setSavingState('idle');
     }
   }, [title, content, description, folder, selectedId, params, setParams, loadAll]);
@@ -321,8 +323,8 @@ export default function NotesPage() {
       await notesApi.deleteFolder(path);
       if (selectedId && (folder === path || folder.startsWith(`${path}/`))) handleNew();
       loadAll();
-    } catch (e: any) {
-      toast.error(e.message || 'Cannot delete folder');
+    } catch (e) {
+      toast.error(msg(e, 'Cannot delete folder'));
     }
   };
 
@@ -533,7 +535,7 @@ export default function NotesPage() {
                     <span className="text-xs font-medium">{backlinks.length} backlink{backlinks.length === 1 ? '' : 's'}</span>
                   </div>
                   <div className="p-2">
-                    {backlinks.map((bl: any, i: number) => (
+                    {backlinks.map((bl, i) => (
                       <div key={i} className="text-sm py-1 px-1 flex items-center gap-1.5">
                         <Badge variant="secondary" className="text-xs capitalize shrink-0">{bl.source_type}</Badge>
                         <span className="truncate">{bl.title || 'Untitled'}</span>

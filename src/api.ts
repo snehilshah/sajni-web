@@ -1,5 +1,24 @@
 import { authFetch, requestJSON, API_BASE } from './auth/client';
-import type { Bookmark } from './types';
+import type {
+  Analytics,
+  Bookmark,
+  Habit,
+  HabitPatch,
+  HabitStatus,
+  JournalEntry,
+  Json,
+  MediaEntry,
+  MediaPatch,
+  MediaSearchResult,
+  Memo,
+  Note,
+  SmartList,
+  TagEntities,
+  Task,
+  TaskList,
+  TaskPatch,
+  TaskStep,
+} from './types';
 
 const request = requestJSON;
 
@@ -11,7 +30,7 @@ export const memos = {
     if (params?.pinned) q.set('pinned', 'true');
     if (params?.tag) q.set('tag', params.tag);
     const qs = q.toString();
-    return request<any[]>(`/memos${qs ? '?' + qs : ''}`);
+    return request<Memo[]>(`/memos${qs ? '?' + qs : ''}`);
   },
   create: (content: string, pinned = false) =>
     request<{ id: number }>('/memos', { method: 'POST', body: JSON.stringify({ content, pinned }) }),
@@ -93,9 +112,6 @@ export const thinking = {
     request<{ kind: ThinkingKind }>('/thinking/classify', { method: 'POST', body: JSON.stringify({ content }) }),
 };
 
-// --- Tasks ---
-import type { Task, TaskList, TaskStep, SmartList } from './types';
-
 export const tasks = {
   list: (params?: {
     status?: string;
@@ -136,7 +152,7 @@ export const tasks = {
     steps?: TaskStep[];
   }) => request<{ id: number }>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   get: (id: number) => request<Task>('/tasks/' + id),
-  update: (id: number, data: Record<string, any>) =>
+  update: (id: number, data: TaskPatch) =>
     request('/tasks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/tasks/' + id, { method: 'DELETE' }),
   // Scratch = abandon-but-keep (reversible). Distinct from delete.
@@ -208,15 +224,15 @@ export interface TaskHistoryEntry {
 
 // --- Habits ---
 export const habits = {
-  list: () => request<any[]>('/habits'),
+  list: () => request<Habit[]>('/habits'),
   create: (data: { name: string; frequency?: string; color?: string }) =>
     request<{ id: number }>('/habits', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: Record<string, any>) =>
+  update: (id: number, data: HabitPatch) =>
     request('/habits/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/habits/' + id, { method: 'DELETE' }),
   toggleLog: (id: number) => request<{ logged: boolean }>('/habits/' + id + '/log', { method: 'POST' }),
   toggleLogForDate: (id: number, date: string) => request<{ logged: boolean }>('/habits/' + id + '/log/' + date, { method: 'POST' }),
-  statusForDate: (date: string) => request<any[]>('/habits/status?date=' + date),
+  statusForDate: (date: string) => request<HabitStatus[]>('/habits/status?date=' + date),
   getLogs: (id: number, days = 30) => request<string[]>('/habits/' + id + '/logs?days=' + days),
   // All habits' logged dates in one call, keyed by habit id. Avoids the
   // per-habit N+1 on the Today page.
@@ -264,16 +280,16 @@ export const media = {
     if (params?.status) q.set('status', params.status);
     if (params?.collection_id) q.set('collection_id', params.collection_id);
     const qs = q.toString();
-    return request<any[]>('/media' + (qs ? '?' + qs : ''));
+    return request<MediaEntry[]>('/media' + (qs ? '?' + qs : ''));
   },
-  create: (data: Record<string, any>) =>
+  create: (data: MediaPatch) =>
     request<{ id: number }>('/media', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: Record<string, any>) =>
+  update: (id: number, data: MediaPatch) =>
     request('/media/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/media/' + id, { method: 'DELETE' }),
   search: (query: string, type: string, signal?: AbortSignal) => {
     const q = new URLSearchParams({ q: query, type });
-    return request<any[]>('/media/search?' + q.toString(), { signal });
+    return request<MediaSearchResult[]>('/media/search?' + q.toString(), { signal });
   },
   details: (externalId: string) =>
     request<MediaDetails>('/media/details?external_id=' + encodeURIComponent(externalId)),
@@ -400,8 +416,8 @@ export interface MonthlySummary {
 }
 
 export const journal = {
-  list: () => request<any[]>('/journal'),
-  get: (date: string) => request<any>('/journal/' + date),
+  list: () => request<JournalEntry[]>('/journal'),
+  get: (date: string) => request<JournalEntry>('/journal/' + date),
   save: (
     date: string,
     content: string,
@@ -478,9 +494,9 @@ export const notes = {
     if (params?.tag) q.set('tag', params.tag);
     if (params?.folder) q.set('folder', params.folder);
     const qs = q.toString();
-    return request<any[]>('/notes' + (qs ? '?' + qs : ''));
+    return request<Note[]>('/notes' + (qs ? '?' + qs : ''));
   },
-  get: (id: number) => request<any>('/notes/' + id),
+  get: (id: number) => request<Note>('/notes/' + id),
   create: (title: string, content: string, folder?: string, description?: string) =>
     request<{ id: number; folder: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }) }),
   update: (id: number, data: { title?: string; content?: string; folder?: string; description?: string }) =>
@@ -564,12 +580,12 @@ export const links = {
 // --- Tags ---
 export const tags = {
   list: () => request<{ tag: string; count: number }[]>('/tags'),
-  get: (tag: string) => request<{ tag: string; entities: any[] }>('/tags/' + encodeURIComponent(tag)),
+  get: (tag: string) => request<TagEntities>('/tags/' + encodeURIComponent(tag)),
 };
 
 // --- Analytics ---
 export const analytics = {
-  get: () => request<any>('/analytics'),
+  get: () => request<Analytics>('/analytics'),
 };
 
 // --- Finance ---
@@ -733,12 +749,96 @@ export interface FinStatement {
   paid_at: string | null;
 }
 
+export type AccountDraft = Partial<Pick<
+  FinAccount,
+  | 'name'
+  | 'type'
+  | 'institution'
+  | 'currency'
+  | 'opening_balance'
+  | 'credit_limit'
+  | 'statement_day'
+  | 'due_day'
+  | 'cashback_type'
+  | 'cashback_value'
+  | 'salary_amount'
+  | 'salary_day'
+  | 'match_hints'
+  | 'color'
+  | 'archived'
+>>;
+
+export type TxnKind = 'expense' | 'income' | 'transfer';
+
+export interface TxnDraft {
+  account_id: number;
+  category_id?: number | null;
+  type: TxnKind;
+  amount: number;
+  description?: string;
+  note?: string;
+  txn_at: string;
+  linked_account?: number;
+}
+
+export type TxnPatch = Partial<Pick<
+  FinTransaction,
+  'account_id' | 'category_id' | 'amount' | 'description' | 'note' | 'txn_at'
+>>;
+
+export interface BudgetItemDraft {
+  category_id: number | null;
+  amount: number;
+}
+
+export interface BudgetDraft {
+  name: string;
+  period: FinBudget['period'];
+  start_date: string;
+  end_date: string;
+  total_amount: number;
+  items: BudgetItemDraft[];
+}
+
+export type BudgetPatch = Partial<BudgetDraft>;
+
+export type InvDraft = Partial<Pick<
+  FinInvestment,
+  | 'name'
+  | 'type'
+  | 'account_id'
+  | 'invested_amount'
+  | 'current_value'
+  | 'monthly_amount'
+  | 'frequency'
+  | 'start_date'
+  | 'maturity_date'
+  | 'expected_return'
+  | 'notes'
+  | 'quantity'
+  | 'avg_buy_price'
+  | 'symbol'
+  | 'exchange'
+>>;
+
+export interface StmtDraft {
+  statement_date: string;
+  due_date: string;
+  amount_due?: number;
+  new_charges?: number;
+  cashback_earned?: number;
+}
+
+export type StmtPatch = Partial<Pick<FinStatement, 'paid' | 'paid_at'>> & {
+  paid_from_account?: number;
+};
+
 export const finance = {
   // Accounts
   listAccounts: () => request<FinAccount[]>('/finance/accounts'),
-  createAccount: (data: Partial<FinAccount>) =>
+  createAccount: (data: AccountDraft) =>
     request<{ id: number }>('/finance/accounts', { method: 'POST', body: JSON.stringify(data) }),
-  updateAccount: (id: number, data: Partial<FinAccount>) =>
+  updateAccount: (id: number, data: AccountDraft) =>
     request('/finance/accounts/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAccount: (id: number) =>
     request('/finance/accounts/' + id, { method: 'DELETE' }),
@@ -766,9 +866,9 @@ export const finance = {
     const qs = q.toString();
     return request<FinTransaction[]>('/finance/transactions' + (qs ? '?' + qs : ''));
   },
-  createTransaction: (data: { account_id: number; category_id?: number | null; type: string; amount: number; description?: string; note?: string; txn_at: string; linked_account?: number }) =>
+  createTransaction: (data: TxnDraft) =>
     request<{ id: number }>('/finance/transactions', { method: 'POST', body: JSON.stringify(data) }),
-  updateTransaction: (id: number, data: Partial<FinTransaction>) =>
+  updateTransaction: (id: number, data: TxnPatch) =>
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request('/finance/transactions/' + id, { method: 'DELETE' }),
@@ -789,18 +889,18 @@ export const finance = {
 
   // Budgets
   listBudgets: () => request<FinBudget[]>('/finance/budgets'),
-  createBudget: (data: { name: string; period: string; start_date: string; end_date: string; total_amount: number; items: { category_id: number | null; amount: number }[] }) =>
+  createBudget: (data: BudgetDraft) =>
     request<{ id: number }>('/finance/budgets', { method: 'POST', body: JSON.stringify(data) }),
-  updateBudget: (id: number, data: any) =>
+  updateBudget: (id: number, data: BudgetPatch) =>
     request('/finance/budgets/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteBudget: (id: number) =>
     request('/finance/budgets/' + id, { method: 'DELETE' }),
 
   // Investments
   listInvestments: () => request<FinInvestment[]>('/finance/investments'),
-  createInvestment: (data: Partial<FinInvestment>) =>
+  createInvestment: (data: InvDraft) =>
     request<{ id: number }>('/finance/investments', { method: 'POST', body: JSON.stringify(data) }),
-  updateInvestment: (id: number, data: Partial<FinInvestment>) =>
+  updateInvestment: (id: number, data: InvDraft) =>
     request('/finance/investments/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInvestment: (id: number) =>
     request('/finance/investments/' + id, { method: 'DELETE' }),
@@ -825,17 +925,17 @@ export const finance = {
   // Card statements
   listStatements: (account_id?: number) =>
     request<FinStatement[]>('/finance/cards/statements' + (account_id ? '?account_id=' + account_id : '')),
-  previewStatement: (account_id: number, data: { statement_date: string; amount_due?: number; new_charges?: number; cashback_earned?: number }) =>
+  previewStatement: (account_id: number, data: Pick<StmtDraft, 'statement_date'> & Partial<Pick<StmtDraft, 'amount_due' | 'new_charges' | 'cashback_earned'>>) =>
     request<{ statement_date: string; due_date: string; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; payments: number }>(
       '/finance/cards/' + account_id + '/statement-preview',
       { method: 'POST', body: JSON.stringify(data) },
     ),
-  createStatement: (account_id: number, data: { statement_date: string; due_date: string; amount_due?: number; new_charges?: number; cashback_earned?: number }) =>
+  createStatement: (account_id: number, data: StmtDraft) =>
     request<{ id: number; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number }>(
       '/finance/cards/' + account_id + '/statements',
       { method: 'POST', body: JSON.stringify(data) },
     ),
-  updateStatement: (id: number, data: Partial<FinStatement> & { paid_from_account?: number }) =>
+  updateStatement: (id: number, data: StmtPatch) =>
     request('/finance/cards/statements/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteStatement: (id: number) =>
     request('/finance/cards/statements/' + id, { method: 'DELETE' }),
@@ -944,7 +1044,7 @@ export interface Insight {
   title: string;
   body: string;
   score: number;
-  evidence: Record<string, any>;
+  evidence: Record<string, Json>;
   pinned: boolean;
   generated_at: string;
 }
@@ -1007,12 +1107,39 @@ export const search = {
 
 // --- AI ---
 
-export type AIEventType = 'delta' | 'tool_call' | 'tool_result' | 'error' | 'done';
-
-export interface AIEvent {
-  type: AIEventType;
-  data: any;
+export interface AIToolMeta {
+  kind: string;
+  id?: number;
+  title?: string;
+  route?: string;
 }
+
+export interface AIToolResult {
+  name: string;
+  ok: boolean;
+  error?: string;
+  meta?: AIToolMeta;
+}
+
+export interface AIContentPart {
+  text?: string;
+  functionCall?: Json;
+  functionResponse?: Json;
+}
+
+export interface AIContent {
+  role: string;
+  parts: AIContentPart[];
+}
+
+export type AIEvent =
+  | { type: 'delta'; data: { text?: string } }
+  | { type: 'tool_call'; data: { name: string; args?: Json } }
+  | { type: 'tool_result'; data: AIToolResult }
+  | { type: 'error'; data: { message?: string } }
+  | { type: 'done'; data: { history?: AIContent[]; text?: string; truncated?: boolean } };
+
+export type AIEventType = AIEvent['type'];
 
 export interface AISessionMeta {
   id: number;
@@ -1026,7 +1153,7 @@ export interface AISession {
   title: string;
   // messages is the persisted history (genai.Content shape) — opaque to UI
   // except for extracting text from each part to render the transcript.
-  messages: { role: string; parts: { text?: string; functionCall?: any; functionResponse?: any }[] }[];
+  messages: AIContent[];
   created_at: string;
   updated_at: string;
 }

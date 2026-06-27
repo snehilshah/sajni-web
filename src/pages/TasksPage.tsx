@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 
 import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
+import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import MissedBanner from '@/components/tasks/MissedBanner';
@@ -46,7 +47,7 @@ export default function TasksPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [formDefaults, setFormDefaults] = useState<Record<string, any>>({});
+  const [formDefaults, setFormDefaults] = useState<TaskDefaults>({});
 
   const [quickTitle, setQuickTitle] = useState('');
 
@@ -114,7 +115,7 @@ export default function TasksPage() {
 
   const [showCompleted, setShowCompleted] = useState(false);
 
-  const openCreate = (overrides: Record<string, any> = {}) => {
+  const openCreate = (overrides: TaskDefaults = {}) => {
     setEditingTask(null);
     setFormDefaults({
       list_id: selection.kind === 'list' ? selection.id : null,
@@ -143,7 +144,7 @@ export default function TasksPage() {
   const handleQuickAdd = async () => {
     const title = quickTitle.trim();
     if (!title) return;
-    const overrides: any = { title };
+    const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title };
     if (selection.kind === 'list') overrides.list_id = selection.id;
     if (selection.kind === 'smart' && selection.smart === 'my_day') {
       overrides.due_date = new Date().toLocaleDateString('en-CA');
@@ -263,7 +264,7 @@ export default function TasksPage() {
                 moveStatus.mutate({ id, status });
               }}
               onQuickAdd={async (status, title) => {
-                const overrides: any = { title, status };
+                const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title, status };
                 if (selection.kind === 'list') overrides.list_id = selection.id;
                 await createTask.mutateAsync(overrides);
               }}

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from '@/components/ui/icons';
 
-import { finance, type FinAccount, type FinInvestment } from '@/api';
+import { finance, type FinAccount, type FinInvestment, type InvDraft } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -172,7 +172,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [name, setName] = useState('');
-  const [type, setType] = useState('fd');
+  const [type, setType] = useState<FinInvestment['type']>('fd');
   const [accountId, setAccountId] = useState('');
   const [invested, setInvested] = useState('');
   const [current, setCurrent] = useState('');
@@ -205,7 +205,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
 
   const save = async () => {
     if (!name.trim()) return;
-    const data: any = {
+    const data: InvDraft = {
       name: name.trim(),
       type,
       account_id: accountId ? parseInt(accountId) : null,
@@ -246,7 +246,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nifty 50 SIP" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType(v ?? '')} items={GUARANTEED_TYPES}>
+            <Select value={type} onValueChange={(v) => setType((v as FinInvestment['type']) || 'fd')} items={GUARANTEED_TYPES}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

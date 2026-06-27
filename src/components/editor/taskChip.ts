@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import type { InlineState, Md, MdNode, MdState } from './types';
 
 /**
  * TaskChip — inline atom rendering a small pill that references an existing
@@ -21,12 +22,15 @@ import { Node, mergeAttributes } from '@tiptap/core';
  * which TaskDetailProvider listens for — works from any editor instance.
  */
 
-function taskChipMarkdownIt(md: any) {
-  if (md.inline.ruler.__find__?.('taskchip') >= 0) {
+function taskChipMarkdownIt(md: Md) {
+  const ruler = md.inline.ruler as Md['inline']['ruler'] & {
+    __find__?: (name: string) => number;
+  };
+  if ((ruler.__find__?.('taskchip') ?? -1) >= 0) {
     return;
   }
 
-  const rule = (state: any, silent: boolean) => {
+  const rule = (state: InlineState, silent: boolean) => {
     const start = state.pos;
     const src = state.src;
 
@@ -79,9 +83,9 @@ function taskChipMarkdownIt(md: any) {
   // Register before `text`: `(` is not a markdown special char, so the
   // default text rule would otherwise consume `((task:...))` first.
   try {
-    md.inline.ruler.before('text', 'taskchip', rule);
+    ruler.before('text', 'taskchip', rule);
   } catch {
-    md.inline.ruler.push('taskchip', rule);
+    ruler.push('taskchip', rule);
   }
 }
 
@@ -108,7 +112,7 @@ export const TaskChip = Node.create({
       // the picker without coupling tiptap to React state.
       onOpen: null as null | ((range: { from: number; to: number }) => void),
       markdown: {
-        serialize(state: any, node: any) {
+        serialize(state: MdState, node: MdNode) {
           const id = node.attrs.id ?? '';
           const title = node.attrs.title ?? '';
           // If either attribute is missing we'd produce a malformed
@@ -119,7 +123,7 @@ export const TaskChip = Node.create({
           state.write(`((task:${id}|${title}))`);
         },
         parse: {
-          setup(md: any) {
+          setup(md: Md) {
             md.use(taskChipMarkdownIt);
           },
         },

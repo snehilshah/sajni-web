@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { journal as journalApi } from '@/api';
+import type { JournalEntry as JournalFull } from '@/types';
 import { useTasks, useToggleTaskStatus, useCreateTask } from '@/queries/tasks';
 import { useHabits, useHabitRecentLogs, useToggleHabitLog } from '@/queries/habits';
 import { useMemos, useCreateMemo } from '@/queries/memos';
@@ -151,7 +152,7 @@ export default function TodayPage() {
 				await createTask.mutateAsync({ title: text, due_date: today });
 			} else if (captureKind === 'journal') {
 				// Append onto today's entry if present, else create.
-				const existing = await journalApi.get(today).catch(() => null as any);
+				const existing = await journalApi.get(today).catch((): JournalFull | null => null);
 				const next = existing?.content ? `${existing.content}\n\n${text}` : text;
 				await saveJournal.mutateAsync({ date: today, content: next, mood: existing?.mood ?? null });
 			}

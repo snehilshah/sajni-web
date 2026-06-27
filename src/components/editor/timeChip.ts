@@ -1,7 +1,10 @@
-import { Extension, Node, InputRule, mergeAttributes } from '@tiptap/core';
+import { Extension, Node, InputRule, mergeAttributes, type Editor } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
 import { makePopupRenderer } from './popupRenderer';
+import type { Cmd, InlineState, Item, Md, MdNode, MdState } from './types';
+
+const PREFIXES = [' ', '\n', '\t', null] as unknown as string[];
 
 /**
  * TimeChip — inline atom rendering an M3 Expressive time pill.
@@ -49,8 +52,8 @@ function validRange(sH: number, sM: number, eH: number, eM: number): boolean {
 // when the markdown serializer was missing — those entries have lost
 // the original time data, so the best we can do is consume the
 // placeholder silently instead of rendering it as `[timeChip]` text.
-function timeChipMarkdownIt(md: any) {
-  md.inline.ruler.before('link', 'timechip', (state: any, silent: boolean) => {
+function timeChipMarkdownIt(md: Md) {
+  md.inline.ruler.before('link', 'timechip', (state: InlineState, silent: boolean) => {
     const start = state.pos;
     if (state.src.charCodeAt(start) !== 0x5b /* [ */) return false;
 
@@ -104,7 +107,7 @@ export const TimeChip = Node.create({
   addStorage() {
     return {
       markdown: {
-        serialize(state: any, node: any) {
+        serialize(state: MdState, node: MdNode) {
           const { start, startMin, end, endMin } = node.attrs as {
             start: number; startMin: number; end: number | null; endMin: number | null;
           };
@@ -114,7 +117,7 @@ export const TimeChip = Node.create({
           state.write(`[time:${body}]`);
         },
         parse: {
-          setup(md: any) {
+          setup(md: Md) {
             md.use(timeChipMarkdownIt);
           },
         },
@@ -193,9 +196,7 @@ export const TimeChip = Node.create({
 // the same node type. The popup auto-closes on space, so the InputRule
 // can finish the job for free-form `@9-18:30 ` entries.
 
-interface TimeSuggestItem {
-  id: string;
-  title: string;
+interface TimeSuggestItem extends Item {
   subtitle?: string;
   icon?: string;
   start: number;
@@ -249,7 +250,7 @@ export const TimeChipSuggest = Extension.create({
   name: 'timeChipSuggest',
   addProseMirrorPlugins() {
     return [
-      Suggestion({
+      Suggestion<TimeSuggestItem, TimeSuggestItem>({
         editor: this.editor,
         char: '@',
         startOfLine: false,
@@ -258,8 +259,8 @@ export const TimeChipSuggest = Extension.create({
         // Same guard as TagSuggest: only surface preset times after the
         // user has explicitly focused the editor. Stops the picker from
         // auto-appearing when a saved entry already contains an `@`.
-        allowedPrefixes: [' ', '\n', '\t', null] as any,
-        items: ({ query, editor }: { query: string; editor: any }) => {
+        allowedPrefixes: PREFIXES,
+        items: ({ query, editor }: { query: string; editor: Editor }) => {
           if (!editor?.isFocused) return [];
           const items: TimeSuggestItem[] = [];
           const live = parseQuery(query);
@@ -270,9 +271,8 @@ export const TimeChipSuggest = Extension.create({
           }
           return items;
         },
-        render: makePopupRenderer('No time matches — type a 24h time'),
-        command: ({ editor, range, props }: any) => {
-          const item = props as TimeSuggestItem;
+        render: makePopupRenderer<TimeSuggestItem>('No time matches — type a 24h time'),
+        command: ({ editor, range, props: item }: Cmd<TimeSuggestItem>) => {
           editor
             .chain()
             .focus()

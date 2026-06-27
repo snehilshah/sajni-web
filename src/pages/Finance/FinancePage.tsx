@@ -321,11 +321,10 @@ function TabPanel({ active, children }: { active: boolean; children: React.React
   // `inert` blocks all interaction + focus + tabbing in one shot and is
   // supported in every shipped browser at this point. We keep
   // aria-hidden for assistive-tech parity.
+  const inertProps: { inert?: boolean } = active ? {} : { inert: true };
   return (
     <motion.div
-      // The `inert` attribute is what we actually rely on here; the
-      // typings on React are still partial, hence the cast.
-      {...({ inert: !active ? '' : undefined } as any)}
+      {...inertProps}
       initial={false}
       animate={{ opacity: active ? 1 : 0, y: active ? 0 : 3 }}
       transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}

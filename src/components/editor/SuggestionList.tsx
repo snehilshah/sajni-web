@@ -1,24 +1,19 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import type { Item, ItemRef, KeyProps } from './types';
 
-export interface SuggestionItem {
-  id: string;
-  title: string;
-  subtitle?: string;
-  icon?: string;
-  action?: () => void;
-}
+export type SuggestionItem = Item;
 
 export interface SuggestionListProps {
   items: SuggestionItem[];
-  command: (item: any) => void;
+  command: (item: SuggestionItem) => void;
   query?: string;
   emptyText?: string;
 }
 
-export const SuggestionList = forwardRef<unknown, SuggestionListProps>((props, ref) => {
+export const SuggestionList = forwardRef<ItemRef, SuggestionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const items = props.items || [];
+  const items = props.items;
 
   const selectItem = (index: number) => {
     const item = items[index];
@@ -30,7 +25,7 @@ export const SuggestionList = forwardRef<unknown, SuggestionListProps>((props, r
   }, [items]);
 
   useImperativeHandle(ref, () => ({
-    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+    onKeyDown: ({ event }: KeyProps) => {
       if (event.key === 'ArrowUp') {
         setSelectedIndex((prev) => (prev + items.length - 1) % Math.max(1, items.length));
         return true;

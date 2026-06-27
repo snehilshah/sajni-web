@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
-import type { Task, TaskList } from '@/types';
+import type { Task, TaskList, TaskPatch } from '@/types';
 import { qk } from './keys';
 
 export type TaskListParams = Parameters<typeof tasksApi.list>[0];
@@ -91,7 +91,7 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, any> }) =>
+    mutationFn: ({ id, data }: { id: number; data: TaskPatch }) =>
       tasksApi.update(id, data),
     onError: () => toast.error('Could not save task'),
     onSettled: () => {

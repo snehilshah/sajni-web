@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles, Tags, Hash } from '@/components/ui/icons';
 
 import { toast } from 'sonner';
-import { finance, type FinAccount, type FinCategory, type FinTransaction } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
+import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +24,8 @@ import CategoryManager from './CategoryManager';
 // Mirror the server-side tag parser (links.go tagRe): #tag, first char a
 // letter/number/_, then letters/numbers/_-/; trailing -/_ trimmed; lowered.
 const HASHTAG_RE = /(?:^|[^\w&])#([\p{L}\p{N}_][\p{L}\p{N}_\-/]*)/gu;
+const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
+
 function extractHashtags(s: string): string[] {
   if (!s) return [];
   const out: string[] = [];
@@ -32,6 +35,12 @@ function extractHashtags(s: string): string[] {
     if (tag && !seen.has(tag)) { seen.add(tag); out.push(tag); }
   }
   return out;
+}
+
+function editKind(kind: FinTransaction['type']): TxnKind {
+  if (kind === 'income') return 'income';
+  if (kind === 'transfer_in' || kind === 'transfer_out') return 'transfer';
+  return 'expense';
 }
 
 interface Props {
@@ -316,8 +325,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   useEffect(() => {
     setErrors({});
     if (txn) {
-      const t = txn.type === 'transfer_out' ? 'transfer' : (txn.type as any);
-      setType(t);
+      setType(editKind(txn.type));
       setAccountId(String(txn.account_id));
       setLinkedId(txn.linked_account ? String(txn.linked_account) : '');
       setCategoryId(txn.category_id ? String(txn.category_id) : '');
@@ -421,14 +429,15 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
         // both accounts automatically (the backend also syncs a transfer pair).
         const acctId = parseInt(accountId);
         const catId = categoryId ? parseInt(categoryId) : null;
-        await finance.updateTransaction(txn.id, {
+        const patch: TxnPatch = {
           account_id: acctId,
           amount: amt,
           description,
           note,
           txn_at: txnAt,
-          category_id: catId as any,
-        } as any);
+          category_id: catId,
+        };
+        await finance.updateTransaction(txn.id, patch);
         // Hand the parent an optimistic patch so the row reflects the new
         // account/category/amount instantly (no reload flash, no raw id).
         const cat = categories.find((c) => c.id === catId);
@@ -469,7 +478,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       onSaved();
     } catch (e) {
       // Surface the failure instead of silently leaving the dialog open.
-      toast.error('Could not save transaction: ' + (e as Error).message);
+      toast.error('Could not save transaction: ' + msg(e));
     } finally {
       setSaving(false);
     }
@@ -602,7 +611,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
               // Fixed height (field-sizing:fixed) — auto-growing inside the
               // modal's scroll container caused a layout-thrash freeze.
               className="resize-none overflow-y-auto !min-h-0 h-[76px]"
-              style={{ fieldSizing: 'fixed' } as any}
+              style={fixedField}
             />
           </Field>
         </div>

@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, CircleDollarSign, AlertTriangle, Clock } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
-import { finance, type FinAccount, type FinInvestment } from '@/api';
+import { finance, type FinAccount, type FinInvestment, type InvDraft } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
+import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -23,7 +24,7 @@ interface Props {
 }
 
 // Types whose price is auto-fetched EOD — they require a market symbol.
-const PRICED_TYPES = ['stock', 'etf'];
+const PRICED_TYPES: readonly FinInvestment['type'][] = ['stock', 'etf'];
 const EXCHANGES = [{ value: 'NSE', label: 'NSE' }, { value: 'BSE', label: 'BSE' }];
 
 // Compact "x ago" for price freshness. Input is RFC3339 with an IST offset,
@@ -261,7 +262,7 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [name, setName] = useState('');
-  const [type, setType] = useState('stock');
+  const [type, setType] = useState<FinInvestment['type']>('stock');
   const [symbol, setSymbol] = useState('');
   const [exchange, setExchange] = useState('NSE');
   const [accountId, setAccountId] = useState('');
@@ -314,7 +315,7 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
       toast.error('Enter the stock symbol, e.g. RELIANCE');
       return;
     }
-    const data: any = {
+    const data: InvDraft = {
       name: name.trim(),
       type,
       account_id: parseInt(accountId),
@@ -338,8 +339,8 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
         await finance.createInvestment(data);
       }
       onSaved();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not save the trade');
+    } catch (e) {
+      toast.error(msg(e, 'Could not save the trade'));
     } finally {
       setSaving(false);
     }
@@ -393,7 +394,7 @@ function TradeDialog({ open, holding, tradingAccounts, onClose, onSaved }: {
             </>
           )}
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType(v ?? 'stock')} items={TRADING_TYPES}>
+            <Select value={type} onValueChange={(v) => setType((v as FinInvestment['type']) || 'stock')} items={TRADING_TYPES}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TRADING_TYPES.map((t) => (

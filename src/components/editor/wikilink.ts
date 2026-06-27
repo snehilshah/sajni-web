@@ -1,14 +1,18 @@
 import Mention from '@tiptap/extension-mention';
-import { Extension } from '@tiptap/core';
+import { Extension, type Editor, type Range } from '@tiptap/core';
+import type { MentionNodeAttrs } from '@tiptap/extension-mention';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
 import { tags as tagsApi, notes as notesApi, journal as journalApi } from '@/api';
 import { makePopupRenderer } from './popupRenderer';
+import type { InlineState, Item, Md, MdNode, MdState } from './types';
+
+const PREFIXES = [' ', '\n', '\t', null] as unknown as string[];
 
 // markdown-it inline plugin: parses `[[Title]]` (and `[[Title|Display]]`) into a custom token
 // that renders as <span data-type="wikilink" data-id="..." data-label="...">...</span>.
-function wikilinkMarkdownIt(md: any) {
-  md.inline.ruler.before('link', 'wikilink', (state: any, silent: boolean) => {
+function wikilinkMarkdownIt(md: Md) {
+  md.inline.ruler.before('link', 'wikilink', (state: InlineState, silent: boolean) => {
     const start = state.pos;
     if (state.src.charCodeAt(start) !== 0x5b /* [ */ || state.src.charCodeAt(start + 1) !== 0x5b) return false;
 
@@ -40,11 +44,11 @@ export const WikiLink = Mention.extend({
   addStorage() {
     return {
       markdown: {
-        serialize(state: any, node: any) {
+        serialize(state: MdState, node: MdNode) {
           state.write(`[[${node.attrs.label || node.attrs.id || ''}]]`);
         },
         parse: {
-          setup(md: any) {
+          setup(md: Md) {
             md.use(wikilinkMarkdownIt);
           },
         },
@@ -60,10 +64,10 @@ export const WikiLink = Mention.extend({
   },
 }).configure({
   HTMLAttributes: { class: 'wikilink' },
-  renderText({ node }: any) {
+  renderText({ node }: { node: MdNode }) {
     return `[[${node.attrs.label || node.attrs.id || ''}]]`;
   },
-  renderHTML({ node }: any) {
+  renderHTML({ node }: { node: MdNode }) {
     return [
       'a',
       {
@@ -86,24 +90,24 @@ export const WikiLink = Mention.extend({
           notesApi.list(query ? { search: query } : undefined).catch(() => []),
           journalApi.list().catch(() => []),
         ]);
-        const noteItems = (notesList as any[]).slice(0, 6).map((n: any) => ({
+        const noteItems: Item[] = notesList.slice(0, 6).map((n) => ({
           id: n.title,
           title: n.title || 'Untitled',
           subtitle: 'Note',
           icon: '📝',
         }));
         const q = query.toLowerCase();
-        const journalMatches = (journalList as any[])
-          .filter((j: any) => !q || j.date.includes(q))
+        const journalMatches: Item[] = journalList
+          .filter((j) => !q || j.date.includes(q))
           .slice(0, 4)
-          .map((j: any) => ({
+          .map((j) => ({
             id: j.date,
             title: j.date,
             subtitle: 'Journal',
             icon: '📅',
           }));
         const merged = [...noteItems, ...journalMatches];
-        if (query.trim() && !merged.some((m: any) => m.id.toLowerCase() === q)) {
+        if (query.trim() && !merged.some((m) => m.id.toLowerCase() === q)) {
           merged.unshift({
             id: query.trim(),
             title: query.trim(),
@@ -116,9 +120,9 @@ export const WikiLink = Mention.extend({
         return [];
       }
     },
-    render: makePopupRenderer('Type to search notes & journal'),
-    command: ({ editor, range, props }: any) => {
-      const label = props.id;
+    render: makePopupRenderer<Item>('Type to search notes & journal'),
+    command: ({ editor, range, props }: { editor: Editor; range: Range; props: MentionNodeAttrs }) => {
+      const label = String(props.id || props.label || '');
       editor
         .chain()
         .focus()
@@ -144,9 +148,9 @@ export const TagSuggest = Extension.create({
         // only ever fires for genuine new tags. Without this, a `#` inside
         // existing content (e.g. when opening a journal entry that already
         // mentions `#happy`) would be treated as an active tag query.
-        allowedPrefixes: [' ', '\n', '\t', null] as any,
+        allowedPrefixes: PREFIXES,
         pluginKey: new PluginKey('tagSuggest'),
-        items: async ({ query, editor }: { query: string; editor: any }) => {
+        items: async ({ query, editor }: { query: string; editor: Editor }) => {
           // Bail unless the editor is actually focused. This blocks the
           // popup from auto-opening on initial page load when the cursor
           // (placed programmatically) lands inside an existing `#tag`.
@@ -172,8 +176,8 @@ export const TagSuggest = Extension.create({
             return [];
           }
         },
-        render: makePopupRenderer('Type to search tags'),
-        command: ({ editor, range, props }: any) => {
+        render: makePopupRenderer<Item>('Type to search tags'),
+        command: ({ editor, range, props }: { editor: Editor; range: Range; props: Item }) => {
           editor.chain().focus().insertContentAt(range, `#${props.id} `).run();
         },
       }),

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { Plus, Pencil, Trash2, Tags } from '@/components/ui/icons';
 
-import { finance, type FinBudget, type FinCategory } from '@/api';
+import { finance, type BudgetDraft, type FinBudget, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -199,7 +199,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
 
   const save = async () => {
     if (!name.trim()) return;
-    const data = {
+    const data: BudgetDraft = {
       name: name.trim(),
       period,
       start_date: startDate,
@@ -242,7 +242,7 @@ function BudgetDialog({ open, budget, categories, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. May 2026" />
           </Field>
           <Field label="Period">
-            <Select value={period} onValueChange={(v) => setPeriod(v as any)}
+            <Select value={period} onValueChange={(v) => setPeriod((v as FinBudget['period']) || 'monthly')}
               items={[{ value: 'monthly', label: 'Monthly' }, { value: 'custom', label: 'Custom' }]}>
               <SelectTrigger>
                 <SelectValue />

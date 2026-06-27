@@ -20,6 +20,12 @@ import PageShell from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
+interface HabitForm {
+  name: string;
+  frequency: Habit['frequency'];
+  color: string;
+}
+
 // Day letter for a yyyy-MM-dd key. Derived from the actual date so the fixed
 // Mon..Sun strip labels each column correctly.
 function dayLetter(key: string): string {
@@ -40,7 +46,7 @@ export default function HabitsPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
-  const [form, setForm] = useState({ name: '', frequency: 'daily', color: SWATCHES[0] });
+  const [form, setForm] = useState<HabitForm>({ name: '', frequency: 'daily', color: SWATCHES[0] });
   const [saving, setSaving] = useState(false);
 
   // Per-habit logged-date sets, derived from the single recent-logs call.
@@ -180,7 +186,7 @@ export default function HabitsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Frequency</Label>
-                <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v ?? 'daily' })}
+                <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: (v as Habit['frequency']) || 'daily' })}
                   items={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }]}>
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />

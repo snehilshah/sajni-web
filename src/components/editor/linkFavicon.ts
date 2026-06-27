@@ -1,6 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import type { MdMark, MdNode } from './types';
 
 /**
  * LinkFavicon — decorates every link mark with a leading favicon so links
@@ -23,16 +24,16 @@ function faviconURL(host: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
 }
 
-function build(doc: any): DecorationSet {
+function build(doc: MdNode): DecorationSet {
   const decos: Decoration[] = [];
   let lastHref = '';
   let lastEnd = -1;
-  doc.descendants((node: any, pos: number) => {
+  doc.descendants((node: MdNode, pos: number) => {
     if (!node.isText) {
       lastHref = '';
       return;
     }
-    const link = node.marks.find((m: any) => m.type.name === 'link');
+    const link = node.marks.find((m: MdMark) => m.type.name === 'link');
     if (!link) {
       lastHref = '';
       return;

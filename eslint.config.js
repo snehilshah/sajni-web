@@ -17,6 +17,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist']),
   {
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
@@ -33,9 +38,7 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/purity': 'warn',
       'react-refresh/only-export-components': 'warn',
-      // The codebase intentionally uses `any` in a few ergonomic shim
-      // spots (third-party libs without types, generic JSON blobs).
-      // Surface them as warnings so we keep tightening over time.
+      // Keep visible in editors; CI can promote this to error with --rule.
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',

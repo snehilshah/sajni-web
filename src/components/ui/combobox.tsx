@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/input-group"
 import { ChevronDownIcon, XIcon, CheckIcon } from "@/components/ui/icons"
 
-const Combobox = ComboboxPrimitive.Root
+function Combobox({ ...props }: React.ComponentProps<typeof ComboboxPrimitive.Root>) {
+  return <ComboboxPrimitive.Root data-slot="combobox" {...props} />
+}
 
 function ComboboxValue({ ...props }: ComboboxPrimitive.Value.Props) {
   return <ComboboxPrimitive.Value data-slot="combobox-value" {...props} />
