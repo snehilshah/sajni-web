@@ -556,6 +556,7 @@ body {
 .chip:hover { background: hsl(var(--surface-container-highest)); color: hsl(var(--on-surface)); }
 .chip-sage   { color: hsl(var(--on-primary-container));   border-color: hsl(var(--primary) / 0.4);   background: hsl(var(--primary-container)); }
 .chip-amber  { color: hsl(var(--on-secondary-container)); border-color: hsl(var(--secondary) / 0.4); background: hsl(var(--secondary-container)); }
+.chip-upcoming { color: hsl(var(--on-tertiary-container)); border-color: hsl(var(--tertiary) / 0.45); background: hsl(var(--tertiary-container)); }
 .chip-rose   { color: hsl(var(--on-error-container)); border-color: hsl(var(--error) / 0.4); background: hsl(var(--error-container)); }
 .chip-olive {
   color: hsl(var(--color-complete));

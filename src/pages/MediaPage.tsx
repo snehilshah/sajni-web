@@ -1,6 +1,7 @@
 import { startTransition, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
 import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/queries/media';
@@ -92,8 +93,8 @@ type SeriesRow =
 
 const STATUS_OPTIONS: { value: MediaStatus; label: string; dot: string }[] = [
   { value: 'in_progress', label: 'In progress', dot: 'bg-blue-500' },
-  { value: 'upcoming', label: 'Upcoming', dot: 'bg-amber-500' },
-  { value: 'pending', label: 'Pending', dot: 'bg-amber-500' },
+  { value: 'upcoming', label: 'Upcoming', dot: 'bg-[hsl(var(--tertiary))]' },
+  { value: 'pending', label: 'Pending', dot: 'bg-muted-foreground' },
   { value: 'waiting', label: 'Waiting', dot: 'bg-purple-500' },
   { value: 'complete', label: 'Complete', dot: 'bg-emerald-500' },
   { value: 'archived', label: 'Archived', dot: 'bg-stone-500' },
@@ -178,8 +179,8 @@ function mediaStatusDisplay(item: MediaEntry): { label: string; color: string; c
     const when = formatReleaseDate(item.release_date);
     return {
       label: when ? `Upcoming ${when}` : 'Upcoming',
-      color: 'hsl(var(--primary))',
-      chipClass: 'chip-amber',
+      color: 'hsl(var(--tertiary))',
+      chipClass: 'chip-upcoming',
     };
   }
   return {
@@ -261,9 +262,50 @@ function statusPillColor(status: MediaStatus): string {
     case 'scratched':   return 'hsl(var(--destructive))';
     case 'waiting':     return 'hsl(var(--color-waiting))';
     case 'pending':     return 'hsl(var(--muted-foreground))';
-    case 'upcoming':    return 'hsl(var(--primary))';
+    case 'upcoming':    return 'hsl(var(--tertiary))';
     default:            return 'hsl(var(--muted-foreground))';
   }
+}
+
+function normalizeMediaTitle(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['']/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function yearFromMedia(value: Pick<MediaEntry, 'year' | 'release_date'>): number | null {
+  if (value.year) return value.year;
+  const raw = dateOnly(value.release_date);
+  if (!raw) return null;
+  const year = parseInt(raw.slice(0, 4), 10);
+  return Number.isNaN(year) ? null : year;
+}
+
+function findDuplicateMedia(pool: MediaEntry[], draft: FormState, skipId?: number): MediaEntry | null {
+  const title = normalizeMediaTitle(draft.title);
+  const ext = draft.external_id.trim();
+  const draftYear = yearFromMedia(draft);
+  if (!title && !ext) return null;
+  return pool.find((item) => {
+    if (skipId && item.id === skipId) return false;
+    if (item.type !== draft.type) return false;
+    if (ext && item.external_id === ext) return true;
+    if (normalizeMediaTitle(item.title) !== title) return false;
+    const itemYear = yearFromMedia(item);
+    return !draftYear || !itemYear || draftYear === itemYear;
+  }) || null;
+}
+
+function duplicateMediaDescription(item: MediaEntry): string {
+  const type = TYPE_META[item.type]?.label || 'Item';
+  const year = yearFromMedia(item);
+  const status = statusMeta(item.status)?.label || item.status;
+  return `${type}${year ? ` · ${year}` : ''} · ${status}`;
 }
 
 
@@ -526,7 +568,7 @@ function TitleAutocomplete({
                     )}
                     {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
                     {r.release_state === 'upcoming' && (
-                      <span className="chip chip-amber h-5 px-1.5 text-[10px] uppercase tracking-wide">
+                      <span className="chip chip-upcoming h-5 px-1.5 text-[10px] uppercase tracking-wide">
                         Upcoming{r.release_date ? ` ${formatReleaseDate(r.release_date)}` : ''}
                       </span>
                     )}
@@ -803,6 +845,25 @@ export default function MediaPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
+      let duplicatePool: MediaEntry[];
+      try {
+        duplicatePool = form.type === activeType && !statusFilter
+          ? items
+          : await mediaApi.list({ type: form.type });
+      } catch {
+        toast.error('Could not check for duplicates', {
+          description: 'Try saving again in a moment.',
+        });
+        return;
+      }
+      const duplicate = findDuplicateMedia(duplicatePool, form, editItem?.id);
+      if (duplicate) {
+        toast.error(`${TYPE_META[form.type]?.label || 'Item'} already in library`, {
+          description: duplicateMediaDescription(duplicate),
+        });
+        return;
+      }
+
       const payload: MediaPatch = { ...form, rating: form.rating || null };
       // Marking complete snaps progress to the end — last season, last episode —
       // so the S?E? label and bar read 100% instead of wherever the user stopped.
@@ -1662,7 +1723,7 @@ function chipClassFor(status: MediaStatus): string {
     case 'waiting':     return 'chip-sky';     // slate — on hold
     case 'dropped':
     case 'scratched':   return 'chip-rose';
-    case 'upcoming':    return 'chip-amber';
+    case 'upcoming':    return 'chip-upcoming';
     default:            return '';
   }
 }
@@ -1808,7 +1869,7 @@ function SeriesPosterCard({
           <Film className="size-3" /> Series
         </span>
         {upcoming && (
-          <span className="absolute top-2 right-2 chip chip-amber h-6 max-w-[calc(100%-5.75rem)] px-2.5 text-xs" title={`Upcoming ${upcomingDate}`}>
+          <span className="absolute top-2 right-2 chip chip-upcoming h-6 max-w-[calc(100%-5.75rem)] px-2.5 text-xs" title={`Upcoming ${upcomingDate}`}>
             <span className="truncate">Upcoming</span>
           </span>
         )}
@@ -1945,20 +2006,22 @@ function SeriesListRow({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {upcoming && (
-                    <span className="chip chip-amber h-7 max-w-[11rem] px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
-                      <span className="truncate">Upcoming</span>
-                    </span>
-                  )}
                   <span className="chip chip-sage h-7 px-2.5 text-xs leading-none">
                     <Film className="size-3" /> Series
                   </span>
-                  <ChevronRight className={cn('size-4 transition-transform duration-200', expanded && 'rotate-90')} />
+                  {upcoming && (
+                    <span className="chip chip-upcoming h-7 max-w-[11rem] px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
+                      <span className="truncate">Upcoming</span>
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
                 <span>Watched {watched}/{row.members.length}</span>
-                <span className="font-medium text-foreground/80">{expanded ? 'Hide movies' : 'View movies'}</span>
+                <span className="inline-flex shrink-0 items-center gap-1.5 font-medium text-foreground/80">
+                  {expanded ? 'Hide movies' : 'View movies'}
+                  <ChevronRight className={cn('size-3.5 transition-transform duration-200', expanded && 'rotate-90')} />
+                </span>
               </div>
             </div>
             <SegmentedBar
@@ -2415,7 +2478,7 @@ function CollectionBadge({
                       </div>
                     </div>
                     {upcoming && (
-                      <span className="chip chip-amber text-xs" title={releaseLabel ? `Upcoming ${releaseLabel}` : 'Upcoming'}>
+                      <span className="chip chip-upcoming text-xs" title={releaseLabel ? `Upcoming ${releaseLabel}` : 'Upcoming'}>
                         Upcoming
                       </span>
                     )}
