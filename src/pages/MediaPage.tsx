@@ -14,6 +14,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1746,6 +1747,7 @@ function MediaListRow({
   const pct = listProgressPct(item);
   const age = watchAgeLabelShort(item);
   const statusDisplay = mediaStatusDisplay(item);
+  const thumbVariant = compact ? 'sm' : 'card';
   return (
     <button
       onClick={onClick}
@@ -1757,56 +1759,74 @@ function MediaListRow({
         compact ? 'min-h-[82px] p-2.5' : 'min-h-[96px] p-3 md:p-3.5',
       )}
     >
-      <div className={cn('flex min-w-0 gap-3', compact ? 'items-center' : 'items-stretch')}>
-        <MediaThumb item={item} index={index} variant={compact ? 'sm' : 'card'} />
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
-                  {item.title || 'Untitled'}
-                </div>
-              </div>
-              <span className={cn('chip max-w-[11rem] shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', statusDisplay.chipClass)} title={statusDisplay.label}>
-                <span className="truncate">{statusDisplay.label}</span>
-              </span>
-            </div>
-            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
-              <span className="shrink-0">{TYPE_META[item.type]?.label || item.type}</span>
-              {item.year ? <span className="shrink-0">{item.year}</span> : null}
-              {item.rating ? (
-                <span className="inline-flex shrink-0 items-center gap-0.5 text-secondary">
-                  <Star className="size-3 fill-current" />
-                  <span className="tabular-nums">{item.rating}</span>
-                </span>
-              ) : null}
-              {item.platform ? (
-                <PlatformLogo
-                  platform={item.platform}
-                  className="shrink-0"
-                  iconClassName={compact ? 'size-[15px]' : 'size-4'}
-                />
-              ) : null}
-              {progressLabel(item) ? <span className="shrink-0">{progressLabel(item)}</span> : null}
-              {age ? <span className="min-w-0 truncate">{age}</span> : null}
-            </div>
+      <div
+        className={cn(
+          'grid min-w-0 gap-x-3 gap-y-2',
+          compact
+            ? 'grid-cols-[44px_minmax(0,1fr)] sm:grid-cols-[44px_minmax(0,1fr)_minmax(7rem,10rem)]'
+            : 'grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[52px_minmax(0,1fr)_minmax(8rem,12rem)]',
+        )}
+      >
+        <MediaThumb
+          item={item}
+          index={index}
+          variant={thumbVariant}
+          className={cn(hasProgress && 'row-span-2')}
+        />
+
+        <div className="min-w-0 self-start">
+          <div className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
+            {item.title || 'Untitled'}
           </div>
-          {hasProgress && (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
-                <span className="min-w-0 truncate">{progress}</span>
-                {pct !== null && <span className="shrink-0 tabular-nums">{pct}%</span>}
-              </div>
-              <SegmentedBar
-                watched={item.episodes_watched}
-                total={item.episodes_total}
-                status={item.status}
-                units={item.type === 'show' ? item.seasons_total : undefined}
-                boxH={compact ? 4 : 6}
+          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
+            <span className="shrink-0">{TYPE_META[item.type]?.label || item.type}</span>
+            {item.year ? <span className="shrink-0">{item.year}</span> : null}
+            {item.rating ? (
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-secondary">
+                <Star className="size-3 fill-current" />
+                <span className="tabular-nums">{item.rating}</span>
+              </span>
+            ) : null}
+            {item.platform ? (
+              <PlatformLogo
+                platform={item.platform}
+                className="shrink-0"
+                iconClassName={compact ? 'size-[15px]' : 'size-4'}
               />
-            </div>
-          )}
+            ) : null}
+            {progressLabel(item) ? <span className="shrink-0">{progressLabel(item)}</span> : null}
+          </div>
+
+          <div className="mt-2 flex min-w-0 items-center gap-2 sm:hidden">
+            <span className={cn('chip h-6 max-w-[10rem] shrink-0 px-2.5 text-xs leading-none', statusDisplay.chipClass)} title={statusDisplay.label}>
+              <span className="truncate">{statusDisplay.label}</span>
+            </span>
+            {age ? <span className="min-w-0 truncate mono text-xs text-muted-foreground">{age}</span> : null}
+          </div>
         </div>
+
+        <div className={cn('hidden min-w-0 flex-col items-end gap-1.5 self-start sm:flex', compact && 'justify-center')}>
+          <span className={cn('chip max-w-full shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', statusDisplay.chipClass)} title={statusDisplay.label}>
+            <span className="truncate">{statusDisplay.label}</span>
+          </span>
+          {age ? <span className="max-w-full truncate mono text-xs text-muted-foreground" title={age}>{age}</span> : null}
+        </div>
+
+        {hasProgress && (
+          <div className="col-start-2 flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+            <div className="flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
+              <span className="min-w-0 truncate">{progress}</span>
+              {pct !== null && <span className="shrink-0 tabular-nums">{pct}%</span>}
+            </div>
+            <SegmentedBar
+              watched={item.episodes_watched}
+              total={item.episodes_total}
+              status={item.status}
+              units={item.type === 'show' ? item.seasons_total : undefined}
+              boxH={compact ? 4 : 6}
+            />
+          </div>
+        )}
       </div>
     </button>
   );
@@ -1992,37 +2012,58 @@ function SeriesListRow({
         aria-expanded={expanded}
         className="m3-state group relative w-full bg-[hsl(var(--surface-container-low))] p-3 md:p-3.5 text-left transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))]"
       >
-        <div className="flex min-w-0 gap-3">
-          <MediaThumb item={cover} index={0} variant="card" />
-          <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex min-w-0 items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="serif text-[16px] font-medium leading-snug truncate">{row.collectionName}</div>
-                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
-                    {yearLabel && <span className="shrink-0">{yearLabel}</span>}
-                    <span className="shrink-0">{row.members.length} movies</span>
-                    {upcomingDate && <span className="shrink-0">Upcoming {upcomingDate}</span>}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="chip chip-sage h-7 px-2.5 text-xs leading-none">
-                    <Film className="size-3" /> Series
-                  </span>
-                  {upcoming && (
-                    <span className="chip chip-upcoming h-7 max-w-[11rem] px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
-                      <span className="truncate">Upcoming</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
-                <span>Watched {watched}/{row.members.length}</span>
-                <span className="inline-flex shrink-0 items-center gap-1.5 font-medium text-foreground/80">
-                  {expanded ? 'Hide movies' : 'View movies'}
-                  <ChevronRight className={cn('size-3.5 transition-transform duration-200', expanded && 'rotate-90')} />
+        <div className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)_2rem] gap-x-3 gap-y-2 sm:grid-cols-[52px_minmax(0,1fr)_minmax(10rem,14rem)_2rem]">
+          <MediaThumb item={cover} index={0} variant="card" className="row-span-2" />
+
+          <div className="min-w-0 self-start">
+            <div className="serif text-[16px] font-medium leading-snug truncate">{row.collectionName}</div>
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
+              {yearLabel && <span className="shrink-0">{yearLabel}</span>}
+              <span className="shrink-0">{row.members.length} movies</span>
+            </div>
+
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 sm:hidden">
+              <span className="chip chip-sage h-6 px-2.5 text-xs leading-none">
+                <Film className="size-3" /> Series
+              </span>
+              <span className="chip h-6 px-2.5 text-xs leading-none tabular-nums">
+                {watched}/{row.members.length}
+              </span>
+              {upcoming && (
+                <span className="chip chip-upcoming h-6 max-w-full px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
+                  <span className="truncate">Upcoming {upcomingDate}</span>
                 </span>
-              </div>
+              )}
+            </div>
+          </div>
+
+          <div className="hidden min-w-0 flex-col items-end gap-1.5 self-start sm:flex">
+            <div className="flex max-w-full flex-wrap justify-end gap-1.5">
+              <span className="chip chip-sage h-7 px-2.5 text-xs leading-none">
+                <Film className="size-3" /> Series
+              </span>
+              <span className="chip h-7 px-2.5 text-xs leading-none tabular-nums">
+                {watched}/{row.members.length}
+              </span>
+              {upcoming && (
+                <span className="chip chip-upcoming h-7 max-w-full px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
+                  <span className="truncate">Upcoming {upcomingDate}</span>
+                </span>
+              )}
+            </div>
+            <span className="max-w-full truncate mono text-xs text-muted-foreground">
+              Watched {watched} of {row.members.length}
+            </span>
+          </div>
+
+          <span className="grid size-8 shrink-0 place-items-center self-start rounded-full border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-muted-foreground transition-colors group-hover:border-[hsl(var(--outline))] group-hover:text-foreground">
+            <span className="sr-only">{expanded ? 'Hide movies' : 'View movies'}</span>
+            <ChevronRight className={cn('size-3.5 transition-transform duration-200', expanded && 'rotate-90')} />
+          </span>
+
+          <div className="col-start-2 col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-3">
+            <div className="flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground sm:hidden">
+              <span>Watched {watched}/{row.members.length}</span>
             </div>
             <SegmentedBar
               watched={watched}
@@ -2406,11 +2447,13 @@ function CollectionBadge({
   const [parts, setParts] = useState<CollectionPart[] | null>(null);
   const [mine, setMine] = useState<MediaEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!open || parts !== null) return;
     let cancel = false;
     setLoading(true);
+    setError('');
     (async () => {
       try {
         const [c, owned] = await Promise.all([
@@ -2420,6 +2463,11 @@ function CollectionBadge({
         if (cancel) return;
         setParts(c.parts);
         setMine(owned);
+      } catch (err) {
+        if (cancel) return;
+        const text = msg(err, 'Could not load collection parts');
+        setError(text);
+        toast.error('Could not load collection parts', { description: text });
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -2446,6 +2494,11 @@ function CollectionBadge({
           {loading && (
             <div className="p-3 text-xs text-muted-foreground inline-flex items-center gap-2">
               <M3CookieLoader size="sm" tone="secondary" /> Loading collection…
+            </div>
+          )}
+          {!loading && error && (
+            <div className="p-3 text-xs text-destructive">
+              {error}
             </div>
           )}
           {!loading && parts && parts.length === 0 && (

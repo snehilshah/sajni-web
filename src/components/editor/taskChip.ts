@@ -34,24 +34,25 @@ function taskChipMarkdownIt(md: Md) {
     const start = state.pos;
     const src = state.src;
 
-    // Match the canonical `((task:NN|Title))` form.
-    if (src.charCodeAt(start) === 0x28 /* ( */ && src.charCodeAt(start + 1) === 0x28) {
-      if (src.slice(start + 2, start + 7) !== 'task:') return false;
-      const end = src.indexOf('))', start + 7);
-      if (end < 0) return false;
-      const inner = src.slice(start + 7, end); // "id|title"
-      if (inner.includes('\n')) return false;
-      const [idPart, ...titleParts] = inner.split('|');
-      const id = idPart.trim();
-      const title = titleParts.join('|').trim() || id;
-      if (!id) return false;
-      if (!silent) {
-        const token = state.push('html_inline', '', 0);
-        const safeId = escapeAttr(id);
-        const safeTitle = escapeAttr(title);
-        token.content = `<span data-type="taskchip" data-id="${safeId}" data-title="${safeTitle}">${safeTitle}</span>`;
+    // Match the canonical `((task:NN|Title))` form. `(` is not a
+    // markdown-it text terminator, so an inline chip after normal words
+    // would otherwise be swallowed by the built-in text rule before this
+    // rule ever sees its start.
+    const canonicalStart = findTaskChipStart(src, start, state.posMax);
+    if (canonicalStart >= 0) {
+      if (canonicalStart > start) {
+        if (silent) {
+          state.pos = canonicalStart;
+          return true;
+        }
+        state.pending += src.slice(start, canonicalStart);
       }
-      state.pos = end + 2;
+      const parsed = parseTaskChip(src, canonicalStart + 7, '))');
+      if (!parsed) return false;
+      if (!silent) {
+        pushTaskChip(state, parsed.id, parsed.title);
+      }
+      state.pos = parsed.end + 2;
       return true;
     }
 
@@ -59,34 +60,83 @@ function taskChipMarkdownIt(md: Md) {
     // hydrate correctly, but new chips always serialize as `((task:…))`.
     if (src.charCodeAt(start) === 0x5b /* [ */ && src.charCodeAt(start + 1) === 0x5b) {
       if (src.slice(start + 2, start + 7) !== 'task:') return false;
-      const end = src.indexOf(']]', start + 7);
-      if (end < 0) return false;
-      const inner = src.slice(start + 7, end);
-      if (inner.includes('\n')) return false;
-      const [idPart, ...titleParts] = inner.split('|');
-      const id = idPart.trim();
-      const title = titleParts.join('|').trim() || id;
-      if (!id) return false;
+      const parsed = parseTaskChip(src, start + 7, ']]');
+      if (!parsed) return false;
       if (!silent) {
-        const token = state.push('html_inline', '', 0);
-        const safeId = escapeAttr(id);
-        const safeTitle = escapeAttr(title);
-        token.content = `<span data-type="taskchip" data-id="${safeId}" data-title="${safeTitle}">${safeTitle}</span>`;
+        pushTaskChip(state, parsed.id, parsed.title);
       }
-      state.pos = end + 2;
+      state.pos = parsed.end + 2;
       return true;
     }
 
     return false;
   };
 
-  // Register before `text`: `(` is not a markdown special char, so the
-  // default text rule would otherwise consume `((task:...))` first.
+  // Register before `text` so we can split plain text just before
+  // `((task:...))`; `(` is not one of markdown-it's own terminators.
   try {
     ruler.before('text', 'taskchip', rule);
   } catch {
     ruler.push('taskchip', rule);
   }
+}
+
+function findTaskChipStart(src: string, start: number, posMax: number) {
+  for (let pos = start; pos < posMax; pos++) {
+    if (src.startsWith('((task:', pos)) return pos;
+    if (isMarkdownTextTerminator(src.charCodeAt(pos))) return -1;
+  }
+  return -1;
+}
+
+function isMarkdownTextTerminator(ch: number) {
+  switch (ch) {
+    case 0x0A: // \n
+    case 0x21: // !
+    case 0x23: // #
+    case 0x24: // $
+    case 0x25: // %
+    case 0x26: // &
+    case 0x2A: // *
+    case 0x2B: // +
+    case 0x2D: // -
+    case 0x3A: // :
+    case 0x3C: // <
+    case 0x3D: // =
+    case 0x3E: // >
+    case 0x40: // @
+    case 0x5B: // [
+    case 0x5C: // \
+    case 0x5D: // ]
+    case 0x5E: // ^
+    case 0x5F: // _
+    case 0x60: // `
+    case 0x7B: // {
+    case 0x7D: // }
+    case 0x7E: // ~
+      return true;
+    default:
+      return false;
+  }
+}
+
+function parseTaskChip(src: string, contentStart: number, close: '))' | ']]') {
+  const end = src.indexOf(close, contentStart);
+  if (end < 0) return null;
+  const inner = src.slice(contentStart, end);
+  if (inner.includes('\n')) return null;
+  const [idPart, ...titleParts] = inner.split('|');
+  const id = idPart.trim();
+  const title = titleParts.join('|').trim() || id;
+  if (!id) return null;
+  return { id, title, end };
+}
+
+function pushTaskChip(state: InlineState, id: string, title: string) {
+  const token = state.push('html_inline', '', 0);
+  const safeId = escapeAttr(id);
+  const safeTitle = escapeAttr(title);
+  token.content = `<span data-type="taskchip" data-id="${safeId}" data-title="${safeTitle}">${safeTitle}</span>`;
 }
 
 function escapeAttr(value: string) {
