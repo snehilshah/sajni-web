@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, parseISO, isYesterday, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, isYesterday, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
 import { CalendarX2, X, Loader2, ChevronDown } from '@/components/ui/icons';
 
-import { useMissedTasks, useRescheduleTask, useScratchTask } from '@/queries/tasks';
+import { useMissedTasks, useRescheduleTask, useScratchTask, useUpdateTask } from '@/queries/tasks';
+import type { Task } from '@/types';
+import { monthFirstKey, weekMondayKey } from './helpers';
 
 // MissedBanner surfaces every still-open overdue task with one-tap
-// reschedule-to-today (per task + bulk) and a quick scratch.
+// rescheduling to its current scope (day/week/month) and a quick scratch.
 //
 // It reads as a CALM summary, not an alarm: a single neutral surface-container
 // chip ("N missed · review") the user taps to expand the full list — no
@@ -20,26 +22,85 @@ import { useMissedTasks, useRescheduleTask, useScratchTask } from '@/queries/tas
 export default function MissedBanner() {
   const { data: missed = [] } = useMissedTasks();
   const reschedule = useRescheduleTask();
+  const updateTask = useUpdateTask();
   const scratch = useScratchTask();
   const [open, setOpen] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Any in-flight mutation locks the controls so a row can't be double-acted.
-  const busy = reschedule.isPending || scratch.isPending;
-  const rescheduleOne = (id: number) => reschedule.mutate({ id, date: today });
+  const busy = reschedule.isPending || updateTask.isPending || scratch.isPending;
+  const rescheduleOne = (task: Task) => {
+    if (task.month_of && !task.due_date) {
+      updateTask.mutate({
+        id: task.id,
+        data: {
+          month_of: monthFirstKey(),
+          clear_due: true,
+          clear_week: true,
+          clear_scheduled: true,
+          remind: false,
+        },
+      });
+      return;
+    }
+    if (task.week_of && !task.due_date) {
+      updateTask.mutate({
+        id: task.id,
+        data: {
+          week_of: weekMondayKey(),
+          clear_due: true,
+          clear_month: true,
+          clear_scheduled: true,
+          remind: false,
+        },
+      });
+      return;
+    }
+    reschedule.mutate({ id: task.id, date: today });
+  };
   const scratchOne = (id: number) => scratch.mutate(id);
 
   if (missed.length === 0) return null;
 
-  // Age label: "Yesterday" leads, then "Nd ago" so the longest-ignored read at a glance.
-  const ageLabel = (due?: string | null) => {
-    if (!due) return '';
+  // Age label: "Yesterday" leads, then "Nd/1w/1m ago" so age is legible by scope.
+  const ageLabel = (task: Task) => {
+    if (task.month_of && !task.due_date) {
+      try {
+        const months = Math.max(1, differenceInCalendarMonths(new Date(), parseISO(task.month_of)));
+        return `${months}m ago`;
+      } catch { return '1m ago'; }
+    }
+    if (task.week_of && !task.due_date) {
+      try {
+        const days = differenceInCalendarDays(new Date(), parseISO(task.week_of));
+        const weeks = Math.max(1, Math.floor(days / 7));
+        return `${weeks}w ago`;
+      } catch { return '1w ago'; }
+    }
+    if (!task.due_date) return '';
     try {
-      const d = parseISO(due);
+      const d = parseISO(task.due_date);
       if (isYesterday(d)) return 'Yesterday';
       const days = differenceInCalendarDays(new Date(), d);
       return days > 1 ? `${days}d ago` : format(d, 'MMM d');
-    } catch { return due; }
+    } catch { return task.due_date; }
+  };
+
+  const ctaLabel = (task: Task) => {
+    if (task.month_of && !task.due_date) return 'This Month';
+    if (task.week_of && !task.due_date) return 'This Week';
+    return 'Today';
+  };
+
+  const ctaTitle = (task: Task) => {
+    if (task.month_of && !task.due_date) return 'Move to this month';
+    if (task.week_of && !task.due_date) return 'Move to this week';
+    return 'Reschedule to today';
+  };
+
+  const rescheduling = (id: number) => {
+    return (reschedule.isPending && reschedule.variables?.id === id) ||
+      (updateTask.isPending && updateTask.variables?.id === id);
   };
 
   return (
@@ -98,16 +159,16 @@ export default function MissedBanner() {
                         <span className="text-sm truncate block">{t.title}</span>
                       </button>
                       <span className="mono text-xs tabular-nums shrink-0 rounded-full px-1.5 py-0.5 bg-[hsl(var(--color-waiting)/0.14)] text-[hsl(var(--color-waiting))]">
-                        {ageLabel(t.due_date)}
+                        {ageLabel(t)}
                       </span>
                       <button
                         type="button"
-                        onClick={() => rescheduleOne(t.id)}
+                        onClick={() => rescheduleOne(t)}
                         disabled={busy}
-                        title="Reschedule to today"
+                        title={ctaTitle(t)}
                         className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 h-7 text-xs font-medium bg-[hsl(var(--on-surface)/0.08)] hover:bg-[hsl(var(--on-surface)/0.14)] transition disabled:opacity-50"
                       >
-                        {reschedule.isPending && reschedule.variables?.id === t.id ? <Loader2 className="size-3 animate-spin" /> : 'Today'}
+                        {rescheduling(t.id) ? <Loader2 className="size-3 animate-spin" /> : ctaLabel(t)}
                       </button>
                       <button
                         type="button"
