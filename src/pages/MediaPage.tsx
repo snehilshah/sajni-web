@@ -8,7 +8,7 @@ import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/quer
 import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult, MediaPatch } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
-import PageShell from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
@@ -23,7 +23,7 @@ import { Sheet, SheetContent, SheetClose, SheetTitle, SheetDescription } from '@
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight } from '@/components/ui/icons';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings } from '@/components/ui/icons';
 
 // Pixel-art platform glyphs (pixelarticons), imported as raw SVG strings so
 // they bundle offline (no runtime fetch) and render at a fixed size. Each
@@ -627,7 +627,6 @@ export default function MediaPage() {
   const [bookmarkAddSignal, setBookmarkAddSignal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchExpanded, setSearchExpanded] = useState(false);
   const isMobileMedia = useIsMobile();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     try { return (localStorage.getItem(MEDIA_VIEW_KEY) as 'grid' | 'list') || 'list'; }
@@ -793,6 +792,15 @@ export default function MediaPage() {
     }
     setShowForm(true);
   }, [blankForm]);
+
+  const mediaAddLabel = `Add ${(TYPE_META[activeType]?.label || 'entry').toLowerCase()}`;
+  const handleAdd = useCallback(() => {
+    if (isBookmarkTab) {
+      setBookmarkAddSignal((s) => s + 1);
+      return;
+    }
+    openForm();
+  }, [isBookmarkTab, openForm]);
 
   const handleExternalSelect = async (r: MediaSearchResult) => {
     // Combined movie+show search: the picked row's kind (carried in its
@@ -1109,48 +1117,59 @@ export default function MediaPage() {
       subtitle="Movies, shows, books, links — one shelf."
       hideScrollbar
       actions={
-        <Button
-          onClick={() => (isBookmarkTab ? setBookmarkAddSignal((s) => s + 1) : openForm())}
-          className="gap-1.5"
-        >
-          <Plus className="size-4" /> Add
-        </Button>
+        !isMobileMedia ? (
+          <Button
+            type="button"
+            variant="tonal"
+            size="sm"
+            onClick={handleAdd}
+            aria-label={mediaAddLabel}
+            className="h-10 gap-2 pl-3.5 pr-4 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:brightness-[0.97]"
+          >
+            <Plus className="size-4" />
+            {mediaAddLabel}
+          </Button>
+        ) : undefined
+      }
+      navigation={
+        <PageShellTabs
+          ariaLabel="Media sections"
+          value={activeType}
+          options={Object.entries(TYPE_META).map(([key, meta]) => ({
+            value: key,
+            label: meta.plural,
+            icon: meta.icon,
+          }))}
+          onChange={switchType}
+        />
       }
     >
-      {/* Type tabs — horizontally scrollable on narrow screens */}
-      <div className="border-b border-border -mt-3">
-        <div className="flex gap-1 -mb-px overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {Object.entries(TYPE_META).map(([key, meta]) => {
-            const Icon = meta.icon;
-            const active = activeType === key;
-            return (
-              <button
-                key={key}
-                onClick={() => switchType(key)}
-                className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${
-                  active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Icon className="size-3.5" />
-                {meta.plural}
-                {active && (
-                  <span className="absolute inset-x-0 -bottom-px h-0.5 bg-primary rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {isBookmarkTab ? (
         <BookmarksPanel kind={activeType as 'video' | 'site'} addSignal={bookmarkAddSignal} />
       ) : (
-      <div className="flex flex-col gap-4 min-w-0">
-          {/* Toolbar: status chips + search. On mobile the chips wrap freely
-              (no horizontal scroll) and the sort/actions block drops to its
-              own row beneath them; on md+ it all sits on one row. */}
-          <div className="flex flex-col md:flex-row md:flex-nowrap md:items-center gap-3 min-w-0 w-full">
-            <div className="flex flex-wrap gap-1 shrink-0">
+        <div className="flex flex-col gap-4 min-w-0">
+          <section
+            aria-label="Library controls"
+            className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-2.5 sm:p-3 flex flex-col gap-2.5"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <MediaSearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onClear={() => setSearchQuery('')}
+              />
+              <MediaControlCluster
+                activeType={activeType}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                groupSeries={groupSeries}
+                setGroupSeries={setGroupSeries}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
               <FilterChip
                 active={statusFilter === ''}
                 onClick={() => setStatusFilter('')}
@@ -1174,116 +1193,11 @@ export default function MediaPage() {
                 );
               })}
             </div>
-            <div className={cn(
-              'md:ml-auto flex items-center justify-end gap-2 min-w-0 flex-1',
-              isMobileMedia && searchExpanded ? 'w-full' : '',
-            )}>
-              {!(isMobileMedia && searchExpanded) && (
-                <div className="min-w-[132px] flex-1 md:min-w-[160px] md:flex-none">
-                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
-                    <SelectTrigger size="sm" className="h-9 w-full min-w-0 gap-2 text-xs">
-                      <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent align="start" alignItemWithTrigger={false} sideOffset={6}>
-                      {SORT_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {activeType === 'movie' && !(isMobileMedia && searchExpanded) && (
-                <button
-                  onClick={() => setGroupSeries((v) => !v)}
-                  className={cn(
-                    'h-9 rounded-full text-xs inline-flex items-center justify-center gap-1.5 border transition-colors',
-                    isMobileMedia ? 'w-9 px-0' : 'px-3.5',
-                    groupSeries
-                      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
-                      : 'border-[hsl(var(--outline))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
-                  )}
-                  title="Group movies that share a series (e.g. Mission Impossible)"
-                  aria-label="Group movie series"
-                >
-                  <Film className="size-3.5" />
-                  {!isMobileMedia && 'Series'}
-                </button>
-              )}
-              {/* List/grid switch.
-                  M3 split button: primary toggles the OTHER view instantly,
-                  chevron opens a menu with both options. */}
-              {!(isMobileMedia && searchExpanded) && (
-                <SplitButton
-                  size="sm"
-                  iconOnly={isMobileMedia}
-                  value={viewMode}
-                  options={[
-                    { value: 'grid', label: 'Grid', icon: LayoutGrid },
-                    { value: 'list', label: 'List', icon: ListChecks },
-                  ]}
-                  onChange={(v) => setViewMode(v as 'grid' | 'list')}
-                  onPrimary={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                />
-              )}
-              {/* Search — desktop = inline input; mobile = icon only. Both
-                  use the same searchQuery; clicking the mobile icon opens
-                  a small inline input that takes the toolbar's full row. */}
-              {isMobileMedia ? (
-                searchExpanded ? (
-                  <div className="relative flex-1 min-w-0">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Filter library…"
-                      autoFocus
-                      onBlur={() => { if (!searchQuery) setSearchExpanded(false); }}
-                      className="h-11 pl-11 pr-10 w-full rounded-full bg-[hsl(var(--surface-container-high))] border-transparent hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-full focus-visible:pl-11 focus-visible:pr-10 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-[hsl(var(--surface-container-highest))] focus-visible:shadow-[var(--m3-elev-1)] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
-                    />
-                    {(searchQuery || searchExpanded) && (
-                      <button
-                        onClick={() => { setSearchQuery(''); setSearchExpanded(false); }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setSearchExpanded(true)}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)] transition-colors"
-                    aria-label="Search library"
-                  >
-                    <Search className="size-4" />
-                  </button>
-                )
-              ) : (
-                <div className="relative flex-1 max-w-[256px] min-w-[140px]">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Filter library…"
-                    className="h-11 pl-11 pr-10 w-full rounded-full bg-[hsl(var(--surface-container-high))] border-transparent hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-full focus-visible:pl-11 focus-visible:pr-10 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-[hsl(var(--surface-container-highest))] focus-visible:shadow-[var(--m3-elev-1)] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          </section>
 
           {/* Grid / list (memoized — see gridEl above) */}
           {gridEl}
-      </div>
+        </div>
       )}
 
       {isMobileMedia ? (
@@ -1359,11 +1273,192 @@ export default function MediaPage() {
         onPickItem={openForm}
       />
 
+      {isMobileMedia && (
+        <Button
+          type="button"
+          size="fab"
+          onClick={handleAdd}
+          aria-label={mediaAddLabel}
+          className="md:hidden fixed right-4 z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
+          style={{
+            bottom: 'calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px)',
+          }}
+        >
+          <Plus className="size-6" />
+        </Button>
+      )}
+
     </PageShell>
   );
 }
 
 /* ---------------- Helpers ---------------- */
+
+function MediaSearchField({
+  value, onChange, onClear,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="relative min-w-0 flex-1">
+      <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Filter library..."
+        className="h-12 pl-12 pr-11 w-full rounded-[28px] border-transparent bg-[hsl(var(--surface-container-high))] hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-[28px] focus-visible:pl-12 focus-visible:pr-11 focus-visible:bg-[hsl(var(--surface-container-highest))] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+      />
+      {value && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={onClear}
+          aria-label="Clear search"
+          className="absolute right-2 top-1/2 -translate-y-1/2 size-8 text-muted-foreground hover:text-foreground"
+        >
+          <X className="size-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function MediaControlCluster({
+  activeType,
+  sortBy,
+  setSortBy,
+  groupSeries,
+  setGroupSeries,
+  viewMode,
+  setViewMode,
+}: {
+  activeType: string;
+  sortBy: SortKey;
+  setSortBy: (value: SortKey) => void;
+  groupSeries: boolean;
+  setGroupSeries: (update: (value: boolean) => boolean) => void;
+  viewMode: 'grid' | 'list';
+  setViewMode: (value: 'grid' | 'list') => void;
+}) {
+  const [compactOpen, setCompactOpen] = useState(false);
+  const viewOptions = [
+    { value: 'grid' as const, label: 'Grid', icon: LayoutGrid },
+    { value: 'list' as const, label: 'List', icon: ListChecks },
+  ];
+  const currentSort = SORT_OPTIONS.find((o) => o.value === sortBy)?.label || 'Sort';
+
+  return (
+    <>
+      <div className="hidden lg:flex items-center gap-2 shrink-0">
+        <div className="w-[190px] min-w-0">
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
+            <SelectTrigger size="sm" className="h-10 w-full min-w-0 gap-2 rounded-full border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-xs">
+              <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start" alignItemWithTrigger={false} sideOffset={6}>
+              {SORT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {activeType === 'movie' && (
+          <Button
+            type="button"
+            variant={groupSeries ? 'tonal' : 'outline'}
+            size="sm"
+            onClick={() => setGroupSeries((v) => !v)}
+            className="h-10 gap-1.5 px-3.5"
+            title="Group movies that share a series"
+            aria-label="Group movie series"
+            aria-pressed={groupSeries}
+          >
+            <Film className="size-3.5" />
+            Series
+          </Button>
+        )}
+        <SplitButton
+          size="sm"
+          value={viewMode}
+          options={viewOptions}
+          onChange={(v) => setViewMode(v as 'grid' | 'list')}
+          onPrimary={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+        />
+      </div>
+
+      <div className="relative lg:hidden shrink-0">
+        <button
+          type="button"
+          className="size-12 inline-flex items-center justify-center rounded-[22px] bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] shadow-none transition-[background-color,box-shadow,transform,color] duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:brightness-[0.97] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none"
+          aria-label="Library controls"
+          aria-expanded={compactOpen}
+          title={currentSort}
+          onClick={() => setCompactOpen((v) => !v)}
+        >
+          <Settings className="size-4" />
+        </button>
+        {compactOpen && (
+          <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-1.5 shadow-[var(--m3-elev-2)]">
+            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Sort</div>
+            {SORT_OPTIONS.map((o) => (
+              <button
+                type="button"
+                key={o.value}
+                onClick={() => { setSortBy(o.value); setCompactOpen(false); }}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]',
+                  o.value === sortBy && 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
+                )}
+              >
+                <ArrowUpDown className="size-3.5 opacity-75" />
+                <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                {o.value === sortBy && <CheckIconCircle />}
+              </button>
+            ))}
+            <div className="mx-1.5 my-1.5 h-px bg-border/50" />
+            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">View</div>
+            {viewOptions.map((o) => {
+              const Icon = o.icon;
+              return (
+                <button
+                  type="button"
+                  key={o.value}
+                  onClick={() => { setViewMode(o.value); setCompactOpen(false); }}
+                  className={cn(
+                    'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]',
+                    o.value === viewMode && 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
+                  )}
+                >
+                  <Icon className="size-3.5 opacity-75" />
+                  <span className="flex-1">{o.label}</span>
+                  {o.value === viewMode && <CheckIconCircle />}
+                </button>
+              );
+            })}
+            {activeType === 'movie' && (
+              <>
+                <div className="mx-1.5 my-1.5 h-px bg-border/50" />
+                <button
+                  type="button"
+                  onClick={() => { setGroupSeries((v) => !v); setCompactOpen(false); }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]"
+                >
+                  <Film className="size-3.5 opacity-75" />
+                  <span className="flex-1">Group series</span>
+                  {groupSeries && <CheckIconCircle />}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 function FilterChip({ active, onClick, children, count, dot }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; dot?: string }) {
   return (

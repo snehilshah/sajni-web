@@ -5,7 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAnalytics } from '@/queries/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from '@/components/ui/icons';
-import PageShell from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import InsightsPanel from '@/pages/InsightsPage';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -27,30 +27,15 @@ export default function AnalyticsPage() {
     <PageShell
       caption={tab === 'insights' ? 'correlations · time travel' : 'Patterns from your second brain'}
       title="Analytics"
+      navigation={
+        <PageShellTabs
+          ariaLabel="Analytics sections"
+          value={tab}
+          options={TABS.map(({ key, label, icon }) => ({ value: key, label, icon }))}
+          onChange={(key) => setSearchParams(key === 'activity' ? {} : { tab: key }, { replace: true })}
+        />
+      }
     >
-      <div className="border-b border-border -mt-3">
-        <div className="flex gap-1 -mb-px">
-          {TABS.map(({ key, label, icon: Icon }) => {
-            const active = tab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setSearchParams(key === 'activity' ? {} : { tab: key }, { replace: true })}
-                className={`relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                  active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Icon className="size-3.5" />
-                {label}
-                {active && (
-                  <span className="absolute inset-x-0 -bottom-px h-0.5 bg-primary rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {tab === 'insights' ? <InsightsPanel /> : <ActivityPanel />}
     </PageShell>
   );
