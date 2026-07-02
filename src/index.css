@@ -473,6 +473,7 @@
 
 html {
   font-size: calc(16px * var(--text-scale, 1));
+  scrollbar-gutter: stable;
 }
 html, body, #root {
   height: 100%;
@@ -672,6 +673,10 @@ em, .italic { font-style: italic; }
   width: 0;
   height: 0;
   display: none;
+}
+
+.stable-scrollbar {
+  scrollbar-gutter: stable;
 }
 
 /* ============================================================
