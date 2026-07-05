@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ohmysajni.sajni",
+      "sha256_cert_fingerprints": [
+        "6B:A8:40:3B:6E:CA:F8:4C:ED:63:64:CA:D4:7A:28:17:B3:98:0A:D0:A8:BD:28:1F:8B:60:60:37:46:38:6E:98",
+        "03:22:7D:BB:B8:77:0B:54:4D:79:75:28:83:1D:54:88:F5:C8:91:44:03:4E:52:21:8D:EE:34:55:20:CD:09:EE"
+      ]
+    }
+  }
+]
