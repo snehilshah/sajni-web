@@ -31,7 +31,7 @@ function sinePath(width: number): string {
 const WAVE_D = sinePath(VIEW_W + WAVELEN);
 
 export function WavyProgress({
-  value, height = 10, active = false, className, label,
+  value, height = 12, active = false, className, label, marker = true,
 }: {
   /** 0–100 */
   value: number;
@@ -40,6 +40,8 @@ export function WavyProgress({
   active?: boolean;
   className?: string;
   label?: string;
+  /** Rounded tick riding the wave head at the current position. */
+  marker?: boolean;
 }) {
   const clipId = useId();
   const pct = Math.max(0, Math.min(100, value));
@@ -48,12 +50,13 @@ export function WavyProgress({
   const gap = 5;
 
   return (
+    <div className={cn('relative min-w-0', className)}>
     <svg
       width="100%"
       height={height}
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="none"
-      className={cn('block overflow-visible', className)}
+      className="block overflow-visible"
       role="progressbar"
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
@@ -97,5 +100,16 @@ export function WavyProgress({
         </>
       )}
     </svg>
+    {/* Head tick — a slider-style handle at the live position. Rendered
+        in CSS pixels (not viewBox units) so it never stretches with the
+        bar's width. */}
+    {marker && !done && pct > 1 && (
+      <span
+        aria-hidden="true"
+        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[4px] rounded-full bg-[hsl(var(--primary))] shadow-[0_0_0_2.5px_hsl(var(--surface-container-low))]"
+        style={{ left: `${pct}%`, height: height + 6 }}
+      />
+    )}
+    </div>
   );
 }

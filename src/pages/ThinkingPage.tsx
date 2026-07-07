@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Sparkles, Trash2, MessageSquare, Lightbulb } from '@/components/ui/icons';
 import { formatDistanceToNow } from 'date-fns';
 
-import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { ChatPanel } from '@/components/AIChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +56,6 @@ export default function ThinkingPage() {
   return (
     <PageShell
       title="Projects"
-      activeTabLabel={tab === 'chat' ? 'Chat' : undefined}
       navigation={
         <PageShellTabs
           bare
@@ -72,11 +71,6 @@ export default function ThinkingPage() {
             <Plus className="size-3.5" /> New project
           </Button>
         ) : undefined
-      }
-      islandActions={
-        tab === 'projects'
-          ? <IslandAction icon={Plus} label="New project" onClick={() => setOpen(true)} />
-          : <IslandAction icon={MessageSquare} label="Chat" active onClick={() => switchTab('chat')} />
       }
     >
       {tab === 'chat' ? (

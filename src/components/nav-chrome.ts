@@ -27,10 +27,10 @@ export function activeNavItem(pathname: string) {
   return NAV_ITEMS.find((i) => isActivePath(pathname, i.path)) ?? null;
 }
 
-// Scroll-merge coordination between the Layout chrome (primary icon bar)
-// and the page's secondary bar (PageShell or a custom page). Whichever
-// component owns the page scroller reports here; Layout collapses the
-// primary bar and the reporter shows the condensed pill.
+// Coordination between the Layout chrome (primary icon pill) and the
+// page's secondary bar. The page scroller reports `scrolled`; Layout
+// collapses the primary bar and PageChrome swaps its rest bar for the
+// merged pill (title dropdown · tab icons · CTAs).
 export const NavChromeContext = createContext<{
   scrolled: boolean;
   setScrolled: (b: boolean) => void;

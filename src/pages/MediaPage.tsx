@@ -8,7 +8,7 @@ import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/quer
 import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult, MediaPatch } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
-import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
@@ -1190,8 +1190,6 @@ export default function MediaPage() {
   return (
     <PageShell
       title="Library"
-      activeTabLabel={TYPE_META[activeType]?.plural}
-      islandActions={<IslandAction icon={Plus} label={mediaAddLabel} onClick={handleAdd} />}
       hideScrollbar
       actions={
         !isMobileMedia ? (
@@ -1932,7 +1930,24 @@ function MediaListRow({
         compact ? 'p-2' : 'p-2.5 sm:px-3',
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      {/* Ambient art: the poster's own colors bleed in from the left and
+          dissolve — every row carries its artwork's temperature. */}
+      {item.poster_url && (
+        <div aria-hidden="true" className="absolute inset-y-0 left-0 w-72 pointer-events-none">
+          <img
+            src={item.poster_url}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover blur-xl scale-125 opacity-[0.32] dark:opacity-[0.42] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:group-hover:opacity-[0.55]"
+            style={{
+              maskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
+              WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
+            }}
+          />
+        </div>
+      )}
+
+      <div className="relative flex items-center gap-3 min-w-0">
         <MediaThumb
           item={item}
           index={index}
@@ -1946,7 +1961,7 @@ function MediaListRow({
               {item.title || 'Untitled'}
             </span>
             {item.rating ? (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary">
+              <span className={cn('inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary', !hasProgress && 'md:hidden')}>
                 <Star className="size-3 fill-current" />
                 <span className="tabular-nums">{item.rating}</span>
               </span>
@@ -1962,19 +1977,36 @@ function MediaListRow({
             {age ? <span className="min-w-0 truncate hidden sm:inline">· {age}</span> : null}
           </div>
           {hasProgress && (
-            <div className="mt-1 flex items-center gap-2 max-w-[24rem]">
-              <div className="flex-1 min-w-0">
-                <WavyProgress
-                  value={pct ?? 0}
-                  height={10}
-                  active={item.status === 'in_progress'}
-                  label={`${pct}% watched`}
-                />
-              </div>
+            <div className="mt-1.5 flex items-center gap-2.5">
+              <WavyProgress
+                value={pct ?? 0}
+                height={12}
+                active={item.status === 'in_progress'}
+                label={`${pct}% watched`}
+                className="flex-1"
+              />
               <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">{pct}%</span>
             </div>
           )}
         </div>
+
+        {/* Ghost numeral — faint editorial year in the quiet middle. In
+            normal flow (not absolute) so it can never collide with the
+            star band or status chip. */}
+        {!hasProgress && item.year ? (
+          <span
+            aria-hidden="true"
+            className="hidden lg:block shrink-0 serif text-[34px] font-semibold tracking-tight leading-none text-foreground/[0.08] select-none pointer-events-none mr-1"
+          >
+            {item.year}
+          </span>
+        ) : null}
+
+        {!hasProgress && item.rating ? (
+          <span className="hidden md:inline-flex shrink-0 mr-0.5" title={`Rated ${item.rating}/5`}>
+            <StarRating value={item.rating} />
+          </span>
+        ) : null}
 
         <span
           className={cn('chip h-6 shrink-0 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}

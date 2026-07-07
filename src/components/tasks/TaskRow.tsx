@@ -58,6 +58,11 @@ export default function TaskRow({
     ? Math.round((task.subtasks_done / task.subtask_count) * 100)
     : 0;
   const dimmed = task.status === 'done' || task.status === 'scratched';
+  const rowPct = hasSubtasks
+    ? subtaskPct
+    : totalSteps > 0
+      ? Math.round((completedSteps / totalSteps) * 100)
+      : null;
 
   const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -227,14 +232,6 @@ export default function TaskRow({
                 <span className="hidden sm:inline text-xs font-medium">{expanded ? 'Hide' : 'View'} subtasks</span>
                 <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
               </button>
-              <div className="w-28">
-                <WavyProgress
-                  value={subtaskPct}
-                  height={10}
-                  active={subtaskPct > 0 && subtaskPct < 100}
-                  label="Subtasks"
-                />
-              </div>
             </div>
           )}
 
@@ -246,6 +243,22 @@ export default function TaskRow({
             <Star className={`size-[18px] ${task.important ? 'fill-current' : ''}`} />
           </button>
         </div>
+
+        {/* Progress spans the whole row — subtasks win over steps. */}
+        {rowPct !== null && (
+          <div className={cn('flex items-center gap-2.5 pb-2.5 -mt-1', compact ? 'px-3' : 'px-3.5')}>
+            <WavyProgress
+              value={rowPct}
+              height={12}
+              active={rowPct > 0 && rowPct < 100}
+              label={hasSubtasks ? 'Subtasks' : 'Steps'}
+              className="flex-1"
+            />
+            <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">
+              {hasSubtasks ? `${task.subtasks_done}/${task.subtask_count}` : `${completedSteps}/${totalSteps}`}
+            </span>
+          </div>
+        )}
       </div>
   );
 
@@ -253,14 +266,21 @@ export default function TaskRow({
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.26, ease: [0.2, 0, 0, 1] }}
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.34, ease: [0.2, 0, 0, 1] }}
             className={cn('overflow-hidden', hasSubtasks ? 'flex flex-col' : '')}
             style={!hasSubtasks ? { marginLeft: (depth + 1) * 24 } : undefined}
           >
-            <div className={cn(
+            {/* Curtain reveal: the panel unrolls with emphasized easing
+                while rows cascade in one after another — no spring, no jerk. */}
+            <motion.div
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              variants={{ show: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } }, hidden: {} }}
+              className={cn(
               'flex flex-col',
               hasSubtasks ? '' : 'mt-2 mb-1 gap-1.5 rounded-2xl border border-border/60 bg-[hsl(var(--surface-container-low))] p-2.5',
             )}>
@@ -275,14 +295,21 @@ export default function TaskRow({
               )}
 
               {subs?.map((sub, idx) => (
-                <TaskRow
+                <motion.div
                   key={sub.id}
-                  task={sub}
-                  onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
-                  compact
-                  attached={hasSubtasks}
-                  first={idx === 0}
-                />
+                  variants={{
+                    hidden: { opacity: 0, y: -10 },
+                    show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.2, 0, 0, 1] } },
+                  }}
+                >
+                  <TaskRow
+                    task={sub}
+                    onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
+                    compact
+                    attached={hasSubtasks}
+                    first={idx === 0}
+                  />
+                </motion.div>
               ))}
 
               {addingSub ? (
@@ -314,7 +341,7 @@ export default function TaskRow({
                   <Plus className="size-4" strokeWidth={2.5} /> Add subtask
                 </button>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -14,8 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
-import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
-import { Plus } from '@/components/ui/icons';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 
 export default function MemosPage() {
@@ -81,7 +80,6 @@ export default function MemosPage() {
   return (
     <PageShell
       title="Notes"
-      activeTabLabel="Memos"
       navigation={
         <PageShellTabs
           bare
@@ -92,16 +90,6 @@ export default function MemosPage() {
             { value: 'memos', label: 'Memos' },
           ]}
           onChange={(v) => { if (v === 'notes') navigate('/notes'); }}
-        />
-      }
-      islandActions={
-        <IslandAction
-          icon={Plus}
-          label="New memo"
-          onClick={() => {
-            // Focusing the composer scrolls it (top of page) back into view.
-            draftRef.current?.focus();
-          }}
         />
       }
       actions={

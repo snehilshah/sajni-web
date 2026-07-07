@@ -16,7 +16,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import MissedBanner from '@/components/tasks/MissedBanner';
-import { PageIsland, useOwnScrolled } from '@/components/PageShell';
+import { PageChrome, useOwnScrolled } from '@/components/PageShell';
 import { useNavChrome } from '@/components/nav-chrome';
 
 interface Memo {
@@ -185,9 +185,10 @@ export default function TodayPage() {
 	const dateLabel = format(new Date(), 'EEEE, MMMM d');
 
 	return (
+		<div className="flex-1 min-h-0 flex flex-col">
+		<PageChrome title="Today" />
 		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-		<PageIsland title="Today" icon="home" scrolled={scrolledPast} />
-		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-14 pb-20">
+		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-6 md:pt-8 pb-24">
 			{/* Hero */}
 			<div className="sajni-stagger">
 				<div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-3">{dateLabel}</div>
@@ -516,6 +517,7 @@ export default function TodayPage() {
 					</Section>
 				</div>
 			</div>
+		</div>
 		</div>
 		</div>
 	);

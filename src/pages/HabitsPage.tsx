@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Flame, Loader2, Pencil, Check, ChevronLeft, ChevronRight } from '@/components/ui/icons';
-import PageShell, { IslandAction } from '@/components/PageShell';
+import PageShell from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
@@ -125,7 +125,6 @@ export default function HabitsPage() {
     <PageShell
       title="Habits"
       actions={<Button size="sm" onClick={openCreate} className="gap-1.5"><Plus className="size-3.5" /> New habit</Button>}
-      islandActions={<IslandAction icon={Plus} label="New habit" onClick={openCreate} />}
     >
       {/* Week navigation — back to fill missed days, never into the future. */}
       <div className="flex items-center gap-1 -mb-2">

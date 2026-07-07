@@ -120,8 +120,8 @@ function UserMenuBody({
 
 // ─── Primary island (desktop) ────────────────────────────────────────────
 // Icon-only destinations in one floating pill, avatar at the trailing end.
-// Collapses (height → 0) when the page reports scrolled; the page's
-// condensed pill takes over "where am I".
+// Collapses away on scroll — the page's merged pill (PageChrome) exposes
+// every destination through its title dropdown while this is gone.
 function PrimaryBar({
   pathname, scrolled, userMenuContent, initials, accountMenuOpen, setAccountMenuOpen,
 }: {
@@ -142,8 +142,8 @@ function PrimaryBar({
       aria-hidden={scrolled}
     >
       <div
-        className="flex justify-center px-4 pb-1.5"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+        className="flex justify-center px-4 pb-2"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
       >
         <nav
           className="flex items-center gap-0.5 h-12 px-1.5 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]"

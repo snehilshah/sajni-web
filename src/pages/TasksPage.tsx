@@ -28,9 +28,9 @@ import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import {
-  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel, weekMondayKey, monthFirstKey,
+  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, weekMondayKey, monthFirstKey,
 } from '@/components/tasks/helpers';
-import PageShell, { IslandAction } from '@/components/PageShell';
+import PageShell from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 
 type ViewMode = 'list' | 'board';
@@ -163,8 +163,6 @@ export default function TasksPage() {
     await createTask.mutateAsync(overrides);
   };
 
-  const headerLabel = selectionLabel(selection, lists);
-
   // Reactive mobile detection — kanban board is forced to list on phone.
   const isMobile = useIsMobile();
   const effectiveView = isMobile ? 'list' : viewMode;
@@ -172,7 +170,6 @@ export default function TasksPage() {
   return (
     <PageShell
       title="Tasks"
-      activeTabLabel={headerLabel}
       actions={
         !isMobile ? (
           <div className="inline-flex items-center gap-2">
@@ -191,16 +188,6 @@ export default function TasksPage() {
             </Button>
           </div>
         ) : undefined
-      }
-      islandActions={
-        <>
-          <IslandAction
-            icon={viewMode === 'list' ? LayoutGrid : ListChecks}
-            label={viewMode === 'list' ? 'Board view' : 'List view'}
-            onClick={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
-          />
-          <IslandAction icon={Plus} label="New task" onClick={() => openCreate()} />
-        </>
       }
     >
       <div className="flex flex-col gap-3.5">

@@ -5,7 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAnalytics } from '@/queries/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from '@/components/ui/icons';
-import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import InsightsPanel from '@/pages/InsightsPage';
 import TagsPanel from '@/pages/TagsPage';
 
@@ -26,25 +26,10 @@ export default function AnalyticsPage() {
   const rawTab = searchParams.get('tab');
   const tab: Tab = rawTab === 'insights' ? 'insights' : rawTab === 'tags' ? 'tags' : 'activity';
   const switchTab = (key: Tab) => setSearchParams(key === 'activity' ? {} : { tab: key }, { replace: true });
-  const activeMeta = TABS.find((t) => t.key === tab)!;
 
   return (
     <PageShell
       title="Analytics"
-      activeTabLabel={activeMeta.label}
-      islandActions={
-        <>
-          {TABS.map(({ key, label, icon }) => (
-            <IslandAction
-              key={key}
-              icon={icon}
-              label={label}
-              active={tab === key}
-              onClick={() => switchTab(key)}
-            />
-          ))}
-        </>
-      }
       navigation={
         <PageShellTabs
           bare
