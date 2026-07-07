@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "steps": [
     {
       "key": "welcome",
@@ -14,15 +14,9 @@
       "icon": "Home"
     },
     {
-      "key": "memos",
-      "title": "Memos",
-      "blurb": "Capture half-formed thoughts the moment they show up. No folders, no tags — just write.",
-      "icon": "Brain"
-    },
-    {
       "key": "thinking",
-      "title": "Thinking",
-      "blurb": "Turn scattered memos into structured projects. Sajni connects related cards and surfaces the gaps.",
+      "title": "Projects",
+      "blurb": "Turn scattered thoughts into structured projects — and chat with Sajni in the same place. Sajni connects related cards and surfaces the gaps.",
       "icon": "Sparkles"
     },
     {
@@ -46,7 +40,7 @@
     {
       "key": "notes",
       "title": "Notes",
-      "blurb": "Long-form writing. Markdown editor with backlinks, folders, and a built-in outliner.",
+      "blurb": "Long-form writing with backlinks, folders, and an outliner — plus Memos, a tab for half-formed quick captures.",
       "icon": "FileText"
     },
     {
@@ -62,21 +56,15 @@
       "icon": "Wallet"
     },
     {
-      "key": "tags",
-      "title": "Tags",
-      "blurb": "Drop a #tag in any memo, note, task, or media item. Sajni shows everything tied to it.",
-      "icon": "Hash"
-    },
-    {
       "key": "analytics",
       "title": "Analytics",
-      "blurb": "Streaks, mood trends, time-of-day patterns — and weekly Insights: one warm paragraph on what worked and what slipped.",
+      "blurb": "Streaks, mood trends, weekly Insights — and your #tags, all under one roof.",
       "icon": "Compass"
     },
     {
       "key": "ai",
       "title": "Ask Sajni",
-      "blurb": "Press ⌘K for the palette, or the chat icon for a longer conversation. Sajni can add tasks, log habits, and surface anything you've ever written.",
+      "blurb": "Press ⌘K (or the search pill) for the palette — type @sajni to ask anything. The Projects page has a full Chat tab for longer conversations.",
       "icon": "MessageSquare"
     },
     {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Sparkles, Star, Wand2, Pencil, Mail, Check, X } from '@/components/ui/icons';
+// No pixel match — straight lucide (same as the icon shim's passthroughs).
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -17,6 +18,7 @@ import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
 import { getPreset } from '@/theme/presets';
+import PageShell from '@/components/PageShell';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
 // applied through the ThemeProvider so other pages observe the swap
@@ -402,14 +404,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="page-fade-in flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-5 md:px-10 pt-10 pb-24">
-        <header className="mb-8">
-          <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mb-2">preferences</div>
-          <h1 className="serif text-4xl md:text-5xl font-medium tracking-tight">Settings</h1>
-          <p className="text-base text-muted-foreground mt-1">Tune how Sajni looks and feels.</p>
-        </header>
-
+    <PageShell
+      title="Settings"
+      contentClassName="max-w-2xl w-full mx-auto px-5 md:px-10 pt-8 pb-24"
+    >
+      <div>
         <Section title="Appearance" caption="Light, dark, or follow the OS.">
           <div className="flex flex-wrap gap-2">
             <Choice value={'system' as ModePref} current={mode} onSelect={setMode} Icon={Monitor} label="System" />
@@ -613,6 +612,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

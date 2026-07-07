@@ -591,7 +591,10 @@ export default function JournalPage() {
     <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
       {/* App-consistent full-width header. Vault (left) + context (right)
           panels live BELOW this header so chrome is continuous. */}
-      <header className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-border bg-background sticky top-0 z-20 h-14 md:h-16 shrink-0">
+      <header
+        className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] sticky top-0 z-20 min-h-14 md:min-h-16 shrink-0"
+        style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}
+      >
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Button
             variant="ghost" size="icon-sm"

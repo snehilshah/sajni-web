@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -7,7 +7,6 @@ import { useTags, useTagEntities } from '@/queries/tags';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt } from '@/components/ui/icons';
-import PageShell from '@/components/PageShell';
 
 interface TagEntity { type: string; id: number; title: string; subtitle?: string; }
 
@@ -19,9 +18,20 @@ const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (
   transaction: { label: 'Transaction', icon: Receipt, route: () => '/finance/transactions' },
 };
 
-export default function TagsPage() {
-  const { tag: activeTag } = useParams();
+// TagsPanel — lives inside Analytics (?tab=tags). The active tag rides
+// the same query string (?tag=x) so deep links survive the merge; old
+// /tags/:tag URLs redirect here.
+export default function TagsPanel() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTag = searchParams.get('tag') || undefined;
+  const setActiveTag = (tag?: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', 'tags');
+    if (tag) next.set('tag', tag);
+    else next.delete('tag');
+    setSearchParams(next, { replace: true });
+  };
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
@@ -54,30 +64,26 @@ export default function TagsPage() {
   const entityTypes = entities ? Array.from(new Set(entities.map((e) => e.type))) : [];
 
   return (
-    <PageShell
-      caption={`${tagsList.length} ${tagsList.length === 1 ? 'tag' : 'tags'} across your second brain`}
-      title="Tags"
-      actions={
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Filter tags…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-8 h-9"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-3.5" />
-            </button>
-          )}
-        </div>
-      }
-    >
       <div className="flex flex-col gap-8">
+          {/* Filter */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Filter tags…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-8 h-9"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
           {/* Tag cloud */}
           <section>
             {loading ? (
@@ -108,8 +114,9 @@ export default function TagsPage() {
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.18 }}
                       >
-                        <Link
-                          to={isActive ? '/tags' : `/tags/${encodeURIComponent(t.tag)}`}
+                        <button
+                          type="button"
+                          onClick={() => setActiveTag(isActive ? undefined : t.tag)}
                           className={`inline-flex items-center gap-1 rounded-full font-mono transition-all ${
                             isActive
                               ? 'bg-primary text-primary-foreground shadow-sm'
@@ -123,7 +130,7 @@ export default function TagsPage() {
                           <Hash className="size-3 opacity-70" strokeWidth={2.5} />
                           <span>{t.tag}</span>
                           <span className="opacity-60 text-xs">·{t.count}</span>
-                        </Link>
+                        </button>
                       </motion.div>
                     );
                   })}
@@ -225,7 +232,6 @@ export default function TagsPage() {
             )}
           </AnimatePresence>
       </div>
-    </PageShell>
   );
 }
 

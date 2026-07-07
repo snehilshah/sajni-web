@@ -5,8 +5,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAnalytics } from '@/queries/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from '@/components/ui/icons';
-import PageShell, { PageShellTabs } from '@/components/PageShell';
+import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
 import InsightsPanel from '@/pages/InsightsPage';
+import TagsPanel from '@/pages/TagsPage';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
@@ -14,29 +15,47 @@ const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 const TABS = [
   { key: 'activity', label: 'Activity', icon: Activity },
   { key: 'insights', label: 'Insights', icon: Lightbulb },
+  { key: 'tags', label: 'Tags', icon: Hash },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
-// Activity (the old Analytics page) + Insights merged under one nav item.
-// `/insights` redirects to `?tab=insights` (see App routes).
+// Activity + Insights + Tags merged under one nav item.
+// `/insights` and `/tags(/:tag)` redirect into `?tab=` (see App routes).
 export default function AnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab: Tab = searchParams.get('tab') === 'insights' ? 'insights' : 'activity';
+  const rawTab = searchParams.get('tab');
+  const tab: Tab = rawTab === 'insights' ? 'insights' : rawTab === 'tags' ? 'tags' : 'activity';
+  const switchTab = (key: Tab) => setSearchParams(key === 'activity' ? {} : { tab: key }, { replace: true });
+  const activeMeta = TABS.find((t) => t.key === tab)!;
 
   return (
     <PageShell
-      caption={tab === 'insights' ? 'correlations · time travel' : 'Patterns from your second brain'}
       title="Analytics"
+      activeTabLabel={activeMeta.label}
+      islandActions={
+        <>
+          {TABS.map(({ key, label, icon }) => (
+            <IslandAction
+              key={key}
+              icon={icon}
+              label={label}
+              active={tab === key}
+              onClick={() => switchTab(key)}
+            />
+          ))}
+        </>
+      }
       navigation={
         <PageShellTabs
+          bare
           ariaLabel="Analytics sections"
           value={tab}
           options={TABS.map(({ key, label, icon }) => ({ value: key, label, icon }))}
-          onChange={(key) => setSearchParams(key === 'activity' ? {} : { tab: key }, { replace: true })}
+          onChange={switchTab}
         />
       }
     >
-      {tab === 'insights' ? <InsightsPanel /> : <ActivityPanel />}
+      {tab === 'insights' ? <InsightsPanel /> : tab === 'tags' ? <TagsPanel /> : <ActivityPanel />}
     </PageShell>
   );
 }

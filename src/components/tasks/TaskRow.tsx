@@ -14,7 +14,7 @@ import {
 } from '@/queries/tasks';
 import { PRIORITY_COLORS } from './helpers';
 import { cn } from '@/lib/utils';
-import { SegmentedProgress } from '@/components/ui/segmented-progress';
+import { WavyProgress } from '@/components/ui/wavy-progress';
 
 interface Props {
   task: Task;
@@ -90,7 +90,7 @@ export default function TaskRow({
       <div
         onClick={onClick}
         className={cn(
-          'group cursor-pointer transition-[background-color,border-color,box-shadow] text-left',
+          'group cursor-pointer transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.995] text-left',
           attached
             ? cn('rounded-none border-0 bg-[hsl(var(--surface-container-low))]', !first && 'border-t border-[hsl(var(--outline-variant))]')
             : hasSubtasks
@@ -102,28 +102,47 @@ export default function TaskRow({
       >
         <div className={cn('flex items-start gap-3', compact ? 'min-h-[68px] px-3 py-2.5' : 'min-h-12 px-3.5 py-3')}>
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
-          <button
+          <motion.button
             onClick={handleToggleStatus}
+            whileTap={{ scale: 0.82 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 24 }}
             className="shrink-0 -m-2 p-2 flex items-center justify-center"
             title={task.status === 'done' ? 'Mark incomplete' : 'Complete'}
           >
-            <span
-              className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors
+            {/* M3 Expressive shape morph: soft square while open, full
+                circle once done — the state change reads in silhouette. */}
+            <motion.span
+              initial={false}
+              animate={{ borderRadius: task.status === 'done' ? '50%' : '32%' }}
+              transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+              className={`size-7 border-2 flex items-center justify-center transition-colors
                 ${task.status === 'done'
                   ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-muted-foreground/40 group-hover:border-primary'}`}
+                  : 'border-[hsl(var(--outline))] group-hover:border-primary'}`}
             >
-              {task.status === 'done' && (
-                <svg viewBox="0 0 12 12" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </span>
-          </button>
+              <AnimatePresence>
+                {task.status === 'done' && (
+                  <motion.svg
+                    viewBox="0 0 12 12"
+                    className="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+                  >
+                    <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
+                  </motion.svg>
+                )}
+              </AnimatePresence>
+            </motion.span>
+          </motion.button>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`size-2 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
+              <span className={`size-2.5 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
               <span className={`font-medium text-[0.9375rem] leading-snug flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
                 {task.title}
               </span>
@@ -208,15 +227,14 @@ export default function TaskRow({
                 <span className="hidden sm:inline text-xs font-medium">{expanded ? 'Hide' : 'View'} subtasks</span>
                 <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
               </button>
-              <SegmentedProgress
-                value={task.subtasks_done}
-                total={task.subtask_count}
-                units={Math.min(6, task.subtask_count)}
-                state={subtaskPct === 100 ? 'complete' : 'active'}
-                height={5}
-                className="w-28"
-                label="Subtasks"
-              />
+              <div className="w-28">
+                <WavyProgress
+                  value={subtaskPct}
+                  height={10}
+                  active={subtaskPct > 0 && subtaskPct < 100}
+                  label="Subtasks"
+                />
+              </div>
             </div>
           )}
 
@@ -364,12 +382,12 @@ export function StepsEditor({
     <div className="flex flex-col gap-0.5">
       {steps.length > 0 && (
         <div className="flex items-center gap-2 px-1.5 pb-1">
-          <div className="h-1 flex-1 rounded-full bg-[hsl(var(--surface-container-highest))] overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              initial={false}
-              animate={{ width: `${(doneCount / steps.length) * 100}%` }}
-              transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+          <div className="flex-1 min-w-0">
+            <WavyProgress
+              value={(doneCount / steps.length) * 100}
+              height={10}
+              active={doneCount > 0 && doneCount < steps.length}
+              label="Steps"
             />
           </div>
           <span className="mono text-xs tabular-nums text-muted-foreground shrink-0">{doneCount}/{steps.length}</span>

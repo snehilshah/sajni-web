@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, Trash2 } from '@/components/ui/icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Sparkles, Trash2, MessageSquare, Lightbulb } from '@/components/ui/icons';
 import { formatDistanceToNow } from 'date-fns';
 
-import PageShell from '@/components/PageShell';
+import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
+import { ChatPanel } from '@/components/AIChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,8 +15,18 @@ import {
 } from '@/queries/thinking';
 import { confirmDialog } from '@/lib/confirm';
 
+const PROJECT_TABS = [
+  { key: 'projects', label: 'Projects', icon: Lightbulb },
+  { key: 'chat', label: 'Chat', icon: MessageSquare },
+] as const;
+type ProjectTab = (typeof PROJECT_TABS)[number]['key'];
+
+// Projects (né Thinking) — thought projects + the Sajni chat, one surface.
 export default function ThinkingPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: ProjectTab = searchParams.get('tab') === 'chat' ? 'chat' : 'projects';
+  const switchTab = (key: ProjectTab) => setSearchParams(key === 'projects' ? {} : { tab: key }, { replace: true });
   const { data: projects = [], isLoading: loading } = useThinkingProjects();
   const createProject = useCreateThinkingProject();
   const deleteProject = useDeleteThinkingProject();
@@ -31,7 +42,7 @@ export default function ThinkingPage() {
       const r = await createProject.mutateAsync({ title: title.trim(), description: desc.trim() });
       setOpen(false);
       setTitle(''); setDesc('');
-      navigate(`/thinking/${r.id}`);
+      navigate(`/projects/${r.id}`);
     } finally {
       setCreating(false);
     }
@@ -44,15 +55,35 @@ export default function ThinkingPage() {
 
   return (
     <PageShell
-      caption={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`}
-      title="Thinking (Beta)"
+      title="Projects"
+      activeTabLabel={tab === 'chat' ? 'Chat' : undefined}
+      navigation={
+        <PageShellTabs
+          bare
+          ariaLabel="Projects sections"
+          value={tab}
+          options={PROJECT_TABS.map(({ key, label, icon }) => ({ value: key, label, icon }))}
+          onChange={switchTab}
+        />
+      }
       actions={
-        <Button size="sm" onClick={() => setOpen(true)}>
-          <Plus className="size-4 mr-1" /> New
-        </Button>
+        tab === 'projects' ? (
+          <Button size="sm" onClick={() => setOpen(true)} className="gap-1.5">
+            <Plus className="size-3.5" /> New project
+          </Button>
+        ) : undefined
+      }
+      islandActions={
+        tab === 'projects'
+          ? <IslandAction icon={Plus} label="New project" onClick={() => setOpen(true)} />
+          : <IslandAction icon={MessageSquare} label="Chat" active onClick={() => switchTab('chat')} />
       }
     >
-      {loading ? (
+      {tab === 'chat' ? (
+        <div className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] overflow-hidden flex flex-col h-[calc(100dvh-180px)] md:h-[calc(100dvh-160px)]">
+          <ChatPanel active={tab === 'chat'} />
+        </div>
+      ) : loading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
       ) : projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center space-y-3">
@@ -65,12 +96,12 @@ export default function ThinkingPage() {
           <Button onClick={() => setOpen(true)}><Plus className="size-4 mr-1" /> New project</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="sajni-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {projects.map((p) => (
             <div
               key={p.id}
-              onClick={() => navigate(`/thinking/${p.id}`)}
-              className="group cursor-pointer rounded-2xl border border-border bg-[hsl(var(--surface-container-low))] p-4 hover:bg-[hsl(var(--surface-container))] transition-colors"
+              onClick={() => navigate(`/projects/${p.id}`)}
+              className="group cursor-pointer flex flex-col rounded-2xl border border-border bg-[hsl(var(--surface-container-low))] p-4 hover:bg-[hsl(var(--surface-container))] transition-colors"
             >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
@@ -92,7 +123,10 @@ export default function ThinkingPage() {
                   {p.thesis}
                 </div>
               )}
-              <div className="mt-3 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
+              {/* mt-auto pins the meta bar to the card's bottom edge, so rows
+                  of cards keep aligned footers even when description/thesis
+                  are absent (grid items stretch to equal height). */}
+              <div className="mt-auto pt-3 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
                 <span>{p.card_count} {p.card_count === 1 ? 'card' : 'cards'}</span>
                 <span>{formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}</span>
               </div>
@@ -104,7 +138,7 @@ export default function ThinkingPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New thinking project</DialogTitle>
+            <DialogTitle>New project</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input

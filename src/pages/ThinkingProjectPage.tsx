@@ -229,15 +229,14 @@ export default function ThinkingProjectPage() {
     });
   };
 
-  if (loading) return <PageShell title="Thinking">Loading…</PageShell>;
+  if (loading) return <PageShell title="Projects">Loading…</PageShell>;
   if (!project) return <PageShell title="Not found">Project not found.</PageShell>;
 
   return (
     <PageShell
-      caption={`${cards.length} ${cards.length === 1 ? 'card' : 'cards'}`}
       title={
         <span className="inline-flex items-center gap-2">
-          <button onClick={() => navigate('/thinking')} className="text-muted-foreground hover:text-foreground" aria-label="Back">
+          <button onClick={() => navigate('/projects')} className="text-muted-foreground hover:text-foreground" aria-label="Back">
             <ArrowLeft className="size-4" />
           </button>
           {project.title}

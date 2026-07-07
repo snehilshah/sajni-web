@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { notes as notesApi } from '@/api';
-import type { BacklinkRef } from '@/types';
+import type { BacklinkRef, NoteFolder } from '@/types';
 import { useNotes, useNoteFolders } from '@/queries/notes';
 import { qk } from '@/queries/keys';
 import RichEditor from '@/components/editor/RichEditor';
@@ -23,7 +23,7 @@ import { msg } from '@/lib/errors';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
-  PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon,
+  PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon, Pin, PinOff,
 } from '@/components/ui/icons';
 
 function deriveTitle(content: string): string {
@@ -36,13 +36,14 @@ function deriveTitle(content: string): string {
 }
 
 interface NoteListItem {
-  id: number; title: string; folder: string; description: string; tags: string[]; created_at: string; updated_at: string;
+  id: number; title: string; folder: string; description: string; pinned: boolean; tags: string[]; created_at: string; updated_at: string;
 }
 
 interface TreeNode {
   type: 'folder' | 'note';
   name: string;
   path: string; // folder path; for note, the parent folder
+  pinned?: boolean;
   note?: NoteListItem;
   children: TreeNode[];
 }
@@ -50,15 +51,16 @@ interface TreeNode {
 const SIDEBAR_KEY = 'sajni:notes-sidebar';
 const EXPANDED_KEY = 'sajni:notes-expanded';
 
-function buildTree(notes: NoteListItem[], folders: string[]): TreeNode {
+function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNode {
   const root: TreeNode = { type: 'folder', name: '', path: '', children: [] };
   const folderMap = new Map<string, TreeNode>();
   folderMap.set('', root);
+  const pinnedFolders = new Set(folders.filter((f) => f.pinned).map((f) => f.path));
 
   // Ensure all folder paths exist as nodes (including parents)
-  const allPaths = new Set<string>(folders);
+  const allPaths = new Set<string>(folders.map((f) => f.path));
   for (const f of folders) {
-    const parts = f.split('/');
+    const parts = f.path.split('/');
     for (let i = 1; i < parts.length; i++) allPaths.add(parts.slice(0, i).join('/'));
   }
   for (const n of notes) {
@@ -75,7 +77,7 @@ function buildTree(notes: NoteListItem[], folders: string[]): TreeNode {
     const idx = p.lastIndexOf('/');
     const parentPath = idx >= 0 ? p.slice(0, idx) : '';
     const name = idx >= 0 ? p.slice(idx + 1) : p;
-    const node: TreeNode = { type: 'folder', name, path: p, children: [] };
+    const node: TreeNode = { type: 'folder', name, path: p, pinned: pinnedFolders.has(p), children: [] };
     folderMap.set(p, node);
     folderMap.get(parentPath)?.children.push(node);
   }
@@ -87,15 +89,17 @@ function buildTree(notes: NoteListItem[], folders: string[]): TreeNode {
       type: 'note',
       name: n.title || 'Untitled',
       path: n.folder,
+      pinned: n.pinned,
       note: n,
       children: [],
     });
   }
 
-  // Sort: folders first, then notes alphabetically
+  // Sort: folders first, then notes; pinned float to the top of each group.
   const sortNode = (node: TreeNode) => {
     node.children.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
     for (const c of node.children) if (c.type === 'folder') sortNode(c);
@@ -153,7 +157,7 @@ export default function NotesPage() {
   const { data: notesData, isLoading: loading } = useNotes(debounced ? { search: debounced } : undefined);
   const { data: foldersData } = useNoteFolders();
   const notesList = (notesData ?? []) as NoteListItem[];
-  const folders = (foldersData ?? []) as string[];
+  const folders = (foldersData ?? []) as NoteFolder[];
 
   // Editor writes go straight through notesApi (single-doc surface); this
   // refreshes the cached list/folders + any other notes view after a write.
@@ -335,6 +339,20 @@ export default function NotesPage() {
     loadAll();
   };
 
+  const handleTogglePinNote = async (note: NoteListItem) => {
+    await notesApi.update(note.id, { pinned: !note.pinned });
+    loadAll();
+  };
+
+  const handleTogglePinFolder = async (path: string, pinned: boolean) => {
+    await notesApi.pinFolder(path, pinned);
+    loadAll();
+  };
+
+  // Pinned state of the open note, resolved from the cached list so the
+  // header button stays honest after tree-side toggles.
+  const selectedNote = selectedId ? notesList.find((n) => n.id === selectedId) : undefined;
+
   const breadcrumb = useMemo(() => {
     if (!folder) return [];
     return folder.split('/');
@@ -405,6 +423,8 @@ export default function NotesPage() {
               onNewSubfolder={(p) => { setShowNewFolder(p); setNewFolderName(''); }}
               onDeleteFolder={handleDeleteFolder}
               onMoveNote={(n) => setMoveTarget(n)}
+              onTogglePinNote={handleTogglePinNote}
+              onTogglePinFolder={handleTogglePinFolder}
               onCreateFolder={handleCreateFolder}
               onCancelNewFolder={() => { setShowNewFolder(null); setNewFolderName(''); }}
             />
@@ -419,7 +439,10 @@ export default function NotesPage() {
       {/* App-consistent full-width header — vault toggle + breadcrumb +
           save / move / delete actions. Page body (vault + editor) lives
           BELOW this header so the chrome stays uninterrupted. */}
-      <header className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-border bg-background sticky top-0 z-20 h-14 md:h-16 shrink-0">
+      <header
+        className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] sticky top-0 z-20 min-h-14 md:min-h-16 shrink-0"
+        style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}
+      >
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Button
             variant="ghost" size="icon-sm"
@@ -429,12 +452,30 @@ export default function NotesPage() {
           >
             {sidebarOpen && !isMobile ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
           </Button>
+          {/* Memos lives as a sibling tab of the vault since the 2026-07
+              consolidation — one hop away, keeps the primary bar at 9 icons. */}
+          <button
+            type="button"
+            onClick={() => setParams({ tab: 'memos' })}
+            className="shrink-0 hidden sm:inline-flex items-center h-7 px-2.5 mr-1 rounded-full text-xs font-medium text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground transition-colors"
+            title="Switch to Memos"
+          >
+            Memos
+          </button>
           <Breadcrumb segments={breadcrumb} title={selectedId ? (title || 'Untitled') : 'New note'} />
         </div>
         <div className="flex gap-1.5 items-center shrink-0">
           <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
           {selectedId && (
             <>
+              <Button
+                variant="ghost" size="icon-sm"
+                onClick={() => selectedNote && handleTogglePinNote(selectedNote)}
+                className={selectedNote?.pinned ? 'text-primary' : undefined}
+                title={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
+              >
+                {selectedNote?.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+              </Button>
               <Button variant="ghost" size="icon-sm" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
                 <FolderMoveIcon className="size-4" />
               </Button>
@@ -565,11 +606,11 @@ export default function NotesPage() {
             />
             {folders.map((f) => (
               <FolderRow
-                key={f}
-                label={f}
-                path={f}
-                active={moveTarget?.folder === f}
-                onClick={() => moveTarget && handleMoveNote(moveTarget.id, f)}
+                key={f.path}
+                label={f.path}
+                path={f.path}
+                active={moveTarget?.folder === f.path}
+                onClick={() => moveTarget && handleMoveNote(moveTarget.id, f.path)}
               />
             ))}
           </div>
@@ -598,6 +639,8 @@ interface TreeViewProps {
   onNewSubfolder: (path: string) => void;
   onDeleteFolder: (path: string) => void;
   onMoveNote: (n: NoteListItem) => void;
+  onTogglePinNote: (n: NoteListItem) => void;
+  onTogglePinFolder: (path: string, pinned: boolean) => void;
   onCreateFolder: () => void;
   onCancelNewFolder: () => void;
 }
@@ -618,6 +661,7 @@ function TreeView(props: TreeViewProps) {
                 onNewNote={() => props.onNewNoteIn(child.path)}
                 onNewSubfolder={() => props.onNewSubfolder(child.path)}
                 onDelete={() => props.onDeleteFolder(child.path)}
+                onTogglePin={() => props.onTogglePinFolder(child.path, !child.pinned)}
               />
               <AnimatePresence initial={false}>
                 {isExpanded && (
@@ -652,6 +696,7 @@ function TreeView(props: TreeViewProps) {
             selected={props.selectedId === child.note!.id}
             onSelect={() => props.onSelectNote(child.note!.id)}
             onMove={() => props.onMoveNote(child.note!)}
+            onTogglePin={() => props.onTogglePinNote(child.note!)}
           />
         );
       })}
@@ -660,10 +705,10 @@ function TreeView(props: TreeViewProps) {
 }
 
 function FolderRowItem({
-  node, depth, expanded, onToggle, onNewNote, onNewSubfolder, onDelete,
+  node, depth, expanded, onToggle, onNewNote, onNewSubfolder, onDelete, onTogglePin,
 }: {
   node: TreeNode; depth: number; expanded: boolean;
-  onToggle: () => void; onNewNote: () => void; onNewSubfolder: () => void; onDelete: () => void;
+  onToggle: () => void; onNewNote: () => void; onNewSubfolder: () => void; onDelete: () => void; onTogglePin: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
@@ -681,6 +726,7 @@ function FolderRowItem({
         <Folder className="size-3.5 text-muted-foreground shrink-0" />
       )}
       <span className="flex-1 truncate py-1 text-foreground/90 text-[13px]">{node.name}</span>
+      {node.pinned && <Pin className="size-3 text-primary/70 shrink-0" aria-label="Pinned" />}
       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity pr-1">
         <button
           className="size-5 rounded hover:bg-sidebar-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
@@ -709,6 +755,13 @@ function FolderRowItem({
             >
               <FolderPlus className="size-3.5" /> New subfolder
             </button>
+            <button
+              onClick={() => { onTogglePin(); setMenuOpen(false); }}
+              className="w-full text-left px-2.5 py-1.5 rounded text-sm hover:bg-accent flex items-center gap-2"
+            >
+              {node.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+              {node.pinned ? 'Unpin folder' : 'Pin folder'}
+            </button>
             <div className="my-1 h-px bg-border" />
             <button
               onClick={() => { onDelete(); setMenuOpen(false); }}
@@ -724,10 +777,10 @@ function FolderRowItem({
 }
 
 function NoteRowItem({
-  note, depth, selected, onSelect, onMove,
+  note, depth, selected, onSelect, onMove, onTogglePin,
 }: {
   note: NoteListItem; depth: number; selected: boolean;
-  onSelect: () => void; onMove: () => void;
+  onSelect: () => void; onMove: () => void; onTogglePin: () => void;
 }) {
   return (
     <div
@@ -739,6 +792,14 @@ function NoteRowItem({
     >
       <FileText className="size-3.5 text-muted-foreground shrink-0" />
       <span className="flex-1 truncate">{note.title || 'Untitled'}</span>
+      {note.pinned && <Pin className="size-3 text-primary/70 shrink-0 group-hover:hidden" aria-label="Pinned" />}
+      <button
+        onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
+        className="opacity-0 group-hover:opacity-100 size-5 rounded hover:bg-sidebar-accent hidden group-hover:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity"
+        title={note.pinned ? 'Unpin' : 'Pin'}
+      >
+        {note.pinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
+      </button>
       <button
         onClick={(e) => { e.stopPropagation(); onMove(); }}
         className="opacity-0 group-hover:opacity-100 size-5 rounded hover:bg-sidebar-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity"
@@ -892,9 +953,12 @@ function NotesAtlas({
                   style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--backdrop-blob-${meshIdx})), transparent 70%)` }}
                 />
                 <div className="relative flex flex-col flex-1 min-h-0 pl-2.5">
-                  <div className="mono text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2.5">
-                    {fmtRelTime(n.updated_at)}
-                    {n.folder ? <> · <span className="text-foreground/70">{n.folder}</span></> : null}
+                  <div className="mono text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2.5 flex items-center gap-1.5">
+                    {n.pinned && <Pin className="size-3 text-primary/80" aria-label="Pinned" />}
+                    <span>
+                      {fmtRelTime(n.updated_at)}
+                      {n.folder ? <> · <span className="text-foreground/70">{n.folder}</span></> : null}
+                    </span>
                   </div>
                   <h3 className="serif text-[19px] font-medium tracking-[-0.01em] leading-[1.25] text-foreground mb-1.5 line-clamp-2 group-hover:text-primary transition-colors">
                     {n.title || 'Untitled'}

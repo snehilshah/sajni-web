@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 
 import { useMemos, useCreateMemo, useUpdateMemo, useDeleteMemo } from '@/queries/memos';
 import { confirmDialog } from '@/lib/confirm';
@@ -14,9 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
-import PageShell from '@/components/PageShell';
+import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
+import { Plus } from '@/components/ui/icons';
+import { useNavigate } from 'react-router-dom';
 
 export default function MemosPage() {
+  const navigate = useNavigate();
   const [draft, setDraft] = useState('');
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -77,9 +80,30 @@ export default function MemosPage() {
 
   return (
     <PageShell
-      caption={`${memosList.length} ${memosList.length === 1 ? 'memo' : 'memos'}`}
-      title="Memos"
-      subtitle="Quick thoughts. Use #tags and [[backlinks]]."
+      title="Notes"
+      activeTabLabel="Memos"
+      navigation={
+        <PageShellTabs
+          bare
+          ariaLabel="Notes sections"
+          value="memos"
+          options={[
+            { value: 'notes', label: 'Vault' },
+            { value: 'memos', label: 'Memos' },
+          ]}
+          onChange={(v) => { if (v === 'notes') navigate('/notes'); }}
+        />
+      }
+      islandActions={
+        <IslandAction
+          icon={Plus}
+          label="New memo"
+          onClick={() => {
+            // Focusing the composer scrolls it (top of page) back into view.
+            draftRef.current?.focus();
+          }}
+        />
+      }
       actions={
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -98,8 +122,8 @@ export default function MemosPage() {
       }
     >
       <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
-          {/* Composer */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+          {/* Composer — tonal, weightless; focus ring comes from the field. */}
+          <div className="rounded-2xl bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors">
             <Textarea
               ref={draftRef}
               value={draft}
@@ -128,15 +152,18 @@ export default function MemosPage() {
               onClear={() => setSearch('')}
             />
           ) : (
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-7">
               {grouped.map(({ key, label, items }) => (
-                <section key={key} className="flex flex-col gap-3">
-                  <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground sticky top-[1px] py-1">
-                    {label}
-                  </h2>
+                <section key={key} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 pl-1">
+                    <h2 className="serif text-sm font-semibold tracking-tight whitespace-nowrap">
+                      {label}
+                    </h2>
+                    <span className="flex-1 h-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+                  </div>
                   <AnimatePresence initial={false}>
                     {items.map((memo) => (
-                      <MemoCard
+                      <MemoRow
                         key={memo.id}
                         memo={memo}
                         onOpen={() => setActiveId(memo.id)}
@@ -193,58 +220,77 @@ function EmptyState({ search, onClear }: { search: string; onClear: () => void }
   );
 }
 
-function MemoCard({ memo, onOpen, onPin }: {
+// Compact relative age for the timeline rail — "15s ago", "3h ago",
+// "3d ago". The day header already carries the calendar date.
+function shortAgo(d: Date): string {
+  const s = Math.max(1, Math.floor((Date.now() - d.getTime()) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const dd = Math.floor(h / 24);
+  if (dd < 30) return `${dd}d ago`;
+  return format(d, 'MMM d');
+}
+
+// MemoRow — timeline entry: relative-time rail on the left, one light
+// tonal card on the right. New memos drop DOWN from the composer (y: -16
+// spring); `layout` lets the rest of the feed slide out of the way.
+function MemoRow({ memo, onOpen, onPin }: {
   memo: Memo;
   onOpen: () => void;
   onPin: (m: Memo) => void;
 }) {
+  const created = new Date(memo.created_at);
   return (
     <motion.div
-      layout="position"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      layout
+      initial={{ opacity: 0, y: -16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12, ease: [0.22, 0.61, 0.36, 1] } }}
-      transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-      onClick={onOpen}
-      className={`group rounded-xl border bg-card shadow-sm transition-shadow duration-200 hover:shadow-md cursor-pointer relative ${
-        memo.pinned ? 'border-secondary/40' : 'border-border'
-      }`}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start"
     >
-      <div className="p-4 sm:p-5">
-        {memo.pinned && (
-          <div className="mb-2 inline-flex items-center gap-1 text-secondary">
-            <Pin className="size-3" />
-            <span className="text-xs font-mono uppercase tracking-wider">Pinned</span>
-          </div>
-        )}
+      <span
+        className="mono text-xs text-muted-foreground text-right leading-none pt-3.5 select-none"
+        title={created.toLocaleString()}
+      >
+        {shortAgo(created)}
+      </span>
 
-        <div className="prose-sajni text-[15px] line-clamp-6">
+      <motion.div
+        onClick={onOpen}
+        whileTap={{ scale: 0.99 }}
+        className={`group relative cursor-pointer rounded-2xl px-3.5 py-2.5 transition-colors ${
+          memo.pinned
+            ? 'bg-[hsl(var(--secondary-container)/0.45)] hover:bg-[hsl(var(--secondary-container)/0.65)]'
+            : 'bg-[hsl(var(--surface-container-low))] hover:bg-[hsl(var(--surface-container))]'
+        }`}
+      >
+        <div className="prose-sajni text-[14.5px] leading-relaxed line-clamp-3">
           <Markdown remarkPlugins={[remarkGfm]}>{memo.content}</Markdown>
         </div>
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60 gap-3">
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <span
-              className="font-mono text-xs text-muted-foreground shrink-0"
-              title={new Date(memo.created_at).toLocaleString()}
-            >
-              {formatDistanceToNow(new Date(memo.created_at), { addSuffix: true })}
-            </span>
-            {memo.tags.length > 0 && (
-              <div className="flex gap-1 flex-wrap">
-                {memo.tags.map((t) => <TagPill key={t} tag={t} />)}
-              </div>
-            )}
+        {memo.tags.length > 0 && (
+          <div className="flex gap-1 flex-wrap mt-1.5">
+            {memo.tags.map((t) => <TagPill key={t} tag={t} />)}
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onPin(memo); }}
-            title={memo.pinned ? 'Unpin' : 'Pin'}
-            className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-          >
-            {memo.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
-          </button>
-        </div>
-      </div>
+        )}
+
+        {/* Pin — pinned shows a quiet corner glyph; hover swaps in the toggle. */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onPin(memo); }}
+          title={memo.pinned ? 'Unpin' : 'Pin'}
+          className={`absolute top-2 right-2 size-7 rounded-full flex items-center justify-center transition-opacity ${
+            memo.pinned
+              ? 'text-[hsl(var(--on-secondary-container))] opacity-70 hover:opacity-100'
+              : 'text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] opacity-0 group-hover:opacity-100'
+          }`}
+        >
+          {memo.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+        </button>
+      </motion.div>
     </motion.div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from '@/components/ui/icons';
@@ -16,6 +16,8 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import MissedBanner from '@/components/tasks/MissedBanner';
+import { PageIsland, useOwnScrolled } from '@/components/PageShell';
+import { useNavChrome } from '@/components/nav-chrome';
 
 interface Memo {
 	id: number;
@@ -47,6 +49,17 @@ type CaptureKind = 'memo' | 'task' | 'journal';
 export default function TodayPage() {
 	const navigate = useNavigate();
 	const { openTask } = useTaskDetail();
+
+	// No secondary bar here (the hero is the header) — but the condensed
+	// pill still appears on scroll, and the primary bar collapses with it
+	// (reported through NavChromeContext).
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const { setScrolled: reportScrolled } = useNavChrome();
+	const scrolledPast = useOwnScrolled(scrollRef, true);
+	useEffect(() => {
+		reportScrolled(scrolledPast);
+		return () => reportScrolled(false);
+	}, [scrolledPast, reportScrolled]);
 
 	const [hour, setHour] = useState(new Date().getHours());
 	const [capture, setCapture] = useState('');
@@ -172,7 +185,8 @@ export default function TodayPage() {
 	const dateLabel = format(new Date(), 'EEEE, MMMM d');
 
 	return (
-		<div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+		<PageIsland title="Today" icon="home" scrolled={scrolledPast} />
 		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-14 pb-20">
 			{/* Hero */}
 			<div className="sajni-stagger">

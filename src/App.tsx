@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import Layout from './components/Layout';
 // Pages are lazy route-level chunks so heavy per-page deps (recharts,
 // tiptap, markdown) stay out of the boot bundle.
@@ -12,7 +12,6 @@ const TasksPage = lazy(() => import('./pages/TasksPage'));
 const HabitsPage = lazy(() => import('./pages/HabitsPage'));
 const MediaPage = lazy(() => import('./pages/MediaPage'));
 const NotesPage = lazy(() => import('./pages/NotesPage'));
-const TagsPage = lazy(() => import('./pages/TagsPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const FinancePage = lazy(() => import('./pages/Finance/FinancePage'));
 const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
@@ -39,6 +38,22 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 	if (loading) return null;
 	if (user) return <Navigate to="/" replace />;
 	return <>{children}</>;
+}
+
+// Consolidations: Memos lives under /notes?tab=memos, Tags under
+// /analytics?tab=tags, Thinking became /projects. Old paths (bookmarks,
+// PWA shortcuts, AI tool routes) redirect with params preserved.
+function NotesHub() {
+	const { search } = useLocation();
+	return new URLSearchParams(search).get('tab') === 'memos' ? <MemosPage /> : <NotesPage />;
+}
+function ThinkingRedirect() {
+	const { id } = useParams();
+	return <Navigate to={id ? `/projects/${id}` : '/projects'} replace />;
+}
+function TagRedirect() {
+	const { tag } = useParams();
+	return <Navigate to={tag ? `/analytics?tab=tags&tag=${encodeURIComponent(tag)}` : '/analytics?tab=tags'} replace />;
 }
 
 function AppLoader() {
@@ -75,19 +90,22 @@ export default function App() {
           <Route path="/share-target" element={<ShareCapturePage />} />
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/" element={<TodayPage />} />
-            <Route path="/memos" element={<MemosPage />} />
-            <Route path="/thinking" element={<ThinkingPage />} />
-            <Route path="/thinking/:id" element={<ThinkingProjectPage />} />
+            <Route path="/projects" element={<ThinkingPage />} />
+            <Route path="/projects/:id" element={<ThinkingProjectPage />} />
             <Route path="/journal" element={<JournalPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/habits" element={<HabitsPage />} />
             <Route path="/media" element={<MediaPage />} />
-            <Route path="/notes" element={<NotesPage />} />
+            <Route path="/notes" element={<NotesHub />} />
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/finance/:tab" element={<FinancePage />} />
-            <Route path="/tags" element={<TagsPage />} />
-            <Route path="/tags/:tag" element={<TagsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            {/* Consolidation redirects. */}
+            <Route path="/memos" element={<Navigate to="/notes?tab=memos" replace />} />
+            <Route path="/thinking" element={<ThinkingRedirect />} />
+            <Route path="/thinking/:id" element={<ThinkingRedirect />} />
+            <Route path="/tags" element={<TagRedirect />} />
+            <Route path="/tags/:tag" element={<TagRedirect />} />
             {/* Insights merged into Analytics as a tab. */}
             <Route path="/insights" element={<Navigate to="/analytics?tab=insights" replace />} />
             <Route path="/settings" element={<SettingsPage />} />

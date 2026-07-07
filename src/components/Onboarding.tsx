@@ -26,7 +26,7 @@ interface OnboardingDoc {
 interface Anchor {
   rect: DOMRect;
   /** Which side of the anchor the bubble sits on. */
-  side: 'right' | 'top';
+  side: 'right' | 'top' | 'bottom';
 }
 
 const BUBBLE_WIDTH = 320;
@@ -42,8 +42,13 @@ function findAnchor(key: string): Anchor | null {
   if (!el) return null;
   const rect = el.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) return null;
-  // If the anchor sits in the sidebar rail (left half on desktop) we
-  // float the bubble to its right. On narrow viewports we drop above.
+  // Anchors in the top command bar (nav position "top") hug the viewport
+  // top edge — drop the bubble BELOW them. Sidebar-rail anchors (nav
+  // position "left") sit lower, so they keep the old behaviour: bubble to
+  // the right on desktop, above on narrow viewports.
+  if (rect.top < 80) {
+    return { rect, side: 'bottom' };
+  }
   const isNarrow = window.innerWidth < 768;
   return { rect, side: isNarrow ? 'top' : 'right' };
 }
@@ -67,6 +72,17 @@ function computePosition(anchor: Anchor | null): React.CSSProperties {
     const top = Math.max(
       VIEWPORT_PAD,
       Math.min(vh - 200 - VIEWPORT_PAD, desiredTop - 60),
+    );
+    return { top, left, transform: 'none' };
+  }
+  if (side === 'bottom') {
+    const top = Math.min(rect.bottom + GAP, vh - 200 - VIEWPORT_PAD);
+    const left = Math.max(
+      VIEWPORT_PAD,
+      Math.min(
+        vw - BUBBLE_WIDTH - VIEWPORT_PAD,
+        rect.left + rect.width / 2 - BUBBLE_WIDTH / 2,
+      ),
     );
     return { top, left, transform: 'none' };
   }

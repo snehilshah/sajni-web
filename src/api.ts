@@ -12,6 +12,7 @@ import type {
   MediaSearchResult,
   Memo,
   Note,
+  NoteFolder,
   SmartList,
   TagEntities,
   Task,
@@ -499,17 +500,19 @@ export const notes = {
   get: (id: number) => request<Note>('/notes/' + id),
   create: (title: string, content: string, folder?: string, description?: string) =>
     request<{ id: number; folder: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }) }),
-  update: (id: number, data: { title?: string; content?: string; folder?: string; description?: string }) =>
+  update: (id: number, data: { title?: string; content?: string; folder?: string; description?: string; pinned?: boolean }) =>
     request('/notes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/notes/' + id, { method: 'DELETE' }),
   // Folders
-  listFolders: () => request<string[]>('/notes/folders'),
+  listFolders: () => request<NoteFolder[]>('/notes/folders'),
   createFolder: (path: string) =>
     request<{ path: string }>('/notes/folders', { method: 'POST', body: JSON.stringify({ path }) }),
   deleteFolder: (path: string) =>
     request('/notes/folders', { method: 'DELETE', body: JSON.stringify({ path }) }),
   renameFolder: (from: string, to: string) =>
     request('/notes/folders/rename', { method: 'POST', body: JSON.stringify({ from, to }) }),
+  pinFolder: (path: string, pinned: boolean) =>
+    request<{ path: string; pinned: boolean }>('/notes/folders/pin', { method: 'POST', body: JSON.stringify({ path, pinned }) }),
 };
 
 // --- Uploads ---

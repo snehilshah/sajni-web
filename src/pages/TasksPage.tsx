@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { addDays, format, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -29,7 +30,7 @@ import MissedBanner from '@/components/tasks/MissedBanner';
 import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, selectionLabel, weekMondayKey, monthFirstKey,
 } from '@/components/tasks/helpers';
-import PageShell from '@/components/PageShell';
+import PageShell, { IslandAction } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 
 type ViewMode = 'list' | 'board';
@@ -168,12 +169,10 @@ export default function TasksPage() {
   const isMobile = useIsMobile();
   const effectiveView = isMobile ? 'list' : viewMode;
 
-  const subtitleStats = `${open.length} open · ${grouped.in_progress.length} in flight · ${tasksList.filter((t) => t.status === 'done').length} done`;
-
   return (
     <PageShell
-      caption={subtitleStats}
-      title={headerLabel}
+      title="Tasks"
+      activeTabLabel={headerLabel}
       actions={
         !isMobile ? (
           <div className="inline-flex items-center gap-2">
@@ -192,6 +191,16 @@ export default function TasksPage() {
             </Button>
           </div>
         ) : undefined
+      }
+      islandActions={
+        <>
+          <IslandAction
+            icon={viewMode === 'list' ? LayoutGrid : ListChecks}
+            label={viewMode === 'list' ? 'Board view' : 'List view'}
+            onClick={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
+          />
+          <IslandAction icon={Plus} label="New task" onClick={() => openCreate()} />
+        </>
       }
     >
       <div className="flex flex-col gap-3.5">
@@ -285,7 +294,7 @@ export default function TasksPage() {
         />
       </Suspense>
 
-      {/* Mobile FAB — sits above the bottom tabbar. */}
+      {/* Mobile FAB — bottom-right, above the safe area. */}
       {isMobile && (
         <button
           type="button"
@@ -293,7 +302,7 @@ export default function TasksPage() {
           onClick={() => openCreate()}
           className="md:hidden fixed right-4 z-40 size-14 inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-[var(--m3-elev-3)] active:translate-y-px"
           style={{
-            bottom: 'calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px)',
+            bottom: 'calc(env(safe-area-inset-bottom) + 84px)',
           }}
         >
           <Plus className="size-6" />
@@ -304,6 +313,42 @@ export default function TasksPage() {
 }
 
 // --- List view ---
+
+// --- Due buckets (list view) ---
+// Open tasks group into scannable horizons. Headers only show when more
+// than one bucket has items — a single-horizon list (e.g. My Day) stays flat.
+const BUCKETS = [
+  { key: 'overdue', label: 'Overdue' },
+  { key: 'today',   label: 'Today' },
+  { key: 'week',    label: 'This week' },
+  { key: 'later',   label: 'Later' },
+  { key: 'someday', label: 'No date' },
+] as const;
+type BucketKey = (typeof BUCKETS)[number]['key'];
+
+function bucketOf(t: Task, todayKey: string, weekEndKey: string): BucketKey {
+  if (t.due_date) {
+    if (t.due_date < todayKey) return 'overdue';
+    if (t.due_date === todayKey) return 'today';
+    if (t.due_date <= weekEndKey) return 'week';
+    return 'later';
+  }
+  if (t.week_of) return t.week_of <= todayKey ? 'week' : 'later';
+  if (t.month_of) return 'later';
+  return 'someday';
+}
+
+function BucketHeader({ label, count, overdue }: { label: string; count: number; overdue?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5 pt-1.5">
+      <span className={`mono text-xs uppercase tracking-[0.18em] ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
+        {label}
+      </span>
+      <span className="mono text-xs tabular-nums text-muted-foreground/70">{count}</span>
+      <span className="flex-1 h-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+    </div>
+  );
+}
 
 function ListView({
   open, completed, scratched, showCompleted, onToggleCompleted, onClick,
@@ -316,6 +361,17 @@ function ListView({
   onClick: (t: Task) => void;
 }) {
   const [showScratched, setShowScratched] = useState(false);
+
+  const bucketed = useMemo(() => {
+    const todayKey = new Date().toLocaleDateString('en-CA');
+    const weekEndKey = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6), 'yyyy-MM-dd');
+    const map: Record<BucketKey, Task[]> = { overdue: [], today: [], week: [], later: [], someday: [] };
+    for (const t of open) map[bucketOf(t, todayKey, weekEndKey)].push(t);
+    return map;
+  }, [open]);
+  const activeBuckets = BUCKETS.filter((b) => bucketed[b.key].length > 0);
+  const showHeaders = activeBuckets.length > 1;
+
   if (open.length === 0 && completed.length === 0 && scratched.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
@@ -327,11 +383,18 @@ function ListView({
   }
   return (
     <div className="flex flex-col gap-2">
-      <AnimatePresence initial={false}>
-        {open.map((t) => (
-          <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
-        ))}
-      </AnimatePresence>
+      {activeBuckets.map(({ key, label }) => (
+        <div key={key} className="flex flex-col gap-2">
+          {showHeaders && (
+            <BucketHeader label={label} count={bucketed[key].length} overdue={key === 'overdue'} />
+          )}
+          <AnimatePresence initial={false}>
+            {bucketed[key].map((t) => (
+              <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
+            ))}
+          </AnimatePresence>
+        </div>
+      ))}
 
       {completed.length > 0 && (
         <div className="mt-4">

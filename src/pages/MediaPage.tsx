@@ -8,10 +8,11 @@ import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/quer
 import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult, MediaPatch } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
-import PageShell, { PageShellTabs } from '@/components/PageShell';
+import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
+import { WavyProgress } from '@/components/ui/wavy-progress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { msg } from '@/lib/errors';
@@ -24,6 +25,8 @@ import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings } from '@/components/ui/icons';
+// No pixel match for these two — straight lucide (same as the shim's passthroughs).
+import { GalleryHorizontalEnd, Table2 } from 'lucide-react';
 
 // Pixel-art platform glyphs (pixelarticons), imported as raw SVG strings so
 // they bundle offline (no runtime fetch) and render at a fixed size. Each
@@ -42,6 +45,9 @@ import pxImage from 'pixelarticons/svg/image.svg?raw';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
 const MEDIA_SORT_KEY = 'sajni:media:sort';
+
+type ViewMode = 'grid' | 'list' | 'shelves' | 'table';
+const VIEW_MODES: ViewMode[] = ['grid', 'list', 'shelves', 'table'];
 
 type SortKey =
   | 'updated_desc'   // last touched (existing default)
@@ -175,17 +181,22 @@ function isUpcomingCollectionPart(part: Pick<CollectionPart, 'release_date' | 'r
   return part.release_state === 'upcoming' || (!!d && d > todayISODate());
 }
 
-function mediaStatusDisplay(item: MediaEntry): { label: string; color: string; chipClass: string } {
+function mediaStatusDisplay(item: MediaEntry): { label: string; shortLabel: string; color: string; chipClass: string } {
   if (isUpcomingRelease(item)) {
     const when = formatReleaseDate(item.release_date);
     return {
       label: when ? `Upcoming ${when}` : 'Upcoming',
+      // Poster overlays are too narrow for a date — the full label stays
+      // available as the pill's title/tooltip.
+      shortLabel: 'Upcoming',
       color: 'hsl(var(--tertiary))',
       chipClass: 'chip-upcoming',
     };
   }
+  const label = statusMeta(item.status)?.label || item.status;
   return {
-    label: statusMeta(item.status)?.label || item.status,
+    label,
+    shortLabel: label,
     color: statusPillColor(item.status),
     chipClass: chipClassFor(item.status),
   };
@@ -625,12 +636,16 @@ export default function MediaPage() {
   const isBookmarkTab = BOOKMARK_TYPES.has(activeType);
   // Page-level Add button → bookmark panel's dialog (see BookmarksPanel).
   const [bookmarkAddSignal, setBookmarkAddSignal] = useState(0);
-  const [statusFilter, setStatusFilter] = useState('');
+  // Multi-select: empty set = "All". Filtering is client-side so several
+  // statuses can be lit at once (e.g. In progress + Pending together).
+  const [statusFilters, setStatusFilters] = useState<Set<MediaStatus>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const isMobileMedia = useIsMobile();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-    try { return (localStorage.getItem(MEDIA_VIEW_KEY) as 'grid' | 'list') || 'list'; }
-    catch { return 'list'; }
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const stored = localStorage.getItem(MEDIA_VIEW_KEY) as ViewMode;
+      return VIEW_MODES.includes(stored) ? stored : 'list';
+    } catch { return 'list'; }
   });
   const [sortBy, setSortBy] = useState<SortKey>(() => {
     try { return (localStorage.getItem(MEDIA_SORT_KEY) as SortKey) || 'updated_desc'; }
@@ -678,11 +693,12 @@ export default function MediaPage() {
   const [form, setForm] = useState<FormState>(blankForm());
 
   // Cached library. keepPreviousData (in useMedia) holds the current shelf
-  // visible while a filter switch refetches; bookmark tabs load their own data
-  // so the media query is disabled there.
+  // visible while a tab switch refetches; bookmark tabs load their own data
+  // so the media query is disabled there. Status filtering happens client-
+  // side (multi-select) so chip counts stay honest while filters are lit.
   const mediaParams = useMemo(
-    () => ({ type: activeType, ...(statusFilter ? { status: statusFilter } : {}) }),
-    [activeType, statusFilter],
+    () => ({ type: activeType }),
+    [activeType],
   );
   const { data: items = [], isLoading: loading } = useMedia(mediaParams, !isBookmarkTab) as {
     data: MediaEntry[]; isLoading: boolean;
@@ -701,22 +717,33 @@ export default function MediaPage() {
 
   const switchType = useCallback((key: string) => {
     setActiveType(key);
-    setStatusFilter('');
+    setStatusFilters(new Set());
     setSearchQuery('');
     setSearchParams(key === 'movie' ? {} : { tab: TYPE_TO_TAB[key] }, { replace: true });
   }, [setSearchParams]);
 
+  const toggleStatusFilter = useCallback((status: MediaStatus) => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status); else next.add(status);
+      return next;
+    });
+  }, []);
+
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const matched = q
-      ? items.filter((i) =>
-          i.title.toLowerCase().includes(q) ||
-          i.genre.toLowerCase().includes(q) ||
-          i.platform.toLowerCase().includes(q),
-        )
+    let matched = statusFilters.size > 0
+      ? items.filter((i) => statusFilters.has(i.status))
       : items;
+    if (q) {
+      matched = matched.filter((i) =>
+        i.title.toLowerCase().includes(q) ||
+        i.genre.toLowerCase().includes(q) ||
+        i.platform.toLowerCase().includes(q),
+      );
+    }
     return sortMedia(matched, sortBy);
-  }, [items, searchQuery, sortBy]);
+  }, [items, statusFilters, searchQuery, sortBy]);
 
   // Build the rendering rows. Each row is either a single MediaEntry
   // or a series with its child entries (chronologically sorted). When
@@ -856,7 +883,9 @@ export default function MediaPage() {
     try {
       let duplicatePool: MediaEntry[];
       try {
-        duplicatePool = form.type === activeType && !statusFilter
+        // `items` is the full (status-unfiltered) shelf for the active type,
+        // so it doubles as the duplicate pool whenever types match.
+        duplicatePool = form.type === activeType
           ? items
           : await mediaApi.list({ type: form.type });
       } catch {
@@ -915,50 +944,100 @@ export default function MediaPage() {
     }
     if (filteredItems.length === 0) {
       return (
-        <EmptyState type={activeType} hasFilter={!!statusFilter || !!searchQuery} onAdd={() => openForm()} onClear={() => { setStatusFilter(''); setSearchQuery(''); }} />
+        <EmptyState type={activeType} hasFilter={statusFilters.size > 0 || !!searchQuery} onAdd={() => openForm()} onClear={() => { setStatusFilters(new Set()); setSearchQuery(''); }} />
       );
     }
-    return viewMode === 'grid' ? (
-      <div className="grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
-        {seriesRows.map((row) => (
-          row.kind === 'single' ? (
-            <PosterCard key={'item-' + row.item.id} item={row.item} onClick={() => openForm(row.item)} />
-          ) : (
-            <SeriesPosterCard
-              key={'series-' + row.collectionId}
-              row={row}
-              onOpen={() => setSeriesDialog(row)}
-            />
-          )
-        ))}
-      </div>
-    ) : (
-      <div className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
-        {seriesRows.map((row, idx) => (
-          row.kind === 'single' ? (
-            <MediaListRow
-              key={'item-' + row.item.id}
-              item={row.item}
-              index={idx}
-              attached
-              first={idx === 0}
-              onClick={() => openForm(row.item)}
-            />
-          ) : (
-            <SeriesListRow
-              key={'series-' + row.collectionId}
-              row={row}
-              attached
-              first={idx === 0}
-              expanded={expandedSeries.has(row.collectionId)}
-              onToggle={() => toggleSeries(row.collectionId)}
-              onPickItem={openForm}
-            />
-          )
+    if (viewMode === 'grid') {
+      return (
+        <div className="sajni-stagger grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
+          {seriesRows.map((row) => (
+            row.kind === 'single' ? (
+              <PosterCard key={'item-' + row.item.id} item={row.item} onClick={() => openForm(row.item)} />
+            ) : (
+              <SeriesPosterCard
+                key={'series-' + row.collectionId}
+                row={row}
+                onOpen={() => setSeriesDialog(row)}
+              />
+            )
+          ))}
+        </div>
+      );
+    }
+    if (viewMode === 'shelves') {
+      return <MediaShelves items={filteredItems} onPick={openForm} />;
+    }
+    if (viewMode === 'table') {
+      return <MediaTable items={filteredItems} onPick={openForm} />;
+    }
+    // List view — rows bucketed into status sections (same lifecycle order
+    // as the shelves). Headers disappear when everything shares one status
+    // (e.g. a single-status filter), leaving the flat card.
+    const statusIdx = (s: MediaStatus) => {
+      const i = STATUS_OPTIONS.findIndex((o) => o.value === s);
+      return i === -1 ? STATUS_OPTIONS.length : i;
+    };
+    const rowStatus = (row: SeriesRow): MediaStatus => (
+      row.kind === 'single'
+        ? row.item.status
+        : row.members.reduce(
+          (best, m) => (statusIdx(m.status) < statusIdx(best) ? m.status : best),
+          row.members[0].status,
+        )
+    );
+    const sectionMap = new Map<MediaStatus, SeriesRow[]>();
+    for (const row of seriesRows) {
+      const s = rowStatus(row);
+      if (!sectionMap.has(s)) sectionMap.set(s, []);
+      sectionMap.get(s)!.push(row);
+    }
+    const sections = STATUS_OPTIONS
+      .filter((s) => sectionMap.has(s.value))
+      .map((s) => ({ meta: s, rows: sectionMap.get(s.value)! }));
+    const showSectionHeaders = sections.length > 1;
+
+    const renderRows = (rows: SeriesRow[]) => rows.map((row, idx) => (
+      row.kind === 'single' ? (
+        <MediaListRow
+          key={'item-' + row.item.id}
+          item={row.item}
+          index={idx}
+          attached
+          first={idx === 0}
+          onClick={() => openForm(row.item)}
+        />
+      ) : (
+        <SeriesListRow
+          key={'series-' + row.collectionId}
+          row={row}
+          attached
+          first={idx === 0}
+          expanded={expandedSeries.has(row.collectionId)}
+          onToggle={() => toggleSeries(row.collectionId)}
+          onPickItem={openForm}
+        />
+      )
+    ));
+
+    return (
+      <div className="sajni-stagger flex flex-col gap-5">
+        {sections.map(({ meta, rows }) => (
+          <section key={meta.value} aria-label={meta.label}>
+            {showSectionHeaders && (
+              <header className="flex items-baseline gap-2 mb-2 px-0.5">
+                <span className={cn('size-2 rounded-full self-center shrink-0', meta.dot)} />
+                <h3 className="serif text-sm font-semibold tracking-tight">{meta.label}</h3>
+                <span className="mono text-xs tabular-nums text-muted-foreground">{rows.length}</span>
+              </header>
+            )}
+            <div className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+              {renderRows(rows)}
+            </div>
+          </section>
         ))}
       </div>
     );
-  }, [loading, filteredItems, seriesRows, viewMode, statusFilter, searchQuery, activeType, expandedSeries, openForm, toggleSeries, setSeriesDialog]);
+  }, [loading, filteredItems, seriesRows, viewMode, statusFilters, searchQuery, activeType, expandedSeries, openForm, toggleSeries, setSeriesDialog]);
 
   // ---- Add/Edit form: shared title + body + footer, hosted in a centered
   // Dialog on desktop and a full-height, keyboard-safe bottom Sheet on phones.
@@ -1110,11 +1189,9 @@ export default function MediaPage() {
 
   return (
     <PageShell
-      caption={isBookmarkTab
-        ? 'saved links · open to mark read'
-        : `${items.length} ${items.length === 1 ? 'entry' : 'entries'} · ${counts['in_progress'] || 0} in progress`}
       title="Library"
-      subtitle="Movies, shows, books, links — one shelf."
+      activeTabLabel={TYPE_META[activeType]?.plural}
+      islandActions={<IslandAction icon={Plus} label={mediaAddLabel} onClick={handleAdd} />}
       hideScrollbar
       actions={
         !isMobileMedia ? (
@@ -1133,6 +1210,7 @@ export default function MediaPage() {
       }
       navigation={
         <PageShellTabs
+          bare
           ariaLabel="Media sections"
           value={activeType}
           options={Object.entries(TYPE_META).map(([key, meta]) => ({
@@ -1171,20 +1249,20 @@ export default function MediaPage() {
 
             <div className="flex flex-wrap gap-1.5">
               <FilterChip
-                active={statusFilter === ''}
-                onClick={() => setStatusFilter('')}
+                active={statusFilters.size === 0}
+                onClick={() => setStatusFilters(new Set())}
                 count={counts.all || 0}
               >
                 All
               </FilterChip>
               {STATUS_OPTIONS.map((s) => {
                 const c = counts[s.value] || 0;
-                if (c === 0 && statusFilter !== s.value) return null;
+                if (c === 0 && !statusFilters.has(s.value)) return null;
                 return (
                   <FilterChip
                     key={s.value}
-                    active={statusFilter === s.value}
-                    onClick={() => setStatusFilter(s.value)}
+                    active={statusFilters.has(s.value)}
+                    onClick={() => toggleStatusFilter(s.value)}
                     count={c}
                     dot={s.dot}
                   >
@@ -1281,7 +1359,7 @@ export default function MediaPage() {
           aria-label={mediaAddLabel}
           className="md:hidden fixed right-4 z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
           style={{
-            bottom: 'calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px)',
+            bottom: 'calc(env(safe-area-inset-bottom) + 84px)',
           }}
         >
           <Plus className="size-6" />
@@ -1340,13 +1418,15 @@ function MediaControlCluster({
   setSortBy: (value: SortKey) => void;
   groupSeries: boolean;
   setGroupSeries: (update: (value: boolean) => boolean) => void;
-  viewMode: 'grid' | 'list';
-  setViewMode: (value: 'grid' | 'list') => void;
+  viewMode: ViewMode;
+  setViewMode: (value: ViewMode) => void;
 }) {
   const [compactOpen, setCompactOpen] = useState(false);
   const viewOptions = [
     { value: 'grid' as const, label: 'Grid', icon: LayoutGrid },
     { value: 'list' as const, label: 'List', icon: ListChecks },
+    { value: 'shelves' as const, label: 'Shelves', icon: GalleryHorizontalEnd },
+    { value: 'table' as const, label: 'Table', icon: Table2 },
   ];
   const currentSort = SORT_OPTIONS.find((o) => o.value === sortBy)?.label || 'Sort';
 
@@ -1385,8 +1465,8 @@ function MediaControlCluster({
           size="sm"
           value={viewMode}
           options={viewOptions}
-          onChange={(v) => setViewMode(v as 'grid' | 'list')}
-          onPrimary={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+          onChange={(v) => setViewMode(v as ViewMode)}
+          onPrimary={() => setViewMode(VIEW_MODES[(VIEW_MODES.indexOf(viewMode) + 1) % VIEW_MODES.length])}
         />
       </div>
 
@@ -1592,19 +1672,16 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
           </div>
         )}
 
-        {/* Status pill — color-coded per status */}
-        <div className="absolute top-2 left-2">
+        {/* Status pill — dot + sentence-case short label. Sentence case at
+            normal tracking keeps every status ("In progress", "Complete")
+            inside a 2-col phone grid tile without truncating to COMPL…. */}
+        <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
           <span
-            className="inline-flex max-w-[calc(100%-0.5rem)] items-center gap-1 bg-background px-2 py-0.5 text-xs font-mono font-medium shadow-sm ring-1 ring-foreground/5"
-            style={{
-              color: statusDisplay.color,
-              borderLeft: `2px solid ${statusDisplay.color}`,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-background/95 pl-2 pr-2.5 h-6 text-xs font-medium shadow-sm ring-1 ring-foreground/10"
             title={statusDisplay.label}
           >
-            <span className="truncate">{statusDisplay.label}</span>
+            <span className="size-1.5 rounded-full shrink-0" style={{ background: statusDisplay.color }} />
+            <span className="truncate">{statusDisplay.shortLabel}</span>
           </span>
         </div>
 
@@ -1636,7 +1713,9 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
         <div className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
           {item.title}
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground mt-0.5">
+        {/* Both meta rows keep a fixed line height even when empty so
+            neighbouring tiles in a grid row don't ripple vertically. */}
+        <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground mt-0.5 min-h-4">
           {item.year && (
             <span className="inline-flex items-center gap-1">
               <Calendar className="size-2.5" />
@@ -1650,7 +1729,7 @@ function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }
             </>
           )}
         </div>
-        <div className="font-mono text-xs text-muted-foreground mt-0.5 truncate">
+        <div className="font-mono text-xs text-muted-foreground mt-0.5 truncate min-h-4">
           {watchAgeLabel(item)}
         </div>
       </div>
@@ -1669,7 +1748,7 @@ function MediaThumb({ item, index, variant = 'sm', className }: {
 }) {
   const sizeClass = variant === 'card'
     ? 'w-[52px] h-[76px] rounded-xl'
-    : 'w-11 h-[60px] rounded-md';
+    : 'w-12 h-[66px] rounded-lg';
   const classes = cn(sizeClass, 'object-cover ring-1 ring-border/60 shrink-0', className);
   if (item.poster_url) {
     return (
@@ -1824,9 +1903,10 @@ function chipClassFor(status: MediaStatus): string {
   }
 }
 
-// MediaListRow — single-entry list row (split out so we can render a
-// thin progress bar at the bottom for in-progress shows/books without
-// duplicating the row markup inline).
+// MediaListRow — dense single-entry list row. One tight flex line:
+// thumb · (title + meta + optional thin progress) · (status chip + age).
+// The old three-column grid reserved a wide right column that read as
+// empty space; everything now hugs the content.
 function MediaListRow({
   item, index, onClick, compact = false, attached = false, first = false,
 }: {
@@ -1837,12 +1917,10 @@ function MediaListRow({
   attached?: boolean;
   first?: boolean;
 }) {
-  const hasProgress = listProgressPct(item) !== null;
-  const progress = hasProgress ? progressDetailLabel(item) : '';
   const pct = listProgressPct(item);
+  const hasProgress = pct !== null;
   const age = watchAgeLabelShort(item);
   const statusDisplay = mediaStatusDisplay(item);
-  const thumbVariant = compact ? 'sm' : 'card';
   return (
     <button
       onClick={onClick}
@@ -1851,79 +1929,160 @@ function MediaListRow({
         attached
           ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
           : 'rounded-2xl border border-[hsl(var(--outline-variant))] hover:border-[hsl(var(--outline))]',
-        compact ? 'min-h-[82px] p-2.5' : 'min-h-[96px] p-3 md:p-3.5',
+        compact ? 'p-2' : 'p-2.5 sm:px-3',
       )}
     >
-      <div
-        className={cn(
-          'grid min-w-0 gap-x-3 gap-y-2',
-          compact
-            ? 'grid-cols-[44px_minmax(0,1fr)] sm:grid-cols-[44px_minmax(0,1fr)_minmax(7rem,10rem)]'
-            : 'grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[52px_minmax(0,1fr)_minmax(8rem,12rem)]',
-        )}
-      >
+      <div className="flex items-center gap-3 min-w-0">
         <MediaThumb
           item={item}
           index={index}
-          variant={thumbVariant}
-          className={cn(hasProgress && 'row-span-2')}
+          variant="sm"
+          className="transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-hover:scale-[1.05]"
         />
 
-        <div className="min-w-0 self-start">
-          <div className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[16px]')}>
-            {item.title || 'Untitled'}
-          </div>
-          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
-            <span className="shrink-0">{TYPE_META[item.type]?.label || item.type}</span>
-            {item.year ? <span className="shrink-0">{item.year}</span> : null}
+        <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[15px]')}>
+              {item.title || 'Untitled'}
+            </span>
             {item.rating ? (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-secondary">
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary">
                 <Star className="size-3 fill-current" />
                 <span className="tabular-nums">{item.rating}</span>
               </span>
             ) : null}
+          </div>
+          <div className="flex min-w-0 items-center gap-x-2 mono text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
+            <span className="shrink-0">{TYPE_META[item.type]?.label || item.type}</span>
+            {item.year ? <span className="shrink-0">· {item.year}</span> : null}
             {item.platform ? (
-              <PlatformLogo
-                platform={item.platform}
-                className="shrink-0"
-                iconClassName={compact ? 'size-[15px]' : 'size-4'}
-              />
+              <PlatformLogo platform={item.platform} className="shrink-0 min-w-0" iconClassName="size-[15px]" />
             ) : null}
-            {progressLabel(item) ? <span className="shrink-0">{progressLabel(item)}</span> : null}
+            {progressLabel(item) ? <span className="shrink-0 hidden min-[420px]:inline">· {progressLabel(item)}</span> : null}
+            {age ? <span className="min-w-0 truncate hidden sm:inline">· {age}</span> : null}
           </div>
-
-          <div className="mt-2 flex min-w-0 items-center gap-2 sm:hidden">
-            <span className={cn('chip h-6 max-w-[10rem] shrink-0 px-2.5 text-xs leading-none', statusDisplay.chipClass)} title={statusDisplay.label}>
-              <span className="truncate">{statusDisplay.label}</span>
-            </span>
-            {age ? <span className="min-w-0 truncate mono text-xs text-muted-foreground">{age}</span> : null}
-          </div>
-        </div>
-
-        <div className={cn('hidden min-w-0 flex-col items-end gap-1.5 self-start sm:flex', compact && 'justify-center')}>
-          <span className={cn('chip max-w-full shrink-0 px-2.5 text-xs leading-none', compact ? 'h-6' : 'h-7', statusDisplay.chipClass)} title={statusDisplay.label}>
-            <span className="truncate">{statusDisplay.label}</span>
-          </span>
-          {age ? <span className="max-w-full truncate mono text-xs text-muted-foreground" title={age}>{age}</span> : null}
-        </div>
-
-        {hasProgress && (
-          <div className="col-start-2 flex min-w-0 flex-col gap-1.5 sm:col-span-2">
-            <div className="flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground">
-              <span className="min-w-0 truncate">{progress}</span>
-              {pct !== null && <span className="shrink-0 tabular-nums">{pct}%</span>}
+          {hasProgress && (
+            <div className="mt-1 flex items-center gap-2 max-w-[24rem]">
+              <div className="flex-1 min-w-0">
+                <WavyProgress
+                  value={pct ?? 0}
+                  height={10}
+                  active={item.status === 'in_progress'}
+                  label={`${pct}% watched`}
+                />
+              </div>
+              <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">{pct}%</span>
             </div>
-            <SegmentedBar
-              watched={item.episodes_watched}
-              total={item.episodes_total}
-              status={item.status}
-              units={item.type === 'show' ? item.seasons_total : undefined}
-              boxH={compact ? 4 : 6}
-            />
-          </div>
-        )}
+          )}
+        </div>
+
+        <span
+          className={cn('chip h-6 shrink-0 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
+          title={statusDisplay.label}
+        >
+          <span className="truncate">{statusDisplay.shortLabel}</span>
+        </span>
       </div>
     </button>
+  );
+}
+
+// ─── Shelves view — horizontal poster rows grouped by status ────────────
+// Streaming-app scan pattern: each lifecycle bucket gets its own shelf so
+// "what am I watching" and "what's queued" separate at a glance. Series
+// grouping is intentionally ignored here; every entry stands alone.
+function MediaShelves({ items, onPick }: { items: MediaEntry[]; onPick: (item: MediaEntry) => void }) {
+  const shelves = useMemo(() => {
+    const buckets = new Map<MediaStatus, MediaEntry[]>();
+    for (const it of items) {
+      if (!buckets.has(it.status)) buckets.set(it.status, []);
+      buckets.get(it.status)!.push(it);
+    }
+    return STATUS_OPTIONS
+      .filter((s) => buckets.has(s.value))
+      .map((s) => ({ meta: s, items: buckets.get(s.value)! }));
+  }, [items]);
+
+  return (
+    <div className="sajni-stagger flex flex-col gap-6">
+      {shelves.map(({ meta, items: shelfItems }) => (
+        <section key={meta.value} aria-label={meta.label}>
+          <header className="flex items-baseline gap-2 mb-2.5 px-0.5">
+            <span className={cn('size-2 rounded-full self-center shrink-0', meta.dot)} />
+            <h3 className="serif text-sm font-semibold tracking-tight">{meta.label}</h3>
+            <span className="mono text-xs tabular-nums text-muted-foreground">{shelfItems.length}</span>
+          </header>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 snap-x snap-proximity">
+            {shelfItems.map((item) => (
+              <div key={item.id} className="w-[124px] sm:w-[148px] shrink-0 snap-start">
+                <PosterCard item={item} onClick={() => onPick(item)} />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// ─── Table view — maximum density ────────────────────────────────────────
+// Sorting stays in the toolbar's sort control; the table is a flat readout.
+function MediaTable({ items, onPick }: { items: MediaEntry[]; onPick: (item: MediaEntry) => void }) {
+  return (
+    <div className="overflow-x-auto rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+      <table className="w-full min-w-[560px] text-sm border-collapse">
+        <thead>
+          <tr className="mono text-xs uppercase tracking-[0.14em] text-muted-foreground text-left">
+            <th className="font-medium px-4 py-3">Title</th>
+            <th className="font-medium px-3 py-3 w-16">Year</th>
+            <th className="font-medium px-3 py-3 w-32">Status</th>
+            <th className="font-medium px-3 py-3 w-16">Rating</th>
+            <th className="font-medium px-3 py-3 w-24">Progress</th>
+            <th className="font-medium px-3 py-3 w-28 text-right pr-4">Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, idx) => {
+            const statusDisplay = mediaStatusDisplay(item);
+            const pct = listProgressPct(item);
+            return (
+              <tr
+                key={item.id}
+                onClick={() => onPick(item)}
+                className="cursor-pointer border-t border-[hsl(var(--outline-variant))] transition-colors hover:bg-[hsl(var(--surface-container))]"
+              >
+                <td className="px-4 py-2">
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <MediaThumb item={item} index={idx} variant="sm" className="!w-7 !h-10 !rounded" />
+                    <span className="serif font-medium truncate max-w-[18rem]">{item.title || 'Untitled'}</span>
+                  </span>
+                </td>
+                <td className="px-3 py-2 mono text-xs tabular-nums text-muted-foreground">{item.year || '—'}</td>
+                <td className="px-3 py-2">
+                  <span className={cn('chip h-6 px-2.5 text-xs leading-none max-w-full', statusDisplay.chipClass)} title={statusDisplay.label}>
+                    <span className="truncate">{statusDisplay.shortLabel}</span>
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  {item.rating ? (
+                    <span className="inline-flex items-center gap-0.5 text-xs text-secondary">
+                      <Star className="size-3 fill-current" />
+                      <span className="tabular-nums">{item.rating}</span>
+                    </span>
+                  ) : <span className="text-muted-foreground/50">—</span>}
+                </td>
+                <td className="px-3 py-2 mono text-xs tabular-nums text-muted-foreground">
+                  {pct !== null ? `${pct}%` : '—'}
+                </td>
+                <td className="px-3 py-2 mono text-xs text-muted-foreground text-right pr-4 whitespace-nowrap">
+                  {item.updated_at ? relativeTiny(item.updated_at) : '—'}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -1937,16 +2096,6 @@ function listProgressPct(item: MediaEntry): number | null {
   return pct;
 }
 
-function progressDetailLabel(item: MediaEntry): string {
-  if (item.type === 'show') {
-    const pos = progressLabel(item);
-    return `${pos || 'Progress'} · ${item.episodes_watched}/${item.episodes_total} episodes`;
-  }
-  if (item.type === 'book') {
-    return `Pages ${item.episodes_watched}/${item.episodes_total}`;
-  }
-  return '';
-}
 
 function SeriesPosterCard({
   row, onOpen,
@@ -1994,8 +2143,13 @@ function SeriesPosterCard({
       </div>
       <div className="mt-2 px-0.5">
         <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
-        <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
-          {row.members.length} movies{upcomingDate ? ` · ${upcomingDate}` : ''}
+        {/* Two meta rows to mirror PosterCard's block, so series tiles and
+            movie tiles keep the same text-zone height in a grid row. */}
+        <div className="mono text-xs text-muted-foreground mt-0.5 truncate min-h-4">
+          {row.members.length} movies
+        </div>
+        <div className="mono text-xs text-muted-foreground mt-0.5 truncate min-h-4">
+          {upcomingDate ? `Next ${upcomingDate}` : ''}
         </div>
       </div>
     </button>

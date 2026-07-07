@@ -15,8 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Flame, Loader2, Pencil, Check } from '@/components/ui/icons';
-import PageShell from '@/components/PageShell';
+import { Plus, Trash2, Flame, Loader2, Pencil, Check, ChevronLeft, ChevronRight } from '@/components/ui/icons';
+import PageShell, { IslandAction } from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 
@@ -38,7 +38,12 @@ function dayLetter(key: string): string {
 // dot) opens the edit dialog.
 export default function HabitsPage() {
   const { data: habitsList = [], isLoading: loading } = useHabits();
-  const { data: recentLogsMap = {} } = useHabitRecentLogs(14);
+  // weekOffset ≤ 0: 0 = this week, -1 = last week… Backfilling the past is
+  // allowed; the future is not, so the forward chevron pins at 0.
+  const [weekOffset, setWeekOffset] = useState(0);
+  // Widen the log window to cover the week being viewed (+ a week of slack
+  // so streak dots at the window edge don't blink out).
+  const { data: recentLogsMap = {} } = useHabitRecentLogs(14 - weekOffset * 7);
   const toggleLog = useToggleHabitLog(format(new Date(), 'yyyy-MM-dd'));
   const createHabit = useCreateHabit();
   const updateHabit = useUpdateHabit();
@@ -59,16 +64,11 @@ export default function HabitsPage() {
   const week = useMemo(() => {
     // Fixed calendar week, Monday..Sunday (matches the journal). Today lands in
     // its real weekday slot; days after today render as disabled placeholders.
-    const mon = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const mon = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset * 7);
     return Array.from({ length: 7 }, (_, i) => addDays(mon, i));
-  }, []);
+  }, [weekOffset]);
   const weekKeys = useMemo(() => week.map((d) => format(d, 'yyyy-MM-dd')), [week]);
   const todayKey = format(new Date(), 'yyyy-MM-dd');
-
-  const longestStreak = useMemo(
-    () => habitsList.reduce((m, h) => Math.max(m, h.current_streak), 0),
-    [habitsList],
-  );
 
   // Deep-link: /habits?focus=<id> opens that habit's edit dialog once loaded.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -121,14 +121,45 @@ export default function HabitsPage() {
     toggleLog.mutate({ id: habit.id, date: dateStr });
   };
 
-  const caption = `${habitsList.length} active ${habitsList.length === 1 ? 'habit' : 'habits'}${longestStreak > 0 ? ` · longest streak ${longestStreak} ${longestStreak === 1 ? 'day' : 'days'}` : ''}`;
-
   return (
     <PageShell
-      caption={caption}
       title="Habits"
-      actions={<Button onClick={openCreate}><Plus className="size-3.5" /> New habit</Button>}
+      actions={<Button size="sm" onClick={openCreate} className="gap-1.5"><Plus className="size-3.5" /> New habit</Button>}
+      islandActions={<IslandAction icon={Plus} label="New habit" onClick={openCreate} />}
     >
+      {/* Week navigation — back to fill missed days, never into the future. */}
+      <div className="flex items-center gap-1 -mb-2">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setWeekOffset((o) => o - 1)}
+          title="Previous week"
+          aria-label="Previous week"
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+        <span className="mono text-xs tracking-[0.08em] text-muted-foreground tabular-nums min-w-[9.5rem] text-center">
+          {weekOffset === 0
+            ? 'This week'
+            : `${format(week[0], 'MMM d')} – ${format(week[6], 'MMM d')}`}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setWeekOffset((o) => Math.min(0, o + 1))}
+          disabled={weekOffset === 0}
+          title="Next week"
+          aria-label="Next week"
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+        {weekOffset < 0 && (
+          <Button variant="ghost" size="sm" className="ml-1 h-8 rounded-full text-xs" onClick={() => setWeekOffset(0)}>
+            Today
+          </Button>
+        )}
+      </div>
+
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
           {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-40 w-full rounded-[28px]" />)}

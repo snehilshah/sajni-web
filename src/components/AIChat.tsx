@@ -7,7 +7,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ai, type AIEvent, type AISessionMeta, type AIToolResult } from '@/api';
 import { SKILLS } from '@/lib/aiSkills';
@@ -61,7 +61,47 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+// Global chat surface: right-side sheet. The actual chat UI lives in
+// ChatPanel so the Projects page can embed the same panel inline.
 export default function AIChat({ open, onOpenChange }: Props) {
+  const isMobile = useIsMobile();
+  const vvBox = useVisualViewportBox(open && isMobile);
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="md:!max-w-md w-full max-md:!max-w-full max-md:!rounded-none flex flex-col p-0 gap-0"
+        style={
+          isMobile && vvBox
+            ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' }
+            : undefined
+        }
+      >
+        <ChatPanel
+          active={open}
+          sheet
+          handleGlobalOpen
+          onRequestOpen={() => onOpenChange(true)}
+          onNavigate={() => onOpenChange(false)}
+        />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ChatPanel — header + transcript + composer, host-agnostic. `sheet` pads
+// the header clear of the sheet's absolute close X; `handleGlobalOpen`
+// makes THIS instance answer window `chat:open` events (only the global
+// sheet should, or an embedded panel would double-send seeded messages).
+export function ChatPanel({
+  active, sheet = false, handleGlobalOpen = false, onRequestOpen, onNavigate,
+}: {
+  active: boolean;
+  sheet?: boolean;
+  handleGlobalOpen?: boolean;
+  onRequestOpen?: () => void;
+  onNavigate?: () => void;
+}) {
   const navigate = useNavigate();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -75,18 +115,18 @@ export default function AIChat({ open, onOpenChange }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load AI status + session list on first open.
+  // Load AI status + session list on first activation.
   useEffect(() => {
-    if (!open || enabled !== null) return;
+    if (!active || enabled !== null) return;
     ai.status()
       .then((s) => setEnabled(!!s.enabled))
       .catch(() => setEnabled(false));
-  }, [open, enabled]);
+  }, [active, enabled]);
 
   useEffect(() => {
-    if (!open || !enabled) return;
+    if (!active || !enabled) return;
     ai.listSessions().then(setSessions).catch(() => {});
-  }, [open, enabled]);
+  }, [active, enabled]);
 
   // Autoscroll on new content.
   useEffect(() => {
@@ -94,10 +134,10 @@ export default function AIChat({ open, onOpenChange }: Props) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, streaming]);
 
-  // Focus input when the sheet opens.
+  // Focus input on activation.
   useEffect(() => {
-    if (open) requestAnimationFrame(() => inputRef.current?.focus());
-  }, [open]);
+    if (active) requestAnimationFrame(() => inputRef.current?.focus());
+  }, [active]);
 
   const ensureSession = useCallback(async (): Promise<number | null> => {
     if (sessionId) return sessionId;
@@ -235,8 +275,9 @@ export default function AIChat({ open, onOpenChange }: Props) {
   //     off the persisted exchange so the chat picks up mid-stream), or
   //   • seeds a message to send immediately (legacy fallback).
   useEffect(() => {
+    if (!handleGlobalOpen) return;
     const onChatOpen = (e: Event) => {
-      onOpenChange(true);
+      onRequestOpen?.();
       const detail = (e as CustomEvent).detail || {};
       const sid = detail.sessionId as number | undefined;
       const seed = detail.seedMessage as string | undefined;
@@ -249,7 +290,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
     };
     window.addEventListener('chat:open', onChatOpen);
     return () => window.removeEventListener('chat:open', onChatOpen);
-  }, [loadSession, onOpenChange, send]);
+  }, [handleGlobalOpen, loadSession, onRequestOpen, send]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -260,28 +301,16 @@ export default function AIChat({ open, onOpenChange }: Props) {
 
   const showEmptyState = messages.length === 0 && !streaming;
 
-  const isMobile = useIsMobile();
-  const vvBox = useVisualViewportBox(open && isMobile);
-
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="md:!max-w-md w-full max-md:!max-w-full max-md:!rounded-none flex flex-col p-0 gap-0"
-        style={
-          isMobile && vvBox
-            ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' }
-            : undefined
-        }
-      >
-        <SheetHeader className="p-4 pb-3 border-b border-border">
+    <div className="flex-1 min-h-0 flex flex-col">
+        <div className="p-4 pb-3 border-b border-border">
           {/* pr-10 clears the sheet's absolute close X (top-4 right-4) so
               the New button never sits underneath it. */}
-          <div className="flex items-center gap-2 pr-10">
+          <div className={`flex items-center gap-2 ${sheet ? 'pr-10' : ''}`}>
             <div className="size-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
               <Sparkles className="size-4" />
             </div>
-            <SheetTitle className="font-serif text-base flex-1">Sajni</SheetTitle>
+            <div className="font-serif text-base font-semibold flex-1">Sajni</div>
             <Button
               size="sm"
               variant="ghost"
@@ -329,7 +358,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
               )}
             </div>
           )}
-        </SheetHeader>
+        </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
           {enabled === false && (
@@ -374,7 +403,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
                 msg={m}
                 onActionClick={(route) => {
                   navigate(route);
-                  onOpenChange(false);
+                  onNavigate?.();
                   const [_, hash] = route.split('#');
                   if (hash) {
                     setTimeout(() => {
@@ -420,8 +449,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
             Sajni can make mistakes. Verify before acting.
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+    </div>
   );
 }
 

@@ -122,7 +122,6 @@
 
   /* Density + sizing */
   --text-scale: 1;
-  --tabbar-h: 68px;
   --radius: 12px;
 
   /* Media palette — cool, sage-leaning */
@@ -473,7 +472,6 @@
 
 html {
   font-size: calc(16px * var(--text-scale, 1));
-  scrollbar-gutter: stable;
 }
 html, body, #root {
   height: 100%;
@@ -632,8 +630,17 @@ body {
 .sajni-stagger > *:nth-child(7) { animation-delay: 340ms; }
 .sajni-stagger > *:nth-child(8) { animation-delay: 390ms; }
 
+/* M3 Expressive wavy progress — the filled path is drawn one wavelength
+   wider than the clip window and drifts left by exactly that wavelength,
+   so the loop is seamless. Units are SVG user units (viewBox space). */
+@keyframes sajni-wave-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-20px); }
+}
+.sajni-wave-drift { animation: sajni-wave-drift 1.4s linear infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .fade-up, .fade-in, .page-fade-in, .sajni-stagger > * { animation: none !important; }
+  .fade-up, .fade-in, .page-fade-in, .sajni-stagger > *, .sajni-wave-drift { animation: none !important; }
 }
 
 /* ============================================================
@@ -859,21 +866,6 @@ em, .italic { font-style: italic; }
 .heatmap-cell.l2 { background: hsl(var(--primary) / 0.55); }
 .heatmap-cell.l3 { background: hsl(var(--primary) / 0.78); }
 .heatmap-cell.l4 { background: hsl(var(--primary)); }
-
-/* ============================================================
-   Mobile tabbar — M3 NavigationBar style.
-   ============================================================ */
-.tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: calc(var(--tabbar-h) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  align-items: stretch;
-  background: hsl(var(--surface-container));
-  border-top: 1px solid hsl(var(--outline-variant));
-  z-index: 30;
-}
 
 button, [role="button"], a {
   -webkit-tap-highlight-color: transparent;

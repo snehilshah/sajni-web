@@ -29,7 +29,7 @@ import BillersTab from './BillersTab';
 import { downloadCSV, isPrivacyMode, setPrivacyMode } from './utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import PageShell, { PageShellTabs } from '@/components/PageShell';
+import PageShell, { IslandAction, PageShellTabs } from '@/components/PageShell';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -139,8 +139,16 @@ export default function FinancePage() {
 
   return (
     <PageShell
-      caption="accounts · ledger · plans"
       title="Finance"
+      activeTabLabel={tabs.find((t) => t.id === active)?.label}
+      islandActions={
+        <IslandAction
+          icon={privacy ? VenetianMask : Eye}
+          label={privacy ? 'Privacy on — tap to reveal figures' : 'Hide all figures'}
+          active={privacy}
+          onClick={togglePrivacy}
+        />
+      }
       hideScrollbar
       contentClassName="max-w-6xl w-full mx-auto px-3 md:px-8 py-5 pb-20 relative"
       actions={
@@ -153,6 +161,7 @@ export default function FinancePage() {
       }
       navigation={
         <PageShellTabs
+          bare
           ariaLabel="Finance sections"
           value={active}
           options={tabs.map((t) => ({ value: t.id, label: t.label, icon: t.icon }))}

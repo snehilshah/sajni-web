@@ -215,11 +215,17 @@ export interface Note {
   title: string;
   folder: string;
   description: string;
+  pinned: boolean;
   content?: string;
   tags: string[];
   backlinks: BacklinkRef[];
   created_at: string;
   updated_at: string;
+}
+
+export interface NoteFolder {
+  path: string;
+  pinned: boolean;
 }
 
 export interface BacklinkRef {
