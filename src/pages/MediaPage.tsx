@@ -1901,6 +1901,35 @@ function chipClassFor(status: MediaStatus): string {
   }
 }
 
+// RowRail — the fixed right-hand rail every non-progress list row shares:
+// ghost numeral slot · five-star slot · chip slot. Slots are RESERVED even
+// when data is missing (blank ghost, dim empty stars) so the columns line
+// up row after row — no ragged right edge when TMDB has no year or the
+// entry is unrated.
+function RowRail({ ghost, rating, chip }: {
+  ghost?: React.ReactNode;
+  rating: number;
+  chip: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2 shrink-0 self-center">
+      <span
+        aria-hidden="true"
+        className="hidden lg:block w-16 text-right serif text-[30px] font-semibold tracking-tight leading-none text-foreground/[0.08] select-none pointer-events-none"
+      >
+        {ghost ?? ''}
+      </span>
+      <span
+        className="hidden md:inline-flex w-[84px] justify-center"
+        title={rating ? `Rated ${rating}/5` : 'Not rated'}
+      >
+        <StarRating value={rating} />
+      </span>
+      <span className="flex w-auto md:w-28 justify-end">{chip}</span>
+    </div>
+  );
+}
+
 // MediaListRow — dense single-entry list row. One tight flex line:
 // thumb · (title + meta + optional thin progress) · (status chip + age).
 // The old three-column grid reserved a wide right column that read as
@@ -1990,30 +2019,27 @@ function MediaListRow({
           )}
         </div>
 
-        {/* Ghost numeral — faint editorial year in the quiet middle. In
-            normal flow (not absolute) so it can never collide with the
-            star band or status chip. */}
-        {!hasProgress && item.year ? (
+        {hasProgress ? (
           <span
-            aria-hidden="true"
-            className="hidden lg:block shrink-0 serif text-[34px] font-semibold tracking-tight leading-none text-foreground/[0.08] select-none pointer-events-none mr-1"
+            className={cn('chip h-6 shrink-0 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
+            title={statusDisplay.label}
           >
-            {item.year}
+            <span className="truncate">{statusDisplay.shortLabel}</span>
           </span>
-        ) : null}
-
-        {!hasProgress && item.rating ? (
-          <span className="hidden md:inline-flex shrink-0 mr-0.5" title={`Rated ${item.rating}/5`}>
-            <StarRating value={item.rating} />
-          </span>
-        ) : null}
-
-        <span
-          className={cn('chip h-6 shrink-0 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
-          title={statusDisplay.label}
-        >
-          <span className="truncate">{statusDisplay.shortLabel}</span>
-        </span>
+        ) : (
+          <RowRail
+            ghost={item.year || undefined}
+            rating={item.rating || 0}
+            chip={
+              <span
+                className={cn('chip h-6 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
+                title={statusDisplay.label}
+              >
+                <span className="truncate">{statusDisplay.shortLabel}</span>
+              </span>
+            }
+          />
+        )}
       </div>
     </button>
   );
@@ -2279,6 +2305,9 @@ function SeriesListRow({
   const oldest = row.members[0]?.year;
   const newest = row.members[row.members.length - 1]?.year;
   const yearLabel = oldest && newest && oldest !== newest ? `${oldest}–${newest}` : oldest ? String(oldest) : '';
+  // Series rating = best member rating; unrated members don't drag it down.
+  const seriesRating = row.members.reduce((m, x) => Math.max(m, x.rating || 0), 0);
+  const pct = Math.round((watched / row.members.length) * 100);
 
   return (
     <div className={cn(
@@ -2288,72 +2317,72 @@ function SeriesListRow({
         : 'rounded-2xl border border-[hsl(var(--outline-variant))]',
       className,
     )}>
+      {/* Header — the exact MediaListRow anatomy (thumb · text block ·
+          RowRail) so series rows sit flush with single movies. */}
       <button
         onClick={onToggle}
         aria-expanded={expanded}
-        className="m3-state group relative w-full bg-[hsl(var(--surface-container-low))] p-3 md:p-3.5 text-left transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))]"
+        className="m3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] p-2.5 sm:px-3 text-left transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]"
       >
-        <div className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)_2rem] gap-x-3 gap-y-2 sm:grid-cols-[52px_minmax(0,1fr)_minmax(10rem,14rem)_2rem]">
-          <MediaThumb item={cover} index={0} variant="card" className="row-span-2" />
-
-          <div className="min-w-0 self-start">
-            <div className="serif text-[16px] font-medium leading-snug truncate">{row.collectionName}</div>
-            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 mono text-xs text-muted-foreground">
-              {yearLabel && <span className="shrink-0">{yearLabel}</span>}
-              <span className="shrink-0">{row.members.length} movies</span>
-            </div>
-
-            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 sm:hidden">
-              <span className="chip chip-sage h-6 px-2.5 text-xs leading-none">
-                <Film className="size-3" /> Series
-              </span>
-              <span className="chip h-6 px-2.5 text-xs leading-none tabular-nums">
-                {watched}/{row.members.length}
-              </span>
-              {upcoming && (
-                <span className="chip chip-upcoming h-6 max-w-full px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
-                  <span className="truncate">Upcoming {upcomingDate}</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="hidden min-w-0 flex-col items-end gap-1.5 self-start sm:flex">
-            <div className="flex max-w-full flex-wrap justify-end gap-1.5">
-              <span className="chip chip-sage h-7 px-2.5 text-xs leading-none">
-                <Film className="size-3" /> Series
-              </span>
-              <span className="chip h-7 px-2.5 text-xs leading-none tabular-nums">
-                {watched}/{row.members.length}
-              </span>
-              {upcoming && (
-                <span className="chip chip-upcoming h-7 max-w-full px-2.5 text-xs leading-none" title={`Upcoming ${upcomingDate}`}>
-                  <span className="truncate">Upcoming {upcomingDate}</span>
-                </span>
-              )}
-            </div>
-            <span className="max-w-full truncate mono text-xs text-muted-foreground">
-              Watched {watched} of {row.members.length}
-            </span>
-          </div>
-
-          <span className="grid size-8 shrink-0 place-items-center self-start rounded-full border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-muted-foreground transition-colors group-hover:border-[hsl(var(--outline))] group-hover:text-foreground">
-            <span className="sr-only">{expanded ? 'Hide movies' : 'View movies'}</span>
-            <ChevronRight className={cn('size-3.5 transition-transform duration-200', expanded && 'rotate-90')} />
-          </span>
-
-          <div className="col-start-2 col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-3">
-            <div className="flex min-w-0 items-center justify-between gap-2 mono text-xs text-muted-foreground sm:hidden">
-              <span>Watched {watched}/{row.members.length}</span>
-            </div>
-            <SegmentedBar
-              watched={watched}
-              total={row.members.length}
-              status={watched === row.members.length ? 'complete' : 'in_progress'}
-              units={row.members.length}
-              boxH={6}
+        {cover?.poster_url && (
+          <div aria-hidden="true" className="absolute inset-y-0 left-0 w-72 pointer-events-none">
+            <img
+              src={cover.poster_url}
+              alt=""
+              loading="lazy"
+              className="w-full h-full object-cover blur-xl scale-125 opacity-[0.32] dark:opacity-[0.42] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:group-hover:opacity-[0.55]"
+              style={{
+                maskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
+                WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
+              }}
             />
           </div>
+        )}
+
+        <div className="relative flex items-center gap-3 min-w-0">
+          <MediaThumb
+            item={cover}
+            index={0}
+            variant="sm"
+            className="transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-hover:scale-[1.05]"
+          />
+
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="serif min-w-0 text-[15px] font-medium leading-snug truncate">
+                {row.collectionName}
+              </span>
+            </div>
+            <div className="flex min-w-0 items-center gap-x-2 mono text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
+              <span className="shrink-0">Series</span>
+              {yearLabel && <span className="shrink-0">· {yearLabel}</span>}
+              <span className="shrink-0">· {row.members.length} movies</span>
+              {upcoming && <span className="min-w-0 truncate hidden sm:inline">· next {upcomingDate}</span>}
+            </div>
+            <div className="mt-1.5 flex items-center gap-2.5">
+              <WavyProgress
+                value={pct}
+                height={12}
+                active={watched > 0 && watched < row.members.length}
+                label={`${watched} of ${row.members.length} watched`}
+                className="flex-1"
+              />
+              <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">
+                {watched}/{row.members.length}
+              </span>
+            </div>
+          </div>
+
+          <RowRail
+            ghost={`×${row.members.length}`}
+            rating={seriesRating}
+            chip={
+              <span className="chip chip-sage h-6 px-2.5 text-xs leading-none gap-1">
+                <Film className="size-3" /> Series
+                <ChevronRight className={cn('size-3 transition-transform duration-200', expanded && 'rotate-90')} />
+              </span>
+            }
+          />
         </div>
       </button>
       <AnimatePresence initial={false}>
