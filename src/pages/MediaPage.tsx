@@ -2107,10 +2107,26 @@ function MediaTable({ items, onPick }: { items: MediaEntry[]; onPick: (item: Med
               <tr
                 key={item.id}
                 onClick={() => onPick(item)}
-                className="cursor-pointer border-t border-[hsl(var(--outline-variant))] transition-colors hover:bg-[hsl(var(--surface-container))]"
+                className="group cursor-pointer border-t border-[hsl(var(--outline-variant))] transition-colors hover:bg-[hsl(var(--surface-container))]"
               >
-                <td className="px-4 py-2">
-                  <span className="flex items-center gap-2.5 min-w-0">
+                <td className="relative px-4 py-2">
+                  {/* Ambient art — same poster bleed as the list rows,
+                      scoped to the title cell (tr can't anchor absolutes). */}
+                  {item.poster_url && (
+                    <span aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
+                      <img
+                        src={item.poster_url}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-full object-cover blur-lg scale-125 opacity-[0.26] dark:opacity-[0.36] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.4] dark:group-hover:opacity-[0.5]"
+                        style={{
+                          maskImage: 'linear-gradient(to right, black 40%, transparent 98%)',
+                          WebkitMaskImage: 'linear-gradient(to right, black 40%, transparent 98%)',
+                        }}
+                      />
+                    </span>
+                  )}
+                  <span className="relative flex items-center gap-2.5 min-w-0">
                     <MediaThumb item={item} index={idx} variant="sm" className="!w-7 !h-10 !rounded" />
                     <span className="serif font-medium truncate max-w-[18rem]">{item.title || 'Untitled'}</span>
                   </span>

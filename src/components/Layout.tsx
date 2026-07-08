@@ -12,6 +12,7 @@ import Backdrop from '@/components/Backdrop';
 import Onboarding from '@/components/Onboarding';
 import { NAV_ITEMS, NavChromeContext, isActivePath } from '@/components/nav-chrome';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useMode, useDensity, useTheme } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
 import {
@@ -135,13 +136,20 @@ function PrimaryBar({
   return (
     <motion.div
       initial={false}
-      animate={{ height: scrolled ? 0 : 'auto', opacity: scrolled ? 0 : 1 }}
-      transition={{ duration: 0.32, ease: [0.2, 0, 0, 1] }}
+      // Height-only collapse; the pill inside fades in AFTER the stacked
+      // heights settle so it never visibly travels (see PageChrome).
+      animate={{ height: scrolled ? 0 : 'auto' }}
+      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
       className="relative z-40 shrink-0 overflow-hidden"
       style={{ pointerEvents: scrolled ? 'none' : 'auto' }}
       aria-hidden={scrolled}
     >
-      <div
+      <motion.div
+        initial={false}
+        animate={{ opacity: scrolled ? 0 : 1 }}
+        transition={scrolled
+          ? { duration: 0.12, ease: [0.2, 0, 0, 1] }
+          : { duration: 0.18, ease: [0.2, 0, 0, 1], delay: 0.22 }}
         className="flex justify-center px-4 pb-2"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
       >
@@ -191,7 +199,7 @@ function PrimaryBar({
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -220,9 +228,10 @@ function SearchIsland({ onOpen }: { onOpen: () => void }) {
 // Always visible: nav must stay in thumb reach. Icons scroll horizontally
 // when they overflow; search + avatar are pinned at the trailing edge.
 function BottomDock({
-  pathname, onOpenCommand, userMenuContent, initials, accountMenuOpen, setAccountMenuOpen,
+  pathname, hidden, onOpenCommand, userMenuContent, initials, accountMenuOpen, setAccountMenuOpen,
 }: {
   pathname: string;
+  hidden: boolean;
   onOpenCommand: () => void;
   userMenuContent: ReactNode;
   initials: string;
@@ -230,7 +239,12 @@ function BottomDock({
   setAccountMenuOpen: (open: boolean) => void;
 }) {
   return (
-    <div
+    <motion.div
+      initial={false}
+      // Slides fully off-screen while the keyboard is up so typing gets
+      // the whole shortened viewport.
+      animate={{ y: hidden ? 96 : 0, opacity: hidden ? 0 : 1 }}
+      transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
       className="fixed inset-x-0 z-50 md:hidden flex justify-center px-3 pointer-events-none"
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
     >
@@ -289,7 +303,7 @@ function BottomDock({
           </DropdownMenuContent>
         </DropdownMenu>
       </nav>
-    </div>
+    </motion.div>
   );
 }
 
@@ -303,6 +317,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const keyboardOpen = useKeyboardOpen(isMobile);
   useMode();
   useDensity();
   useTheme();
@@ -368,6 +383,7 @@ export default function Layout() {
         {isMobile && (
           <BottomDock
             pathname={location.pathname}
+            hidden={keyboardOpen}
             onOpenCommand={openCommand}
             userMenuContent={userMenuBody}
             initials={initials}

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
+import { ArrowUp, Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 
@@ -110,21 +110,32 @@ export default function MemosPage() {
       }
     >
       <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
-          {/* Composer — tonal, weightless; focus ring comes from the field. */}
-          <div className="rounded-2xl bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors">
-            <Textarea
-              ref={draftRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="What's on your mind?"
-              className="min-h-[88px] text-[15px] leading-relaxed resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-4 pt-3"
-            />
-            <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-border/60">
-              <span className="text-xs text-muted-foreground font-mono">⌘ + Enter to save</span>
-              <Button onClick={handleCreate} disabled={!draft.trim() || creating} size="sm" className="gap-1.5">
-                {creating && <Loader2 className="size-3.5 animate-spin" />}
-                Save memo
+          {/* Composer — first entry of the timeline. Shares the exact
+              [rail | card] grid of the feed rows so every left edge lines
+              up; the rail says "now" where rows say "15s ago". */}
+          <div className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start">
+            <span className="mono text-xs text-[hsl(var(--primary))] text-right leading-none pt-[15px] select-none">
+              now
+            </span>
+            <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors p-1.5 pl-2.5">
+              <Textarea
+                ref={draftRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="What's on your mind?"
+                title="⌘ + Enter to save"
+                className="min-h-[36px] max-h-48 text-[14.5px] leading-relaxed resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-1 py-2"
+              />
+              <Button
+                onClick={handleCreate}
+                disabled={!draft.trim() || creating}
+                size="icon-sm"
+                className="rounded-full shrink-0 mb-0.5"
+                title="Save memo (⌘ + Enter)"
+                aria-label="Save memo"
+              >
+                {creating ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-4" />}
               </Button>
             </div>
           </div>
@@ -241,7 +252,7 @@ function MemoRow({ memo, onOpen, onPin }: {
       className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start"
     >
       <span
-        className="mono text-xs text-muted-foreground text-right leading-none pt-3.5 select-none"
+        className="mono text-xs text-muted-foreground text-right leading-none pt-[15px] select-none"
         title={created.toLocaleString()}
       >
         {shortAgo(created)}
@@ -256,7 +267,9 @@ function MemoRow({ memo, onOpen, onPin }: {
             : 'bg-[hsl(var(--surface-container-low))] hover:bg-[hsl(var(--surface-container))]'
         }`}
       >
-        <div className="prose-sajni text-[14.5px] leading-relaxed line-clamp-3">
+        {/* Trailing-margin kill: markdown's last block otherwise pads the
+            card bottom unevenly vs. the top. */}
+        <div className="prose-sajni text-[14.5px] leading-relaxed line-clamp-3 [&>:last-child]:!mb-0 [&>:first-child]:!mt-0">
           <Markdown remarkPlugins={[remarkGfm]}>{memo.content}</Markdown>
         </div>
 

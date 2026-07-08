@@ -587,59 +587,50 @@ export default function JournalPage() {
     </>
   );
 
-  return (
-    <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
-      {/* App-consistent full-width header. Vault (left) + context (right)
-          panels live BELOW this header so chrome is continuous. */}
-      <header
-        className="flex items-center justify-between gap-2 pl-3 md:pl-4 pr-2 md:pr-3 py-2 border-b border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] sticky top-0 z-20 min-h-14 md:min-h-16 shrink-0"
-        style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}
+  // No chrome row at all — the serif date hero IS the page header, and
+  // every control rides its trailing cluster (see day view below).
+  const heroControls = (
+    <div className="flex items-center gap-0.5 shrink-0 flex-wrap justify-end">
+      <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={goPrev} title="Previous day" aria-label="Previous day">
+        <ChevronLeft className="size-4" />
+      </Button>
+      {!isToday && (
+        <Button variant="ghost" size="sm" onClick={goToday} className="rounded-full text-xs h-8 px-2.5 text-[hsl(var(--primary))]">
+          Today
+        </Button>
+      )}
+      <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={goNext} title="Next day" aria-label="Next day">
+        <ChevronRight className="size-4" />
+      </Button>
+      <span className="w-px h-4 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+      <SaveStatus state={savingState} onSave={() => performSave()} />
+      {entryDates.has(selectedDate) && (
+        <Button variant="ghost" size="icon-sm" onClick={deleteEntry} className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete entry">
+          <Trash2 className="size-4" />
+        </Button>
+      )}
+      <span className="w-px h-4 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+      <Button
+        variant="ghost" size="icon-sm"
+        onClick={() => isMobile ? setMobileSidebarOpen(true) : setSidebarOpen((v) => !v)}
+        className="shrink-0 rounded-full"
+        title={isMobile ? 'Journal & calendar' : (sidebarOpen ? 'Hide journal' : 'Show journal')}
       >
-        <div className="flex items-center gap-1 min-w-0 flex-1">
-          <Button
-            variant="ghost" size="icon-sm"
-            onClick={() => isMobile ? setMobileSidebarOpen(true) : setSidebarOpen((v) => !v)}
-            className="shrink-0"
-            title={isMobile ? 'Journal & calendar' : (sidebarOpen ? 'Hide journal' : 'Show journal')}
-          >
-            {isMobile ? <PanelLeft className="size-4" /> : (sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />)}
-          </Button>
-          <SaveStatus state={savingState} onSave={() => performSave()} />
-        </div>
-        <div className="flex gap-0.5 items-center shrink-0">
-          {entryDates.has(selectedDate) && (
-            <Button variant="ghost" size="icon-sm" onClick={deleteEntry} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete entry">
-              <Trash2 className="size-4" />
-            </Button>
-          )}
-          <Button
-            variant="ghost" size="icon-sm"
-            onClick={() => isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v)}
-            className="shrink-0"
-            title={isMobile ? 'Show context' : (marginOpen ? 'Hide context' : 'Show context')}
-          >
-            {marginOpen && !isMobile ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
-          </Button>
-        </div>
-      </header>
+        {isMobile ? <PanelLeft className="size-4" /> : (sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />)}
+      </Button>
+      <Button
+        variant="ghost" size="icon-sm"
+        onClick={() => isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v)}
+        className="shrink-0 rounded-full"
+        title={isMobile ? 'Show context' : (marginOpen ? 'Hide context' : 'Show context')}
+      >
+        {marginOpen && !isMobile ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
+      </Button>
+    </div>
+  );
 
-      {/* Date nav — also full-width, beneath the header. */}
-      <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-border/60 bg-background/60 shrink-0">
-        <Button variant="ghost" size="icon-sm" onClick={goPrev} title="Previous day" className="shrink-0">
-          <ChevronLeft className="size-4" />
-        </Button>
-        <div className="flex-1 min-w-0 flex items-center justify-center">
-          <Breadcrumb dateObj={dateObj} />
-        </div>
-        <Button variant="ghost" size="icon-sm" onClick={goNext} title="Next day" className="shrink-0">
-          <ChevronRight className="size-4" />
-        </Button>
-        {!isToday && (
-          <Button variant="ghost" size="sm" onClick={goToday} className="text-xs ml-1 shrink-0">
-            Today
-          </Button>
-        )}
-      </div>
+  return (
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Editor pane (CENTER) */}
@@ -666,19 +657,25 @@ export default function JournalPage() {
               }}
             />
           ) : (
-            <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-5 min-h-full">
-              {/* Date title — Obsidian-style serif hero per the design. */}
-              <div>
-                {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
-                  <div className="mono text-xs tracking-[0.22em] uppercase text-primary/80 mb-3">
-                    ── continued from yesterday
+            <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
+              {/* Date title — Obsidian-style serif hero; ALL page controls
+                  ride its trailing edge (no chrome rows above). */}
+              <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
+                <div className="min-w-0">
+                  {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
+                    <div className="mono text-xs tracking-[0.22em] uppercase text-primary/80 mb-3">
+                      ── continued from yesterday
+                    </div>
+                  )}
+                  <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
+                    {format(dateObj, 'EEEE')}
+                  </h1>
+                  <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
+                    {format(dateObj, 'MMMM d, yyyy')}
                   </div>
-                )}
-                <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
-                  {format(dateObj, 'EEEE')}
-                </h1>
-                <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
-                  {format(dateObj, 'MMMM d, yyyy')}
+                </div>
+                <div className="mt-1">
+                  {heroControls}
                 </div>
               </div>
 
@@ -1283,18 +1280,6 @@ function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () =
         placeholder="Task title…"
         className="flex-1 h-7 text-[12.5px] px-2"
       />
-    </div>
-  );
-}
-
-function Breadcrumb({ dateObj }: { dateObj: Date }) {
-  return (
-    <div className="flex items-center gap-1 min-w-0 text-sm">
-      <span className="font-mono text-xs text-muted-foreground">{format(dateObj, 'yyyy')}</span>
-      <ChevronRight className="size-3 text-muted-foreground/60 shrink-0" />
-      <span className="font-mono text-xs text-muted-foreground">{format(dateObj, 'MMM')}</span>
-      <ChevronRight className="size-3 text-muted-foreground/60 shrink-0" />
-      <span className="text-foreground/90 truncate">{format(dateObj, 'd, EEEE')}</span>
     </div>
   );
 }

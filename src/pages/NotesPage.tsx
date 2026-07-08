@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { PageChrome, PageShellTabs } from '@/components/PageShell';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -23,7 +24,7 @@ import { msg } from '@/lib/errors';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
-  PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon, Pin, PinOff,
+  PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon, Pin, PinOff, ArrowUpRight,
 } from '@/components/ui/icons';
 
 function deriveTitle(content: string): string {
@@ -435,57 +436,75 @@ export default function NotesPage() {
   );
 
   return (
-    <div className="flex flex-col h-dvh overflow-hidden page-fade-in">
-      {/* App-consistent full-width header — vault toggle + breadcrumb +
-          save / move / delete actions. Page body (vault + editor) lives
-          BELOW this header so the chrome stays uninterrupted. */}
-      <header
-        className="flex items-center justify-between gap-3 pl-3 md:pl-4 pr-4 md:pr-6 py-2 border-b border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] sticky top-0 z-20 min-h-14 md:min-h-16 shrink-0"
-        style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
+      {/* Vault corner island — desktop. Sits top-left, mirroring the
+          search island top-right, so the pill itself never has to host
+          (or move for) the sidebar toggle. */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen((v) => !v)}
+        title={sidebarOpen ? 'Hide vault' : 'Show vault'}
+        aria-label={sidebarOpen ? 'Hide vault' : 'Show vault'}
+        className="fixed z-50 hidden md:inline-flex items-center justify-center size-12 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-2)] text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground transition-colors"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 16 }}
       >
-        <div className="flex items-center gap-1 min-w-0 flex-1">
-          <Button
-            variant="ghost" size="icon-sm"
-            onClick={() => isMobile ? setMobileTreeOpen(true) : setSidebarOpen((v) => !v)}
-            className="shrink-0"
-            title={isMobile ? 'Open vault' : (sidebarOpen ? 'Hide vault' : 'Show vault')}
-          >
-            {sidebarOpen && !isMobile ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
-          </Button>
-          {/* Memos lives as a sibling tab of the vault since the 2026-07
-              consolidation — one hop away, keeps the primary bar at 9 icons. */}
-          <button
-            type="button"
-            onClick={() => setParams({ tab: 'memos' })}
-            className="shrink-0 hidden sm:inline-flex items-center h-7 px-2.5 mr-1 rounded-full text-xs font-medium text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground transition-colors"
-            title="Switch to Memos"
-          >
-            Memos
-          </button>
-          <Breadcrumb segments={breadcrumb} title={selectedId ? (title || 'Untitled') : 'New note'} />
-        </div>
-        <div className="flex gap-1.5 items-center shrink-0">
-          <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
-          {selectedId && (
-            <>
+        {sidebarOpen ? <PanelLeftClose className="size-[18px]" /> : <PanelLeft className="size-[18px]" />}
+      </button>
+
+      {/* Islands pill — page-level and viewport-centered, so toggling
+          the vault never shifts it. */}
+      <PageChrome
+        title="Notes"
+        navigation={
+          <PageShellTabs
+            bare
+            ariaLabel="Notes sections"
+            value="notes"
+            options={[
+              { value: 'notes', label: 'Vault' },
+              { value: 'memos', label: 'Memos' },
+            ]}
+            onChange={(v) => { if (v === 'memos') setParams({ tab: 'memos' }); }}
+          />
+        }
+        actions={
+          <>
+            {isMobile && (
               <Button
                 variant="ghost" size="icon-sm"
-                onClick={() => selectedNote && handleTogglePinNote(selectedNote)}
-                className={selectedNote?.pinned ? 'text-primary' : undefined}
-                title={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
+                onClick={() => setMobileTreeOpen(true)}
+                className="shrink-0 rounded-full"
+                title="Open vault"
               >
-                {selectedNote?.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+                <PanelLeft className="size-4" />
               </Button>
-              <Button variant="ghost" size="icon-sm" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
-                <FolderMoveIcon className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon-sm" onClick={handleDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">
-                <Trash2 className="size-4" />
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
+            )}
+            <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
+            {selectedId && (
+              <>
+                <Button
+                  variant="ghost" size="icon-sm"
+                  onClick={() => selectedNote && handleTogglePinNote(selectedNote)}
+                  className={`rounded-full ${selectedNote?.pinned ? 'text-primary' : ''}`}
+                  title={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
+                >
+                  {selectedNote?.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+                </Button>
+                <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
+                  <FolderMoveIcon className="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon-sm" onClick={handleDelete} className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">
+                  <Trash2 className="size-4" />
+                </Button>
+              </>
+            )}
+            <Button size="sm" onClick={() => handleNew('')} className="gap-1.5" title="New note">
+              <FilePlus className="size-3.5" />
+              <span className="hidden sm:inline">New note</span>
+            </Button>
+          </>
+        }
+      />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Desktop vault sidebar */}
@@ -529,7 +548,7 @@ export default function NotesPage() {
               onNew={() => handleNew('')}
             />
           ) : (
-            <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-5 min-h-full">
+            <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
               {loadingNote ? (
                 <>
                   <Skeleton className="h-14 w-3/4" />
@@ -537,6 +556,18 @@ export default function NotesPage() {
                 </>
               ) : (
                 <>
+                  {/* Folder path — was the header breadcrumb; now sits
+                      quietly above the title since the pill owns chrome. */}
+                  {breadcrumb.length > 0 && (
+                    <div className="mono text-xs tracking-[0.14em] uppercase text-muted-foreground -mb-3 flex items-center gap-1 min-w-0">
+                      {breadcrumb.map((seg, i) => (
+                        <span key={i} className="flex items-center gap-1 min-w-0">
+                          <span className="truncate">{seg}</span>
+                          {i < breadcrumb.length - 1 && <ChevronRight className="size-3 text-muted-foreground/60 shrink-0" />}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <Input
                     type="text"
                     placeholder="Untitled"
@@ -854,20 +885,6 @@ function FolderRow({ label, path, active, onClick }: { label: string; path: stri
   );
 }
 
-function Breadcrumb({ segments, title }: { segments: string[]; title: string }) {
-  return (
-    <div className="flex items-center gap-1 min-w-0 text-sm">
-      {segments.map((seg, i) => (
-        <span key={i} className="flex items-center gap-1 min-w-0">
-          <span className="font-mono text-xs text-muted-foreground truncate">{seg}</span>
-          <ChevronRight className="size-3 text-muted-foreground/60 shrink-0" />
-        </span>
-      ))}
-      <span className="text-foreground/90 truncate">{title}</span>
-    </div>
-  );
-}
-
 function SaveIndicator({ state, canSave, onSave }: { state: 'idle' | 'saving' | 'saved'; canSave: boolean; onSave: () => void }) {
   if (state === 'saving') {
     return <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><M3CookieLoader size="xs" tone="primary" />Saving</span>;
@@ -882,10 +899,19 @@ function SaveIndicator({ state, canSave, onSave }: { state: 'idle' | 'saving' | 
   );
 }
 
-// NotesAtlas — the landing card grid shown when no note is open.
-// Mirrors the "atlas/library" layout from the Sajni redesign, with a
-// tinted gradient corner per card. Clicking a card opens the note in
-// the editor pane.
+// NotesAtlas — expressive M3 landing grid. Each note is a solid tonal
+// card rotating through the scheme's container colors, with ONE flattened
+// corner (M3E asymmetric shape, rotates per note) and a ghost serif
+// initial in the corner — the same visual language as the media rows'
+// ghost year. Pinned notes read as fully-filled secondary-container.
+const ATLAS_TINTS = [
+  'hsl(var(--primary-container) / 0.42)',
+  'hsl(var(--tertiary-container) / 0.45)',
+  'hsl(var(--surface-container-high))',
+  'hsl(var(--secondary-container) / 0.35)',
+];
+const ATLAS_CORNERS = ['rounded-tr-lg', 'rounded-bl-lg', 'rounded-tl-lg', 'rounded-br-lg'];
+
 function NotesAtlas({
   notes, loading, onPick, onNew,
 }: {
@@ -894,31 +920,12 @@ function NotesAtlas({
   onPick: (id: number) => void;
   onNew: () => void;
 }) {
-  const totalNotes = notes.length;
-  const totalTags = new Set(notes.flatMap((n) => n.tags || [])).size;
-
   return (
-    <div className="max-w-6xl w-full mx-auto px-6 md:px-14 pt-10 md:pt-12 pb-16">
-      <div className="flex items-end justify-between mb-7 flex-wrap gap-3">
-        <div>
-          <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-2.5">
-            {totalNotes} {totalNotes === 1 ? 'note' : 'notes'} · {totalTags} {totalTags === 1 ? 'tag' : 'tags'}
-          </div>
-          <h1 className="serif text-4xl md:text-[44px] font-medium tracking-[-0.02em]">Notes</h1>
-          <p className="text-sm text-muted-foreground mt-1.5 max-w-[520px]">
-            Your atlas. Long-form thinking, connected by{' '}
-            <code className="mono text-xs px-1 py-0.5 rounded bg-muted">[[backlinks]]</code>.
-          </p>
-        </div>
-        <Button onClick={onNew}>
-          <FilePlus className="size-3.5" /> New note
-        </Button>
-      </div>
-
+    <div className="max-w-6xl w-full mx-auto px-4 md:px-10 pt-5 md:pt-7 pb-16">
       {loading ? (
-        <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-xl" />
+            <Skeleton key={i} className="h-[150px] w-full rounded-[28px]" />
           ))}
         </div>
       ) : notes.length === 0 ? (
@@ -931,50 +938,56 @@ function NotesAtlas({
         </div>
       ) : (
         <div
-          className="grid gap-3.5 sajni-stagger"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
+          className="grid gap-3 sajni-stagger"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}
         >
+          {/* New-note tile — first cell, dashed invitation. */}
+          <button
+            type="button"
+            onClick={onNew}
+            className="group flex flex-col items-center justify-center gap-2.5 min-h-[150px] rounded-[28px] border-2 border-dashed border-[hsl(var(--outline-variant))] text-muted-foreground transition-colors hover:border-[hsl(var(--primary)/0.5)] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.05)] active:scale-[0.98]"
+          >
+            <span className="grid place-items-center size-11 rounded-2xl bg-[hsl(var(--primary-container)/0.55)] text-[hsl(var(--on-primary-container))] transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] group-hover:scale-110 group-hover:rounded-[14px]">
+              <FilePlus className="size-5" />
+            </span>
+            <span className="text-xs font-medium">New note</span>
+          </button>
+
           {notes.map((n) => {
-            const meshIdx = ((n.id % 5) + 1);
+            const k = n.id % 4;
+            const initial = (n.title || 'U').trim().charAt(0).toUpperCase() || 'U';
             return (
               <button
                 key={n.id}
                 onClick={() => onPick(n.id)}
-                className="group rounded-2xl p-5 text-left relative min-h-[176px] flex flex-col bg-[hsl(var(--surface-container))] border border-border transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_34px_-14px_hsl(var(--foreground)/0.22)]"
+                className={`group relative overflow-hidden text-left flex flex-col min-h-[150px] p-4 rounded-[28px] ${ATLAS_CORNERS[k]} transition-[transform,box-shadow,border-radius] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-1 hover:rounded-[28px] hover:shadow-[0_16px_38px_-18px_hsl(var(--foreground)/0.35)] active:scale-[0.98]`}
+                style={{ background: n.pinned ? 'hsl(var(--secondary-container))' : ATLAS_TINTS[k] }}
               >
-                {/* Accent bar — a quiet per-note color cue down the left edge. */}
+                {/* Ghost initial — quiet oversized glyph anchoring the card. */}
                 <span
                   aria-hidden
-                  className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full opacity-70"
-                  style={{ background: `hsl(var(--backdrop-blob-${meshIdx}))` }}
-                />
-                <div
-                  className="absolute top-0 right-0 w-[88px] h-[88px] pointer-events-none rounded-2xl opacity-50 transition-opacity group-hover:opacity-80"
-                  style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--backdrop-blob-${meshIdx})), transparent 70%)` }}
-                />
-                <div className="relative flex flex-col flex-1 min-h-0 pl-2.5">
-                  <div className="mono text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2.5 flex items-center gap-1.5">
-                    {n.pinned && <Pin className="size-3 text-primary/80" aria-label="Pinned" />}
-                    <span>
-                      {fmtRelTime(n.updated_at)}
-                      {n.folder ? <> · <span className="text-foreground/70">{n.folder}</span></> : null}
-                    </span>
-                  </div>
-                  <h3 className="serif text-[19px] font-medium tracking-[-0.01em] leading-[1.25] text-foreground mb-1.5 line-clamp-2 group-hover:text-primary transition-colors">
-                    {n.title || 'Untitled'}
-                  </h3>
-                  {n.description ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 mb-3">
-                      {n.description}
-                    </p>
-                  ) : null}
-                  {(n.tags || []).length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
-                      {(n.tags || []).slice(0, 4).map((t) => (
-                        <span key={t} className="chip chip-sage">#{t}</span>
-                      ))}
-                    </div>
-                  )}
+                  className="absolute -bottom-6 -right-1 serif text-[92px] leading-none font-medium text-foreground/[0.07] select-none pointer-events-none"
+                >
+                  {initial}
+                </span>
+
+                <div className="mono text-xs tracking-[0.14em] uppercase text-foreground/55 flex items-center gap-1.5 min-w-0">
+                  {n.pinned && <Pin className="size-3 shrink-0" aria-label="Pinned" />}
+                  <span className="truncate">
+                    {fmtRelTime(n.updated_at)}
+                    {n.folder ? ` · ${n.folder}` : ''}
+                  </span>
+                </div>
+
+                <h3 className="serif text-[19px] font-medium tracking-[-0.01em] leading-[1.22] mt-2 line-clamp-3 text-foreground">
+                  {n.title || 'Untitled'}
+                </h3>
+
+                <div className="relative mt-auto pt-3 flex items-center gap-1 min-w-0">
+                  {(n.tags || []).slice(0, 2).map((t) => (
+                    <span key={t} className="chip chip-sage max-w-[8rem]"><span className="truncate">#{t}</span></span>
+                  ))}
+                  <ArrowUpRight className="size-4 ml-auto shrink-0 text-foreground/45 opacity-0 -translate-x-1 translate-y-1 transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0" />
                 </div>
               </button>
             );

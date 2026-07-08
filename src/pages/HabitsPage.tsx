@@ -124,41 +124,50 @@ export default function HabitsPage() {
   return (
     <PageShell
       title="Habits"
+      navigation={
+        // Week stepper lives in the pill — back to fill missed days,
+        // never into the future (forward chevron pins at "this week").
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
+            onClick={() => setWeekOffset((o) => o - 1)}
+            title="Previous week"
+            aria-label="Previous week"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <button
+            type="button"
+            onClick={() => setWeekOffset(0)}
+            disabled={weekOffset === 0}
+            title={weekOffset === 0 ? 'This week' : 'Back to this week'}
+            className={`mono text-xs tracking-[0.06em] tabular-nums whitespace-nowrap rounded-full px-2 h-8 transition-colors ${
+              weekOffset === 0
+                ? 'text-muted-foreground cursor-default'
+                : 'text-[hsl(var(--primary))] hover:bg-[hsl(var(--on-surface)/0.06)]'
+            }`}
+          >
+            {weekOffset === 0
+              ? 'This week'
+              : `${format(week[0], 'MMM d')} – ${format(week[6], 'MMM d')}`}
+          </button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
+            onClick={() => setWeekOffset((o) => Math.min(0, o + 1))}
+            disabled={weekOffset === 0}
+            title="Next week"
+            aria-label="Next week"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      }
       actions={<Button size="sm" onClick={openCreate} className="gap-1.5"><Plus className="size-3.5" /> New habit</Button>}
     >
-      {/* Week navigation — back to fill missed days, never into the future. */}
-      <div className="flex items-center gap-1 -mb-2">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setWeekOffset((o) => o - 1)}
-          title="Previous week"
-          aria-label="Previous week"
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span className="mono text-xs tracking-[0.08em] text-muted-foreground tabular-nums min-w-[9.5rem] text-center">
-          {weekOffset === 0
-            ? 'This week'
-            : `${format(week[0], 'MMM d')} – ${format(week[6], 'MMM d')}`}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setWeekOffset((o) => Math.min(0, o + 1))}
-          disabled={weekOffset === 0}
-          title="Next week"
-          aria-label="Next week"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-        {weekOffset < 0 && (
-          <Button variant="ghost" size="sm" className="ml-1 h-8 rounded-full text-xs" onClick={() => setWeekOffset(0)}>
-            Today
-          </Button>
-        )}
-      </div>
-
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
           {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-40 w-full rounded-[28px]" />)}

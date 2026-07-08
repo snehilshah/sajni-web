@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles, Send, Plus, Trash2, ChevronDown, AlertCircle,
+  Sparkles, ArrowUp, Plus, Trash2, ChevronDown, AlertCircle,
   CheckSquare, Target, BookOpen, Film, Wallet, ArrowRight,
 } from '@/components/ui/icons';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +14,7 @@ import { SKILLS } from '@/lib/aiSkills';
 import { aborted, msg } from '@/lib/errors';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 
 type Message =
@@ -89,20 +90,34 @@ export default function AIChat({ open, onOpenChange }: Props) {
   );
 }
 
+// Host-side controls for a headerless panel (the Projects page pill owns
+// the New-chat / History buttons and drives them through this handle).
+export interface ChatPanelHandle {
+  newChat: () => void;
+  toggleHistory: () => void;
+}
+
 // ChatPanel — header + transcript + composer, host-agnostic. `sheet` pads
 // the header clear of the sheet's absolute close X; `handleGlobalOpen`
 // makes THIS instance answer window `chat:open` events (only the global
 // sheet should, or an embedded panel would double-send seeded messages).
+// `headerless` drops the in-panel header for immersive embedding — the
+// host renders New/History elsewhere and calls them via `ref`.
 export function ChatPanel({
-  active, sheet = false, handleGlobalOpen = false, onRequestOpen, onNavigate,
+  active, sheet = false, handleGlobalOpen = false, headerless = false,
+  onRequestOpen, onNavigate, ref,
 }: {
   active: boolean;
   sheet?: boolean;
   handleGlobalOpen?: boolean;
+  headerless?: boolean;
   onRequestOpen?: () => void;
   onNavigate?: () => void;
+  ref?: Ref<ChatPanelHandle>;
 }) {
   const navigate = useNavigate();
+  const isMobilePanel = useIsMobile();
+  const keyboardOpen = useKeyboardOpen(headerless && isMobilePanel);
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [sessions, setSessions] = useState<AISessionMeta[]>([]);
@@ -181,6 +196,11 @@ export function ChatPanel({
     setShowSessions(false);
     requestAnimationFrame(() => inputRef.current?.focus());
   };
+
+  useImperativeHandle(ref, () => ({
+    newChat,
+    toggleHistory: () => setShowSessions((v) => !v),
+  }));
 
   const removeSession = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -301,64 +321,80 @@ export function ChatPanel({
 
   const showEmptyState = messages.length === 0 && !streaming;
 
-  return (
-    <div className="flex-1 min-h-0 flex flex-col">
-        <div className="p-4 pb-3 border-b border-border">
-          {/* pr-10 clears the sheet's absolute close X (top-4 right-4) so
-              the New button never sits underneath it. */}
-          <div className={`flex items-center gap-2 ${sheet ? 'pr-10' : ''}`}>
-            <div className="size-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
-              <Sparkles className="size-4" />
+  const sessionsList = (
+    <>
+      {sessions.length === 0 ? (
+        <div className="px-3 py-4 text-xs text-muted-foreground text-center">No previous chats.</div>
+      ) : (
+        sessions.map((s) => (
+          <div
+            key={s.id}
+            onClick={() => loadSession(s.id)}
+            className={`group px-3 py-2 cursor-pointer flex items-center gap-2 hover:bg-accent ${s.id === sessionId ? 'bg-accent' : ''}`}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-sm truncate">{s.title || 'New chat'}</div>
+              <div className="font-mono text-xs text-muted-foreground">{s.updated_at?.slice(0, 10)}</div>
             </div>
-            <div className="font-serif text-base font-semibold flex-1">Sajni</div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowSessions((v) => !v)}
-              className="font-mono text-xs uppercase tracking-wider"
-              title="Switch chat"
+            <button
+              onClick={(e) => removeSession(s.id, e)}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/10 hover:text-rose-500 transition"
+              title="Delete"
             >
-              History <ChevronDown className={`size-3 ml-1 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={newChat}
-              title="Start a new chat"
-              className="font-mono text-xs uppercase tracking-wider"
-            >
-              <Plus className="size-3 mr-1" /> New
-            </Button>
+              <Trash2 className="size-3.5" />
+            </button>
           </div>
+        ))
+      )}
+    </>
+  );
 
-          {showSessions && (
-            <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-border bg-background">
-              {sessions.length === 0 ? (
-                <div className="px-3 py-4 text-xs text-muted-foreground text-center">No previous chats.</div>
-              ) : (
-                sessions.map((s) => (
-                  <div
-                    key={s.id}
-                    onClick={() => loadSession(s.id)}
-                    className={`group px-3 py-2 cursor-pointer flex items-center gap-2 hover:bg-accent ${s.id === sessionId ? 'bg-accent' : ''}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate">{s.title || 'New chat'}</div>
-                      <div className="font-mono text-xs text-muted-foreground">{s.updated_at?.slice(0, 10)}</div>
-                    </div>
-                    <button
-                      onClick={(e) => removeSession(s.id, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/10 hover:text-rose-500 transition"
-                      title="Delete"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
+  return (
+    <div className="relative flex-1 min-h-0 flex flex-col">
+        {!headerless && (
+          <div className="p-4 pb-3 border-b border-border">
+            {/* pr-10 clears the sheet's absolute close X (top-4 right-4) so
+                the New button never sits underneath it. */}
+            <div className={`flex items-center gap-2 ${sheet ? 'pr-10' : ''}`}>
+              <div className="size-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
+                <Sparkles className="size-4" />
+              </div>
+              <div className="font-serif text-base font-semibold flex-1">Sajni</div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowSessions((v) => !v)}
+                className="font-mono text-xs uppercase tracking-wider"
+                title="Switch chat"
+              >
+                History <ChevronDown className={`size-3 ml-1 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={newChat}
+                title="Start a new chat"
+                className="font-mono text-xs uppercase tracking-wider"
+              >
+                <Plus className="size-3 mr-1" /> New
+              </Button>
             </div>
-          )}
-        </div>
+
+            {showSessions && (
+              <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-border bg-background">
+                {sessionsList}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Headerless history — floats over the transcript; the host's
+            pill History button toggles it through the imperative handle. */}
+        {headerless && showSessions && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[min(94%,380px)] max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
+            {sessionsList}
+          </div>
+        )}
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
           {enabled === false && (
@@ -423,30 +459,40 @@ export function ChatPanel({
           )}
         </div>
 
-        <div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-end gap-2">
+        {/* Composer — one floating tonal pill; no hairline, no footer
+            text. Headerless-on-mobile pads clear of the bottom dock, and
+            drops that padding while the keyboard is up (dock hides). */}
+        <div
+          className="p-3 pt-1.5"
+          style={{
+            paddingBottom: headerless && isMobilePanel && !keyboardOpen
+              ? 'calc(env(safe-area-inset-bottom, 0px) + 82px)'
+              : 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors p-1.5 pl-4">
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={enabled === false ? 'AI disabled' : 'Ask Sajni…  (Shift+Enter for newline)'}
+              placeholder={enabled === false ? 'AI disabled' : 'Ask Sajni…'}
               disabled={enabled === false}
               rows={1}
-              className="flex-1 resize-none bg-transparent border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40 max-h-32 disabled:opacity-50"
-              style={{ minHeight: 38 }}
+              className="flex-1 resize-none bg-transparent border-0 text-sm outline-none max-h-32 py-2 disabled:opacity-50 placeholder:text-muted-foreground/70"
+              style={{ minHeight: 36 }}
+              title="Shift+Enter for newline"
             />
             <Button
-              size="icon"
+              size="icon-sm"
               onClick={() => void send(input)}
               disabled={!input.trim() || streaming || enabled === false}
+              className="rounded-full shrink-0 mb-0.5"
               title="Send"
+              aria-label="Send"
             >
-              {streaming ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : <Send className="size-4" />}
+              {streaming ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : <ArrowUp className="size-4" />}
             </Button>
-          </div>
-          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground mt-2 text-center">
-            Sajni can make mistakes. Verify before acting.
           </div>
         </div>
     </div>

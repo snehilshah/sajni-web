@@ -272,6 +272,7 @@ export const Zap = px(_px_Zap);
 
 // --- passthrough to lucide (no good pixel match) ---
 export {
+  ArrowUp,
   ArrowUpRight,
   Bold,
   Brain,

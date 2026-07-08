@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -8,10 +8,9 @@ import { cn } from '@/lib/utils';
 // path drawn wider than the clip window — no per-frame JS). At 100% the
 // wave settles into a flat, calm line.
 //
-// Geometry lives in a fixed 200×12 viewBox stretched with
-// preserveAspectRatio="none"; the wave just elongates with width, which
-// keeps it smooth at any size.
-const VIEW_W = 200;
+// The viewBox width tracks the element's real pixel width (measured via
+// ResizeObserver), so WAVELEN is a constant 20 CSS pixels no matter how
+// long the bar is — a full-row bar gets more waves, not stretched ones.
 const VIEW_H = 12;
 const MID = VIEW_H / 2;
 const WAVELEN = 20;
@@ -25,10 +24,6 @@ function sinePath(width: number): string {
   }
   return pts.join(' ');
 }
-
-// One extra wavelength beyond the widest possible fill so the drift loop
-// (translateX by -WAVELEN) never exposes a bare edge.
-const WAVE_D = sinePath(VIEW_W + WAVELEN);
 
 export function WavyProgress({
   value, height = 12, active = false, className, label, marker = true,
@@ -44,17 +39,36 @@ export function WavyProgress({
   marker?: boolean;
 }) {
   const clipId = useId();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      setW(Math.round(entries[0].contentRect.width));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const pct = Math.max(0, Math.min(100, value));
-  const fill = (pct / 100) * VIEW_W;
   const done = pct >= 100;
+  const fill = (pct / 100) * w;
   const gap = 5;
 
+  // One extra wavelength beyond the clip window so the drift loop
+  // (translateX by -WAVELEN) never exposes a bare edge.
+  const waveD = useMemo(() => (w > 0 ? sinePath(w + WAVELEN) : ''), [w]);
+
   return (
-    <div className={cn('relative min-w-0', className)}>
+    // Fixed wrapper height so the first (pre-measure) frame doesn't shift layout.
+    <div ref={wrapRef} className={cn('relative min-w-0', className)} style={{ height }}>
+    {w > 0 && (
     <svg
       width="100%"
       height={height}
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      viewBox={`0 0 ${w} ${VIEW_H}`}
       preserveAspectRatio="none"
       className="block overflow-visible"
       role="progressbar"
@@ -72,7 +86,7 @@ export function WavyProgress({
       {/* Filled track — wavy while in flight, flat once complete. */}
       {done ? (
         <line
-          x1="1.5" y1={MID} x2={VIEW_W - 1.5} y2={MID}
+          x1="1.5" y1={MID} x2={w - 1.5} y2={MID}
           stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round"
         />
       ) : (
@@ -80,7 +94,7 @@ export function WavyProgress({
           {fill > 1 && (
             <g clipPath={`url(#${clipId})`}>
               <path
-                d={WAVE_D}
+                d={waveD}
                 fill="none"
                 stroke="hsl(var(--primary))"
                 strokeWidth="3"
@@ -90,16 +104,17 @@ export function WavyProgress({
             </g>
           )}
           {/* Remaining track + M3 stop indicator. */}
-          {fill + gap < VIEW_W - 4 && (
+          {fill + gap < w - 4 && (
             <line
-              x1={Math.max(fill + gap, 2)} y1={MID} x2={VIEW_W - 6} y2={MID}
+              x1={Math.max(fill + gap, 2)} y1={MID} x2={w - 6} y2={MID}
               stroke="hsl(var(--outline-variant))" strokeWidth="3" strokeLinecap="round"
             />
           )}
-          <circle cx={VIEW_W - 2} cy={MID} r="2" fill="hsl(var(--primary))" />
+          <circle cx={w - 2} cy={MID} r="2" fill="hsl(var(--primary))" />
         </>
       )}
     </svg>
+    )}
     {/* Head tick — a slider-style handle at the live position. Rendered
         in CSS pixels (not viewBox units) so it never stretches with the
         bar's width. */}

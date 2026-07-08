@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Sparkles, Trash2, MessageSquare, Lightbulb } from '@/components/ui/icons';
+import { Plus, Sparkles, Trash2, MessageSquare, Lightbulb, History } from '@/components/ui/icons';
 import { formatDistanceToNow } from 'date-fns';
 
-import PageShell, { PageShellTabs } from '@/components/PageShell';
-import { ChatPanel } from '@/components/AIChat';
+import PageShell, { PageChrome, PageShellTabs } from '@/components/PageShell';
+import { ChatPanel, type ChatPanelHandle } from '@/components/AIChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,6 +34,7 @@ export default function ThinkingPage() {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const chatRef = useRef<ChatPanelHandle>(null);
 
   const create = async () => {
     if (!title.trim()) return;
@@ -53,31 +54,58 @@ export default function ThinkingPage() {
     await deleteProject.mutateAsync(id);
   };
 
+  const navigationEl = (
+    <PageShellTabs
+      bare
+      ariaLabel="Projects sections"
+      value={tab}
+      options={PROJECT_TABS.map(({ key, label, icon }) => ({ value: key, label, icon }))}
+      onChange={switchTab}
+    />
+  );
+
+  // Chat tab is immersive: no card, no internal chrome — pill owns
+  // History/New, the panel fills everything under it edge to edge.
+  if (tab === 'chat') {
+    return (
+      <div className="page-fade-in flex-1 flex flex-col min-h-0">
+        <PageChrome
+          title="Projects"
+          navigation={navigationEl}
+          actions={
+            <>
+              <Button
+                variant="ghost" size="icon-sm" className="rounded-full"
+                onClick={() => chatRef.current?.toggleHistory()}
+                title="Chat history" aria-label="Chat history"
+              >
+                <History className="size-4" />
+              </Button>
+              <Button size="sm" onClick={() => chatRef.current?.newChat()} className="gap-1.5" title="New chat">
+                <Plus className="size-3.5" />
+                <span className="hidden sm:inline">New chat</span>
+              </Button>
+            </>
+          }
+        />
+        <div className="flex-1 min-h-0 flex flex-col w-full max-w-3xl mx-auto">
+          <ChatPanel active headerless ref={chatRef} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <PageShell
       title="Projects"
-      navigation={
-        <PageShellTabs
-          bare
-          ariaLabel="Projects sections"
-          value={tab}
-          options={PROJECT_TABS.map(({ key, label, icon }) => ({ value: key, label, icon }))}
-          onChange={switchTab}
-        />
-      }
+      navigation={navigationEl}
       actions={
-        tab === 'projects' ? (
-          <Button size="sm" onClick={() => setOpen(true)} className="gap-1.5">
-            <Plus className="size-3.5" /> New project
-          </Button>
-        ) : undefined
+        <Button size="sm" onClick={() => setOpen(true)} className="gap-1.5">
+          <Plus className="size-3.5" /> New project
+        </Button>
       }
     >
-      {tab === 'chat' ? (
-        <div className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] overflow-hidden flex flex-col h-[calc(100dvh-180px)] md:h-[calc(100dvh-160px)]">
-          <ChatPanel active={tab === 'chat'} />
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
       ) : projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center space-y-3">

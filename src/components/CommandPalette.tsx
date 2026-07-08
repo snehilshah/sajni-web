@@ -293,61 +293,82 @@ export default function CommandPalette() {
             className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`flex items-center gap-2 px-3 py-2.5 border-b border-border ${aiChip ? 'bg-primary/5' : ''}`}>
-              {aiChip ? (
-                <Sparkles className="size-4 text-primary shrink-0" />
-              ) : (
-                <SearchIcon className="size-4 text-muted-foreground shrink-0" />
-              )}
+            <div className={`border-b border-border transition-colors ${aiChip ? 'bg-primary/5' : ''}`}>
+              {/* Input row — the field always keeps its full width; AI
+                  state lives on its own row below, never beside it. */}
+              <div className="flex items-center gap-2 px-3 py-2.5">
+                {aiChip || parsed.aiMode ? (
+                  <Sparkles className="size-4 text-primary shrink-0" />
+                ) : (
+                  <SearchIcon className="size-4 text-muted-foreground shrink-0" />
+                )}
 
-              {/* The committed AI chip — pill that sits before the input.
-                  Click X (or backspace from start of empty input) to drop
-                  it and return to plain search. */}
-              {aiChip && (
-                <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-primary/15 text-primary mono text-xs font-medium">
-                  @sajni
-                  <button
-                    type="button"
-                    onClick={() => { setAiChip(false); inputRef.current?.focus(); }}
-                    className="ml-0.5 size-4 inline-flex items-center justify-center rounded hover:bg-primary/20"
-                    aria-label="Remove AI mode"
+                <Input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder={aiChip
+                    ? 'Ask Sajni anything…  (Enter to send)'
+                    : parsed.aiMode
+                      ? 'Lock in @sajni below, or press space'
+                      : 'Search everything…   try "task grocery", or "@sajni" to ask the AI'}
+                  className="flex-1 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
+                />
+
+                {loading && !parsed.aiMode && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+
+                {!parsed.aiMode && parsed.typeBoost && (
+                  <span className="mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    {SEARCH_TYPE_LABELS[parsed.typeBoost as SearchType]}
+                  </span>
+                )}
+                <kbd className="hidden sm:inline-flex mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
+                  Esc
+                </kbd>
+              </div>
+
+              {/* AI lane strip — tappable commit chip (works on touch,
+                  where "press space" is invisible), or the active pill. */}
+              <AnimatePresence initial={false}>
+                {(aiChip || parsed.aiMode) && (
+                  <motion.div
+                    key={aiChip ? 'ai-on' : 'ai-hint'}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                    className="overflow-hidden"
                   >
-                    <X className="size-3" />
-                  </button>
-                </span>
-              )}
-
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={aiChip
-                  ? 'Ask Sajni anything…  (Enter to send)'
-                  : parsed.aiMode
-                    ? 'Press space or tab to lock in @sajni'
-                    : 'Search everything…   try "task grocery", or "@sajni" to ask the AI'}
-                className="flex-1 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
-              />
-
-              {loading && !parsed.aiMode && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-
-              {/* Hint shown while the user has typed @sajni but not yet
-                  committed it — confirms the chip is one keystroke away. */}
-              {parsed.aiMode && !aiChip && (
-                <span className="mono text-xs uppercase tracking-wider text-primary/80 hidden sm:inline">
-                  press space →
-                </span>
-              )}
-
-              {!parsed.aiMode && parsed.typeBoost && (
-                <span className="mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                  {SEARCH_TYPE_LABELS[parsed.typeBoost as SearchType]}
-                </span>
-              )}
-              <kbd className="hidden sm:inline-flex mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
-                Esc
-              </kbd>
+                    <div className="px-3 pb-2.5">
+                      {aiChip ? (
+                        <span className="inline-flex items-center gap-1.5 h-7 pl-2.5 pr-1 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] shadow-[var(--m3-elev-1)] text-xs font-medium">
+                          <Sparkles className="size-3" />
+                          Asking Sajni
+                          <button
+                            type="button"
+                            onClick={() => { setAiChip(false); inputRef.current?.focus(); }}
+                            className="ml-0.5 size-5 inline-flex items-center justify-center rounded-full hover:bg-[hsl(var(--on-secondary-container)/0.12)]"
+                            aria-label="Remove AI mode"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setAiChip(true); setInput(''); inputRef.current?.focus(); }}
+                          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-[hsl(var(--primary)/0.35)] bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 active:scale-[0.97] transition-[background-color,transform]"
+                        >
+                          <Sparkles className="size-3" />
+                          Ask Sajni
+                          <span className="opacity-60 hidden sm:inline">· space</span>
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div ref={listRef} className="max-h-[60vh] overflow-y-auto py-1">

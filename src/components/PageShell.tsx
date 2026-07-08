@@ -30,7 +30,9 @@ export function useOwnScrolled(ref: React.RefObject<HTMLDivElement | null>, enab
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const y = el.scrollTop;
+        // Clamp: iOS/Android overscroll bounce reports negative scrollTop,
+        // which can flap the state at the very top of the page.
+        const y = Math.max(0, el.scrollTop);
         setScrolled((prev) => (prev ? y > 24 : y > 96));
       });
     };
@@ -88,16 +90,25 @@ export function PageChrome({
 
   return (
     <>
-      {/* Rest bar — in flow, collapses away on scroll. */}
+      {/* Rest bar — in flow, collapses away on scroll. The outer element
+          animates HEIGHT ONLY; the pill inside stays invisible until the
+          heights have settled, then materialises in place. (Fading it
+          while the stacked bars re-expand made it visibly travel down the
+          screen — the "flying pill" complaint.) */}
       <motion.div
         initial={false}
-        animate={{ height: scrolled ? 0 : 'auto', opacity: scrolled ? 0 : 1 }}
-        transition={{ duration: 0.32, ease: [0.2, 0, 0, 1] }}
+        animate={{ height: scrolled ? 0 : 'auto' }}
+        transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
         className="relative z-20 shrink-0 overflow-hidden"
         style={{ pointerEvents: scrolled ? 'none' : 'auto' }}
         aria-hidden={scrolled}
       >
-        <div
+        <motion.div
+          initial={false}
+          animate={{ opacity: scrolled ? 0 : 1 }}
+          transition={scrolled
+            ? { duration: 0.12, ease: [0.2, 0, 0, 1] }
+            : { duration: 0.18, ease: [0.2, 0, 0, 1], delay: 0.22 }}
           className="flex justify-center px-3 md:px-4 pb-2"
           style={isMobile
             ? { paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }
@@ -109,7 +120,7 @@ export function PageChrome({
             </h1>
             {tail}
           </header>
-        </div>
+        </motion.div>
       </motion.div>
 
       {/* Merged pill — fixed, springs in when scrolled. */}
@@ -121,8 +132,15 @@ export function PageChrome({
           pointerEvents: scrolled ? 'auto' : 'none',
         }}
         initial={false}
-        animate={scrolled ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -14, scale: 0.94 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+        // Spring IN (playful arrival). OUT is a pure fade in place — any
+        // motion here reads as the pill flying off. transitionEnd resets
+        // the offset invisibly so the next arrival still springs in.
+        animate={scrolled
+          ? { opacity: 1, y: 0, scale: 1 }
+          : { opacity: 0, transitionEnd: { y: -14, scale: 0.94 } }}
+        transition={scrolled
+          ? { type: 'spring', stiffness: 380, damping: 28 }
+          : { duration: 0.14, ease: [0.2, 0, 0, 1] }}
         aria-hidden={!scrolled}
       >
         <div
