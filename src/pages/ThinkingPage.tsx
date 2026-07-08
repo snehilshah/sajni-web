@@ -3,13 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Sparkles, Trash2, MessageSquare, Lightbulb, History } from '@/components/ui/icons';
 import { formatDistanceToNow } from 'date-fns';
 
-import PageShell, { PageChrome, PageShellTabs } from '@/components/PageShell';
+import PageShell, { PageChrome, PageShellTabs, chromeClearance } from '@/components/PageShell';
 import { ChatPanel, type ChatPanelHandle } from '@/components/AIChat';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+import { MorphingPopover } from '@/components/motion/morphing-popover';
 import {
   useThinkingProjects, useCreateThinkingProject, useDeleteThinkingProject,
 } from '@/queries/thinking';
@@ -35,6 +34,7 @@ export default function ThinkingPage() {
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const chatRef = useRef<ChatPanelHandle>(null);
+  const isMobile = useIsMobile();
 
   const create = async () => {
     if (!title.trim()) return;
@@ -88,7 +88,10 @@ export default function ThinkingPage() {
             </>
           }
         />
-        <div className="flex-1 min-h-0 flex flex-col w-full max-w-3xl mx-auto">
+        <div
+          className="flex-1 min-h-0 flex flex-col w-full max-w-3xl mx-auto"
+          style={{ paddingTop: chromeClearance(isMobile) }}
+        >
           <ChatPanel active headerless ref={chatRef} />
         </div>
       </div>
@@ -100,9 +103,40 @@ export default function ThinkingPage() {
       title="Projects"
       navigation={navigationEl}
       actions={
-        <Button size="sm" onClick={() => setOpen(true)} className="gap-1.5">
-          <Plus className="size-3.5" /> New project
-        </Button>
+        /* New project — button morphs into its own creation panel. */
+        <MorphingPopover
+          open={open}
+          onOpenChange={setOpen}
+          panelClassName="w-[320px] p-3"
+          panelStyle={{ left: 'auto', right: 0 }}
+          trigger={
+            <Button size="sm" onClick={() => setOpen(true)} className="gap-1.5">
+              <Plus className="size-3.5" /> New project
+            </Button>
+          }
+        >
+          <div className="flex flex-col gap-3">
+            <div className="serif text-sm font-semibold px-1">New project</div>
+            <Input
+              autoFocus
+              placeholder="Title — what are you thinking about?"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
+            />
+            <Input
+              placeholder="Optional one-line description"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={create} disabled={!title.trim() || creating}>
+                {creating ? 'Creating…' : 'Create'}
+              </Button>
+            </div>
+          </div>
+        </MorphingPopover>
       }
     >
       {loading ? (
@@ -157,33 +191,6 @@ export default function ThinkingPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New project</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              autoFocus
-              placeholder="Title — what are you thinking about?"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
-            />
-            <Input
-              placeholder="Optional one-line description"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={!title.trim() || creating}>
-              {creating ? 'Creating…' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageShell>
   );
 }

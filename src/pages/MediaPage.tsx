@@ -19,7 +19,8 @@ import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MorphingDialog, type MorphSourceRect } from '@/components/motion/morphing-dialog';
 import { Sheet, SheetContent, SheetClose, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
@@ -677,6 +678,11 @@ export default function MediaPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MediaEntry | null>(null);
+  // Which always-mounted element the desktop dialog morphs out of:
+  // a grid poster ('card'), the pill Add button ('add'), or none
+  // (list/table/shelves rows → scale/fade fallback).
+  const [morphSource, setMorphSource] = useState<'card' | 'add' | null>(null);
+  const [morphRect, setMorphRect] = useState<MorphSourceRect | undefined>();
   const [saving, setSaving] = useState(false);
   // On phones the form is a full-height bottom Sheet; track the visual
   // viewport so the sticky footer + focused field stay above the keyboard.
@@ -799,7 +805,10 @@ export default function MediaPage() {
     return byStatus;
   }, [items]);
 
-  const openForm = useCallback((item?: MediaEntry) => {
+  const openForm = useCallback((item?: MediaEntry, morph?: 'card' | 'add', sourceEl?: Element | null) => {
+    const rect = sourceEl?.getBoundingClientRect();
+    setMorphSource(morph ?? null);
+    setMorphRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : undefined);
     if (item) {
       setEditItem(item);
       setForm({
@@ -821,12 +830,12 @@ export default function MediaPage() {
   }, [blankForm]);
 
   const mediaAddLabel = `Add ${(TYPE_META[activeType]?.label || 'entry').toLowerCase()}`;
-  const handleAdd = useCallback(() => {
+  const handleAdd = useCallback((sourceEl?: Element | null) => {
     if (isBookmarkTab) {
       setBookmarkAddSignal((s) => s + 1);
       return;
     }
-    openForm();
+    openForm(undefined, 'add', sourceEl);
   }, [isBookmarkTab, openForm]);
 
   const handleExternalSelect = async (r: MediaSearchResult) => {
@@ -952,7 +961,12 @@ export default function MediaPage() {
         <div className="sajni-stagger grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
           {seriesRows.map((row) => (
             row.kind === 'single' ? (
-              <PosterCard key={'item-' + row.item.id} item={row.item} onClick={() => openForm(row.item)} />
+              <PosterCard
+                key={'item-' + row.item.id}
+                item={row.item}
+                onClick={(source) => openForm(row.item, 'card', source)}
+                morphOpen={showForm && morphSource === 'card' && editItem?.id === row.item.id}
+              />
             ) : (
               <SeriesPosterCard
                 key={'series-' + row.collectionId}
@@ -965,10 +979,22 @@ export default function MediaPage() {
       );
     }
     if (viewMode === 'shelves') {
-      return <MediaShelves items={filteredItems} onPick={openForm} />;
+      return (
+        <MediaShelves
+          items={filteredItems}
+          onPick={(item, source) => openForm(item, 'card', source)}
+          openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
+        />
+      );
     }
     if (viewMode === 'table') {
-      return <MediaTable items={filteredItems} onPick={openForm} />;
+      return (
+        <MediaTable
+          items={filteredItems}
+          onPick={(item, source) => openForm(item, 'card', source)}
+          openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
+        />
+      );
     }
     // List view — rows bucketed into status sections (same lifecycle order
     // as the shelves). Headers disappear when everything shares one status
@@ -1004,7 +1030,8 @@ export default function MediaPage() {
           index={idx}
           attached
           first={idx === 0}
-          onClick={() => openForm(row.item)}
+          morphOpen={showForm && morphSource === 'card' && editItem?.id === row.item.id}
+          onClick={(source) => openForm(row.item, 'card', source)}
         />
       ) : (
         <SeriesListRow
@@ -1014,7 +1041,8 @@ export default function MediaPage() {
           first={idx === 0}
           expanded={expandedSeries.has(row.collectionId)}
           onToggle={() => toggleSeries(row.collectionId)}
-          onPickItem={openForm}
+          onPickItem={(item, source) => openForm(item, 'card', source)}
+          openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
         />
       )
     ));
@@ -1193,17 +1221,19 @@ export default function MediaPage() {
       hideScrollbar
       actions={
         !isMobileMedia ? (
-          <Button
-            type="button"
-            variant="tonal"
-            size="sm"
-            onClick={handleAdd}
-            aria-label={mediaAddLabel}
-            className="h-10 gap-2 pl-3.5 pr-4 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:brightness-[0.97]"
-          >
-            <Plus className="size-4" />
-            {mediaAddLabel}
-          </Button>
+          <span className="inline-flex rounded-full">
+            <Button
+              type="button"
+              variant="tonal"
+              size="sm"
+              onClick={(e) => handleAdd(e.currentTarget)}
+              aria-label={mediaAddLabel}
+              className="h-10 gap-2 pl-3.5 pr-4 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:brightness-[0.97]"
+            >
+              <Plus className="size-4" />
+              {mediaAddLabel}
+            </Button>
+          </span>
         ) : undefined
       }
       navigation={
@@ -1316,44 +1346,50 @@ export default function MediaPage() {
           </SheetContent>
         </Sheet>
       ) : (
-        <Dialog
+        /* Desktop: morphing dialog — a clicked grid poster or the Add
+           button grows into the edit surface and shrinks back on close;
+           list/table/shelves opens use the scale/fade fallback. */
+        <MorphingDialog
           open={showForm}
-          onOpenChange={setShowForm}
-          onOpenChangeComplete={(open) => {
-            if (!open) setEditItem(null);
+          onClose={() => setShowForm(false)}
+          onCloseComplete={() => {
+            setEditItem(null);
+            setMorphSource(null);
+            setMorphRect(undefined);
           }}
+          sourceRect={morphRect}
+          ariaLabel={typeof mediaFormTitle === 'string' ? mediaFormTitle : 'Edit media'}
+          className="left-0 right-0 top-[6vh] mx-auto w-[min(48rem,92vw)] max-h-[88vh]"
         >
-          <DialogContent className="sm:max-w-3xl w-full max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
-            <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
-              <DialogTitle className="flex items-center gap-2">
-                {mediaFormTitle}
-              </DialogTitle>
-              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                {mediaFormSubtitle}
-              </p>
-            </DialogHeader>
-
-            <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-              {mediaFormFields}
+          <div className="shrink-0 px-6 pt-6 pb-4 pr-14 border-b border-border">
+            <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
+              {mediaFormTitle}
             </div>
+            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">
+              {mediaFormSubtitle}
+            </p>
+          </div>
 
-            <DialogFooter className="shrink-0 px-6 py-4 border-t border-border bg-muted/20">
-              {mediaFormFooter}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+            {mediaFormFields}
+          </div>
+
+          <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/20">
+            {mediaFormFooter}
+          </div>
+        </MorphingDialog>
       )}
       <SeriesDialog
         row={seriesDialog}
         onClose={() => setSeriesDialog(null)}
-        onPickItem={openForm}
+        onPickItem={(item, source) => openForm(item, 'card', source)}
       />
 
       {isMobileMedia && (
         <Button
           type="button"
           size="fab"
-          onClick={handleAdd}
+          onClick={(e) => handleAdd(e.currentTarget)}
           aria-label={mediaAddLabel}
           className="md:hidden fixed right-4 z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
           style={{
@@ -1644,18 +1680,39 @@ function EmptyState({ type, hasFilter, onAdd, onClear }: { type: string; hasFilt
   );
 }
 
-function PosterCard({ item, onClick }: { item: MediaEntry; onClick: () => void }) {
+function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; onClick: (source: HTMLElement) => void; morphOpen?: boolean }) {
   const statusDisplay = mediaStatusDisplay(item);
   const Icon = TYPE_META[item.type]?.icon || Film;
   const showProgress = item.episodes_total > 0;
 
+  // morphOpen: this item's edit dialog is up. The poster UNMOUNTS its
+  // layoutId element (empty slot keeps the grid steady) so framer does a
+  // clean unmount→mount handoff — with both mounted, the open morph
+  // silently no-ops. Close remounts it and the dialog shrinks back in.
+  if (morphOpen) {
+    return (
+      <button className="group flex flex-col gap-2 text-left w-full" title={item.title} aria-hidden>
+        <div className="relative w-full aspect-[2/3] rounded-2xl bg-[hsl(var(--surface-container)/0.5)]" />
+        <div className="flex flex-col px-0.5 opacity-40">
+          <div className="font-medium text-sm leading-snug line-clamp-2">{item.title}</div>
+        </div>
+      </button>
+    );
+  }
+
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => {
+        const source = e.currentTarget.querySelector<HTMLElement>('[data-media-morph-source]');
+        onClick(source ?? e.currentTarget);
+      }}
       className="group flex flex-col gap-2 text-left w-full"
       title={item.title}
     >
-      <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]">
+      <div
+        data-media-morph-source
+        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]"
+      >
         {item.poster_url ? (
           <img
             src={item.poster_url}
@@ -1751,6 +1808,7 @@ function MediaThumb({ item, index, variant = 'sm', className }: {
   if (item.poster_url) {
     return (
       <img
+        data-media-morph-source
         src={item.poster_url}
         alt=""
         loading="lazy"
@@ -1762,6 +1820,7 @@ function MediaThumb({ item, index, variant = 'sm', className }: {
   const b = ((index + 2) % 5) + 1;
   return (
     <div
+      data-media-morph-source
       className={cn(sizeClass, 'ring-1 ring-border/60 shrink-0', className)}
       style={{ background: `linear-gradient(135deg, hsl(var(--m${a})), hsl(var(--m${b})))` }}
     />
@@ -1935,14 +1994,15 @@ function RowRail({ ghost, rating, chip }: {
 // The old three-column grid reserved a wide right column that read as
 // empty space; everything now hugs the content.
 function MediaListRow({
-  item, index, onClick, compact = false, attached = false, first = false,
+  item, index, onClick, compact = false, attached = false, first = false, morphOpen = false,
 }: {
   item: MediaEntry;
   index: number;
-  onClick: () => void;
+  onClick: (source: HTMLElement) => void;
   compact?: boolean;
   attached?: boolean;
   first?: boolean;
+  morphOpen?: boolean;
 }) {
   const pct = listProgressPct(item);
   const hasProgress = pct !== null;
@@ -1950,7 +2010,10 @@ function MediaListRow({
   const statusDisplay = mediaStatusDisplay(item);
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => {
+        const source = e.currentTarget.querySelector<HTMLElement>('[data-media-morph-source]');
+        onClick(source ?? e.currentTarget);
+      }}
       className={cn(
         'm3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]',
         attached
@@ -2049,7 +2112,7 @@ function MediaListRow({
 // Streaming-app scan pattern: each lifecycle bucket gets its own shelf so
 // "what am I watching" and "what's queued" separate at a glance. Series
 // grouping is intentionally ignored here; every entry stands alone.
-function MediaShelves({ items, onPick }: { items: MediaEntry[]; onPick: (item: MediaEntry) => void }) {
+function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[]; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
   const shelves = useMemo(() => {
     const buckets = new Map<MediaStatus, MediaEntry[]>();
     for (const it of items) {
@@ -2073,7 +2136,7 @@ function MediaShelves({ items, onPick }: { items: MediaEntry[]; onPick: (item: M
           <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 snap-x snap-proximity">
             {shelfItems.map((item) => (
               <div key={item.id} className="w-[124px] sm:w-[148px] shrink-0 snap-start">
-                <PosterCard item={item} onClick={() => onPick(item)} />
+                <PosterCard item={item} onClick={(source) => onPick(item, source)} morphOpen={openItemId === item.id} />
               </div>
             ))}
           </div>
@@ -2085,7 +2148,7 @@ function MediaShelves({ items, onPick }: { items: MediaEntry[]; onPick: (item: M
 
 // ─── Table view — maximum density ────────────────────────────────────────
 // Sorting stays in the toolbar's sort control; the table is a flat readout.
-function MediaTable({ items, onPick }: { items: MediaEntry[]; onPick: (item: MediaEntry) => void }) {
+function MediaTable({ items, onPick, openItemId = null }: { items: MediaEntry[]; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
   return (
     <div className="overflow-x-auto rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
       <table className="w-full min-w-[560px] text-sm border-collapse">
@@ -2106,7 +2169,10 @@ function MediaTable({ items, onPick }: { items: MediaEntry[]; onPick: (item: Med
             return (
               <tr
                 key={item.id}
-                onClick={() => onPick(item)}
+                onClick={(e) => {
+                  const source = e.currentTarget.querySelector<HTMLElement>('[data-media-morph-source]');
+                  onPick(item, source ?? e.currentTarget);
+                }}
                 className="group cursor-pointer border-t border-[hsl(var(--outline-variant))] transition-colors hover:bg-[hsl(var(--surface-container))]"
               >
                 <td className="relative px-4 py-2">
@@ -2127,7 +2193,12 @@ function MediaTable({ items, onPick }: { items: MediaEntry[]; onPick: (item: Med
                     </span>
                   )}
                   <span className="relative flex items-center gap-2.5 min-w-0">
-                    <MediaThumb item={item} index={idx} variant="sm" className="!w-7 !h-10 !rounded" />
+                    <MediaThumb
+                      item={item}
+                      index={idx}
+                      variant="sm"
+                      className="!w-7 !h-10 !rounded"
+                    />
                     <span className="serif font-medium truncate max-w-[18rem]">{item.title || 'Untitled'}</span>
                   </span>
                 </td>
@@ -2235,7 +2306,7 @@ function SeriesDialog({
 }: {
   row: Extract<SeriesRow, { kind: 'series' }> | null;
   onClose: () => void;
-  onPickItem: (m: MediaEntry) => void;
+  onPickItem: (m: MediaEntry, source?: HTMLElement) => void;
 }) {
   if (!row) return null;
   const cover = row.members[0];
@@ -2304,12 +2375,13 @@ function SeriesDialog({
 // SeriesListRow shares Today’s compact review-disclosure pattern. It spans a
 // grid row when needed, so a collection expands without moving poster tiles.
 function SeriesListRow({
-  row, expanded, onToggle, onPickItem, className, attached = false, first = false,
+  row, expanded, onToggle, onPickItem, openItemId = null, className, attached = false, first = false,
 }: {
   row: Extract<SeriesRow, { kind: 'series' }>;
   expanded: boolean;
   onToggle: () => void;
-  onPickItem: (m: MediaEntry) => void;
+  onPickItem: (m: MediaEntry, source?: HTMLElement) => void;
+  openItemId?: number | null;
   className?: string;
   attached?: boolean;
   first?: boolean;
@@ -2418,6 +2490,7 @@ function SeriesListRow({
                 compact
                 attached
                 first={mi === 0}
+                morphOpen={openItemId === m.id}
                 onClick={() => onPickItem(m)}
               />
             ))}

@@ -5,13 +5,17 @@ import { motion } from 'framer-motion';
 import { ChevronDown } from '@/components/ui/icons';
 import { useNavChrome } from '@/components/nav-chrome';
 import PlacesGrid from '@/components/places-grid';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { MorphingPopover } from '@/components/motion/morphing-popover';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+
+// Content clearance for the floating chrome: pills are FIXED islands, so
+// page scrollers pad their tops to start below them. Desktop stacks
+// primary (safe+10, h48) + secondary (safe+66, h48); mobile has only the
+// secondary on top (dock lives at the bottom).
+export function chromeClearance(isMobile: boolean): string {
+  return `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 68 : 126}px)`;
+}
 
 // Watches a page's own scroll container. Hysteresis (enter >96px, exit
 // <24px) keeps the bar/pill merge from flapping around the threshold.
@@ -47,13 +51,37 @@ export function useOwnScrolled(ref: React.RefObject<HTMLDivElement | null>, enab
   return scrolled;
 }
 
-// PageChrome — the page's secondary bar and its merged, scrolled state.
-//
-// Rest: a centered pill (title · page tabs · CTAs) in flow under the
-// primary bar. Scrolled: BOTH bars collapse and one merged pill springs
-// in — the title becomes a dropdown (staggered PlacesGrid of every
-// destination), the page tabs stay as icons (labels animate off), the
-// CTAs stay. Scroll back to top and the stacked bars restore.
+const PILL_SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
+
+// PillSlot — one content block inside the pill. Explicit keyed entrance
+// (remounts on merge/unmerge) so the cascade ALWAYS plays: title first,
+// tabs, then actions. `layout` opts each slot into framer's scale
+// correction, which stops icons squishing while the pill bounds-morphs.
+function PillSlot({ order, className, children }: {
+  order: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 + order * 0.055, duration: 0.24, ease: [0.2, 0, 0, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// PageChrome — the page's secondary chrome. Both states are FIXED
+// floating islands sharing one layoutId, so scrolling triggers a true
+// morph: the rest pill travels up into the primary bar's spot (which
+// fades away) and reshapes into the merged pill — title becomes the
+// places dropdown (MorphingPopover), tab labels shed, CTAs stay. Scroll
+// back and the same element morphs down again. Desktop merged pill runs
+// compact (h-10); mobile keeps 48dp touch targets.
 export function PageChrome({
   title, navigation, actions,
 }: {
@@ -66,21 +94,28 @@ export function PageChrome({
   const navigate = useNavigate();
   const { scrolled } = useNavChrome();
   const [placesOpen, setPlacesOpen] = useState(false);
+  const pillId = useId();
 
   useEffect(() => { setPlacesOpen(false); }, [pathname]);
+  useEffect(() => { if (!scrolled) setPlacesOpen(false); }, [scrolled]);
 
+  const divider = <span className="w-px h-5 shrink-0 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />;
   const tail = (
     <>
       {navigation && (
         <>
-          <span className="w-px h-5 shrink-0 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
-          <div className="min-w-0 overflow-x-auto no-scrollbar">{navigation}</div>
+          {divider}
+          <PillSlot order={1} className="min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar">
+            {navigation}
+          </PillSlot>
         </>
       )}
       {actions ? (
         <>
-          <span className="w-px h-5 shrink-0 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
-          <div className="flex items-center gap-1.5 shrink-0">{actions}</div>
+          {divider}
+          <PillSlot order={2} className="flex items-center gap-1.5 shrink-0">
+            {actions}
+          </PillSlot>
         </>
       ) : (
         <span className="w-1" aria-hidden="true" />
@@ -89,95 +124,73 @@ export function PageChrome({
   );
 
   return (
-    <>
-      {/* Rest bar — in flow, collapses away on scroll. The outer element
-          animates HEIGHT ONLY; the pill inside stays invisible until the
-          heights have settled, then materialises in place. (Fading it
-          while the stacked bars re-expand made it visibly travel down the
-          screen — the "flying pill" complaint.) */}
-      <motion.div
-        initial={false}
-        animate={{ height: scrolled ? 0 : 'auto' }}
-        transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
-        className="relative z-20 shrink-0 overflow-hidden"
-        style={{ pointerEvents: scrolled ? 'none' : 'auto' }}
-        aria-hidden={scrolled}
-      >
-        <motion.div
-          initial={false}
-          animate={{ opacity: scrolled ? 0 : 1 }}
-          transition={scrolled
-            ? { duration: 0.12, ease: [0.2, 0, 0, 1] }
-            : { duration: 0.18, ease: [0.2, 0, 0, 1], delay: 0.22 }}
-          className="flex justify-center px-3 md:px-4 pb-2"
-          style={isMobile
-            ? { paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }
-            : { paddingTop: 2 }}
+    <div
+      className="fixed inset-x-0 z-40 flex justify-center px-3 md:px-4 pointer-events-none"
+      style={{
+        top: scrolled || isMobile
+          ? 'calc(env(safe-area-inset-top, 0px) + 10px)'
+          : 'calc(env(safe-area-inset-top, 0px) + 66px)',
+      }}
+    >
+      {!scrolled ? (
+        <motion.header
+          key="rest"
+          layoutId={pillId}
+          transition={PILL_SPRING}
+          className="pointer-events-auto flex items-center gap-2.5 min-h-12 max-w-[min(94vw,880px)] min-w-0 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)] pl-4 pr-1.5 py-1"
         >
-          <header className="flex items-center gap-2.5 min-h-12 max-w-full min-w-0 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)] pl-4 pr-1.5 py-1">
-            <h1 className="serif text-[15px] font-semibold tracking-tight whitespace-nowrap shrink-0">
+          <PillSlot order={0} className="shrink-0">
+            <h1 className="serif text-[15px] font-semibold tracking-tight whitespace-nowrap">
               {title}
             </h1>
-            {tail}
-          </header>
-        </motion.div>
-      </motion.div>
-
-      {/* Merged pill — fixed, springs in when scrolled. */}
-      <motion.div
-        className="fixed z-50 left-1/2"
-        style={{
-          top: 'calc(env(safe-area-inset-top, 0px) + 10px)',
-          x: '-50%',
-          pointerEvents: scrolled ? 'auto' : 'none',
-        }}
-        initial={false}
-        // Spring IN (playful arrival). OUT is a pure fade in place — any
-        // motion here reads as the pill flying off. transitionEnd resets
-        // the offset invisibly so the next arrival still springs in.
-        animate={scrolled
-          ? { opacity: 1, y: 0, scale: 1 }
-          : { opacity: 0, transitionEnd: { y: -14, scale: 0.94 } }}
-        transition={scrolled
-          ? { type: 'spring', stiffness: 380, damping: 28 }
-          : { duration: 0.14, ease: [0.2, 0, 0, 1] }}
-        aria-hidden={!scrolled}
-      >
-        <div
+          </PillSlot>
+          {tail}
+        </motion.header>
+      ) : (
+        <motion.div
+          key="merged"
+          layoutId={pillId}
+          transition={PILL_SPRING}
           role="toolbar"
           aria-label="Page"
-          className="flex items-center gap-2 min-h-12 pl-1.5 pr-1.5 py-1 max-w-[min(94vw,720px)] rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]"
+          className={cn(
+            'pointer-events-auto flex items-center gap-2 pl-1 pr-1 py-1 max-w-[min(94vw,720px)] min-w-0 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]',
+            isMobile ? 'min-h-12 pl-1.5 pr-1.5' : 'min-h-10',
+          )}
         >
-          <Popover open={placesOpen} onOpenChange={setPlacesOpen}>
-            <PopoverTrigger
-              render={
+          <PillSlot order={0} className="shrink-0">
+            <MorphingPopover
+              open={placesOpen}
+              onOpenChange={setPlacesOpen}
+              panelClassName="w-[300px] p-2"
+              trigger={
                 <button
                   type="button"
-                  tabIndex={scrolled ? undefined : -1}
-                  className="h-9 pl-2.5 pr-1.5 shrink-0 inline-flex items-center gap-1 rounded-full hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
+                  onClick={() => setPlacesOpen(true)}
+                  className={cn(
+                    'pl-2.5 pr-1.5 shrink-0 inline-flex items-center gap-1 rounded-full hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors',
+                    isMobile ? 'h-9' : 'h-8',
+                  )}
                   title="All pages"
                   aria-label="All pages"
                 >
-                  <span className="serif text-sm font-semibold tracking-tight truncate max-w-[150px]">
+                  <span className={cn('serif font-semibold tracking-tight truncate max-w-[150px]', isMobile ? 'text-sm' : 'text-[13px]')}>
                     {title}
                   </span>
-                  <ChevronDown
-                    className={cn('size-3.5 text-muted-foreground transition-transform duration-200', placesOpen && 'rotate-180')}
-                  />
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
                 </button>
               }
-            />
-            <PopoverContent align="start" sideOffset={12} className="w-[300px] p-2">
+            >
               <PlacesGrid
                 pathname={pathname}
                 onNavigate={(p) => { navigate(p); setPlacesOpen(false); }}
               />
-            </PopoverContent>
-          </Popover>
+            </MorphingPopover>
+          </PillSlot>
           {tail}
-        </div>
-      </motion.div>
-    </>
+        </motion.div>
+      )}
+    </div>
   );
 }
 
@@ -195,6 +208,7 @@ export default function PageShell({
   hideScrollbar?: boolean;
 }) {
   const { setScrolled: reportScrolled } = useNavChrome();
+  const isMobile = useIsMobile();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolled = useOwnScrolled(scrollRef, true);
@@ -211,6 +225,7 @@ export default function PageShell({
       <div
         ref={scrollRef}
         className={cn('flex-1 min-h-0 overflow-y-auto overscroll-contain', hideScrollbar && 'no-scrollbar')}
+        style={{ paddingTop: chromeClearance(isMobile) }}
       >
         <div className={contentClassName ?? 'max-w-6xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 flex flex-col gap-6'}>
           {children}
@@ -248,8 +263,11 @@ export function PageShellTabs<V extends string>({
   const groupId = useId();
   // In the merged pill (page scrolled) icon tabs shed their labels via an
   // animated max-width collapse. Tabs without icons keep text — an empty
-  // pill would be unusable.
+  // pill would be unusable. Desktop merged pill runs compact (h-8) for
+  // harmony with the shrunken chrome; mobile keeps 48dp-ish targets.
   const { scrolled } = useNavChrome();
+  const isMobile = useIsMobile();
+  const compact = scrolled && bare && !isMobile;
 
   return (
     <nav aria-label={ariaLabel} className={cn('max-w-full min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar', className)}>
@@ -275,8 +293,9 @@ export function PageShellTabs<V extends string>({
               title={labelHidden && typeof option.label === 'string' ? option.label : undefined}
               onClick={() => onChange(option.value)}
               className={cn(
-                'relative rounded-[22px] inline-flex items-center justify-center px-2.5 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50',
-                bare ? 'h-9' : 'h-9 sm:h-10',
+                'relative rounded-[22px] inline-flex items-center justify-center font-medium whitespace-nowrap outline-none transition-[color,background-color,height,padding] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50',
+                compact ? 'h-8 px-2 text-xs' : 'px-2.5 sm:px-3 text-xs sm:text-sm',
+                bare ? (compact ? 'h-8' : 'h-9') : 'h-9 sm:h-10',
                 active
                   ? 'text-[hsl(var(--on-secondary-container))]'
                   : 'text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground',

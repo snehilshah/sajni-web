@@ -30,6 +30,7 @@ import MissedBanner from '@/components/tasks/MissedBanner';
 import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, weekMondayKey, monthFirstKey,
 } from '@/components/tasks/helpers';
+import { useNavChrome } from '@/components/nav-chrome';
 import PageShell from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 
@@ -49,6 +50,7 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formDefaults, setFormDefaults] = useState<TaskDefaults>({});
+  const [taskFormLayoutId, setTaskFormLayoutId] = useState<string | undefined>();
 
   const [quickTitle, setQuickTitle] = useState('');
 
@@ -116,8 +118,12 @@ export default function TasksPage() {
 
   const [showCompleted, setShowCompleted] = useState(false);
 
+  const { scrolled: chromeScrolled } = useNavChrome();
+  const currentTaskFormLayoutId = `task-form-${chromeScrolled ? 'merged' : 'rest'}`;
+
   const openCreate = (overrides: TaskDefaults = {}) => {
     setEditingTask(null);
+    setTaskFormLayoutId(currentTaskFormLayoutId);
     setFormDefaults({
       list_id: selection.kind === 'list' ? selection.id : null,
       ...(selection.kind === 'smart' && selection.smart === 'my_day'
@@ -139,6 +145,7 @@ export default function TasksPage() {
 
   const openEdit = (task: Task) => {
     setEditingTask(task);
+    setTaskFormLayoutId(undefined);
     setShowForm(true);
   };
 
@@ -183,9 +190,21 @@ export default function TasksPage() {
               onChange={(v) => setViewMode(v as ViewMode)}
               onPrimary={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
             />
-            <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
-              <Plus className="size-3.5" /> New task
-            </Button>
+            {/* Same visual source, state-specific layoutId: the page chrome can
+                morph rest↔merged without this CTA doing a delayed shared jump. */}
+            {showForm && !editingTask ? (
+              <span className="inline-flex rounded-full">
+                <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
+                  <Plus className="size-3.5" /> New task
+                </Button>
+              </span>
+            ) : (
+              <motion.span layoutId={taskFormLayoutId ?? currentTaskFormLayoutId} className="inline-flex rounded-full">
+                <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
+                  <Plus className="size-3.5" /> New task
+                </Button>
+              </motion.span>
+            )}
           </div>
         ) : undefined
       }
@@ -278,6 +297,10 @@ export default function TasksPage() {
           defaults={formDefaults}
           lists={lists}
           onSaved={refreshTasks}
+          layoutId={taskFormLayoutId}
+          onCloseComplete={() => {
+            if (!showForm) setTaskFormLayoutId(undefined);
+          }}
         />
       </Suspense>
 

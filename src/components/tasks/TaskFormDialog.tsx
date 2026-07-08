@@ -17,9 +17,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+import { MorphingDialog } from '@/components/motion/morphing-dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -110,12 +108,13 @@ interface Props {
   defaults?: TaskDefaults;
   lists: TaskList[];
   onSaved: () => void;
+  layoutId?: string;
   /** Fired only on a *new* task create, with the created row — lets callers
    *  (e.g. the journal /task picker) act on it, like inserting a chip. */
   onCreated?: (saved: { id: number; title: string }) => void;
 }
 
-export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, onCreated }: Props) {
+export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, layoutId, onCreated }: Props) {
   const [form, setForm] = useState<FormState>(blank);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [events, setEvents] = useState<TaskEvent[]>([]);
@@ -274,22 +273,21 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
   const isMobile = useIsMobile();
   return (
-    <Dialog
+    <MorphingDialog
       open={open}
-      onOpenChange={onOpenChange}
-      onOpenChangeComplete={(isOpen) => {
-        if (!isOpen) onCloseComplete?.();
-      }}
+      onClose={() => onOpenChange(false)}
+      onCloseComplete={onCloseComplete}
+      // New-task opens can morph from a page-owned source. Flows without one
+      // (task rows, RichEditor /task) keep the scale/fade fallback.
+      layoutId={editing ? undefined : layoutId}
+      ariaLabel={editing ? 'Edit task' : 'New task'}
+      className={cn(
+        isMobile
+          ? 'inset-x-0 bottom-0 max-w-full w-full h-[92dvh] rounded-b-none border-t border-border'
+          : 'left-0 right-0 top-[7vh] mx-auto w-[min(42rem,92vw)] h-[min(85vh,720px)]',
+      )}
     >
-      <DialogContent
-        className={cn(
-          'flex flex-col gap-0 p-0 overflow-hidden',
-          isMobile
-            ? 'fixed inset-x-0 bottom-0 top-auto left-0 translate-x-0 translate-y-0 max-w-full w-full h-[92dvh] border-t border-border'
-            : 'max-w-2xl w-full sm:max-w-2xl h-[min(85vh,720px)]',
-        )}
-      >
-        <DialogHeader className="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 pr-14 border-b border-border">
+        <div className="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 pr-14 border-b border-border">
           <div className="flex items-start gap-3">
             <button
               type="button"
@@ -300,13 +298,13 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               <Star className={`size-4 ${form.important ? 'fill-current' : ''}`} />
             </button>
             <div className="min-w-0">
-              <DialogTitle>{editing ? 'Edit task' : 'New task'}</DialogTitle>
-              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              <div className="text-lg font-semibold leading-none tracking-tight font-serif">{editing ? 'Edit task' : 'New task'}</div>
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-1">
                 {editing ? 'Update details below' : 'Capture something to do'}
               </p>
             </div>
           </div>
-        </DialogHeader>
+        </div>
 
         <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5">
           {/* Subtask context — makes parentage explicit (a child must never
@@ -633,7 +631,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           </div>
         </div>
 
-        <DialogFooter className="shrink-0 px-4 md:px-6 py-3 md:py-4 border-t border-border bg-muted/20">
+        <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border bg-muted/20">
           {editing && (
             <div className="mr-auto flex items-center gap-1">
               <Button
@@ -660,9 +658,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
             {editing ? 'Save' : 'Create task'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </MorphingDialog>
   );
 }
 

@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
-import { PageChrome, PageShellTabs } from '@/components/PageShell';
+import { PageChrome, PageShellTabs, chromeClearance } from '@/components/PageShell';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -516,7 +516,7 @@ export default function NotesPage() {
               animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-              className="hidden md:flex border-r border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden"
+              className="hidden md:flex md:pt-[68px] border-r border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden"
             >
               {treeBody}
             </motion.aside>
@@ -536,8 +536,9 @@ export default function NotesPage() {
           </SheetContent>
         </Sheet>
 
-        {/* Editor body — fills remaining width. */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Editor body — fills remaining width; pads below the floating
+            pills (primary + Notes pill are fixed islands). */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto" style={{ paddingTop: chromeClearance(isMobile) }}>
           {/* Atlas landing — show the design's card grid when no note is open
               and not actively drafting a new one. */}
           {!selectedId && !drafting && !loadingNote && !title && !content ? (

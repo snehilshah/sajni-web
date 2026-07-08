@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import {
   LogOut, Search, Settings, Sparkles, Loader2,
 } from '@/components/ui/icons';
@@ -119,10 +119,72 @@ function UserMenuBody({
   );
 }
 
+// ─── Dock icon — macOS-style proximity magnification ─────────────────────
+// `pointerX` carries the pointer's clientX while it's over the dock
+// (Infinity when it leaves); each icon springs its size by distance.
+// Subtle by design: +8px at dead centre, felt more than seen.
+function DockNavIcon({
+  pointerX, path, label, icon, onboardingKey, isActive, base, max, activeLayoutId,
+}: {
+  pointerX: MotionValue<number>;
+  path: string;
+  label: string;
+  icon: Parameters<typeof PixelIcon>[0]['name'];
+  onboardingKey?: string;
+  isActive: boolean;
+  base: number;
+  max: number;
+  activeLayoutId: string;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const distance = useTransform(pointerX, (x) => {
+    const b = ref.current?.getBoundingClientRect();
+    return b ? x - (b.left + b.width / 2) : Infinity;
+  });
+  const size = useSpring(
+    useTransform(distance, [-96, 0, 96], [base, max, base]),
+    { mass: 0.1, stiffness: 220, damping: 16 },
+  );
+  const iconScale = useTransform(size, (s) => s / base);
+
+  return (
+    <NavLink
+      ref={ref}
+      to={path}
+      end={path === '/'}
+      data-onboarding-key={onboardingKey}
+      title={label}
+      aria-label={label}
+      className="shrink-0 flex items-center justify-center"
+    >
+      <motion.span
+        style={{ width: size, height: size }}
+        className={cn(
+          'relative inline-flex items-center justify-center rounded-full transition-colors',
+          isActive
+            ? 'text-[hsl(var(--on-secondary-container))]'
+            : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.08)] active:bg-[hsl(var(--on-surface)/0.08)]',
+        )}
+      >
+        {isActive && (
+          <motion.span
+            layoutId={activeLayoutId}
+            className="absolute inset-0 rounded-full bg-[hsl(var(--secondary-container))]"
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          />
+        )}
+        <motion.span style={{ scale: iconScale }} className="relative z-10 inline-flex">
+          <PixelIcon name={icon} solid={isActive} className={base >= 44 ? 'size-[20px]' : 'size-[19px]'} />
+        </motion.span>
+      </motion.span>
+    </NavLink>
+  );
+}
+
 // ─── Primary island (desktop) ────────────────────────────────────────────
-// Icon-only destinations in one floating pill, avatar at the trailing end.
-// Collapses away on scroll — the page's merged pill (PageChrome) exposes
-// every destination through its title dropdown while this is gone.
+// Icon-only destinations in one FIXED floating pill — content (and page
+// sidebars) run underneath to the viewport top. Slides up + fades when
+// the page scrolls; the merged pill (PageChrome) morphs into its place.
 function PrimaryBar({
   pathname, scrolled, userMenuContent, initials, accountMenuOpen, setAccountMenuOpen,
 }: {
@@ -133,73 +195,53 @@ function PrimaryBar({
   accountMenuOpen: boolean;
   setAccountMenuOpen: (open: boolean) => void;
 }) {
+  const pointerX = useMotionValue(Infinity);
   return (
     <motion.div
       initial={false}
-      // Height-only collapse; the pill inside fades in AFTER the stacked
-      // heights settle so it never visibly travels (see PageChrome).
-      animate={{ height: scrolled ? 0 : 'auto' }}
-      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
-      className="relative z-40 shrink-0 overflow-hidden"
-      style={{ pointerEvents: scrolled ? 'none' : 'auto' }}
+      animate={{ y: scrolled ? -88 : 0, opacity: scrolled ? 0 : 1 }}
+      transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
+      className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
       aria-hidden={scrolled}
     >
-      <motion.div
-        initial={false}
-        animate={{ opacity: scrolled ? 0 : 1 }}
-        transition={scrolled
-          ? { duration: 0.12, ease: [0.2, 0, 0, 1] }
-          : { duration: 0.18, ease: [0.2, 0, 0, 1], delay: 0.22 }}
-        className="flex justify-center px-4 pb-2"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+      <nav
+        onMouseMove={(e) => pointerX.set(e.clientX)}
+        onMouseLeave={() => pointerX.set(Infinity)}
+        className={cn(
+          'flex items-center gap-0.5 h-12 px-1.5 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]',
+          scrolled ? 'pointer-events-none' : 'pointer-events-auto',
+        )}
+        aria-label="Primary"
       >
-        <nav
-          className="flex items-center gap-0.5 h-12 px-1.5 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]"
-          aria-label="Primary"
-        >
-          {NAV_ITEMS.map(({ path, label, icon, key }) => {
-            const isActive = isActivePath(pathname, path);
-            return (
-              <NavLink
-                key={path}
-                to={path}
-                end={path === '/'}
-                data-onboarding-key={key}
-                title={label}
-                aria-label={label}
-                className={cn(
-                  'relative size-10 inline-flex items-center justify-center rounded-full transition-colors',
-                  isActive
-                    ? 'text-[hsl(var(--on-secondary-container))]'
-                    : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.08)]',
-                )}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="primary-active"
-                    className="absolute inset-0 rounded-full bg-[hsl(var(--secondary-container))]"
-                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  />
-                )}
-                <PixelIcon name={icon} solid={isActive} className="size-[19px] relative z-10" />
-              </NavLink>
-            );
-          })}
-          <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
-          <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
-            <DropdownMenuTrigger
-              render={
-                <button className="rounded-full mr-0.5" title="Account" aria-label="Account">
-                  <Avatar size={30} label={initials} />
-                </button>
-              }
-            />
-            <DropdownMenuContent align="end" sideOffset={10} className="w-[280px]">
-              {userMenuContent}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </nav>
-      </motion.div>
+        {NAV_ITEMS.map(({ path, label, icon, key }) => (
+          <DockNavIcon
+            key={path}
+            pointerX={pointerX}
+            path={path}
+            label={label}
+            icon={icon}
+            onboardingKey={key}
+            isActive={isActivePath(pathname, path)}
+            base={40}
+            max={48}
+            activeLayoutId="primary-active"
+          />
+        ))}
+        <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+        <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
+          <DropdownMenuTrigger
+            render={
+              <button className="rounded-full mr-0.5" title="Account" aria-label="Account">
+                <Avatar size={30} label={initials} />
+              </button>
+            }
+          />
+          <DropdownMenuContent align="end" sideOffset={10} className="w-[280px]">
+            {userMenuContent}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </nav>
     </motion.div>
   );
 }
@@ -238,6 +280,7 @@ function BottomDock({
   accountMenuOpen: boolean;
   setAccountMenuOpen: (open: boolean) => void;
 }) {
+  const pointerX = useMotionValue(Infinity);
   return (
     <motion.div
       initial={false}
@@ -252,34 +295,26 @@ function BottomDock({
         className="pointer-events-auto flex items-center gap-0.5 h-14 max-w-full pl-1.5 pr-2 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]"
         aria-label="Primary"
       >
-        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-          {NAV_ITEMS.map(({ path, label, icon }) => {
-            const isActive = isActivePath(pathname, path);
-            return (
-              <NavLink
-                key={path}
-                to={path}
-                end={path === '/'}
-                title={label}
-                aria-label={label}
-                className={cn(
-                  'relative size-11 shrink-0 inline-flex items-center justify-center rounded-full transition-colors',
-                  isActive
-                    ? 'text-[hsl(var(--on-secondary-container))]'
-                    : 'text-foreground/80 active:bg-[hsl(var(--on-surface)/0.08)]',
-                )}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="dock-active"
-                    className="absolute inset-1 rounded-full bg-[hsl(var(--secondary-container))]"
-                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  />
-                )}
-                <PixelIcon name={icon} solid={isActive} className="size-[20px] relative z-10" />
-              </NavLink>
-            );
-          })}
+        <div
+          className="flex items-center gap-0.5 overflow-x-auto no-scrollbar"
+          // Magnify under the thumb while sliding across; settle on lift.
+          onTouchMove={(e) => pointerX.set(e.touches[0]?.clientX ?? Infinity)}
+          onTouchEnd={() => pointerX.set(Infinity)}
+          onTouchCancel={() => pointerX.set(Infinity)}
+        >
+          {NAV_ITEMS.map(({ path, label, icon }) => (
+            <DockNavIcon
+              key={path}
+              pointerX={pointerX}
+              path={path}
+              label={label}
+              icon={icon}
+              isActive={isActivePath(pathname, path)}
+              base={44}
+              max={52}
+              activeLayoutId="dock-active"
+            />
+          ))}
         </div>
         <span className="w-px h-5 mx-0.5 bg-[hsl(var(--outline-variant))] shrink-0" aria-hidden="true" />
         <button

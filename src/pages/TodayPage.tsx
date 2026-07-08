@@ -16,8 +16,9 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import MissedBanner from '@/components/tasks/MissedBanner';
-import { PageChrome, useOwnScrolled } from '@/components/PageShell';
+import { PageChrome, chromeClearance, useOwnScrolled } from '@/components/PageShell';
 import { useNavChrome } from '@/components/nav-chrome';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Memo {
 	id: number;
@@ -182,12 +183,13 @@ export default function TodayPage() {
 		}
 	};
 
+	const isMobile = useIsMobile();
 	const dateLabel = format(new Date(), 'EEEE, MMMM d');
 
 	return (
 		<div className="flex-1 min-h-0 flex flex-col">
 		<PageChrome title="Today" />
-		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ paddingTop: chromeClearance(isMobile) }}>
 		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-6 md:pt-8 pb-24">
 			{/* Hero */}
 			<div className="sajni-stagger">

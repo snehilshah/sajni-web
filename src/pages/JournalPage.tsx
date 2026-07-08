@@ -633,8 +633,12 @@ export default function JournalPage() {
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Editor pane (CENTER) */}
-        <div className="flex-1 flex flex-col min-w-0 order-2 overflow-y-auto">
+        {/* Editor pane (CENTER) — pads below the floating primary pill
+            (desktop); mobile has no top chrome, just the safe area. */}
+        <div
+          className="flex-1 flex flex-col min-w-0 order-2 overflow-y-auto"
+          style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 8 : 72}px)` }}
+        >
           {viewMode === 'week' ? (
             <WeekView
               year={weekYear}
