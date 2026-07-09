@@ -288,7 +288,7 @@ function BottomDock({
       // the whole shortened viewport.
       animate={{ y: hidden ? 96 : 0, opacity: hidden ? 0 : 1 }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-      className="fixed inset-x-0 z-50 md:hidden flex justify-center px-3 pointer-events-none"
+      className="fixed inset-x-0 z-40 md:hidden flex justify-center px-3 pointer-events-none"
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
     >
       <nav

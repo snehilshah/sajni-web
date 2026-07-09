@@ -86,12 +86,45 @@ function MorphPanel({
 }: React.ComponentProps<typeof motion.div> & {
   sourceRect?: MorphSourceRect;
 }) {
+  if (sourceRect) {
+    return (
+      <RectMorphPanel
+        sourceRect={sourceRect}
+        className={className}
+        {...props}
+      >
+        {children}
+      </RectMorphPanel>
+    );
+  }
+
+  return (
+    <motion.div
+      layoutId={layoutId}
+      initial={layoutId ? undefined : { opacity: 0, scale: 0.96, y: 10 }}
+      animate={layoutId ? undefined : { opacity: 1, scale: 1, y: 0 }}
+      exit={layoutId ? undefined : { opacity: 0, scale: 0.97, y: 6 }}
+      transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+      style={{ transformOrigin: '0 0' }}
+      className={className}
+      {...props}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function RectMorphPanel({
+  sourceRect, className, children, ...props
+}: React.ComponentProps<typeof motion.div> & {
+  sourceRect: MorphSourceRect;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [isPresent, safeToRemove] = usePresence();
 
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el || !sourceRect) return;
+    if (!el) return;
 
     const final = el.getBoundingClientRect();
     if (!final.width || !final.height) return;
@@ -129,10 +162,9 @@ function MorphPanel({
   return (
     <motion.div
       ref={ref}
-      layoutId={sourceRect ? undefined : layoutId}
-      initial={sourceRect || layoutId ? undefined : { opacity: 0, scale: 0.96, y: 10 }}
-      animate={sourceRect || layoutId ? undefined : { opacity: 1, scale: 1, y: 0 }}
-      exit={sourceRect || layoutId ? undefined : { opacity: 0, scale: 0.97, y: 6 }}
+      initial={undefined}
+      animate={undefined}
+      exit={undefined}
       transition={{ type: 'spring', stiffness: 340, damping: 32 }}
       style={{ transformOrigin: '0 0' }}
       className={className}
