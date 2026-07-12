@@ -69,6 +69,7 @@ export default function TasksPage() {
   const { data: lists = [] } = useTaskLists();
   const { data: tasksList = [], isLoading: loading } = useTasks(params);
   const { data: missed = [] } = useMissedTasks();
+  const { data: blockedTasks = [] } = useTasks({ smart: 'blocked' });
   const missedCount = missed.length;
 
   const createTask = useCreateTask();
@@ -105,7 +106,7 @@ export default function TasksPage() {
   }, [focusId, tasksList, searchParams, setSearchParams]);
 
   const grouped = useMemo(() => {
-    const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], done: [], scratched: [] };
+    const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], blocked: [], done: [], scratched: [] };
     for (const t of tasksList) map[t.status]?.push(t);
     return map;
   }, [tasksList]);
@@ -138,6 +139,9 @@ export default function TasksPage() {
       ...(selection.kind === 'smart' && selection.smart === 'important'
         ? { important: true }
         : {}),
+      ...(selection.kind === 'smart' && selection.smart === 'blocked'
+        ? { status: 'blocked' as const }
+        : {}),
       ...overrides,
     });
     setShowForm(true);
@@ -152,6 +156,11 @@ export default function TasksPage() {
   const handleQuickAdd = async () => {
     const title = quickTitle.trim();
     if (!title) return;
+    if (selection.kind === 'smart' && selection.smart === 'blocked') {
+      setQuickTitle('');
+      openCreate({ title, status: 'blocked' });
+      return;
+    }
     const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title };
     if (selection.kind === 'list') overrides.list_id = selection.id;
     if (selection.kind === 'smart' && selection.smart === 'my_day') {
@@ -214,7 +223,7 @@ export default function TasksPage() {
         <PillScroller
           lists={lists}
           selection={selection}
-          smartCounts={{ missed: missedCount }}
+          smartCounts={{ missed: missedCount, blocked: blockedTasks.length }}
           onSelect={setSelection}
           onCreate={async (name) => { await createList.mutateAsync({ name }); }}
           onRename={async (id, name) => { await updateList.mutateAsync({ id, data: { name } }); }}
@@ -276,9 +285,18 @@ export default function TasksPage() {
               onMove={(id, status) => {
                 const t = tasksList.find((x) => x.id === id);
                 if (!t || t.status === status) return;
+                if (status === 'blocked') {
+                  setEditingTask({ ...t, status: 'blocked', blocked_by_task_id: null, blocked_by_task_title: null });
+                  setShowForm(true);
+                  return;
+                }
                 moveStatus.mutate({ id, status });
               }}
               onQuickAdd={async (status, title) => {
+                if (status === 'blocked') {
+                  openCreate({ status: 'blocked', title });
+                  return;
+                }
                 const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title, status };
                 if (selection.kind === 'list') overrides.list_id = selection.id;
                 await createTask.mutateAsync(overrides);
@@ -464,7 +482,7 @@ function BoardView({
   const [draft, setDraft] = useState('');
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       {STATUSES.map((status) => (
         <div
           key={status}
@@ -482,7 +500,8 @@ function BoardView({
             <div className="flex items-center gap-2">
               <span className={`size-2 rounded-full ${
                 status === 'todo' ? 'bg-muted-foreground/40' :
-                status === 'in_progress' ? 'bg-secondary' : 'bg-primary'
+                status === 'in_progress' ? 'bg-secondary' :
+                status === 'blocked' ? 'bg-destructive' : 'bg-primary'
               }`} />
               <span className="text-[13px] font-medium text-muted-foreground">
                 {STATUS_LABELS[status]}
@@ -608,6 +627,11 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
           <div className="flex items-center gap-1 mt-2 ml-4 text-xs font-mono text-muted-foreground">
             <Loader2 className="size-3 hidden" />
             <span>{task.due_date}</span>
+          </div>
+        )}
+        {task.status === 'blocked' && (
+          <div className="mt-2 ml-4 truncate text-xs text-[hsl(var(--on-error-container))]">
+            Blocked by {task.blocked_by_task_title || 'another task'}
           </div>
         )}
       </div>

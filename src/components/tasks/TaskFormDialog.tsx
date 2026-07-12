@@ -32,6 +32,7 @@ export interface FormState {
   description: string;
   priority: Task['priority'];
   status: Task['status'];
+  blocked_by_task_id: number | null;
   /** 'day' = a dated task (due_date); 'week' = a week-scoped task (week_of);
    *  'month' = a month goal (month_of), broken into dated child sessions. */
   due_type: 'day' | 'week' | 'month';
@@ -57,7 +58,7 @@ export interface FormState {
 export type TaskDefaults = Partial<FormState>;
 
 const blank: FormState = {
-  title: '', description: '', priority: 'medium', status: 'todo',
+  title: '', description: '', priority: 'medium', status: 'todo', blocked_by_task_id: null,
   due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
   notify_emails: [], list_id: null, important: false, steps: [], reminders: [],
 };
@@ -119,6 +120,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [events, setEvents] = useState<TaskEvent[]>([]);
   const [saving, setSaving] = useState(false);
+  const [blockerTasks, setBlockerTasks] = useState<Task[]>([]);
   // The parent task when editing a subtask — drives the "Subtask of …" banner
   // so a child never reads as a standalone task, and so the user can promote it.
   const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
@@ -131,6 +133,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         description: editing.description || '',
         priority: editing.priority,
         status: editing.status,
+        blocked_by_task_id: editing.blocked_by_task_id ?? null,
         due_type: editing.month_of ? 'month' : editing.week_of ? 'week' : 'day',
         due_date: editing.due_date || '',
         week_of: editing.week_of || '',
@@ -159,7 +162,22 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       setEvents([]);
       setParent(null);
     }
+    tasksApi.list({ smart: 'all' }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
   }, [open, editing, defaults]);
+
+  const blockerCandidates = blockerTasks.filter((candidate) => {
+    if (candidate.id === editing?.id || candidate.status === 'done' || candidate.status === 'scratched') return false;
+    if (!editing) return true;
+    const byId = new Map(blockerTasks.map((task) => [task.id, task]));
+    let cursor: Task | undefined = candidate;
+    const seen = new Set<number>();
+    while (cursor?.blocked_by_task_id && !seen.has(cursor.id)) {
+      if (cursor.blocked_by_task_id === editing.id) return false;
+      seen.add(cursor.id);
+      cursor = byId.get(cursor.blocked_by_task_id);
+    }
+    return true;
+  });
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
@@ -181,6 +199,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           description: form.description,
           priority: form.priority,
           status: form.status,
+          blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
+          clear_blocked_by: form.status !== 'blocked',
           // Day / week / month are exclusive — set one column, clear the others
           // so a switch never leaves a stale due_date / week_of / month_of behind.
           ...(isMonth
@@ -215,6 +235,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           description: form.description,
           priority: form.priority,
           status: form.status,
+          blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
           due_date: noDay ? undefined : (form.due_date || undefined),
           week_of: isWeek ? form.week_of : undefined,
           month_of: isMonth ? form.month_of : undefined,
@@ -416,12 +437,44 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           </div>
 
+          {form.status === 'blocked' && (
+            <div className="flex flex-col gap-1.5 rounded-xl border border-[hsl(var(--error)/0.25)] bg-[hsl(var(--error-container)/0.55)] p-3">
+              <Label className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--on-error-container))] inline-flex items-center gap-1.5">
+                <GitBranch className="size-3" /> Blocked by
+              </Label>
+              <Select
+                value={form.blocked_by_task_id ? String(form.blocked_by_task_id) : undefined}
+                onValueChange={(value) => setForm({ ...form, blocked_by_task_id: Number(value) })}
+                items={blockerCandidates.map((task) => ({ value: String(task.id), label: task.title }))}
+              >
+                <SelectTrigger className="h-10 bg-card text-sm" aria-label="Select blocking task">
+                  <SelectValue placeholder="Select task that must finish first" />
+                </SelectTrigger>
+                <SelectContent>
+                  {blockerCandidates.map((task) => (
+                    <SelectItem key={task.id} value={String(task.id)}>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className={`size-2 rounded-full shrink-0 ${STATUS_DOT[task.status]}`} />
+                        <span className="truncate">{task.title}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[hsl(var(--on-error-container)/0.8)]">
+                Completing, scratching, or deleting blocker returns this task to To do.
+              </p>
+            </div>
+          )}
+
           {/* Due scope — its own full-width row (a 3-way toggle crammed into a
               grid cell overran the List label). Connected M3 button-group picks
               the scope; the picker below adapts. Day → date, Week → Monday
               anchor, Month → 1st-of-month goal (broken into dated sessions). */}
-          <div className="flex flex-col gap-1.5 shrink-0">
-            <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Due</Label>
+          <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card/50 p-3 shrink-0">
+            <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+              <CalendarClock className="size-3" /> Due date &amp; time
+            </Label>
             <SegmentedButton
               showCheck={false}
               stretch
@@ -439,6 +492,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 { value: 'month', label: 'Month' },
               ]}
             />
+            <div className={cn('grid gap-2.5', form.due_type === 'day' && 'sm:grid-cols-2')}>
             {form.due_type === 'day' ? (
               <DatePicker
                 id="task-due-date"
@@ -462,39 +516,34 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 placeholder="Pick a month"
               />
             )}
+            {form.due_type === 'day' && (
+              <TimePicker
+                id="task-time"
+                name="task-time"
+                value={form.scheduled_time}
+                placeholder="No time"
+                onChange={(v) => setForm({
+                  ...form,
+                  scheduled_time: v,
+                  due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
+                  remind: v ? form.remind : false,
+                })}
+              />
+            )}
+            </div>
           </div>
 
-          {/* Schedule — the task's own time + email nudge, then custom
-              recipients and any number of extra reminders below. A week task
-              has no specific time, so the time row is replaced by a note. */}
+          {/* Reminder controls stay together, separate from due date/time. */}
           <div className="flex flex-col rounded-lg border border-border bg-card/50">
             {form.due_type === 'day' ? (
               <div className="flex flex-col gap-2 p-3">
-                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                  <div className="flex flex-col gap-1.5 sm:w-44">
-                    <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                      <Clock className="size-3" /> Time
-                    </Label>
-                    <TimePicker
-                      id="task-time"
-                      name="task-time"
-                      value={form.scheduled_time}
-                      placeholder="Set time"
-                      onChange={(v) => setForm({
-                        ...form,
-                        scheduled_time: v,
-                        // A reminder needs a concrete day — default to today when
-                        // none is picked so a quick "remind me at 5pm" works
-                        // without first choosing a due date. The user can still
-                        // move the date freely with the Due date picker.
-                        due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
-                        remind: v ? form.remind : false,
-                      })}
-                    />
-                  </div>
+                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                  <Bell className="size-3" /> Reminders
+                </Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <label
                     className={cn(
-                      'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 transition-colors',
+                      'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 border border-border transition-colors',
                       form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
                     )}
                   >
@@ -654,7 +703,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
+          <Button onClick={handleSave} disabled={saving || !form.title.trim() || (form.status === 'blocked' && !form.blocked_by_task_id)} className="gap-1.5">
             {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
             {editing ? 'Save' : 'Create task'}
           </Button>

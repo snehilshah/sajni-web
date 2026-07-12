@@ -27,7 +27,7 @@ export interface Task {
   description: string;
   /** 'scratched' = abandoned-but-kept: struck through, dropped from open
    *  lists / smart views / reminders, reversible back to 'todo'. */
-  status: 'todo' | 'in_progress' | 'done' | 'scratched';
+  status: 'todo' | 'in_progress' | 'blocked' | 'done' | 'scratched';
   priority: 'low' | 'medium' | 'high';
   tags?: string[];
   due_date?: string | null;
@@ -47,6 +47,9 @@ export interface Task {
   reminded_at?: string | null;
   list_id?: number | null;
   parent_task_id?: number | null;
+  blocked_by_task_id?: number | null;
+  blocked_by_task_title?: string | null;
+  blocked_by_task_status?: Task['status'] | null;
   important: boolean;
   steps: TaskStep[];
   sort_order: number;
@@ -73,6 +76,7 @@ export type TaskPatch = Partial<Pick<
   | 'notify_emails'
   | 'list_id'
   | 'parent_task_id'
+  | 'blocked_by_task_id'
   | 'important'
   | 'steps'
 >> & {
@@ -82,6 +86,7 @@ export type TaskPatch = Partial<Pick<
   clear_scheduled?: boolean;
   clear_list?: boolean;
   clear_parent?: boolean;
+  clear_blocked_by?: boolean;
 };
 
 export interface TaskList {
@@ -95,7 +100,7 @@ export interface TaskList {
   updated_at: string;
 }
 
-export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'month' | 'scheduled' | 'missed' | 'inbox' | 'all';
+export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'month' | 'scheduled' | 'blocked' | 'missed' | 'inbox' | 'all';
 
 export interface Habit {
   id: number;

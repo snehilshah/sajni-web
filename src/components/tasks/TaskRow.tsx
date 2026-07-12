@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight,
+  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch,
 } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -121,9 +121,11 @@ export default function TaskRow({
               animate={{ borderRadius: task.status === 'done' ? '50%' : '32%' }}
               transition={{ type: 'spring', stiffness: 380, damping: 26 }}
               className={`size-7 border-2 flex items-center justify-center transition-colors
-                ${task.status === 'done'
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-[hsl(var(--outline))] group-hover:border-primary'}`}
+				${task.status === 'done'
+				  ? 'border-primary bg-primary text-primary-foreground'
+				  : task.status === 'blocked'
+				    ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
+				    : 'border-[hsl(var(--outline))] group-hover:border-primary'}`}
             >
               <AnimatePresence>
                 {task.status === 'done' && (
@@ -165,6 +167,22 @@ export default function TaskRow({
               )}
               {task.status === 'scratched' && (
                 <span className="inline-flex items-center rounded-full px-1.5 py-px bg-[hsl(var(--on-surface)/0.08)]">scratched</span>
+              )}
+              {task.status === 'blocked' && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (task.blocked_by_task_id) {
+                      window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.blocked_by_task_id } }));
+                    }
+                  }}
+                  className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-[hsl(var(--on-error-container))]"
+                  title={task.blocked_by_task_title ? `Blocked by ${task.blocked_by_task_title}` : 'Blocked'}
+                >
+                  <GitBranch className="size-3 shrink-0" />
+                  <span className="truncate max-w-44">Blocked by {task.blocked_by_task_title || 'another task'}</span>
+                </button>
               )}
               {task.due_date && (
                 <span className={`inline-flex items-center gap-1 ${overdue ? 'text-destructive' : ''}`}>

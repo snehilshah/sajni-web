@@ -14,11 +14,12 @@ export function monthFirstKey(d: Date = new Date()): string {
   return format(startOfMonth(d), 'yyyy-MM-dd');
 }
 
-export const STATUSES: Task['status'][] = ['todo', 'in_progress', 'done'];
+export const STATUSES: Task['status'][] = ['todo', 'in_progress', 'blocked', 'done'];
 
 export const STATUS_LABELS: Record<Task['status'], string> = {
   todo: 'To do',
   in_progress: 'In progress',
+  blocked: 'Blocked',
   done: 'Done',
   scratched: 'Scratched',
 };
@@ -26,6 +27,7 @@ export const STATUS_LABELS: Record<Task['status'], string> = {
 export const STATUS_DOT: Record<Task['status'], string> = {
   todo: 'bg-muted-foreground/40',
   in_progress: 'bg-secondary',
+  blocked: 'bg-destructive',
   done: 'bg-primary',
   scratched: 'bg-muted-foreground/30',
 };
@@ -55,6 +57,7 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'week', label: 'This Week', description: 'Week-scoped tasks due this week' },
   { smart: 'month', label: 'This Month', description: 'Month goals — long agendas broken into sessions' },
   { smart: 'scheduled', label: 'Scheduled', description: 'Tasks with a time / reminder' },
+  { smart: 'blocked', label: 'Blocked', description: 'Tasks waiting on another task' },
   { smart: 'missed', label: 'Missed', description: 'Overdue & still open' },
   { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },
   { smart: 'all', label: 'All', description: 'Every open task' },

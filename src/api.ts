@@ -147,6 +147,7 @@ export const tasks = {
     scheduled_at?: string;
     remind?: boolean;
     notify_emails?: string[];
+    blocked_by_task_id?: number;
     list_id?: number | null;
     parent_task_id?: number | null;
     important?: boolean;

@@ -350,6 +350,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   }, [txn, open, accounts]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
+  const othersCategory = filteredCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
 
   // Salary accounts are the natural landing spot for income — when the user
   // flips a fresh entry to "income", default the deposit-to account to a
@@ -420,6 +421,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
     setErrors({});
     const amt = parseFloat(amount);
     const txnAt = partsToTxnAt(date, time);
+    const selectedCategoryId = categoryId || (othersCategory ? String(othersCategory.id) : '');
 
     setSaving(true);
     try {
@@ -428,7 +430,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
         // computed from account_id server-side, so moving the txn rebalances
         // both accounts automatically (the backend also syncs a transfer pair).
         const acctId = parseInt(accountId);
-        const catId = categoryId ? parseInt(categoryId) : null;
+        const catId = selectedCategoryId ? parseInt(selectedCategoryId) : null;
         const patch: TxnPatch = {
           account_id: acctId,
           amount: amt,
@@ -472,7 +474,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           description,
           note,
           txn_at: txnAt,
-          category_id: categoryId ? parseInt(categoryId) : null,
+          category_id: selectedCategoryId ? parseInt(selectedCategoryId) : null,
         });
       }
       onSaved();
@@ -566,19 +568,18 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
               ) : undefined}
             >
               <Select
-                value={categoryId || 'others'}
+                value={categoryId || (othersCategory ? String(othersCategory.id) : undefined)}
                 onValueChange={(v) => {
                   userPickedCategoryRef.current = true;
                   setUserPickedCategory(true);
-                  setCategoryId(!v || v === 'others' ? '' : v);
+                  setCategoryId(v || '');
                 }}
-                items={[{ value: 'others', label: 'Others' }, ...filteredCats.map((c) => ({ value: String(c.id), label: c.name }))]}
+                items={filteredCats.map((c) => ({ value: String(c.id), label: c.name }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Others" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="others">Others</SelectItem>
                   {filteredCats.map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}
