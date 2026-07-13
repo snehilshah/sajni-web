@@ -1,11 +1,17 @@
-// ThemeProvider — fetches the user's active M3 theme on boot, applies
-// it via applyM3, listens for AI tool events (theme_created /
-// theme_activated) and re-applies without a full reload.
+// ThemeProvider — the single owner of <html data-theme>. It carries both
+// theme sources behind one context:
 //
-// Mode (light/dark) is owned by useThemePrefs/useMode, which stamps
-// <html data-mode>. Custom themes are injected as a stylesheet with both
-// mode blocks (applyM3), so they follow that attribute exactly like the
-// presets do — this provider only mirrors the attribute for consumers
+//   · presets  — built-in seed palettes, applied via the data-theme CSS
+//                cascade, persisted as `sajni:theme` = preset id
+//   · custom   — server-side (AI-generated) themes, applied as an injected
+//                stylesheet with both mode blocks (applyM3), persisted as
+//                `sajni:theme` = 'custom' plus a compiled-CSS cache that
+//                index.html re-injects pre-paint
+//
+// Nothing else may write data-theme. Mode (light/dark) is separate and owned
+// by useThemePrefs/useMode via <html data-mode>; both preset and custom
+// stylesheets carry light+dark blocks, so the mode toggle flips either kind
+// with no re-apply — this provider only mirrors the attribute for consumers
 // that need the effective mode (e.g. Settings swatch previews).
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -13,12 +19,20 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { themes as themesApi, type UserTheme } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
 import { applyM3, resetM3 } from './applyM3';
-import { getPreset, presetStylesheet } from './presets';
+import { normalizePreset, presetStylesheet, type PresetId } from './presets';
 
-const PRESET_KEY = 'sajni:theme';
+// 'sajni:theme' = active preset id, or 'custom' when a server theme is live.
+const THEME_KEY = 'sajni:theme';
+// Keys from retired theme systems — clear them so nobody trips on them again.
+const STALE_KEYS = ['sajni:theme-mode'];
 
 interface Ctx {
+  /** Active server (AI/custom) theme; null = a preset is showing. */
   active: UserTheme | null;
+  /** Selected preset — what shows whenever no server theme is active. */
+  preset: PresetId;
+  /** Pick a preset: applies it and deactivates any server theme. */
+  setPreset: (id: PresetId) => Promise<void>;
   /** Effective mode, mirrored live from <html data-mode>. */
   mode: 'light' | 'dark';
   refresh: () => Promise<void>;
@@ -27,10 +41,16 @@ interface Ctx {
 
 const ThemeCtx = createContext<Ctx>({
   active: null,
+  preset: 'marine',
+  setPreset: async () => {},
   mode: 'light',
   refresh: async () => {},
   apply: () => {},
 });
+
+function readStoredPreset(): PresetId {
+  try { return normalizePreset(localStorage.getItem(THEME_KEY)); } catch { return 'marine'; }
+}
 
 function readDomMode(): 'light' | 'dark' {
   return document.documentElement.dataset.mode === 'dark' ? 'dark' : 'light';
@@ -39,12 +59,11 @@ function readDomMode(): 'light' | 'dark' {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [active, setActive] = useState<UserTheme | null>(null);
+  const [preset, setPresetState] = useState<PresetId>(() => readStoredPreset());
   const [mode, setMode] = useState<'light' | 'dark'>(() => readDomMode());
 
   // Mirror <html data-mode> (stamped by index.html early script + useMode)
-  // so swatch previews re-render when the Appearance toggle flips. The
-  // applied theme itself needs no re-apply — its stylesheet carries both
-  // mode blocks.
+  // so swatch previews re-render when the Appearance toggle flips.
   useEffect(() => {
     const root = document.documentElement;
     const mo = new MutationObserver(() => setMode(readDomMode()));
@@ -52,21 +71,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mo.disconnect();
   }, []);
 
+  const showPreset = useCallback((id: PresetId) => {
+    resetM3();
+    document.documentElement.setAttribute('data-theme', id);
+    try { localStorage.setItem(THEME_KEY, id); } catch {}
+    setPresetState(id);
+    setActive(null);
+  }, []);
+
   const apply = useCallback((t: UserTheme | null) => {
     if (!t) {
-      // No server theme: drop the custom stylesheet and fall back to the
-      // user's selected CSS preset (data-theme), so the page keeps its
-      // colors instead of snapping back to the bare :root default.
-      resetM3();
-      let presetId = 'marine';
-      try { presetId = getPreset(localStorage.getItem(PRESET_KEY)).id; } catch {}
-      document.documentElement.setAttribute('data-theme', presetId);
-      setActive(null);
+      // No server theme — fall back to the selected preset. A stored
+      // 'custom' marker normalizes to the default preset here.
+      showPreset(readStoredPreset());
       return;
     }
-    applyM3(t.seeds, t.mode_pref);
+    applyM3(t.seeds, t.mode_pref); // also caches CSS for pre-paint
+    try { localStorage.setItem(THEME_KEY, 'custom'); } catch {}
     setActive(t);
-  }, []);
+  }, [showPreset]);
+
+  // Pick a preset from Settings: local swap first (instant), then release
+  // the server-side active theme so the next boot agrees.
+  const setPreset = useCallback(async (id: PresetId) => {
+    const hadServerTheme = active !== null;
+    showPreset(id);
+    if (hadServerTheme) {
+      await themesApi.deactivate().catch(console.error);
+    }
+  }, [active, showPreset]);
 
   const refresh = useCallback(async () => {
     try {
@@ -77,10 +110,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [apply]);
 
-  // Inject the preset stylesheets once. Presets ride the data-theme +
-  // data-mode CSS cascade (so the light/dark toggle keeps flipping them),
-  // but their tokens are generated from seeds — single source of truth.
+  // Inject the preset stylesheets + drop retired localStorage keys, once.
   useEffect(() => {
+    for (const k of STALE_KEYS) {
+      try { localStorage.removeItem(k); } catch {}
+    }
     const ID = 'sajni-theme-presets';
     if (document.getElementById(ID)) return;
     const el = document.createElement('style');
@@ -117,7 +151,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   return (
-    <ThemeCtx.Provider value={{ active, mode, refresh, apply }}>
+    <ThemeCtx.Provider value={{ active, preset, setPreset, mode, refresh, apply }}>
       {children}
     </ThemeCtx.Provider>
   );

@@ -90,6 +90,10 @@ export const PRESETS: ThemePreset[] = [
   },
 ];
 
+// Picker metadata for the Settings theme row.
+export const THEMES: { id: PresetId; label: string; emoji: string }[] =
+  PRESETS.map((p) => ({ id: p.id, label: p.label, emoji: p.emoji }));
+
 const VALID = new Set<string>(PRESETS.map((p) => p.id));
 
 // Use a stored theme id only if it's a current preset; anything else — a

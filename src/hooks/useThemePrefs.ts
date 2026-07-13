@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { PRESETS, normalizePreset, type PresetId } from '@/theme/presets';
+// Mode (light/dark/system) and density preferences. These own the
+// <html data-mode> / <html data-density> attributes (index.html stamps
+// them pre-paint from the same localStorage keys).
+//
+// The color THEME (preset picks + AI themes) is owned entirely by
+// theme/ThemeProvider — do not stamp data-theme from here.
 
-export type ThemeName = PresetId;
 export type ModePref = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact' | 'cozy';
 
-const LS_THEME   = 'sajni:theme';
 const LS_MODE    = 'sajni:mode';
 const LS_DENSITY = 'sajni:density';
-
-export const THEMES: { id: ThemeName; label: string; emoji: string }[] =
-  PRESETS.map((p) => ({ id: p.id, label: p.label, emoji: p.emoji }));
 
 function read<T extends string>(key: string, fallback: T): T {
   try { return (localStorage.getItem(key) as T) || fallback; } catch { return fallback; }
@@ -23,24 +23,6 @@ function applyMode(modePref: ModePref) {
       ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
       : modePref;
   document.documentElement.dataset.mode = effective;
-}
-
-export function useTheme() {
-  const [theme, setTheme] = useState<ThemeName>(() => {
-    try { return normalizePreset(localStorage.getItem(LS_THEME)); } catch { return 'marine'; }
-  });
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
-
-  const update = useCallback((next: ThemeName) => {
-    setTheme(next);
-    try { localStorage.setItem(LS_THEME, next); } catch {}
-    document.documentElement.dataset.theme = next;
-  }, []);
-
-  return { theme, setTheme: update, themes: THEMES };
 }
 
 export function useMode() {

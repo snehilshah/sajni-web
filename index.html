@@ -19,7 +19,21 @@
       (function () {
         try {
           var root = document.documentElement;
-          var theme = localStorage.getItem('sajni:theme') || 'default';
+          // 'sajni:theme' = preset id, or 'custom' when an AI theme is active
+          // (its compiled CSS is cached so we can paint it before the app
+          // fetches the active theme — no preset flash).
+          var theme = localStorage.getItem('sajni:theme') || 'marine';
+          if (theme === 'custom') {
+            var css = localStorage.getItem('sajni:custom-theme-css');
+            if (css) {
+              var style = document.createElement('style');
+              style.id = 'sajni-custom-theme';
+              style.textContent = css;
+              document.head.appendChild(style);
+            } else {
+              theme = 'marine';
+            }
+          }
           var modePref = localStorage.getItem('sajni:mode') || 'system';
           var density = localStorage.getItem('sajni:density') || 'comfortable';
           var effectiveMode = modePref;

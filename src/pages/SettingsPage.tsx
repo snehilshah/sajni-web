@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useAuth } from '@/auth/AuthContext';
-import { useMode, useDensity, useTheme, type ModePref, type Density } from '@/hooks/useThemePrefs';
+import { useMode, useDensity, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,7 +17,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
-import { getPreset } from '@/theme/presets';
+import { getPreset, THEMES } from '@/theme/presets';
 import PageShell from '@/components/PageShell';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
@@ -325,8 +325,7 @@ function NameEditor() {
 export default function SettingsPage() {
   const { hash } = useLocation();
   const { user, logout } = useAuth();
-  const { theme, setTheme, themes } = useTheme();
-  const { apply: applyUserTheme, active: activeUserTheme, mode: resolvedMode } = useUserTheme();
+  const { preset, setPreset, active: activeUserTheme, mode: resolvedMode } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
   const qc = useQueryClient();
@@ -419,18 +418,17 @@ export default function SettingsPage() {
 
         <Section title="Theme" caption="Each theme has light and dark variants — toggle with Appearance above.">
           <div className="flex flex-wrap gap-2">
-            {themes.map((t) => {
-              const active = !activeUserTheme && theme === t.id;
+            {THEMES.map((t) => {
+              const active = !activeUserTheme && preset === t.id;
               const swatches = previewSwatches(getPreset(t.id).seeds, resolvedMode);
               return (
                 <button
                   key={t.id}
-                  // Pick the preset (data-theme) and clear any active AI/custom
-                  // theme's inline vars so the preset's colors win.
+                  // setPreset applies the preset and releases any active
+                  // AI/custom theme server-side; refresh the list so its
+                  // is_active stars update.
                   onClick={async () => {
-                    setTheme(t.id);
-                    applyUserTheme(null);
-                    await themesApi.deactivate().catch(console.error);
+                    await setPreset(t.id);
                     qc.invalidateQueries({ queryKey: qk.themes.all });
                   }}
                   className={cn(
