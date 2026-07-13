@@ -31,7 +31,7 @@ export default function PlacesGrid({ pathname, onNavigate }: {
               'flex flex-col items-center justify-center gap-2 px-1.5 py-4 text-xs font-medium rounded-2xl transition-colors',
               isActive
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                : 'bg-[hsl(var(--surface-container))] text-foreground/85 hover:bg-[hsl(var(--surface-container-high))]',
+                : 'bg-[hsl(var(--surface-container))] text-foreground/85 hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground',
             )}
           >
             <PixelIcon name={icon} solid={isActive} className="size-5" />

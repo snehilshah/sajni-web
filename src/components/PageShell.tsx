@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { ChevronDown } from '@/components/ui/icons';
 import { useNavChrome } from '@/components/nav-chrome';
@@ -222,9 +222,13 @@ export default function PageShell({
     <div className="page-fade-in flex-1 flex flex-col min-h-0">
       <PageChrome title={title} navigation={navigation} actions={actions} />
 
+      {/* stable-scrollbar reserves the scrollbar gutter so content doesn't
+          shift sideways when a page grows tall enough to show the bar (e.g.
+          expanding the missed-tasks banner). No gutter needed when the bar
+          is hidden outright. */}
       <div
         ref={scrollRef}
-        className={cn('flex-1 min-h-0 overflow-y-auto overscroll-contain', hideScrollbar && 'no-scrollbar')}
+        className={cn('flex-1 min-h-0 overflow-y-auto overscroll-contain', hideScrollbar ? 'no-scrollbar' : 'stable-scrollbar')}
         style={{ paddingTop: chromeClearance(isMobile) }}
       >
         <div className={contentClassName ?? 'max-w-6xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 flex flex-col gap-6'}>
@@ -268,15 +272,50 @@ export function PageShellTabs<V extends string>({
   const { scrolled } = useNavChrome();
   const isMobile = useIsMobile();
   const compact = scrolled && bare && !isMobile;
+  const reduceMotion = useReducedMotion();
+
+  // Vercel-style hover indicator: one faint pill measured to the hovered
+  // tab's rect and sprung between tabs, distinct from the active pill. It's
+  // suppressed over the active tab so it never doubles up the solid pill.
+  // `animate` distinguishes appearing from nothing (jump into place, only
+  // the opacity fades in) from gliding between tabs (spring the position),
+  // so it never slides in "from the air"; on leave it fades out in place.
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [hoverRect, setHoverRect] = useState<
+    { x: number; y: number; width: number; height: number; animate: boolean } | null
+  >(null);
+  const moveHoverTo = (el: HTMLElement) => {
+    const wrap = trackRef.current;
+    if (!wrap) return;
+    const w = wrap.getBoundingClientRect();
+    const b = el.getBoundingClientRect();
+    setHoverRect((prev) => ({
+      x: b.left - w.left, y: b.top - w.top, width: b.width, height: b.height,
+      animate: prev != null,
+    }));
+  };
 
   return (
     <nav aria-label={ariaLabel} className={cn('max-w-full min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar', className)}>
       <div
+        ref={trackRef}
+        onMouseLeave={() => setHoverRect(null)}
         className={cn(
-          'flex w-max max-w-none mx-auto items-center gap-1',
+          'relative flex w-max max-w-none mx-auto items-center gap-1',
           bare ? 'p-0.5' : 'rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] p-1',
         )}
       >
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 z-0 rounded-[22px] bg-[hsl(var(--on-surface)/0.07)]"
+          initial={false}
+          animate={hoverRect
+            ? { opacity: 1, x: hoverRect.x, y: hoverRect.y, width: hoverRect.width, height: hoverRect.height }
+            : { opacity: 0 }}
+          transition={reduceMotion || !hoverRect?.animate
+            ? { duration: 0, opacity: { duration: 0.15 } }
+            : { type: 'spring', stiffness: 550, damping: 45, mass: 0.6, opacity: { duration: 0.15 } }}
+        />
         {options.map((option) => {
           const Icon = option.icon;
           const active = option.value === value;
@@ -292,19 +331,21 @@ export function PageShellTabs<V extends string>({
               aria-label={typeof option.label === 'string' ? option.label : undefined}
               title={labelHidden && typeof option.label === 'string' ? option.label : undefined}
               onClick={() => onChange(option.value)}
+              onMouseEnter={(e) => (active || option.disabled ? setHoverRect(null) : moveHoverTo(e.currentTarget))}
+              onFocus={(e) => (active || option.disabled ? setHoverRect(null) : moveHoverTo(e.currentTarget))}
               className={cn(
-                'relative rounded-[22px] inline-flex items-center justify-center font-medium whitespace-nowrap outline-none transition-[color,background-color,height,padding] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50',
+                'relative rounded-[22px] inline-flex items-center justify-center font-medium whitespace-nowrap outline-none transition-[color,height,padding] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50',
                 compact ? 'h-8 px-2 text-xs' : 'px-2.5 sm:px-3 text-xs sm:text-sm',
                 bare ? (compact ? 'h-8' : 'h-9') : 'h-9 sm:h-10',
                 active
                   ? 'text-[hsl(var(--on-secondary-container))]'
-                  : 'text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground',
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {active && (
                 <motion.span
                   layoutId={`pst-active-${groupId}`}
-                  className="absolute inset-0 rounded-[22px] bg-[hsl(var(--secondary-container))] shadow-[var(--m3-elev-1)]"
+                  className="absolute inset-0 z-0 rounded-[22px] bg-[hsl(var(--secondary-container))] shadow-[var(--m3-elev-1)]"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}

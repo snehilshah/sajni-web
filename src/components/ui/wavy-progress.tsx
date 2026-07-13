@@ -83,11 +83,12 @@ export function WavyProgress({
         </clipPath>
       </defs>
 
-      {/* Filled track — wavy while in flight, flat once complete. */}
+      {/* Filled track — wavy `--primary` in flight, then a flat green
+          `--color-complete` line once complete so 100% reads as done. */}
       {done ? (
         <line
           x1="1.5" y1={MID} x2={w - 1.5} y2={MID}
-          stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round"
+          stroke="hsl(var(--color-complete))" strokeWidth="3" strokeLinecap="round"
         />
       ) : (
         <>

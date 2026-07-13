@@ -1196,7 +1196,7 @@ export default function MediaPage() {
         <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder="Your thoughts…" />
       </FieldSimple>
 
-      {editItem && <ActivityTimeline mediaId={editItem.id} />}
+      {editItem && <ActivityTimeline mediaId={editItem.id} type={editItem.type} />}
     </>
   );
 
@@ -2503,7 +2503,7 @@ function SeriesListRow({
 
 // ActivityTimeline — watch-history rendered as a vertical list with a
 // dot rail. Lazily fetches the events for the open dialog only.
-function ActivityTimeline({ mediaId }: { mediaId: number }) {
+function ActivityTimeline({ mediaId, type }: { mediaId: number; type: MediaKind }) {
   const [events, setEvents] = useState<MediaEventRow[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -2539,7 +2539,7 @@ function ActivityTimeline({ mediaId }: { mediaId: number }) {
               />
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <div className="min-w-0">
-                  <span className="font-medium">{eventLabel(e)}</span>
+                  <span className="font-medium">{eventLabel(e, type)}</span>
                   {eventSublabel(e) && (
                     <span className="ml-1.5 mono text-xs text-muted-foreground">
                       {eventSublabel(e)}
@@ -2569,10 +2569,11 @@ function dotColorFor(kind: MediaEventRow['kind']): string {
   }
 }
 
-function eventLabel(e: MediaEventRow): string {
+function eventLabel(e: MediaEventRow, type: MediaKind): string {
+  const verb = type === 'book' ? 'reading' : 'watching';
   switch (e.kind) {
     case 'added': return 'Added to library';
-    case 'started': return 'Started watching';
+    case 'started': return `Started ${verb}`;
     case 'progress': return 'Progress';
     case 'completed': return 'Completed';
     case 'dropped': return 'Dropped';

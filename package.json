@@ -1,7 +1,7 @@
 {
   "name": "sajni-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.40.0",
   "type": "module",
   "engines": {
     "node": "24.x"

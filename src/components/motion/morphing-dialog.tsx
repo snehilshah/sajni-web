@@ -145,16 +145,23 @@ function RectMorphPanel({
       transform: 'translate(0, 0) scale(1, 1)',
       borderRadius: '28px',
     };
+    // Close ENDs at the source rect but fully faded, so the panel crossfades
+    // into the poster sitting underneath. Ending at `from`'s 0.92 opacity
+    // hard-cut a near-opaque mini-dialog straight to the poster — the flash.
+    const closeTo = { ...from, opacity: 0 };
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const reducedFrom = { opacity: 0 };
     const reducedTo = { opacity: 1 };
+    // Open pops out with a snappy decelerate; close eases back into the poster
+    // with the slower, gentler Material standard curve so the shrink reads as a
+    // deliberate settle rather than a quick snap.
     const animation = el.animate(
       reducedMotion
         ? (isPresent ? [reducedFrom, reducedTo] : [reducedTo, reducedFrom])
-        : (isPresent ? [from, to] : [to, from]),
+        : (isPresent ? [from, to] : [to, closeTo]),
       {
-        duration: reducedMotion ? 150 : (isPresent ? 320 : 250),
-        easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        duration: reducedMotion ? 150 : (isPresent ? 320 : 420),
+        easing: isPresent ? 'cubic-bezier(0.23, 1, 0.32, 1)' : 'cubic-bezier(0.4, 0, 0.2, 1)',
         fill: 'both',
       },
     );

@@ -143,7 +143,7 @@ export default function HabitsPage() {
             onClick={() => setWeekOffset(0)}
             disabled={weekOffset === 0}
             title={weekOffset === 0 ? 'This week' : 'Back to this week'}
-            className={`mono text-xs tracking-[0.06em] tabular-nums whitespace-nowrap rounded-full px-2 h-8 transition-colors ${
+            className={`mono text-xs tracking-[0.06em] tabular-nums whitespace-nowrap text-center min-w-[9.5rem] rounded-full px-2 h-8 transition-colors ${
               weekOffset === 0
                 ? 'text-muted-foreground cursor-default'
                 : 'text-[hsl(var(--primary))] hover:bg-[hsl(var(--on-surface)/0.06)]'

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import {
-  LogOut, Search, Settings, Sparkles, Loader2, BookOpen,
+  LogOut, Search, Settings, Sparkles, Loader2, BookOpen, History,
 } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import { useAuth } from '@/auth/AuthContext';
@@ -85,13 +85,14 @@ function MenuRow({
 }
 
 function UserMenuBody({
-  email, onOpenCommand, onOpenChat, onSettings, onDocs, onSignOut, onAction, signingOut,
+  email, onOpenCommand, onOpenChat, onSettings, onDocs, onChangelog, onSignOut, onAction, signingOut,
 }: {
   email: string;
   onOpenCommand: () => void;
   onOpenChat: () => void;
   onSettings: () => void;
   onDocs: () => void;
+  onChangelog: () => void;
   onSignOut: () => void;
   onAction?: () => void;
   signingOut: boolean;
@@ -116,6 +117,7 @@ function UserMenuBody({
       <div className="sajni-sep my-2" />
       <MenuRow icon={Settings} label="Settings" onClick={runAction(onSettings)} />
       <MenuRow icon={BookOpen} label="Field guide" hint="/docs" onClick={runAction(onDocs)} />
+      <MenuRow icon={History} label="What's new" hint="/changelog" onClick={runAction(onChangelog)} />
       <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={runAction(onSignOut)} />
     </div>
   );
@@ -127,6 +129,7 @@ function UserMenuBody({
 // Subtle by design: +8px at dead centre, felt more than seen.
 function DockNavIcon({
   pointerX, path, label, icon, onboardingKey, isActive, base, max, activeLayoutId,
+  hovered = false, hoverLayoutId, onHover,
 }: {
   pointerX: MotionValue<number>;
   path: string;
@@ -137,6 +140,11 @@ function DockNavIcon({
   base: number;
   max: number;
   activeLayoutId: string;
+  /** True when this icon is the one being hovered — renders the shared
+      hover circle here so framer slides it over from the previous icon. */
+  hovered?: boolean;
+  hoverLayoutId?: string;
+  onHover?: () => void;
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const distance = useTransform(pointerX, (x) => {
@@ -157,6 +165,8 @@ function DockNavIcon({
       data-onboarding-key={onboardingKey}
       title={label}
       aria-label={label}
+      onMouseEnter={onHover}
+      onFocus={onHover}
       className="shrink-0 flex items-center justify-center"
     >
       <motion.span
@@ -165,7 +175,7 @@ function DockNavIcon({
           'relative inline-flex items-center justify-center rounded-full transition-colors',
           isActive
             ? 'text-[hsl(var(--on-secondary-container))]'
-            : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.08)] active:bg-[hsl(var(--on-surface)/0.08)]',
+            : 'text-foreground/80 active:bg-[hsl(var(--on-surface)/0.08)]',
         )}
       >
         {isActive && (
@@ -173,6 +183,16 @@ function DockNavIcon({
             layoutId={activeLayoutId}
             className="absolute inset-0 rounded-full bg-[hsl(var(--secondary-container))]"
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          />
+        )}
+        {/* Shared-element hover circle: inset-0 auto-centres it on the
+            magnified icon, and the shared layoutId makes framer slide it
+            here from whichever icon had it last. */}
+        {!isActive && hovered && hoverLayoutId && (
+          <motion.span
+            layoutId={hoverLayoutId}
+            className="absolute inset-0 z-0 rounded-full bg-[hsl(var(--on-surface)/0.08)]"
+            transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.6 }}
           />
         )}
         <motion.span style={{ scale: iconScale }} className="relative z-10 inline-flex">
@@ -198,6 +218,20 @@ function PrimaryBar({
   setAccountMenuOpen: (open: boolean) => void;
 }) {
   const pointerX = useMotionValue(Infinity);
+  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
+  // The hover circle uses a shared layoutId so it SLIDES between icons. But
+  // framer remembers a layoutId's last box across unmount, which makes it
+  // "fly in" from there when it reappears. So we bump `session` (→ a fresh
+  // layoutId) every time the circle appears from nothing — a brand-new id
+  // has no prior box, so it mounts in place. It stays stable while visibly
+  // moving icon→icon, and unmounting on leave hides it in place.
+  const [session, setSession] = useState(0);
+  const enterIcon = (path: string) => {
+    const curVisible = hoveredPath != null && !isActivePath(pathname, hoveredPath);
+    const nextVisible = !isActivePath(pathname, path);
+    if (nextVisible && !curVisible) setSession((s) => s + 1);
+    setHoveredPath(path);
+  };
   return (
     <motion.div
       initial={false}
@@ -209,7 +243,7 @@ function PrimaryBar({
     >
       <nav
         onMouseMove={(e) => pointerX.set(e.clientX)}
-        onMouseLeave={() => pointerX.set(Infinity)}
+        onMouseLeave={() => { pointerX.set(Infinity); setHoveredPath(null); }}
         className={cn(
           'flex items-center gap-0.5 h-12 px-1.5 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]',
           scrolled ? 'pointer-events-none' : 'pointer-events-auto',
@@ -228,6 +262,9 @@ function PrimaryBar({
             base={40}
             max={48}
             activeLayoutId="primary-active"
+            hovered={hoveredPath === path}
+            hoverLayoutId={`primary-hover-${session}`}
+            onHover={() => enterIcon(path)}
           />
         ))}
         <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
@@ -387,6 +424,7 @@ export default function Layout() {
       onOpenChat={() => setAiChatOpen(true)}
       onSettings={() => navigate('/settings')}
       onDocs={() => navigate('/docs')}
+      onChangelog={() => navigate('/changelog')}
       onSignOut={onSignOut}
       onAction={() => setAccountMenuOpen(false)}
       signingOut={signingOut}
