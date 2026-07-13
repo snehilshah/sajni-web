@@ -65,8 +65,8 @@ function PillSlot({ order, className, children }: {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(5px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ delay: 0.05 + order * 0.055, duration: 0.24, ease: [0.2, 0, 0, 1] }}
       className={className}
     >

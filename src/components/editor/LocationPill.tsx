@@ -103,7 +103,7 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
       <PopoverTrigger render={
         <button
           type="button"
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-all ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
             value
               ? 'bg-primary/12 ring-1 ring-primary/30 text-foreground'
               : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground'

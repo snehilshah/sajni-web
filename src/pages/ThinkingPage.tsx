@@ -152,7 +152,7 @@ export default function ThinkingPage() {
           <Button onClick={() => setOpen(true)}><Plus className="size-4 mr-1" /> New project</Button>
         </div>
       ) : (
-        <div className="sajni-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {projects.map((p) => (
             <div
               key={p.id}

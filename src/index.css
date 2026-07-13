@@ -308,6 +308,9 @@
   --m3-ease-emphasized:      cubic-bezier(0.2, 0, 0, 1);
   --m3-ease-emph-decel:      cubic-bezier(0.05, 0.7, 0.1, 1);
   --m3-ease-emph-accel:      cubic-bezier(0.3, 0, 0.8, 0.15);
+  --motion-ease-out:          cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-in-out:       cubic-bezier(0.77, 0, 0.175, 1);
+  --motion-ease-drawer:       cubic-bezier(0.32, 0.72, 0, 1);
   --m3-dur-short-1:  50ms;
   --m3-dur-short-2:  100ms;
   --m3-dur-short-3:  150ms;
@@ -483,23 +486,12 @@ body {
 @keyframes m3RiseIn  { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes fade-in   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes page-fade-in { from { opacity: 0; transform: translateY(4px) scale(0.995); } to { opacity: 1; transform: none; } }
-@keyframes inkRise   { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes sheetUp   { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes m3Shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
 
 .fade-up { animation: m3RiseIn 480ms var(--m3-ease-emph-decel) both; }
 .fade-in { animation: fade-in 220ms var(--m3-ease-standard) both; }
 .page-fade-in { animation: page-fade-in 280ms var(--m3-ease-emph-decel); }
-
-.sajni-stagger > * { animation: inkRise 460ms var(--m3-ease-emph-decel) both; }
-.sajni-stagger > *:nth-child(1) { animation-delay: 40ms; }
-.sajni-stagger > *:nth-child(2) { animation-delay: 90ms; }
-.sajni-stagger > *:nth-child(3) { animation-delay: 140ms; }
-.sajni-stagger > *:nth-child(4) { animation-delay: 190ms; }
-.sajni-stagger > *:nth-child(5) { animation-delay: 240ms; }
-.sajni-stagger > *:nth-child(6) { animation-delay: 290ms; }
-.sajni-stagger > *:nth-child(7) { animation-delay: 340ms; }
-.sajni-stagger > *:nth-child(8) { animation-delay: 390ms; }
 
 /* M3 Expressive wavy progress — the filled path is drawn one wavelength
    wider than the clip window and drifts left by exactly that wavelength,
@@ -511,7 +503,24 @@ body {
 .sajni-wave-drift { animation: sajni-wave-drift 1.4s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .fade-up, .fade-in, .page-fade-in, .sajni-stagger > *, .sajni-wave-drift { animation: none !important; }
+  .fade-up, .fade-in, .page-fade-in, .sajni-wave-drift { animation: none !important; }
+  .animate-spin, .animate-pulse, .animate-bounce { animation: none !important; }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .fine-hover-scale-102:hover { transform: scale(1.02); }
+  .fine-hover-scale-110:hover { transform: scale(1.1); }
+  .group:hover .fine-group-hover-scale-105 { transform: scale(1.05); }
+  .group:hover .fine-group-hover-scale-110 { transform: scale(1.1); }
+  .fine-hover-note-card:hover {
+    transform: translateY(-0.25rem);
+    border-radius: 28px;
+    box-shadow: 0 16px 38px -18px hsl(var(--foreground) / 0.35);
+  }
+  .group:hover .fine-group-hover-arrow {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
 }
 
 /* ============================================================

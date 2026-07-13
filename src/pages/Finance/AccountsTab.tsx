@@ -106,9 +106,9 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
               <motion.div
                 key={a.id}
                 layout
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`rounded-xl border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all ${a.archived ? 'opacity-60' : ''}`}
+                initial={{ opacity: 0, transform: 'translateY(4px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0)' }}
+                className={`rounded-xl border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow,opacity] ${a.archived ? 'opacity-60' : ''}`}
                 style={{ borderLeftColor: a.color, borderLeftWidth: 4 }}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -144,7 +144,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                         <div className="mt-2">
                           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
-                              className="h-full transition-all"
+                              className="h-full"
                               style={{
                                 width: Math.min(utilization, 100) + '%',
                                 backgroundColor: utilization > 80 ? 'hsl(var(--destructive))' : a.color,
@@ -663,7 +663,7 @@ function SavingsDialog({ account, savings, onClose }: {
                 </div>
                 {s.target_amount > 0 && (
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
-                    <div className="h-full transition-all" style={{ width: pct + '%', backgroundColor: s.color }} />
+                    <div className="h-full" style={{ width: pct + '%', backgroundColor: s.color }} />
                   </div>
                 )}
               </div>

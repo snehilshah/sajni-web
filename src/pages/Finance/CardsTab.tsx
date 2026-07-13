@@ -57,8 +57,8 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
           <motion.div
             key={card.id}
             layout
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, transform: 'translateY(4px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0)' }}
             className="rounded-xl border border-border bg-card overflow-hidden"
           >
             {/* Card header */}

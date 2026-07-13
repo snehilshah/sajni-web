@@ -109,7 +109,7 @@ export default function TaskRow({
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
           <motion.button
             onClick={handleToggleStatus}
-            whileTap={{ scale: 0.82 }}
+            whileTap={{ transform: 'scale(0.97)' }}
             transition={{ type: 'spring', stiffness: 500, damping: 24 }}
             className="shrink-0 -m-2 p-2 flex items-center justify-center"
             title={task.status === 'done' ? 'Mark incomplete' : 'Complete'}
@@ -135,9 +135,9 @@ export default function TaskRow({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
+                    initial={{ transform: 'scale(0.95)', opacity: 0 }}
+                    animate={{ transform: 'scale(1)', opacity: 1 }}
+                    exit={{ transform: 'scale(0.95)', opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 520, damping: 22 }}
                   >
                     <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
@@ -255,7 +255,7 @@ export default function TaskRow({
 
           <button
             onClick={handleToggleStar}
-            className={`-m-1.5 p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-[hsl(var(--surface-container-high))] transition-all shrink-0 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
+            className={`-m-1.5 p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-[hsl(var(--surface-container-high))] transition-[background-color,color,opacity] shrink-0 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
             title={task.important ? 'Remove from Important' : 'Mark important'}
           >
             <Star className={`size-[18px] ${task.important ? 'fill-current' : ''}`} />
@@ -284,20 +284,14 @@ export default function TaskRow({
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            transition={{ duration: 0.34, ease: [0.2, 0, 0, 1] }}
+            initial={{ opacity: 0, transform: 'translateY(-4px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0)' }}
+            exit={{ opacity: 0, transform: 'translateY(-4px)' }}
+            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
             className={cn('overflow-hidden', hasSubtasks ? 'flex flex-col' : '')}
             style={!hasSubtasks ? { marginLeft: (depth + 1) * 24 } : undefined}
           >
-            {/* Curtain reveal: the panel unrolls with emphasized easing
-                while rows cascade in one after another — no spring, no jerk. */}
-            <motion.div
-              initial="hidden"
-              animate="show"
-              exit="hidden"
-              variants={{ show: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } }, hidden: {} }}
+            <div
               className={cn(
               'flex flex-col',
               hasSubtasks ? '' : 'mt-2 mb-1 gap-1.5 rounded-2xl border border-border/60 bg-[hsl(var(--surface-container-low))] p-2.5',
@@ -313,12 +307,8 @@ export default function TaskRow({
               )}
 
               {subs?.map((sub, idx) => (
-                <motion.div
+                <div
                   key={sub.id}
-                  variants={{
-                    hidden: { opacity: 0, y: -10 },
-                    show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.2, 0, 0, 1] } },
-                  }}
                 >
                   <TaskRow
                     task={sub}
@@ -327,7 +317,7 @@ export default function TaskRow({
                     attached={hasSubtasks}
                     first={idx === 0}
                   />
-                </motion.div>
+                </div>
               ))}
 
               {addingSub ? (
@@ -353,13 +343,13 @@ export default function TaskRow({
                     'inline-flex items-center gap-1.5 text-sm font-medium text-[hsl(var(--on-secondary-container))] transition-colors',
                     hasSubtasks
                       ? 'min-h-11 w-full border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-3.5 py-2.5 text-left hover:bg-[hsl(var(--secondary-container))]'
-                      : 'self-start rounded-full bg-[hsl(var(--secondary-container))] px-3.5 py-2 hover:opacity-90 active:scale-[0.98] transition-all',
+                      : 'self-start rounded-full bg-[hsl(var(--secondary-container))] px-3.5 py-2 hover:opacity-90 active:scale-[0.98] transition-[background-color,opacity,transform]',
                   )}
                 >
                   <Plus className="size-4" strokeWidth={2.5} /> Add subtask
                 </button>
               )}
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -368,8 +358,8 @@ export default function TaskRow({
   return (
     <motion.div
       layout="position"
-      initial={{ opacity: 0, y: -2 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(-2px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
       transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
       style={!attached && hasSubtasks ? { marginLeft: depth * 24 } : undefined}
@@ -443,15 +433,15 @@ export function StepsEditor({
           <motion.div
             key={s.id}
             layout
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            initial={{ opacity: 0, transform: 'translateY(-2px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0)' }}
+            exit={{ opacity: 0, transform: 'translateY(-2px)' }}
+            transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
             className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1 hover:bg-[hsl(var(--surface-container-high))] transition-colors"
           >
             <motion.button
               type="button"
-              whileTap={{ scale: 0.85 }}
+              whileTap={{ transform: 'scale(0.97)' }}
               transition={{ type: 'spring', stiffness: 500, damping: 24 }}
               onClick={() => update(s.id, { done: !s.done })}
               className={`size-[18px] rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
@@ -461,9 +451,9 @@ export function StepsEditor({
               <AnimatePresence>
                 {s.done && (
                   <motion.span
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
+                    initial={{ transform: 'scale(0.95)', opacity: 0 }}
+                    animate={{ transform: 'scale(1)', opacity: 1 }}
+                    exit={{ transform: 'scale(0.95)', opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 520, damping: 22 }}
                   >
                     <Check className="size-3" strokeWidth={3.5} />
@@ -480,7 +470,7 @@ export function StepsEditor({
             <button
               type="button"
               onClick={() => remove(s.id)}
-              className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-all shrink-0"
+              className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
               title="Remove step"
             >
               <X className="size-3.5" />

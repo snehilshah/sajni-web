@@ -101,9 +101,9 @@ function MorphPanel({
   return (
     <motion.div
       layoutId={layoutId}
-      initial={layoutId ? undefined : { opacity: 0, scale: 0.96, y: 10 }}
-      animate={layoutId ? undefined : { opacity: 1, scale: 1, y: 0 }}
-      exit={layoutId ? undefined : { opacity: 0, scale: 0.97, y: 6 }}
+      initial={layoutId ? undefined : { opacity: 0, transform: 'translateY(10px) scale(0.96)' }}
+      animate={layoutId ? undefined : { opacity: 1, transform: 'translateY(0) scale(1)' }}
+      exit={layoutId ? undefined : { opacity: 0, transform: 'translateY(6px) scale(0.97)' }}
       transition={{ type: 'spring', stiffness: 340, damping: 32 }}
       style={{ transformOrigin: '0 0' }}
       className={className}
@@ -145,11 +145,16 @@ function RectMorphPanel({
       transform: 'translate(0, 0) scale(1, 1)',
       borderRadius: '28px',
     };
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reducedFrom = { opacity: 0 };
+    const reducedTo = { opacity: 1 };
     const animation = el.animate(
-      isPresent ? [from, to] : [to, from],
+      reducedMotion
+        ? (isPresent ? [reducedFrom, reducedTo] : [reducedTo, reducedFrom])
+        : (isPresent ? [from, to] : [to, from]),
       {
-        duration: isPresent ? 320 : 250,
-        easing: isPresent ? 'cubic-bezier(0.2, 0, 0, 1)' : 'cubic-bezier(0.4, 0, 1, 1)',
+        duration: reducedMotion ? 150 : (isPresent ? 320 : 250),
+        easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
         fill: 'both',
       },
     );

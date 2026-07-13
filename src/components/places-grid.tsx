@@ -23,9 +23,9 @@ export default function PlacesGrid({ pathname, onNavigate }: {
           <motion.button
             key={path}
             type="button"
-            variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+            variants={{ hidden: { opacity: 0, transform: 'translateY(10px)' }, show: { opacity: 1, transform: 'translateY(0)' } }}
             transition={{ type: 'spring', stiffness: 460, damping: 32 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ transform: 'scale(0.95)' }}
             onClick={() => onNavigate(path)}
             className={cn(
               'flex flex-col items-center justify-center gap-2 px-1.5 py-4 text-xs font-medium rounded-2xl transition-colors',

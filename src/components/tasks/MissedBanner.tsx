@@ -105,8 +105,8 @@ export default function MissedBanner() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(-4px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
       className="rounded-2xl border border-border bg-[hsl(var(--surface-container))] overflow-hidden"
     >

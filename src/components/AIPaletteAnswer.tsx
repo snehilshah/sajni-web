@@ -243,8 +243,8 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                   <motion.button
                     key={i}
                     type="button"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, transform: 'translateY(4px)' }}
+                    animate={{ opacity: 1, transform: 'translateY(0)' }}
                     onClick={() => {
                       if (route) {
                         navigate(route);

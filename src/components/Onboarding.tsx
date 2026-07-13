@@ -9,6 +9,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface Step {
   key: string;
@@ -151,6 +152,7 @@ export default function Onboarding() {
   const isMobile = useIsMobile();
   const [doc, setDoc] = useState<OnboardingDoc | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [closing, setClosing] = useState(false);
   const visible = !!user && user.onboarded_at === null && !closing;
 
@@ -165,6 +167,11 @@ export default function Onboarding() {
   const steps = doc?.steps ?? [];
   const step = steps[stepIdx];
   const isLast = step ? stepIdx === steps.length - 1 : false;
+
+  const moveStep = (delta: -1 | 1) => {
+    setDirection(delta);
+    setStepIdx((i) => Math.min(steps.length - 1, Math.max(0, i + delta)));
+  };
 
   // Recompute the anchor every render so it tracks layout shifts
   // (sidebar collapsing, theme animations, etc.). For position, we
@@ -244,15 +251,25 @@ export default function Onboarding() {
             </button>
           </div>
 
-          <h2 className="text-xl font-semibold tracking-tight">{step.title}</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.blurb}</p>
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={step.key}
+              initial={{ opacity: 0, transform: `translateX(${direction * 12}px)` }}
+              animate={{ opacity: 1, transform: 'translateX(0)' }}
+              exit={{ opacity: 0, transform: `translateX(${direction * -8}px)` }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <h2 className="text-xl font-semibold tracking-tight">{step.title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.blurb}</p>
+            </motion.div>
+          </AnimatePresence>
 
           <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">
             {steps.map((_, i) => (
               <span
                 key={i}
                 className={cn(
-                  'h-1.5 rounded-full transition-all',
+                  'h-1.5 rounded-full transition-[width,background-color] duration-200 ease-[var(--motion-ease-out)]',
                   i === stepIdx ? 'w-5 bg-[hsl(var(--primary))]' : 'w-1.5 bg-[hsl(var(--outline-variant))]',
                 )}
               />
@@ -264,7 +281,7 @@ export default function Onboarding() {
               type="button"
               variant="ghost"
               disabled={stepIdx === 0}
-              onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+              onClick={() => moveStep(-1)}
             >
               Back
             </Button>
@@ -275,7 +292,7 @@ export default function Onboarding() {
             ) : (
               <Button
                 type="button"
-                onClick={() => setStepIdx((i) => Math.min(steps.length - 1, i + 1))}
+                onClick={() => moveStep(1)}
                 className="rounded-full"
               >
                 Next
@@ -313,10 +330,20 @@ export default function Onboarding() {
           </button>
         </div>
 
-        <h2 className="serif text-xl font-semibold tracking-tight">{step.title}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {step.blurb}
-        </p>
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={step.key}
+            initial={{ opacity: 0, transform: `translateX(${direction * 12}px)` }}
+            animate={{ opacity: 1, transform: 'translateX(0)' }}
+            exit={{ opacity: 0, transform: `translateX(${direction * -8}px)` }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <h2 className="serif text-xl font-semibold tracking-tight">{step.title}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {step.blurb}
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Progress dots */}
         <div className="mt-5 flex items-center gap-1.5" aria-hidden="true">
@@ -324,7 +351,7 @@ export default function Onboarding() {
             <span
               key={i}
               className={cn(
-                'h-1.5 rounded-full transition-all',
+                'h-1.5 rounded-full transition-[width,background-color] duration-200 ease-[var(--motion-ease-out)]',
                 i === stepIdx
                   ? 'w-5 bg-[hsl(var(--primary))]'
                   : 'w-1.5 bg-[hsl(var(--outline-variant))]',
@@ -339,7 +366,7 @@ export default function Onboarding() {
             variant="ghost"
             size="sm"
             disabled={stepIdx === 0}
-            onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+            onClick={() => moveStep(-1)}
           >
             Back
           </Button>
@@ -351,7 +378,7 @@ export default function Onboarding() {
             <Button
               type="button"
               size="sm"
-              onClick={() => setStepIdx((i) => Math.min(steps.length - 1, i + 1))}
+              onClick={() => moveStep(1)}
               className="rounded-full"
             >
               Next

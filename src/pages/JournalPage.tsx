@@ -692,10 +692,10 @@ export default function JournalPage() {
                       key={m.emoji}
                       onClick={() => handleMoodChange(active ? null : m.emoji)}
                       title={m.label}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-all ${
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
                         active
                           ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                          : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
+                          : 'fine-hover-scale-102 bg-muted/40 hover:bg-muted opacity-70 hover:opacity-100'
                       }`}
                     >
                       <span className="text-base leading-none">{m.emoji}</span>
@@ -970,10 +970,10 @@ function WeekView({
               key={m.emoji}
               onClick={() => handleMood(active ? null : m.emoji)}
               title={m.label}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
                 active
                   ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                  : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
+                  : 'fine-hover-scale-102 bg-muted/40 hover:bg-muted opacity-70 hover:opacity-100'
               }`}
             >
               <span className="text-base leading-none">{m.emoji}</span>
@@ -1157,7 +1157,7 @@ function WeekView({
                               {format(day, 'EEEEE')}
                             </span>
                             <span
-                              className={`flex items-center justify-center w-full h-9 rounded-xl transition-all duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
+                              className={`flex items-center justify-center w-full h-9 rounded-xl transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
                                 on ? 'shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]' : ''
                               } ${isToday && !on ? 'ring-1 ring-primary/40' : ''}`}
                               style={{
@@ -1789,10 +1789,10 @@ function MonthView({
               key={m.emoji}
               onClick={() => handleMood(active ? null : m.emoji)}
               title={m.label}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
                 active
                   ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                  : 'bg-muted/40 hover:bg-muted hover:scale-[1.02] opacity-70 hover:opacity-100'
+                  : 'fine-hover-scale-102 bg-muted/40 hover:bg-muted opacity-70 hover:opacity-100'
               }`}
             >
               <span className="text-base leading-none">{m.emoji}</span>

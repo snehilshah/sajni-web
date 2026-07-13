@@ -245,9 +245,9 @@ function MemoRow({ memo, onOpen, onPin }: {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: -16, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12, ease: [0.22, 0.61, 0.36, 1] } }}
+      initial={{ opacity: 0, transform: 'translateY(-16px) scale(0.98)' }}
+      animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
+      exit={{ opacity: 0, transform: 'scale(0.96)', transition: { duration: 0.12, ease: [0.22, 0.61, 0.36, 1] } }}
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
       className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start"
     >
@@ -260,7 +260,7 @@ function MemoRow({ memo, onOpen, onPin }: {
 
       <motion.div
         onClick={onOpen}
-        whileTap={{ scale: 0.99 }}
+        whileTap={{ transform: 'scale(0.99)' }}
         className={`group relative cursor-pointer rounded-2xl px-3.5 py-2.5 transition-colors ${
           memo.pinned
             ? 'bg-[hsl(var(--secondary-container)/0.45)] hover:bg-[hsl(var(--secondary-container)/0.65)]'

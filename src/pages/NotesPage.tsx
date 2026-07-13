@@ -550,13 +550,28 @@ export default function NotesPage() {
             />
           ) : (
             <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
+              <AnimatePresence initial={false} mode="wait">
               {loadingNote ? (
-                <>
+                <motion.div
+                  key="note-loading"
+                  initial={{ opacity: 0, filter: 'blur(2px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(2px)' }}
+                  transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+                  className="flex flex-col gap-5"
+                >
                   <Skeleton className="h-14 w-3/4" />
                   <Skeleton className="h-64 w-full" />
-                </>
+                </motion.div>
               ) : (
-                <>
+                <motion.div
+                  key="note-editor"
+                  initial={{ opacity: 0, filter: 'blur(2px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(2px)' }}
+                  transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                  className="flex flex-col gap-5"
+                >
                   {/* Folder path — was the header breadcrumb; now sits
                       quietly above the title since the pill owns chrome. */}
                   {breadcrumb.length > 0 && (
@@ -592,8 +607,9 @@ export default function NotesPage() {
                     placeholder="Type / for commands. Use [[ to link to other notes."
                     fill
                   />
-                </>
+                </motion.div>
               )}
+              </AnimatePresence>
 
               {tags.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
@@ -939,7 +955,7 @@ function NotesAtlas({
         </div>
       ) : (
         <div
-          className="grid gap-3 sajni-stagger"
+          className="grid gap-3"
           style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}
         >
           {/* New-note tile — first cell, dashed invitation. */}
@@ -948,7 +964,7 @@ function NotesAtlas({
             onClick={onNew}
             className="group flex flex-col items-center justify-center gap-2.5 min-h-[150px] rounded-[28px] border-2 border-dashed border-[hsl(var(--outline-variant))] text-muted-foreground transition-colors hover:border-[hsl(var(--primary)/0.5)] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.05)] active:scale-[0.98]"
           >
-            <span className="grid place-items-center size-11 rounded-2xl bg-[hsl(var(--primary-container)/0.55)] text-[hsl(var(--on-primary-container))] transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] group-hover:scale-110 group-hover:rounded-[14px]">
+            <span className="fine-group-hover-scale-110 grid place-items-center size-11 rounded-2xl bg-[hsl(var(--primary-container)/0.55)] text-[hsl(var(--on-primary-container))] transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none">
               <FilePlus className="size-5" />
             </span>
             <span className="text-xs font-medium">New note</span>
@@ -961,7 +977,7 @@ function NotesAtlas({
               <button
                 key={n.id}
                 onClick={() => onPick(n.id)}
-                className={`group relative overflow-hidden text-left flex flex-col min-h-[150px] p-4 rounded-[28px] ${ATLAS_CORNERS[k]} transition-[transform,box-shadow,border-radius] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-1 hover:rounded-[28px] hover:shadow-[0_16px_38px_-18px_hsl(var(--foreground)/0.35)] active:scale-[0.98]`}
+                className={`fine-hover-note-card group relative overflow-hidden text-left flex flex-col min-h-[150px] p-4 rounded-[28px] ${ATLAS_CORNERS[k]} transition-[transform,box-shadow,border-radius] duration-200 ease-[var(--motion-ease-out)] active:scale-[0.98] motion-reduce:transition-none`}
                 style={{ background: n.pinned ? 'hsl(var(--secondary-container))' : ATLAS_TINTS[k] }}
               >
                 {/* Ghost initial — quiet oversized glyph anchoring the card. */}
@@ -988,7 +1004,7 @@ function NotesAtlas({
                   {(n.tags || []).slice(0, 2).map((t) => (
                     <span key={t} className="chip chip-sage max-w-[8rem]"><span className="truncate">#{t}</span></span>
                   ))}
-                  <ArrowUpRight className="size-4 ml-auto shrink-0 text-foreground/45 opacity-0 -translate-x-1 translate-y-1 transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0" />
+                  <ArrowUpRight className="fine-group-hover-arrow size-4 ml-auto shrink-0 text-foreground/45 opacity-0 -translate-x-1 translate-y-1 transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none" />
                 </div>
               </button>
             );

@@ -77,14 +77,14 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
               <motion.div
                 key={inv.id}
                 layout
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileTap={{ scale: 0.99 }}
+                initial={{ opacity: 0, transform: 'translateY(4px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0)' }}
+                whileTap={{ transform: 'scale(0.99)' }}
                 onClick={() => setEditing(inv)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setEditing(inv); }}
-                className="rounded-xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all tap-highlight-none"
+                className="rounded-xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow] tap-highlight-none"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

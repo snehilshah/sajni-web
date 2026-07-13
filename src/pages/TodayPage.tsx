@@ -192,7 +192,7 @@ export default function TodayPage() {
 		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ paddingTop: chromeClearance(isMobile) }}>
 		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-6 md:pt-8 pb-24">
 			{/* Hero */}
-			<div className="sajni-stagger">
+			<div>
 				<div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-3">{dateLabel}</div>
 				<h1 className="serif text-4xl md:text-[56px] font-normal tracking-[-0.025em] leading-[1.05] text-foreground">
 					{greeting}.
@@ -272,7 +272,7 @@ export default function TodayPage() {
 
 			{/* Two-column grid */}
 			<div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 mt-8">
-				<div className="sajni-stagger flex flex-col gap-6">
+				<div className="flex flex-col gap-6">
 					{/* On deck */}
 					<Section
 						title="On deck"
@@ -416,7 +416,7 @@ export default function TodayPage() {
 					</Section>
 				</div>
 
-				<div className="sajni-stagger flex flex-col gap-6">
+				<div className="flex flex-col gap-6">
 					{/* Today's habits */}
 					<Section title="Today's habits" hint={totalHabitsToday > 0 ? `${habitsDone}/${totalHabitsToday} done` : undefined}>
 						<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border">
@@ -441,7 +441,7 @@ export default function TodayPage() {
 													e.stopPropagation();
 													toggleHabit.mutate({ id: h.id, date: today });
 												}}
-												className="size-[26px] rounded-lg flex items-center justify-center transition-all"
+												className="size-[26px] rounded-lg flex items-center justify-center transition-[background-color,border-color,color]"
 												style={{
 													background: h.logged ? h.color : 'transparent',
 													border: `1.5px solid ${h.logged ? h.color : 'hsl(var(--muted-foreground))'}`,

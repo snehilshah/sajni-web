@@ -19,6 +19,7 @@ import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
 import { getPreset, THEMES } from '@/theme/presets';
 import PageShell from '@/components/PageShell';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
 // applied through the ThemeProvider so other pages observe the swap
@@ -106,7 +107,7 @@ function AIThemes() {
                 key={t.id}
                 onClick={() => !isActive && activate(t.id)}
                 className={cn(
-                  'flex items-center gap-3 rounded-2xl border p-3 transition-all',
+                  'flex items-center gap-3 rounded-2xl border p-3 transition-[border-color,box-shadow]',
                   isActive
                     ? 'border-primary ring-1 ring-primary/30'
                     : 'border-border hover:border-muted-foreground/30 cursor-pointer',
@@ -557,8 +558,16 @@ export default function SettingsPage() {
         </Section>
 
         <Section title="Danger zone" caption="Permanently remove your account and all of its content.">
+          <AnimatePresence initial={false} mode="wait">
           {delState?.scheduled ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] px-4 py-3.5">
+            <motion.div
+              key="scheduled"
+              initial={{ opacity: 0, transform: 'translateY(4px)' }}
+              animate={{ opacity: 1, transform: 'translateY(0)' }}
+              exit={{ opacity: 0, transform: 'translateY(-4px)' }}
+              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+              className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] px-4 py-3.5"
+            >
               <div className="flex items-start gap-2">
                 <AlertTriangle className="size-4 mt-0.5 shrink-0" />
                 <div className="text-sm">
@@ -573,9 +582,16 @@ export default function SettingsPage() {
                 {working ? <M3CookieLoader size="xs" tone="primary" /> : null}
                 Cancel deletion
               </Button>
-            </div>
+            </motion.div>
           ) : confirmDelete ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] px-4 py-3.5">
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0, transform: 'translateY(4px)' }}
+              animate={{ opacity: 1, transform: 'translateY(0)' }}
+              exit={{ opacity: 0, transform: 'translateY(-4px)' }}
+              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+              className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] px-4 py-3.5"
+            >
               <div className="text-sm">
                 Are you sure? Your data will live for <span className="serif font-semibold">7 days</span> after
                 you confirm, then everything (memos, tasks, notes, habits, media, finance, journals) will be
@@ -591,12 +607,21 @@ export default function SettingsPage() {
                 </Button>
                 <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Nevermind</Button>
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <Button variant="destructive" onClick={() => setConfirmDelete(true)} className="gap-2 w-fit">
-              <Trash2 className="size-4" /> Delete my account
-            </Button>
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+            >
+              <Button variant="destructive" onClick={() => setConfirmDelete(true)} className="gap-2 w-fit">
+                <Trash2 className="size-4" /> Delete my account
+              </Button>
+            </motion.div>
           )}
+          </AnimatePresence>
         </Section>
 
         {/* Brand mark — moved here from the rail. */}

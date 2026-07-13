@@ -272,24 +272,12 @@ export default function CommandPalette() {
     el?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, ranked.length]);
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="palette-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12 }}
+  return open ? (
+        <div
           className="fixed inset-0 z-[60] bg-foreground/30 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-3"
           onClick={() => setOpen(false)}
         >
-          <motion.div
-            key="palette-panel"
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+          <div
             className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -441,11 +429,9 @@ export default function CommandPalette() {
                   : `${ranked.length} result${ranked.length === 1 ? '' : 's'}`}
               </span>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+          </div>
+        </div>
+  ) : null;
 }
 
 function PaletteRow({

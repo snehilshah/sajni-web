@@ -103,9 +103,9 @@ function InsightCard({
   return (
     <motion.li
       layout
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
+      initial={{ opacity: 0, transform: 'translateY(4px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
+      exit={{ opacity: 0, transform: 'translateY(-4px)' }}
       className="rounded-2xl border border-border bg-card p-4 md:p-5 flex gap-3"
     >
       <span className="size-9 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0">

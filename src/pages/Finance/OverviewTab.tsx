@@ -113,11 +113,11 @@ export default function OverviewTab({ accounts }: Props) {
                     <span className="text-xs flex-1 truncate">{c.name}</span>
                     <div className="flex-1 max-w-[100px] h-1.5 bg-muted rounded-full overflow-hidden">
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: pct + '%' }}
-                        transition={{ duration: 0.4 }}
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: c.color }}
+                        initial={{ transform: 'scaleX(0)' }}
+                        animate={{ transform: `scaleX(${pct / 100})` }}
+                        transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
+                        className="h-full w-full rounded-full"
+                        style={{ backgroundColor: c.color, transformOrigin: 'left center' }}
                       />
                     </div>
                     <span className="font-mono text-xs tabular-nums w-16 text-right">{formatMoney(c.amount)}</span>
@@ -201,10 +201,11 @@ export default function OverviewTab({ accounts }: Props) {
                     <span className="text-xs flex-1 capitalize">{i.type.replace('_', ' ')}</span>
                     <div className="flex-1 max-w-[120px] h-1.5 bg-muted rounded-full overflow-hidden">
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: pct + '%' }}
-                        transition={{ duration: 0.4 }}
-                        className="h-full rounded-full bg-primary"
+                        initial={{ transform: 'scaleX(0)' }}
+                        animate={{ transform: `scaleX(${pct / 100})` }}
+                        transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
+                        className="h-full w-full rounded-full bg-primary"
+                        style={{ transformOrigin: 'left center' }}
                       />
                     </div>
                     <span className="font-mono text-xs tabular-nums w-16 text-right">{formatMoney(i.amount)}</span>
@@ -236,8 +237,8 @@ function Hero({ data, history, onSnapshot, snapping }: {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(6px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
       className="rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 md:p-6"
     >
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -356,10 +357,10 @@ function Distribution({ accounts, invested }: { accounts: OverviewData['accounts
         {items.map((i) => (
           <motion.div
             key={i.key}
-            initial={{ width: 0 }}
-            animate={{ width: `${(i.amount / total) * 100}%` }}
-            transition={{ duration: 0.5 }}
-            style={{ backgroundColor: i.color }}
+            initial={{ transform: 'scaleX(0)' }}
+            animate={{ transform: 'scaleX(1)' }}
+            transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
+            style={{ width: `${(i.amount / total) * 100}%`, backgroundColor: i.color, transformOrigin: 'left center' }}
             className="h-full"
             title={i.name}
           />
@@ -395,16 +396,18 @@ function TrendChart({ trend }: { trend: OverviewData['daily_trend'] }) {
           <div key={d.date} className="flex-1 flex flex-col items-center gap-0.5 group" title={`${d.date}: +${formatMoney(d.income)} / −${formatMoney(d.expense)}`}>
             <div className="w-full flex items-end justify-center gap-0.5" style={{ height: '110px' }}>
               <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: incomeH + '%' }}
-                transition={{ duration: 0.4, delay: i * 0.01 }}
+                initial={{ transform: 'scaleY(0)' }}
+                animate={{ transform: 'scaleY(1)' }}
+                transition={{ duration: 0.22, delay: Math.min(i * 0.01, 0.08), ease: [0.23, 1, 0.32, 1] }}
                 className="w-1/2 bg-primary/70 rounded-t-sm"
+                style={{ height: incomeH + '%', transformOrigin: 'center bottom' }}
               />
               <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: expenseH + '%' }}
-                transition={{ duration: 0.4, delay: i * 0.01 }}
+                initial={{ transform: 'scaleY(0)' }}
+                animate={{ transform: 'scaleY(1)' }}
+                transition={{ duration: 0.22, delay: Math.min(i * 0.01, 0.08), ease: [0.23, 1, 0.32, 1] }}
                 className="w-1/2 bg-destructive/70 rounded-t-sm"
+                style={{ height: expenseH + '%', transformOrigin: 'center bottom' }}
               />
             </div>
           </div>
@@ -417,8 +420,8 @@ function TrendChart({ trend }: { trend: OverviewData['daily_trend'] }) {
 function Panel({ title, subtitle, children, className = '' }: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(4px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.2 }}
       className={`rounded-xl border border-border bg-card p-4 md:p-5 ${className}`}
     >

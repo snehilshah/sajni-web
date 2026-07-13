@@ -773,7 +773,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
             >
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.85 }}
+                whileTap={{ transform: 'scale(0.97)' }}
                 transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 onClick={() => toggle(s)}
                 className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
@@ -795,7 +795,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
               <button
                 type="button"
                 onClick={() => remove(s)}
-                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-all shrink-0"
+                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
                 title="Delete subtask"
               >
                 <X className="size-3.5" />
@@ -874,9 +874,9 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
               <motion.span
                 key={e}
                 layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, transform: 'scale(0.9)' }}
+                animate={{ opacity: 1, transform: 'scale(1)' }}
+                exit={{ opacity: 0, transform: 'scale(0.9)' }}
                 transition={{ duration: 0.14, ease: [0.2, 0, 0, 1] }}
                 className="group inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] pl-2.5 pr-1.5 py-1 text-xs"
               >
@@ -1007,7 +1007,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
               <button
                 type="button"
                 onClick={() => remove(r.id)}
-                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-all shrink-0"
+                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
                 title="Remove reminder"
               >
                 <X className="size-3.5" />

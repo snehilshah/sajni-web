@@ -181,15 +181,15 @@ export default function HabitsPage() {
           </Button>
         </div>
       ) : (
-        <div className="sajni-stagger grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
           <AnimatePresence initial={false}>
             {habitsList.map((habit) => (
               <motion.div
                 key={habit.id}
                 layout
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.14 } }}
+                initial={{ opacity: 0, transform: 'translateY(8px) scale(0.98)' }}
+                animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
+                exit={{ opacity: 0, transform: 'scale(0.96)', transition: { duration: 0.14 } }}
                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
               >
                 <HabitCard
@@ -341,7 +341,7 @@ function HabitCard({
               <motion.button
                 onClick={() => onToggleDay(d)}
                 disabled={isFuture}
-                whileTap={isFuture ? undefined : { scale: 0.82 }}
+                whileTap={isFuture ? undefined : { transform: 'scale(0.97)' }}
                 transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 aria-pressed={on}
                 title={isFuture ? d : `${d}${on ? ' — done' : ''}${isToday ? ' · today' : ''}`}

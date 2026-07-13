@@ -542,9 +542,9 @@ function TitleAutocomplete({
       <AnimatePresence initial={false}>
         {open && results.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            initial={{ opacity: 0, transform: 'translateY(-4px) scale(0.98)' }}
+            animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
+            exit={{ opacity: 0, transform: 'translateY(-4px) scale(0.98)' }}
             transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
             className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 rounded-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-80 overflow-y-auto p-2 origin-top"
           >
@@ -958,7 +958,7 @@ export default function MediaPage() {
     }
     if (viewMode === 'grid') {
       return (
-        <div className="sajni-stagger grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
+        <div className="grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
           {seriesRows.map((row) => (
             row.kind === 'single' ? (
               <PosterCard
@@ -1048,7 +1048,7 @@ export default function MediaPage() {
     ));
 
     return (
-      <div className="sajni-stagger flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
         {sections.map(({ meta, rows }) => (
           <section key={meta.value} aria-label={meta.label}>
             {showSectionHeaders && (
@@ -1994,7 +1994,7 @@ function RowRail({ ghost, rating, chip }: {
 // The old three-column grid reserved a wide right column that read as
 // empty space; everything now hugs the content.
 function MediaListRow({
-  item, index, onClick, compact = false, attached = false, first = false, morphOpen = false,
+  item, index, onClick, compact = false, attached = false, first = false, morphOpen: _morphOpen = false,
 }: {
   item: MediaEntry;
   index: number;
@@ -2044,7 +2044,7 @@ function MediaListRow({
           item={item}
           index={index}
           variant="sm"
-          className="transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-hover:scale-[1.05]"
+          className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
         />
 
         <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
@@ -2125,7 +2125,7 @@ function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[
   }, [items]);
 
   return (
-    <div className="sajni-stagger flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       {shelves.map(({ meta, items: shelfItems }) => (
         <section key={meta.value} aria-label={meta.label}>
           <header className="flex items-baseline gap-2 mb-2.5 px-0.5">
@@ -2148,7 +2148,7 @@ function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[
 
 // ─── Table view — maximum density ────────────────────────────────────────
 // Sorting stays in the toolbar's sort control; the table is a flat readout.
-function MediaTable({ items, onPick, openItemId = null }: { items: MediaEntry[]; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
+function MediaTable({ items, onPick, openItemId: _openItemId = null }: { items: MediaEntry[]; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
   return (
     <div className="overflow-x-auto rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
       <table className="w-full min-w-[560px] text-sm border-collapse">
@@ -2432,7 +2432,7 @@ function SeriesListRow({
             item={cover}
             index={0}
             variant="sm"
-            className="transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-hover:scale-[1.05]"
+            className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
           />
 
           <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">

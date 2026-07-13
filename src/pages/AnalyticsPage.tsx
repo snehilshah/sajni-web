@@ -190,7 +190,7 @@ function ActivityPanel() {
                       strokeDasharray={2 * Math.PI * 48}
                       initial={{ strokeDashoffset: 2 * Math.PI * 48 }}
                       animate={{ strokeDashoffset: 2 * Math.PI * 48 * (1 - journalPct / 100) }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center font-serif text-3xl font-semibold text-primary">
@@ -225,11 +225,11 @@ function ActivityPanel() {
                         <span className="font-mono text-xs text-muted-foreground w-16 text-right capitalize">{mod}</span>
                         <div className="flex-1 h-5 bg-muted/60 rounded-sm overflow-hidden">
                           <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(count / maxModuleVal) * 100}%` }}
-                            transition={{ duration: 0.6, delay: i * 0.05, ease: 'easeOut' }}
-                            className="h-full rounded-sm"
-                            style={{ backgroundColor: color }}
+                            initial={{ transform: 'scaleX(0)' }}
+                            animate={{ transform: `scaleX(${count / maxModuleVal})` }}
+                            transition={{ duration: 0.24, delay: Math.min(i * 0.03, 0.12), ease: [0.23, 1, 0.32, 1] }}
+                            className="h-full w-full rounded-sm"
+                            style={{ backgroundColor: color, transformOrigin: 'left center' }}
                           />
                         </div>
                         <span className="font-mono text-xs tabular-nums text-foreground/70 w-7 text-right">{count}</span>
@@ -255,10 +255,11 @@ function ActivityPanel() {
                         </div>
                         <div className="w-full flex items-end justify-center" style={{ height: '92px' }}>
                           <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(pct, v.completed > 0 ? 6 : 0)}%` }}
-                            transition={{ duration: 0.5, delay: i * 0.04, ease: 'easeOut' }}
+                            initial={{ transform: 'scaleY(0)' }}
+                            animate={{ transform: 'scaleY(1)' }}
+                            transition={{ duration: 0.24, delay: Math.min(i * 0.025, 0.1), ease: [0.23, 1, 0.32, 1] }}
                             className="w-full bg-primary/80 rounded-t-sm group-hover:bg-primary"
+                            style={{ height: `${Math.max(pct, v.completed > 0 ? 6 : 0)}%`, transformOrigin: 'center bottom' }}
                           />
                         </div>
                         <span className="font-mono text-xs text-muted-foreground truncate max-w-full">
@@ -320,10 +321,11 @@ function ActivityPanel() {
                         </span>
                         <div className="w-20 h-1.5 bg-muted/60 rounded-full overflow-hidden">
                           <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pct}%` }}
-                            transition={{ duration: 0.5, delay: i * 0.04 }}
-                            className="h-full bg-primary/70 rounded-full"
+                            initial={{ transform: 'scaleX(0)' }}
+                            animate={{ transform: `scaleX(${pct / 100})` }}
+                            transition={{ duration: 0.22, delay: Math.min(i * 0.025, 0.1), ease: [0.23, 1, 0.32, 1] }}
+                            className="h-full w-full bg-primary/70 rounded-full"
+                            style={{ transformOrigin: 'left center' }}
                           />
                         </div>
                         <span className="font-mono text-xs tabular-nums text-muted-foreground w-6 text-right">{t.count}</span>
@@ -369,8 +371,8 @@ function ActivityPanel() {
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(6px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.25 }}
       className="rounded-xl border border-border bg-card p-5"
     >

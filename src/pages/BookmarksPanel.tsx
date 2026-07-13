@@ -249,9 +249,9 @@ export default function BookmarksPanel({ kind, addSignal }: {
               <motion.div
                 key={b.id}
                 layout
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.88, transition: { duration: 0.16 } }}
+                initial={{ opacity: 0, transform: 'scale(0.92)' }}
+                animate={{ opacity: 1, transform: 'scale(1)' }}
+                exit={{ opacity: 0, transform: 'scale(0.9)', transition: { duration: 0.16 } }}
                 transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
               >
                 <VideoCard b={b} onOpen={() => open(b)} menu={

@@ -582,9 +582,9 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
   return (
     <motion.div
       layout="position"
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.12 } }}
+      initial={{ opacity: 0, transform: 'translateY(-4px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
+      exit={{ opacity: 0, transform: 'scale(0.95)', transition: { duration: 0.12 } }}
       transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
     >
       <div

@@ -165,14 +165,14 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileTap={{ scale: 0.99 }}
+      initial={{ opacity: 0, transform: 'translateY(4px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0)' }}
+      whileTap={{ transform: 'scale(0.99)' }}
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(); }}
-      className="rounded-xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all tap-highlight-none"
+      className="rounded-xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow] tap-highlight-none"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -210,7 +210,7 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
       </div>
       <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full transition-all"
+          className="h-full"
           style={{ width: pct + '%', backgroundColor: barColor }}
         />
       </div>

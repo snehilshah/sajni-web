@@ -109,15 +109,15 @@ export default function TagsPanel() {
                       <motion.div
                         key={t.tag}
                         layout
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, transform: 'scale(0.9)' }}
+                        animate={{ opacity: 1, transform: 'scale(1)' }}
+                        exit={{ opacity: 0, transform: 'scale(0.9)' }}
                         transition={{ duration: 0.18 }}
                       >
                         <button
                           type="button"
                           onClick={() => setActiveTag(isActive ? undefined : t.tag)}
-                          className={`inline-flex items-center gap-1 rounded-full font-mono transition-all ${
+                          className={`inline-flex items-center gap-1 rounded-full font-mono transition-[background-color,color,box-shadow] ${
                             isActive
                               ? 'bg-primary text-primary-foreground shadow-sm'
                               : 'bg-secondary/40 hover:bg-secondary/70 text-foreground'
@@ -144,9 +144,9 @@ export default function TagsPanel() {
             {activeTag && (
               <motion.section
                 key={activeTag}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
+                initial={{ opacity: 0, transform: 'translateY(8px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0)' }}
+                exit={{ opacity: 0, transform: 'translateY(-4px)' }}
                 transition={{ duration: 0.2 }}
                 className="border-t border-border pt-6"
               >

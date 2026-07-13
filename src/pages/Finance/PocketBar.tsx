@@ -264,7 +264,7 @@ function PocketDialog({ open, pocket, onClose, onSaved }: {
                   className={cn(
                     'size-8 rounded-full transition-transform outline-none',
                     'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--primary))]',
-                    color === c ? 'ring-2 ring-offset-2 ring-[hsl(var(--primary))] scale-110' : 'hover:scale-110',
+                    color === c ? 'ring-2 ring-offset-2 ring-[hsl(var(--primary))] scale-110' : 'fine-hover-scale-110',
                   )}
                   style={{ backgroundColor: c }}
                 />

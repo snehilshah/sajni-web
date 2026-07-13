@@ -323,8 +323,8 @@ function FinanceHeaderActions({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />
             <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={{ opacity: 0, transform: 'translateY(-4px) scale(0.98)' }}
+              animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
               transition={{ duration: 0.12 }}
               className="absolute right-0 mt-2 w-60 rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-2)] z-40 p-1.5 text-sm origin-top-right"
             >
@@ -373,7 +373,7 @@ function TabPanel({ active, children }: { active: boolean; children: React.React
     <motion.div
       {...inertProps}
       initial={false}
-      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 3 }}
+      animate={{ opacity: active ? 1 : 0, transform: active ? 'translateY(0)' : 'translateY(3px)' }}
       transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
       style={{
         position: active ? 'relative' : 'absolute',

@@ -201,7 +201,7 @@ function PrimaryBar({
   return (
     <motion.div
       initial={false}
-      animate={{ y: scrolled ? -88 : 0, opacity: scrolled ? 0 : 1 }}
+      animate={{ transform: scrolled ? 'translateY(-88px)' : 'translateY(0)', opacity: scrolled ? 0 : 1 }}
       transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
       className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
       style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
@@ -288,7 +288,7 @@ function BottomDock({
       initial={false}
       // Slides fully off-screen while the keyboard is up so typing gets
       // the whole shortened viewport.
-      animate={{ y: hidden ? 96 : 0, opacity: hidden ? 0 : 1 }}
+      animate={{ transform: hidden ? 'translateY(96px)' : 'translateY(0)', opacity: hidden ? 0 : 1 }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
       className="fixed inset-x-0 z-40 md:hidden flex justify-center px-3 pointer-events-none"
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}

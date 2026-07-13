@@ -56,10 +56,13 @@ export function MorphingPopover({
             layoutId={morphId}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
             className={cn(
-              'absolute top-0 left-0 z-50 origin-top-left rounded-3xl border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-[var(--m3-elev-3)] overflow-hidden',
+              'absolute top-0 left-0 z-50 rounded-3xl border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-[var(--m3-elev-3)] overflow-hidden',
               panelClassName,
             )}
-            style={panelStyle}
+            style={{
+              ...panelStyle,
+              transformOrigin: panelStyle?.transformOrigin ?? (panelStyle?.right != null ? 'top right' : 'top left'),
+            }}
           >
             <motion.div
               initial={{ opacity: 0 }}
