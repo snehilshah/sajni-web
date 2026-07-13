@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import {
-  LogOut, Search, Settings, Sparkles, Loader2,
+  LogOut, Search, Settings, Sparkles, Loader2, BookOpen,
 } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import { useAuth } from '@/auth/AuthContext';
@@ -85,12 +85,13 @@ function MenuRow({
 }
 
 function UserMenuBody({
-  email, onOpenCommand, onOpenChat, onSettings, onSignOut, onAction, signingOut,
+  email, onOpenCommand, onOpenChat, onSettings, onDocs, onSignOut, onAction, signingOut,
 }: {
   email: string;
   onOpenCommand: () => void;
   onOpenChat: () => void;
   onSettings: () => void;
+  onDocs: () => void;
   onSignOut: () => void;
   onAction?: () => void;
   signingOut: boolean;
@@ -114,6 +115,7 @@ function UserMenuBody({
       <MenuRow icon={Sparkles} label="Ask Sajni" onClick={runAction(onOpenChat)} />
       <div className="sajni-sep my-2" />
       <MenuRow icon={Settings} label="Settings" onClick={runAction(onSettings)} />
+      <MenuRow icon={BookOpen} label="Field guide" hint="/docs" onClick={runAction(onDocs)} />
       <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={runAction(onSignOut)} />
     </div>
   );
@@ -385,6 +387,7 @@ export default function Layout() {
       onOpenCommand={openCommand}
       onOpenChat={() => setAiChatOpen(true)}
       onSettings={() => navigate('/settings')}
+      onDocs={() => navigate('/docs')}
       onSignOut={onSignOut}
       onAction={() => setAccountMenuOpen(false)}
       signingOut={signingOut}

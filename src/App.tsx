@@ -16,6 +16,7 @@ const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const FinancePage = lazy(() => import('./pages/Finance/FinancePage'));
 const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const DocsPage = lazy(() => import('./pages/DocsPage'));
 const SignInPage = lazy(() => import('./pages/Auth/SignIn'));
 const OAuthDonePage = lazy(() => import('./pages/Auth/OAuthDone'));
 const LinkChallengePage = lazy(() => import('./pages/Auth/LinkChallenge'));
@@ -88,6 +89,8 @@ export default function App() {
           {/* PWA share target — captures a shared UPI message; gates auth itself
               (outside RequireAuth) so the shared text survives a login bounce. */}
           <Route path="/share-target" element={<ShareCapturePage />} />
+          {/* Field guide — public so it's shareable without an account. */}
+          <Route path="/docs" element={<DocsPage />} />
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/" element={<TodayPage />} />
             <Route path="/projects" element={<ThinkingPage />} />
