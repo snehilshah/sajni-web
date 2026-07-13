@@ -442,6 +442,7 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
             {items.length === 0 ? (
               <div className="text-xs text-muted-foreground italic py-2">
                 Optional soft caps per category — they warn, they don't block.
+                {period === 'custom' && pocketIds.size > 0 && ' Caps count only the pockets selected above.'}
               </div>
             ) : (
               <div className="flex flex-col gap-2">

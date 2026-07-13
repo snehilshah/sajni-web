@@ -415,13 +415,52 @@ export default function DocsPage() {
                 months with the ‹ › month nav.
               </li>
               <li>
-                <strong>Custom range</strong> — a trip or a season. Optionally
-                count <em>only selected pockets</em>, so the “Goa Trip” budget
-                counts exactly the Goa spending — while your monthly budget
-                still counts the same rupees. One transaction, every matching
-                budget; you never assign budgets by hand.
+                <strong>Custom range</strong> — a trip or a season, with an
+                optional pocket filter: pick one <em>or several</em> pockets
+                and the budget counts only spending filed in them.
               </li>
             </ul>
+
+            <h3>How pockets and budgets relate</h3>
+            <p>
+              There is exactly <strong>one ledger</strong>. Pockets are labels
+              on transactions; budgets are <strong>read-time lenses</strong>{' '}
+              over that ledger. Nothing is ever allocated, moved or deducted
+              between pockets or between budgets — which is why the same rupee
+              can appear in several budgets without double-counting any money.
+            </p>
+            <ul>
+              <li>
+                A budget with <strong>no pocket filter</strong> (every monthly
+                budget) sees <em>all</em> spending in its window — pocketed or
+                General.
+              </li>
+              <li>
+                A budget with a pocket filter sees <em>only</em> those
+                pockets. General (unpocketed) spends never match a filter.
+              </li>
+              <li>
+                <strong>Category caps inherit their budget's lens.</strong> A
+                trip budget's “Food & drinks” cap counts only food spent{' '}
+                <em>inside the trip's pockets</em>; the monthly budget's food
+                cap counts all food, trip included.
+              </li>
+              <li>
+                Pockets never interact with each other — one transaction, one
+                pocket, always.
+              </li>
+            </ul>
+            <Callout>
+              <strong>Worked example.</strong> You keep a Monthly budget of
+              ₹10,000 (food cap ₹3,000) and add a “Goa Trip” budget of ₹5,000
+              filtered to the Goa Trip pocket (food cap ₹1,000). With Goa Trip
+              set active, a ₹400 beach dinner files into the pocket and counts
+              four ways at once: monthly overall (sees everything), monthly
+              food cap (all food), trip overall (Goa pocket only), trip food
+              cap (Goa food only). A ₹600 grocery delivery at home the same
+              week stays in General — the monthly budget counts it, the trip
+              budget ignores it completely.
+            </Callout>
 
             <h3>Billers</h3>
             <p>Recurring charges come in two honest kinds:</p>
