@@ -1,6 +1,12 @@
 // ThemeProvider — fetches the user's active M3 theme on boot, applies
 // it via applyM3, listens for AI tool events (theme_created /
 // theme_activated) and re-applies without a full reload.
+//
+// Mode (light/dark) is owned by useThemePrefs/useMode, which stamps
+// <html data-mode>. Custom themes are injected as a stylesheet with both
+// mode blocks (applyM3), so they follow that attribute exactly like the
+// presets do — this provider only mirrors the attribute for consumers
+// that need the effective mode (e.g. Settings swatch previews).
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -13,50 +19,42 @@ const PRESET_KEY = 'sajni:theme';
 
 interface Ctx {
   active: UserTheme | null;
+  /** Effective mode, mirrored live from <html data-mode>. */
   mode: 'light' | 'dark';
-  setMode: (m: 'light' | 'dark') => void;
   refresh: () => Promise<void>;
-  apply: (t: UserTheme | null, mode?: 'light' | 'dark') => void;
+  apply: (t: UserTheme | null) => void;
 }
 
 const ThemeCtx = createContext<Ctx>({
   active: null,
   mode: 'light',
-  setMode: () => {},
   refresh: async () => {},
   apply: () => {},
 });
 
-const MODE_KEY = 'sajni:theme-mode';
-
-function detectInitialMode(): 'light' | 'dark' {
-  try {
-    const saved = localStorage.getItem(MODE_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch {}
-  if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-  return 'light';
+function readDomMode(): 'light' | 'dark' {
+  return document.documentElement.dataset.mode === 'dark' ? 'dark' : 'light';
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [active, setActive] = useState<UserTheme | null>(null);
-  const [mode, setModeState] = useState<'light' | 'dark'>(() => detectInitialMode());
+  const [mode, setMode] = useState<'light' | 'dark'>(() => readDomMode());
 
-  // Push the mode flag onto <html data-mode="..."> before paint so the
-  // index.css fallback rules pick the right column even when no custom
-  // theme is loaded.
+  // Mirror <html data-mode> (stamped by index.html early script + useMode)
+  // so swatch previews re-render when the Appearance toggle flips. The
+  // applied theme itself needs no re-apply — its stylesheet carries both
+  // mode blocks.
   useEffect(() => {
-    document.documentElement.setAttribute('data-mode', mode);
-    try { localStorage.setItem(MODE_KEY, mode); } catch {}
-  }, [mode]);
+    const root = document.documentElement;
+    const mo = new MutationObserver(() => setMode(readDomMode()));
+    mo.observe(root, { attributes: true, attributeFilter: ['data-mode'] });
+    return () => mo.disconnect();
+  }, []);
 
-  const apply = useCallback((t: UserTheme | null, m?: 'light' | 'dark') => {
-    const targetMode = m ?? mode;
+  const apply = useCallback((t: UserTheme | null) => {
     if (!t) {
-      // No server theme: clear the inline M3 vars and fall back to the
+      // No server theme: drop the custom stylesheet and fall back to the
       // user's selected CSS preset (data-theme), so the page keeps its
       // colors instead of snapping back to the bare :root default.
       resetM3();
@@ -66,10 +64,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setActive(null);
       return;
     }
-    const resolvedMode = t.mode_pref === 'auto' ? targetMode : t.mode_pref;
-    applyM3(t.seeds, resolvedMode);
+    applyM3(t.seeds, t.mode_pref);
     setActive(t);
-  }, [mode]);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -105,14 +102,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user?.id]);
 
-  // When the mode toggle changes (light/dark), re-apply the current
-  // theme so the new tones land. Custom themes with `mode_pref` set to
-  // a specific mode ignore the toggle.
-  useEffect(() => {
-    if (active) apply(active);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
   // AI tool events from AIChat. Both `theme_created` (with activate:true)
   // and `theme_activated` should re-fetch the active theme.
   useEffect(() => {
@@ -127,10 +116,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('data:invalidate', onInvalidate);
   }, [refresh]);
 
-  const setMode = (m: 'light' | 'dark') => setModeState(m);
-
   return (
-    <ThemeCtx.Provider value={{ active, mode, setMode, refresh, apply }}>
+    <ThemeCtx.Provider value={{ active, mode, refresh, apply }}>
       {children}
     </ThemeCtx.Provider>
   );

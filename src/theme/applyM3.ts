@@ -152,24 +152,52 @@ export function buildPalette(seeds: ThemeSeeds): AppliedTheme {
   return out;
 }
 
-// applyM3 writes the resolved palette to documentElement as CSS vars.
-// The existing index.css default sheet acts as the fallback if no theme
-// is active; once we set inline vars they override the stylesheet.
-export function applyM3(seeds: ThemeSeeds, mode: 'light' | 'dark' = 'light') {
+const CUSTOM_STYLE_ID = 'sajni-custom-theme';
+
+// applyM3 injects a stylesheet for the custom theme with BOTH mode blocks,
+// riding the same `data-theme` + `data-mode` cascade as the presets — so the
+// Appearance toggle (and OS mode changes under "system") flip custom themes
+// exactly like built-ins. `data-mode` itself is owned by useThemePrefs; this
+// never touches it.
+//
+// A theme pinned via modePref ('light'/'dark') writes that palette into both
+// blocks, so it visually ignores the toggle — the documented behavior.
+//
+// (The previous implementation wrote single-mode INLINE vars, which outrank
+// every stylesheet — custom themes froze in whatever mode they were applied
+// under. Keep this cascade-based; do not go back to inline vars.)
+export function applyM3(seeds: ThemeSeeds, modePref: 'auto' | 'light' | 'dark' = 'auto') {
   const palette = buildPalette(seeds);
-  const map = mode === 'dark' ? palette.dark : palette.light;
-  const root = document.documentElement;
-  for (const [name, value] of Object.entries(map)) {
-    root.style.setProperty('--' + name, value);
+  const lightMap = modePref === 'dark' ? palette.dark : palette.light;
+  const darkMap = modePref === 'light' ? palette.light : palette.dark;
+  const block = (m: Record<string, string>) =>
+    Object.entries(m).map(([k, v]) => `--${k}:${v}`).join(';');
+
+  let el = document.getElementById(CUSTOM_STYLE_ID) as HTMLStyleElement | null;
+  if (!el) {
+    el = document.createElement('style');
+    el.id = CUSTOM_STYLE_ID;
+    document.head.appendChild(el);
   }
-  root.setAttribute('data-mode', mode);
+  el.textContent =
+    `[data-theme="custom"]{${block(lightMap)}}` +
+    `[data-theme="custom"][data-mode="dark"]{${block(darkMap)}}`;
+
+  const root = document.documentElement;
+  // Older builds wrote single-mode inline vars; clear any leftovers so the
+  // stylesheet (and the mode toggle) can win.
+  for (const name of Object.keys(tokens)) {
+    root.style.removeProperty('--' + name);
+  }
   root.setAttribute('data-theme', 'custom');
 }
 
-// resetM3 strips the inline vars so the stylesheet defaults (or a selected
-// CSS preset) win again. It intentionally does NOT touch the data-theme
-// attribute — that is owned by the preset system, so the caller restores it.
+// resetM3 removes the custom-theme stylesheet (and legacy inline vars) so the
+// stylesheet defaults (or a selected CSS preset) win again. It intentionally
+// does NOT touch the data-theme attribute — that is owned by the preset
+// system, so the caller restores it.
 export function resetM3() {
+  document.getElementById(CUSTOM_STYLE_ID)?.remove();
   const root = document.documentElement;
   for (const name of Object.keys(tokens)) {
     root.style.removeProperty('--' + name);
