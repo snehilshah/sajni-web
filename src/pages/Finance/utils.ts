@@ -14,17 +14,46 @@ import { authFetch, API_BASE } from '@/auth/client';
 // the tab subtree (via a key keyed on privacy) when the flag flips, giving a
 // fresh compiler cache that recomputes everything against the current value.
 const PRIVACY_KEY = 'sajni.finance.privacy';
+// A reveal only lasts 30 minutes: turning privacy OFF stamps an expiry;
+// FinancePage re-hides on a timer/visibility change, and the on-load check
+// below catches reloads after the window lapsed.
+const REVEAL_UNTIL_KEY = 'sajni.finance.privacy.revealUntil';
+export const REVEAL_MS = 30 * 60 * 1000;
+
 // Default ON: figures are hidden unless the user has explicitly revealed them
-// (stored '0'). Anything else — including a fresh device — starts private.
+// (stored '0') AND the 30-minute reveal window hasn't lapsed. Anything else —
+// including a fresh device — starts private.
 let privacyOn = (() => {
-  try { return localStorage.getItem(PRIVACY_KEY) !== '0'; } catch { return true; }
+  try {
+    if (localStorage.getItem(PRIVACY_KEY) !== '0') return true;
+    const until = Number(localStorage.getItem(REVEAL_UNTIL_KEY) || 0);
+    if (Date.now() >= until) {
+      localStorage.setItem(PRIVACY_KEY, '1');
+      localStorage.removeItem(REVEAL_UNTIL_KEY);
+      return true;
+    }
+    return false;
+  } catch { return true; }
 })();
 
 export function isPrivacyMode(): boolean { return privacyOn; }
 
 export function setPrivacyMode(on: boolean): void {
   privacyOn = on;
-  try { localStorage.setItem(PRIVACY_KEY, on ? '1' : '0'); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(PRIVACY_KEY, on ? '1' : '0');
+    if (on) localStorage.removeItem(REVEAL_UNTIL_KEY);
+    else localStorage.setItem(REVEAL_UNTIL_KEY, String(Date.now() + REVEAL_MS));
+  } catch { /* ignore */ }
+}
+
+// Epoch ms when the current reveal lapses; null when privacy is on.
+export function revealExpiry(): number | null {
+  if (privacyOn) return null;
+  try {
+    const until = Number(localStorage.getItem(REVEAL_UNTIL_KEY) || 0);
+    return until > 0 ? until : null;
+  } catch { return null; }
 }
 
 export function togglePrivacyMode(): void { setPrivacyMode(!privacyOn); }
@@ -75,38 +104,18 @@ export const ACCOUNT_TYPES: { value: string; label: string }[] = [
   { value: 'salary', label: 'Salary' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'investment', label: 'Investment' },
-  { value: 'trading', label: 'Trading' },
   { value: 'cash', label: 'Cash' },
 ];
 
-// All instrument labels (lookup map). Guaranteed instruments live under the
-// Investments tab; the rest are market trades shown under Trading.
+// Manual instruments — market trading was removed; sip/mutual_fund live on
+// as manually valued entries alongside the guaranteed kinds.
 export const INVESTMENT_TYPES: { value: string; label: string }[] = [
   { value: 'sip', label: 'SIP' },
   { value: 'rd', label: 'RD' },
   { value: 'fd', label: 'FD' },
-  { value: 'stock', label: 'Stocks' },
-  { value: 'etf', label: 'ETF' },
   { value: 'mutual_fund', label: 'Mutual Fund' },
   { value: 'other', label: 'Other' },
 ];
-
-// Guaranteed-return instruments — the only kinds allowed under Investments.
-export const GUARANTEED_TYPES: { value: string; label: string }[] = [
-  { value: 'fd', label: 'FD' },
-  { value: 'rd', label: 'RD' },
-  { value: 'other', label: 'Other' },
-];
-
-// Market instruments — bought against a trading account, shown under Trading.
-export const TRADING_TYPES: { value: string; label: string }[] = [
-  { value: 'stock', label: 'Stocks' },
-  { value: 'etf', label: 'ETF' },
-  { value: 'sip', label: 'SIP' },
-  { value: 'mutual_fund', label: 'Mutual Fund' },
-];
-
-export const TRADING_TYPE_VALUES = TRADING_TYPES.map((t) => t.value);
 
 export const ACCOUNT_COLORS = [
   '#2D5A4F', '#A14B4F', '#C49A6C', '#4F6FA1',

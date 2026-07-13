@@ -27,8 +27,17 @@ export function useFinTransactions(
   });
 }
 
-export function useFinBudgets(enabled = true) {
-  return useQuery({ queryKey: qk.finance.budgets(), queryFn: () => finance.listBudgets(), enabled });
+// month = 'YYYY-MM' history view for monthly (rolling) budgets; omit = current.
+export function useFinBudgets(month?: string, enabled = true) {
+  return useQuery({ queryKey: qk.finance.budgets(month), queryFn: () => finance.listBudgets(month), enabled });
+}
+
+export function useFinPockets(includeArchived = false, enabled = true) {
+  return useQuery({
+    queryKey: qk.finance.pockets(),
+    queryFn: () => finance.listPockets(includeArchived),
+    enabled,
+  });
 }
 
 export function useFinInvestments(enabled = true) {
@@ -52,5 +61,14 @@ export function useFinBillers(includeArchived = false, enabled = true) {
     queryKey: qk.finance.billers(includeArchived),
     queryFn: () => finance.listBillers(includeArchived),
     enabled,
+  });
+}
+
+// Payment history for the biller detail sheet; fetch only while it's open.
+export function useBillerPayments(id: number, enabled = true) {
+  return useQuery({
+    queryKey: qk.finance.billerPayments(id),
+    queryFn: () => finance.listBillerPayments(id),
+    enabled: enabled && id > 0,
   });
 }

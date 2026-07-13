@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Landmark, CreditCard, TrendingUp, Coins, CandlestickChart, Wallet,
+  Landmark, CreditCard, TrendingUp, Coins, Wallet,
   Plus, Pencil, Trash2, Target, ArrowDownToLine, Gift,
 } from '@/components/ui/icons';
 import { toast } from 'sonner';
@@ -21,7 +21,6 @@ const typeIcon = (type: string) => {
   switch (type) {
     case 'credit_card': return CreditCard;
     case 'investment': return TrendingUp;
-    case 'trading': return CandlestickChart;
     case 'cash': return Coins;
     case 'salary': return Wallet;
     case 'savings':

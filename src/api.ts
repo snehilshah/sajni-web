@@ -596,7 +596,7 @@ export const analytics = {
 export interface FinAccount {
   id: number;
   name: string;
-  type: 'savings' | 'checking' | 'credit_card' | 'investment' | 'trading' | 'cash' | 'salary';
+  type: 'savings' | 'checking' | 'credit_card' | 'investment' | 'cash' | 'salary';
   institution: string;
   currency: string;
   opening_balance: number;
@@ -631,14 +631,38 @@ export interface FinTransaction {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
-  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'buy' | 'sell';
+  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out';
   amount: number;
   description: string;
   note: string;
   txn_at: string; // RFC3339 in IST (carries +05:30)
   transfer_pair: number | null;
   linked_account: number | null;
+  /** Pocket (spend context). null = General. */
+  pocket_id: number | null;
+  pocket_name: string | null;
   created_at: string;
+}
+
+/** Pocket = curated spend context ("Goa Trip"). Each txn lives in exactly
+ *  one; none = the implicit General pocket. The active pocket is the
+ *  default for new txns (manual, share capture, AI). */
+export interface FinPocket {
+  id: number;
+  name: string;
+  color: string;
+  is_active: boolean;
+  archived: boolean;
+  /** Current IST month expense spend inside this pocket. */
+  month_spend: number;
+  txn_count: number;
+}
+
+export interface FinPocketsResponse {
+  items: FinPocket[];
+  /** Current-month spend with no pocket (General). */
+  general_spend: number;
+  active_pocket_id: number | null;
 }
 
 export interface FinBudgetItem {
@@ -654,15 +678,21 @@ export interface FinBudget {
   period: 'monthly' | 'custom';
   start_date: string;
   end_date: string;
+  /** Resolved spend window: monthly budgets auto-roll to the requested
+   *  (default current) IST month; custom budgets = stored dates. */
+  window_start: string;
+  window_end: string;
   total_amount: number;
   spent: number;
+  /** Optional pocket filter: overall spent counts only these pockets. */
+  pocket_ids: number[];
   items: FinBudgetItem[];
 }
 
 export interface FinInvestment {
   id: number;
   name: string;
-  type: 'sip' | 'rd' | 'stock' | 'etf' | 'mutual_fund' | 'fd' | 'other';
+  type: 'sip' | 'rd' | 'mutual_fund' | 'fd' | 'other';
   account_id: number | null;
   invested_amount: number;
   current_value: number;
@@ -673,20 +703,9 @@ export interface FinInvestment {
   expected_return: number;
   notes: string;
   last_updated: string;
-  /** Trading holdings only: units held + cost basis + booked P/L + lifecycle. */
-  quantity: number;
-  avg_buy_price: number;
-  realized_pl: number;
-  status: 'open' | 'closed';
-  /** Stocks/ETFs only: market symbol + exchange drive EOD auto-pricing. */
-  symbol: string;
-  exchange: string;
-  /** Last auto-fetched price/unit; current_value = quantity × last_price. */
-  last_price: number;
-  /** Last fetch failure ('' = ok); set when a symbol stops resolving. */
-  price_error: string;
-  /** RFC3339 (IST) of the last successful refresh; null = never priced. */
-  price_at: string | null;
+  /** Cron posts the contribution from account_id each cycle when on. */
+  auto_debit: boolean;
+  next_debit_date: string | null;
 }
 
 export interface FinSaving {
@@ -702,9 +721,15 @@ export interface FinSaving {
 
 export type BillerFrequency = 'weekly' | 'fortnightly' | 'monthly' | 'bimonthly';
 
+export type BillerKind = 'subscription' | 'bill';
+
 export interface FinBiller {
   id: number;
   name: string;
+  /** 'subscription' = fixed amount, may auto-renew (Netflix).
+   *  'bill' = variable amount (electricity) — amount is an optional
+   *  estimate; mark-paid records the actual. */
+  kind: BillerKind;
   amount: number;
   frequency: BillerFrequency;
   next_due_date: string;
@@ -713,18 +738,36 @@ export interface FinBiller {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
+  /** Legacy fields kept until android parity; variable === (kind==='bill'). */
   is_subscription: boolean;
   auto_renew: boolean;
   /** Opt-in: cron spawns a 'Pay {name}' reminder task each cycle. */
   remind_task: boolean;
-  /** Amount not known upfront (e.g. electricity); auto-pay uses last amount. */
   variable: boolean;
   alert_days: number;
   color: string;
   notes: string;
   archived: boolean;
   last_paid_date: string | null;
+  last_paid_amount: number | null;
   created_at: string;
+}
+
+export interface FinBillerPaymentTxn {
+  id: number;
+  amount: number;
+  description: string;
+  txn_at: string;
+  account_name: string | null;
+}
+
+export interface FinBillerPayment {
+  id: number;
+  due_date: string;
+  paid_date: string;
+  amount: number;
+  auto: boolean;
+  txns: FinBillerPaymentTxn[];
 }
 
 export interface FinBillerAlert {
@@ -783,12 +826,17 @@ export interface TxnDraft {
   note?: string;
   txn_at: string;
   linked_account?: number;
+  /** Omit → server files under the active pocket; 0 → General; N → pocket. */
+  pocket_id?: number;
 }
 
 export type TxnPatch = Partial<Pick<
   FinTransaction,
   'account_id' | 'category_id' | 'amount' | 'description' | 'note' | 'txn_at'
->>;
+>> & {
+  /** 0 → General; N → pocket; omitted → untouched. */
+  pocket_id?: number;
+};
 
 export interface BudgetItemDraft {
   category_id: number | null;
@@ -801,6 +849,7 @@ export interface BudgetDraft {
   start_date: string;
   end_date: string;
   total_amount: number;
+  pocket_ids: number[];
   items: BudgetItemDraft[];
 }
 
@@ -819,10 +868,8 @@ export type InvDraft = Partial<Pick<
   | 'maturity_date'
   | 'expected_return'
   | 'notes'
-  | 'quantity'
-  | 'avg_buy_price'
-  | 'symbol'
-  | 'exchange'
+  | 'auto_debit'
+  | 'next_debit_date'
 >>;
 
 export interface StmtDraft {
@@ -858,7 +905,7 @@ export const finance = {
     request('/finance/categories/' + id, { method: 'DELETE' }),
 
   // Transactions
-  listTransactions: (params?: { account_id?: number; category_id?: number; type?: string; from?: string; to?: string; search?: string; limit?: number }) => {
+  listTransactions: (params?: { account_id?: number; category_id?: number; type?: string; from?: string; to?: string; search?: string; limit?: number; pocket_id?: number }) => {
     const q = new URLSearchParams();
     if (params?.account_id) q.set('account_id', String(params.account_id));
     if (params?.category_id) q.set('category_id', String(params.category_id));
@@ -867,6 +914,8 @@ export const finance = {
     if (params?.to) q.set('to', params.to);
     if (params?.search) q.set('search', params.search);
     if (params?.limit) q.set('limit', String(params.limit));
+    // pocket_id 0 = General (unpocketed), so check presence not truthiness.
+    if (params?.pocket_id !== undefined) q.set('pocket_id', String(params.pocket_id));
     const qs = q.toString();
     return request<FinTransaction[]>('/finance/transactions' + (qs ? '?' + qs : ''));
   },
@@ -891,8 +940,22 @@ export const finance = {
       { method: 'POST', body: JSON.stringify(data) },
     ),
 
+  // Pockets (spend contexts)
+  listPockets: (includeArchived = false) =>
+    request<FinPocketsResponse>('/finance/pockets' + (includeArchived ? '?include_archived=true' : '')),
+  createPocket: (data: { name: string; color?: string }) =>
+    request<{ id: number }>('/finance/pockets', { method: 'POST', body: JSON.stringify(data) }),
+  updatePocket: (id: number, data: { name?: string; color?: string; archived?: boolean }) =>
+    request('/finance/pockets/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePocket: (id: number) =>
+    request('/finance/pockets/' + id, { method: 'DELETE' }),
+  /** pocket_id null/0 clears the active pocket. */
+  setActivePocket: (pocket_id: number | null) =>
+    request('/finance/pockets/active', { method: 'POST', body: JSON.stringify({ pocket_id }) }),
+
   // Budgets
-  listBudgets: () => request<FinBudget[]>('/finance/budgets'),
+  listBudgets: (month?: string) =>
+    request<FinBudget[]>('/finance/budgets' + (month ? '?month=' + month : '')),
   createBudget: (data: BudgetDraft) =>
     request<{ id: number }>('/finance/budgets', { method: 'POST', body: JSON.stringify(data) }),
   updateBudget: (id: number, data: BudgetPatch) =>
@@ -908,13 +971,6 @@ export const finance = {
     request('/finance/investments/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInvestment: (id: number) =>
     request('/finance/investments/' + id, { method: 'DELETE' }),
-  // Sell a (partial or full) trading holding. units<=0 sells the whole lot;
-  // proceeds credit the linked trading account.
-  sellInvestment: (id: number, data: { units?: number; price?: number; amount?: number; date?: string }) =>
-    request<{ status: string; proceeds: number; realized_pl: number; remaining_units: number; closed: boolean }>(
-      '/finance/investments/' + id + '/sell',
-      { method: 'POST', body: JSON.stringify(data) },
-    ),
 
   // Virtual savings
   listSavings: (account_id?: number) =>
@@ -953,11 +1009,15 @@ export const finance = {
     request('/finance/billers/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteBiller: (id: number) =>
     request('/finance/billers/' + id, { method: 'DELETE' }),
-  payBiller: (id: number, data?: { paid_date?: string; amount?: number }) =>
-    request<{ status: string; txn_id: number; next_due_date: string }>(
+  /** Record mode (default) posts a txn; attach mode (attach_txn_ids) links
+   *  existing txns and posts nothing. already_paid=true = cycle recorded before. */
+  payBiller: (id: number, data?: { paid_date?: string; amount?: number; attach_txn_ids?: number[] }) =>
+    request<{ status: string; txn_id: number; already_paid: boolean; next_due_date: string }>(
       '/finance/billers/' + id + '/pay',
       { method: 'POST', body: JSON.stringify(data || {}) },
     ),
+  listBillerPayments: (id: number) =>
+    request<FinBillerPayment[]>('/finance/billers/' + id + '/payments'),
   listBillerAlerts: (unseenOnly = false) =>
     request<FinBillerAlert[]>('/finance/billers/alerts' + (unseenOnly ? '?unseen=true' : '')),
   markBillerAlertSeen: (id: number) =>

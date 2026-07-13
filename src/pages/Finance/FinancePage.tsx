@@ -4,18 +4,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
-  TrendingUp, CreditCard, Download, Receipt, CandlestickChart,
+  TrendingUp, CreditCard, Download, Receipt,
   Eye, VenetianMask,
 } from '@/components/ui/icons';
 
 import {
   finance,
   type FinAccount, type FinCategory, type FinTransaction,
-  type FinBudget, type FinInvestment, type FinSaving, type FinStatement,
+  type FinInvestment, type FinSaving, type FinStatement,
 } from '@/api';
 import {
-  useFinAccounts, useFinCategories, useFinTransactions, useFinBudgets,
-  useFinInvestments, useFinSavings, useFinStatements,
+  useFinAccounts, useFinCategories, useFinTransactions,
+  useFinInvestments, useFinSavings, useFinStatements, useFinPockets,
 } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import OverviewTab from './OverviewTab';
@@ -23,10 +23,10 @@ import AccountsTab from './AccountsTab';
 import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
-import TradingTab from './TradingTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
-import { downloadCSV, isPrivacyMode, setPrivacyMode } from './utils';
+import PocketBar from './PocketBar';
+import { downloadCSV, isPrivacyMode, setPrivacyMode, revealExpiry } from './utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
@@ -39,7 +39,6 @@ const tabs = [
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
   { id: 'billers', label: 'Billers', icon: Receipt },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
-  { id: 'trading', label: 'Trading', icon: CandlestickChart },
   { id: 'cards', label: 'Cards', icon: CreditCard },
 ] as const;
 type TabId = (typeof tabs)[number]['id'];
@@ -50,7 +49,6 @@ export interface FinanceData {
   accounts: FinAccount[];
   categories: FinCategory[];
   transactions: FinTransaction[];
-  budgets: FinBudget[];
   investments: FinInvestment[];
   savings: FinSaving[];
   statements: FinStatement[];
@@ -58,7 +56,6 @@ export interface FinanceData {
     accounts: boolean;
     categories: boolean;
     transactions: boolean;
-    budgets: boolean;
     investments: boolean;
     savings: boolean;
     statements: boolean;
@@ -83,11 +80,19 @@ export default function FinancePage() {
   }, [active]);
   const want = (k: string) => activated.has(k);
 
+  // Pocket filter: null = off, 0 = General (unpocketed), N = that pocket.
+  // The transactions query is params-keyed, so each filter caches separately.
+  const [pocketFilter, setPocketFilter] = useState<number | null>(null);
+  const txnParams = useMemo(
+    () => (pocketFilter === null ? { limit: 200 } : { limit: 200, pocket_id: pocketFilter }),
+    [pocketFilter],
+  );
+
   const accountsQ = useFinAccounts();
   const categoriesQ = useFinCategories();
-  const transactionsQ = useFinTransactions({ limit: 200 }, want('transactions'));
-  const budgetsQ = useFinBudgets(want('budgets'));
-  const investmentsQ = useFinInvestments(want('investments') || want('trading'));
+  const pocketsQ = useFinPockets(); // cheap; powers the chip bar + txn dialogs
+  const transactionsQ = useFinTransactions(txnParams, want('transactions'));
+  const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
   const statementsQ = useFinStatements(want('cards'));
 
@@ -95,7 +100,6 @@ export default function FinancePage() {
     accounts: accountsQ.data ?? [],
     categories: categoriesQ.data ?? [],
     transactions: transactionsQ.data ?? [],
-    budgets: budgetsQ.data ?? [],
     investments: investmentsQ.data ?? [],
     savings: savingsQ.data ?? [],
     statements: statementsQ.data ?? [],
@@ -103,12 +107,12 @@ export default function FinancePage() {
       accounts: accountsQ.isSuccess,
       categories: categoriesQ.isSuccess,
       transactions: transactionsQ.isSuccess,
-      budgets: budgetsQ.isSuccess,
       investments: investmentsQ.isSuccess,
       savings: savingsQ.isSuccess,
       statements: statementsQ.isSuccess,
     },
   };
+  const pockets = pocketsQ.data ?? { items: [], general_spend: 0, active_pocket_id: null };
 
   // Tabs call these after their own writes; the InvalidateBridge calls the same
   // root on AI finance events. Either way every enabled finance query refetches.
@@ -116,10 +120,11 @@ export default function FinancePage() {
   const loadCategories = () => qc.invalidateQueries({ queryKey: qk.finance.categories() });
   const loadAccounts = () => qc.invalidateQueries({ queryKey: qk.finance.accounts() });
   const loadSavings = () => qc.invalidateQueries({ queryKey: qk.finance.savings() });
-  const loadTransactions = () => qc.invalidateQueries({ queryKey: qk.finance.transactions({ limit: 200 }) });
-  const loadBudgets = () => qc.invalidateQueries({ queryKey: qk.finance.budgets() });
+  // Prefix (no params) so every pocket-filtered variant refetches too.
+  const loadTransactions = () => qc.invalidateQueries({ queryKey: ['finance', 'transactions'] });
   const loadInvestments = () => qc.invalidateQueries({ queryKey: qk.finance.investments() });
   const loadStatements = () => qc.invalidateQueries({ queryKey: qk.finance.statements() });
+  const loadPockets = () => qc.invalidateQueries({ queryKey: qk.finance.pockets() });
 
   const [exportOpen, setExportOpen] = useState(false);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag
@@ -131,6 +136,36 @@ export default function FinancePage() {
     const next = !privacy;
     setPrivacyMode(next);
     setPrivacy(next);
+  };
+
+  // A reveal only lasts 30 minutes. While revealed, arm a timer to the stored
+  // expiry, and re-check on visibilitychange — a laptop that slept through the
+  // window re-hides the moment the tab is visible again (suspended timers
+  // don't fire on time). This state lives OUTSIDE the keyed subtree below, so
+  // the remount-on-toggle doesn't reset it.
+  useEffect(() => {
+    if (privacy) return;
+    const rehide = () => { setPrivacyMode(true); setPrivacy(true); };
+    const until = revealExpiry();
+    if (until === null || Date.now() >= until) { rehide(); return; }
+    const timer = setTimeout(rehide, until - Date.now());
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const u = revealExpiry();
+      if (u === null || Date.now() >= u) rehide();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [privacy]);
+
+  // Chip tap in the PocketBar: set the filter and jump to the transaction
+  // list so the result of the tap is immediately visible.
+  const filterByPocket = (id: number | null) => {
+    setPocketFilter(id);
+    if (id !== null) navigate('/finance/transactions', { replace: true });
   };
 
   const setActive = (id: TabId) => {
@@ -167,6 +202,15 @@ export default function FinancePage() {
           recomputes every figure against the current flag. The PageShell scroll
           container stays mounted, so scroll position is preserved. */}
       <div key={privacy ? 'priv' : 'real'} className="relative">
+        {/* Pocket chip bar: spend contexts + active pocket + filter. Lives
+            inside the keyed subtree because chips render formatMoney(). */}
+        <PocketBar
+          pockets={pockets}
+          loaded={pocketsQ.isSuccess}
+          filter={pocketFilter}
+          onFilter={filterByPocket}
+        />
+
         {/* All tabs always mounted; only active is visible.
             This eliminates the "wrong UI flash" entirely - content for every
             tab is already in the DOM by the time the user taps it. */}
@@ -186,18 +230,20 @@ export default function FinancePage() {
           <TransactionsTab
             accounts={data.accounts}
             categories={data.categories}
+            pockets={pockets.items}
+            activePocketId={pockets.active_pocket_id}
             transactions={data.transactions}
             loaded={data.loaded.transactions}
-            reload={() => { loadTransactions(); loadAccounts(); }}
+            pocketFilter={pocketFilter}
+            onClearPocketFilter={() => setPocketFilter(null)}
+            reload={() => { loadTransactions(); loadAccounts(); loadPockets(); }}
             reloadCategories={loadCategories}
           />
         </TabPanel>
         <TabPanel active={active === 'budgets'}>
           <BudgetsTab
-            budgets={data.budgets}
             categories={data.categories}
-            loaded={data.loaded.budgets}
-            reload={loadBudgets}
+            pockets={pockets.items}
             reloadCategories={loadCategories}
           />
         </TabPanel>
@@ -207,14 +253,6 @@ export default function FinancePage() {
             investments={data.investments}
             loaded={data.loaded.investments}
             reload={loadInvestments}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'trading'}>
-          <TradingTab
-            accounts={data.accounts}
-            investments={data.investments}
-            loaded={data.loaded.investments}
-            reload={() => { loadInvestments(); loadAccounts(); }}
           />
         </TabPanel>
         <TabPanel active={active === 'billers'}>

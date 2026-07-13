@@ -26,6 +26,9 @@ const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   { prefix: 'transaction_', keys: [qk.finance.all] },
   { prefix: 'biller_', keys: [qk.finance.all] },
   { prefix: 'account_', keys: [qk.finance.all] },
+  { prefix: 'pocket_', keys: [qk.finance.all] },
+  { prefix: 'investment_', keys: [qk.finance.all] },
+  { prefix: 'budget_', keys: [qk.finance.all] },
   { prefix: 'insight_', keys: [qk.insights.all] },
   { prefix: 'theme_', keys: [qk.themes.all] },
 ];

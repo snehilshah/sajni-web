@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { Plus, Trash2, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Sparkles, Tags, Hash } from '@/components/ui/icons';
 
 import { toast } from 'sonner';
-import { finance, type FinAccount, type FinCategory, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinPocket, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -46,13 +46,21 @@ function editKind(kind: FinTransaction['type']): TxnKind {
 interface Props {
   accounts: FinAccount[];
   categories: FinCategory[];
+  pockets: FinPocket[];
+  activePocketId: number | null;
   transactions: FinTransaction[];
   loaded: boolean;
+  /** Server-side pocket filter set by the PocketBar: null off, 0 General, N pocket. */
+  pocketFilter: number | null;
+  onClearPocketFilter: () => void;
   reload: () => void;
   reloadCategories: () => void;
 }
 
-export default function TransactionsTab({ accounts, categories, transactions, loaded, reload, reloadCategories }: Props) {
+export default function TransactionsTab({
+  accounts, categories, pockets, activePocketId, transactions, loaded,
+  pocketFilter, onClearPocketFilter, reload, reloadCategories,
+}: Props) {
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [creating, setCreating] = useState(false);
@@ -168,6 +176,28 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
         </Button>
       </div>
 
+      {/* Active pocket-filter banner: the list below is server-filtered to one
+          pocket (set from the PocketBar), which the dropdown filters above
+          can't express — make it visible + one-tap clearable. */}
+      {pocketFilter !== null && (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary-container)/0.35)] px-3 py-2">
+          <span className="text-sm">
+            Showing pocket{' '}
+            <span className="font-medium">
+              {pocketFilter === 0 ? 'General' : pockets.find((p) => p.id === pocketFilter)?.name || '—'}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={onClearPocketFilter}
+            className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] outline-none"
+            aria-label="Clear pocket filter"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
       {/* List */}
       {!loaded && transactions.length === 0 ? (
         <RowsSkeleton rows={6} />
@@ -232,9 +262,15 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
                             </div>
                             {(() => {
                               const tags = extractHashtags(t.note);
-                              if (!tags.length) return null;
+                              if (!tags.length && !t.pocket_name) return null;
                               return (
                                 <div className="flex flex-wrap gap-1 mt-1">
+                                  {t.pocket_name && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--secondary-container)/0.6)] px-1.5 py-0.5 font-mono text-xs text-foreground/80">
+                                      <span aria-hidden className="size-1.5 rounded-full bg-[hsl(var(--primary))]" />
+                                      {t.pocket_name}
+                                    </span>
+                                  )}
                                   {tags.map((tag) => (
                                     <span
                                       key={tag}
@@ -272,6 +308,8 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
         txn={editing}
         accounts={accounts}
         categories={categories}
+        pockets={pockets}
+        activePocketId={activePocketId}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={(patch) => {
           setCreating(false);
@@ -291,11 +329,13 @@ export default function TransactionsTab({ accounts, categories, transactions, lo
   );
 }
 
-function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }: {
+function TransactionDialog({ open, txn, accounts, categories, pockets, activePocketId, onClose, onSaved }: {
   open: boolean;
   txn: FinTransaction | null;
   accounts: FinAccount[];
   categories: FinCategory[];
+  pockets: FinPocket[];
+  activePocketId: number | null;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
 }) {
@@ -306,6 +346,9 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
+  // Pocket the txn files under; '0' = General. New txns default to the
+  // user's active pocket (server would do the same if we omitted it).
+  const [pocketId, setPocketId] = useState('0');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState('');
   const [saving, setSaving] = useState(false);
@@ -332,6 +375,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setAmount(String(txn.amount));
       setDescription(txn.description);
       setNote(txn.note || '');
+      setPocketId(String(txn.pocket_id ?? 0));
       { const p = txnAtToParts(txn.txn_at); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
       setUserPickedCategory(true);
@@ -343,11 +387,12 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
       setAmount('');
       setDescription('');
       setNote('');
+      setPocketId(String(activePocketId ?? 0));
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
     }
-  }, [txn, open, accounts]);
+  }, [txn, open, accounts, activePocketId]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
   const othersCategory = filteredCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
@@ -431,6 +476,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
         // both accounts automatically (the backend also syncs a transfer pair).
         const acctId = parseInt(accountId);
         const catId = selectedCategoryId ? parseInt(selectedCategoryId) : null;
+        const isXfer = type === 'transfer';
         const patch: TxnPatch = {
           account_id: acctId,
           amount: amt,
@@ -438,11 +484,14 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           note,
           txn_at: txnAt,
           category_id: catId,
+          // Transfers never carry a pocket; 0 = General for the rest.
+          ...(isXfer ? {} : { pocket_id: parseInt(pocketId) || 0 }),
         };
         await finance.updateTransaction(txn.id, patch);
         // Hand the parent an optimistic patch so the row reflects the new
         // account/category/amount instantly (no reload flash, no raw id).
         const cat = categories.find((c) => c.id === catId);
+        const pid = isXfer ? null : parseInt(pocketId) || 0;
         onSaved({
           id: txn.id,
           account_id: acctId,
@@ -454,6 +503,10 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           category_id: catId,
           category_name: cat?.name ?? null,
           category_color: cat?.color ?? null,
+          ...(isXfer ? {} : {
+            pocket_id: pid || null,
+            pocket_name: pid ? pockets.find((p) => p.id === pid)?.name ?? null : null,
+          }),
         });
         return;
       } else if (type === 'transfer') {
@@ -475,6 +528,7 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
           note,
           txn_at: txnAt,
           category_id: selectedCategoryId ? parseInt(selectedCategoryId) : null,
+          pocket_id: parseInt(pocketId) || 0,
         });
       }
       onSaved();
@@ -582,6 +636,38 @@ function TransactionDialog({ open, txn, accounts, categories, onClose, onSaved }
                 <SelectContent>
                   {filteredCats.map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          {type !== 'transfer' && (
+            <Field
+              label="Pocket"
+              className="col-span-2"
+              hint={
+                activePocketId !== null && String(activePocketId) === pocketId && !txn ? (
+                  <span className="text-xs text-muted-foreground normal-case tracking-normal">
+                    active pocket
+                  </span>
+                ) : undefined
+              }
+            >
+              <Select
+                value={pocketId}
+                onValueChange={(v) => setPocketId(v ?? '0')}
+                items={[
+                  { value: '0', label: 'General' },
+                  ...pockets.filter((p) => !p.archived).map((p) => ({ value: String(p.id), label: p.name })),
+                ]}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="General" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">General</SelectItem>
+                  {pockets.filter((p) => !p.archived).map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -7,12 +7,13 @@ import { finance, type FinAccount, type FinInvestment, type InvDraft } from '@/a
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GUARANTEED_TYPES, INVESTMENT_TYPES, TRADING_TYPE_VALUES, formatMoney } from './utils';
+import { INVESTMENT_TYPES, formatMoney } from './utils';
 import { ListSkeleton } from './Skeletons';
 
 interface Props {
@@ -27,22 +28,15 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
   const [creating, setCreating] = useState(false);
   useEffect(() => {}, []);
 
-  // Investments tab = guaranteed instruments only (FD/RD/Other). Market
-  // instruments (stocks/ETF/SIP/MF) live under the Trading tab.
-  const guaranteed = useMemo(
-    () => investments.filter((i) => !TRADING_TYPE_VALUES.includes(i.type)),
-    [investments],
-  );
-
   const totals = useMemo(() => {
     let invested = 0, current = 0, monthly = 0;
-    for (const i of guaranteed) {
+    for (const i of investments) {
       invested += i.invested_amount;
       current += i.current_value;
       if (i.frequency === 'monthly') monthly += i.monthly_amount;
     }
     return { invested, current, monthly, gain: current - invested, gainPct: invested > 0 ? ((current - invested) / invested) * 100 : 0 };
-  }, [guaranteed]);
+  }, [investments]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,15 +60,15 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         </Button>
       </div>
 
-      {!loaded && guaranteed.length === 0 ? (
+      {!loaded && investments.length === 0 ? (
         <ListSkeleton rows={4} />
-      ) : guaranteed.length === 0 ? (
+      ) : investments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No investments yet. Track guaranteed instruments — FDs, RDs, and other fixed-return savings — here. Stocks, ETFs, SIPs and mutual funds live in the Trading tab.
+          No investments yet. Track SIPs, RDs, FDs, mutual funds and other manually-valued instruments here — update the current value whenever you check in.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {guaranteed.map((inv) => {
+          {investments.map((inv) => {
             const gain = inv.current_value - inv.invested_amount;
             const gainPct = inv.invested_amount > 0 ? (gain / inv.invested_amount) * 100 : 0;
             const positive = gain >= 0;
@@ -117,12 +111,19 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                   {inv.last_updated && ' · updated ' + format(parseISO(inv.last_updated), 'MMM d')}
                 </div>
 
-                {(inv.frequency === 'monthly' || inv.maturity_date) && (
+                {(inv.frequency !== 'lumpsum' || inv.maturity_date) && (
                   <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    {inv.frequency === 'monthly' && (
-                      <span className="inline-flex items-center gap-1">
+                    {inv.frequency !== 'lumpsum' && (
+                      <span className={`inline-flex items-center gap-1 ${inv.auto_debit ? 'text-primary' : ''}`}>
                         <Repeat className="size-3" />
-                        Monthly
+                        {inv.frequency.charAt(0).toUpperCase() + inv.frequency.slice(1)}
+                        {inv.auto_debit && ' · auto'}
+                      </span>
+                    )}
+                    {inv.auto_debit && inv.next_debit_date && (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="size-3" />
+                        Next debit {format(parseISO(inv.next_debit_date), 'd MMM')}
                       </span>
                     )}
                     {inv.maturity_date && matDays !== null && (
@@ -182,6 +183,8 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   const [maturityDate, setMaturityDate] = useState('');
   const [expectedReturn, setExpectedReturn] = useState('');
   const [notes, setNotes] = useState('');
+  const [autoDebit, setAutoDebit] = useState(false);
+  const [nextDebitDate, setNextDebitDate] = useState('');
 
   useEffect(() => {
     if (investment) {
@@ -196,12 +199,22 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
       setMaturityDate(investment.maturity_date || '');
       setExpectedReturn(String(investment.expected_return));
       setNotes(investment.notes);
+      setAutoDebit(investment.auto_debit);
+      setNextDebitDate(investment.next_debit_date || '');
     } else {
-      setName(''); setType('fd'); setAccountId(''); setInvested(''); setCurrent('');
+      setName(''); setType('sip'); setAccountId(''); setInvested(''); setCurrent('');
       setMonthly(''); setFrequency('monthly'); setStartDate(''); setMaturityDate('');
       setExpectedReturn(''); setNotes('');
+      setAutoDebit(false); setNextDebitDate('');
     }
   }, [investment, open]);
+
+  // Auto-debit needs a source account, a per-cycle amount, and a recurring
+  // frequency — same validation the server enforces.
+  const recurring = frequency !== 'lumpsum';
+  const cycleAmt = parseFloat(monthly) || 0;
+  const autoDebitBlocked = !accountId ? 'link an account first' : cycleAmt <= 0 ? 'set the per-cycle amount' : null;
+  const autoDebitOn = autoDebit && recurring && !autoDebitBlocked;
 
   const save = async () => {
     if (!name.trim()) return;
@@ -211,12 +224,14 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
       account_id: accountId ? parseInt(accountId) : null,
       invested_amount: parseFloat(invested) || 0,
       current_value: parseFloat(current) || parseFloat(invested) || 0,
-      monthly_amount: parseFloat(monthly) || 0,
+      monthly_amount: cycleAmt,
       frequency,
       start_date: startDate || null,
       maturity_date: maturityDate || null,
       expected_return: parseFloat(expectedReturn) || 0,
       notes,
+      auto_debit: autoDebitOn,
+      next_debit_date: autoDebitOn && nextDebitDate ? nextDebitDate : null,
     };
     if (investment) {
       await finance.updateInvestment(investment.id, data);
@@ -233,8 +248,6 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
     onSaved();
   };
 
-  const showMonthly = ['sip', 'rd'].includes(type);
-
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -246,12 +259,12 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nifty 50 SIP" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType((v as FinInvestment['type']) || 'fd')} items={GUARANTEED_TYPES}>
+            <Select value={type} onValueChange={(v) => setType((v as FinInvestment['type']) || 'sip')} items={INVESTMENT_TYPES}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {GUARANTEED_TYPES.map((t) => (
+                {INVESTMENT_TYPES.map((t) => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -280,20 +293,6 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
           <Field label="Current value">
             <Input type="number" inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Defaults to invested" />
           </Field>
-          {showMonthly && (
-            <Field label="Monthly amount" className="col-span-2">
-              <Input type="number" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder="e.g. 5000" />
-            </Field>
-          )}
-          <Field label="Start date">
-            <DatePicker value={startDate} onChange={setStartDate} />
-          </Field>
-          <Field label="Maturity date">
-            <DatePicker value={maturityDate} onChange={setMaturityDate} />
-          </Field>
-          <Field label="Expected return %">
-            <Input type="number" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 12" />
-          </Field>
           <Field label="Frequency">
             <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}
               items={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'yearly', label: 'Yearly' }, { value: 'lumpsum', label: 'Lumpsum' }]}>
@@ -307,6 +306,41 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
                 <SelectItem value="lumpsum">Lumpsum</SelectItem>
               </SelectContent>
             </Select>
+          </Field>
+          {recurring && (
+            <Field label="Amount per cycle">
+              <Input type="number" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder="e.g. 5000" />
+            </Field>
+          )}
+          {recurring && (
+            <div className="col-span-2 rounded-xl border border-border divide-y divide-border">
+              <CheckRow
+                label="Automatically debit?"
+                desc="Each cycle Sajni posts the contribution from the linked account and grows this investment — you'll get a notification."
+                checked={autoDebit && !autoDebitBlocked}
+                onChange={setAutoDebit}
+                disabled={!!autoDebitBlocked}
+                disabledReason={autoDebitBlocked ?? undefined}
+              />
+              {autoDebitOn && (
+                <div className="flex flex-col gap-1.5 p-3">
+                  <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Next debit date</Label>
+                  <DatePicker value={nextDebitDate} onChange={setNextDebitDate} />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to project it from the start date.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <Field label="Start date">
+            <DatePicker value={startDate} onChange={setStartDate} />
+          </Field>
+          <Field label="Maturity date">
+            <DatePicker value={maturityDate} onChange={setMaturityDate} />
+          </Field>
+          <Field label="Expected return %">
+            <Input type="number" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 12" />
           </Field>
           <Field label="Notes" className="col-span-2">
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
@@ -334,5 +368,40 @@ function Field({ label, className = '', children }: { label: string; className?:
       <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
+  );
+}
+
+// Labelled toggle row with an inline reason when disabled (same pattern as
+// the billers dialog) so it's obvious WHY the option can't be picked yet.
+function CheckRow({
+  label, desc, checked, onChange, disabled, disabledReason,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  disabledReason?: string;
+}) {
+  return (
+    <label className={'flex items-start gap-3 p-3 ' + (disabled ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer')}>
+      <Checkbox
+        checked={checked}
+        onCheckedChange={(c) => { if (!disabled) onChange(c === true); }}
+        disabled={disabled}
+        className="mt-0.5"
+      />
+      <div className="min-w-0">
+        <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
+          {label}
+          {disabled && disabledReason ? (
+            <span className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--tertiary))]">
+              · {disabledReason}
+            </span>
+          ) : null}
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">{desc}</div>
+      </div>
+    </label>
   );
 }

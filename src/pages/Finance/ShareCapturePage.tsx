@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthContext';
-import { finance, type FinAccount, type FinCategory } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinPocket } from '@/api';
 import { useCreateBookmark } from '@/queries/bookmarks';
 import { qk } from '@/queries/keys';
 import { Textarea } from '@/components/ui/textarea';
@@ -198,6 +198,8 @@ function Capture({ text }: { text: string }) {
 
   const [accounts, setAccounts] = useState<FinAccount[]>([]);
   const [categories, setCategories] = useState<FinCategory[]>([]);
+  const [pockets, setPockets] = useState<FinPocket[]>([]);
+  const [activePocketId, setActivePocketId] = useState<number | null>(null);
   const [parsing, setParsing] = useState(true);
 
   const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -211,16 +213,25 @@ function Capture({ text }: { text: string }) {
   const [accountHint, setAccountHint] = useState('');
   const [matched, setMatched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pocketId, setPocketId] = useState('0'); // '0' = General
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [accP, catP] = await Promise.allSettled([finance.listAccounts(), finance.listCategories()]);
+      const [accP, catP, pockP] = await Promise.allSettled([
+        finance.listAccounts(), finance.listCategories(), finance.listPockets(),
+      ]);
       if (!alive) return;
       const accs = accP.status === 'fulfilled' ? accP.value : [];
       const cats = catP.status === 'fulfilled' ? catP.value : [];
       setAccounts(accs);
       setCategories(cats);
+      if (pockP.status === 'fulfilled') {
+        setPockets(pockP.value.items);
+        setActivePocketId(pockP.value.active_pocket_id);
+        // Shared-message txns are direct entries → default into the active pocket.
+        if (pockP.value.active_pocket_id != null) setPocketId(String(pockP.value.active_pocket_id));
+      }
 
       // Default account: last-used, else first.
       let last = '';
@@ -273,6 +284,7 @@ function Capture({ text }: { text: string }) {
         note: note.trim(),
         txn_at: partsToTxnAt(date, time),
         category_id: categoryId ? parseInt(categoryId) : null,
+        pocket_id: parseInt(pocketId) || 0,
       });
       try { localStorage.setItem(LAST_ACCT_KEY, accountId); } catch { /* ignore */ }
       try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
@@ -372,6 +384,31 @@ function Capture({ text }: { text: string }) {
               </SelectContent>
             </Select>
           </Field>
+
+          {pockets.length > 0 && (
+            <Field
+              label="Pocket"
+              className="col-span-2"
+              hint={activePocketId != null && String(activePocketId) === pocketId ? 'active pocket' : undefined}
+            >
+              <Select
+                value={pocketId}
+                onValueChange={(v) => setPocketId(v ?? '0')}
+                items={[
+                  { value: '0', label: 'General' },
+                  ...pockets.filter((p) => !p.archived).map((p) => ({ value: String(p.id), label: p.name })),
+                ]}
+              >
+                <SelectTrigger><SelectValue placeholder="General" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">General</SelectItem>
+                  {pockets.filter((p) => !p.archived).map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
 
           <Field label="Name" className="col-span-2">
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Merchant / who it was with" maxLength={120} />
