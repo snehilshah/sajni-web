@@ -16,7 +16,7 @@ const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const FinancePage = lazy(() => import('./pages/Finance/FinancePage'));
 const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const DocsPage = lazy(() => import('./pages/DocsPage'));
+const DocsPage = lazy(() => import('./pages/docs/DocsPage'));
 const SignInPage = lazy(() => import('./pages/Auth/SignIn'));
 const OAuthDonePage = lazy(() => import('./pages/Auth/OAuthDone'));
 const LinkChallengePage = lazy(() => import('./pages/Auth/LinkChallenge'));
@@ -91,6 +91,7 @@ export default function App() {
           <Route path="/share-target" element={<ShareCapturePage />} />
           {/* Field guide — public so it's shareable without an account. */}
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/docs/:page" element={<DocsPage />} />
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/" element={<TodayPage />} />
             <Route path="/projects" element={<ThinkingPage />} />
