@@ -26,6 +26,7 @@ import InvestmentsTab from './InvestmentsTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
 import PocketBar from './PocketBar';
+import { FinancePrivacyProvider } from './FinancePrivacyProvider';
 import { downloadCSV, isPrivacyMode, setPrivacyMode, revealExpiry } from './utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -141,8 +142,8 @@ export default function FinancePage() {
   // A reveal only lasts 30 minutes. While revealed, arm a timer to the stored
   // expiry, and re-check on visibilitychange — a laptop that slept through the
   // window re-hides the moment the tab is visible again (suspended timers
-  // don't fire on time). This state lives OUTSIDE the keyed subtree below, so
-  // the remount-on-toggle doesn't reset it.
+  // don't fire on time). Privacy state lives at the page root so the timer can
+  // re-hide figures without disturbing tab state or cached data.
   useEffect(() => {
     if (privacy) return;
     const rehide = () => { setPrivacyMode(true); setPrivacy(true); };
@@ -173,7 +174,8 @@ export default function FinancePage() {
   };
 
   return (
-    <PageShell
+    <FinancePrivacyProvider value={privacy}>
+      <PageShell
       title="Finance"
       hideScrollbar
       contentClassName="max-w-6xl w-full mx-auto px-3 md:px-8 py-5 pb-20 relative"
@@ -194,16 +196,10 @@ export default function FinancePage() {
           onChange={setActive}
         />
       }
-    >
-      {/* key changes with privacy so the whole tab subtree remounts on toggle.
-          The React Compiler memoizes each formatMoney(x) on x alone - it can't
-          see the module-level privacy flag - so a plain re-render reuses the
-          cached (real) figures. Remounting gives a fresh compiler cache, which
-          recomputes every figure against the current flag. The PageShell scroll
-          container stays mounted, so scroll position is preserved. */}
-      <div key={privacy ? 'priv' : 'real'} className="relative">
-        {/* Pocket chip bar: spend contexts + active pocket + filter. Lives
-            inside the keyed subtree because chips render formatMoney(). */}
+      >
+      <div className="relative">
+        {/* Privacy is context-driven so this data-owning subtree stays mounted
+            and its fetch effects do not run again when figures are toggled. */}
         <PocketBar
           pockets={pockets}
           loaded={pocketsQ.isSuccess}
@@ -270,7 +266,8 @@ export default function FinancePage() {
         {/* Hidden absolute reload helper for global refresh after deep mutations */}
         <Input type="hidden" data-reload-all onClick={reloadAll} />
       </div>
-    </PageShell>
+      </PageShell>
+    </FinancePrivacyProvider>
   );
 }
 

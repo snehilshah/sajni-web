@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SegmentedButton } from '@/components/ui/segmented-button';
-import { formatMoney } from './utils';
+import { useFinanceFormatters } from './useFinancePrivacy';
 import { CardsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import { cn } from '@/lib/utils';
@@ -152,6 +152,7 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
   pockets: FinPocket[];
   onOpen: () => void;
 }) {
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const pct = b.total_amount > 0 ? Math.min((b.spent / b.total_amount) * 100, 100) : 0;
   const overBudget = b.spent > b.total_amount;
   // Progress tone escalates on tokens only: calm → attention (>80%) → over.
@@ -215,7 +216,7 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
         />
       </div>
       <div className="font-mono text-xs text-muted-foreground mt-1">
-        {pct.toFixed(0)}% used{overBudget && ' · over by ' + formatMoney(b.spent - b.total_amount)}
+        {formatPercent(pct)} used{overBudget && ' · over by ' + formatMoney(b.spent - b.total_amount)}
       </div>
 
       {b.items.length > 0 && (
@@ -261,6 +262,7 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
   const [period, setPeriod] = useState<'monthly' | 'custom'>('monthly');
   const [overall, setOverall] = useState('');

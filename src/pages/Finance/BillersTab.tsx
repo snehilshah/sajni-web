@@ -27,7 +27,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
-import { formatMoney, formatTxnDate } from './utils';
+import { useFinanceFormatters } from './useFinancePrivacy';
+import { formatTxnDate } from './utils';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -48,6 +49,7 @@ const effectiveAmount = (b: FinBiller) =>
   b.kind === 'bill' ? (b.last_paid_amount ?? 0) || b.amount : b.amount;
 
 export default function BillersTab({ accounts, categories }: Props) {
+  const { formatMoney } = useFinanceFormatters();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FinBiller | null>(null);
   const [creating, setCreating] = useState(false);
@@ -157,6 +159,7 @@ function BillerRow({
   onOpen: () => void;
   onPaid: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const due = parseISO(biller.next_due_date);
   const daysAway = differenceInDays(due, new Date());
   const overdue = daysAway < 0;
@@ -251,6 +254,7 @@ function KindBadge({ kind }: { kind: BillerKind }) {
 // ─── Pay popover: record a payment OR attach existing transactions ─────────
 
 function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void }) {
+  const { formatMoney } = useFinanceFormatters();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'record' | 'attach'>('record');
   const [amount, setAmount] = useState('');
@@ -425,6 +429,7 @@ function BillerDetailSheet({
   onChanged: () => void;
   onGone: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const open = biller !== null;
   const { data: payments = [], isLoading } = useBillerPayments(biller?.id ?? 0, open);
 

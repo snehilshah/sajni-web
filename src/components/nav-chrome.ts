@@ -13,7 +13,7 @@ export const NAV_ITEMS: { path: string; label: string; icon: PixelIconName; key:
   { path: '/habits', label: 'Habits', icon: 'fire', key: 'habits' },
   { path: '/projects', label: 'Projects', icon: 'sparkles', key: 'thinking' },
   { path: '/media', label: 'Media', icon: 'video-camera', key: 'media' },
-  { path: '/finance', label: 'Finance', icon: 'wallet', key: 'finance' },
+  { path: '/finance', label: 'Finance', icon: 'rupee', key: 'finance' },
   { path: '/analytics', label: 'Analytics', icon: 'analytics', key: 'analytics' },
 ];
 

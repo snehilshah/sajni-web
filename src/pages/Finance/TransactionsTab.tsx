@@ -17,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import { formatMoney, txnAtToParts, partsToTxnAt, formatTxnTime } from './utils';
+import { useFinanceFormatters } from './useFinancePrivacy';
+import { txnAtToParts, partsToTxnAt, formatTxnTime } from './utils';
 import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 
@@ -61,6 +62,7 @@ export default function TransactionsTab({
   accounts, categories, pockets, activePocketId, transactions, loaded,
   pocketFilter, onClearPocketFilter, reload, reloadCategories,
 }: Props) {
+  const { formatMoney } = useFinanceFormatters();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [creating, setCreating] = useState(false);

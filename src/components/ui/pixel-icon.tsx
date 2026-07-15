@@ -27,6 +27,8 @@ import _r_video from '@hackernoon/pixel-icon-library/icons/SVG/regular/video-cam
 import _s_video from '@hackernoon/pixel-icon-library/icons/SVG/solid/video-camera-solid.svg?raw';
 import _r_wallet from '@hackernoon/pixel-icon-library/icons/SVG/regular/wallet.svg?raw';
 import _s_wallet from '@hackernoon/pixel-icon-library/icons/SVG/solid/wallet-solid.svg?raw';
+import _r_rupee from '@/assets/icons/rupee.svg?raw';
+import _s_rupee from '@/assets/icons/rupee-solid.svg?raw';
 import _r_hashtag from '@hackernoon/pixel-icon-library/icons/SVG/regular/hashtag.svg?raw';
 import _s_hashtag from '@hackernoon/pixel-icon-library/icons/SVG/solid/hashtag-solid.svg?raw';
 import _r_analytics from '@hackernoon/pixel-icon-library/icons/SVG/regular/analytics.svg?raw';
@@ -42,6 +44,7 @@ const REGISTRY = {
   'pen-nib': [_r_pennib, _s_pennib],
   'video-camera': [_r_video, _s_video],
   wallet: [_r_wallet, _s_wallet],
+  rupee: [_r_rupee, _s_rupee],
   hashtag: [_r_hashtag, _s_hashtag],
   analytics: [_r_analytics, _s_analytics],
 } as const satisfies Record<string, readonly [string, string]>;

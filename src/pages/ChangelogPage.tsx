@@ -50,6 +50,41 @@ const GROUP_ORDER: Kind[] = ['feature', 'improvement', 'fix'];
 
 const RELEASES: Release[] = [
   {
+    version: '0.41.0',
+    date: '2026-07-15',
+    summary:
+      'Finance gets a clearer place in navigation, calm motion for important totals, and privacy '
+      + 'that hides figures honestly without refreshing their data.',
+    entries: [
+      {
+        kind: 'improvement',
+        area: 'Navigation',
+        title: 'A rupee coin for Finance',
+        detail:
+          'Finance now uses a custom pixel rupee printed inside a coin. It keeps the navigation’s '
+          + 'outline-to-solid selected state while making the destination easier to recognise.',
+      },
+      {
+        kind: 'improvement',
+        area: 'Finance',
+        title: 'Important totals count into place',
+        detail:
+          'Net worth and summary totals now settle into their values with a brief count-up. Dense '
+          + 'lists stay still, surrounding content keeps its width, and reduced-motion preferences '
+          + 'skip the animation.',
+      },
+      {
+        kind: 'fix',
+        area: 'Privacy',
+        title: 'Private figures look private',
+        detail:
+          'Privacy mode now shows *** for money and %%% for percentages instead of plausible fake '
+          + 'numbers. Toggling it changes only rendered text, so Finance tabs keep their state and '
+          + 'cached data without making fresh API requests. Revealed summary figures still count in.',
+      },
+    ],
+  },
+  {
     version: '0.40.0',
     date: '2026-07-14',
     summary:

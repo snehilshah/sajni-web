@@ -15,7 +15,8 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ACCOUNT_COLORS, formatMoney } from './utils';
+import { useFinanceFormatters } from './useFinancePrivacy';
+import { ACCOUNT_COLORS } from './utils';
 import { cn } from '@/lib/utils';
 
 // Pocket chip bar — the spend-context strip above the finance tabs.
@@ -25,8 +26,8 @@ import { cn } from '@/lib/utils';
 // transaction list to it; tap again to clear. The ACTIVE pocket (filled chip)
 // is where new transactions file by default — set/cleared from the chip menu.
 //
-// Spend figures flow through formatMoney, so this component must render
-// inside FinancePage's privacy-keyed subtree.
+// Spend figures consume FinancePrivacyContext, so toggling privacy changes only
+// their rendered text and leaves pocket data/state mounted.
 
 interface Props {
   pockets: FinPocketsResponse;
@@ -162,6 +163,7 @@ function Chip({
   onClick: () => void;
   menu?: React.ReactNode;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   return (
     <div
       className={cn(

@@ -1,18 +1,13 @@
 import { authFetch, API_BASE } from '@/auth/client';
 
 // ─── Privacy mode ──────────────────────────────────────────────────────────
-// A single global flag. When on, every money formatter emits stable random
-// digits instead of the real figure. "Stable" = seeded by the real value, so
-// the same amount always renders the same decoy and nothing flickers between
-// renders. Covers all finance tabs because every rupee flows through
-// formatMoney / formatMoneyPrecise. Charts are shapes, not text, so they are
-// intentionally unaffected.
+// A single global flag. When on, money and percentage formatters emit explicit
+// non-numeric masks instead of plausible-looking decoy figures. Charts are
+// shapes, not text, so they are intentionally unaffected.
 //
-// Reactivity note: this is a plain module flag, NOT a React store. The React
-// Compiler memoizes each formatMoney(x) call on x alone and can't see this
-// flag, so a re-render won't recompute figures. FinancePage instead remounts
-// the tab subtree (via a key keyed on privacy) when the flag flips, giving a
-// fresh compiler cache that recomputes everything against the current value.
+// Reactivity note: FinancePage exposes this value through FinancePrivacyContext.
+// UI formatters receive privacy as an explicit argument, so toggling masks only
+// the rendered figures and never remounts data-owning tabs.
 const PRIVACY_KEY = 'sajni.finance.privacy';
 // A reveal only lasts 30 minutes: turning privacy OFF stamps an expiry;
 // FinancePage re-hides on a timer/visibility change, and the on-load check
@@ -58,44 +53,42 @@ export function revealExpiry(): number | null {
 
 export function togglePrivacyMode(): void { setPrivacyMode(!privacyOn); }
 
-// Deterministic decoy: same input → same output, sign + digit count preserved
-// so the layout doesn't jump. mulberry-ish hash seeded by the rounded value.
-function decoyAmount(amount: number): number {
-  const real = Math.round(Math.abs(amount));
-  const digits = real === 0 ? 1 : Math.floor(Math.log10(real)) + 1;
-  let seed = (real ^ 0x9e3779b9) >>> 0;
-  seed = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b) >>> 0;
-  const rnd = ((seed ^ (seed >>> 13)) >>> 0) / 4294967296;
-  const lo = digits === 1 ? 0 : Math.pow(10, digits - 1);
-  const hi = Math.pow(10, digits) - 1;
-  const val = Math.floor(lo + rnd * (hi - lo + 1));
-  return amount < 0 ? -val : val;
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
+
+function moneyFormatter(currency: string, maximumFractionDigits: number): Intl.NumberFormat {
+  const key = `${currency}:${maximumFractionDigits}`;
+  const cached = moneyFormatters.get(key);
+  if (cached) return cached;
+
+  const formatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits,
+  });
+  moneyFormatters.set(key, formatter);
+  return formatter;
 }
 
-export function formatMoney(amount: number, currency = 'INR'): string {
-  if (privacyOn) amount = decoyAmount(amount);
+export function formatMoney(amount: number, currency = 'INR', privacy = privacyOn): string {
+  if (privacy) return '***';
   try {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return moneyFormatter(currency, 0).format(amount);
   } catch {
     return currency + ' ' + Math.round(amount).toLocaleString('en-IN');
   }
 }
 
-export function formatMoneyPrecise(amount: number, currency = 'INR'): string {
-  if (privacyOn) amount = decoyAmount(amount);
+export function formatMoneyPrecise(amount: number, currency = 'INR', privacy = privacyOn): string {
+  if (privacy) return '***';
   try {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amount);
+    return moneyFormatter(currency, 2).format(amount);
   } catch {
     return currency + ' ' + amount.toFixed(2);
   }
+}
+
+export function formatPercent(value: number, fractionDigits = 0, privacy = privacyOn): string {
+  return privacy ? '%%%' : `${value.toFixed(fractionDigits)}%`;
 }
 
 export const ACCOUNT_TYPES: { value: string; label: string }[] = [

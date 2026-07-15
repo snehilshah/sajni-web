@@ -7,7 +7,8 @@ import { TrendingUp, TrendingDown, Wallet, Camera, AlertCircle, Receipt, Zap } f
 import { finance, type FinAccount } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatMoney } from './utils';
+import { AnimatedMoney } from './AnimatedMoney';
+import { useFinanceFormatters } from './useFinancePrivacy';
 
 interface OverviewData {
   net_worth: number;
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export default function OverviewTab({ accounts }: Props) {
+  const { formatMoney } = useFinanceFormatters();
   const [data, setData] = useState<OverviewData | null>(null);
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [snapping, setSnapping] = useState(false);
@@ -226,6 +228,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
   onSnapshot: () => void;
   snapping: boolean;
 }) {
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const previous = history.length > 1 ? history[history.length - 2] : null;
   const change = previous ? data.net_worth - previous.net_worth : 0;
   const changePct = previous && previous.net_worth !== 0 ? (change / Math.abs(previous.net_worth)) * 100 : 0;
@@ -245,12 +248,12 @@ function Hero({ data, history, onSnapshot, snapping }: {
         <div>
           <div className="font-mono text-xs uppercase tracking-wider opacity-80">Net worth</div>
           <div className="font-serif text-4xl md:text-5xl font-semibold tabular-nums mt-1">
-            {formatMoney(data.net_worth)}
+            <AnimatedMoney value={data.net_worth} />
           </div>
           {previous ? (
             <div className="font-mono text-xs mt-2 inline-flex items-center gap-1 opacity-90">
               {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-              {positive ? '+' : ''}{formatMoney(change)} ({changePct.toFixed(1)}%) since last snapshot
+              {positive ? '+' : ''}{formatMoney(change)} ({formatPercent(changePct, 1)}) since last snapshot
             </div>
           ) : (
             <div className="font-mono text-xs mt-2 opacity-75">
@@ -274,9 +277,9 @@ function Hero({ data, history, onSnapshot, snapping }: {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5">
-        <HeroStat label="Assets" value={formatMoney(data.total_assets)} />
-        <HeroStat label="Liabilities" value={formatMoney(data.total_liabilities)} />
-        <HeroStat label="Investments" value={formatMoney(data.investments_total)} className="col-span-2 md:col-span-1" />
+        <HeroStat label="Assets" value={data.total_assets} />
+        <HeroStat label="Liabilities" value={data.total_liabilities} />
+        <HeroStat label="Investments" value={data.investments_total} className="col-span-2 md:col-span-1" />
       </div>
 
       {/* Mini sparkline */}
@@ -285,11 +288,11 @@ function Hero({ data, history, onSnapshot, snapping }: {
   );
 }
 
-function HeroStat({ label, value, className = '' }: { label: string; value: string; className?: string }) {
+function HeroStat({ label, value, className = '' }: { label: string; value: number; className?: string }) {
   return (
     <div className={`bg-white/10 rounded-lg px-3 py-2 ${className}`}>
       <div className="font-mono text-xs uppercase tracking-wider opacity-80">{label}</div>
-      <div className="font-serif text-lg font-semibold tabular-nums">{value}</div>
+      <div className="font-serif text-lg font-semibold tabular-nums"><AnimatedMoney value={value} /></div>
     </div>
   );
 }
@@ -330,13 +333,14 @@ function MonthCard({ label, value, tone, icon: Icon }: {
         {label}
       </div>
       <div className={`font-serif text-lg md:text-xl font-semibold tabular-nums mt-0.5 ${tones[tone]}`}>
-        {formatMoney(value)}
+        <AnimatedMoney value={value} />
       </div>
     </div>
   );
 }
 
 function Distribution({ accounts, invested }: { accounts: OverviewData['accounts']; invested: number }) {
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const items = useMemo(() => {
     const pos = accounts.filter((a) => a.balance > 0);
     const list = pos.map((a) => ({ key: 'a' + a.account_id, name: a.name, color: a.color, amount: a.balance }));
@@ -372,7 +376,7 @@ function Distribution({ accounts, invested }: { accounts: OverviewData['accounts
             <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: i.color }} />
             <span className="text-xs flex-1 truncate">{i.name}</span>
             <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              {((i.amount / total) * 100).toFixed(0)}%
+              {formatPercent((i.amount / total) * 100)}
             </span>
             <span className="font-mono text-xs tabular-nums w-20 text-right">{formatMoney(i.amount)}</span>
           </div>
@@ -383,6 +387,7 @@ function Distribution({ accounts, invested }: { accounts: OverviewData['accounts
 }
 
 function TrendChart({ trend }: { trend: OverviewData['daily_trend'] }) {
+  const { formatMoney } = useFinanceFormatters();
   if (trend.length === 0) {
     return <div className="text-sm text-muted-foreground py-6 text-center">No activity in the last 30 days.</div>;
   }

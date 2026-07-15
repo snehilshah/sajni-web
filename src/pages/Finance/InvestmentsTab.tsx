@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from '@/components/ui/icons';
@@ -13,7 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { INVESTMENT_TYPES, formatMoney } from './utils';
+import { AnimatedMoney } from './AnimatedMoney';
+import { useFinanceFormatters } from './useFinancePrivacy';
+import { INVESTMENT_TYPES } from './utils';
 import { ListSkeleton } from './Skeletons';
 
 interface Props {
@@ -24,6 +26,7 @@ interface Props {
 }
 
 export default function InvestmentsTab({ accounts, investments, loaded, reload }: Props) {
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const [editing, setEditing] = useState<FinInvestment | null>(null);
   const [creating, setCreating] = useState(false);
   useEffect(() => {}, []);
@@ -42,15 +45,15 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
     <div className="flex flex-col gap-4">
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard label="Invested" value={formatMoney(totals.invested)} />
-        <SummaryCard label="Current value" value={formatMoney(totals.current)} tone="primary" />
+        <SummaryCard label="Invested" value={<AnimatedMoney value={totals.invested} />} />
+        <SummaryCard label="Current value" value={<AnimatedMoney value={totals.current} />} tone="primary" />
         <SummaryCard
           label={totals.gain >= 0 ? 'Gain' : 'Loss'}
-          value={(totals.gain >= 0 ? '+' : '') + formatMoney(totals.gain) + ' · ' + totals.gainPct.toFixed(1) + '%'}
+          value={<>{totals.gain >= 0 ? '+' : ''}<AnimatedMoney value={totals.gain} /> · {formatPercent(totals.gainPct, 1)}</>}
           tone={totals.gain >= 0 ? 'primary' : 'destructive'}
           className="col-span-2 md:col-span-1"
         />
-        <SummaryCard label="Monthly outflow" value={formatMoney(totals.monthly)} />
+        <SummaryCard label="Monthly outflow" value={<AnimatedMoney value={totals.monthly} />} />
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -103,7 +106,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                   </div>
                   <div className={`font-mono text-xs tabular-nums inline-flex items-center gap-1 ${positive ? 'text-primary' : 'text-destructive'}`}>
                     {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                    {positive ? '+' : ''}{formatMoney(gain)} ({gainPct.toFixed(1)}%)
+                    {positive ? '+' : ''}{formatMoney(gain)} ({formatPercent(gainPct, 1)})
                   </div>
                 </div>
                 <div className="font-mono text-xs text-muted-foreground mt-1">
@@ -151,7 +154,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
   );
 }
 
-function SummaryCard({ label, value, tone = 'default', className = '' }: { label: string; value: string; tone?: 'primary' | 'destructive' | 'default'; className?: string }) {
+function SummaryCard({ label, value, tone = 'default', className = '' }: { label: string; value: ReactNode; tone?: 'primary' | 'destructive' | 'default'; className?: string }) {
   const tones: Record<string, string> = {
     primary: 'text-primary',
     destructive: 'text-destructive',

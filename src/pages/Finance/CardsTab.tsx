@@ -11,7 +11,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatMoney } from './utils';
+import { useFinanceFormatters } from './useFinancePrivacy';
 import { CardsSkeleton } from './Skeletons';
 
 interface Props {
@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default function CardsTab({ accounts, statements, loaded, reload }: Props) {
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const [creating, setCreating] = useState<FinAccount | null>(null);
   const [paying, setPaying] = useState<FinStatement | null>(null);
   const ccAccounts = useMemo(() => accounts.filter((a) => a.type === 'credit_card'), [accounts]);
@@ -87,7 +88,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
                     <div className="font-mono text-xs uppercase tracking-wider opacity-80">Limit</div>
                     <div className="font-mono text-sm tabular-nums">{formatMoney(card.credit_limit)}</div>
                     <div className="font-mono text-xs tabular-nums opacity-80">
-                      {((owed / card.credit_limit) * 100).toFixed(0)}% used
+                      {formatPercent((owed / card.credit_limit) * 100)} used
                     </div>
                   </div>
                 ) : null}
@@ -163,6 +164,7 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
   onClose: () => void;
   onPaid: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const [accountId, setAccountId] = useState('');
   useEffect(() => {
     if (statement) setAccountId(accounts[0] ? String(accounts[0].id) : '');
@@ -245,6 +247,7 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   onPay: () => void;
   onDelete: () => Promise<void>;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const dueDate = parseISO(statement.due_date);
   const daysUntil = differenceInDays(dueDate, new Date());
   const overdue = !statement.paid && daysUntil < 0;
@@ -313,6 +316,7 @@ function StatementDialog({ card, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const [stmtDate, setStmtDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dueDate, setDueDate] = useState('');
   const [amountOverride, setAmountOverride] = useState('');

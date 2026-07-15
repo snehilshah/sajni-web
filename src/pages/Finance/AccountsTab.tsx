@@ -14,7 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ACCOUNT_TYPES, ACCOUNT_COLORS, formatMoney } from './utils';
+import { AnimatedMoney } from './AnimatedMoney';
+import { useFinanceFormatters } from './useFinancePrivacy';
+import { ACCOUNT_TYPES, ACCOUNT_COLORS } from './utils';
 import { ListSkeleton } from './Skeletons';
 
 const typeIcon = (type: string) => {
@@ -41,6 +43,7 @@ interface Props {
 }
 
 export default function AccountsTab({ accounts, categories, savings: parentSavings, loaded, reload }: Props) {
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const [editingAcct, setEditingAcct] = useState<FinAccount | null>(null);
   const [creating, setCreating] = useState(false);
   // Local copy so the bucket dialog can mutate without round-tripping every keystroke.
@@ -66,9 +69,9 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
     <div className="flex flex-col gap-4">
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <SummaryCard label="Assets" value={formatMoney(totalAssets)} tone="primary" />
-        <SummaryCard label="Liabilities" value={formatMoney(totalLiab)} tone="destructive" />
-        <SummaryCard label="Net" value={formatMoney(totalAssets - totalLiab)} tone="default" className="col-span-2 md:col-span-1" />
+        <SummaryCard label="Assets" value={totalAssets} tone="primary" />
+        <SummaryCard label="Liabilities" value={totalLiab} tone="destructive" />
+        <SummaryCard label="Net" value={totalAssets - totalLiab} tone="default" className="col-span-2 md:col-span-1" />
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -152,7 +155,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                             />
                           </div>
                           <div className="font-mono text-xs text-muted-foreground mt-1">
-                            {utilization.toFixed(0)}% used
+                            {formatPercent(utilization)} used
                           </div>
                         </div>
                       ) : null}
@@ -205,7 +208,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                               </span>
                               {s.target_amount > 0 && (
                                 <span className="font-mono text-xs tabular-nums text-muted-foreground w-8 text-right">
-                                  {pct.toFixed(0)}%
+                                  {formatPercent(pct)}
                                 </span>
                               )}
                             </div>
@@ -241,7 +244,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
   );
 }
 
-function SummaryCard({ label, value, tone, className = '' }: { label: string; value: string; tone: 'primary' | 'destructive' | 'default'; className?: string }) {
+function SummaryCard({ label, value, tone, className = '' }: { label: string; value: number; tone: 'primary' | 'destructive' | 'default'; className?: string }) {
   const tones: Record<string, string> = {
     primary: 'text-primary',
     destructive: 'text-destructive',
@@ -250,7 +253,7 @@ function SummaryCard({ label, value, tone, className = '' }: { label: string; va
   return (
     <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
       <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`font-serif text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}>{value}</div>
+      <div className={`font-serif text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}><AnimatedMoney value={value} /></div>
     </div>
   );
 }
@@ -495,6 +498,7 @@ function SalaryActions({ account, categories, onDone }: {
   categories: FinCategory[];
   onDone: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const [busy, setBusy] = useState(false);
   const [bonusOpen, setBonusOpen] = useState(false);
   const [bonusAmt, setBonusAmt] = useState('');
@@ -577,6 +581,7 @@ function SavingsDialog({ account, savings, onClose }: {
   savings: FinSaving[];
   onClose: () => void;
 }) {
+  const { formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
