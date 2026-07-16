@@ -53,21 +53,17 @@ export function useOwnScrolled(ref: React.RefObject<HTMLDivElement | null>, enab
 
 const PILL_SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
 
-// PillSlot — one content block inside the pill. Explicit keyed entrance
-// (remounts on merge/unmerge) so the cascade ALWAYS plays: title first,
-// tabs, then actions. `layout` opts each slot into framer's scale
-// correction, which stops icons squishing while the pill bounds-morphs.
-function PillSlot({ order, className, children }: {
-  order: number;
+// PillSlot — one persistent content block inside the pill. `layout` keeps
+// each section moving with the outer bounds without hiding or remounting
+// it during the rest-to-reduced transition.
+function PillSlot({ className, children }: {
   className?: string;
   children: ReactNode;
 }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, transform: 'translateY(5px)' }}
-      animate={{ opacity: 1, transform: 'translateY(0)' }}
-      transition={{ delay: 0.05 + order * 0.055, duration: 0.24, ease: [0.2, 0, 0, 1] }}
+      transition={PILL_SPRING}
       className={className}
     >
       {children}
@@ -75,13 +71,10 @@ function PillSlot({ order, className, children }: {
   );
 }
 
-// PageChrome — the page's secondary chrome. Both states are FIXED
-// floating islands sharing one layoutId, so scrolling triggers a true
-// morph: the rest pill travels up into the primary bar's spot (which
-// fades away) and reshapes into the merged pill — title becomes the
-// places dropdown (MorphingPopover), tab labels shed, CTAs stay. Scroll
-// back and the same element morphs down again. Desktop merged pill runs
-// compact (h-9); mobile keeps 48dp touch targets.
+// PageChrome — one persistent fixed island. On scroll it travels into the
+// primary bar's position while its bounds, title, tabs, and actions reduce
+// together. Keeping one tree mounted avoids a blank frame before motion.
+// Desktop runs compact (h-9); mobile keeps 48dp touch targets.
 export function PageChrome({
   title, navigation, actions,
 }: {
@@ -94,7 +87,6 @@ export function PageChrome({
   const navigate = useNavigate();
   const { scrolled } = useNavChrome();
   const [placesOpen, setPlacesOpen] = useState(false);
-  const pillId = useId();
 
   useEffect(() => { setPlacesOpen(false); }, [pathname]);
   useEffect(() => { if (!scrolled) setPlacesOpen(false); }, [scrolled]);
@@ -105,7 +97,7 @@ export function PageChrome({
       {navigation && (
         <>
           {divider}
-          <PillSlot order={1} className="min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar">
+          <PillSlot className="min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar">
             {navigation}
           </PillSlot>
         </>
@@ -114,7 +106,6 @@ export function PageChrome({
         <>
           {divider}
           <PillSlot
-            order={2}
             className={cn(
               'flex items-center gap-1.5 shrink-0',
               scrolled && !isMobile && '[&_button]:h-8 [&_input]:h-8',
@@ -130,73 +121,74 @@ export function PageChrome({
   );
 
   return (
-    <div
+    <motion.div
+      initial={false}
+      animate={{
+        transform: scrolled && !isMobile ? 'translateY(-56px)' : 'translateY(0)',
+      }}
+      transition={PILL_SPRING}
       className="fixed inset-x-0 z-40 flex justify-center px-3 md:px-4 pointer-events-none"
       style={{
-        top: scrolled || isMobile
+        top: isMobile
           ? 'calc(env(safe-area-inset-top, 0px) + 10px)'
           : 'calc(env(safe-area-inset-top, 0px) + 66px)',
       }}
     >
-      {!scrolled ? (
-        <motion.header
-          key="rest"
-          layoutId={pillId}
-          transition={PILL_SPRING}
-          className="pointer-events-auto flex items-center gap-2.5 min-h-12 max-w-[min(94vw,880px)] min-w-0 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)] pl-4 pr-1.5 py-1"
-        >
-          <PillSlot order={0} className="shrink-0">
-            <h1 className="serif text-[15px] font-semibold tracking-tight whitespace-nowrap">
-              {title}
-            </h1>
-          </PillSlot>
-          {tail}
-        </motion.header>
-      ) : (
-        <motion.div
-          key="merged"
-          layoutId={pillId}
-          transition={PILL_SPRING}
-          role="toolbar"
-          aria-label="Page"
-          className={cn(
-            'pointer-events-auto flex items-center gap-2 pl-1 pr-1 max-w-[min(94vw,720px)] min-w-0 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]',
-            isMobile ? 'min-h-12 py-1 pl-1.5 pr-1.5' : 'min-h-9 py-0.5',
-          )}
-        >
-          <PillSlot order={0} className="shrink-0">
-            <MorphingPopover
-              open={placesOpen}
-              onOpenChange={setPlacesOpen}
-              panelClassName="w-[300px] p-2"
-              trigger={
-                <button
-                  type="button"
-                  onClick={() => setPlacesOpen(true)}
-                  className={cn(
-                    'pl-2.5 pr-1.5 shrink-0 inline-flex items-center gap-1 rounded-full hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors',
-                    isMobile ? 'h-9' : 'h-8',
-                  )}
-                  title="All pages"
-                  aria-label="All pages"
+      <motion.header
+        layout
+        transition={PILL_SPRING}
+        role={scrolled ? 'toolbar' : undefined}
+        aria-label={scrolled ? 'Page' : undefined}
+        className={cn(
+          'pointer-events-auto flex items-center min-w-0 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]',
+          scrolled
+            ? cn('gap-2 pl-1 pr-1 max-w-[min(94vw,720px)]', isMobile ? 'min-h-12 py-1 pl-1.5 pr-1.5' : 'min-h-9 py-0.5')
+            : 'gap-2.5 min-h-12 max-w-[min(94vw,880px)] pl-4 pr-1.5 py-1',
+        )}
+      >
+        <PillSlot className="shrink-0">
+          <MorphingPopover
+            open={placesOpen}
+            onOpenChange={setPlacesOpen}
+            panelClassName="w-[300px] p-2"
+            trigger={
+              <button
+                type="button"
+                disabled={!scrolled}
+                onClick={() => setPlacesOpen(true)}
+                role={scrolled ? undefined : 'heading'}
+                aria-level={scrolled ? undefined : 1}
+                title={scrolled ? 'All pages' : undefined}
+                aria-label={scrolled ? 'All pages' : undefined}
+                className={cn(
+                  'shrink-0 inline-flex items-center rounded-full serif font-semibold tracking-tight whitespace-nowrap outline-none transition-[height,padding,gap,font-size,background-color] duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+                  scrolled
+                    ? cn('pl-2.5 pr-1.5 gap-1 hover:bg-[hsl(var(--on-surface)/0.08)]', isMobile ? 'h-9 text-sm' : 'h-8 text-[13px]')
+                    : 'h-8 p-0 gap-0 text-[15px] cursor-default',
+                )}
+              >
+                <span className="truncate max-w-[150px]">{title}</span>
+                <motion.span
+                  initial={false}
+                  animate={{ width: scrolled ? 14 : 0, opacity: scrolled ? 1 : 0 }}
+                  transition={PILL_SPRING}
+                  className="overflow-hidden"
+                  aria-hidden="true"
                 >
-                  <span className={cn('serif font-semibold tracking-tight truncate max-w-[150px]', isMobile ? 'text-sm' : 'text-[13px]')}>
-                    {title}
-                  </span>
                   <ChevronDown className="size-3.5 text-muted-foreground" />
-                </button>
-              }
-            >
-              <PlacesGrid
-                pathname={pathname}
-                onNavigate={(p) => { navigate(p); setPlacesOpen(false); }}
-              />
-            </MorphingPopover>
-          </PillSlot>
-          {tail}
-        </motion.div>
-      )}
-    </div>
+                </motion.span>
+              </button>
+            }
+          >
+            <PlacesGrid
+              pathname={pathname}
+              onNavigate={(p) => { navigate(p); setPlacesOpen(false); }}
+            />
+          </MorphingPopover>
+        </PillSlot>
+        {tail}
+      </motion.header>
+    </motion.div>
   );
 }
 
