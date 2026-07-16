@@ -51,23 +51,19 @@ export function useOwnScrolled(ref: React.RefObject<HTMLDivElement | null>, enab
   return scrolled;
 }
 
-const PILL_SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
+const CHROME_TWEEN = { duration: 0.3, ease: [0.2, 0, 0, 1] } as const;
 
-// PillSlot — one persistent content block inside the pill. `layout` keeps
-// each section moving with the outer bounds without hiding or remounting
-// it during the rest-to-reduced transition.
+// PillSlot — one persistent content block inside the pill. Its children
+// drive the flex layout directly so there is no second layout animation
+// retargeting them while labels collapse.
 function PillSlot({ className, children }: {
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <motion.div
-      layout
-      transition={PILL_SPRING}
-      className={className}
-    >
+    <div className={className}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -126,7 +122,7 @@ export function PageChrome({
       animate={{
         transform: scrolled && !isMobile ? 'translateY(-56px)' : 'translateY(0)',
       }}
-      transition={PILL_SPRING}
+      transition={CHROME_TWEEN}
       className="fixed inset-x-0 z-40 flex justify-center px-3 md:px-4 pointer-events-none"
       style={{
         top: isMobile
@@ -136,7 +132,7 @@ export function PageChrome({
     >
       <motion.header
         layout
-        transition={PILL_SPRING}
+        transition={CHROME_TWEEN}
         role={scrolled ? 'toolbar' : undefined}
         aria-label={scrolled ? 'Page' : undefined}
         className={cn(
@@ -161,22 +157,14 @@ export function PageChrome({
                 title={scrolled ? 'All pages' : undefined}
                 aria-label={scrolled ? 'All pages' : undefined}
                 className={cn(
-                  'shrink-0 inline-flex items-center rounded-full serif font-semibold tracking-tight whitespace-nowrap outline-none transition-[height,padding,gap,font-size,background-color] duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+                  'shrink-0 inline-flex items-center rounded-full serif font-semibold tracking-tight whitespace-nowrap outline-none transition-colors',
                   scrolled
                     ? cn('pl-2.5 pr-1.5 gap-1 hover:bg-[hsl(var(--on-surface)/0.08)]', isMobile ? 'h-9 text-sm' : 'h-8 text-[13px]')
                     : 'h-8 p-0 gap-0 text-[15px] cursor-default',
                 )}
               >
                 <span className="truncate max-w-[150px]">{title}</span>
-                <motion.span
-                  initial={false}
-                  animate={{ width: scrolled ? 14 : 0, opacity: scrolled ? 1 : 0 }}
-                  transition={PILL_SPRING}
-                  className="overflow-hidden"
-                  aria-hidden="true"
-                >
-                  <ChevronDown className="size-3.5 text-muted-foreground" />
-                </motion.span>
+                {scrolled && <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden="true" />}
               </button>
             }
           >
@@ -261,12 +249,14 @@ export function PageShellTabs<V extends string>({
   bare?: boolean;
 }) {
   // Shared-element active pill: one layoutId per tabs instance so the
-  // highlight springs between options instead of blinking.
+  // highlight travels between options instead of blinking.
   const groupId = useId();
-  // In the merged pill (page scrolled) icon tabs shed their labels via an
-  // animated max-width collapse. Tabs without icons keep text — an empty
-  // pill would be unusable. Desktop merged controls run compact (h-8) for
-  // harmony with the shrunken chrome; mobile keeps 48dp-ish targets.
+  // In the merged pill (page scrolled) every icon tab sheds its label in the
+  // same render. The persistent icons then tween once to their new positions;
+  // continuously animating each label's width forced repeated flex reflows
+  // that looked like horizontal jitter. Tabs without icons keep text — an
+  // empty pill would be unusable. Desktop merged controls run compact (h-8);
+  // mobile keeps 48dp-ish targets.
   const { scrolled } = useNavChrome();
   const isMobile = useIsMobile();
   const compact = scrolled && bare && !isMobile;
@@ -332,7 +322,7 @@ export function PageShellTabs<V extends string>({
               onMouseEnter={(e) => (active || option.disabled ? setHoverRect(null) : moveHoverTo(e.currentTarget))}
               onFocus={(e) => (active || option.disabled ? setHoverRect(null) : moveHoverTo(e.currentTarget))}
               className={cn(
-                'relative rounded-[22px] inline-flex items-center justify-center font-medium whitespace-nowrap outline-none transition-[color,height,padding] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50',
+                'relative rounded-[22px] inline-flex items-center justify-center font-medium whitespace-nowrap outline-none transition-colors duration-150 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50',
                 compact ? 'h-8 px-2 text-xs' : 'px-2.5 sm:px-3 text-xs sm:text-sm',
                 bare ? (compact ? 'h-8' : 'h-9') : 'h-9 sm:h-10',
                 active
@@ -344,19 +334,25 @@ export function PageShellTabs<V extends string>({
                 <motion.span
                   layoutId={`pst-active-${groupId}`}
                   className="absolute inset-0 z-0 rounded-[22px] bg-[hsl(var(--secondary-container))] shadow-[var(--m3-elev-1)]"
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  transition={reduceMotion ? { duration: 0 } : CHROME_TWEEN}
                 />
               )}
-              {Icon && <Icon className="size-3.5 shrink-0 relative z-10" />}
-              <span
-                className={cn(
-                  'relative z-10 overflow-hidden transition-[max-width,opacity,margin-left] duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
-                  Icon ? 'ml-1.5 sm:ml-2' : '',
-                  labelHidden ? 'max-w-0 opacity-0 !ml-0' : 'max-w-[9rem] opacity-100',
-                )}
-              >
-                {option.label}
-              </span>
+              {Icon && (
+                <motion.span
+                  layout="position"
+                  className="relative z-10 shrink-0"
+                  transition={reduceMotion ? { duration: 0 } : CHROME_TWEEN}
+                >
+                  <Icon className="size-3.5" />
+                </motion.span>
+              )}
+              {!labelHidden && (
+                <span
+                  className={cn('relative z-10', Icon ? 'ml-1.5 sm:ml-2' : '')}
+                >
+                  {option.label}
+                </span>
+              )}
             </button>
           );
         })}
