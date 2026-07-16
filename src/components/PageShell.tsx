@@ -81,7 +81,7 @@ function PillSlot({ order, className, children }: {
 // fades away) and reshapes into the merged pill — title becomes the
 // places dropdown (MorphingPopover), tab labels shed, CTAs stay. Scroll
 // back and the same element morphs down again. Desktop merged pill runs
-// compact (h-10); mobile keeps 48dp touch targets.
+// compact (h-9); mobile keeps 48dp touch targets.
 export function PageChrome({
   title, navigation, actions,
 }: {
@@ -113,7 +113,13 @@ export function PageChrome({
       {actions ? (
         <>
           {divider}
-          <PillSlot order={2} className="flex items-center gap-1.5 shrink-0">
+          <PillSlot
+            order={2}
+            className={cn(
+              'flex items-center gap-1.5 shrink-0',
+              scrolled && !isMobile && '[&_button]:h-8 [&_input]:h-8',
+            )}
+          >
             {actions}
           </PillSlot>
         </>
@@ -154,8 +160,8 @@ export function PageChrome({
           role="toolbar"
           aria-label="Page"
           className={cn(
-            'pointer-events-auto flex items-center gap-2 pl-1 pr-1 py-1 max-w-[min(94vw,720px)] min-w-0 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]',
-            isMobile ? 'min-h-12 pl-1.5 pr-1.5' : 'min-h-10',
+            'pointer-events-auto flex items-center gap-2 pl-1 pr-1 max-w-[min(94vw,720px)] min-w-0 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]',
+            isMobile ? 'min-h-12 py-1 pl-1.5 pr-1.5' : 'min-h-9 py-0.5',
           )}
         >
           <PillSlot order={0} className="shrink-0">
@@ -267,7 +273,7 @@ export function PageShellTabs<V extends string>({
   const groupId = useId();
   // In the merged pill (page scrolled) icon tabs shed their labels via an
   // animated max-width collapse. Tabs without icons keep text — an empty
-  // pill would be unusable. Desktop merged pill runs compact (h-8) for
+  // pill would be unusable. Desktop merged controls run compact (h-8) for
   // harmony with the shrunken chrome; mobile keeps 48dp-ish targets.
   const { scrolled } = useNavChrome();
   const isMobile = useIsMobile();
