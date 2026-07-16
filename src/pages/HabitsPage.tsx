@@ -338,20 +338,16 @@ function HabitCard({
               }`}>
                 {dayLetter(d)}
               </span>
-              <motion.button
+              <button
                 onClick={() => onToggleDay(d)}
                 disabled={isFuture}
-                whileTap={isFuture ? undefined : { transform: 'scale(0.97)' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 aria-pressed={on}
                 title={isFuture ? d : `${d}${on ? ' — done' : ''}${isToday ? ' · today' : ''}`}
-                className={`relative grid aspect-square w-full place-items-center rounded-full tap-highlight-none ${isFuture ? 'cursor-default' : ''}`}
+                className={`relative grid aspect-square w-full place-items-center overflow-hidden rounded-full tap-highlight-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${isFuture ? 'cursor-default' : 'active:scale-[0.97]'}`}
                 style={{
-                  background: on
-                    ? habit.color
-                    : isFuture
-                      ? 'hsl(var(--surface-container-highest) / 0.4)'
-                      : 'hsl(var(--surface-container-highest))',
+                  background: isFuture
+                    ? 'hsl(var(--surface-container-highest) / 0.4)'
+                    : 'hsl(var(--surface-container-highest))',
                   color: 'hsl(var(--primary-foreground))',
                   boxShadow: isToday
                     ? (on
@@ -360,8 +356,34 @@ function HabitCard({
                     : (on ? `0 6px 16px -8px ${habit.color}` : 'none'),
                 }}
               >
-                {on && <Check className="size-3.5" strokeWidth={3} />}
-              </motion.button>
+                <AnimatePresence initial={false}>
+                  {on && (
+                    <motion.span
+                      key="fill"
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: habit.color }}
+                      initial={{ opacity: 0, transform: 'scale(0.72)' }}
+                      animate={{ opacity: 1, transform: 'scale(1)' }}
+                      exit={{ opacity: 0, transform: 'scale(0.86)' }}
+                      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                    />
+                  )}
+                </AnimatePresence>
+                <AnimatePresence initial={false}>
+                  {on && (
+                    <motion.span
+                      key="check"
+                      className="relative z-10 inline-flex"
+                      initial={{ opacity: 0, transform: 'scale(0.7)' }}
+                      animate={{ opacity: 1, transform: 'scale(1)' }}
+                      exit={{ opacity: 0, transform: 'scale(0.8)' }}
+                      transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                    >
+                      <Check className="size-3.5" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
               <span className={`size-1 rounded-full ${isToday ? 'bg-[hsl(var(--primary))]' : 'bg-transparent'}`} />
             </div>
           );

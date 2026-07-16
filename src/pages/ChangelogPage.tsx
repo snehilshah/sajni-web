@@ -82,6 +82,21 @@ const RELEASES: Release[] = [
           + 'numbers. Toggling it changes only rendered text, so Finance tabs keep their state and '
           + 'cached data without making fresh API requests. Revealed summary figures still count in.',
       },
+      {
+        kind: 'fix',
+        area: 'Navigation',
+        title: 'A smoother compact secondary bar',
+        detail:
+          'The secondary bar now reduces into a slimmer, steady shape in one continuous motion, '
+          + 'without blinking, staggered labels, icon jitter, or a colour change.',
+      },
+      {
+        kind: 'fix',
+        area: 'Habits',
+        title: 'Habit checks finish their motion',
+        detail:
+          'Checking or unchecking a day now flows cleanly to its final state instead of briefly going blank.',
+      },
     ],
   },
   {
