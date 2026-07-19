@@ -348,7 +348,7 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{budget ? 'Edit budget' : 'New budget'}</DialogTitle>
         </DialogHeader>

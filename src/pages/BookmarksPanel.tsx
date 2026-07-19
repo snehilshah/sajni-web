@@ -287,7 +287,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
 
       {/* Add / edit */}
       <Dialog open={showForm} onOpenChange={setShowForm} onOpenChangeComplete={(o) => { if (!o) setEditItem(null); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent showCloseButton={false} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookmarkPlus className="size-5 text-muted-foreground" />

@@ -454,7 +454,7 @@ export default function RichEditor({
       </Suspense>
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent showCloseButton={false} className="max-w-md">
           <DialogHeader>
             <DialogTitle>Insert link</DialogTitle>
           </DialogHeader>

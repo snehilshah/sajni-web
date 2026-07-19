@@ -296,6 +296,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   return (
     <MorphingDialog
       open={open}
+      showClose={false}
       onClose={() => onOpenChange(false)}
       onCloseComplete={onCloseComplete}
       // New-task opens can morph from a page-owned source. Flows without one

@@ -640,7 +640,7 @@ export default function NotesPage() {
 
       {/* Move-to-folder dialog (sits at page root, outside the editor scroll) */}
       <Dialog open={!!moveTarget} onOpenChange={(o) => { if (!o) setMoveTarget(null); }}>
-        <DialogContent>
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Move note</DialogTitle>
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>

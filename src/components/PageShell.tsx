@@ -72,9 +72,10 @@ function PillSlot({ className, children }: {
 // together. Keeping one tree mounted avoids a blank frame before motion.
 // Desktop runs compact (h-9); mobile keeps 48dp touch targets.
 export function PageChrome({
-  title, navigation, actions,
+  title, leading, navigation, actions,
 }: {
   title: ReactNode;
+  leading?: ReactNode;
   navigation?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -142,6 +143,11 @@ export function PageChrome({
             : 'gap-2.5 min-h-12 max-w-[min(94vw,880px)] pl-4 pr-1.5 py-1',
         )}
       >
+        {leading && (
+          <PillSlot className="shrink-0 flex items-center">
+            {leading}
+          </PillSlot>
+        )}
         <PillSlot className="shrink-0">
           <MorphingPopover
             open={placesOpen}
@@ -183,10 +189,11 @@ export function PageChrome({
 // PageShell — secondary chrome + scroll body. The page reports its scroll
 // state through NavChromeContext (Layout collapses the primary bar off it).
 export default function PageShell({
-  title, actions, navigation,
+  title, leading, actions, navigation,
   children, contentClassName, hideScrollbar = false,
 }: {
   title: ReactNode;
+  leading?: ReactNode;
   actions?: ReactNode;
   navigation?: ReactNode;
   children: ReactNode;
@@ -206,7 +213,7 @@ export default function PageShell({
 
   return (
     <div className="page-fade-in flex-1 flex flex-col min-h-0">
-      <PageChrome title={title} navigation={navigation} actions={actions} />
+      <PageChrome title={title} leading={leading} navigation={navigation} actions={actions} />
 
       {/* stable-scrollbar reserves the scrollbar gutter so content doesn't
           shift sideways when a page grows tall enough to show the bar (e.g.

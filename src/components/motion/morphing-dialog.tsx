@@ -21,6 +21,7 @@ export interface MorphSourceRect {
 
 export function MorphingDialog({
   open, onClose, onCloseComplete, layoutId, sourceRect, className, children, ariaLabel,
+  showClose = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -32,6 +33,8 @@ export function MorphingDialog({
   className?: string;
   children: ReactNode;
   ariaLabel?: string;
+  /** Pass false when the dialog has its own footer Cancel — one close CTA only. */
+  showClose?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -65,14 +68,16 @@ export function MorphingDialog({
               className,
             )}
           >
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="absolute top-4 right-4 z-10 size-8 inline-flex items-center justify-center rounded-full bg-secondary text-foreground/80 hover:text-foreground transition-colors"
-            >
-              <X className="size-4" />
-            </button>
+            {showClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="absolute top-4 right-4 z-10 size-8 inline-flex items-center justify-center rounded-full bg-secondary text-foreground/80 hover:text-foreground transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            )}
             {children}
           </MorphPanel>
         </>

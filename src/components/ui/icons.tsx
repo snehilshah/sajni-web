@@ -15,6 +15,7 @@ import _px_ArrowDownToLine from 'pixelarticons/svg/arrow-bar-down.svg?raw';
 import _px_ArrowLeft from 'pixelarticons/svg/arrow-left.svg?raw';
 import _px_ArrowLeftRight from 'pixelarticons/svg/arrows-horizontal.svg?raw';
 import _px_ArrowRight from 'pixelarticons/svg/arrow-right.svg?raw';
+import _px_ArrowUp from 'pixelarticons/svg/arrow-up.svg?raw';
 import _px_ArrowUpDown from 'pixelarticons/svg/arrows-vertical.svg?raw';
 import _px_Ban from 'pixelarticons/svg/cancel.svg?raw';
 import _px_Bell from 'pixelarticons/svg/bell.svg?raw';
@@ -42,7 +43,6 @@ import _px_ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?raw';
 import _px_Circle from 'pixelarticons/svg/circle.svg?raw';
 import _px_CircleCheck from 'pixelarticons/svg/check.svg?raw';
 import _px_CircleCheckIcon from 'pixelarticons/svg/check.svg?raw';
-import _px_CircleDollarSign from 'pixelarticons/svg/money.svg?raw';
 import _px_CircleHelp from 'pixelarticons/svg/info-box.svg?raw';
 import _px_Clock from 'pixelarticons/svg/clock.svg?raw';
 import _px_Code from 'pixelarticons/svg/braces.svg?raw';
@@ -70,7 +70,6 @@ import _px_Hash from 'pixelarticons/svg/hash.svg?raw';
 import _px_Heading1 from 'pixelarticons/svg/heading-1.svg?raw';
 import _px_Heading2 from 'pixelarticons/svg/heading-2.svg?raw';
 import _px_Heading3 from 'pixelarticons/svg/heading-3.svg?raw';
-import _px_Home from 'pixelarticons/svg/home.svg?raw';
 import _px_Image from 'pixelarticons/svg/image.svg?raw';
 import _px_ImageIcon from 'pixelarticons/svg/image.svg?raw';
 import _px_Inbox from 'pixelarticons/svg/inbox.svg?raw';
@@ -94,7 +93,6 @@ import _px_Monitor from 'pixelarticons/svg/monitor.svg?raw';
 import _px_MonitorPlay from 'pixelarticons/svg/video.svg?raw';
 import _px_Moon from 'pixelarticons/svg/moon.svg?raw';
 import _px_MoreHorizontal from 'pixelarticons/svg/more-horizontal.svg?raw';
-import _px_MoreHorizontalIcon from 'pixelarticons/svg/more-horizontal.svg?raw';
 import _px_MoreVertical from 'pixelarticons/svg/more-vertical.svg?raw';
 import _px_NotebookPen from 'pixelarticons/svg/notebook.svg?raw';
 import _px_OctagonXIcon from 'pixelarticons/svg/cancel.svg?raw';
@@ -109,7 +107,6 @@ import _px_RotateCcw from 'pixelarticons/svg/undo.svg?raw';
 import _px_Save from 'pixelarticons/svg/save.svg?raw';
 import _px_Search from 'pixelarticons/svg/search.svg?raw';
 import _px_SearchIcon from 'pixelarticons/svg/search.svg?raw';
-import _px_Send from 'pixelarticons/svg/send.svg?raw';
 import _px_Settings from 'pixelarticons/svg/settings-cog.svg?raw';
 import _px_Sparkles from 'pixelarticons/svg/sparkles.svg?raw';
 import _px_Star from 'pixelarticons/svg/star.svg?raw';
@@ -122,6 +119,7 @@ import _px_TriangleAlertIcon from 'pixelarticons/svg/warning-diamond.svg?raw';
 import _px_Tv from 'pixelarticons/svg/tv.svg?raw';
 import _px_Unlink from 'pixelarticons/svg/unlink.svg?raw';
 import _px_Upload from 'pixelarticons/svg/upload.svg?raw';
+import _px_Users from 'pixelarticons/svg/users.svg?raw';
 import _px_VenetianMask from 'pixelarticons/svg/sunglasses.svg?raw';
 import _px_Wallet from 'pixelarticons/svg/wallet.svg?raw';
 import _px_Wand2 from 'pixelarticons/svg/magic-edit.svg?raw';
@@ -154,6 +152,7 @@ export const ArrowDownToLine = px(_px_ArrowDownToLine);
 export const ArrowLeft = px(_px_ArrowLeft);
 export const ArrowLeftRight = px(_px_ArrowLeftRight);
 export const ArrowRight = px(_px_ArrowRight);
+export const ArrowUp = px(_px_ArrowUp);
 export const ArrowUpDown = px(_px_ArrowUpDown);
 export const Ban = px(_px_Ban);
 export const Bell = px(_px_Bell);
@@ -181,7 +180,6 @@ export const ChevronUpIcon = px(_px_ChevronUpIcon);
 export const Circle = px(_px_Circle);
 export const CircleCheck = px(_px_CircleCheck);
 export const CircleCheckIcon = px(_px_CircleCheckIcon);
-export const CircleDollarSign = px(_px_CircleDollarSign);
 export const CircleHelp = px(_px_CircleHelp);
 export const Clock = px(_px_Clock);
 export const Code = px(_px_Code);
@@ -209,7 +207,6 @@ export const Hash = px(_px_Hash);
 export const Heading1 = px(_px_Heading1);
 export const Heading2 = px(_px_Heading2);
 export const Heading3 = px(_px_Heading3);
-export const Home = px(_px_Home);
 export const Image = px(_px_Image);
 export const ImageIcon = px(_px_ImageIcon);
 export const Inbox = px(_px_Inbox);
@@ -233,7 +230,6 @@ export const Monitor = px(_px_Monitor);
 export const MonitorPlay = px(_px_MonitorPlay);
 export const Moon = px(_px_Moon);
 export const MoreHorizontal = px(_px_MoreHorizontal);
-export const MoreHorizontalIcon = px(_px_MoreHorizontalIcon);
 export const MoreVertical = px(_px_MoreVertical);
 export const NotebookPen = px(_px_NotebookPen);
 export const OctagonXIcon = px(_px_OctagonXIcon);
@@ -248,7 +244,6 @@ export const RotateCcw = px(_px_RotateCcw);
 export const Save = px(_px_Save);
 export const Search = px(_px_Search);
 export const SearchIcon = px(_px_SearchIcon);
-export const Send = px(_px_Send);
 export const Settings = px(_px_Settings);
 export const Sparkles = px(_px_Sparkles);
 export const Star = px(_px_Star);
@@ -261,6 +256,7 @@ export const TriangleAlertIcon = px(_px_TriangleAlertIcon);
 export const Tv = px(_px_Tv);
 export const Unlink = px(_px_Unlink);
 export const Upload = px(_px_Upload);
+export const Users = px(_px_Users);
 export const VenetianMask = px(_px_VenetianMask);
 export const Wallet = px(_px_Wallet);
 export const Wand2 = px(_px_Wand2);
@@ -270,11 +266,9 @@ export const Zap = px(_px_Zap);
 
 // --- passthrough to lucide (no good pixel match) ---
 export {
-  ArrowUp,
   ArrowUpRight,
   Bold,
-  Brain,
-  Compass,
+  GalleryHorizontalEnd,
   History,
   Italic,
   ListOrdered,
@@ -282,13 +276,14 @@ export {
   Loader2Icon,
   PanelLeft,
   PanelLeftClose,
-  PanelLeftIcon,
   PanelRight,
   PanelRightClose,
   Pin,
   PinOff,
+  Share2,
   Strikethrough,
   Sun,
+  Table2,
   Tags,
   Type,
 } from 'lucide-react';

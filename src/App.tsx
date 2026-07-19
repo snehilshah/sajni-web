@@ -14,6 +14,8 @@ const MediaPage = lazy(() => import('./pages/MediaPage'));
 const NotesPage = lazy(() => import('./pages/NotesPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const FinancePage = lazy(() => import('./pages/Finance/FinancePage'));
+const PocketDetailPage = lazy(() => import('./pages/Finance/pockets/PocketDetailPage'));
+const PocketInvitePage = lazy(() => import('./pages/Finance/pockets/PocketInvitePage'));
 const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const DocsPage = lazy(() => import('./pages/docs/DocsPage'));
@@ -104,7 +106,11 @@ export default function App() {
             <Route path="/media" element={<MediaPage />} />
             <Route path="/notes" element={<NotesHub />} />
             <Route path="/finance" element={<FinancePage />} />
+            {/* Static segment beats /finance/:tab for /finance/pockets/:id. */}
+            <Route path="/finance/pockets/:id" element={<PocketDetailPage />} />
             <Route path="/finance/:tab" element={<FinancePage />} />
+            {/* Shared-pocket invite accept link (from email). */}
+            <Route path="/pockets/invite/:token" element={<PocketInvitePage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             {/* Consolidation redirects. */}
             <Route path="/memos" element={<Navigate to="/notes?tab=memos" replace />} />

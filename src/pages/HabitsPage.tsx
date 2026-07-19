@@ -208,7 +208,7 @@ export default function HabitsPage() {
       )}
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent>
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit habit' : 'New habit'}</DialogTitle>
           </DialogHeader>

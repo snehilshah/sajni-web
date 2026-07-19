@@ -182,7 +182,7 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
 
   return (
     <Dialog open={!!statement} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Pay {formatMoney(statement.amount_due)}</DialogTitle>
         </DialogHeader>
@@ -384,7 +384,7 @@ function StatementDialog({ card, onClose, onSaved }: {
 
   return (
     <Dialog open={!!card} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New statement · {card.name}</DialogTitle>
         </DialogHeader>

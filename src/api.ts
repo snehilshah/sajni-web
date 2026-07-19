@@ -641,6 +641,10 @@ export interface FinTransaction {
   /** Pocket (spend context). null = General. */
   pocket_id: number | null;
   pocket_name: string | null;
+  /** Set when this row mirrors a shared-pocket expense/settlement (an
+   *  "echo"): amount/description/date are managed by the pocket. */
+  shared_expense_id: number | null;
+  settlement_id: number | null;
   created_at: string;
 }
 
@@ -658,11 +662,141 @@ export interface FinPocket {
   txn_count: number;
 }
 
+/** A shared pocket the user owns or belongs to (spliit-style splitting). */
+export interface SharedPocketSummary {
+  id: number;
+  name: string;
+  color: string;
+  archived: boolean;
+  is_owner: boolean;
+  owner_name: string;
+  member_count: number;
+  month_spend: number;
+  /** Net position in the pocket: positive = others owe you. */
+  my_balance: number;
+}
+
+export interface PocketInviteSummary {
+  id: number;
+  pocket_name: string;
+  inviter_name: string;
+  expires_at: string;
+}
+
 export interface FinPocketsResponse {
   items: FinPocket[];
   /** Current-month spend with no pocket (General). */
   general_spend: number;
   active_pocket_id: number | null;
+  shared: SharedPocketSummary[];
+  /** Pending shared-pocket invites addressed to the user's email. */
+  invites: PocketInviteSummary[];
+}
+
+export interface PocketMember {
+  id: number;
+  display_name: string;
+  role: 'owner' | 'member';
+  is_registered: boolean;
+  is_me: boolean;
+  left: boolean;
+  /** Present only when the requester owns the pocket. */
+  email?: string;
+}
+
+export interface PocketDetail {
+  id: number;
+  name: string;
+  color: string;
+  kind: 'personal' | 'shared';
+  archived: boolean;
+  is_owner: boolean;
+  my_member_id: number;
+  members?: PocketMember[];
+  /** Owner-only: pending invites. */
+  invites?: { id: number; member_id: number; email: string; expired: boolean; expires_at: string }[];
+}
+
+export interface ExpenseShare {
+  member_id: number;
+  display_name: string;
+  amount: number;
+}
+
+export interface SharedExpense {
+  id: number;
+  description: string;
+  note: string;
+  amount: number;
+  split: 'equal' | 'exact';
+  spent_at: string;
+  paid_by: number;
+  paid_by_name: string;
+  created_by_name: string;
+  shares: ExpenseShare[];
+  /** The caller's own ledger echo txn, when one exists. */
+  my_echo_txn_id: number | null;
+}
+
+/** Account/category for the caller's own ledger echo — never shared. */
+export interface EchoDraft {
+  account_id: number;
+  category_id?: number | null;
+}
+
+export interface SharedExpenseDraft {
+  amount: number;
+  description?: string;
+  note?: string;
+  spent_at?: string;
+  paid_by: number;
+  split: 'equal' | 'exact';
+  shares: { member_id: number; amount?: number }[];
+  echo?: EchoDraft;
+}
+
+export interface PocketBalances {
+  members: {
+    member_id: number;
+    display_name: string;
+    is_me: boolean;
+    left: boolean;
+    paid: number;
+    share: number;
+    /** Positive = is owed, negative = owes. */
+    net: number;
+  }[];
+  suggestions: { from_member: number; to_member: number; amount: number }[];
+}
+
+export interface PocketSettlement {
+  id: number;
+  from_member: number;
+  from_name: string;
+  to_member: number;
+  to_name: string;
+  amount: number;
+  settled_at: string;
+  my_echo_txn_id: number | null;
+}
+
+export interface PocketActivityItem {
+  id: number;
+  actor_name: string;
+  kind: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface PocketInvitePreview {
+  pocket_name: string;
+  inviter_name: string;
+  member_count: number;
+  status: 'pending' | 'accepted' | 'revoked';
+  expired: boolean;
+  email_matches: boolean;
+  already_member: boolean;
+  pocket_id: number | null;
 }
 
 export interface FinBudgetItem {
@@ -952,6 +1086,54 @@ export const finance = {
   /** pocket_id null/0 clears the active pocket. */
   setActivePocket: (pocket_id: number | null) =>
     request('/finance/pockets/active', { method: 'POST', body: JSON.stringify({ pocket_id }) }),
+
+  // Shared pockets (splitting)
+  /** Convert a personal pocket to shared (one-way). */
+  sharePocket: (id: number, display_name?: string) =>
+    request<{ status: string; member_id: number; converted: number }>(
+      `/finance/pockets/${id}/share`, { method: 'POST', body: JSON.stringify({ display_name }) }),
+  getPocket: (id: number) => request<PocketDetail>(`/finance/pockets/${id}`),
+  addPocketMember: (id: number, display_name: string) =>
+    request<{ id: number }>(`/finance/pockets/${id}/members`, { method: 'POST', body: JSON.stringify({ display_name }) }),
+  renamePocketMember: (id: number, mid: number, display_name: string) =>
+    request(`/finance/pockets/${id}/members/${mid}`, { method: 'PUT', body: JSON.stringify({ display_name }) }),
+  removePocketMember: (id: number, mid: number) =>
+    request(`/finance/pockets/${id}/members/${mid}`, { method: 'DELETE' }),
+  leavePocket: (id: number) =>
+    request(`/finance/pockets/${id}/leave`, { method: 'POST', body: '{}' }),
+
+  createPocketInvite: (id: number, data: { email: string; display_name?: string; member_id?: number }) =>
+    request<{ id: number; member_id: number }>(`/finance/pockets/${id}/invites`, { method: 'POST', body: JSON.stringify(data) }),
+  revokePocketInvite: (id: number, iid: number) =>
+    request(`/finance/pockets/${id}/invites/${iid}`, { method: 'DELETE' }),
+  myPocketInvites: () => request<PocketInviteSummary[]>('/finance/pockets/invites'),
+  pocketInvitePreview: (token: string) =>
+    request<PocketInvitePreview>('/finance/pockets/invites/preview?token=' + encodeURIComponent(token)),
+  acceptPocketInvite: (data: { token?: string; invite_id?: number }) =>
+    request<{ pocket_id: number }>('/finance/pockets/invites/accept', { method: 'POST', body: JSON.stringify(data) }),
+
+  listPocketExpenses: (id: number) => request<SharedExpense[]>(`/finance/pockets/${id}/expenses`),
+  createPocketExpense: (id: number, data: SharedExpenseDraft) =>
+    request<{ id: number; echo_txn_id: number | null }>(`/finance/pockets/${id}/expenses`, { method: 'POST', body: JSON.stringify(data) }),
+  updatePocketExpense: (id: number, eid: number, data: Partial<SharedExpenseDraft>) =>
+    request(`/finance/pockets/${id}/expenses/${eid}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePocketExpense: (id: number, eid: number) =>
+    request(`/finance/pockets/${id}/expenses/${eid}`, { method: 'DELETE' }),
+  /** Payer adds an expense someone else recorded to their own ledger. */
+  attachExpenseEcho: (id: number, eid: number, echo: EchoDraft) =>
+    request<{ txn_id: number }>(`/finance/pockets/${id}/expenses/${eid}/echo`, { method: 'POST', body: JSON.stringify(echo) }),
+
+  pocketBalances: (id: number) => request<PocketBalances>(`/finance/pockets/${id}/balances`),
+  listPocketSettlements: (id: number) => request<PocketSettlement[]>(`/finance/pockets/${id}/settlements`),
+  createPocketSettlement: (id: number, data: { from_member: number; to_member: number; amount: number; settled_at?: string; echo?: EchoDraft }) =>
+    request<{ id: number; echo_txn_id: number | null }>(`/finance/pockets/${id}/settlements`, { method: 'POST', body: JSON.stringify(data) }),
+  deletePocketSettlement: (id: number, sid: number) =>
+    request(`/finance/pockets/${id}/settlements/${sid}`, { method: 'DELETE' }),
+  attachSettlementEcho: (id: number, sid: number, echo: EchoDraft) =>
+    request<{ txn_id: number }>(`/finance/pockets/${id}/settlements/${sid}/echo`, { method: 'POST', body: JSON.stringify(echo) }),
+
+  pocketActivity: (id: number, beforeId?: number) =>
+    request<PocketActivityItem[]>(`/finance/pockets/${id}/activity` + (beforeId ? `?before_id=${beforeId}` : '')),
 
   // Budgets
   listBudgets: (month?: string) =>

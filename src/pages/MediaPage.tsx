@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MorphingDialog, type MorphSourceRect } from '@/components/motion/morphing-dialog';
-import { Sheet, SheetContent, SheetClose, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -512,7 +512,7 @@ function TitleAutocomplete({
 
   return (
     <div className="relative group" ref={wrapRef}>
-      <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10" />
+      <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10" />
       <Input
         value={text}
         onChange={(e) => handleChange(e.target.value)}
@@ -529,13 +529,13 @@ function TitleAutocomplete({
         placeholder={placeholder}
         required
         aria-required="true"
-        className="w-full h-14 pl-14 pr-14 rounded-full bg-[hsl(var(--surface-container-high))] font-serif text-lg font-medium tracking-tight outline-none placeholder:text-muted-foreground/55 border-2 border-transparent focus:border-primary focus:bg-[hsl(var(--surface-container-highest))] focus:shadow-[var(--m3-elev-2)] transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+        className="w-full h-14 pl-12 pr-12 sm:pl-14 sm:pr-14 rounded-full bg-[hsl(var(--surface-container-high))] font-serif text-lg font-medium tracking-tight outline-none placeholder:text-muted-foreground/55 border-2 border-transparent focus:border-primary focus:bg-[hsl(var(--surface-container-highest))] focus:shadow-[var(--m3-elev-2)] transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
       />
       {loading && (
-        <span className="absolute right-5 top-1/2 -translate-y-1/2"><M3CookieLoader size="sm" tone="primary" /></span>
+        <span className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2"><M3CookieLoader size="sm" tone="primary" /></span>
       )}
       {source && !loading && (
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 chip chip-sage h-7 px-2.5 text-xs">
+        <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 chip chip-sage h-7 px-2.5 text-xs">
           {source.startsWith('tmdb') ? 'TMDB' : 'Open Library'}
         </span>
       )}
@@ -546,7 +546,7 @@ function TitleAutocomplete({
             animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
             exit={{ opacity: 0, transform: 'translateY(-4px) scale(0.98)' }}
             transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-            className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 rounded-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-80 overflow-y-auto p-2 origin-top"
+            className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 rounded-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-[min(55vh,26rem)] overflow-y-auto overscroll-contain p-2 origin-top"
           >
             {results.map((r, i) => {
               const kind = tmdbKindLabel(r.external_id);
@@ -591,8 +591,9 @@ function TitleAutocomplete({
               </button>
               );
             })}
-            <div className="px-3 pt-2.5 pb-1 mono text-xs uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
-              Press Enter to pick · Esc to keep typing
+            {/* Keyboard hint — pointless on touch, so hover-capable devices only. */}
+            <div className="hidden [@media(hover:hover)]:block px-3 pt-2.5 pb-1 mono text-xs uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
+              Enter to pick · Esc to close
             </div>
           </motion.div>
         )}
@@ -1081,9 +1082,13 @@ export default function MediaPage() {
   // below a usable size; the poster shrinks 120→96px on phones.
   const mediaFormFields = (
     <>
-      <div className="grid grid-cols-[96px_1fr] sm:grid-cols-[120px_1fr] gap-4 sm:gap-5">
-        {/* Poster preview */}
-        <div className="aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden flex items-center justify-center text-muted-foreground">
+      {/* Phones stack: full-width title row with an inline poster thumb
+          (EXPERIMENTAL — drop the sm:hidden thumb block + restore the
+          grid-cols-[96px_1fr] mobile column to revert). Desktop keeps the
+          120px poster column exactly as before. */}
+      <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4 sm:gap-5">
+        {/* Poster preview — desktop column */}
+        <div className="hidden sm:flex aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden items-center justify-center text-muted-foreground">
           {form.poster_url ? (
             <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -1096,22 +1101,34 @@ export default function MediaPage() {
             <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
               Title <span className="text-destructive">*</span>
             </Label>
-            <TitleAutocomplete
-              value={form.title}
-              type={form.type}
-              autoFocus={!editItem}
-              source={form.external_id}
-              onChange={(v) => setForm((f) => {
-                const changedExternalTitle = !!f.external_id && v !== f.title;
-                return {
-                  ...f,
-                  title: v,
-                  external_id: changedExternalTitle ? '' : f.external_id,
-                  release_date: changedExternalTitle ? '' : f.release_date,
-                };
-              })}
-              onSelect={handleExternalSelect}
-            />
+            <div className="flex items-center gap-2.5">
+              {/* Mobile poster thumb — matches the h-14 title pill */}
+              <div className="sm:hidden h-14 w-10 shrink-0 rounded-xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden flex items-center justify-center text-muted-foreground">
+                {form.poster_url ? (
+                  <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="size-4 opacity-30" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <TitleAutocomplete
+                  value={form.title}
+                  type={form.type}
+                  autoFocus={!editItem}
+                  source={form.external_id}
+                  onChange={(v) => setForm((f) => {
+                    const changedExternalTitle = !!f.external_id && v !== f.title;
+                    return {
+                      ...f,
+                      title: v,
+                      external_id: changedExternalTitle ? '' : f.external_id,
+                      release_date: changedExternalTitle ? '' : f.release_date,
+                    };
+                  })}
+                  onSelect={handleExternalSelect}
+                />
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <FieldSimple label="Year">
@@ -1322,18 +1339,13 @@ export default function MediaPage() {
             style={vvBox ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' } : { height: '100dvh' }}
             className="max-w-full p-0 gap-0 rounded-t-[28px]"
           >
-            <div className="shrink-0 flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-border">
-              <div className="flex flex-col gap-1 min-w-0">
-                <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
-                  {mediaFormTitle}
-                </SheetTitle>
-                <SheetDescription className="mt-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                  {mediaFormSubtitle}
-                </SheetDescription>
-              </div>
-              <SheetClose render={<Button variant="ghost" size="icon-sm" className="shrink-0 bg-secondary" />}>
-                <X className="size-4" />
-              </SheetClose>
+            <div className="shrink-0 flex flex-col gap-1 px-5 pt-5 pb-3 border-b border-border">
+              <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
+                {mediaFormTitle}
+              </SheetTitle>
+              <SheetDescription className="mt-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                {mediaFormSubtitle}
+              </SheetDescription>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
@@ -1351,6 +1363,7 @@ export default function MediaPage() {
            list/table/shelves opens use the scale/fade fallback. */
         <MorphingDialog
           open={showForm}
+          showClose={false}
           onClose={() => setShowForm(false)}
           onCloseComplete={() => {
             setEditItem(null);
@@ -1361,7 +1374,7 @@ export default function MediaPage() {
           ariaLabel={typeof mediaFormTitle === 'string' ? mediaFormTitle : 'Edit media'}
           className="left-0 right-0 top-[6vh] mx-auto w-[min(48rem,92vw)] max-h-[88vh]"
         >
-          <div className="shrink-0 px-6 pt-6 pb-4 pr-14 border-b border-border">
+          <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
             <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
               {mediaFormTitle}
             </div>

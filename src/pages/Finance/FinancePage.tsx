@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
-  TrendingUp, CreditCard, Download, Receipt,
+  TrendingUp, CreditCard, Download, Receipt, Wallet,
   Eye, VenetianMask,
 } from '@/components/ui/icons';
 
@@ -25,7 +25,7 @@ import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
-import PocketBar from './PocketBar';
+import PocketsTab from './pockets/PocketsTab';
 import { FinancePrivacyProvider } from './FinancePrivacyProvider';
 import { downloadCSV, isPrivacyMode, setPrivacyMode, revealExpiry } from './utils';
 import { Input } from '@/components/ui/input';
@@ -33,16 +33,19 @@ import { Button } from '@/components/ui/button';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { cn } from '@/lib/utils';
 
-const tabs = [
+// Exported: PocketDetailPage renders the same secondary bar so opening a
+// pocket never swaps out the Finance navigation.
+export const financeTabs = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { id: 'pockets', label: 'Pockets', icon: Wallet },
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
   { id: 'billers', label: 'Billers', icon: Receipt },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
   { id: 'cards', label: 'Cards', icon: CreditCard },
 ] as const;
-type TabId = (typeof tabs)[number]['id'];
+type TabId = (typeof financeTabs)[number]['id'];
 
 // Centralized data: every tab reads from this so navigation is instant.
 // Each loader is lazy + cached so we only fetch on first need + on reload.
@@ -67,7 +70,7 @@ export default function FinancePage() {
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const active: TabId = useMemo(
-    () => (tabs.find((t) => t.id === tab)?.id as TabId) || 'overview',
+    () => (financeTabs.find((t) => t.id === tab)?.id as TabId) || 'overview',
     [tab],
   );
 
@@ -91,7 +94,7 @@ export default function FinancePage() {
 
   const accountsQ = useFinAccounts();
   const categoriesQ = useFinCategories();
-  const pocketsQ = useFinPockets(); // cheap; powers the chip bar + txn dialogs
+  const pocketsQ = useFinPockets(); // cheap; powers the Pockets tab + txn dialogs
   const transactionsQ = useFinTransactions(txnParams, want('transactions'));
   const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
@@ -113,7 +116,7 @@ export default function FinancePage() {
       statements: statementsQ.isSuccess,
     },
   };
-  const pockets = pocketsQ.data ?? { items: [], general_spend: 0, active_pocket_id: null };
+  const pockets = pocketsQ.data ?? { items: [], general_spend: 0, active_pocket_id: null, shared: [], invites: [] };
 
   // Tabs call these after their own writes; the InvalidateBridge calls the same
   // root on AI finance events. Either way every enabled finance query refetches.
@@ -162,13 +165,6 @@ export default function FinancePage() {
     };
   }, [privacy]);
 
-  // Chip tap in the PocketBar: set the filter and jump to the transaction
-  // list so the result of the tap is immediately visible.
-  const filterByPocket = (id: number | null) => {
-    setPocketFilter(id);
-    if (id !== null) navigate('/finance/transactions', { replace: true });
-  };
-
   const setActive = (id: TabId) => {
     navigate(id === 'overview' ? '/finance' : '/finance/' + id, { replace: true });
   };
@@ -192,7 +188,7 @@ export default function FinancePage() {
           bare
           ariaLabel="Finance sections"
           value={active}
-          options={tabs.map((t) => ({ value: t.id, label: t.label, icon: t.icon }))}
+          options={financeTabs.map((t) => ({ value: t.id, label: t.label, icon: t.icon }))}
           onChange={setActive}
         />
       }
@@ -200,12 +196,6 @@ export default function FinancePage() {
       <div className="relative">
         {/* Privacy is context-driven so this data-owning subtree stays mounted
             and its fetch effects do not run again when figures are toggled. */}
-        <PocketBar
-          pockets={pockets}
-          loaded={pocketsQ.isSuccess}
-          filter={pocketFilter}
-          onFilter={filterByPocket}
-        />
 
         {/* All tabs always mounted; only active is visible.
             This eliminates the "wrong UI flash" entirely - content for every
@@ -231,10 +221,13 @@ export default function FinancePage() {
             transactions={data.transactions}
             loaded={data.loaded.transactions}
             pocketFilter={pocketFilter}
-            onClearPocketFilter={() => setPocketFilter(null)}
+            onPocketFilter={setPocketFilter}
             reload={() => { loadTransactions(); loadAccounts(); loadPockets(); }}
             reloadCategories={loadCategories}
           />
+        </TabPanel>
+        <TabPanel active={active === 'pockets'}>
+          <PocketsTab pockets={pockets} loaded={pocketsQ.isSuccess} />
         </TabPanel>
         <TabPanel active={active === 'budgets'}>
           <BudgetsTab
