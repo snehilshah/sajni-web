@@ -1082,10 +1082,10 @@ export default function MediaPage() {
   // below a usable size; the poster shrinks 120→96px on phones.
   const mediaFormFields = (
     <>
-      {/* Phones stack: full-width title row with an inline poster thumb
-          (EXPERIMENTAL — drop the sm:hidden thumb block + restore the
-          grid-cols-[96px_1fr] mobile column to revert). Desktop keeps the
-          120px poster column exactly as before. */}
+      {/* Phones: full-width title row; the poster preview lives in the sheet
+          header backdrop instead of a column (restore grid-cols-[96px_1fr]
+          to bring the mobile column back). Desktop keeps the 120px poster
+          column exactly as before. */}
       <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4 sm:gap-5">
         {/* Poster preview — desktop column */}
         <div className="hidden sm:flex aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden items-center justify-center text-muted-foreground">
@@ -1101,34 +1101,22 @@ export default function MediaPage() {
             <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
               Title <span className="text-destructive">*</span>
             </Label>
-            <div className="flex items-center gap-2.5">
-              {/* Mobile poster thumb — matches the h-14 title pill */}
-              <div className="sm:hidden h-14 w-10 shrink-0 rounded-xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden flex items-center justify-center text-muted-foreground">
-                {form.poster_url ? (
-                  <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon className="size-4 opacity-30" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <TitleAutocomplete
-                  value={form.title}
-                  type={form.type}
-                  autoFocus={!editItem}
-                  source={form.external_id}
-                  onChange={(v) => setForm((f) => {
-                    const changedExternalTitle = !!f.external_id && v !== f.title;
-                    return {
-                      ...f,
-                      title: v,
-                      external_id: changedExternalTitle ? '' : f.external_id,
-                      release_date: changedExternalTitle ? '' : f.release_date,
-                    };
-                  })}
-                  onSelect={handleExternalSelect}
-                />
-              </div>
-            </div>
+            <TitleAutocomplete
+              value={form.title}
+              type={form.type}
+              autoFocus={!editItem}
+              source={form.external_id}
+              onChange={(v) => setForm((f) => {
+                const changedExternalTitle = !!f.external_id && v !== f.title;
+                return {
+                  ...f,
+                  title: v,
+                  external_id: changedExternalTitle ? '' : f.external_id,
+                  release_date: changedExternalTitle ? '' : f.release_date,
+                };
+              })}
+              onSelect={handleExternalSelect}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <FieldSimple label="Year">
@@ -1339,13 +1327,30 @@ export default function MediaPage() {
             style={vvBox ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' } : { height: '100dvh' }}
             className="max-w-full p-0 gap-0 rounded-t-[28px]"
           >
-            <div className="shrink-0 flex flex-col gap-1 px-5 pt-5 pb-3 border-b border-border">
-              <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
-                {mediaFormTitle}
-              </SheetTitle>
-              <SheetDescription className="mt-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                {mediaFormSubtitle}
-              </SheetDescription>
+            {/* EXPERIMENTAL poster header: when the entry has art, the title
+                bar shows it full-bleed under a gradient scrim that resolves
+                into the sheet surface — image + solid scrim, no blur/glass.
+                No poster → plain header, exactly the old look. */}
+            <div className="relative shrink-0 overflow-hidden border-b border-border">
+              {form.poster_url && (
+                <>
+                  <img
+                    src={form.poster_url}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 h-full w-full object-cover object-[center_22%]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--surface-container-high))] via-[hsl(var(--surface-container-high)/0.72)] to-[hsl(var(--surface-container-high)/0.18)]" />
+                </>
+              )}
+              <div className={cn('relative flex flex-col gap-1 px-5 pb-3', form.poster_url ? 'pt-20' : 'pt-5')}>
+                <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
+                  {mediaFormTitle}
+                </SheetTitle>
+                <SheetDescription className="mt-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  {mediaFormSubtitle}
+                </SheetDescription>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
