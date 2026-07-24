@@ -435,12 +435,17 @@ export default function NotesPage() {
     </>
   );
 
+  // Landing = index ledger, full width: the ledger's folder sections ARE the
+  // navigation there, so the vault sidebar (and its toggle) only exist once a
+  // note is open or being drafted.
+  const onLanding = !selectedId && !drafting && !loadingNote && !title && !content;
+
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
-      {/* Vault corner island — desktop. Sits top-left, mirroring the
-          search island top-right, so the pill itself never has to host
-          (or move for) the sidebar toggle. */}
-      <button
+      {/* Vault corner island — desktop, editor view only. Sits top-left,
+          mirroring the search island top-right, so the pill itself never has
+          to host (or move for) the sidebar toggle. */}
+      {!onLanding && <button
         type="button"
         onClick={() => setSidebarOpen((v) => !v)}
         title={sidebarOpen ? 'Hide vault' : 'Show vault'}
@@ -449,7 +454,7 @@ export default function NotesPage() {
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 16 }}
       >
         {sidebarOpen ? <PanelLeftClose className="size-[18px]" /> : <PanelLeft className="size-[18px]" />}
-      </button>
+      </button>}
 
       {/* Islands pill — page-level and viewport-centered, so toggling
           the vault never shifts it. */}
@@ -509,7 +514,7 @@ export default function NotesPage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Desktop vault sidebar */}
         <AnimatePresence initial={false} mode="popLayout">
-          {sidebarOpen && (
+          {sidebarOpen && !onLanding && (
             <motion.aside
               key="sidebar"
               initial={{ width: 0, opacity: 0 }}
@@ -539,10 +544,10 @@ export default function NotesPage() {
         {/* Editor body — fills remaining width; pads below the floating
             pills (primary + Notes pill are fixed islands). */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto" style={{ paddingTop: chromeClearance(isMobile) }}>
-          {/* Atlas landing — show the design's card grid when no note is open
+          {/* Index landing — folder-sectioned ledger when no note is open
               and not actively drafting a new one. */}
-          {!selectedId && !drafting && !loadingNote && !title && !content ? (
-            <NotesAtlas
+          {onLanding ? (
+            <NotesLedger
               notes={notesList}
               loading={loading}
               onPick={(id) => selectNote(id)}
@@ -916,20 +921,53 @@ function SaveIndicator({ state, canSave, onSave }: { state: 'idle' | 'saving' | 
   );
 }
 
-// NotesAtlas — expressive M3 landing grid. Each note is a solid tonal
-// card rotating through the scheme's container colors, with ONE flattened
-// corner (M3E asymmetric shape, rotates per note) and a ghost serif
-// initial in the corner — the same visual language as the media rows'
-// ghost year. Pinned notes read as fully-filled secondary-container.
-const ATLAS_TINTS = [
-  'hsl(var(--primary-container) / 0.42)',
-  'hsl(var(--tertiary-container) / 0.45)',
-  'hsl(var(--surface-container-high))',
-  'hsl(var(--secondary-container) / 0.35)',
-];
-const ATLAS_CORNERS = ['rounded-tr-lg', 'rounded-bl-lg', 'rounded-tl-lg', 'rounded-br-lg'];
+// NotesLedger — the landing is an index, not a card wall. Notes render as
+// generous rows grouped into folder sections (pinned strip first, unfiled
+// last), each section anchored by one oversized ghost initial in the left
+// gutter — the atlas idea kept as structure (a book's table of contents)
+// instead of per-card decoration. One container role per surface: rows sit
+// on the page surface, only the pinned strip carries secondary-container.
 
-function NotesAtlas({
+function NoteRow({ note: n, pinned, onPick }: {
+  note: NoteListItem;
+  pinned?: boolean;
+  onPick: (id: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(n.id)}
+      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 min-h-11 text-left outline-none transition-colors duration-150 ease-[var(--motion-ease-out)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] active:bg-[hsl(var(--on-surface)/0.1)] tap-highlight-none ${
+        pinned
+          ? 'hover:bg-[hsl(var(--on-secondary-container)/0.08)]'
+          : 'hover:bg-[hsl(var(--surface-container))]'
+      }`}
+    >
+      {pinned && <Pin className="size-3.5 shrink-0 text-[hsl(var(--on-secondary-container))]" aria-label="Pinned" />}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate serif text-[15px] font-medium tracking-[-0.01em] leading-snug text-foreground">
+          {n.title || 'Untitled'}
+        </span>
+        {n.description && (
+          <span className="block truncate text-sm text-muted-foreground leading-snug mt-0.5">
+            {n.description}
+          </span>
+        )}
+      </span>
+      {(n.tags || []).slice(0, 2).map((t) => (
+        <span key={t} className="chip chip-sage hidden sm:inline-flex max-w-[7rem] shrink-0">
+          <span className="truncate">#{t}</span>
+        </span>
+      ))}
+      <span className="mono text-xs tabular-nums text-muted-foreground shrink-0 w-14 text-right">
+        {fmtRelTime(n.updated_at)}
+      </span>
+      <ArrowUpRight className="fine-group-hover-arrow size-4 shrink-0 text-foreground/45 opacity-0 -translate-x-1 translate-y-1 transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none" />
+    </button>
+  );
+}
+
+function NotesLedger({
   notes, loading, onPick, onNew,
 }: {
   notes: NoteListItem[];
@@ -937,80 +975,84 @@ function NotesAtlas({
   onPick: (id: number) => void;
   onNew: () => void;
 }) {
-  return (
-    <div className="max-w-6xl w-full mx-auto px-4 md:px-10 pt-5 md:pt-7 pb-16">
-      {loading ? (
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-[150px] w-full rounded-[28px]" />
-          ))}
-        </div>
-      ) : notes.length === 0 ? (
-        <div className="m3-expressive-panel rounded-xl text-center py-20 text-muted-foreground">
+  // Pinned strip + folder sections (full path label, unfiled last),
+  // recency-ordered inside each.
+  const { pinned, sections } = useMemo(() => {
+    const pinned = notes.filter((n) => n.pinned)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    const byFolder = new Map<string, NoteListItem[]>();
+    for (const n of notes) {
+      if (n.pinned) continue;
+      const key = n.folder || '';
+      if (!byFolder.has(key)) byFolder.set(key, []);
+      byFolder.get(key)!.push(n);
+    }
+    const sections = Array.from(byFolder.entries())
+      .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+      .map(([folder, items]) => ({
+        folder,
+        items: items.sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
+      }));
+    return { pinned, sections };
+  }, [notes]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16 flex flex-col gap-2.5">
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <Skeleton key={i} className="h-11 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (notes.length === 0) {
+    return (
+      <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16">
+        <div className="rounded-xl border border-dashed border-border py-20 text-center text-muted-foreground">
           <FileText className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No notes yet. Start one to fill your atlas.</p>
+          <p className="text-sm">No notes yet. Start one to fill your index.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={onNew}>
             <FilePlus className="size-3.5" /> New note
           </Button>
         </div>
-      ) : (
-        <div
-          className="grid gap-3"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}
-        >
-          {/* New-note tile — first cell, dashed invitation. */}
-          <button
-            type="button"
-            onClick={onNew}
-            className="group flex flex-col items-center justify-center gap-2.5 min-h-[150px] rounded-[28px] border-2 border-dashed border-[hsl(var(--outline-variant))] text-muted-foreground transition-colors hover:border-[hsl(var(--primary)/0.5)] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.05)] active:scale-[0.98]"
-          >
-            <span className="fine-group-hover-scale-110 grid place-items-center size-11 rounded-2xl bg-[hsl(var(--primary-container)/0.55)] text-[hsl(var(--on-primary-container))] transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none">
-              <FilePlus className="size-5" />
-            </span>
-            <span className="text-xs font-medium">New note</span>
-          </button>
+      </div>
+    );
+  }
 
-          {notes.map((n) => {
-            const k = n.id % 4;
-            const initial = (n.title || 'U').trim().charAt(0).toUpperCase() || 'U';
-            return (
-              <button
-                key={n.id}
-                onClick={() => onPick(n.id)}
-                className={`fine-hover-note-card group relative overflow-hidden text-left flex flex-col min-h-[150px] p-4 rounded-[28px] ${ATLAS_CORNERS[k]} transition-[transform,box-shadow,border-radius] duration-200 ease-[var(--motion-ease-out)] active:scale-[0.98] motion-reduce:transition-none`}
-                style={{ background: n.pinned ? 'hsl(var(--secondary-container))' : ATLAS_TINTS[k] }}
-              >
-                {/* Ghost initial — quiet oversized glyph anchoring the card. */}
-                <span
-                  aria-hidden
-                  className="absolute -bottom-6 -right-1 serif text-[92px] leading-none font-medium text-foreground/[0.07] select-none pointer-events-none"
-                >
-                  {initial}
-                </span>
-
-                <div className="mono text-xs tracking-[0.14em] uppercase text-foreground/55 flex items-center gap-1.5 min-w-0">
-                  {n.pinned && <Pin className="size-3 shrink-0" aria-label="Pinned" />}
-                  <span className="truncate">
-                    {fmtRelTime(n.updated_at)}
-                    {n.folder ? ` · ${n.folder}` : ''}
-                  </span>
-                </div>
-
-                <h3 className="serif text-[19px] font-medium tracking-[-0.01em] leading-[1.22] mt-2 line-clamp-3 text-foreground">
-                  {n.title || 'Untitled'}
-                </h3>
-
-                <div className="relative mt-auto pt-3 flex items-center gap-1 min-w-0">
-                  {(n.tags || []).slice(0, 2).map((t) => (
-                    <span key={t} className="chip chip-sage max-w-[8rem]"><span className="truncate">#{t}</span></span>
-                  ))}
-                  <ArrowUpRight className="fine-group-hover-arrow size-4 ml-auto shrink-0 text-foreground/45 opacity-0 -translate-x-1 translate-y-1 transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
+  return (
+    <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16 flex flex-col gap-7">
+      {/* Pinned strip — the one tinted surface on the page. */}
+      {pinned.length > 0 && (
+        <section aria-label="Pinned notes" className="rounded-2xl bg-[hsl(var(--secondary-container)/0.45)] p-1.5">
+          {pinned.map((n) => <NoteRow key={n.id} note={n} pinned onPick={onPick} />)}
+        </section>
       )}
+
+      {sections.map(({ folder, items }) => {
+        const label = folder ? folder.split('/').join(' / ') : 'Notes';
+        const initial = (folder ? folder.split('/').pop()! : 'N').charAt(0).toUpperCase();
+        return (
+          <section key={folder || '·'} aria-label={label} className="grid grid-cols-[40px_1fr] md:grid-cols-[64px_1fr] gap-x-2 md:gap-x-4">
+            {/* Ghost initial gutter — one oversized glyph anchors the section. */}
+            <div aria-hidden className="relative select-none pointer-events-none">
+              <span className="sticky top-2 block serif text-[44px] md:text-[64px] leading-none font-medium text-foreground/[0.07] text-right">
+                {initial}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-2.5 px-3 pb-1.5">
+                <h2 className="mono text-xs uppercase tracking-[0.14em] text-muted-foreground truncate">{label}</h2>
+                <span className="mono text-xs tabular-nums text-muted-foreground/60">{items.length}</span>
+                <span className="flex-1 border-t border-[hsl(var(--outline-variant))] self-center" />
+              </div>
+              <div className="flex flex-col">
+                {items.map((n) => <NoteRow key={n.id} note={n} onPick={onPick} />)}
+              </div>
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
