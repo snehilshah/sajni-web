@@ -27,68 +27,17 @@ export function useFinTransactions(
   });
 }
 
-// month = 'YYYY-MM' history view for monthly (rolling) budgets; omit = current.
-export function useFinBudgets(month?: string, enabled = true) {
-  return useQuery({ queryKey: qk.finance.budgets(month), queryFn: () => finance.listBudgets(month), enabled });
+// Budgets are discrete and never reset, so there is no history view to page
+// through: every budget already carries the window it was created for.
+export function useFinBudgets(enabled = true) {
+  return useQuery({ queryKey: qk.finance.budgets(), queryFn: () => finance.listBudgets(), enabled });
 }
 
-export function useFinPockets(includeArchived = false, enabled = true) {
+export function useFinSlates(includeArchived = false, enabled = true) {
   return useQuery({
-    queryKey: qk.finance.pockets(),
-    queryFn: () => finance.listPockets(includeArchived),
+    queryKey: qk.finance.slates(includeArchived),
+    queryFn: () => finance.listSlates(includeArchived),
     enabled,
-  });
-}
-
-// Shared-pocket reads, keyed under the finance root so qk.finance.all
-// invalidation (tab writes + AI pocket_ events) refreshes them for free.
-// Balances/settlements/activity are lazy per sub-tab of the detail page.
-export function usePocketDetail(id: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.finance.pocket(id),
-    queryFn: () => finance.getPocket(id),
-    enabled: enabled && id > 0,
-  });
-}
-
-export function usePocketExpenses(id: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.finance.pocketExpenses(id),
-    queryFn: () => finance.listPocketExpenses(id),
-    enabled: enabled && id > 0,
-  });
-}
-
-export function usePocketBalances(id: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.finance.pocketBalances(id),
-    queryFn: () => finance.pocketBalances(id),
-    enabled: enabled && id > 0,
-  });
-}
-
-export function usePocketSettlements(id: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.finance.pocketSettlements(id),
-    queryFn: () => finance.listPocketSettlements(id),
-    enabled: enabled && id > 0,
-  });
-}
-
-export function usePocketActivity(id: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.finance.pocketActivity(id),
-    queryFn: () => finance.pocketActivity(id),
-    enabled: enabled && id > 0,
-  });
-}
-
-export function usePocketInvitePreview(token: string) {
-  return useQuery({
-    queryKey: qk.finance.pocketInvitePreview(token),
-    queryFn: () => finance.pocketInvitePreview(token),
-    enabled: token.length > 0,
-    retry: false,
   });
 }
 

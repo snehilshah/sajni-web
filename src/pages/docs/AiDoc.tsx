@@ -21,7 +21,7 @@ export default function AiDoc() {
           rows={[
             [
               '@sajni in ⌘K',
-              'one-shot asks: “add lunch 240 to cash”, “what’s due this week?”, “set active pocket to Goa Trip”',
+              'one-shot asks: “add lunch 240 to cash”, “what’s due this week?”, “move last week’s spends to the Goa Trip slate”',
             ],
             [
               'Projects → Chat',
@@ -54,9 +54,9 @@ export default function AiDoc() {
           <li><strong>Media</strong> — add/search the library, move statuses, advance episodes.</li>
           <li>
             <strong>Finance</strong> — add/edit transactions (they file into
-            your active pocket like any direct entry), pay billers (record or
-            attach), manage pockets and the active pocket, read budgets with
-            their rolling windows, toggle investment auto-debit.
+            Plain like any direct entry), pay billers (record or
+            attach), create slates and sweep existing transactions into them,
+            read and create budgets, toggle investment auto-debit.
           </li>
           <li><strong>Projects</strong> — cards, synthesis, enrichment.</li>
           <li><strong>Themes</strong> — generate and activate M3 themes from a description.</li>

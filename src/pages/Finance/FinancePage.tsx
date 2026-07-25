@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { format, startOfMonth, subMonths } from 'date-fns';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
   TrendingUp, CreditCard, Download, Receipt, Wallet,
@@ -15,7 +16,7 @@ import {
 } from '@/api';
 import {
   useFinAccounts, useFinCategories, useFinTransactions,
-  useFinInvestments, useFinSavings, useFinStatements, useFinPockets,
+  useFinInvestments, useFinSavings, useFinStatements, useFinSlates,
 } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import OverviewTab from './OverviewTab';
@@ -25,7 +26,7 @@ import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
-import PocketsTab from './pockets/PocketsTab';
+import SlatesTab from './SlatesTab';
 import { FinancePrivacyProvider } from './FinancePrivacyProvider';
 import { downloadCSV, isPrivacyMode, setPrivacyMode, revealExpiry } from './utils';
 import { Input } from '@/components/ui/input';
@@ -33,13 +34,15 @@ import { Button } from '@/components/ui/button';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { cn } from '@/lib/utils';
 
-// Exported: PocketDetailPage renders the same secondary bar so opening a
-// pocket never swaps out the Finance navigation.
+/** Server-side max for GET /finance/transactions. */
+const TXN_LIMIT = 1000;
+
+// Exported so other Finance screens render the same secondary bar.
 export const financeTabs = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { id: 'pockets', label: 'Pockets', icon: Wallet },
+  { id: 'slates', label: 'Slates', icon: Wallet },
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
   { id: 'billers', label: 'Billers', icon: Receipt },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
@@ -84,17 +87,28 @@ export default function FinancePage() {
   }, [active]);
   const want = (k: string) => activated.has(k);
 
-  // Pocket filter: null = off, 0 = General (unpocketed), N = that pocket.
+  // Slate filter: null = off, N = that slate. Plain is a real row, no sentinel.
   // The transactions query is params-keyed, so each filter caches separately.
-  const [pocketFilter, setPocketFilter] = useState<number | null>(null);
-  const txnParams = useMemo(
-    () => (pocketFilter === null ? { limit: 200 } : { limit: 200, pocket_id: pocketFilter }),
-    [pocketFilter],
-  );
+  const [slateFilter, setSlateFilter] = useState<number | null>(null);
+  // The ledger reports per-day/week/month totals, so a bare row cap is not just
+  // truncation — it silently produces a WRONG total for whichever period the
+  // cap lands inside. Bounding by date instead makes every period returned a
+  // complete one. TXN_LIMIT is the server's max and only a backstop; if it is
+  // ever hit, TransactionsTab drops its oldest (provably partial) day.
+  const [monthsBack, setMonthsBack] = useState(2);
+  const txnParams = useMemo(() => {
+    const from = format(startOfMonth(subMonths(new Date(), monthsBack)), 'yyyy-MM-dd');
+    return slateFilter === null
+      ? { from, limit: TXN_LIMIT }
+      : { from, limit: TXN_LIMIT, slate_id: slateFilter };
+  }, [slateFilter, monthsBack]);
 
   const accountsQ = useFinAccounts();
   const categoriesQ = useFinCategories();
-  const pocketsQ = useFinPockets(); // cheap; powers the Pockets tab + txn dialogs
+  // Archived slates are opt-in. Every other consumer filters `!archived`, so
+  // pulling them in only affects the Slates tab, which is what asked for them.
+  const [showArchived, setShowArchived] = useState(false);
+  const slatesQ = useFinSlates(showArchived); // cheap; powers the Slates tab + txn dialogs
   const transactionsQ = useFinTransactions(txnParams, want('transactions'));
   const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
@@ -116,7 +130,7 @@ export default function FinancePage() {
       statements: statementsQ.isSuccess,
     },
   };
-  const pockets = pocketsQ.data ?? { items: [], general_spend: 0, active_pocket_id: null, shared: [], invites: [] };
+  const slates = slatesQ.data ?? { items: [] };
 
   // Tabs call these after their own writes; the InvalidateBridge calls the same
   // root on AI finance events. Either way every enabled finance query refetches.
@@ -124,11 +138,12 @@ export default function FinancePage() {
   const loadCategories = () => qc.invalidateQueries({ queryKey: qk.finance.categories() });
   const loadAccounts = () => qc.invalidateQueries({ queryKey: qk.finance.accounts() });
   const loadSavings = () => qc.invalidateQueries({ queryKey: qk.finance.savings() });
-  // Prefix (no params) so every pocket-filtered variant refetches too.
+  // Prefix (no params) so every slate-filtered variant refetches too.
   const loadTransactions = () => qc.invalidateQueries({ queryKey: ['finance', 'transactions'] });
   const loadInvestments = () => qc.invalidateQueries({ queryKey: qk.finance.investments() });
   const loadStatements = () => qc.invalidateQueries({ queryKey: qk.finance.statements() });
-  const loadPockets = () => qc.invalidateQueries({ queryKey: qk.finance.pockets() });
+  // Prefix (no flag) so the archived-inclusive variant refetches too.
+  const loadSlates = () => qc.invalidateQueries({ queryKey: ['finance', 'slates'] });
 
   const [exportOpen, setExportOpen] = useState(false);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag
@@ -216,23 +231,33 @@ export default function FinancePage() {
           <TransactionsTab
             accounts={data.accounts}
             categories={data.categories}
-            pockets={pockets.items}
-            activePocketId={pockets.active_pocket_id}
+            slates={slates.items}
             transactions={data.transactions}
             loaded={data.loaded.transactions}
-            pocketFilter={pocketFilter}
-            onPocketFilter={setPocketFilter}
-            reload={() => { loadTransactions(); loadAccounts(); loadPockets(); }}
+            slateFilter={slateFilter}
+            onSlateFilter={setSlateFilter}
+            truncated={data.transactions.length >= TXN_LIMIT}
+            canLoadEarlier={data.loaded.transactions}
+            onLoadEarlier={() => setMonthsBack((n) => n + 3)}
+            reload={() => { loadTransactions(); loadAccounts(); loadSlates(); }}
             reloadCategories={loadCategories}
           />
         </TabPanel>
-        <TabPanel active={active === 'pockets'}>
-          <PocketsTab pockets={pockets} loaded={pocketsQ.isSuccess} />
+        <TabPanel active={active === 'slates'}>
+          <SlatesTab
+            slates={slates.items}
+            loaded={slatesQ.isSuccess}
+            showArchived={showArchived}
+            onShowArchived={setShowArchived}
+            // Opening a slate is just the ledger filtered to it — same list,
+            // same sweep, no second implementation of a transaction list.
+            onOpenSlate={(id) => { setSlateFilter(id); setActive('transactions'); }}
+          />
         </TabPanel>
         <TabPanel active={active === 'budgets'}>
           <BudgetsTab
             categories={data.categories}
-            pockets={pockets.items}
+            slates={slates.items}
             reloadCategories={loadCategories}
           />
         </TabPanel>

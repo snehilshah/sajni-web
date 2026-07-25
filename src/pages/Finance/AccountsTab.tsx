@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { finance, type AccountDraft, type FinAccount, type FinSaving, type FinCategory } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
+import { cardClass, CardAccent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -111,9 +112,9 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                 layout
                 initial={{ opacity: 0, transform: 'translateY(4px)' }}
                 animate={{ opacity: 1, transform: 'translateY(0)' }}
-                className={`rounded-xl border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow,opacity] ${a.archived ? 'opacity-60' : ''}`}
-                style={{ borderLeftColor: a.color, borderLeftWidth: 4 }}
+                className={cardClass({ accent: a.color }, a.archived ? 'p-4 opacity-60' : 'p-4')}
               >
+                <CardAccent color={a.color} />
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="size-9 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: a.color + '20', color: a.color }}>

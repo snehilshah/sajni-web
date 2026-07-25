@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { format, parse, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Tags, ChevronLeft, ChevronRight, Check } from '@/components/ui/icons';
+import { Plus, Pencil, Trash2, Tags, Check, Copy } from '@/components/ui/icons';
 
-import { finance, type BudgetDraft, type FinBudget, type FinCategory, type FinPocket } from '@/api';
+import { finance, type BudgetDraft, type FinBudget, type FinCategory, type FinSlate } from '@/api';
 import { useFinBudgets } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -16,43 +16,68 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SegmentedButton } from '@/components/ui/segmented-button';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { CardsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
+import { cardClass } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
+// A budget is a lens, not a container: many budgets can read the same
+// transaction. There is no period and nothing resets — a budget owns the window
+// it was created for, and next month's budget is a deliberate duplicate. The
+// slate multi-select is what it reads; empty means Plain only, i.e. normal life.
 
 interface Props {
   categories: FinCategory[];
-  pockets: FinPocket[];
+  slates: FinSlate[];
   reloadCategories: () => void;
 }
 
-const currentMonth = () => format(new Date(), 'yyyy-MM');
+/** A draft to prefill the dialog with — a duplicate, or blank for a new one. */
+type Prefill = Omit<BudgetDraft, 'items'> & { items: { category_id: number | null; amount: string }[] };
 
-export default function BudgetsTab({ categories, pockets, reloadCategories }: Props) {
+export default function BudgetsTab({ categories, slates, reloadCategories }: Props) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FinBudget | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [manageCats, setManageCats] = useState(false);
-  // Which month the MONTHLY (rolling) budgets are windowed to. undefined =
-  // current month (live view); 'YYYY-MM' = history. Custom budgets are
-  // unaffected by this — their window is their stored date range.
-  const [month, setMonth] = useState<string | undefined>(undefined);
+  const [creating, setCreating] = useState<Prefill | null>(null);
 
-  const { data: budgets = [], isSuccess } = useFinBudgets(month);
+  const [manageCats, setManageCats] = useState(false);
+
+  const { data: budgets = [], isSuccess } = useFinBudgets();
   const reload = () => qc.invalidateQueries({ queryKey: qk.finance.all });
 
   const expenseCats = useMemo(() => categories.filter((c) => c.kind === 'expense'), [categories]);
-  const monthly = budgets.filter((b) => b.period === 'monthly');
-  const custom = budgets.filter((b) => b.period !== 'monthly');
+  // Nothing rolls, so the only split that matters is whether the window has
+  // closed. Past budgets stay readable but drop out of the way.
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const current = budgets.filter((b) => !b.end_date || b.end_date >= today);
+  const past = budgets.filter((b) => !!b.end_date && b.end_date < today);
 
-  const shownMonth = month ?? currentMonth();
-  const shownDate = parse(shownMonth, 'yyyy-MM', new Date());
-  const atCurrent = shownMonth === currentMonth();
-  const nav = (dir: -1 | 1) => {
-    const next = format(dir === -1 ? subMonths(shownDate, 1) : addMonths(shownDate, 1), 'yyyy-MM');
-    setMonth(next === currentMonth() ? undefined : next);
+  // Duplicating a closed budget shifts the window forward by its own length, so
+  // a month becomes the next month and a week the next week without asking the
+  // user to restate the shape.
+  const duplicate = (b: FinBudget) => {
+    let start = '';
+    let end = '';
+    if (b.start_date && b.end_date) {
+      const s = new Date(b.start_date);
+      const e = new Date(b.end_date);
+      const span = e.getTime() - s.getTime() + 86400000; // inclusive of both ends
+      start = format(new Date(e.getTime() + 86400000), 'yyyy-MM-dd');
+      end = format(new Date(e.getTime() + span), 'yyyy-MM-dd');
+    }
+    setCreating({
+      name: b.name,
+      start_date: start,
+      end_date: end,
+      total_amount: b.total_amount,
+      slate_ids: b.slate_ids ?? [],
+      items: b.items.map((i) => ({ category_id: i.category_id, amount: String(i.amount) })),
+    });
+  };
+
+  const blank: Prefill = {
+    name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [],
   };
 
   return (
@@ -63,7 +88,7 @@ export default function BudgetsTab({ categories, pockets, reloadCategories }: Pr
           <Button size="sm" variant="outline" onClick={() => setManageCats(true)}>
             <Tags className="size-4 mr-1" /> Categories
           </Button>
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button size="sm" onClick={() => setCreating(blank)}>
             <Plus className="size-4 mr-1" /> New budget
           </Button>
         </div>
@@ -73,54 +98,35 @@ export default function BudgetsTab({ categories, pockets, reloadCategories }: Pr
         <CardsSkeleton count={3} />
       ) : budgets.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No budgets yet. A monthly budget rolls with the calendar on its own;
-          a custom one covers a date range — a trip, a project.
+          No budgets yet. A budget is a limit over a set of transactions — this
+          month's food, this week's spending, a trip. Dates are optional, and
+          nothing resets on its own.
         </div>
       ) : (
         <>
-          {/* Monthly (rolling) */}
-          {monthly.length > 0 && (
+          {current.length > 0 && (
             <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Monthly</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => nav(-1)}
-                    aria-label="Previous month"
-                    className="grid size-9 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
-                  >
-                    <ChevronLeft className="size-4" />
-                  </button>
-                  <span className="min-w-[110px] text-center text-sm font-medium tabular-nums">
-                    {format(shownDate, 'MMMM yyyy')}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => nav(1)}
-                    disabled={atCurrent}
-                    aria-label="Next month"
-                    className="grid size-9 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] disabled:opacity-35 disabled:pointer-events-none"
-                  >
-                    <ChevronRight className="size-4" />
-                  </button>
-                </div>
-              </div>
+              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Running</span>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {monthly.map((b) => (
-                  <BudgetCard key={b.id} budget={b} categories={categories} pockets={pockets} onOpen={() => setEditing(b)} />
+                {current.map((b) => (
+                  <BudgetCard
+                    key={b.id} budget={b} categories={categories} slates={slates}
+                    onOpen={() => setEditing(b)} onDuplicate={() => duplicate(b)}
+                  />
                 ))}
               </div>
             </section>
           )}
 
-          {/* Trips & custom ranges */}
-          {custom.length > 0 && (
+          {past.length > 0 && (
             <section className="flex flex-col gap-2">
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Trips &amp; custom</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Closed</span>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {custom.map((b) => (
-                  <BudgetCard key={b.id} budget={b} categories={categories} pockets={pockets} onOpen={() => setEditing(b)} />
+                {past.map((b) => (
+                  <BudgetCard
+                    key={b.id} budget={b} categories={categories} slates={slates}
+                    onOpen={() => setEditing(b)} onDuplicate={() => duplicate(b)}
+                  />
                 ))}
               </div>
             </section>
@@ -129,12 +135,13 @@ export default function BudgetsTab({ categories, pockets, reloadCategories }: Pr
       )}
 
       <BudgetDialog
-        open={creating || editing !== null}
+        open={creating !== null || editing !== null}
         budget={editing}
+        prefill={creating}
         categories={expenseCats}
-        pockets={pockets}
-        onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); reload(); }}
+        slates={slates}
+        onClose={() => { setCreating(null); setEditing(null); }}
+        onSaved={() => { setCreating(null); setEditing(null); reload(); }}
       />
       <CategoryManager
         open={manageCats}
@@ -146,11 +153,12 @@ export default function BudgetsTab({ categories, pockets, reloadCategories }: Pr
   );
 }
 
-function BudgetCard({ budget: b, categories, pockets, onOpen }: {
+function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
   budget: FinBudget;
   categories: FinCategory[];
-  pockets: FinPocket[];
+  slates: FinSlate[];
   onOpen: () => void;
+  onDuplicate: () => void;
 }) {
   const { formatMoney, formatPercent } = useFinanceFormatters();
   const pct = b.total_amount > 0 ? Math.min((b.spent / b.total_amount) * 100, 100) : 0;
@@ -159,9 +167,10 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
   const barColor = overBudget
     ? 'hsl(var(--destructive))'
     : pct > 80 ? 'hsl(var(--tertiary))' : 'hsl(var(--primary))';
-  const filterPockets = b.pocket_ids
-    .map((id) => pockets.find((p) => p.id === id))
-    .filter((p): p is FinPocket => !!p);
+  // Empty slate_ids = Plain only, which is the default lens.
+  const filterSlates = (b.slate_ids ?? [])
+    .map((id) => slates.find((p) => p.id === id))
+    .filter((p): p is FinSlate => !!p);
 
   return (
     <motion.div
@@ -173,23 +182,35 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(); }}
-      className="rounded-xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow] tap-highlight-none"
+      className={cardClass({ interactive: true }, 'group p-4')}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-medium truncate">{b.name}</div>
           <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-            {b.period === 'monthly'
-              ? format(new Date(b.window_start), 'MMMM yyyy') + ' · rolls monthly'
-              : format(new Date(b.window_start), 'MMM d') + ' → ' + format(new Date(b.window_end), 'MMM d, yyyy')}
+            {b.start_date && b.end_date
+              ? format(new Date(b.start_date), 'MMM d') + ' → ' + format(new Date(b.end_date), 'MMM d, yyyy')
+              : 'no date limit'}
           </div>
         </div>
-        <Pencil className="size-3.5 text-muted-foreground shrink-0 mt-1" />
+        <div className="flex shrink-0 items-center">
+          {/* Budgets never reset, so "next month" is an explicit copy. */}
+          <button
+            type="button"
+            aria-label={`Duplicate ${b.name} for the next period`}
+            title="Duplicate for next period"
+            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+            className="grid size-11 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+          >
+            <Copy className="size-4" />
+          </button>
+          <Pencil aria-hidden className="size-3.5 text-muted-foreground" />
+        </div>
       </div>
 
-      {filterPockets.length > 0 && (
+      {filterSlates.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {filterPockets.map((p) => (
+          {filterSlates.map((p) => (
             <span
               key={p.id}
               className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--secondary-container)/0.6)] px-1.5 py-0.5 font-mono text-xs text-foreground/80"
@@ -254,44 +275,61 @@ function BudgetCard({ budget: b, categories, pockets, onOpen }: {
   );
 }
 
-function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
+/** Window presets. Pure convenience — they only fill the two dates; there is no
+ *  stored period and nothing re-derives them later. */
+const WINDOWS: { label: string; range: () => [string, string] }[] = [
+  { label: 'This week', range: () => [
+    format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+    format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+  ] },
+  { label: 'This month', range: () => [
+    format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  ] },
+  { label: 'This year', range: () => [
+    format(startOfYear(new Date()), 'yyyy-MM-dd'),
+    format(endOfYear(new Date()), 'yyyy-MM-dd'),
+  ] },
+];
+
+function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSaved }: {
   open: boolean;
   budget: FinBudget | null;
+  /** Values for a new budget — blank, or a duplicate of an existing one. */
+  prefill: Prefill | null;
   categories: FinCategory[];
-  pockets: FinPocket[];
+  slates: FinSlate[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const { formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
-  const [period, setPeriod] = useState<'monthly' | 'custom'>('monthly');
   const [overall, setOverall] = useState('');
-  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [pocketIds, setPocketIds] = useState<Set<number>>(new Set());
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [slateIds, setSlateIds] = useState<Set<number>>(new Set());
   const [items, setItems] = useState<{ category_id: number | null; amount: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    if (budget) {
-      setName(budget.name);
-      setPeriod(budget.period);
-      setOverall(budget.total_amount > 0 ? String(budget.total_amount) : '');
-      setStartDate(budget.start_date);
-      setEndDate(budget.end_date);
-      setPocketIds(new Set(budget.pocket_ids));
-      setItems(budget.items.map((i) => ({ category_id: i.category_id, amount: String(i.amount) })));
-    } else {
-      setName('');
-      setPeriod('monthly');
-      setOverall('');
-      setStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-      setEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-      setPocketIds(new Set());
-      setItems([]);
-    }
-  }, [budget, open]);
+    const src = budget
+      ? {
+          name: budget.name,
+          start_date: budget.start_date,
+          end_date: budget.end_date,
+          total_amount: budget.total_amount,
+          slate_ids: budget.slate_ids ?? [],
+          items: budget.items.map((i) => ({ category_id: i.category_id, amount: String(i.amount) })),
+        }
+      : prefill ?? { name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [] };
+    setName(src.name);
+    setOverall(src.total_amount > 0 ? String(src.total_amount) : '');
+    setStartDate(src.start_date);
+    setEndDate(src.end_date);
+    setSlateIds(new Set(src.slate_ids));
+    setItems(src.items);
+  }, [budget, prefill, open]);
 
   const capsTotal = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
 
@@ -300,8 +338,8 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
   const updateItem = (idx: number, patch: Partial<{ category_id: number | null; amount: string }>) =>
     setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
-  const togglePocket = (id: number) =>
-    setPocketIds((prev) => {
+  const toggleSlate = (id: number) =>
+    setSlateIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -316,15 +354,14 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
     if (!canSave || saving) return;
     setSaving(true);
     try {
-      // Monthly windows are computed per-month on read; the stored dates just
-      // satisfy legacy readers, so pin them to the current month.
+      // The stored window is the real one, and it is optional — a slate-scoped
+      // budget is defined by its slate, not by dates.
       const data: BudgetDraft = {
         name: name.trim(),
-        period,
-        start_date: period === 'monthly' ? format(startOfMonth(new Date()), 'yyyy-MM-dd') : startDate,
-        end_date: period === 'monthly' ? format(endOfMonth(new Date()), 'yyyy-MM-dd') : endDate,
+        start_date: startDate,
+        end_date: endDate,
         total_amount: total,
-        pocket_ids: period === 'custom' ? Array.from(pocketIds) : [],
+        slate_ids: Array.from(slateIds),
         items: items
           .filter((i) => parseFloat(i.amount) > 0)
           .map((i) => ({ category_id: i.category_id, amount: parseFloat(i.amount) })),
@@ -354,25 +391,9 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
-          <SegmentedButton
-            value={period}
-            onChange={setPeriod}
-            stretch
-            aria-label="Budget period"
-            options={[
-              { value: 'monthly', label: 'Monthly' },
-              { value: 'custom', label: 'Custom range' },
-            ]}
-          />
-          <p className="text-xs text-muted-foreground -mt-1">
-            {period === 'monthly'
-              ? 'Rolls with the calendar month automatically — no dates to manage.'
-              : 'Fixed date range — a trip, a project, a season.'}
-          </p>
-
           <div className="grid grid-cols-2 gap-3">
             <Field label="Name">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={period === 'monthly' ? 'e.g. Household' : 'e.g. Goa Trip'} />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Household, Goa trip" />
             </Field>
             <Field label="Overall amount">
               <Input
@@ -383,32 +404,77 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
                 placeholder={capsTotal > 0 ? String(capsTotal) : '0'}
               />
             </Field>
-            {period === 'custom' && (
-              <>
-                <Field label="Start">
-                  <DatePicker value={startDate} onChange={setStartDate} />
-                </Field>
-                <Field label="End">
-                  <DatePicker value={endDate} onChange={setEndDate} />
-                </Field>
-              </>
-            )}
           </div>
 
-          {period === 'custom' && pockets.length > 0 && (
+          {/* Optional window. Nothing here rolls forward: a budget covers the
+              dates you give it, forever. Next month gets its own copy. */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                Dates <span className="normal-case tracking-normal">(optional)</span>
+              </Label>
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="rounded-md px-1.5 py-0.5 font-mono text-xs text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {WINDOWS.map((w) => {
+                const [s, e] = w.range();
+                const on = startDate === s && endDate === e;
+                return (
+                  <button
+                    key={w.label}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => { setStartDate(s); setEndDate(e); }}
+                    className={cn(
+                      'h-9 rounded-full border text-sm font-medium outline-none transition-colors',
+                      'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
+                      on
+                        ? 'border-transparent bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                        : 'border-[hsl(var(--outline-variant))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
+                    )}
+                  >
+                    {w.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="">
+                <DatePicker value={startDate} onChange={setStartDate} />
+              </Field>
+              <Field label="">
+                <DatePicker value={endDate} onChange={setEndDate} />
+              </Field>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {startDate && endDate
+                ? 'Counts only transactions in this range. It will not roll into the next one — duplicate the budget when the window closes.'
+                : 'No dates means every transaction counts, whenever it happened.'}
+            </p>
+          </div>
+
+          {slates.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                Count only these pockets
+                Count spending from these slates
               </Label>
               <div className="flex flex-wrap gap-2">
-                {pockets.filter((p) => !p.archived).map((p) => {
-                  const on = pocketIds.has(p.id);
+                {slates.filter((p) => !p.archived).map((p) => {
+                  const on = slateIds.has(p.id);
                   return (
                     <button
                       key={p.id}
                       type="button"
                       aria-pressed={on}
-                      onClick={() => togglePocket(p.id)}
+                      onClick={() => toggleSlate(p.id)}
                       className={cn(
                         'inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium outline-none transition-colors',
                         'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
@@ -426,8 +492,10 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Nothing selected = every expense in the range counts. General
-                (unpocketed) spends are excluded once you pick pockets.
+                Leave this empty and the budget counts Plain only — your normal
+                life, with outliers kept out. Pick a slate to budget the outlier
+                instead: select Goa trip and nothing else, and this becomes the
+                trip's budget.
               </p>
             </div>
           )}
@@ -444,7 +512,7 @@ function BudgetDialog({ open, budget, categories, pockets, onClose, onSaved }: {
             {items.length === 0 ? (
               <div className="text-xs text-muted-foreground italic py-2">
                 Optional soft caps per category — they warn, they don't block.
-                {period === 'custom' && pocketIds.size > 0 && ' Caps count only the pockets selected above.'}
+                {slateIds.size > 0 && ' Caps count only the slates selected above.'}
               </div>
             ) : (
               <div className="flex flex-col gap-2">

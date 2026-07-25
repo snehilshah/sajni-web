@@ -4,13 +4,13 @@ export const financeMeta = {
   id: 'finance',
   label: 'Finance',
   title: 'Finance',
-  blurb: 'A calm personal ledger — accounts, transactions, pockets, budgets, billers, investments, cards.',
+  blurb: 'A calm personal ledger — accounts, transactions, slates, budgets, billers, investments, cards.',
   sections: [
     { id: 'privacy', label: 'Privacy mode' },
     { id: 'overview', label: 'Overview' },
     { id: 'accounts', label: 'Accounts' },
     { id: 'transactions', label: 'Transactions' },
-    { id: 'pockets', label: 'Pockets' },
+    { id: 'slates', label: 'Slates' },
     { id: 'budgets', label: 'Budgets' },
     { id: 'billers', label: 'Billers' },
     { id: 'investments', label: 'Investments' },
@@ -39,7 +39,7 @@ export default function FinanceDoc() {
           <li>Re-hide manually any time; hiding clears the timer.</li>
           <li>
             Charts stay drawn (shapes aren't figures); every textual amount
-            is decoyed. Pocket <em>names</em> stay visible — privacy hides
+            is decoyed. Slate <em>names</em> stay visible — privacy hides
             numbers, not structure.
           </li>
         </ul>
@@ -113,7 +113,7 @@ export default function FinanceDoc() {
         <FeatureList>
           <Feature name="Add / edit dialog">
             <p>
-              Title, account, category, pocket, amount, date + time, note.
+              Title, account, category, slate, amount, date + time, note.
               Validation is per-field and explicit — the Add button never
               silently no-ops.
             </p>
@@ -129,16 +129,16 @@ export default function FinanceDoc() {
             <p>
               Share a bank/UPI SMS to Sajni (Android share sheet → the PWA):
               it parses amount, direction, description, date/time, matches
-              the account via your match hints, pre-fills the pocket from
-              your active pocket — you review one screen and save. Text that
+              the account via your match hints — you review one screen and
+              save. Text that
               doesn't look like a transaction becomes a bookmark instead.
             </p>
           </Feature>
           <Feature name="Filters & search">
             <p>
               Search by description/category, filter by account and type
-              instantly (client-side over the loaded ledger); the pocket
-              chips above the tabs add a server-side pocket filter with a
+              instantly (client-side over the loaded ledger); the slate
+              picker adds a server-side slate filter with a
               visible, one-tap-clear banner.
             </p>
           </Feature>
@@ -152,52 +152,64 @@ export default function FinanceDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="pockets" title="Pockets" chip="chip bar">
+      <Section id="slates" title="Slates" chip="tab">
         <p>
-          A pocket is a <strong>spend context</strong> — “Goa Trip”,
-          “Wedding”, “New flat”. The chip bar above the tabs shows each
-          pocket's spend this month.
+          A slate answers one question: <strong>is this normal life, or
+          not?</strong> Every transaction carries exactly one.{' '}
+          <strong>Plain</strong> is normal life and is where everything lands
+          by default; every other slate is an outlier you named — “Goa Trip”,
+          “Wedding”, “Fridge”.
         </p>
         <RefTable
           head={['rule', 'behavior']}
           rows={[
-            ['One pocket per transaction', 'never two; unfiled = the implicit General pocket'],
-            ['Tap a chip', 'filters the ledger to that pocket; tap again to clear'],
-            ['Active pocket', 'new manual / shared-SMS / AI transactions file into it by default'],
-            ['Automatic transactions', 'biller auto-pay and investment auto-debit ALWAYS land in General'],
-            ['Archive', 'retires the chip; history keeps the pocket name'],
-            ['Delete', 'its transactions move to General (the confirm says how many)'],
+            ['One slate per transaction', 'never two, never none — unfiled means Plain'],
+            ['Plain', 'system slate; cannot be renamed, archived or deleted'],
+            ['Budgets', 'ignore every slate they do not explicitly name'],
+            ['Filing', 'pick a slate on the transaction form, or select rows in the ledger and move them in bulk'],
+            ['Automatic transactions', 'biller auto-pay and investment auto-debit land in Plain'],
+            ['Opening one', 'tap a slate tile — it opens the ledger filtered to that slate, with its total in the header'],
+            ['Archive', 'hides a finished slate from the pickers; its transactions and its budgets are untouched'],
+            ['Delete', 'empty slates go quietly; otherwise everything moves back to Plain and the confirm says how many'],
           ]}
         />
         <Callout tone="why">
-          Categories answer “what was it?” — pockets answer “what was it{' '}
-          <em>for</em>?”. Dinner on a trip is Food <em>and</em> it's the trip;
-          forcing that into one taxonomy is how “Trip Food” categories breed.
-          The active pocket exists so a trip requires one decision at the
-          airport, not one per transaction. Cron-posted money ignores it
-          because your Netflix renewal isn't part of the trip.
+          One trip inflates a month and you can no longer tell regular
+          spending from irregular. Categories can't fix that — dinner in Goa is
+          Food whether you're on a trip or at home. So the split is a separate
+          axis: a slate decides what counts as normal, and budgets on Plain
+          simply never see the trip. There is no mode to switch on and no
+          window to predict, because you usually only notice an outlier
+          afterwards — which is why filing works retroactively.
         </Callout>
       </Section>
 
       <Section id="budgets" title="Budgets" chip="tab">
         <p>
           A budget = an overall amount + optional soft <strong>category
-          caps</strong> that warn but never block. Two kinds:
+          caps</strong> that warn but never block, plus a{' '}
+          <strong>slate lens</strong> deciding what it counts. Budgets are
+          discrete — they never reset, so July and August are separate and
+          editing one can't rewrite the other's history.
         </p>
         <FeatureList>
-          <Feature name="Monthly (rolling)">
+          <Feature name="Window (optional)">
             <p>
-              Rolls with the IST calendar automatically — no dates to manage,
-              ever. The ‹ month › nav (capped at the current month) recomputes
-              past months from the ledger for history.
+              Start and end dates bound what the budget counts. Leave them off
+              and there is no date limit at all — a slate-scoped budget is
+              defined by its slate, not by dates. Presets fill this week, this
+              month or this year; they only fill the dates, there is no stored
+              period. Once the end date passes, the budget moves to a Closed
+              section rather than disappearing.
             </p>
           </Feature>
-          <Feature name="Custom range (trips & seasons)">
+          <Feature name="Slate lens">
             <p>
-              Fixed start/end dates, plus an optional <strong>pocket
-              filter</strong>: pick one or several pockets and the budget
-              counts only spending filed in them. General spends never match
-              a filtered budget.
+              Pick which slates the budget counts. Leave it empty and it counts{' '}
+              <strong>Plain only</strong> — your normal life, with every
+              outlier structurally absent. Name a slate and it counts that
+              instead, so “Goa Trip · ₹40,000” is a budget scoped to the Goa
+              slate. Name several and they share one pool.
             </p>
           </Feature>
         </FeatureList>
@@ -208,22 +220,28 @@ export default function FinanceDoc() {
           money. You never assign a budget to a transaction.
         </p>
         <ul>
-          <li>No pocket filter (every monthly budget) → sees all spending in its window.</li>
-          <li>Pocket filter → sees only those pockets.</li>
+          <li>No slate named → counts Plain only. Outliers cannot leak in.</li>
+          <li>Slates named → counts exactly those, and nothing else.</li>
           <li>
             <strong>Category caps inherit their budget's lens</strong> — a
-            trip's Food cap counts only trip-pocket food; the monthly
-            budget's Food cap counts all food, trip included.
+            trip budget's Food cap counts only Food on the trip's slate; an
+            ordinary budget's Food cap counts only Food in normal life.
           </li>
         </ul>
         <Callout>
-          Worked example: Monthly ₹10,000 (Food cap ₹3,000) + “Goa Trip”
-          ₹5,000 filtered to the Goa pocket (Food cap ₹1,000). A ₹400 beach
-          dinner filed in the pocket counts in all four numbers at once; the
-          ₹600 grocery delivery at home the same week counts only in the
-          monthly pair. Progress bars escalate calm → attention (&gt;80%) →
-          over.
+          Worked example: “August” ₹10,000 with no slate named (Food cap
+          ₹3,000), and “Goa Trip” ₹5,000 scoped to the Goa slate (Food cap
+          ₹1,000). A ₹400 beach dinner swept onto the Goa slate lands in the
+          trip pair only; the ₹600 grocery delivery at home the same week
+          lands in the August pair only. Neither budget can distort the
+          other, which is the point — the trip stops moving your baseline.
+          Progress bars escalate calm → attention (&gt;80%) → over.
         </Callout>
+        <p>
+          When the window closes, nothing happens automatically. Duplicate the
+          budget to get the next one, with the same limit, caps and slates and
+          the window shifted forward by its own length.
+        </p>
       </Section>
 
       <Section id="billers" title="Billers" chip="tab">

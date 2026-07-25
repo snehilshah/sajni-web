@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Trash2, Sparkles } from '@/components/ui/icons';
 
 import { toast } from 'sonner';
-import { finance, type FinAccount, type FinCategory, type FinPocket, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { txnAtToParts, partsToTxnAt } from './utils';
 
 // The add/edit form for personal-ledger transactions. Extracted from
-// TransactionsTab so the pocket detail page can open it with the pocket
-// preselected. Echo rows (mirrors of shared-pocket entries) lock their
-// money fields — those are managed by the shared pocket.
+// TransactionsTab so other screens can open it with a slate preselected.
 
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
@@ -31,16 +29,15 @@ function editKind(kind: FinTransaction['type']): TxnKind {
 }
 
 export default function TransactionDialog({
-  open, txn, accounts, categories, pockets, activePocketId, defaultPocketId, onClose, onSaved,
+  open, txn, accounts, categories, slates, defaultSlateId, onClose, onSaved,
 }: {
   open: boolean;
   txn: FinTransaction | null;
   accounts: FinAccount[];
   categories: FinCategory[];
-  pockets: FinPocket[];
-  activePocketId: number | null;
-  /** Preselect this pocket for new txns (pocket detail page). */
-  defaultPocketId?: number;
+  slates: FinSlate[];
+  /** Preselect this slate for new txns. */
+  defaultSlateId?: number;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
 }) {
@@ -51,9 +48,9 @@ export default function TransactionDialog({
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
-  // Pocket the txn files under; '0' = General. New txns default to the
-  // user's active pocket (server would do the same if we omitted it).
-  const [pocketId, setPocketId] = useState('0');
+  // Slate the txn files under; '0' = Plain. There is no active-slate mode:
+  // everything is normal life until the user says otherwise.
+  const [slateId, setSlateId] = useState('0');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState('');
   const [saving, setSaving] = useState(false);
@@ -70,9 +67,6 @@ export default function TransactionDialog({
   const [userPickedCategory, setUserPickedCategory] = useState(false);
   const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Amount/description/date live on the shared pocket for echo rows.
-  const echoLocked = !!txn && (txn.shared_expense_id !== null || txn.settlement_id !== null);
-
   useEffect(() => {
     setErrors({});
     if (txn) {
@@ -83,7 +77,7 @@ export default function TransactionDialog({
       setAmount(String(txn.amount));
       setDescription(txn.description);
       setNote(txn.note || '');
-      setPocketId(String(txn.pocket_id ?? 0));
+      setSlateId(String(txn.slate_id ?? 0));
       { const p = txnAtToParts(txn.txn_at); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
       setUserPickedCategory(true);
@@ -95,12 +89,18 @@ export default function TransactionDialog({
       setAmount('');
       setDescription('');
       setNote('');
-      setPocketId(String(defaultPocketId ?? activePocketId ?? 0));
+      setSlateId(String(defaultSlateId ?? slates.find((p) => p.is_plain)?.id ?? 0));
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
     }
-  }, [txn, open, accounts, activePocketId, defaultPocketId]);
+    // Deliberately NOT keyed on accounts/slates: they are read here only to
+    // seed defaults. Both come from TanStack Query, so any background refetch
+    // hands back a new array identity — and with them in the deps this effect
+    // re-runs and wipes whatever the user has typed into an open dialog. The
+    // reset belongs to "the dialog opened", not "the data changed".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txn, open, defaultSlateId]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
   const othersCategory = filteredCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
@@ -184,25 +184,21 @@ export default function TransactionDialog({
         // both accounts automatically (the backend also syncs a transfer pair).
         const acctId = parseInt(accountId);
         const catId = selectedCategoryId ? parseInt(selectedCategoryId) : null;
-        const isXfer = type === 'transfer';
-        const patch: TxnPatch = echoLocked
-          // Echo rows: only the user's private fields are editable.
-          ? { account_id: acctId, note, category_id: catId }
-          : {
-            account_id: acctId,
-            amount: amt,
-            description,
-            note,
-            txn_at: txnAt,
-            category_id: catId,
-            // Transfers never carry a pocket; 0 = General for the rest.
-            ...(isXfer ? {} : { pocket_id: parseInt(pocketId) || 0 }),
-          };
+        const patch: TxnPatch = {
+          account_id: acctId,
+          amount: amt,
+          description,
+          note,
+          txn_at: txnAt,
+          category_id: catId,
+          // Both legs of a transfer move together, so the slate is set here too.
+          slate_id: parseInt(slateId) || 0,
+        };
         await finance.updateTransaction(txn.id, patch);
         // Hand the parent an optimistic patch so the row reflects the new
         // account/category/amount instantly (no reload flash, no raw id).
         const cat = categories.find((c) => c.id === catId);
-        const pid = isXfer ? null : parseInt(pocketId) || 0;
+        const sid = parseInt(slateId) || 0;
         onSaved({
           id: txn.id,
           account_id: acctId,
@@ -211,15 +207,13 @@ export default function TransactionDialog({
           category_id: catId,
           category_name: cat?.name ?? null,
           category_color: cat?.color ?? null,
-          ...(echoLocked ? {} : {
-            amount: amt,
-            description,
-            txn_at: txnAt,
-            ...(isXfer ? {} : {
-              pocket_id: pid || null,
-              pocket_name: pid ? pockets.find((p) => p.id === pid)?.name ?? null : null,
-            }),
-          }),
+          amount: amt,
+          description,
+          txn_at: txnAt,
+          ...(sid ? {
+            slate_id: sid,
+            slate_name: slates.find((p) => p.id === sid)?.name ?? '',
+          } : {}),
         });
         return;
       } else if (type === 'transfer') {
@@ -241,7 +235,7 @@ export default function TransactionDialog({
           note,
           txn_at: txnAt,
           category_id: selectedCategoryId ? parseInt(selectedCategoryId) : null,
-          pocket_id: parseInt(pocketId) || 0,
+          slate_id: parseInt(slateId) || 0,
         });
       }
       onSaved();
@@ -270,12 +264,6 @@ export default function TransactionDialog({
         <DialogHeader>
           <DialogTitle>{txn ? 'Edit transaction' : 'New transaction'}</DialogTitle>
         </DialogHeader>
-        {echoLocked && (
-          <p className="rounded-xl bg-[hsl(var(--secondary-container)/0.5)] px-3 py-2 text-xs text-muted-foreground">
-            This entry mirrors a shared pocket. Amount, title and date are managed
-            there — only your account, category and note can change here.
-          </p>
-        )}
         {!txn && (
           <div className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1">
             {(['expense', 'income', 'transfer'] as const).map((t) => (
@@ -299,7 +287,7 @@ export default function TransactionDialog({
               placeholder={type === 'transfer' ? 'e.g. Move to savings' : type === 'income' ? 'e.g. October salary' : 'e.g. Lunch at Cafe X'}
               maxLength={120}
               autoFocus={!txn}
-              disabled={echoLocked}
+              
             />
           </Field>
           <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2" error={errors.account}>
@@ -365,36 +353,33 @@ export default function TransactionDialog({
               </Select>
             </Field>
           )}
-          {type !== 'transfer' && !echoLocked && (
+          {type !== 'transfer' && (
             <Field
-              label="Pocket"
+              label="Slate"
               className="col-span-2"
-              hint={
-                activePocketId !== null && String(activePocketId) === pocketId && !txn ? (
-                  <span className="text-xs text-muted-foreground normal-case tracking-normal">
-                    active pocket
-                  </span>
-                ) : undefined
-              }
             >
               <Select
-                value={pocketId}
-                onValueChange={(v) => setPocketId(v ?? '0')}
-                items={[
-                  { value: '0', label: 'General' },
-                  ...pockets.filter((p) => !p.archived).map((p) => ({ value: String(p.id), label: p.name })),
-                ]}
+                value={slateId}
+                onValueChange={(v) => setSlateId(v ?? '0')}
+                items={slates.filter((p) => !p.archived).map((p) => ({ value: String(p.id), label: p.name }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="General" />
+                  <SelectValue placeholder="Plain" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">General</SelectItem>
-                  {pockets.filter((p) => !p.archived).map((p) => (
+                  {slates.filter((p) => !p.archived).map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {/* '0' matches no option while the slates query is in flight; the
+                  placeholder reads Plain and the server resolves 0 to Plain, so
+                  the label and the outcome agree either way. */}
+              {slates.find((p) => String(p.id) === slateId && !p.is_plain) && (
+                <p className="text-xs text-muted-foreground">
+                  Kept out of your ordinary budgets.
+                </p>
+              )}
             </Field>
           )}
           <Field label="Amount" className="col-span-2" error={errors.amount}>
@@ -404,14 +389,14 @@ export default function TransactionDialog({
               value={amount}
               aria-invalid={!!errors.amount}
               onChange={(e) => { setAmount(e.target.value); clearError('amount'); }}
-              disabled={echoLocked}
+              
             />
           </Field>
           <Field label="Date">
-            <DatePicker value={date} onChange={setDate} disabled={echoLocked} />
+            <DatePicker value={date} onChange={setDate} />
           </Field>
           <Field label="Time">
-            <TimePicker value={time} onChange={setTime} disabled={echoLocked} />
+            <TimePicker value={time} onChange={setTime} />
           </Field>
           <Field label="Note" className="col-span-2">
             <Textarea
@@ -428,7 +413,7 @@ export default function TransactionDialog({
           </Field>
         </div>
         <DialogFooter className="sm:justify-between">
-          {txn && !echoLocked ? (
+          {txn ? (
             <Button variant="ghost" className="text-destructive" onClick={remove}>
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
