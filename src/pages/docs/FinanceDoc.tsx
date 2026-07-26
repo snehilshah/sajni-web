@@ -339,7 +339,7 @@ export default function FinanceDoc() {
                 The checkbox explains itself when disabled (“link an account
                 first”, “set the per-cycle amount”).
               </li>
-              <li>Auto-debited contributions land in the General pocket, never the active one.</li>
+              <li>Auto-debited contributions land on Plain, never on an outlier slate.</li>
             </ul>
           </Feature>
           <Feature name="Maturity">
@@ -373,7 +373,7 @@ export default function FinanceDoc() {
       <Section id="exports" title="Exports" chip="header">
         <p>
           The Export menu downloads CSV — transactions, budgets (windows,
-          pocket filters and caps included), and net-worth history. Files
+          slate filters and caps included), and net-worth history. Files
           open directly in Sheets/Excel. <Code>Takeout</Code> in Settings
           covers everything else.
         </p>

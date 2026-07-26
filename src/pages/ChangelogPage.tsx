@@ -50,6 +50,92 @@ const GROUP_ORDER: Kind[] = ['feature', 'improvement', 'fix'];
 
 const RELEASES: Release[] = [
   {
+    version: '0.42.0',
+    date: '2026-07-26',
+    summary:
+      'Pockets become slates, the journal drops its mood scale for good, the notes index folds '
+      + 'by folder, and a run of fixes to overlapping ledger rows and jumpy memo cards.',
+    entries: [
+      // ── Features ──────────────────────────────────────────────────────
+      {
+        kind: 'feature',
+        area: 'Finance',
+        title: 'Slates replace pockets',
+        detail:
+          'Every transaction now sits in exactly one slate, and slates answer a single question: '
+          + 'is this normal life, or not? “Plain” is normal life and is where everything lands '
+          + 'unless you say otherwise; every other slate is an outlier you named — a trip, a move, '
+          + 'a one-off. Budgets ignore any slate they do not explicitly name, so a fortnight in Goa '
+          + 'no longer wrecks your baseline. Sharing and splitting a pocket across transactions is '
+          + 'gone with them; a transaction belongs to one slate or to Plain.',
+      },
+      {
+        kind: 'feature',
+        area: 'Notes',
+        title: 'Fold folders on the notes index',
+        detail:
+          'Each folder section on the notes index now has a toggle — a chevron and a folder icon — '
+          + 'that folds that folder’s notes away and back. It reveals in place rather than '
+          + 'navigating: you never end up “inside” a folder, and the other sections stay put. '
+          + 'What you fold is remembered; anything you haven’t touched stays open.',
+      },
+
+      // ── Improvements ──────────────────────────────────────────────────
+      {
+        kind: 'improvement',
+        area: 'Journal',
+        title: 'The mood scale is gone',
+        detail:
+          'The emoji mood picker has been removed from daily, weekly and monthly entries, along '
+          + 'with the mood glyph beside each day in the sidebar, the weekly stat tiles, the '
+          + 'keyboard shortcut that cycled it, and the mood-versus-tasks insight. Moods recorded '
+          + 'previously have been deleted rather than hidden. Nothing else in the journal changed — '
+          + 'entries, locations and attachments are untouched, and older exports that still carry a '
+          + 'mood line import fine.',
+      },
+      {
+        kind: 'improvement',
+        area: 'Memos',
+        title: 'Memo cards read as cards again',
+        detail:
+          'Memo cards were rounded to nearly a capsule — on a short one-line memo the corners met '
+          + 'in the middle. They now use the standard card corner, so a one-liner and a long memo '
+          + 'look like the same object at different heights.',
+      },
+
+      // ── Fixes ─────────────────────────────────────────────────────────
+      {
+        kind: 'fix',
+        area: 'Finance',
+        title: 'Transactions no longer overlap each other',
+        detail:
+          'On the Transactions tab each day’s header sat on top of its own first rows, so entries '
+          + 'and the date ran into one another. The header now scrolls with the rows it belongs to '
+          + 'and every row keeps its own line.',
+      },
+      {
+        kind: 'fix',
+        area: 'Finance',
+        title: 'Showing archived slates stops redrawing the page',
+        detail:
+          'Turning on “show archived” in Slates rebuilt the whole Finance page — every tab '
+          + 'refetched and the screen blanked for a moment to reveal a few extra tiles. Archived '
+          + 'slates now come down with the rest and the toggle simply filters what is already '
+          + 'loaded. Renaming, recolouring or archiving a slate also stops refetching accounts, '
+          + 'categories and the ledger.',
+      },
+      {
+        kind: 'fix',
+        area: 'Memos',
+        title: 'New memos settle instead of bouncing',
+        detail:
+          'A memo saved from the composer used to overshoot its position and snap back, and could '
+          + 'flicker out of view mid-flight while the feed reflowed around it. It now eases into '
+          + 'place in one motion, and deleting one fades out instead of vanishing.',
+      },
+    ],
+  },
+  {
     version: '0.41.0',
     date: '2026-07-15',
     summary:
