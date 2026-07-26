@@ -204,7 +204,6 @@ export interface MediaSearchResult {
 export interface JournalEntry {
   id: number;
   date: string;
-  mood?: string | null;
   content?: string;
   location_label?: string;
   location_lat?: number | null;

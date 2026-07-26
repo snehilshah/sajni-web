@@ -50,7 +50,7 @@ export default function AiDoc() {
           <li><strong>Tasks</strong> — create/update/complete tasks, lists, reminders; query what's due.</li>
           <li><strong>Habits</strong> — log ticks, check streaks.</li>
           <li><strong>Notes & memos</strong> — capture memos, search notes, read content back.</li>
-          <li><strong>Journal</strong> — read/write entries, moods.</li>
+          <li><strong>Journal</strong> — read/write entries.</li>
           <li><strong>Media</strong> — add/search the library, move statuses, advance episodes.</li>
           <li>
             <strong>Finance</strong> — add/edit transactions (they file into

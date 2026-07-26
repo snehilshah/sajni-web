@@ -21,9 +21,9 @@ export function useJournalEntry(date: string, enabled = true) {
 export function useSaveJournal() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ date, content, mood, location }: {
-      date: string; content: string; mood?: string | null; location?: JournalLocation | null;
-    }) => journalApi.save(date, content, mood, location),
+    mutationFn: ({ date, content, location }: {
+      date: string; content: string; location?: JournalLocation | null;
+    }) => journalApi.save(date, content, location),
     onError: () => toast.error('Could not save entry'),
     onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: qk.journal.all });
@@ -69,8 +69,8 @@ export function useJournalWeekSummary(year: number, week: number, enabled = true
 export function useSaveJournalWeek() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ year, week, content, mood }: { year: number; week: number; content: string; mood?: string | null }) =>
-      journalApi.week.save(year, week, content, mood),
+    mutationFn: ({ year, week, content }: { year: number; week: number; content: string }) =>
+      journalApi.week.save(year, week, content),
     onError: () => toast.error('Could not save entry'),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.journal.all }),
   });

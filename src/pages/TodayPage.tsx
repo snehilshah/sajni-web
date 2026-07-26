@@ -31,7 +31,6 @@ interface Memo {
 interface JournalMeta {
 	id: number;
 	date: string;
-	mood?: string | null;
 	tags?: string[];
 	updated_at: string;
 }
@@ -168,7 +167,7 @@ export default function TodayPage() {
 				// Append onto today's entry if present, else create.
 				const existing = await journalApi.get(today).catch((): JournalFull | null => null);
 				const next = existing?.content ? `${existing.content}\n\n${text}` : text;
-				await saveJournal.mutateAsync({ date: today, content: next, mood: existing?.mood ?? null });
+				await saveJournal.mutateAsync({ date: today, content: next });
 			}
 			setCapture('');
 		} finally {

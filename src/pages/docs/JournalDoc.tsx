@@ -25,14 +25,8 @@ export default function JournalDoc() {
         <FeatureList>
           <Feature name="Autosave">
             <p>
-              Entries save as you type — there is no save button. Content,
-              mood and location all mark the entry dirty and flush together.
-            </p>
-          </Feature>
-          <Feature name="Mood">
-            <p>
-              One emoji per day from a fixed scale. Tapping cycles through
-              the scale. Moods feed the trends in Analytics.
+              Entries save as you type — there is no save button. Content
+              and location both mark the entry dirty and flush together.
             </p>
           </Feature>
           <Feature name="Location">

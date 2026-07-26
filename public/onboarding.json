@@ -22,7 +22,7 @@
     {
       "key": "journal",
       "title": "Journal",
-      "blurb": "One entry per day. Mood, location, attachments. Reflection that compounds.",
+      "blurb": "One entry per day. Location, attachments. Reflection that compounds.",
       "icon": "BookOpen"
     },
     {
@@ -58,7 +58,7 @@
     {
       "key": "analytics",
       "title": "Analytics",
-      "blurb": "Streaks, mood trends, weekly Insights — and your #tags, all under one roof.",
+      "blurb": "Streaks, weekly Insights — and your #tags, all under one roof.",
       "icon": "Compass"
     },
     {

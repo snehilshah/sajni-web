@@ -34,19 +34,9 @@ import {
   ChevronDown, Check as LucideCheck, Plus, CalendarRange,
 } from '@/components/ui/icons';
 
-const MOODS = [
-  { emoji: '😊', label: 'Happy' },
-  { emoji: '😐', label: 'Meh' },
-  { emoji: '😔', label: 'Down' },
-  { emoji: '😤', label: 'Frustrated' },
-  { emoji: '🤔', label: 'Reflective' },
-  { emoji: '😴', label: 'Tired' },
-  { emoji: '🚀', label: 'Energised' },
-];
-
 interface HabitStatus { id: number; name: string; color: string; logged: boolean; }
 interface TaskItem { id: number; title: string; status: string; priority: string; due_date?: string | null; }
-interface JournalEntry { id: number; date: string; mood: string | null; tags: string[]; updated_at: string; }
+interface JournalEntry { id: number; date: string; tags: string[]; updated_at: string; }
 type RingStyle = React.CSSProperties & { '--tw-ring-color': string };
 
 function ringStyle(color: string): RingStyle {
@@ -66,7 +56,6 @@ export default function JournalPage() {
   const [viewMonth, setViewMonth] = useState(parseISO(initialDate));
   const qc = useQueryClient();
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState<string | null>(null);
   const [location, setLocation] = useState<JournalLocation | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [backlinks, setBacklinks] = useState<BacklinkRef[]>([]);
@@ -194,7 +183,6 @@ export default function JournalPage() {
     try {
       const entry = await journalApi.get(selectedDate);
       setContent(entry.content || '');
-      setMood(entry.mood || null);
       setLocation(entry.location_label
         ? { label: entry.location_label, lat: entry.location_lat ?? null, lon: entry.location_lon ?? null }
         : null);
@@ -235,7 +223,7 @@ export default function JournalPage() {
   const performSave = useCallback(async (silent = false) => {
     if (!silent) setSavingState('saving');
     try {
-      await journalApi.save(selectedDate, content, mood, location);
+      await journalApi.save(selectedDate, content, location);
       const entry = await journalApi.get(selectedDate);
       setTags(entry.tags || []);
       setBacklinks(entry.backlinks || []);
@@ -247,7 +235,7 @@ export default function JournalPage() {
       console.error(err);
       setSavingState('idle');
     }
-  }, [selectedDate, content, mood, location, loadEntries]);
+  }, [selectedDate, content, location, loadEntries]);
 
   // Debounced auto-save when dirty
   useEffect(() => {
@@ -256,10 +244,9 @@ export default function JournalPage() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => performSave(true), 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [content, mood, location, performSave, loading]);
+  }, [content, location, performSave, loading]);
 
   const handleContentChange = (v: string) => { dirtyRef.current = true; setContent(v); };
-  const handleMoodChange = (v: string | null) => { dirtyRef.current = true; setMood(v); };
   const handleLocationChange = (v: JournalLocation | null) => { dirtyRef.current = true; setLocation(v); };
 
   const toggleHabit = async (habitId: number) => {
@@ -278,7 +265,7 @@ export default function JournalPage() {
   const deleteEntry = async () => {
     if (!(await confirmDialog(`Delete journal entry for ${selectedDate}?`))) return;
     await journalApi.delete(selectedDate);
-    setContent(''); setMood(null); setLocation(null); setTags([]); setBacklinks([]);
+    setContent(''); setLocation(null); setTags([]); setBacklinks([]);
     loadEntries();
   };
 
@@ -299,11 +286,6 @@ export default function JournalPage() {
       if (e.key === 'Enter') {
         e.preventDefault();
         performSave();
-      } else if (e.shiftKey && (e.key === 'M' || e.key === 'm')) {
-        e.preventDefault();
-        const order = MOODS.map((m) => m.emoji);
-        const idx = mood ? order.indexOf(mood) : -1;
-        handleMoodChange(order[(idx + 1) % order.length]);
       } else if (e.shiftKey && (e.key === 'L' || e.key === 'l')) {
         e.preventDefault();
         const btn = document.querySelector<HTMLButtonElement>('[data-slot="popover-trigger"]:has(.lucide-map-pin)');
@@ -324,7 +306,7 @@ export default function JournalPage() {
     // performSave / handlers are stable enough; intentionally narrow deps to
     // avoid re-binding on every keystroke.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mood, selectedDate, performSave]);
+  }, [selectedDate, performSave]);
 
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
   const dateObj = parseISO(selectedDate);
@@ -683,35 +665,7 @@ export default function JournalPage() {
                 </div>
               </div>
 
-              {/* Mood pill row */}
               <div className="flex gap-1.5 flex-wrap items-center">
-                {MOODS.map((m) => {
-                  const active = mood === m.emoji;
-                  return (
-                    <button
-                      key={m.emoji}
-                      onClick={() => handleMoodChange(active ? null : m.emoji)}
-                      title={m.label}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
-                        active
-                          ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                          : 'fine-hover-scale-102 bg-muted/40 hover:bg-muted opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <span className="text-base leading-none">{m.emoji}</span>
-                      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{m.label}</span>
-                    </button>
-                  );
-                })}
-                {mood && (
-                  <button
-                    onClick={() => handleMoodChange(null)}
-                    className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
-                  >
-                    Clear
-                  </button>
-                )}
-                <span className="w-px h-4 bg-border/60 mx-1 self-center" />
                 <LocationPill value={location} onChange={handleLocationChange} />
               </div>
 
@@ -828,7 +782,6 @@ function WeekView({
   onShiftWeek: (delta: number) => void;
 }) {
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [summary, setSummary] = useState<import('@/api').WeeklySummary | null>(null);
@@ -878,7 +831,6 @@ function WeekView({
         ]);
         if (!alive) return;
         setContent(entry.content || '');
-        setMood(entry.mood || null);
         setSummary(summ);
       } finally {
         if (alive) setLoading(false);
@@ -895,7 +847,7 @@ function WeekView({
     saveTimerRef.current = setTimeout(async () => {
       setSaving('saving');
       try {
-        await journalApi.week.save(year, week, content, mood);
+        await journalApi.week.save(year, week, content);
         setSaving('saved');
         setTimeout(() => setSaving((s) => (s === 'saved' ? 'idle' : s)), 1400);
         dirtyRef.current = false;
@@ -904,10 +856,9 @@ function WeekView({
       }
     }, 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [content, mood, loading, year, week]);
+  }, [content, loading, year, week]);
 
   const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
-  const handleMood = (v: string | null) => { dirtyRef.current = true; setMood(v); };
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const formatMoney = (n: number) => {
@@ -959,36 +910,6 @@ function WeekView({
           value={summary ? formatMoney(summary.expense_total) : '—'}
           tone="secondary"
         />
-      </div>
-
-      {/* Mood pills (same set as daily). */}
-      <div className="flex gap-1.5 flex-wrap items-center">
-        {MOODS.map((m) => {
-          const active = mood === m.emoji;
-          return (
-            <button
-              key={m.emoji}
-              onClick={() => handleMood(active ? null : m.emoji)}
-              title={m.label}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
-                active
-                  ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                  : 'fine-hover-scale-102 bg-muted/40 hover:bg-muted opacity-70 hover:opacity-100'
-              }`}
-            >
-              <span className="text-base leading-none">{m.emoji}</span>
-              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{m.label}</span>
-            </button>
-          );
-        })}
-        {mood && (
-          <button
-            onClick={() => handleMood(null)}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
-          >
-            Clear
-          </button>
-        )}
       </div>
 
       {/* Editor — full-width, no card chrome. Matches the daily entry
@@ -1055,7 +976,6 @@ function WeekView({
                     {stat?.has_entry && (
                       <span className="mono text-xs tracking-wider uppercase text-primary/70">entry</span>
                     )}
-                    {stat?.mood && <span className="text-sm leading-none">{stat.mood}</span>}
                   </div>
                   <div className="h-1 rounded-full bg-muted-foreground/15 overflow-hidden">
                     <div
@@ -1302,7 +1222,6 @@ function EntryRow({ entry, selected, onClick }: { entry: JournalEntry; selected:
         {format(date, 'd')}
       </span>
       <span className="flex-1 truncate text-[13px]">{format(date, 'EEEE')}</span>
-      {entry.mood && <span className="text-sm leading-none">{entry.mood}</span>}
     </button>
   );
 }
@@ -1647,7 +1566,7 @@ function WeekTasksSection({
 }
 
 // MonthView — the monthly journal surface, parallel to WeekView. A long-form
-// month entry + mood + stat tiles, the "This month" goals (tasks.month_of),
+// month entry + stat tiles, the "This month" goals (tasks.month_of),
 // and a per-week task breakdown that drills into the weekly view.
 function MonthView({
   year, month, onPickWeek, onShiftMonth,
@@ -1658,7 +1577,6 @@ function MonthView({
   onShiftMonth: (delta: number) => void;
 }) {
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [summary, setSummary] = useState<import('@/api').MonthlySummary | null>(null);
@@ -1702,7 +1620,6 @@ function MonthView({
         ]);
         if (!alive) return;
         setContent(entry.content || '');
-        setMood(entry.mood || null);
         setSummary(summ);
       } finally {
         if (alive) setLoading(false);
@@ -1718,7 +1635,7 @@ function MonthView({
     saveTimerRef.current = setTimeout(async () => {
       setSaving('saving');
       try {
-        await journalApi.month.save(year, month, content, mood);
+        await journalApi.month.save(year, month, content);
         setSaving('saved');
         setTimeout(() => setSaving((s) => (s === 'saved' ? 'idle' : s)), 1400);
         dirtyRef.current = false;
@@ -1727,10 +1644,9 @@ function MonthView({
       }
     }, 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [content, mood, loading, year, month]);
+  }, [content, loading, year, month]);
 
   const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
-  const handleMood = (v: string | null) => { dirtyRef.current = true; setMood(v); };
 
   const formatMoney = (n: number) => {
     const code = summary?.expense_currency || 'INR';
@@ -1778,36 +1694,6 @@ function MonthView({
         <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
         <StatTile label="Entries" value={`${entriesWritten}/${daysInMonth}`} tone="tertiary" />
         <StatTile label="Expenses" value={summary ? formatMoney(summary.expense_total) : '—'} tone="secondary" />
-      </div>
-
-      {/* Mood pills (same set as daily/weekly). */}
-      <div className="flex gap-1.5 flex-wrap items-center">
-        {MOODS.map((m) => {
-          const active = mood === m.emoji;
-          return (
-            <button
-              key={m.emoji}
-              onClick={() => handleMood(active ? null : m.emoji)}
-              title={m.label}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
-                active
-                  ? 'bg-primary/15 ring-1 ring-primary/40 scale-[1.04]'
-                  : 'fine-hover-scale-102 bg-muted/40 hover:bg-muted opacity-70 hover:opacity-100'
-              }`}
-            >
-              <span className="text-base leading-none">{m.emoji}</span>
-              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{m.label}</span>
-            </button>
-          );
-        })}
-        {mood && (
-          <button
-            onClick={() => handleMood(null)}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors ml-1"
-          >
-            Clear
-          </button>
-        )}
       </div>
 
       {/* Editor — full-width, matches the daily/weekly layout. */}

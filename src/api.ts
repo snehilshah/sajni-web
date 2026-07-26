@@ -358,7 +358,6 @@ export interface WeeklyEntry {
   id: number;
   iso_year: number;
   iso_week: number;
-  mood: string | null;
   content: string;
   created_at: string;
   updated_at: string;
@@ -374,7 +373,6 @@ export interface WeeklySummary {
     tasks_done: number;
     tasks_due: number;
     tasks_missed: number;
-    mood: string | null;
     has_entry: boolean;
   }>;
   habits: Array<{ id: number; name: string; color: string; logged_days: string[] }>;
@@ -387,7 +385,6 @@ export interface MonthlyEntry {
   id: number;
   year: number;
   month: number;
-  mood: string | null;
   content: string;
   created_at: string;
   updated_at: string;
@@ -423,14 +420,12 @@ export const journal = {
   save: (
     date: string,
     content: string,
-    mood?: string | null,
     location?: JournalLocation | null,
   ) =>
     request('/journal/' + date, {
       method: 'PUT',
       body: JSON.stringify({
         content,
-        mood,
         location_label: location?.label ?? '',
         location_lat: location?.lat ?? null,
         location_lon: location?.lon ?? null,
@@ -443,10 +438,10 @@ export const journal = {
     list: () => request<WeeklyEntry[]>('/journal/weeks'),
     get: (year: number, week: number) =>
       request<WeeklyEntry>(`/journal/week/${year}/${week}`),
-    save: (year: number, week: number, content: string, mood?: string | null) =>
+    save: (year: number, week: number, content: string) =>
       request(`/journal/week/${year}/${week}`, {
         method: 'PUT',
-        body: JSON.stringify({ content, mood: mood ?? null }),
+        body: JSON.stringify({ content }),
       }),
     delete: (year: number, week: number) =>
       request(`/journal/week/${year}/${week}`, { method: 'DELETE' }),
@@ -459,10 +454,10 @@ export const journal = {
     list: () => request<MonthlyEntry[]>('/journal/months'),
     get: (year: number, month: number) =>
       request<MonthlyEntry>(`/journal/month/${year}/${month}`),
-    save: (year: number, month: number, content: string, mood?: string | null) =>
+    save: (year: number, month: number, content: string) =>
       request(`/journal/month/${year}/${month}`, {
         method: 'PUT',
-        body: JSON.stringify({ content, mood: mood ?? null }),
+        body: JSON.stringify({ content }),
       }),
     delete: (year: number, month: number) =>
       request(`/journal/month/${year}/${month}`, { method: 'DELETE' }),
