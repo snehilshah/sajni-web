@@ -234,8 +234,21 @@ function shortAgo(d: Date): string {
 }
 
 // MemoRow — timeline entry: relative-time rail on the left, one light
-// tonal card on the right. New memos drop DOWN from the composer (y: -16
-// spring); `layout` lets the rest of the feed slide out of the way.
+// tonal card on the right. New memos drop DOWN from the composer; `layout`
+// lets the rest of the feed slide out of the way.
+//
+// Two rules hold this animation together, both learned the hard way:
+//
+//  1. Motion goes through framer's own `y`/`scale` props, never a raw
+//     `transform` string. `layout` drives the element's transform itself to
+//     project between measured boxes; a competing transform animation on the
+//     same element made the card jump and vanish mid-flight.
+//  2. Entry is a decelerating tween, not a spring. The old spring
+//     (stiffness 380 / damping 28) sat at damping ratio ~0.72 — underdamped,
+//     so every new memo overshot and bounced back.
+const MEMO_ENTER = { duration: 0.28, ease: [0.05, 0.7, 0.1, 1] } as const; // m3 emphasized decelerate
+const MEMO_EXIT = { duration: 0.18, ease: [0.3, 0, 0.8, 0.15] } as const;  // m3 emphasized accelerate
+
 function MemoRow({ memo, onOpen, onPin }: {
   memo: Memo;
   onOpen: () => void;
@@ -245,10 +258,10 @@ function MemoRow({ memo, onOpen, onPin }: {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, transform: 'translateY(-16px) scale(0.98)' }}
-      animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
-      exit={{ opacity: 0, transform: 'scale(0.96)', transition: { duration: 0.12, ease: [0.22, 0.61, 0.36, 1] } }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      initial={{ opacity: 0, y: -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, transition: MEMO_EXIT }}
+      transition={MEMO_ENTER}
       className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start"
     >
       <span
@@ -260,8 +273,13 @@ function MemoRow({ memo, onOpen, onPin }: {
 
       <motion.div
         onClick={onOpen}
-        whileTap={{ transform: 'scale(0.99)' }}
-        className={`group relative cursor-pointer rounded-2xl px-3.5 py-2.5 transition-colors ${
+        whileTap={{ scale: 0.99 }}
+        transition={MEMO_EXIT}
+        /* rounded-lg is 16px here, not Tailwind's 8 — index.css remaps the
+           whole scale onto M3's. This is the M3 "large" card shape; the
+           previous rounded-2xl resolved to 28px, which on a ~60px row read
+           as a capsule rather than a card. */
+        className={`group relative cursor-pointer rounded-lg px-3.5 py-2.5 transition-colors ${
           memo.pinned
             ? 'bg-[hsl(var(--secondary-container)/0.45)] hover:bg-[hsl(var(--secondary-container)/0.65)]'
             : 'bg-[hsl(var(--surface-container-low))] hover:bg-[hsl(var(--surface-container))]'
