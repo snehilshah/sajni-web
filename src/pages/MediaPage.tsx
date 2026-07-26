@@ -2581,6 +2581,7 @@ function dotColorFor(kind: MediaEventRow['kind']): string {
     case 'completed': return 'hsl(var(--primary))';
     case 'started': return 'hsl(var(--secondary))';
     case 'progress': return 'hsl(var(--secondary) / 0.6)';
+    case 'released': return 'hsl(var(--tertiary))';
     case 'dropped': return 'hsl(var(--destructive))';
     case 'rating': return 'hsl(var(--secondary))';
     default: return 'hsl(var(--muted-foreground) / 0.6)';
@@ -2593,6 +2594,7 @@ function eventLabel(e: MediaEventRow, type: MediaKind): string {
     case 'added': return 'Added to library';
     case 'started': return `Started ${verb}`;
     case 'progress': return 'Progress';
+    case 'released': return 'Released · moved to Pending';
     case 'completed': return 'Completed';
     case 'dropped': return 'Dropped';
     case 'rating': return `Rated ${e.meta.rating ?? '?'}/5`;

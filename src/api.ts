@@ -325,6 +325,7 @@ export type MediaEventKind =
   | 'progress'
   | 'completed'
   | 'dropped'
+  | 'released'
   | 'rating';
 
 export interface MediaEventMeta {
@@ -336,6 +337,7 @@ export interface MediaEventMeta {
   episodes_watched?: number;
   episodes_total?: number;
   seasons_watched?: number;
+  release_date?: string;
   rating?: number;
 }
 
