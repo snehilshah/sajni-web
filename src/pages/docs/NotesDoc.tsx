@@ -22,6 +22,18 @@ export default function NotesDoc() {
           memo.</em>
         </p>
         <FeatureList>
+          <Feature name="The index">
+            <p>
+              With no note open, Notes is an index rather than a card wall:
+              rows grouped into folder sections, pinned notes in a strip at
+              the top. Each section header is a toggle — the chevron and
+              folder icon fold that folder's notes away and back. It's a
+              reveal, not a route: the index never navigates <em>into</em> a
+              folder, so the other sections stay where they are. What you
+              fold is remembered per browser; anything you haven't touched
+              starts open.
+            </p>
+          </Feature>
           <Feature name="Vault tree (folders)">
             <p>
               Notes live in nested folders (paths like{' '}

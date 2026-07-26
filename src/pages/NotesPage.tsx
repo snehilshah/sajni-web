@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sh
 import { PageChrome, PageShellTabs, chromeClearance } from '@/components/PageShell';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
@@ -51,6 +52,12 @@ interface TreeNode {
 
 const SIDEBAR_KEY = 'sajni:notes-sidebar';
 const EXPANDED_KEY = 'sajni:notes-expanded';
+// Landing-index folds. Stores what's CLOSED, not what's open, so a folder
+// you've never touched — including one created after this shipped — starts
+// expanded. Separate from EXPANDED_KEY on purpose: the sidebar tree
+// auto-opens ancestors whenever you select a note, and that shouldn't
+// silently refold the index behind you.
+const LEDGER_FOLDED_KEY = 'sajni:notes-ledger-folded';
 
 function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNode {
   const root: TreeNode = { type: 'folder', name: '', path: '', children: [] };
@@ -996,6 +1003,25 @@ function NotesLedger({
     return { pinned, sections };
   }, [notes]);
 
+  // Folding is a reveal, not a route: the index never navigates INTO a
+  // folder, it just hides that section's rows in place.
+  const [folded, setFolded] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(LEDGER_FOLDED_KEY);
+      return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(LEDGER_FOLDED_KEY, JSON.stringify(Array.from(folded))); } catch {}
+  }, [folded]);
+  const toggleFold = (folderPath: string) => {
+    setFolded((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderPath)) next.delete(folderPath); else next.add(folderPath);
+      return next;
+    });
+  };
+
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16 flex flex-col gap-2.5">
@@ -1032,6 +1058,8 @@ function NotesLedger({
       {sections.map(({ folder, items }) => {
         const label = folder ? folder.split('/').join(' / ') : 'Notes';
         const initial = (folder ? folder.split('/').pop()! : 'N').charAt(0).toUpperCase();
+        const open = !folded.has(folder);
+        const panelId = `notes-section-${folder ? folder.replace(/[^a-zA-Z0-9]+/g, '-') : 'unfiled'}`;
         return (
           <section key={folder || '·'} aria-label={label} className="grid grid-cols-[40px_1fr] md:grid-cols-[64px_1fr] gap-x-2 md:gap-x-4">
             {/* Ghost initial gutter — one oversized glyph anchors the section. */}
@@ -1041,14 +1069,50 @@ function NotesLedger({
               </span>
             </div>
             <div className="min-w-0">
-              <div className="flex items-baseline gap-2.5 px-3 pb-1.5">
-                <h2 className="mono text-xs uppercase tracking-[0.14em] text-muted-foreground truncate">{label}</h2>
-                <span className="mono text-xs tabular-nums text-muted-foreground/60">{items.length}</span>
-                <span className="flex-1 border-t border-[hsl(var(--outline-variant))] self-center" />
-              </div>
-              <div className="flex flex-col">
-                {items.map((n) => <NoteRow key={n.id} note={n} onPick={onPick} />)}
-              </div>
+              {/* The heading wraps the button rather than sitting inside it:
+                  the section keeps its outline semantics, and screen readers
+                  still announce a disclosure. */}
+              <h2>
+                <button
+                  type="button"
+                  onClick={() => toggleFold(folder)}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  className="group flex w-full items-center gap-2 rounded-md px-3 py-1.5 mb-0.5 min-h-9 text-left outline-none transition-colors duration-150 ease-[var(--m3-ease-standard)] hover:bg-[hsl(var(--surface-container))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] active:bg-[hsl(var(--on-surface)/0.1)] tap-highlight-none"
+                >
+                  <ChevronRight
+                    aria-hidden
+                    className={cn(
+                      'size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ease-[var(--m3-ease-standard)] motion-reduce:transition-none',
+                      open && 'rotate-90',
+                    )}
+                  />
+                  {open
+                    ? <FolderOpen aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                    : <Folder aria-hidden className="size-4 shrink-0 text-muted-foreground" />}
+                  <span className="mono text-xs uppercase tracking-[0.14em] text-muted-foreground truncate group-hover:text-foreground transition-colors">
+                    {label}
+                  </span>
+                  <span className="mono text-xs tabular-nums text-muted-foreground/60">{items.length}</span>
+                  <span aria-hidden className="flex-1 border-t border-[hsl(var(--outline-variant))] self-center" />
+                </button>
+              </h2>
+              <AnimatePresence initial={false}>
+                {open && (
+                  <motion.div
+                    id={panelId}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="flex flex-col">
+                      {items.map((n) => <NoteRow key={n.id} note={n} onPick={onPick} />)}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </section>
         );
