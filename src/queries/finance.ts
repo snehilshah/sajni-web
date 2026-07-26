@@ -33,10 +33,15 @@ export function useFinBudgets(enabled = true) {
   return useQuery({ queryKey: qk.finance.budgets(), queryFn: () => finance.listBudgets(), enabled });
 }
 
-export function useFinSlates(includeArchived = false, enabled = true) {
+// One cache entry for every slate, archived included. Not keyed on an
+// "include archived" flag on purpose: that flag is a view preference, and
+// keying on it made toggling it a cache miss — the list went undefined,
+// `isSuccess` dropped, and every mounted tab reading slates re-rendered
+// against an empty array.
+export function useFinSlates(enabled = true) {
   return useQuery({
-    queryKey: qk.finance.slates(includeArchived),
-    queryFn: () => finance.listSlates(includeArchived),
+    queryKey: qk.finance.slates(),
+    queryFn: () => finance.listSlates(),
     enabled,
   });
 }

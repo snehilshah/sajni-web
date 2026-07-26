@@ -936,8 +936,12 @@ export const finance = {
     ),
 
   // Slates
-  listSlates: (includeArchived = false) =>
-    request<FinSlatesResponse>('/finance/slates' + (includeArchived ? '?include_archived=true' : '')),
+  /** Always includes archived slates. There are only ever a handful, so the
+   *  extra rows cost nothing, and fetching them unconditionally means the
+   *  "show archived" toggle is a local filter rather than a second cache entry
+   *  — flipping it can't blank the list every other tab is reading. Callers
+   *  that offer a slate to pick filter `!archived` themselves. */
+  listSlates: () => request<FinSlatesResponse>('/finance/slates?include_archived=true'),
   createSlate: (data: { name: string; color?: string }) =>
     request<{ id: number }>('/finance/slates', { method: 'POST', body: JSON.stringify(data) }),
   updateSlate: (id: number, data: { name?: string; color?: string; archived?: boolean }) =>

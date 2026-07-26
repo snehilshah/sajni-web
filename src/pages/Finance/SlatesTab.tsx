@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/icons';
 
 import { finance, type FinSlate } from '@/api';
+import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -35,18 +36,29 @@ import { cn } from '@/lib/utils';
 interface Props {
   slates: FinSlate[];
   loaded: boolean;
-  showArchived: boolean;
-  onShowArchived: (v: boolean) => void;
   onOpenSlate: (id: number) => void;
 }
 
-export default function SlatesTab({ slates, loaded, showArchived, onShowArchived, onOpenSlate }: Props) {
+export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
   const qc = useQueryClient();
   const { formatMoney } = useFinanceFormatters();
   const [editing, setEditing] = useState<FinSlate | null>(null);
   const [creating, setCreating] = useState(false);
+  // Purely a view preference over a list we already hold, so it stays here.
+  // Lifting it to FinancePage (or into the query key) made revealing four
+  // archived tiles refetch and re-render all eight finance tabs.
+  const [showArchived, setShowArchived] = useState(false);
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['finance'] });
+  // Renaming, recolouring or archiving touches nothing but the slate list.
+  // Invalidating all of `['finance']` refetched accounts, categories, the
+  // ledger and statements for a colour change.
+  const refreshSlates = () => qc.invalidateQueries({ queryKey: qk.finance.slates() });
+  // Deleting is the exception: its transactions land on Plain, so the ledger
+  // and every slate's totals move with it.
+  const refreshAfterDelete = () => {
+    qc.invalidateQueries({ queryKey: qk.finance.slates() });
+    qc.invalidateQueries({ queryKey: ['finance', 'transactions'] });
+  };
 
   const setArchived = async (s: FinSlate, archived: boolean) => {
     try {
@@ -57,7 +69,7 @@ export default function SlatesTab({ slates, loaded, showArchived, onShowArchived
       toast.success(archived
         ? `"${s.name}" archived — its transactions stay where they are`
         : `"${s.name}" is back`);
-      refresh();
+      refreshSlates();
     } catch (e) { toast.error(msg(e)); }
   };
 
@@ -79,7 +91,7 @@ export default function SlatesTab({ slates, loaded, showArchived, onShowArchived
     }
     try {
       await finance.deleteSlate(s.id, n > 0);
-      refresh();
+      refreshAfterDelete();
     } catch (e) { toast.error(msg(e)); }
   };
 
@@ -118,7 +130,7 @@ export default function SlatesTab({ slates, loaded, showArchived, onShowArchived
               size="sm"
               variant="ghost"
               aria-pressed={showArchived}
-              onClick={() => onShowArchived(!showArchived)}
+              onClick={() => setShowArchived((v) => !v)}
               className={cn(showArchived && 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}
             >
               <Archive className="size-4 md:mr-1" /> <span className="hidden md:inline">Archived</span>
@@ -192,7 +204,7 @@ export default function SlatesTab({ slates, loaded, showArchived, onShowArchived
         open={creating || editing !== null}
         slate={editing}
         onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); refresh(); }}
+        onSaved={() => { setCreating(false); setEditing(null); refreshSlates(); }}
       />
     </div>
   );

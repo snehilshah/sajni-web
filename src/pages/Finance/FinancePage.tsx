@@ -105,10 +105,11 @@ export default function FinancePage() {
 
   const accountsQ = useFinAccounts();
   const categoriesQ = useFinCategories();
-  // Archived slates are opt-in. Every other consumer filters `!archived`, so
-  // pulling them in only affects the Slates tab, which is what asked for them.
-  const [showArchived, setShowArchived] = useState(false);
-  const slatesQ = useFinSlates(showArchived); // cheap; powers the Slates tab + txn dialogs
+  // Archived slates come down with the rest — every consumer that offers a
+  // slate to pick filters `!archived` itself, and the Slates tab's "show
+  // archived" toggle is its own local state. Nothing about that toggle
+  // reaches this component, so it can't re-render the page.
+  const slatesQ = useFinSlates(); // cheap; powers the Slates tab + txn dialogs
   const transactionsQ = useFinTransactions(txnParams, want('transactions'));
   const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
@@ -142,8 +143,7 @@ export default function FinancePage() {
   const loadTransactions = () => qc.invalidateQueries({ queryKey: ['finance', 'transactions'] });
   const loadInvestments = () => qc.invalidateQueries({ queryKey: qk.finance.investments() });
   const loadStatements = () => qc.invalidateQueries({ queryKey: qk.finance.statements() });
-  // Prefix (no flag) so the archived-inclusive variant refetches too.
-  const loadSlates = () => qc.invalidateQueries({ queryKey: ['finance', 'slates'] });
+  const loadSlates = () => qc.invalidateQueries({ queryKey: qk.finance.slates() });
 
   const [exportOpen, setExportOpen] = useState(false);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag
@@ -247,8 +247,6 @@ export default function FinancePage() {
           <SlatesTab
             slates={slates.items}
             loaded={slatesQ.isSuccess}
-            showArchived={showArchived}
-            onShowArchived={setShowArchived}
             // Opening a slate is just the ledger filtered to it — same list,
             // same sweep, no second implementation of a transaction list.
             onOpenSlate={(id) => { setSlateFilter(id); setActive('transactions'); }}
