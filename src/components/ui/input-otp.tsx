@@ -15,7 +15,7 @@ function InputOTP({
     <OTPInput
       data-slot="input-otp"
       containerClassName={cn(
-        "cn-input-otp flex items-center has-disabled:opacity-50",
+        "cn-input-otp flex w-full items-center justify-center has-disabled:opacity-50",
         containerClassName
       )}
       spellCheck={false}
@@ -50,13 +50,14 @@ function InputOTPSlot({
       data-slot="input-otp-slot"
       data-active={isActive}
       className={cn(
-        // Each slot is a rounded, full-border square that highlights
-        // when active. Sized for fat-finger taps on mobile but still
-        // legible on desktop. The Material-3 surface tones make it sit
-        // naturally next to the rest of the form.
-        "relative flex h-12 w-11 items-center justify-center rounded-xl border bg-[hsl(var(--surface-container))] text-base font-medium text-foreground border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)] transition-[color,border-color,box-shadow] outline-none",
-        "data-[active=true]:z-10 data-[active=true]:border-[hsl(var(--primary))] data-[active=true]:ring-2 data-[active=true]:ring-[hsl(var(--primary)/0.25)]",
-        "aria-invalid:border-destructive",
+        // Compact M3 outlined field: a square 44px touch target, the same
+        // 12px corners as Input, and an inset focus stroke that never changes
+        // the slot's size or spacing.
+        "relative flex size-11 shrink-0 items-center justify-center rounded-md border border-[hsl(var(--outline))] bg-transparent p-0 text-base font-medium text-foreground outline-none",
+        "transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
+        "hover:border-[hsl(var(--on-surface))]",
+        "data-[active=true]:z-10 data-[active=true]:border-transparent data-[active=true]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
+        "aria-invalid:border-destructive aria-invalid:data-[active=true]:border-transparent aria-invalid:data-[active=true]:shadow-[inset_0_0_0_2px_hsl(var(--destructive))]",
         className
       )}
       {...props}
