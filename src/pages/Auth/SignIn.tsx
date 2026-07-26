@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from '@/components/ui/icons';
 import { useAuth } from '@/auth/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -104,13 +104,17 @@ export default function SignIn() {
       <Backdrop />
       <div className="relative z-10 min-h-[100dvh] grid md:grid-cols-2">
         <div className="hidden md:flex flex-col justify-between p-12 border-r border-border">
-          <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            aria-label="Back to Sajni home"
+            className="flex w-fit items-center gap-3 rounded-lg transition-opacity hover:opacity-75"
+          >
             <span className="sajni-logo" aria-hidden="true" />
             <div>
               <div className="serif text-[20px] font-semibold leading-tight">sajni</div>
               <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">codex</div>
             </div>
-          </div>
+          </Link>
 
           <div className="max-w-md">
             <h1 className="serif text-5xl lg:text-6xl font-normal tracking-[-0.02em] leading-[1.05]">
@@ -129,13 +133,17 @@ export default function SignIn() {
 
         <div className="flex items-center justify-center px-5 py-12 md:py-0">
           <div className="w-full max-w-sm">
-            <div className="md:hidden mb-8 flex items-center gap-3">
+            <Link
+              to="/"
+              aria-label="Back to Sajni home"
+              className="mb-8 flex w-fit items-center gap-3 rounded-lg transition-opacity hover:opacity-75 md:hidden"
+            >
               <span className="sajni-logo" aria-hidden="true" />
               <div>
                 <div className="serif text-[18px] font-semibold leading-tight">sajni</div>
                 <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">codex</div>
               </div>
-            </div>
+            </Link>
 
             <div className="mb-6">
               <h2 className="serif text-3xl font-semibold tracking-tight">

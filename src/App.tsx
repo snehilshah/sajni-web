@@ -18,6 +18,7 @@ const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const DocsPage = lazy(() => import('./pages/docs/DocsPage'));
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const SignInPage = lazy(() => import('./pages/Auth/SignIn'));
 const OAuthDonePage = lazy(() => import('./pages/Auth/OAuthDone'));
 const LinkChallengePage = lazy(() => import('./pages/Auth/LinkChallenge'));
@@ -40,6 +41,15 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 	if (loading) return null;
 	if (user) return <Navigate to="/" replace />;
 	return <>{children}</>;
+}
+
+// `/` keeps its meaning for signed-in users (Today), while becoming the
+// public landing page before sign-in. Layout renders the nested Today route;
+// LandingPage intentionally does not render an Outlet.
+function HomeRoute() {
+	const { user, loading } = useAuth();
+	if (loading) return <AppLoader />;
+	return user ? <Layout /> : <LandingPage />;
 }
 
 // Consolidations: Memos lives under /notes?tab=memos, Tags under
@@ -79,6 +89,9 @@ export default function App() {
 				{/* prettier-ignore */}
 				<Suspense fallback={<AppLoader />}>
 				<Routes>
+          <Route path="/" element={<HomeRoute />}>
+            <Route index element={<TodayPage />} />
+          </Route>
           <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
           {/* Legacy paths fold into /signin so old bookmarks still work. */}
           <Route path="/login" element={<Navigate to="/signin" replace />} />
@@ -95,7 +108,6 @@ export default function App() {
           <Route path="/docs/:page" element={<DocsPage />} />
           <Route path="/changelog" element={<ChangelogPage />} />
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
-            <Route path="/" element={<TodayPage />} />
             <Route path="/projects" element={<ThinkingPage />} />
             <Route path="/projects/:id" element={<ThinkingProjectPage />} />
             <Route path="/journal" element={<JournalPage />} />
