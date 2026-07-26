@@ -396,14 +396,15 @@ export default function TransactionsTab({
                   {d.month && <><Rule /><Totals label="Month" t={d.month} /></>}
                 </div>
 
-                <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  {/* The date is the row's missing context, so it stays pinned
-                      while the day's rows scroll under it. Offset clears the
-                      floating chrome island, which is fixed above the scroller. */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  {/* Scrolls away with its rows. It was sticky once; pinning it
+                      inside the card meant the card had to drop
+                      `overflow-hidden`, and the offset then had to be kept in
+                      sync with the floating chrome island by hand. Not worth it
+                      for a date the group is already sorted by. */}
                   <div className={cn(
                     GRID, LEAD, TRAIL,
-                    'sticky top-[calc(env(safe-area-inset-top,0px)+72px)] md:top-[calc(env(safe-area-inset-top,0px)+58px)]',
-                    'z-10 border-b border-border bg-[hsl(var(--surface-container))] py-2',
+                    'border-b border-border bg-[hsl(var(--surface-container))] py-2',
                   )}>
                     <span className="text-xs font-semibold md:col-span-2">
                       {format(parseISO(d.key), 'EEE, d MMM yyyy')}
