@@ -27,8 +27,9 @@ export default function PlacesGrid({ pathname, onNavigate }: {
             transition={{ type: 'spring', stiffness: 460, damping: 32 }}
             whileTap={{ transform: 'scale(0.95)' }}
             onClick={() => onNavigate(path)}
+            aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'flex flex-col items-center justify-center gap-2 px-1.5 py-4 text-xs font-medium rounded-2xl transition-colors',
+              'flex min-h-16 flex-col items-center justify-center gap-2 rounded-2xl px-1.5 py-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--popover))]',
               isActive
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
                 : 'bg-[hsl(var(--surface-container))] text-foreground/85 hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground',

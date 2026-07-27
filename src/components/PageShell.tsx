@@ -152,7 +152,8 @@ export function PageChrome({
           <MorphingPopover
             open={placesOpen}
             onOpenChange={setPlacesOpen}
-            panelClassName="w-[300px] p-2"
+            panelClassName="w-[min(300px,calc(100vw-24px))] p-2"
+            viewportPadding={12}
             trigger={
               <button
                 type="button"
@@ -280,6 +281,7 @@ export function PageShellTabs<V extends string>({
     { x: number; y: number; width: number; height: number; animate: boolean } | null
   >(null);
   const moveHoverTo = (el: HTMLElement) => {
+    if (isMobile) return;
     const wrap = trackRef.current;
     if (!wrap) return;
     const w = wrap.getBoundingClientRect();
@@ -304,7 +306,7 @@ export function PageShellTabs<V extends string>({
           aria-hidden
           className="pointer-events-none absolute left-0 top-0 z-0 rounded-[22px] bg-[hsl(var(--on-surface)/0.07)]"
           initial={false}
-          animate={hoverRect
+          animate={!isMobile && hoverRect
             ? { opacity: 1, x: hoverRect.x, y: hoverRect.y, width: hoverRect.width, height: hoverRect.height }
             : { opacity: 0 }}
           transition={reduceMotion || !hoverRect?.animate

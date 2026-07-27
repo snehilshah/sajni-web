@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useId, useRef,
+  useCallback, useEffect, useId, useLayoutEffect, useRef, useState,
   type CSSProperties, type ReactNode,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 // near their trigger inside the same stacking context.
 export function MorphingPopover({
   open, onOpenChange, trigger, children,
-  panelClassName, panelStyle, className,
+  panelClassName, panelStyle, className, viewportPadding,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,11 +24,58 @@ export function MorphingPopover({
   panelClassName?: string;
   panelStyle?: CSSProperties;
   className?: string;
+  /** Keeps a left-anchored panel inside the visible viewport. */
+  viewportPadding?: number;
 }) {
   const morphId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelLeft, setPanelLeft] = useState(0);
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+
+  useLayoutEffect(() => {
+    if (!open || viewportPadding == null) return;
+
+    const keepPanelVisible = () => {
+      const root = rootRef.current;
+      const panel = panelRef.current;
+      if (!root || !panel) return;
+
+      const rootBox = root.getBoundingClientRect();
+      const visualViewport = window.visualViewport;
+      const viewportLeft = visualViewport?.offsetLeft ?? 0;
+      const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth);
+      const minLeft = viewportLeft + viewportPadding;
+      const maxRight = viewportRight - viewportPadding;
+      const panelWidth = panel.offsetWidth;
+
+      let nextLeft = 0;
+      if (rootBox.left + panelWidth > maxRight) {
+        nextLeft = maxRight - rootBox.left - panelWidth;
+      }
+      if (rootBox.left + nextLeft < minLeft) {
+        nextLeft = minLeft - rootBox.left;
+      }
+
+      setPanelLeft((current) => (Math.abs(current - nextLeft) < 0.5 ? current : nextLeft));
+    };
+
+    keepPanelVisible();
+    const observer = new ResizeObserver(keepPanelVisible);
+    if (rootRef.current) observer.observe(rootRef.current);
+    if (panelRef.current) observer.observe(panelRef.current);
+    window.addEventListener('resize', keepPanelVisible);
+    window.visualViewport?.addEventListener('resize', keepPanelVisible);
+    window.visualViewport?.addEventListener('scroll', keepPanelVisible);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', keepPanelVisible);
+      window.visualViewport?.removeEventListener('resize', keepPanelVisible);
+      window.visualViewport?.removeEventListener('scroll', keepPanelVisible);
+    };
+  }, [open, viewportPadding]);
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +99,7 @@ export function MorphingPopover({
       <AnimatePresence initial={false} mode="popLayout">
         {open ? (
           <motion.div
+            ref={panelRef}
             key="panel"
             layoutId={morphId}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
@@ -61,6 +109,7 @@ export function MorphingPopover({
             )}
             style={{
               ...panelStyle,
+              ...(viewportPadding == null ? null : { left: panelLeft }),
               transformOrigin: panelStyle?.transformOrigin ?? (panelStyle?.right != null ? 'top right' : 'top left'),
             }}
           >
