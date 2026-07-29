@@ -102,15 +102,20 @@ export interface TaskList {
 
 export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'month' | 'scheduled' | 'blocked' | 'missed' | 'inbox' | 'all';
 
+export type HabitFrequency = 'daily' | 'weekly' | 'fortnightly' | 'monthly';
+
 export interface Habit {
   id: number;
   name: string;
-  frequency: 'daily' | 'weekly';
+  frequency: HabitFrequency;
   color: string;
   created_at: string;
   logged_today: boolean;
+  logged_current_period: boolean;
   total_logs: number;
+  total_periods: number;
   current_streak: number;
+  streak_unit: 'day' | 'week' | 'fortnight' | 'month';
 }
 
 export interface HabitStatus {
@@ -119,6 +124,9 @@ export interface HabitStatus {
   frequency: Habit['frequency'];
   color: string;
   logged: boolean;
+  period_start?: string;
+  period_end?: string;
+  streak_unit?: Habit['streak_unit'];
 }
 
 export type HabitPatch = Partial<Pick<Habit, 'name' | 'frequency' | 'color'>>;
@@ -251,7 +259,13 @@ export interface TagEntities {
 export interface Analytics {
   activity_heatmap: { date: string; count: number }[];
   module_breakdown: Record<string, number>;
-  habit_streaks: { name: string; current: number; longest: number }[];
+  habit_streaks: {
+    name: string;
+    frequency: HabitFrequency;
+    unit: 'day' | 'week' | 'fortnight' | 'month';
+    current: number;
+    longest: number;
+  }[];
   task_velocity: { week: string; completed: number }[];
   journal_consistency: { days_logged: number; total_days: number; percentage: number };
   top_tags: { tag: string; count: number }[];

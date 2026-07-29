@@ -25,7 +25,9 @@ export const qk = {
     all: ['habits'] as const,
     list: () => ['habits', 'list'] as const,
     status: (date: string) => ['habits', 'status', date] as const,
+    periodStatus: (date: string) => ['habits', 'periodStatus', date] as const,
     recentLogs: (days: number) => ['habits', 'recentLogs', days] as const,
+    logRange: (from: string, to: string) => ['habits', 'logRange', from, to] as const,
     logs: (id: number, days: number) => ['habits', 'logs', id, days] as const,
   },
   memos: {

@@ -284,6 +284,9 @@ function ActivityPanel() {
                   {data.habit_streaks.slice(0, 6).map((s) => (
                     <div key={s.name} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
                       <span className="text-sm truncate flex-1">{s.name}</span>
+                      <span className="mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                        {s.unit}
+                      </span>
                       <div className="flex items-center gap-3 font-mono text-xs shrink-0">
                         <span className="inline-flex items-center gap-1">
                           {s.current > 0 && <Flame className="size-3 text-orange-500" />}
@@ -388,4 +391,3 @@ function Panel({ title, subtitle, children }: { title: string; subtitle?: string
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-muted-foreground py-4 text-center">{children}</p>;
 }
-

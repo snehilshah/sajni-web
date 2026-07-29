@@ -13,6 +13,7 @@ import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type Jou
 import { useJournalList } from '@/queries/journal';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
+import { habitPeriodForDate } from '@/lib/habit-periods';
 import RichEditor from '@/components/editor/RichEditor';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
@@ -26,7 +27,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { MissedTask } from '@/api';
-import type { BacklinkRef, Task } from '@/types';
+import type { BacklinkRef, HabitStatus, Task } from '@/types';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
@@ -34,7 +35,6 @@ import {
   ChevronDown, Check as LucideCheck, Plus, CalendarRange,
 } from '@/components/ui/icons';
 
-interface HabitStatus { id: number; name: string; color: string; logged: boolean; }
 interface TaskItem { id: number; title: string; status: string; priority: string; due_date?: string | null; }
 interface JournalEntry { id: number; date: string; tags: string[]; updated_at: string; }
 type RingStyle = React.CSSProperties & { '--tw-ring-color': string };
@@ -51,6 +51,7 @@ const EXPANDED_MONTHS_KEY = 'sajni:journal-months';
 export default function JournalPage() {
   const [params, setParams] = useSearchParams();
   const initialDate = params.get('date') || format(new Date(), 'yyyy-MM-dd');
+  const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [viewMonth, setViewMonth] = useState(parseISO(initialDate));
@@ -195,7 +196,7 @@ export default function JournalPage() {
 
   const loadHabits = useCallback(async () => {
     setLoadingHabits(true);
-    try { setHabitStatuses(await habitsApi.statusForDate(selectedDate)); }
+    try { setHabitStatuses(await habitsApi.periodStatusForDate(selectedDate)); }
     finally { setLoadingHabits(false); }
   }, [selectedDate]);
 
@@ -250,8 +251,11 @@ export default function JournalPage() {
   const handleLocationChange = (v: JournalLocation | null) => { dirtyRef.current = true; setLocation(v); };
 
   const toggleHabit = async (habitId: number) => {
+    if (selectedDate > todayKey) return;
+    const habit = habitStatuses.find((item) => item.id === habitId);
+    if (!habit?.period_start) return;
     setHabitStatuses((prev) => prev.map((h) => h.id === habitId ? { ...h, logged: !h.logged } : h));
-    await habitsApi.toggleLogForDate(habitId, selectedDate);
+    await habitsApi.togglePeriod(habitId, habit.period_start);
     qc.invalidateQueries({ queryKey: qk.habits.all });
   };
 
@@ -398,7 +402,7 @@ export default function JournalPage() {
         )}
       </section>
 
-      {/* Habits today */}
+      {/* Habit periods containing the selected date */}
       <section>
         <div className="flex items-baseline justify-between mb-2.5">
           <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">habits</div>
@@ -414,7 +418,8 @@ export default function JournalPage() {
               <button
                 key={h.id}
                 onClick={() => toggleHabit(h.id)}
-                className="group flex items-center gap-2.5 text-left"
+                disabled={selectedDate > todayKey}
+                className="group flex min-h-11 items-center gap-2.5 rounded-md text-left outline-none disabled:cursor-default disabled:opacity-45 focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span
                   className="size-[18px] rounded-[3px] border-2 inline-flex items-center justify-center shrink-0 transition-[background-color,border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
@@ -426,7 +431,14 @@ export default function JournalPage() {
                 >
                   {h.logged && <LucideCheck className="size-3 stroke-[3px]" />}
                 </span>
-                <span className="flex-1 text-[12.5px] text-foreground/85">{h.name}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] text-foreground/85">{h.name}</span>
+                  {h.frequency !== 'daily' && (
+                    <span className="mt-0.5 block mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                      {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </div>
@@ -871,6 +883,16 @@ function WeekView({
   const totalDue = summary?.days.reduce((acc, d) => acc + d.tasks_due + d.tasks_done, 0) ?? 0;
   const totalMissed = summary?.days.reduce((acc, d) => acc + d.tasks_missed, 0) ?? 0;
   const entriesWritten = summary?.days.filter((d) => d.has_entry).length ?? 0;
+  const habitProgress = summary?.habits.reduce(
+    (acc, habit) => {
+      const target = habit.frequency === 'daily' ? 7 : 1;
+      const done = habit.frequency === 'daily'
+        ? habit.logged_days.length
+        : Number(habit.period_logged);
+      return { done: acc.done + done, target: acc.target + target };
+    },
+    { done: 0, target: 0 },
+  ) ?? { done: 0, target: 0 };
 
   return (
     <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-8">
@@ -1012,8 +1034,7 @@ function WeekView({
           </span>
           {summary && summary.habits.length > 0 && (
             <span className="ml-auto mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums">
-              {summary.habits.reduce((acc, h) => acc + h.logged_days.length, 0)}/
-              {summary.habits.length * 7} checked
+              {habitProgress.done}/{habitProgress.target} periods
             </span>
           )}
         </div>
@@ -1029,8 +1050,11 @@ function WeekView({
             <div className="flex flex-col gap-3">
               {summary.habits.map((h) => {
                 const logged = new Set(h.logged_days);
-                const ratio = h.logged_days.length / 7;
-                const isPerfect = h.logged_days.length === 7;
+                const target = h.frequency === 'daily' ? 7 : 1;
+                const done = h.frequency === 'daily' ? h.logged_days.length : Number(h.period_logged);
+                const ratio = done / target;
+                const isPerfect = done === target;
+                const cadencePeriod = habitPeriodForDate(parseISO(h.period_start), h.frequency);
                 return (
                   <div
                     key={h.id}
@@ -1045,6 +1069,9 @@ function WeekView({
                       <span className="text-[14px] font-medium text-foreground/90 flex-1 truncate">
                         {h.name}
                       </span>
+                      <span className="mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                        {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
+                      </span>
                       <span
                         className={`mono text-xs uppercase tracking-wider tabular-nums rounded-full px-2.5 py-0.5 ${
                           isPerfect
@@ -1054,15 +1081,12 @@ function WeekView({
                               : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {h.logged_days.length}/7
+                        {done}/{target}
                       </span>
                     </div>
 
-                    {/* 7-day track. Filled tiles use the habit color; empty
-                        tiles show a soft outlined dot. Hover reveals the
-                        weekday + state, tap toggles via the parent state
-                        once we wire mutation. */}
-                    <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    {h.frequency === 'daily' ? (
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                       {weekDays.map((day) => {
                         const ds = format(day, 'yyyy-MM-dd');
                         const on = logged.has(ds);
@@ -1100,7 +1124,29 @@ function WeekView({
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 rounded-2xl bg-[hsl(var(--surface-container))] p-2">
+                        <span
+                          className="grid size-11 place-items-center rounded-[18px] mono text-xs font-semibold"
+                          style={{
+                            background: h.period_logged ? h.color : 'hsl(var(--surface-container-highest))',
+                            color: h.period_logged ? 'hsl(var(--primary-foreground))' : 'hsl(var(--on-surface-variant))',
+                            boxShadow: h.period_logged ? 'none' : 'inset 0 0 0 1px hsl(var(--outline-variant))',
+                          }}
+                        >
+                          {h.period_logged ? <LucideCheck className="size-4" /> : cadencePeriod.label}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">
+                            {cadencePeriod.accessibleLabel}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {h.period_logged ? 'Completed' : 'Open'}
+                          </span>
+                        </span>
+                      </div>
+                    )}
 
                     {/* Streak meter — a thin progress bar in the habit color. */}
                     <div className="flex items-center gap-2">

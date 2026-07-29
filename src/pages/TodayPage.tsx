@@ -9,7 +9,8 @@ import remarkGfm from 'remark-gfm';
 import { journal as journalApi } from '@/api';
 import type { JournalEntry as JournalFull } from '@/types';
 import { useTasks, useToggleTaskStatus, useCreateTask } from '@/queries/tasks';
-import { useHabits, useHabitRecentLogs, useToggleHabitLog } from '@/queries/habits';
+import { useHabits, useHabitRecentLogs, useToggleHabitPeriod } from '@/queries/habits';
+import { dateKey, habitPeriodForDate } from '@/lib/habit-periods';
 import { useMemos, useCreateMemo } from '@/queries/memos';
 import { useJournalList, useSaveJournal } from '@/queries/journal';
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -38,6 +39,7 @@ interface HabitDayStatus {
 	id: number;
 	name: string;
 	color: string;
+	frequency: 'daily' | 'weekly' | 'fortnightly' | 'monthly';
 	logged: boolean;
 }
 
@@ -85,13 +87,17 @@ export default function TodayPage() {
 	const recentMemos = (memosData as Memo[]).slice(0, 3);
 	const recentJournal = (journalData as JournalMeta[]).slice(0, 4);
 
-	// /habits already carries logged_today, so the day status is derived.
+	// /habits carries completion for each habit's current cadence period.
 	const habitStatus: HabitDayStatus[] = habitsList.map((h) => ({
-		id: h.id, name: h.name, color: h.color, logged: h.logged_today,
+		id: h.id,
+		name: h.name,
+		color: h.color,
+		frequency: h.frequency,
+		logged: h.logged_current_period ?? h.logged_today,
 	}));
 
 	const toggleTask = useToggleTaskStatus();
-	const toggleHabit = useToggleHabitLog(today);
+	const toggleHabit = useToggleHabitPeriod();
 	const createMemo = useCreateMemo();
 	const createTask = useCreateTask();
 	const saveJournal = useSaveJournal();
@@ -410,14 +416,14 @@ export default function TodayPage() {
 							<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
 							<Stat label="Tasks closed" value={String(dueToday.filter((t) => t.status === 'done').length)} />
 							<Stat label="Journal streak" value={`${recentJournal.length}d`} />
-							<Stat label="Habits today" value={`${habitsDone}/${totalHabitsToday}`} />
+							<Stat label="Habit periods" value={`${habitsDone}/${totalHabitsToday}`} />
 						</div>
 					</Section>
 				</div>
 
 				<div className="flex flex-col gap-6">
-					{/* Today's habits */}
-					<Section title="Today's habits" hint={totalHabitsToday > 0 ? `${habitsDone}/${totalHabitsToday} done` : undefined}>
+					{/* Current habit periods */}
+					<Section title="Habits" hint={totalHabitsToday > 0 ? `${habitsDone}/${totalHabitsToday} current periods` : undefined}>
 						<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border">
 							{habitStatus.length === 0 ? (
 								<div className="text-sm text-muted-foreground text-center py-2">No habits yet.</div>
@@ -430,17 +436,20 @@ export default function TodayPage() {
 									return (
 										<div
 											key={h.id}
-											onClick={() => navigate(`/habits?focus=${h.id}`)}
-											role="button"
-											tabIndex={0}
-											className={`flex items-center gap-3 py-2.5 cursor-pointer hover:bg-[hsl(var(--surface-container-high))] -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
+											className={`flex items-center gap-3 py-2.5 -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
 										>
 											<button
-												onClick={(e) => {
-													e.stopPropagation();
-													toggleHabit.mutate({ id: h.id, date: today });
+												onClick={() => {
+													if (!habit) return;
+													const period = habitPeriodForDate(new Date(), habit.frequency);
+													toggleHabit.mutate({
+														id: h.id,
+														periodStart: period.key,
+														periodEnd: dateKey(period.end),
+														isCurrent: true,
+													});
 												}}
-												className="size-[26px] rounded-lg flex items-center justify-center transition-[background-color,border-color,color]"
+												className="size-11 shrink-0 rounded-[16px] flex items-center justify-center transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 												style={{
 													background: h.logged ? h.color : 'transparent',
 													border: `1.5px solid ${h.logged ? h.color : 'hsl(var(--muted-foreground))'}`,
@@ -460,10 +469,15 @@ export default function TodayPage() {
 													</svg>
 												)}
 											</button>
-											<div className="flex-1 min-w-0">
+											<button
+												type="button"
+												onClick={() => navigate(`/habits?focus=${h.id}`)}
+												className="min-w-0 flex-1 rounded-md text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+											>
 												<div className="text-[13.5px] text-foreground font-medium truncate">{h.name}</div>
-												<div className="flex items-center gap-1.5 mt-1">
-													{Array.from({ length: 7 }).map((_, idx) => {
+												{habit?.frequency === 'daily' ? (
+													<div className="flex items-center gap-1.5 mt-1">
+														{Array.from({ length: 7 }).map((_, idx) => {
 														const filled = week[idx];
 														const isToday = idx === todayIdx;
 														const isFuture = idx > todayIdx;
@@ -483,9 +497,17 @@ export default function TodayPage() {
 																}}
 															/>
 														);
-													})}
-												</div>
-											</div>
+														})}
+													</div>
+												) : habit ? (
+													<div className="mt-1 mono text-xs tracking-[0.08em] text-muted-foreground">
+														{habitPeriodForDate(new Date(), habit.frequency).label}
+														<span className="ml-1.5 normal-case tracking-normal">
+															{habit.frequency === 'fortnightly' ? 'two-week period' : habit.frequency}
+														</span>
+													</div>
+												) : null}
+											</button>
 											<div className="flex items-center gap-1 text-xs text-muted-foreground">
 												<Flame className="size-3 text-secondary" />
 												<span className="mono">{streak}</span>

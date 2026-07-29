@@ -4,10 +4,10 @@ export const habitsMeta = {
   id: 'habits',
   label: 'Habits',
   title: 'Habits',
-  blurb: 'Tick once a day. Streak math, a weekly strip, honest backfill — nudges, never guilt.',
+  blurb: 'Daily, weekly, fortnightly, or monthly — one honest check per rhythm.',
   sections: [
     { id: 'model', label: 'The model' },
-    { id: 'week', label: 'The weekly strip' },
+    { id: 'week', label: 'The rhythm ledger' },
     { id: 'streaks', label: 'Streaks & backfill' },
   ],
 };
@@ -17,16 +17,16 @@ export default function HabitsDoc() {
     <>
       <Section id="model" title="The model">
         <p>
-          A habit is a name, a color, and a frequency — <strong>daily</strong>{' '}
-          or <strong>weekly</strong>. That's the whole schema on purpose: no
-          quantities, no time targets, no skip tokens. One tick per period,
-          logged against the IST calendar day.
+          A habit is a name, a color, and a frequency — <strong>daily</strong>,{' '}
+          <strong>weekly</strong>, <strong>fortnightly</strong>, or{' '}
+          <strong>monthly</strong>. There are no quantities, partial credits,
+          or skip tokens: one check completes one calendar period.
         </p>
         <FeatureList>
           <Feature name="Ticking">
             <p>
-              Tick from the Habits page or from Today — same log either way.
-              Ticks are idempotent per day; un-ticking removes the log.
+              Tick from Habits, Today, Journal, or Sajni — every surface resolves
+              the same cadence period. An unfinished current period stays open.
             </p>
           </Feature>
           <Feature name="Editing">
@@ -45,31 +45,57 @@ export default function HabitsDoc() {
         </Callout>
       </Section>
 
-      <Section id="week" title="The weekly strip">
+      <Section id="week" title="The rhythm ledger">
         <p>
-          Each habit renders as a row of the current week — seven cells,
-          ticked or not — with ‹ › to walk previous weeks. The strip is the
-          primary display because <em>the week is the honest unit</em>: a
-          single missed day reads as texture, not failure.
+          Habits are grouped by cadence, so every row in a ledger shares the
+          same timeline and highlighted current column. Creating a habit does
+          not move that column or give the habit a separate window.
         </p>
+        <FeatureList>
+          <Feature name="Four window shapes">
+            <p>
+              Daily shows the current Monday–Sunday week. Weekly shows twelve
+              consecutive weeks, fortnightly shows twelve consecutive 14-day
+              periods, and monthly shows the calendar year from JAN–DEC.
+            </p>
+          </Feature>
+          <Feature name="Stable period pages">
+            <p>
+              Weekly and fortnightly pages are anchored to their cadence rather
+              than cut at month boundaries. The current marker advances through
+              the twelve cells and wraps to the first cell after the twelfth.
+              The ‹ › controls move exactly twelve periods at a time, so no
+              week is duplicated, skipped, or made unreachable.
+            </p>
+          </Feature>
+          <Feature name="Calendar labels">
+            <p>
+              The page title names the months actually visible. A week belongs
+              to the month containing its Thursday and is numbered W1–W5 there.
+              A fortnight uses the label of its starting week: July W5 spans
+              that week and the following August W1, so the next fortnight is
+              August W2.
+            </p>
+          </Feature>
+        </FeatureList>
       </Section>
 
       <Section id="streaks" title="Streaks & backfill">
         <FeatureList>
           <Feature name="Streaks">
             <p>
-              Each habit tracks its current streak and total logs; Analytics
-              shows current <em>and</em> longest streaks side by side. Streak
-              math runs on IST days, so a late-night tick before 12am still
-              counts for the day it belongs to.
+              Each habit tracks current and longest consecutive cadence periods.
+              Daily counts days, weekly counts weeks, fortnightly counts 14-day
+              buckets, and monthly counts months. Sajni uses the owner’s local
+              calendar throughout.
             </p>
           </Feature>
           <Feature name="Backfill">
             <p>
-              Recent past days (up to four weeks back) can be ticked
-              retroactively from the strip — for the days you did the thing
-              but not the logging. The point is a truthful record, not
-              streak-repair theater; there are no “freeze” tokens.
+              Any past period can be checked retroactively, including periods
+              before the habit was created. Future periods stay visible but
+              disabled. Changing a habit’s frequency keeps every stored log and
+              regroups that history into the new rhythm.
             </p>
           </Feature>
         </FeatureList>

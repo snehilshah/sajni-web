@@ -50,6 +50,25 @@ const GROUP_ORDER: Kind[] = ['feature', 'improvement', 'fix'];
 
 const RELEASES: Release[] = [
   {
+    version: '0.46.0',
+    date: '2026-07-30',
+    summary:
+      'Habits now follow daily, weekly, fortnightly, or monthly rhythms in one continuous ledger.',
+    entries: [
+      {
+        kind: 'feature',
+        area: 'Habits',
+        title: 'Track habits at the rhythm they happen',
+        detail:
+          'Daily habits keep their Monday–Sunday week, weekly and fortnightly habits move through '
+          + 'stable twelve-period pages, and monthly habits run JAN–DEC. Month bands and W1–W5 '
+          + 'labels keep the compact ledger readable, the current marker advances with each cadence, '
+          + 'and page navigation preserves every period for backfill. Today, Journal, Analytics and '
+          + 'Sajni now use the same completion and streak rules.',
+      },
+    ],
+  },
+  {
     version: '0.42.0',
     date: '2026-07-26',
     summary:

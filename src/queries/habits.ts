@@ -18,10 +18,25 @@ export function useHabitRecentLogs(days = 30) {
   });
 }
 
+export function useHabitLogRange(from: string, to: string) {
+  return useQuery({
+    queryKey: qk.habits.logRange(from, to),
+    queryFn: () => habitsApi.recentLogsRange(from, to),
+    enabled: Boolean(from && to),
+  });
+}
+
 export function useHabitStatus(date: string) {
   return useQuery({
     queryKey: qk.habits.status(date),
     queryFn: () => habitsApi.statusForDate(date),
+  });
+}
+
+export function useHabitPeriodStatus(date: string) {
+  return useQuery({
+    queryKey: qk.habits.periodStatus(date),
+    queryFn: () => habitsApi.periodStatusForDate(date),
   });
 }
 
@@ -63,6 +78,53 @@ export function useToggleHabitLog(today: string) {
     onError: (_e, _v, ctx) => {
       if (ctx?.prevList) qc.setQueryData(qk.habits.list(), ctx.prevList);
       ctx?.prevLogs?.forEach(([key, val]) => qc.setQueryData(key, val));
+      toast.error('Could not update habit');
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.habits.all }),
+  });
+}
+
+export function useToggleHabitPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, periodStart }: {
+      id: number;
+      periodStart: string;
+      periodEnd: string;
+      isCurrent: boolean;
+    }) => habitsApi.togglePeriod(id, periodStart),
+    onMutate: async ({ id, periodStart, periodEnd, isCurrent }) => {
+      await qc.cancelQueries({ queryKey: qk.habits.all });
+      const prevList = qc.getQueryData<Habit[]>(qk.habits.list());
+      const prevLogs = qc.getQueriesData<Record<string, string[]>>({ queryKey: qk.habits.all });
+      const key = String(id);
+      const wasLogged = prevLogs.some(([, data]) => {
+        if (!data || Array.isArray(data)) return false;
+        return (data[key] ?? []).some((date) => date >= periodStart && date <= periodEnd);
+      });
+      const nextLogged = !wasLogged;
+
+      qc.setQueriesData<Record<string, string[]>>({ queryKey: qk.habits.all }, (old) => {
+        if (!old || Array.isArray(old)) return old;
+        const arr = old[key] ?? [];
+        const next = nextLogged
+          ? [...arr, periodStart]
+          : arr.filter((date) => date < periodStart || date > periodEnd);
+        return { ...old, [key]: next };
+      });
+
+      if (isCurrent) {
+        qc.setQueryData<Habit[]>(qk.habits.list(), (old) =>
+          old?.map((habit) => habit.id === id
+            ? { ...habit, logged_current_period: nextLogged }
+            : habit),
+        );
+      }
+      return { prevList, prevLogs };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.prevList) qc.setQueryData(qk.habits.list(), context.prevList);
+      context?.prevLogs.forEach(([key, value]) => qc.setQueryData(key, value));
       toast.error('Could not update habit');
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.habits.all }),

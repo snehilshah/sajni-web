@@ -105,6 +105,13 @@ export default function JournalDoc() {
               commitments are made.
             </p>
           </Feature>
+          <Feature name="Habit rhythms">
+            <p>
+              Daily habits keep their seven-day strip. Weekly, fortnightly,
+              and monthly habits appear as one cadence period, so the review
+              never turns a monthly check into seven daily ones.
+            </p>
+          </Feature>
           <Feature name="Weekly entry & Sajni's summary">
             <p>
               You can write a weekly entry in your own words; Sajni also

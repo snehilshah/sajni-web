@@ -234,11 +234,20 @@ export const habits = {
   delete: (id: number) => request('/habits/' + id, { method: 'DELETE' }),
   toggleLog: (id: number) => request<{ logged: boolean }>('/habits/' + id + '/log', { method: 'POST' }),
   toggleLogForDate: (id: number, date: string) => request<{ logged: boolean }>('/habits/' + id + '/log/' + date, { method: 'POST' }),
+  togglePeriod: (id: number, date: string) =>
+    request<{ logged: boolean; period_start: string; period_end: string }>(
+      '/habits/' + id + '/period/' + date,
+      { method: 'POST' },
+    ),
   statusForDate: (date: string) => request<HabitStatus[]>('/habits/status?date=' + date),
+  periodStatusForDate: (date: string) =>
+    request<HabitStatus[]>('/habits/period-status?date=' + date),
   getLogs: (id: number, days = 30) => request<string[]>('/habits/' + id + '/logs?days=' + days),
   // All habits' logged dates in one call, keyed by habit id. Avoids the
   // per-habit N+1 on the Today page.
   recentLogs: (days = 30) => request<Record<string, string[]>>('/habits/logs?days=' + days),
+  recentLogsRange: (from: string, to: string) =>
+    request<Record<string, string[]>>(`/habits/logs?from=${from}&to=${to}`),
 };
 
 // --- Media ---
@@ -377,7 +386,16 @@ export interface WeeklySummary {
     tasks_missed: number;
     has_entry: boolean;
   }>;
-  habits: Array<{ id: number; name: string; color: string; logged_days: string[] }>;
+  habits: Array<{
+    id: number;
+    name: string;
+    frequency: Habit['frequency'];
+    color: string;
+    logged_days: string[];
+    period_start: string;
+    period_end: string;
+    period_logged: boolean;
+  }>;
   expense_total: number;
   expense_top_category: { id: number; name: string; amount: number } | null;
   expense_currency: string;

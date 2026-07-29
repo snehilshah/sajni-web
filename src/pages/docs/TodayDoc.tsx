@@ -43,11 +43,12 @@ export default function TodayDoc() {
               inline check-off. Tapping opens the full task sheet.
             </p>
           </Feature>
-          <Feature name="Today's habits">
+          <Feature name="Current habit periods">
             <p>
-              Every daily habit with a one-tap tick. The header counts
-              progress (“3/5 done”). Ticking here is identical to ticking on
-              the Habits page — same log, same streak math.
+              Every habit with a one-tap check for its current day, week,
+              fortnight, or month. The header counts current periods
+              (“3/5 done”). Ticking here is identical to ticking on the
+              Habits page — same period, same streak math.
             </p>
           </Feature>
           <Feature name="Recent thinking">
