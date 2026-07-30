@@ -4,11 +4,12 @@ export const habitsMeta = {
   id: 'habits',
   label: 'Habits',
   title: 'Habits',
-  blurb: 'Daily, weekly, fortnightly, or monthly — one honest check per rhythm.',
+  blurb: 'Build rhythms with Habits, and remember when things happened with Events.',
   sections: [
     { id: 'model', label: 'The model' },
     { id: 'week', label: 'The rhythm ledger' },
     { id: 'streaks', label: 'Streaks & backfill' },
+    { id: 'events', label: 'Events' },
   ],
 };
 
@@ -99,6 +100,50 @@ export default function HabitsDoc() {
             </p>
           </Feature>
         </FeatureList>
+      </Section>
+
+      <Section id="events" title="Events">
+        <p>
+          Events share the Habits page but answer a different question:
+          <strong> when did this last happen?</strong> Use them for haircuts,
+          beard trims, leave, maintenance, health appointments, or any
+          irregular occurrence where elapsed time matters more than a streak.
+        </p>
+        <FeatureList>
+          <Feature name="Fast logging">
+            <p>
+              Log an occurrence with its date and time, an optional note, and
+              up to six optional numeric variables. Variables can carry a unit,
+              such as haircut cost in ₹ or trim size in mm.
+            </p>
+          </Feature>
+          <Feature name="Timeline">
+            <p>
+              Each event has its own chronological spine. It shows exact dates,
+              the time between occurrences, notes, and recorded values. Search
+              notes or narrow the history to a date range.
+            </p>
+          </Feature>
+          <Feature name="Trends">
+            <p>
+              The Trends view summarizes the last occurrence, total logs, and
+              average interval. It charts intervals and any selected variable
+              when enough comparable entries exist.
+            </p>
+          </Feature>
+          <Feature name="Connected history">
+            <p>
+              Event occurrences appear read-only beside the matching Journal
+              day and are included in global search and data takeout. Sajni can
+              create events, manage variables, and log or edit occurrences too.
+            </p>
+          </Feature>
+        </FeatureList>
+        <Callout tone="why">
+          Habits are commitments to repeat. Events are landmarks worth
+          remembering. Keeping them as sibling tabs makes the distinction clear
+          without adding another destination to Sajni.
+        </Callout>
       </Section>
     </>
   );

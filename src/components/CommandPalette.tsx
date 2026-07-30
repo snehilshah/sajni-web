@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles, BookOpen, CheckSquare, Target, FileText, Film,
+  Sparkles, BookOpen, CheckSquare, Target, FileText, Film, Clock,
   Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft, X,
   Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight,
   Bookmark as BookmarkIcon,
@@ -29,6 +29,7 @@ const TYPE_ICONS: Record<string, typeof SearchIcon> = {
   note: FileText,
   journal: BookOpen,
   habit: Target,
+  event: Clock,
   media: Film,
   tag: Hash,
   account: Wallet,
@@ -42,6 +43,7 @@ const TYPE_COLORS: Record<string, string> = {
   note: 'text-sky-600 dark:text-sky-400',
   journal: 'text-amber-600 dark:text-amber-400',
   habit: 'text-blue-600 dark:text-blue-400',
+  event: 'text-amber-700 dark:text-amber-300',
   media: 'text-purple-600 dark:text-purple-400',
   tag: 'text-cyan-600 dark:text-cyan-400',
   account: 'text-teal-600 dark:text-teal-400',

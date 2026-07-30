@@ -10,6 +10,7 @@ const ThinkingProjectPage = lazy(() => import('./pages/ThinkingProjectPage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
 const HabitsPage = lazy(() => import('./pages/HabitsPage'));
+const EventsPage = lazy(() => import('./pages/EventsPage'));
 const MediaPage = lazy(() => import('./pages/MediaPage'));
 const NotesPage = lazy(() => import('./pages/NotesPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
@@ -58,6 +59,10 @@ function HomeRoute() {
 function NotesHub() {
 	const { search } = useLocation();
 	return new URLSearchParams(search).get('tab') === 'memos' ? <MemosPage /> : <NotesPage />;
+}
+function HabitsHub() {
+	const { search } = useLocation();
+	return new URLSearchParams(search).get('tab') === 'events' ? <EventsPage /> : <HabitsPage />;
 }
 function ThinkingRedirect() {
 	const { id } = useParams();
@@ -112,7 +117,7 @@ export default function App() {
             <Route path="/projects/:id" element={<ThinkingProjectPage />} />
             <Route path="/journal" element={<JournalPage />} />
             <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/habits" element={<HabitsPage />} />
+            <Route path="/habits" element={<HabitsHub />} />
             <Route path="/media" element={<MediaPage />} />
             <Route path="/notes" element={<NotesHub />} />
             <Route path="/finance" element={<FinancePage />} />
@@ -120,6 +125,7 @@ export default function App() {
             <Route path="/analytics" element={<AnalyticsPage />} />
             {/* Consolidation redirects. */}
             <Route path="/memos" element={<Navigate to="/notes?tab=memos" replace />} />
+            <Route path="/events" element={<Navigate to="/habits?tab=events" replace />} />
             <Route path="/thinking" element={<ThinkingRedirect />} />
             <Route path="/thinking/:id" element={<ThinkingRedirect />} />
             <Route path="/tags" element={<TagRedirect />} />

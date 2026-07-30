@@ -268,7 +268,10 @@ export const Zap = px(_px_Zap);
 export {
   ArrowUpRight,
   Bold,
+  Briefcase,
+  Car,
   GalleryHorizontalEnd,
+  Heart,
   History,
   Italic,
   ListOrdered,
@@ -281,6 +284,7 @@ export {
   Pin,
   PinOff,
   Share2,
+  Scissors,
   Strikethrough,
   Sun,
   Table2,

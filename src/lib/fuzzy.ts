@@ -1,7 +1,7 @@
 // Lightweight fuzzy scorer + type-prefix parser for the global palette.
 
 export type SearchType =
-  | 'memo' | 'task' | 'note' | 'journal' | 'habit'
+  | 'memo' | 'task' | 'note' | 'journal' | 'habit' | 'event'
   | 'media' | 'tag' | 'account' | 'transaction';
 
 export const SEARCH_TYPE_LABELS: Record<SearchType, string> = {
@@ -10,6 +10,7 @@ export const SEARCH_TYPE_LABELS: Record<SearchType, string> = {
   note: 'Note',
   journal: 'Journal',
   habit: 'Habit',
+  event: 'Event',
   media: 'Media',
   tag: 'Tag',
   account: 'Account',
@@ -24,6 +25,7 @@ const TYPE_ALIASES: Record<string, SearchType> = {
   note: 'note', notes: 'note',
   journal: 'journal', journals: 'journal',
   habit: 'habit', habits: 'habit',
+  event: 'event', events: 'event',
   media: 'media', movie: 'media', movies: 'media',
   show: 'media', shows: 'media', book: 'media', books: 'media',
   tag: 'tag', tags: 'tag',

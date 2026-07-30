@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import {
@@ -52,7 +52,7 @@ import {
   Pencil,
   Plus,
 } from '@/components/ui/icons';
-import PageShell from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 const FREQUENCIES: HabitFrequency[] = ['daily', 'weekly', 'fortnightly', 'monthly'];
@@ -79,6 +79,7 @@ const INITIAL_OFFSETS: Offsets = {
 };
 
 export default function HabitsPage() {
+  const navigate = useNavigate();
   const { data: habitsList = [], isLoading } = useHabits();
   const today = useMemo(() => new Date(), []);
   const todayKey = dateKey(today);
@@ -183,6 +184,18 @@ export default function HabitsPage() {
   return (
     <PageShell
       title="Habits"
+      navigation={(
+        <PageShellTabs
+          bare
+          ariaLabel="Habits sections"
+          value="habits"
+          options={[
+            { value: 'habits', label: 'Habits' },
+            { value: 'events', label: 'Events' },
+          ]}
+          onChange={(value) => { if (value === 'events') navigate('/habits?tab=events'); }}
+        />
+      )}
       actions={(
         <Button size="sm" onClick={openCreate} className="gap-1.5">
           <Plus className="size-3.5" />

@@ -131,6 +131,74 @@ export interface HabitStatus {
 
 export type HabitPatch = Partial<Pick<Habit, 'name' | 'frequency' | 'color'>>;
 
+export interface TrackedEventVariable {
+  id: number;
+  event_id: number;
+  name: string;
+  unit: string;
+  sort_order: number;
+}
+
+export interface TrackedEventValue {
+  variable_id: number;
+  name: string;
+  unit: string;
+  value: number;
+}
+
+export interface TrackedEvent {
+  id: number;
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+  last_occurred_at: string | null;
+  total_entries: number;
+  variables: TrackedEventVariable[];
+  last_values: TrackedEventValue[];
+}
+
+export interface TrackedEventEntry {
+  id: number;
+  event_id: number;
+  occurred_at: string;
+  note: string;
+  values: TrackedEventValue[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrackedEventTrendPoint {
+  entry_id: number;
+  occurred_at: string;
+  gap_days: number | null;
+  values: Record<string, number>;
+}
+
+export interface TrackedEventTrends {
+  total_entries: number;
+  last_occurred_at: string | null;
+  average_gap_days: number | null;
+  points: TrackedEventTrendPoint[];
+}
+
+export interface TrackedEventDayEntry {
+  id: number;
+  event_id: number;
+  event_name: string;
+  icon: string;
+  color: string;
+  occurred_at: string;
+  note: string;
+}
+
+export type TrackedEventPatch = Partial<
+  Pick<TrackedEvent, 'name' | 'description' | 'color' | 'icon' | 'archived'>
+>;
+
 export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'archived' | 'dropped' | 'scratched' | 'upcoming';
 
 export interface MediaEntry {

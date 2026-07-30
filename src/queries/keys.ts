@@ -30,6 +30,14 @@ export const qk = {
     logRange: (from: string, to: string) => ['habits', 'logRange', from, to] as const,
     logs: (id: number, days: number) => ['habits', 'logs', id, days] as const,
   },
+  events: {
+    all: ['events'] as const,
+    list: (params?: unknown) => ['events', 'list', params ?? {}] as const,
+    detail: (id: number) => ['events', 'detail', id] as const,
+    entries: (id: number, params?: unknown) => ['events', 'entries', id, params ?? {}] as const,
+    trends: (id: number) => ['events', 'trends', id] as const,
+    day: (date: string) => ['events', 'day', date] as const,
+  },
   memos: {
     all: ['memos'] as const,
     list: (params?: unknown) => ['memos', 'list', params ?? {}] as const,

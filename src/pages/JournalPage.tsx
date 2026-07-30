@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type JournalLocation } from '@/api';
 import { useJournalList } from '@/queries/journal';
+import { useEventDayEntries } from '@/queries/events';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
@@ -32,7 +33,7 @@ import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
   PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Calendar as CalendarIcon,
-  ChevronDown, Check as LucideCheck, Plus, CalendarRange,
+  ChevronDown, Check as LucideCheck, Plus, CalendarRange, Clock,
 } from '@/components/ui/icons';
 
 interface TaskItem { id: number; title: string; status: string; priority: string; due_date?: string | null; }
@@ -172,6 +173,7 @@ export default function JournalPage() {
 
   const { data: entriesData } = useJournalList();
   const entries = (entriesData ?? []) as JournalEntry[];
+  const { data: eventDayEntries = [], isLoading: loadingEvents } = useEventDayEntries(selectedDate);
   // Editor writes go through journalApi (day-scoped); refresh the cached list
   // (and any other journal view) after a save/delete.
   const loadEntries = useCallback(() => {
@@ -438,6 +440,48 @@ export default function JournalPage() {
                       {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
                     </span>
                   )}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Events are historical context: read-only here, editable on the event timeline. */}
+      <section>
+        <div className="mb-2.5 flex items-baseline justify-between">
+          <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground">events</div>
+          <button
+            onClick={() => navigate('/habits?tab=events')}
+            className="mono text-xs tracking-[0.1em] text-muted-foreground hover:text-foreground"
+          >
+            OPEN →
+          </button>
+        </div>
+        {loadingEvents ? (
+          <Skeleton className="h-14 w-full" />
+        ) : eventDayEntries.length === 0 ? (
+          <div className="text-xs italic text-muted-foreground">Nothing logged this day.</div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {eventDayEntries.map((entry) => (
+              <button
+                key={entry.id}
+                onClick={() => navigate(`/habits?tab=events&id=${entry.event_id}`)}
+                className="flex min-h-11 items-center gap-2.5 rounded-xl px-1.5 text-left outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span
+                  className="grid size-8 shrink-0 place-items-center rounded-[12px]"
+                  style={{ color: entry.color, backgroundColor: `${entry.color}20` }}
+                >
+                  <Clock className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] text-foreground/85">{entry.event_name}</span>
+                  {entry.note && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{entry.note}</span>}
+                </span>
+                <span className="mono shrink-0 text-xs text-muted-foreground">
+                  {format(new Date(entry.occurred_at), 'h:mm a')}
                 </span>
               </button>
             ))}

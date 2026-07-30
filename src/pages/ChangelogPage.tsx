@@ -50,6 +50,26 @@ const GROUP_ORDER: Kind[] = ['feature', 'improvement', 'fix'];
 
 const RELEASES: Release[] = [
   {
+    version: '0.47.0',
+    date: '2026-07-30',
+    summary:
+      'Events remember when irregular parts of life happened without turning them into habits.',
+    entries: [
+      {
+        kind: 'feature',
+        area: 'Events',
+        title: 'Track when life happened',
+        detail:
+          'Events now live beside Habits for haircuts, beard trims, leave, maintenance, '
+          + 'appointments, or anything else measured by elapsed time instead of a streak. '
+          + 'Each event has a fast backdated log, its own chronological spine, optional notes, '
+          + 'and up to six numeric variables with units. Trends chart the interval between '
+          + 'occurrences and changes in recorded values; event entries also appear on their '
+          + 'Journal day and participate in global search, data takeout, and Sajni.',
+      },
+    ],
+  },
+  {
     version: '0.46.0',
     date: '2026-07-30',
     summary:

@@ -19,6 +19,12 @@ import type {
   TaskList,
   TaskPatch,
   TaskStep,
+  TrackedEvent,
+  TrackedEventDayEntry,
+  TrackedEventEntry,
+  TrackedEventPatch,
+  TrackedEventTrends,
+  TrackedEventVariable,
 } from './types';
 
 const request = requestJSON;
@@ -248,6 +254,79 @@ export const habits = {
   recentLogs: (days = 30) => request<Record<string, string[]>>('/habits/logs?days=' + days),
   recentLogsRange: (from: string, to: string) =>
     request<Record<string, string[]>>(`/habits/logs?from=${from}&to=${to}`),
+};
+
+// --- Events ---
+export interface EventEntryInput {
+  occurred_at: string;
+  note: string;
+  values: Array<{ variable_id: number; value: number }>;
+}
+
+export const events = {
+  list: (params?: { archived?: boolean; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.archived) q.set('archived', 'true');
+    if (params?.search) q.set('search', params.search);
+    const qs = q.toString();
+    return request<TrackedEvent[]>(`/events${qs ? `?${qs}` : ''}`);
+  },
+  get: (id: number) => request<TrackedEvent>(`/events/${id}`),
+  create: (data: {
+    name: string;
+    description?: string;
+    color?: string;
+    icon?: string;
+    variables?: Array<{ name: string; unit: string }>;
+  }) => request<TrackedEvent>('/events', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: TrackedEventPatch) =>
+    request<TrackedEvent>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request(`/events/${id}`, { method: 'DELETE' }),
+  addVariable: (eventId: number, data: { name: string; unit: string }) =>
+    request<TrackedEventVariable>(`/events/${eventId}/variables`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateVariable: (
+    eventId: number,
+    variableId: number,
+    data: { name?: string; unit?: string; sort_order?: number },
+  ) => request<TrackedEventVariable>(`/events/${eventId}/variables/${variableId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  deleteVariable: (eventId: number, variableId: number) =>
+    request(`/events/${eventId}/variables/${variableId}`, { method: 'DELETE' }),
+  entries: (
+    eventId: number,
+    params?: { search?: string; from?: string; to?: string; before?: string; limit?: number },
+  ) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    if (params?.before) q.set('before', params.before);
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return request<{ entries: TrackedEventEntry[]; next_cursor: string }>(
+      `/events/${eventId}/entries${qs ? `?${qs}` : ''}`,
+    );
+  },
+  createEntry: (eventId: number, data: EventEntryInput) =>
+    request<TrackedEventEntry>(`/events/${eventId}/entries`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateEntry: (eventId: number, entryId: number, data: Partial<EventEntryInput>) =>
+    request<TrackedEventEntry>(`/events/${eventId}/entries/${entryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteEntry: (eventId: number, entryId: number) =>
+    request(`/events/${eventId}/entries/${entryId}`, { method: 'DELETE' }),
+  trends: (eventId: number) => request<TrackedEventTrends>(`/events/${eventId}/trends`),
+  entriesForDate: (date: string) =>
+    request<TrackedEventDayEntry[]>(`/events/entries?date=${encodeURIComponent(date)}`),
 };
 
 // --- Media ---

@@ -16,6 +16,7 @@ const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   // A task create, edit, or delete can change its hashtag index too.
   { prefix: 'task_', keys: [qk.tasks.all, qk.tags.all] },
   { prefix: 'habit_', keys: [qk.habits.all] },
+  { prefix: 'event_', keys: [qk.events.all] },
   { prefix: 'memo_', keys: [qk.memos.all] },
   { prefix: 'note_', keys: [qk.notes.all] },
   { prefix: 'media_', keys: [qk.media.all] },
