@@ -16,10 +16,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="description" content="Sajni is one quiet, personal codex for your notes, journal, tasks, habits, projects, media, and money." />
     <title>Sajni</title>
+    <style>
+      @keyframes sajni-startup-turn { to { transform: rotate(360deg); } }
+      .startup-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        background: hsl(var(--background, 180 22% 97%));
+        color: hsl(var(--primary, 184 38% 38%));
+        --startup-mark-detail: hsl(var(--on-primary, 0 0% 100%));
+      }
+      [data-mode="dark"] .startup-loader {
+        background: hsl(var(--background, 200 16% 8%));
+        color: hsl(var(--primary, 184 50% 74%));
+        --startup-mark-detail: hsl(var(--on-primary, 184 60% 14%));
+      }
+      .startup-loader__mark {
+        display: block;
+        width: 60px;
+        height: 60px;
+        transform-origin: 50% 50%;
+        animation: sajni-startup-turn 1100ms linear infinite;
+        animation-delay: var(--sajni-boot-delay, 0ms);
+        will-change: transform;
+      }
+      .startup-loader--leaving {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 140ms ease-out;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .startup-loader__mark { animation: none; }
+      }
+    </style>
     <script>
       (function () {
         try {
           var root = document.documentElement;
+          // Keep the pre-React and React startup marks on one continuous
+          // animation timeline, even when the DOM node changes.
+          root.style.setProperty('--sajni-boot-delay', (-performance.now()) + 'ms');
           // 'sajni:theme' = preset id, or 'custom' when an AI theme is active
           // (its compiled CSS is cached so we can paint it before the app
           // fetches the active theme — no preset flash).
@@ -49,6 +87,14 @@
     </script>
   </head>
   <body>
+    <div id="sajni-boot" class="startup-loader" role="status" aria-label="Opening Sajni">
+      <svg class="startup-loader__mark" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 6C14 18 9 40 22 53C29 60 40 57 47 48C58 33 51 15 32 6Z" fill="currentColor" />
+        <path d="M34 17C25 29 25 43 34 50" fill="none" stroke="var(--startup-mark-detail)" stroke-width="3" stroke-linecap="round" />
+        <circle cx="20" cy="31" r="2.5" fill="var(--startup-mark-detail)" />
+        <circle cx="44" cy="36" r="2.5" fill="var(--startup-mark-detail)" />
+      </svg>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

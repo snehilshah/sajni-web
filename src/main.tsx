@@ -34,3 +34,17 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 )
+
+// The HTML-first loader paints before this bundle is available. Give React
+// one committed paint underneath it, then fade the bootstrap layer away. The
+// React loader uses the same animation phase if auth or a route is still busy.
+const boot = document.getElementById('sajni-boot')
+if (boot) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      boot.classList.add('startup-loader--leaving')
+      boot.addEventListener('transitionend', () => boot.remove(), { once: true })
+      window.setTimeout(() => boot.remove(), 220)
+    })
+  })
+}

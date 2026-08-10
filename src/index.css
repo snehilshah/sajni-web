@@ -364,6 +364,40 @@ body {
 
 .app-h, .screen-h { height: 100vh; height: 100dvh; }
 
+/* Startup loader. The same mark is rendered in index.html before the app
+   bundle arrives, then by React while auth/routes resolve. Both animations
+   share a navigation-relative negative delay, so the handoff never restarts. */
+@keyframes sajni-startup-turn {
+  to { transform: rotate(360deg); }
+}
+.startup-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: hsl(var(--background));
+  color: hsl(var(--primary));
+  --startup-mark-detail: hsl(var(--on-primary));
+}
+.startup-loader__mark {
+  display: block;
+  width: 60px;
+  height: 60px;
+  transform-origin: 50% 50%;
+  animation: sajni-startup-turn 1100ms linear infinite;
+  animation-delay: var(--sajni-boot-delay, 0ms);
+  will-change: transform;
+}
+.startup-loader--leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms var(--m3-ease-standard, ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .startup-loader__mark { animation: none; }
+}
+
 /* ============================================================
    Backdrop — solid M3 surface. The old multi-hue blob wash mixed
    primary/secondary/tertiary under translucent panels and produced
