@@ -38,6 +38,7 @@ import pxVideo from 'pixelarticons/svg/video.svg?raw';
 import pxCastle from 'pixelarticons/svg/castle.svg?raw';
 import pxMonitor from 'pixelarticons/svg/monitor.svg?raw';
 import pxAirplay from 'pixelarticons/svg/airplay.svg?raw';
+import pxSparkle from 'pixelarticons/svg/sparkle.svg?raw';
 import pxSparkles from 'pixelarticons/svg/sparkles.svg?raw';
 import pxPlay from 'pixelarticons/svg/play.svg?raw';
 import pxBuilding from 'pixelarticons/svg/building.svg?raw';
@@ -114,6 +115,7 @@ const PLATFORM_OPTIONS = [
   { value: 'netflix', label: 'Netflix' },
   { value: 'amazon', label: 'Amazon Prime' },
   { value: 'disney', label: 'Disney+' },
+  { value: 'hotstar', label: 'Hotstar' },
   { value: 'hbo', label: 'HBO Max' },
   { value: 'apple', label: 'Apple TV+' },
   { value: 'hulu', label: 'Hulu' },
@@ -215,13 +217,14 @@ function nextUpcomingMember(members: MediaEntry[]): MediaEntry | null {
 // reads as itself; `currentColor` ones inherit the surrounding text colour.
 const PIXEL_SVGS: Record<string, string> = {
   tv: pxTv, video: pxVideo, castle: pxCastle, monitor: pxMonitor, airplay: pxAirplay,
-  sparkles: pxSparkles, play: pxPlay, building: pxBuilding, download: pxDownload, image: pxImage,
+  sparkle: pxSparkle, sparkles: pxSparkles, play: pxPlay, building: pxBuilding, download: pxDownload, image: pxImage,
 };
 
 const PLATFORM_PIXEL: Record<string, { glyph: keyof typeof PIXEL_SVGS; color: string }> = {
   netflix: { glyph: 'tv',       color: '#E50914' },
   amazon:  { glyph: 'video',    color: '#00A8E1' },
   disney:  { glyph: 'castle',   color: '#113CCF' },
+  hotstar: { glyph: 'sparkle',  color: '#00AEEF' },
   hbo:     { glyph: 'monitor',  color: '#9D4EDD' },
   apple:   { glyph: 'airplay',  color: 'currentColor' },
   hulu:    { glyph: 'sparkles', color: '#1CE783' },
@@ -992,6 +995,7 @@ export default function MediaPage() {
       return (
         <MediaTable
           items={filteredItems}
+          showPlatform={activeType === 'movie'}
           onPick={(item, source) => openForm(item, 'card', source)}
           openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
         />
@@ -2166,7 +2170,7 @@ function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[
 
 // ─── Table view — maximum density ────────────────────────────────────────
 // Sorting stays in the toolbar's sort control; the table is a flat readout.
-function MediaTable({ items, onPick, openItemId: _openItemId = null }: { items: MediaEntry[]; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
+function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = null }: { items: MediaEntry[]; showPlatform: boolean; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
   return (
     <div className="overflow-x-auto rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
       <table className="w-full min-w-[560px] text-sm border-collapse">
@@ -2176,7 +2180,9 @@ function MediaTable({ items, onPick, openItemId: _openItemId = null }: { items: 
             <th className="font-medium px-3 py-3 w-16">Year</th>
             <th className="font-medium px-3 py-3 w-32">Status</th>
             <th className="font-medium px-3 py-3 w-16">Rating</th>
-            <th className="font-medium px-3 py-3 w-24">Progress</th>
+            <th className={cn('font-medium px-3 py-3', showPlatform ? 'w-36' : 'w-24')}>
+              {showPlatform ? 'Platform' : 'Progress'}
+            </th>
             <th className="font-medium px-3 py-3 w-28 text-right pr-4">Updated</th>
           </tr>
         </thead>
@@ -2234,8 +2240,14 @@ function MediaTable({ items, onPick, openItemId: _openItemId = null }: { items: 
                     </span>
                   ) : <span className="text-muted-foreground/50">—</span>}
                 </td>
-                <td className="px-3 py-2 mono text-xs tabular-nums text-muted-foreground">
-                  {pct !== null ? `${pct}%` : '—'}
+                <td className="px-3 py-2 text-xs text-muted-foreground">
+                  {showPlatform ? (
+                    item.platform
+                      ? <PlatformLogo platform={item.platform} iconClassName="size-[15px]" />
+                      : <span className="text-muted-foreground/50">—</span>
+                  ) : (
+                    <span className="mono tabular-nums">{pct !== null ? `${pct}%` : '—'}</span>
+                  )}
                 </td>
                 <td className="px-3 py-2 mono text-xs text-muted-foreground text-right pr-4 whitespace-nowrap">
                   {item.updated_at ? relativeTiny(item.updated_at) : '—'}
