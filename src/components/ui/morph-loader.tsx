@@ -1,12 +1,13 @@
 // MorphLoader — Material 3 Expressive Shape-Morphing Loading Spinner
 
-import { useEffect, useRef } from 'react';
-import pkg from 'flubber';
+import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { M3_SHAPES_DATA } from './m3-shapes-data';
 
-const { interpolate } = pkg;
-
 type PathFn = (t: number) => string;
+const HOLD_FRACTION = 0.35;
+const MORPH_FRACTION = 1 - HOLD_FRACTION;
+const EXPRESSIVE_EASING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+const interpolatorCache = new Map<string, PathFn>();
 
 export type MorphSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
 export type MorphTone = 'primary' | 'secondary' | 'tertiary';
@@ -59,6 +60,41 @@ function solveCubicBezier(x1: number, y1: number, x2: number, y2: number) {
 
 const easeExpressive = solveCubicBezier(0.34, 1.56, 0.64, 1.0);
 
+function subscribeToReducedMotion(onChange: () => void) {
+  const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function rotationKeyframes(shapeCount: number, rotationStyle: 'expressive' | 'linear') {
+  if (rotationStyle === 'linear') {
+    return [
+      { transform: 'rotate(0deg)' },
+      { transform: 'rotate(540deg)' },
+    ];
+  }
+
+  const frames: Keyframe[] = [];
+  for (let index = 0; index < shapeCount; index++) {
+    frames.push({
+      offset: index / shapeCount,
+      transform: `rotate(${index * 90}deg)`,
+      easing: 'linear',
+    });
+    frames.push({
+      offset: (index + HOLD_FRACTION) / shapeCount,
+      transform: `rotate(${index * 90 + 12}deg)`,
+      easing: EXPRESSIVE_EASING,
+    });
+  }
+  frames.push({ offset: 1, transform: `rotate(${shapeCount * 90}deg)` });
+  return frames;
+}
+
 export function MorphLoader({
   size = 'md',
   tone = 'primary',
@@ -75,64 +111,108 @@ export function MorphLoader({
     tone === 'tertiary' ? '--tertiary' : tone === 'secondary' ? '--secondary' : '--primary';
   const activeShapes = shapes && shapes.length > 0 ? shapes : MORPH_PRESETS[preset] || MORPH_PRESETS.android16;
   const validShapes = activeShapes.filter((shape) => shape in M3_SHAPES_DATA);
-  const shapeList = validShapes.length > 0 ? validShapes : ['square'];
+  const shapeKey = (validShapes.length > 0 ? validShapes : ['square']).join('|');
+  const shapeList = useMemo(() => shapeKey.split('|'), [shapeKey]);
   const durSec = duration || shapeList.length * 0.65;
+  const cycleSec = durSec / shapeList.length;
+  // Start at the morph boundary instead of spending the first ~230 ms on an
+  // almost-invisible square hold. It is the same loop, just a useful phase.
+  const phaseOffsetMs = cycleSec * HOLD_FRACTION * 1000;
+  // Keep roughly 1.25 display pixels between interpolation points. Small
+  // spinners no longer calculate thousands of sub-pixel path coordinates.
+  const maxSegmentLength = Math.max(5, Math.min(24, Math.round(475 / Math.max(px, 1))));
+  const reducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    prefersReducedMotion,
+    () => true,
+  );
   const pathRef = useRef<SVGPathElement>(null);
-  const groupRef = useRef<SVGGElement>(null);
-  const interpolatorsRef = useRef<PathFn[]>([]);
+  const svgRef = useRef<SVGSVGElement>(null);
 
+  // Rotation is handled by the browser animation engine, so it begins as soon
+  // as the loader paints and does not compete with path interpolation in JS.
   useEffect(() => {
-    const list: PathFn[] = [];
-    for (let i = 0; i < shapeList.length; i++) {
-      try {
-        list.push(interpolate(
-          M3_SHAPES_DATA[shapeList[i]],
-          M3_SHAPES_DATA[shapeList[(i + 1) % shapeList.length]],
-          { maxSegmentLength: 5 },
-        ));
-      } catch {
-        list.push(() => M3_SHAPES_DATA[shapeList[i]]);
-      }
-    }
-    interpolatorsRef.current = list;
-  }, [shapeList]);
+    const svg = svgRef.current;
+    if (!svg || reducedMotion || rotationStyle === 'none') return;
 
+    const animation = svg.animate(rotationKeyframes(shapeList.length, rotationStyle), {
+      duration: durSec * 1000,
+      iterations: Infinity,
+    });
+    animation.currentTime = phaseOffsetMs;
+    return () => animation.cancel();
+  }, [durSec, phaseOffsetMs, reducedMotion, rotationStyle, shapeList.length]);
+
+  // Flubber is loaded after the first paint instead of blocking the startup
+  // bundle. Its compiled transitions are cached for every later loader.
   useEffect(() => {
-    let animId: number;
-    const startedAt = performance.now();
+    if (reducedMotion || shapeList.length < 2) return;
 
-    const tick = () => {
-      const progress = ((performance.now() - startedAt) / 1000 % durSec) / durSec;
-      const shapeProgress = progress * shapeList.length;
-      const index = Math.floor(shapeProgress);
-      const fraction = shapeProgress - index;
-      let path = M3_SHAPES_DATA[shapeList[index]];
+    let cancelled = false;
+    let animId = 0;
+    let holdTimer = 0;
+    const startedAt = performance.now() - phaseOffsetMs;
 
-      if (interpolatorsRef.current[index] && fraction >= 0.35) {
-        path = interpolatorsRef.current[index](easeExpressive((fraction - 0.35) / 0.65));
-      }
-      pathRef.current?.setAttribute('d', path);
+    void import('flubber').then(({ default: flubber }) => {
+      if (cancelled) return;
 
-      if (rotationStyle === 'none') {
-        groupRef.current?.removeAttribute('transform');
-      } else {
-        let angle: number;
-        if (rotationStyle === 'linear') {
-          angle = (progress * 360 * 1.5) % 360;
-        } else {
-          const start = index * 90;
-          angle = fraction < 0.35
-            ? start + (fraction / 0.35) * 12
-            : start + 12 + easeExpressive((fraction - 0.35) / 0.65) * 78;
+      const interpolators = shapeList.map((shape, index) => {
+        const nextShape = shapeList[(index + 1) % shapeList.length];
+        const cacheKey = `${shape}>${nextShape}@${maxSegmentLength}`;
+        const cached = interpolatorCache.get(cacheKey);
+        if (cached) return cached;
+
+        try {
+          const compiled = flubber.interpolate(
+            M3_SHAPES_DATA[shape],
+            M3_SHAPES_DATA[nextShape],
+            { maxSegmentLength },
+          );
+          interpolatorCache.set(cacheKey, compiled);
+          return compiled;
+        } catch {
+          return () => M3_SHAPES_DATA[shape];
         }
-        groupRef.current?.setAttribute('transform', `rotate(${angle.toFixed(2)} 190 190)`);
-      }
-      animId = requestAnimationFrame(tick);
-    };
+      });
 
-    animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
-  }, [shapeList, durSec, rotationStyle]);
+      let lastHeldShape = -1;
+      const tick = (now: number) => {
+        if (cancelled) return;
+        const progress = ((now - startedAt) / 1000 % durSec) / durSec;
+        const shapeProgress = progress * shapeList.length;
+        const index = Math.floor(shapeProgress);
+        const fraction = shapeProgress - index;
+
+        if (fraction < HOLD_FRACTION) {
+          if (lastHeldShape !== index) {
+            pathRef.current?.setAttribute('d', M3_SHAPES_DATA[shapeList[index]]);
+            lastHeldShape = index;
+          }
+          // The path is static during the hold; wake up when morphing resumes.
+          const remainingHoldMs = (HOLD_FRACTION - fraction) * cycleSec * 1000;
+          holdTimer = window.setTimeout(() => {
+            animId = requestAnimationFrame(tick);
+          }, remainingHoldMs);
+          return;
+        }
+
+        lastHeldShape = -1;
+        const morphProgress = (fraction - HOLD_FRACTION) / MORPH_FRACTION;
+        pathRef.current?.setAttribute('d', interpolators[index](easeExpressive(morphProgress)));
+        animId = requestAnimationFrame(tick);
+      };
+
+      animId = requestAnimationFrame(tick);
+    }).catch(() => {
+      // Rotation remains a useful loader if the deferred morph chunk fails.
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(animId);
+      window.clearTimeout(holdTimer);
+    };
+  }, [cycleSec, durSec, maxSegmentLength, phaseOffsetMs, reducedMotion, shapeList]);
 
   const isStroke = mode === 'stroke';
   return (
@@ -154,13 +234,23 @@ export function MorphLoader({
       }}
     >
       <svg
+        ref={svgRef}
         viewBox="0 0 380 380"
         width={px}
         height={px}
         aria-hidden="true"
-        style={{ display: 'block', overflow: 'visible' }}
+        style={{
+          display: 'block',
+          overflow: 'visible',
+          transformOrigin: 'center',
+          transform: rotationStyle === 'none'
+            ? undefined
+            : rotationStyle === 'linear'
+              ? `rotate(${(HOLD_FRACTION / shapeList.length) * 540}deg)`
+              : 'rotate(12deg)',
+        }}
       >
-        <g ref={groupRef}>
+        <g>
           <path
             ref={pathRef}
             d={M3_SHAPES_DATA[shapeList[0]]}

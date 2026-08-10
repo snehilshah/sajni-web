@@ -30,8 +30,7 @@ import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { ConfirmRoot } from '@/lib/confirm';
-import { M3Shapes } from '@/components/ui/shapes';
-import StartupLoader from '@/components/StartupLoader';
+import { M3Shapes, M3CookieLoader } from '@/components/ui/shapes';
 import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { Analytics } from '@vercel/analytics/react';
@@ -40,7 +39,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 // Redirects already-authenticated users away from /signin.
 function PublicOnly({ children }: { children: React.ReactNode }) {
 	const { user, loading } = useAuth();
-	if (loading) return <StartupLoader />;
+	if (loading) return null;
 	if (user) return <Navigate to="/" replace />;
 	return <>{children}</>;
 }
@@ -50,7 +49,7 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 // LandingPage intentionally does not render an Outlet.
 function HomeRoute() {
 	const { user, loading } = useAuth();
-	if (loading) return <StartupLoader />;
+	if (loading) return <AppLoader />;
 	return user ? <Layout /> : <LandingPage />;
 }
 
@@ -74,6 +73,14 @@ function TagRedirect() {
 	return <Navigate to={tag ? `/analytics?tab=tags&tag=${encodeURIComponent(tag)}` : '/analytics?tab=tags'} replace />;
 }
 
+function AppLoader() {
+	return (
+		<div className="flex h-dvh items-center justify-center text-muted-foreground">
+			<M3CookieLoader size="xl" tone="primary" />
+		</div>
+	);
+}
+
 export default function App() {
 	return (
 		<AuthProvider>
@@ -85,7 +92,7 @@ export default function App() {
 				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}
-				<Suspense fallback={<StartupLoader />}>
+				<Suspense fallback={<AppLoader />}>
 				<Routes>
           <Route path="/" element={<HomeRoute />}>
             <Route index element={<TodayPage />} />

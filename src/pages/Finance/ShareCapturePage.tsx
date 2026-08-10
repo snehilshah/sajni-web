@@ -17,7 +17,6 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import StartupLoader from '@/components/StartupLoader';
 import { formatMoney, txnAtToParts, partsToTxnAt } from './utils';
 
 const SHARE_KEY = 'sajni:shareText';
@@ -47,7 +46,11 @@ export default function ShareCapturePage() {
   });
 
   if (loading) {
-    return <StartupLoader />;
+    return (
+      <div className="min-h-[100dvh] grid place-items-center text-muted-foreground">
+        <M3CookieLoader size="xl" tone="primary" />
+      </div>
+    );
   }
   if (!user) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
