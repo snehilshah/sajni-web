@@ -13,7 +13,6 @@ import Onboarding from '@/components/Onboarding';
 import { NAV_ITEMS, NavChromeContext, isActivePath } from '@/components/nav-chrome';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
-import { useMode, useDensity } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -392,9 +391,6 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const keyboardOpen = useKeyboardOpen(isMobile);
-  useMode();
-  useDensity();
-
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);

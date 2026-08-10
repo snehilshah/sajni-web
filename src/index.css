@@ -20,54 +20,50 @@
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 /* ============================================================
-   DEFAULT THEME — Sage Stillness
-   Seed HSL(184 38% 40%) — soothing sage-teal. Cool, easy on the eyes.
-   Tertiary = forest green (no warm peach). Secondary = slate blue.
+   FIRST-PAINT FALLBACK — Marine
+   Matches the generated Marine preset so the initial document, loader,
+   and React theme all use one canonical palette.
    ============================================================ */
 :root {
-  /* M3 KEY COLORS — primary (sage-teal) */
-  --primary:                184 38% 38%;
+  /* M3 KEY COLORS */
+  --primary:                188 100% 24%;
   --on-primary:             0 0% 100%;
-  --primary-container:      184 48% 88%;
-  --on-primary-container:   184 60% 14%;
+  --primary-container:      193 100% 83%;
+  --on-primary-container:   191 100% 7%;
 
-  /* M3 — secondary (slate blue, quiet) */
-  --secondary:              210 22% 45%;
+  --secondary:              210 47% 38%;
   --on-secondary:           0 0% 100%;
-  --secondary-container:    210 32% 88%;
-  --on-secondary-container: 210 50% 16%;
+  --secondary-container:    215 100% 91%;
+  --on-secondary-container: 207 100% 10%;
 
-  /* M3 — tertiary (forest sage, cool accent — no orange) */
-  --tertiary:               152 28% 40%;
+  --tertiary:               164 100% 21%;
   --on-tertiary:            0 0% 100%;
-  --tertiary-container:     152 36% 86%;
-  --on-tertiary-container:  152 48% 14%;
+  --tertiary-container:     155 80% 78%;
+  --on-tertiary-container:  160 100% 6%;
 
-  /* M3 — error (kept warm so warnings still read as warnings) */
-  --error:                  354 56% 46%;
+  --error:                  0 75% 42%;
   --on-error:               0 0% 100%;
-  --error-container:        354 70% 92%;
-  --on-error-container:     354 60% 22%;
+  --error-container:        6 100% 92%;
+  --on-error-container:     358 100% 13%;
 
-  /* M3 — surface tonal stack (cool off-white, faint sage) */
-  --surface:                180 22% 97%;
-  --surface-dim:            180 14% 88%;
-  --surface-bright:         180 22% 99%;
+  --surface:                192 38% 97%;
+  --surface-dim:            192 7% 85%;
+  --surface-bright:         192 38% 97%;
   --surface-container-lowest: 0 0% 100%;
-  --surface-container-low:  180 22% 95%;
-  --surface-container:      180 18% 93%;
-  --surface-container-high: 180 16% 90%;
-  --surface-container-highest: 180 14% 87%;
-  --on-surface:             195 22% 12%;
-  --on-surface-variant:     195 10% 36%;
-  --outline:                195 8% 52%;
-  --outline-variant:        195 10% 82%;
-  --scrim:                  200 24% 6%;
-  --inverse-surface:        195 22% 18%;
-  --inverse-on-surface:     180 18% 94%;
-  --inverse-primary:        184 50% 76%;
+  --surface-container-low:  204 22% 95%;
+  --surface-container:      204 14% 93%;
+  --surface-container-high: 192 11% 91%;
+  --surface-container-highest: 192 8% 88%;
+  --on-surface:             200 11% 11%;
+  --on-surface-variant:     192 11% 27%;
+  --outline:                195 7% 46%;
+  --outline-variant:        194 15% 77%;
+  --scrim:                  0 0% 0%;
+  --inverse-surface:        192 5% 19%;
+  --inverse-on-surface:     204 17% 94%;
+  --inverse-primary:        192 66% 71%;
 
-  /* ----- Legacy token mapping (shadcn / existing components) ----- */
+  /* shadcn / Tailwind semantic aliases */
   --background:             var(--surface);
   --foreground:             var(--on-surface);
   --card:                   var(--surface-container-low);
@@ -89,8 +85,6 @@
   --chart-1:                var(--primary);
   --chart-2:                var(--secondary);
   --chart-3:                var(--tertiary);
-  --chart-4:                232 50% 65%;
-  --chart-5:                268 35% 65%;
 
   --sidebar:                var(--surface-container-low);
   --sidebar-foreground:     var(--on-surface);
@@ -101,121 +95,73 @@
   --sidebar-border:         var(--outline-variant);
   --sidebar-ring:           var(--primary);
 
-  /* Legacy ink tokens (still referenced in chips/kbd) */
-  --ink-2:                  var(--on-surface-variant);
-  --ink-3:                  var(--outline);
-  --line-soft:              var(--outline-variant);
-
-  /* Backdrop washes — cool sage/teal/slate */
-  --backdrop-blob-1:        184 40% 90%;
-  --backdrop-blob-2:        210 30% 90%;
-  --backdrop-blob-3:        152 30% 88%;
-  --backdrop-blob-4:        180 28% 92%;
-  --backdrop-blob-5:        180 22% 97%;
+  --backdrop-blob-1:        193 100% 87%;
+  --backdrop-blob-2:        193 100% 90%;
+  --backdrop-blob-3:        193 100% 83%;
+  --backdrop-blob-4:        194 44% 92%;
+  --backdrop-blob-5:        192 38% 97%;
   --backdrop-grain:         0.04;
   --backdrop-intensity:     0.5;
 
   /* Status accents */
-  --color-complete:         152 38% 38%;
-  --color-waiting:          200 36% 44%;
+  --color-complete:         164 100% 20%;
+  --color-waiting:          210 42% 42%;
 
   /* Density + sizing */
   --text-scale: 1;
   --radius: 12px;
 
-  /* Media palette — cool, sage-leaning */
-  --m1: 184 38% 86%;
-  --m2: 210 32% 86%;
-  --m3: 152 30% 84%;
-  --m4: 200 36% 86%;
-  --m5: 180 22% 88%;
 }
 
 :root[data-mode="dark"] {
-  --primary:                184 50% 74%;
-  --on-primary:             184 60% 14%;
-  --primary-container:      184 36% 26%;
-  --on-primary-container:   184 70% 90%;
+  --primary:                192 66% 71%;
+  --on-primary:             189 100% 13%;
+  --primary-container:      189 100% 18%;
+  --on-primary-container:   193 100% 83%;
 
-  --secondary:              210 36% 76%;
-  --on-secondary:           210 50% 16%;
-  --secondary-container:    210 24% 28%;
-  --on-secondary-container: 210 60% 90%;
+  --secondary:              212 96% 81%;
+  --on-secondary:           206 100% 17%;
+  --secondary-container:    208 70% 27%;
+  --on-secondary-container: 215 100% 91%;
 
-  --tertiary:               152 38% 70%;
-  --on-tertiary:            152 48% 14%;
-  --tertiary-container:     152 24% 26%;
-  --on-tertiary-container:  152 60% 90%;
+  --tertiary:               155 54% 67%;
+  --on-tertiary:            162 100% 11%;
+  --tertiary-container:     164 100% 16%;
+  --on-tertiary-container:  155 80% 78%;
 
-  --error:                  354 70% 76%;
-  --on-error:               354 60% 18%;
-  --error-container:        354 40% 28%;
-  --on-error-container:     354 90% 92%;
+  --error:                  6 100% 84%;
+  --on-error:               357 100% 21%;
+  --error-container:        356 100% 29%;
+  --on-error-container:     6 100% 92%;
 
-  --surface:                200 16% 8%;
-  --surface-dim:            200 16% 7%;
-  --surface-bright:         200 14% 18%;
-  --surface-container-lowest: 200 20% 5%;
-  --surface-container-low:  200 16% 11%;
-  --surface-container:      200 14% 14%;
-  --surface-container-high: 200 12% 18%;
-  --surface-container-highest: 200 10% 22%;
-  --on-surface:             180 20% 92%;
-  --on-surface-variant:     195 8% 72%;
-  --outline:                195 8% 55%;
-  --outline-variant:        195 10% 30%;
-  --scrim:                  200 30% 2%;
-  --inverse-surface:        180 18% 92%;
-  --inverse-on-surface:     195 22% 14%;
-  --inverse-primary:        184 38% 38%;
+  --surface:                192 14% 7%;
+  --surface-dim:            192 14% 7%;
+  --surface-bright:         190 5% 22%;
+  --surface-container-lowest: 190 23% 5%;
+  --surface-container-low:  200 11% 11%;
+  --surface-container:      200 10% 12%;
+  --surface-container-high: 190 7% 16%;
+  --surface-container-highest: 200 6% 20%;
+  --on-surface:             192 8% 88%;
+  --on-surface-variant:     194 15% 77%;
+  --outline:                194 8% 56%;
+  --outline-variant:        192 11% 27%;
+  --scrim:                  0 0% 0%;
+  --inverse-surface:        192 8% 88%;
+  --inverse-on-surface:     192 5% 19%;
+  --inverse-primary:        188 100% 24%;
 
-  --background:             var(--surface);
-  --foreground:             var(--on-surface);
-  --card:                   var(--surface-container-low);
-  --card-foreground:        var(--on-surface);
-  --popover:                var(--surface-container-high);
-  --popover-foreground:     var(--on-surface);
-  --primary-foreground:     var(--on-primary);
-  --secondary-foreground:   var(--on-secondary);
-  --muted:                  var(--surface-container);
-  --muted-foreground:       var(--on-surface-variant);
-  --accent:                 var(--secondary-container);
-  --accent-foreground:      var(--on-secondary-container);
-  --destructive:            var(--error);
-  --destructive-foreground: var(--on-error);
-  --border:                 var(--outline-variant);
-  --input:                  var(--outline-variant);
-  --ring:                   var(--primary);
-
-  --sidebar:                var(--surface-container-low);
-  --sidebar-foreground:     var(--on-surface);
-  --sidebar-primary:        var(--primary);
-  --sidebar-primary-foreground: var(--on-primary);
-  --sidebar-accent:         var(--secondary-container);
-  --sidebar-accent-foreground: var(--on-secondary-container);
-  --sidebar-border:         var(--outline-variant);
-  --sidebar-ring:           var(--primary);
-
-  --ink-2:                  var(--on-surface-variant);
-  --ink-3:                  var(--outline);
-  --line-soft:              var(--outline-variant);
-
-  --backdrop-blob-1:        184 36% 24%;
-  --backdrop-blob-2:        210 28% 22%;
-  --backdrop-blob-3:        152 24% 22%;
-  --backdrop-blob-4:        200 22% 18%;
-  --backdrop-blob-5:        200 16% 8%;
+  --backdrop-blob-1:        189 100% 16%;
+  --backdrop-blob-2:        189 100% 14%;
+  --backdrop-blob-3:        189 100% 11%;
+  --backdrop-blob-4:        192 18% 16%;
+  --backdrop-blob-5:        200 13% 9%;
   --backdrop-grain:         0.05;
   --backdrop-intensity:     0.5;
 
-  --color-complete:         152 40% 66%;
-  --color-waiting:          200 44% 68%;
+  --color-complete:         157 37% 52%;
+  --color-waiting:          212 56% 68%;
 
-  --m1: 184 28% 24%;
-  --m2: 210 24% 24%;
-  --m3: 152 20% 22%;
-  --m4: 200 20% 22%;
-  --m5: 180 16% 18%;
 }
 
 
@@ -253,8 +199,6 @@
   --color-chart-1:             hsl(var(--chart-1));
   --color-chart-2:             hsl(var(--chart-2));
   --color-chart-3:             hsl(var(--chart-3));
-  --color-chart-4:             hsl(var(--chart-4));
-  --color-chart-5:             hsl(var(--chart-5));
   --color-sidebar:             hsl(var(--sidebar));
   --color-sidebar-foreground:  hsl(var(--sidebar-foreground));
   --color-sidebar-primary:     hsl(var(--sidebar-primary));

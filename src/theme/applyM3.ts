@@ -122,12 +122,6 @@ const tokens: Record<string, Plan> = {
   // Status accents — bias toward tertiary (calm) and secondary (cool).
   'color-complete':          (p) => mode(p.tertiary, 38, 66),
   'color-waiting':           (p) => mode(p.secondary, 44, 68),
-  // Media tints (legacy 5-color palette used by chips/charts).
-  m1: (p) => mode(p.primary, 86, 24),
-  m2: (p) => mode(p.secondary, 86, 24),
-  m3: (p) => mode(p.tertiary, 84, 22),
-  m4: (p) => mode(p.neutralVariant, 86, 22),
-  m5: (p) => mode(p.neutral, 88, 22),
 };
 
 function mode(p: TonalPalette, lightTone: number, darkTone: number) {

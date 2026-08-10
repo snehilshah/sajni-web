@@ -2,17 +2,16 @@
 // theme sources behind one context:
 //
 //   · presets  — built-in seed palettes, applied via the data-theme CSS
-//                cascade, persisted as `sajni:theme` = preset id
+//                cascade, persisted as `sajni:theme` = preset id plus a
+//                separate last-preset key
 //   · custom   — server-side (AI-generated) themes, applied as an injected
 //                stylesheet with both mode blocks (applyM3), persisted as
 //                `sajni:theme` = 'custom' plus a compiled-CSS cache that
 //                index.html re-injects pre-paint
 //
-// Nothing else may write data-theme. Mode (light/dark) is separate and owned
-// by useThemePrefs/useMode via <html data-mode>; both preset and custom
-// stylesheets carry light+dark blocks, so the mode toggle flips either kind
-// with no re-apply — this provider only mirrors the attribute for consumers
-// that need the effective mode (e.g. Settings swatch previews).
+// This provider also owns data-mode and data-density after index.html stamps
+// them pre-paint. Preset and custom stylesheets both carry light+dark blocks,
+// so changing mode flips either kind without rebuilding its palette.
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -23,8 +22,15 @@ import { normalizePreset, presetStylesheet, type PresetId } from './presets';
 
 // 'sajni:theme' = active preset id, or 'custom' when a server theme is live.
 const THEME_KEY = 'sajni:theme';
-// Keys from retired theme systems — clear them so nobody trips on them again.
-const STALE_KEYS = ['sajni:theme-mode'];
+// Keep the last preset separately so leaving a custom theme restores the
+// user's actual choice instead of always snapping to Marine.
+const PRESET_KEY = 'sajni:preset';
+const PRESET_CSS_KEY = 'sajni:preset-theme-css';
+const MODE_KEY = 'sajni:mode';
+const DENSITY_KEY = 'sajni:density';
+
+export type ModePref = 'light' | 'dark' | 'system';
+export type Density = 'comfortable' | 'compact' | 'cozy';
 
 interface Ctx {
   /** Active server (AI/custom) theme; null = a preset is showing. */
@@ -35,6 +41,10 @@ interface Ctx {
   setPreset: (id: PresetId) => Promise<void>;
   /** Effective mode, mirrored live from <html data-mode>. */
   mode: 'light' | 'dark';
+  modePref: ModePref;
+  setMode: (mode: ModePref) => void;
+  density: Density;
+  setDensity: (density: Density) => void;
   refresh: () => Promise<void>;
   apply: (t: UserTheme | null) => void;
 }
@@ -44,45 +54,104 @@ const ThemeCtx = createContext<Ctx>({
   preset: 'marine',
   setPreset: async () => {},
   mode: 'light',
+  modePref: 'system',
+  setMode: () => {},
+  density: 'comfortable',
+  setDensity: () => {},
   refresh: async () => {},
   apply: () => {},
 });
 
 function readStoredPreset(): PresetId {
-  try { return normalizePreset(localStorage.getItem(THEME_KEY)); } catch { return 'marine'; }
+  try {
+    return normalizePreset(localStorage.getItem(PRESET_KEY) ?? localStorage.getItem(THEME_KEY));
+  } catch {
+    return 'marine';
+  }
 }
 
 function readDomMode(): 'light' | 'dark' {
   return document.documentElement.dataset.mode === 'dark' ? 'dark' : 'light';
 }
 
+function readModePref(): ModePref {
+  try {
+    const value = localStorage.getItem(MODE_KEY);
+    return value === 'light' || value === 'dark' || value === 'system' ? value : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+function readDensity(): Density {
+  try {
+    const value = localStorage.getItem(DENSITY_KEY);
+    return value === 'compact' || value === 'cozy' || value === 'comfortable'
+      ? value
+      : 'comfortable';
+  } catch {
+    return 'comfortable';
+  }
+}
+
+function resolveMode(pref: ModePref): 'light' | 'dark' {
+  if (pref !== 'system') return pref;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [active, setActive] = useState<UserTheme | null>(null);
   const [preset, setPresetState] = useState<PresetId>(() => readStoredPreset());
-  const [mode, setMode] = useState<'light' | 'dark'>(() => readDomMode());
+  const [mode, setResolvedMode] = useState<'light' | 'dark'>(() => readDomMode());
+  const [modePref, setModePref] = useState<ModePref>(() => readModePref());
+  const [density, setDensityState] = useState<Density>(() => readDensity());
 
-  // Mirror <html data-mode> (stamped by index.html early script + useMode)
-  // so swatch previews re-render when the Appearance toggle flips.
+  // index.html stamps these attributes before React. From this point onward,
+  // this provider is their single owner, including the OS-mode listener.
   useEffect(() => {
-    const root = document.documentElement;
-    const mo = new MutationObserver(() => setMode(readDomMode()));
-    mo.observe(root, { attributes: true, attributeFilter: ['data-mode'] });
-    return () => mo.disconnect();
+    const applyMode = () => {
+      const resolved = resolveMode(modePref);
+      document.documentElement.dataset.mode = resolved;
+      setResolvedMode(resolved);
+    };
+    applyMode();
+    if (modePref !== 'system') return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    media.addEventListener('change', applyMode);
+    return () => media.removeEventListener('change', applyMode);
+  }, [modePref]);
+
+  useEffect(() => {
+    document.documentElement.dataset.density = density;
+  }, [density]);
+
+  const setMode = useCallback((next: ModePref) => {
+    setModePref(next);
+    const resolved = resolveMode(next);
+    document.documentElement.dataset.mode = resolved;
+    setResolvedMode(resolved);
+    try { localStorage.setItem(MODE_KEY, next); } catch {}
+  }, []);
+
+  const setDensity = useCallback((next: Density) => {
+    setDensityState(next);
+    document.documentElement.dataset.density = next;
+    try { localStorage.setItem(DENSITY_KEY, next); } catch {}
   }, []);
 
   const showPreset = useCallback((id: PresetId) => {
     resetM3();
     document.documentElement.setAttribute('data-theme', id);
     try { localStorage.setItem(THEME_KEY, id); } catch {}
+    try { localStorage.setItem(PRESET_KEY, id); } catch {}
     setPresetState(id);
     setActive(null);
   }, []);
 
   const apply = useCallback((t: UserTheme | null) => {
     if (!t) {
-      // No server theme — fall back to the selected preset. A stored
-      // 'custom' marker normalizes to the default preset here.
+      // No server theme — restore the last selected preset.
       showPreset(readStoredPreset());
       return;
     }
@@ -94,33 +163,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Pick a preset from Settings: local swap first (instant), then release
   // the server-side active theme so the next boot agrees.
   const setPreset = useCallback(async (id: PresetId) => {
-    const hadServerTheme = active !== null;
     showPreset(id);
-    if (hadServerTheme) {
+    if (user) {
       await themesApi.deactivate().catch(console.error);
     }
-  }, [active, showPreset]);
+  }, [showPreset, user]);
 
   const refresh = useCallback(async () => {
-    try {
-      const t = await themesApi.active();
-      apply(t);
-    } catch {
-      apply(null);
-    }
+    const t = await themesApi.active();
+    apply(t);
   }, [apply]);
 
-  // Inject the preset stylesheets + drop retired localStorage keys, once.
+  // Inject the generated preset stylesheets once.
   useEffect(() => {
-    for (const k of STALE_KEYS) {
-      try { localStorage.removeItem(k); } catch {}
-    }
     const ID = 'sajni-theme-presets';
-    if (document.getElementById(ID)) return;
-    const el = document.createElement('style');
-    el.id = ID;
-    el.textContent = presetStylesheet();
-    document.head.appendChild(el);
+    const css = presetStylesheet();
+    let el = document.getElementById(ID) as HTMLStyleElement | null;
+    if (!el) {
+      el = document.createElement('style');
+      el.id = ID;
+      document.head.appendChild(el);
+    }
+    el.textContent = css;
+    try { localStorage.setItem(PRESET_CSS_KEY, css); } catch {}
   }, []);
 
   // Initial load. Theme endpoints are protected, so wait for auth boot.
@@ -132,7 +197,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       apply(null);
       return;
     }
-    refresh();
+    void refresh().catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user?.id]);
 
@@ -143,7 +208,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const detail = (e as CustomEvent).detail as { kind?: string; activated?: boolean } | undefined;
       const k = detail?.kind;
       if (k === 'theme_activated' || (k === 'theme_created' && detail?.activated)) {
-        refresh();
+        void refresh().catch(console.error);
       }
     };
     window.addEventListener('data:invalidate', onInvalidate);
@@ -151,7 +216,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   return (
-    <ThemeCtx.Provider value={{ active, preset, setPreset, mode, refresh, apply }}>
+    <ThemeCtx.Provider value={{
+      active,
+      preset,
+      setPreset,
+      mode,
+      modePref,
+      setMode,
+      density,
+      setDensity,
+      refresh,
+      apply,
+    }}>
       {children}
     </ThemeCtx.Provider>
   );

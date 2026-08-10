@@ -11,8 +11,8 @@
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon/favicon-96.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
     <link rel="manifest" href="/favicon/site.webmanifest" />
-    <meta name="theme-color" content="#F5FAF9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#111719" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6fafb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101415" media="(prefers-color-scheme: dark)" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="description" content="Sajni is one quiet, personal codex for your notes, journal, tasks, habits, projects, media, and money." />
     <title>Sajni</title>
@@ -24,14 +24,14 @@
         z-index: 100;
         display: grid;
         place-items: center;
-        background: hsl(var(--background, 180 22% 97%));
-        color: hsl(var(--primary, 184 38% 38%));
+        background: hsl(var(--background, 192 38% 97%));
+        color: hsl(var(--primary, 188 100% 24%));
         --startup-mark-detail: hsl(var(--on-primary, 0 0% 100%));
       }
       [data-mode="dark"] .startup-loader {
-        background: hsl(var(--background, 200 16% 8%));
-        color: hsl(var(--primary, 184 50% 74%));
-        --startup-mark-detail: hsl(var(--on-primary, 184 60% 14%));
+        background: hsl(var(--background, 192 14% 7%));
+        color: hsl(var(--primary, 192 66% 71%));
+        --startup-mark-detail: hsl(var(--on-primary, 189 100% 13%));
       }
       .startup-loader__mark {
         display: block;
@@ -62,6 +62,14 @@
           // (its compiled CSS is cached so we can paint it before the app
           // fetches the active theme — no preset flash).
           var theme = localStorage.getItem('sajni:theme') || 'marine';
+          var preset = localStorage.getItem('sajni:preset') || (theme === 'custom' ? 'marine' : theme);
+          var presetCss = localStorage.getItem('sajni:preset-theme-css');
+          if (presetCss) {
+            var presetStyle = document.createElement('style');
+            presetStyle.id = 'sajni-theme-presets';
+            presetStyle.textContent = presetCss;
+            document.head.appendChild(presetStyle);
+          }
           if (theme === 'custom') {
             var css = localStorage.getItem('sajni:custom-theme-css');
             if (css) {
@@ -70,7 +78,7 @@
               style.textContent = css;
               document.head.appendChild(style);
             } else {
-              theme = 'marine';
+              theme = preset;
             }
           }
           var modePref = localStorage.getItem('sajni:mode') || 'system';

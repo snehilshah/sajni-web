@@ -58,8 +58,8 @@ export default function StartDoc() {
           </Feature>
           <Feature name="Color & themes">
             <p>
-              Every color comes from a Material 3 tonal token — nothing is
-              hard-coded — which is why entire themes swap cleanly. Built-in
+              App surfaces use Material 3 tonal tokens, which is why entire
+              themes swap cleanly. Built-in
               presets (Marine, PowerPuff, Gruvbox, Peach, Mauve) and
               AI-generated themes both carry full light <em>and</em> dark
               palettes, so the Appearance toggle flips any of them. See{' '}

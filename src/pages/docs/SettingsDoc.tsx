@@ -52,13 +52,12 @@ export default function SettingsDoc() {
             </p>
             <ul>
               <li>Generated themes save to your list; activate or delete them any time.</li>
-              <li>They follow light/dark exactly like presets (both palettes are always derived).</li>
+              <li>The Settings generator creates both palettes and follows your Appearance setting.</li>
               <li>
-                A theme can be pinned to one mode at generation
-                (“dark-leaning” requests often are) — pinned themes
-                deliberately ignore the toggle.
+                Themes created through Sajni chat or the API can be pinned to
+                one mode; pinned themes deliberately ignore the Appearance toggle.
               </li>
-              <li>The active theme is remembered server-side and re-applied before first paint on any device you sign into.</li>
+              <li>The active theme is remembered server-side. A device caches it after the first authenticated load so later visits paint it immediately.</li>
               <li>Picking a preset releases the AI theme; your saved list keeps it.</li>
             </ul>
           </Feature>

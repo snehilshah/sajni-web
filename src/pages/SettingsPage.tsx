@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Sparkles, Star, Wand2, Pencil, Mail, Check, X } from '@/components/ui/icons';
+import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Star, Wand2, Pencil, Mail, Check, X } from '@/components/ui/icons';
 // No pixel match — straight lucide (same as the icon shim's passthroughs).
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 // applied through the ThemeProvider so other pages observe the swap
 // the moment activate fires.
 function AIThemes() {
-  const { mode, apply, active, refresh } = useUserTheme();
+  const { mode, apply, active } = useUserTheme();
   const qc = useQueryClient();
   const { data: list = [], isLoading: loading } = useThemes();
   const [prompt, setPrompt] = useState('');
@@ -46,7 +46,6 @@ function AIThemes() {
       setPrompt('');
       apply(t);
       reloadThemes();
-      await refresh();
     } catch (e) {
       setError((e as Error).message || 'Generation failed');
     } finally {
@@ -128,9 +127,6 @@ function AIThemes() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="font-serif font-semibold text-sm truncate">{t.name}</span>
-                    {t.source === 'ai' && (
-                      <Sparkles className="size-3 text-primary shrink-0" />
-                    )}
                   </div>
                   <div className="font-mono text-xs text-muted-foreground truncate">
                     {t.prompt || (t.source === 'manual' ? 'custom' : t.source)}

@@ -1174,26 +1174,16 @@ export interface UserTheme {
 export const themes = {
   list: () => request<UserTheme[]>('/themes'),
   active: () => request<UserTheme | null>('/themes/active'),
-  create: (data: {
-    name: string;
-    seeds: ThemeSeedsApi;
-    source?: 'manual' | 'ai' | 'preset';
-    prompt?: string;
-    mode_pref?: 'auto' | 'light' | 'dark';
-    activate?: boolean;
-  }) => request<{ id: number }>('/themes', { method: 'POST', body: JSON.stringify(data) }),
   generate: (prompt: string, opts?: { activate?: boolean; mode_pref?: 'auto' | 'light' | 'dark' }) =>
     request<UserTheme>('/themes/generate', {
       method: 'POST',
       body: JSON.stringify({ prompt, activate: opts?.activate ?? false, mode_pref: opts?.mode_pref ?? 'auto' }),
     }),
-  update: (id: number, data: Partial<Pick<UserTheme, 'name' | 'seeds' | 'mode_pref'>>) =>
-    request('/themes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/themes/' + id, { method: 'DELETE' }),
   activate: (id: number) =>
     request<UserTheme>('/themes/' + id + '/activate', { method: 'POST' }),
   deactivate: () =>
-    request<unknown>('/themes/0/activate', { method: 'POST' }),
+    request<unknown>('/themes/deactivate', { method: 'POST' }),
 };
 
 // --- Insights (cross-module correlation engine) ---
