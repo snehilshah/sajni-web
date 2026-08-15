@@ -60,11 +60,22 @@ const ACTION_LABELS: Record<string, string> = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  openRequest?: ChatOpenRequest | null;
+}
+
+export interface ChatOpenDetail {
+  sessionId?: number;
+  seedMessage?: string;
+}
+
+export interface ChatOpenRequest {
+  id: number;
+  detail: ChatOpenDetail;
 }
 
 // Global chat surface: right-side sheet. The actual chat UI lives in
 // ChatPanel so the Projects page can embed the same panel inline.
-export default function AIChat({ open, onOpenChange }: Props) {
+export default function AIChat({ open, onOpenChange, openRequest }: Props) {
   const isMobile = useIsMobile();
   const vvBox = useVisualViewportBox(open && isMobile);
   return (
@@ -81,8 +92,7 @@ export default function AIChat({ open, onOpenChange }: Props) {
         <ChatPanel
           active={open}
           sheet
-          handleGlobalOpen
-          onRequestOpen={() => onOpenChange(true)}
+          openRequest={openRequest}
           onNavigate={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -98,20 +108,18 @@ export interface ChatPanelHandle {
 }
 
 // ChatPanel — header + transcript + composer, host-agnostic. `sheet` pads
-// the header clear of the sheet's absolute close X; `handleGlobalOpen`
-// makes THIS instance answer window `chat:open` events (only the global
-// sheet should, or an embedded panel would double-send seeded messages).
+// the header clear of the sheet's absolute close X. The global sheet receives
+// open requests from Layout; embedded panels do not.
 // `headerless` drops the in-panel header for immersive embedding — the
 // host renders New/History elsewhere and calls them via `ref`.
 export function ChatPanel({
-  active, sheet = false, handleGlobalOpen = false, headerless = false,
-  onRequestOpen, onNavigate, ref,
+  active, sheet = false, headerless = false, openRequest,
+  onNavigate, ref,
 }: {
   active: boolean;
   sheet?: boolean;
-  handleGlobalOpen?: boolean;
   headerless?: boolean;
-  onRequestOpen?: () => void;
+  openRequest?: ChatOpenRequest | null;
   onNavigate?: () => void;
   ref?: Ref<ChatPanelHandle>;
 }) {
@@ -127,6 +135,7 @@ export function ChatPanel({
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const handledOpenRequestRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -290,27 +299,23 @@ export function ChatPanel({
     [ensureSession, streaming],
   );
 
-  // External event opens the panel and optionally:
+  // A request from Layout optionally:
   //   • adopts an existing session id (palette → "Continue in chat" hands
   //     off the persisted exchange so the chat picks up mid-stream), or
   //   • seeds a message to send immediately (legacy fallback).
   useEffect(() => {
-    if (!handleGlobalOpen) return;
-    const onChatOpen = (e: Event) => {
-      onRequestOpen?.();
-      const detail = (e as CustomEvent).detail || {};
-      const sid = detail.sessionId as number | undefined;
-      const seed = detail.seedMessage as string | undefined;
-      if (sid) {
-        setTimeout(() => { void loadSession(sid); }, 50);
-      } else if (seed) {
-        setInput(seed);
-        setTimeout(() => { void send(seed); }, 50);
-      }
-    };
-    window.addEventListener('chat:open', onChatOpen);
-    return () => window.removeEventListener('chat:open', onChatOpen);
-  }, [handleGlobalOpen, loadSession, onRequestOpen, send]);
+    if (!openRequest || handledOpenRequestRef.current === openRequest.id) return;
+    handledOpenRequestRef.current = openRequest.id;
+    const { sessionId, seedMessage } = openRequest.detail;
+    if (sessionId) {
+      setTimeout(() => { void loadSession(sessionId); }, 50);
+    } else if (seedMessage) {
+      setTimeout(() => {
+        setInput(seedMessage);
+        void send(seedMessage);
+      }, 50);
+    }
+  }, [loadSession, openRequest, send]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

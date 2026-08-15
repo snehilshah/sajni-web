@@ -88,7 +88,7 @@ export function parseQuery(input: string): ParsedQuery {
 //   - 1  : exact equality
 //   - 0.6+: substring match, with prefix/word-start boosts
 //   - 0.1..0.5: subsequence match, denser = higher
-export function fuzzyScore(text: string, q: string): number {
+function fuzzyScore(text: string, q: string): number {
   if (!q) return 0.4; // empty query treats every item as a weak match
   if (!text) return 0;
   const t = text.toLowerCase();

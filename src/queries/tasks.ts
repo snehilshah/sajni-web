@@ -102,19 +102,6 @@ export function useUpdateTask() {
   });
 }
 
-export function useDeleteTask() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => tasksApi.delete(id),
-    onError: () => toast.error('Could not delete task'),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: qk.tasks.all });
-      qc.invalidateQueries({ queryKey: qk.taskLists.all });
-      qc.invalidateQueries({ queryKey: qk.tags.all });
-    },
-  });
-}
-
 // Optimistic: the completion checkbox ticks instantly, rolls back on failure.
 export function useToggleTaskStatus() {
   const qc = useQueryClient();
@@ -172,21 +159,6 @@ export function useRescheduleTask() {
   });
 }
 
-// Bulk reschedule (the missed-banner "all to today"). One mutation so its
-// isPending drives the bulk spinner — no local busy flag needed.
-export function useRescheduleTasks() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ ids, date }: { ids: number[]; date: string }) =>
-      Promise.all(ids.map((id) => tasksApi.reschedule(id, date))),
-    onError: () => toast.error('Could not reschedule'),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: qk.tasks.all });
-      qc.invalidateQueries({ queryKey: qk.taskLists.all });
-    },
-  });
-}
-
 export function useScratchTask() {
   const qc = useQueryClient();
   return useMutation({
@@ -196,15 +168,6 @@ export function useScratchTask() {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
     },
-  });
-}
-
-export function useReorderTasks() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (ids: number[]) => tasksApi.reorder(ids),
-    onError: () => toast.error('Could not reorder'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.tasks.all }),
   });
 }
 

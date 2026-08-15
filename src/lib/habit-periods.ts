@@ -6,7 +6,6 @@ import {
   endOfMonth,
   endOfYear,
   format,
-  parseISO,
   startOfMonth,
   startOfWeek,
   startOfYear,
@@ -50,10 +49,6 @@ export function habitPeriodForDate(date: Date, frequency: HabitFrequency): Habit
   }
 
   return makePeriod(start, end, frequency);
-}
-
-export function completedPeriodKeys(logDates: string[], frequency: HabitFrequency): Set<string> {
-  return new Set(logDates.map((value) => habitPeriodForDate(parseISO(value), frequency).key));
 }
 
 export function periodIsComplete(logDates: string[], period: HabitPeriod): boolean {

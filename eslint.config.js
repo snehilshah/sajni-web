@@ -10,9 +10,10 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 // The codebase favors pragmatic React patterns (effects that read URL
 // state, sync localStorage, fan-out fetches on mount, etc.). The newer
 // react-hooks "purity" + "set-state-in-effect" rules and the strict
-// react-refresh export check flag a long tail of those patterns. We
-// keep them ON as warnings so authors see them in editors and CI, but
-// don't fail the build. Real correctness rules (no-undef, unused
+// react-refresh export check flags generated icon shims and co-located
+// hooks without identifying production problems, so it is disabled.
+// State-in-effect and purity checks remain visible locally, while real
+// correctness rules (no-undef, unused
 // imports, hooks-of-hooks) stay as errors.
 export default defineConfig([
   globalIgnores(['dist']),
@@ -37,7 +38,7 @@ export default defineConfig([
       // restructuring a lot of components.
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/purity': 'warn',
-      'react-refresh/only-export-components': 'warn',
+      'react-refresh/only-export-components': 'off',
       // Keep visible in editors; CI can promote this to error with --rule.
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [

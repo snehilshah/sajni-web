@@ -62,13 +62,3 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },
   { smart: 'all', label: 'All', description: 'Every open task' },
 ];
-
-export function selectionLabel(sel: Selection, lists: { id: number; name: string }[]): string {
-  if (sel.kind === 'smart') return SMART_LISTS.find((s) => s.smart === sel.smart)?.label || 'Tasks';
-  return lists.find((l) => l.id === sel.id)?.name || 'List';
-}
-
-// uid generates a stable-enough id for new step rows on the client.
-export function uid(): string {
-  return 's_' + Math.random().toString(36).slice(2, 10);
-}

@@ -166,13 +166,8 @@ export default function JournalPage() {
     setParams(next, { replace: true });
   }, [params, setParams]);
 
-  const goWeekFromDate = useCallback((d: Date) => {
-    goWeek(getISOWeekYear(d), getISOWeek(d));
-  }, [goWeek]);
-  void goWeekFromDate;
-
   const { data: entriesData } = useJournalList();
-  const entries = (entriesData ?? []) as JournalEntry[];
+  const entries = useMemo(() => (entriesData ?? []) as JournalEntry[], [entriesData]);
   const { data: eventDayEntries = [], isLoading: loadingEvents } = useEventDayEntries(selectedDate);
   // Editor writes go through journalApi (day-scoped); refresh the cached list
   // (and any other journal view) after a save/delete.

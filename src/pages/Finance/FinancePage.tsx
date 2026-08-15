@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils';
 const TXN_LIMIT = 1000;
 
 // Exported so other Finance screens render the same secondary bar.
-export const financeTabs = [
+const financeTabs = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },

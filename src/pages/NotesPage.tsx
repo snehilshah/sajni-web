@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,6 @@ import { notes as notesApi } from '@/api';
 import type { BacklinkRef, NoteFolder } from '@/types';
 import { useNotes, useNoteFolders } from '@/queries/notes';
 import { qk } from '@/queries/keys';
-import RichEditor from '@/components/editor/RichEditor';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
 import { PageChrome, PageShellTabs, chromeClearance } from '@/components/PageShell';
+
+const RichEditor = lazy(() => import('@/components/editor/RichEditor'));
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -164,8 +165,8 @@ export default function NotesPage() {
 
   const { data: notesData, isLoading: loading } = useNotes(debounced ? { search: debounced } : undefined);
   const { data: foldersData } = useNoteFolders();
-  const notesList = (notesData ?? []) as NoteListItem[];
-  const folders = (foldersData ?? []) as NoteFolder[];
+  const notesList = useMemo(() => (notesData ?? []) as NoteListItem[], [notesData]);
+  const folders = useMemo(() => (foldersData ?? []) as NoteFolder[], [foldersData]);
 
   // Editor writes go straight through notesApi (single-doc surface); this
   // refreshes the cached list/folders + any other notes view after a write.
@@ -613,12 +614,14 @@ export default function NotesPage() {
                     className="w-full h-auto -mt-2 px-0 py-0.5 bg-transparent border-none outline-none focus-visible:shadow-none text-base md:text-lg text-muted-foreground placeholder:text-muted-foreground/30"
                   />
 
-                  <RichEditor
-                    value={content}
-                    onChange={handleContentChange}
-                    placeholder="Type / for commands. Use [[ to link to other notes."
-                    fill
-                  />
+                  <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
+                    <RichEditor
+                      value={content}
+                      onChange={handleContentChange}
+                      placeholder="Type / for commands. Use [[ to link to other notes."
+                      fill
+                    />
+                  </Suspense>
                 </motion.div>
               )}
               </AnimatePresence>

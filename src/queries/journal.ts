@@ -10,14 +10,6 @@ export function useJournalList() {
   });
 }
 
-export function useJournalEntry(date: string, enabled = true) {
-  return useQuery({
-    queryKey: qk.journal.entry(date),
-    queryFn: () => journalApi.get(date),
-    enabled,
-  });
-}
-
 export function useSaveJournal() {
   const qc = useQueryClient();
   return useMutation({
@@ -29,49 +21,5 @@ export function useSaveJournal() {
       qc.invalidateQueries({ queryKey: qk.journal.all });
       if (vars?.date) qc.invalidateQueries({ queryKey: qk.journal.entry(vars.date) });
     },
-  });
-}
-
-export function useDeleteJournal() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (date: string) => journalApi.delete(date),
-    onError: () => toast.error('Could not delete entry'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.journal.all }),
-  });
-}
-
-// --- Weekly ---
-
-export function useJournalWeeks() {
-  return useQuery({
-    queryKey: qk.journal.weeks(),
-    queryFn: () => journalApi.week.list(),
-  });
-}
-
-export function useJournalWeek(year: number, week: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.journal.week(year, week),
-    queryFn: () => journalApi.week.get(year, week),
-    enabled,
-  });
-}
-
-export function useJournalWeekSummary(year: number, week: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.journal.weekSummary(year, week),
-    queryFn: () => journalApi.week.summary(year, week),
-    enabled,
-  });
-}
-
-export function useSaveJournalWeek() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ year, week, content }: { year: number; week: number; content: string }) =>
-      journalApi.week.save(year, week, content),
-    onError: () => toast.error('Could not save entry'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.journal.all }),
   });
 }

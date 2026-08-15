@@ -35,7 +35,6 @@ import {
   Heart,
   Loader2,
   MapPin,
-  Pencil,
   Plus,
   Search,
   Scissors,
@@ -80,7 +79,6 @@ import type {
   TrackedEvent,
   TrackedEventEntry,
   TrackedEventTrendPoint,
-  TrackedEventVariable,
 } from '@/types';
 
 const COLORS = ['#2D5A4F', '#4F6FA1', '#8B6FA1', '#A14B4F', '#C0783C', '#5E7C3A', '#7A7A7A'];

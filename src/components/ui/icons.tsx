@@ -22,6 +22,7 @@ import _px_Bell from 'pixelarticons/svg/bell.svg?raw';
 import _px_BookOpen from 'pixelarticons/svg/book-open.svg?raw';
 import _px_Bookmark from 'pixelarticons/svg/bookmark.svg?raw';
 import _px_BookmarkPlus from 'pixelarticons/svg/bookmark.svg?raw';
+import _px_Briefcase from 'pixelarticons/svg/briefcase.svg?raw';
 import _px_Calendar from 'pixelarticons/svg/calendar.svg?raw';
 import _px_CalendarClock from 'pixelarticons/svg/date-time.svg?raw';
 import _px_CalendarDays from 'pixelarticons/svg/calendar.svg?raw';
@@ -29,6 +30,7 @@ import _px_CalendarIcon from 'pixelarticons/svg/calendar.svg?raw';
 import _px_CalendarRange from 'pixelarticons/svg/calendar-range.svg?raw';
 import _px_CalendarX2 from 'pixelarticons/svg/calendar.svg?raw';
 import _px_Camera from 'pixelarticons/svg/camera.svg?raw';
+import _px_Car from 'pixelarticons/svg/car.svg?raw';
 import _px_Check from 'pixelarticons/svg/check.svg?raw';
 import _px_CheckCircle2 from 'pixelarticons/svg/check.svg?raw';
 import _px_CheckIcon from 'pixelarticons/svg/check.svg?raw';
@@ -70,6 +72,7 @@ import _px_Hash from 'pixelarticons/svg/hash.svg?raw';
 import _px_Heading1 from 'pixelarticons/svg/heading-1.svg?raw';
 import _px_Heading2 from 'pixelarticons/svg/heading-2.svg?raw';
 import _px_Heading3 from 'pixelarticons/svg/heading-3.svg?raw';
+import _px_Heart from 'pixelarticons/svg/heart.svg?raw';
 import _px_Image from 'pixelarticons/svg/image.svg?raw';
 import _px_ImageIcon from 'pixelarticons/svg/image.svg?raw';
 import _px_Inbox from 'pixelarticons/svg/inbox.svg?raw';
@@ -105,6 +108,7 @@ import _px_RefreshCw from 'pixelarticons/svg/reload.svg?raw';
 import _px_Repeat from 'pixelarticons/svg/repeat.svg?raw';
 import _px_RotateCcw from 'pixelarticons/svg/undo.svg?raw';
 import _px_Save from 'pixelarticons/svg/save.svg?raw';
+import _px_Scissors from 'pixelarticons/svg/scissors.svg?raw';
 import _px_Search from 'pixelarticons/svg/search.svg?raw';
 import _px_SearchIcon from 'pixelarticons/svg/search.svg?raw';
 import _px_Settings from 'pixelarticons/svg/settings-cog.svg?raw';
@@ -119,7 +123,6 @@ import _px_TriangleAlertIcon from 'pixelarticons/svg/warning-diamond.svg?raw';
 import _px_Tv from 'pixelarticons/svg/tv.svg?raw';
 import _px_Unlink from 'pixelarticons/svg/unlink.svg?raw';
 import _px_Upload from 'pixelarticons/svg/upload.svg?raw';
-import _px_Users from 'pixelarticons/svg/users.svg?raw';
 import _px_VenetianMask from 'pixelarticons/svg/sunglasses.svg?raw';
 import _px_Wallet from 'pixelarticons/svg/wallet.svg?raw';
 import _px_Wand2 from 'pixelarticons/svg/magic-edit.svg?raw';
@@ -159,6 +162,7 @@ export const Bell = px(_px_Bell);
 export const BookOpen = px(_px_BookOpen);
 export const Bookmark = px(_px_Bookmark);
 export const BookmarkPlus = px(_px_BookmarkPlus);
+export const Briefcase = px(_px_Briefcase);
 export const Calendar = px(_px_Calendar);
 export const CalendarClock = px(_px_CalendarClock);
 export const CalendarDays = px(_px_CalendarDays);
@@ -166,6 +170,7 @@ export const CalendarIcon = px(_px_CalendarIcon);
 export const CalendarRange = px(_px_CalendarRange);
 export const CalendarX2 = px(_px_CalendarX2);
 export const Camera = px(_px_Camera);
+export const Car = px(_px_Car);
 export const Check = px(_px_Check);
 export const CheckCircle2 = px(_px_CheckCircle2);
 export const CheckIcon = px(_px_CheckIcon);
@@ -207,6 +212,7 @@ export const Hash = px(_px_Hash);
 export const Heading1 = px(_px_Heading1);
 export const Heading2 = px(_px_Heading2);
 export const Heading3 = px(_px_Heading3);
+export const Heart = px(_px_Heart);
 export const Image = px(_px_Image);
 export const ImageIcon = px(_px_ImageIcon);
 export const Inbox = px(_px_Inbox);
@@ -242,6 +248,7 @@ export const RefreshCw = px(_px_RefreshCw);
 export const Repeat = px(_px_Repeat);
 export const RotateCcw = px(_px_RotateCcw);
 export const Save = px(_px_Save);
+export const Scissors = px(_px_Scissors);
 export const Search = px(_px_Search);
 export const SearchIcon = px(_px_SearchIcon);
 export const Settings = px(_px_Settings);
@@ -256,7 +263,6 @@ export const TriangleAlertIcon = px(_px_TriangleAlertIcon);
 export const Tv = px(_px_Tv);
 export const Unlink = px(_px_Unlink);
 export const Upload = px(_px_Upload);
-export const Users = px(_px_Users);
 export const VenetianMask = px(_px_VenetianMask);
 export const Wallet = px(_px_Wallet);
 export const Wand2 = px(_px_Wand2);
@@ -268,10 +274,6 @@ export const Zap = px(_px_Zap);
 export {
   ArrowUpRight,
   Bold,
-  Briefcase,
-  Car,
-  GalleryHorizontalEnd,
-  Heart,
   History,
   Italic,
   ListOrdered,
@@ -283,11 +285,8 @@ export {
   PanelRightClose,
   Pin,
   PinOff,
-  Share2,
-  Scissors,
   Strikethrough,
   Sun,
-  Table2,
   Tags,
   Type,
 } from 'lucide-react';

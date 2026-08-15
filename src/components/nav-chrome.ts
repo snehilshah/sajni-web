@@ -23,10 +23,6 @@ export function isActivePath(pathname: string, path: string): boolean {
     : pathname === path || pathname.startsWith(path + '/');
 }
 
-export function activeNavItem(pathname: string) {
-  return NAV_ITEMS.find((i) => isActivePath(pathname, i.path)) ?? null;
-}
-
 // Coordination between the Layout chrome (primary icon pill) and the
 // page's secondary bar. The page scroller reports `scrolled`; Layout
 // collapses the primary bar and PageChrome swaps its rest bar for the

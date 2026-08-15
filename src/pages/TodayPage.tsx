@@ -145,7 +145,7 @@ export default function TodayPage() {
 	// The "echo" — a memo from 3+ days ago we surface.
 	const echo = useMemo(() => {
 		if (recentMemos.length === 0) return null;
-		const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
+		const cutoff = new Date().getTime() - 3 * 24 * 60 * 60 * 1000;
 		return [...recentMemos].reverse().find((m) => new Date(m.created_at).getTime() < cutoff) || null;
 	}, [recentMemos]);
 

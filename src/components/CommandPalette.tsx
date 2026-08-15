@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,10 +13,11 @@ import {
   parseQuery, rankHit, highlight,
   SEARCH_TYPE_LABELS, type SearchType,
 } from '@/lib/fuzzy';
-import AIPaletteAnswer from '@/components/AIPaletteAnswer';
 import { useMode, useDensity } from '@/hooks/useThemePrefs';
 import { useAuth } from '@/auth/AuthContext';
 import { Input } from './ui/input';
+
+const AIPaletteAnswer = lazy(() => import('@/components/AIPaletteAnswer'));
 
 // AI_PREFIXES committed by space/tab become the AI chip. We keep the
 // list small — typing one of these and pressing space flips the
@@ -55,6 +56,10 @@ interface RankedHit extends SearchHit {
   score: number;
 }
 
+interface Props {
+  onOpenChange: (open: boolean) => void;
+}
+
 type Action = {
   id: string;
   label: string;
@@ -64,12 +69,11 @@ type Action = {
   run: () => void | Promise<void>;
 };
 
-export default function CommandPalette() {
+export default function CommandPalette({ onOpenChange }: Props) {
   const navigate = useNavigate();
   const { setMode } = useMode();
   const { setDensity } = useDensity();
   const { logout } = useAuth();
-  const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [results, setResults] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,44 +100,10 @@ export default function CommandPalette() {
   // so the chip stays visible while the input holds only the question.
   const [aiChip, setAiChip] = useState(false);
 
-  // Global Ctrl/Cmd+K toggle. Esc closes. Also responds to a custom
-  // `palette:open` event so a UI button can trigger it without faking keys.
+  // The palette mounts on first intent, so its initial state is already reset.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const isToggle = (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey);
-      if (isToggle) {
-        e.preventDefault();
-        setOpen((v) => !v);
-      } else if (e.key === 'Escape' && open) {
-        setOpen(false);
-      }
-    };
-    const onCustom = () => setOpen(true);
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('palette:open', onCustom);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('palette:open', onCustom);
-    };
-  }, [open]);
-
-  // Focus input + reset state on open.
-  useEffect(() => {
-    if (open) {
-      setInput('');
-      setResults([]);
-      setActiveIndex(0);
-      setAiQuery('');
-      setAiChip(false);
-      // Defer to after the dialog has mounted.
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [open]);
-
-  // Reset the AI answer whenever the user keeps editing — only fires on Enter.
-  useEffect(() => {
-    setAiQuery('');
-  }, [input]);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, []);
 
   // Action mode: input starts with '>'. Lists app-level commands
   // (theme/density/settings/sign-out) instead of search hits.
@@ -162,15 +132,10 @@ export default function CommandPalette() {
   // Debounced fetch as the user types. Skipped in AI mode — the palette
   // doesn't need search results when @sajni is the active lane.
   useEffect(() => {
-    if (!open) return;
-    if (parsed.aiMode) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
+    if (parsed.aiMode) return;
     const seq = ++fetchSeq.current;
-    setLoading(true);
     const t = setTimeout(async () => {
+      setLoading(true);
       try {
         const res = await searchApi.query(parsed.query);
         if (fetchSeq.current === seq) {
@@ -184,7 +149,7 @@ export default function CommandPalette() {
       }
     }, 120);
     return () => clearTimeout(t);
-  }, [open, parsed.query, parsed.aiMode]);
+  }, [parsed.query, parsed.aiMode]);
 
   // Score + sort + cap.
   const ranked = useMemo<RankedHit[]>(() => {
@@ -199,10 +164,10 @@ export default function CommandPalette() {
   }, [results, parsed]);
 
   const open_hit = useCallback((hit: SearchHit) => {
-    setOpen(false);
+    onOpenChange(false);
     if (hit.route) navigate(hit.route);
     else navigate('/');
-  }, [navigate]);
+  }, [navigate, onOpenChange]);
 
   // Keyboard navigation.
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -240,7 +205,7 @@ export default function CommandPalette() {
         e.preventDefault();
         const a = actionResults[activeIndex];
         if (a) {
-          setOpen(false);
+          onOpenChange(false);
           Promise.resolve(a.run()).catch(() => {});
         }
       }
@@ -274,10 +239,10 @@ export default function CommandPalette() {
     el?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, ranked.length]);
 
-  return open ? (
+  return (
         <div
           className="fixed inset-0 z-[60] bg-foreground/30 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-3"
-          onClick={() => setOpen(false)}
+          onClick={() => onOpenChange(false)}
         >
           <div
             className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden"
@@ -296,7 +261,10 @@ export default function CommandPalette() {
                 <Input
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setAiQuery('');
+                  }}
                   onKeyDown={onKeyDown}
                   placeholder={aiChip
                     ? 'Ask Sajni anything…  (Enter to send)'
@@ -371,7 +339,7 @@ export default function CommandPalette() {
                       key={a.id}
                       data-idx={i}
                       onMouseEnter={() => setActiveIndex(i)}
-                      onClick={() => { setOpen(false); Promise.resolve(a.run()).catch(() => {}); }}
+                      onClick={() => { onOpenChange(false); Promise.resolve(a.run()).catch(() => {}); }}
                       className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
                         i === activeIndex ? 'bg-accent' : 'hover:bg-accent/50'
                       } ${a.danger ? 'text-destructive' : 'text-foreground'}`}
@@ -384,7 +352,9 @@ export default function CommandPalette() {
                   ))
                 )
               ) : parsed.aiMode ? (
-                <AIPaletteAnswer query={aiQuery} onClose={() => setOpen(false)} />
+                <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
+                  <AIPaletteAnswer key={aiQuery} query={aiQuery} onClose={() => onOpenChange(false)} />
+                </Suspense>
               ) : ranked.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                   {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search — or use @sajni to ask the AI, or > for actions.'}
@@ -433,7 +403,7 @@ export default function CommandPalette() {
             </div>
           </div>
         </div>
-  ) : null;
+  );
 }
 
 function PaletteRow({

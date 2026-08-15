@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import {
@@ -6,8 +6,7 @@ import {
 } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import { useAuth } from '@/auth/AuthContext';
-import CommandPalette from '@/components/CommandPalette';
-import AIChat from '@/components/AIChat';
+import type { ChatOpenDetail, ChatOpenRequest } from '@/components/AIChat';
 import Backdrop from '@/components/Backdrop';
 import Onboarding from '@/components/Onboarding';
 import { NAV_ITEMS, NavChromeContext, isActivePath } from '@/components/nav-chrome';
@@ -19,6 +18,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+const CommandPalette = lazy(() => import('@/components/CommandPalette'));
+const AIChat = lazy(() => import('@/components/AIChat'));
 
 function initialsFor(email?: string | null): string {
   const s = (email || '').trim();
@@ -391,20 +393,65 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const keyboardOpen = useKeyboardOpen(isMobile);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiChatOpen, setAiChatOpen] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [chatOpenRequest, setChatOpenRequest] = useState<ChatOpenRequest | null>(null);
+  const [accountMenuState, setAccountMenuState] = useState({ pathname: location.pathname, open: false });
   const [signingOut, setSigningOut] = useState(false);
 
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => { setScrolled(false); }, [location.pathname]);
-  const chromeCtx = useMemo(() => ({ scrolled, setScrolled }), [scrolled]);
+  const [scrollState, setScrollState] = useState({ pathname: location.pathname, scrolled: false });
+  const scrolled = scrollState.pathname === location.pathname && scrollState.scrolled;
+  const setScrolled = useCallback<Dispatch<SetStateAction<boolean>>>((next) => {
+    setScrollState((previous) => {
+      const current = previous.pathname === location.pathname ? previous.scrolled : false;
+      const value = typeof next === 'function' ? next(current) : next;
+      if (previous.pathname === location.pathname && previous.scrolled === value) return previous;
+      return { pathname: location.pathname, scrolled: value };
+    });
+  }, [location.pathname]);
+  const chromeCtx = useMemo(() => ({ scrolled, setScrolled }), [scrolled, setScrolled]);
 
-  useEffect(() => { setAccountMenuOpen(false); }, [location.pathname]);
+  const accountMenuOpen = accountMenuState.pathname === location.pathname && accountMenuState.open;
+  const setAccountMenuOpen = useCallback((open: boolean) => {
+    setAccountMenuState({ pathname: location.pathname, open });
+  }, [location.pathname]);
+
+  const setAIChatOpen = useCallback((open: boolean) => {
+    setAiChatOpen(open);
+    if (!open) setChatOpenRequest(null);
+  }, []);
 
   const email = user?.email || 'sign in';
   const initials = useMemo(() => initialsFor(user?.email), [user]);
 
-  const openCommand = () => window.dispatchEvent(new CustomEvent('palette:open'));
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.key === 'k' || event.key === 'K') && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+      } else if (event.key === 'Escape') {
+        setCommandPaletteOpen(false);
+      }
+    };
+    const onPaletteOpen = () => setCommandPaletteOpen(true);
+    const onChatOpen = (event: Event) => {
+      setAiChatOpen(true);
+      setChatOpenRequest({
+        id: Date.now(),
+        detail: ((event as CustomEvent<ChatOpenDetail>).detail ?? {}),
+      });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('palette:open', onPaletteOpen);
+    window.addEventListener('chat:open', onChatOpen);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('palette:open', onPaletteOpen);
+      window.removeEventListener('chat:open', onChatOpen);
+    };
+  }, []);
+
+  const openCommand = () => setCommandPaletteOpen(true);
 
   const onSignOut = async () => {
     if (signingOut) return;
@@ -417,7 +464,10 @@ export default function Layout() {
     <UserMenuBody
       email={email}
       onOpenCommand={openCommand}
-      onOpenChat={() => setAiChatOpen(true)}
+      onOpenChat={() => {
+        setChatOpenRequest(null);
+        setAiChatOpen(true);
+      }}
       onSettings={() => navigate('/settings')}
       onDocs={() => navigate('/docs')}
       onChangelog={() => navigate('/changelog')}
@@ -463,8 +513,16 @@ export default function Layout() {
           />
         )}
 
-        <CommandPalette />
-        <AIChat open={aiChatOpen} onOpenChange={setAiChatOpen} />
+        {commandPaletteOpen && (
+          <Suspense fallback={null}>
+            <CommandPalette onOpenChange={setCommandPaletteOpen} />
+          </Suspense>
+        )}
+        {aiChatOpen && (
+          <Suspense fallback={null}>
+            <AIChat open onOpenChange={setAIChatOpen} openRequest={chatOpenRequest} />
+          </Suspense>
+        )}
         <Onboarding />
       </div>
     </>

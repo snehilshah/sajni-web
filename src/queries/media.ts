@@ -17,14 +17,6 @@ export function useMedia(params?: MediaListParams, enabled = true) {
   });
 }
 
-export function useMediaEvents(id: number, enabled = true) {
-  return useQuery({
-    queryKey: qk.media.events(id),
-    queryFn: () => mediaApi.events(id),
-    enabled,
-  });
-}
-
 export function useCreateMedia() {
   const qc = useQueryClient();
   return useMutation({

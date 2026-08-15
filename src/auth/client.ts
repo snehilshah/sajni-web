@@ -12,10 +12,6 @@ export function setAccessToken(token: string | null) {
   accessToken = token;
 }
 
-export function getAccessToken(): string | null {
-  return accessToken;
-}
-
 // Public refresh payload — exposes the full /auth/refresh response so
 // AuthProvider can adopt the user object in addition to the access token.
 // Refresh tokens are *single-use rotating*: each call deletes the row

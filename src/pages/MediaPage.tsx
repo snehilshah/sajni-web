@@ -1070,7 +1070,7 @@ export default function MediaPage() {
         ))}
       </div>
     );
-  }, [loading, filteredItems, seriesRows, viewMode, statusFilters, searchQuery, activeType, expandedSeries, openForm, toggleSeries, setSeriesDialog]);
+  }, [loading, filteredItems, seriesRows, viewMode, statusFilters, searchQuery, activeType, expandedSeries, openForm, toggleSeries, setSeriesDialog, editItem?.id, morphSource, showForm]);
 
   // ---- Add/Edit form: shared title + body + footer, hosted in a centered
   // Dialog on desktop and a full-height, keyboard-safe bottom Sheet on phones.

@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { setAccessToken, getAccessToken, authFetch, API_BASE, refreshSession } from "./client";
+import { setAccessToken, authFetch, API_BASE, refreshSession } from "./client";
 import log from "../lib/logger";
 
 export interface IdentityRef {
@@ -127,8 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // when the stored tz differs (covers first login, travel, DST changes).
   // After a successful POST setUser updates timezone, which re-runs this and
   // immediately short-circuits — no loop.
+  const userID = user?.id;
+  const userTimezone = user?.timezone;
   useEffect(() => {
-    if (!user) return;
+    if (!userID) return;
     let tz = "";
     try {
       tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
@@ -139,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // API canonicalizes to 'Asia/Kolkata'. Match it here or the compare below
     // never short-circuits and we re-POST every session.
     if (tz === "Asia/Calcutta") tz = "Asia/Kolkata";
-    if (!tz || tz === user.timezone) return;
+    if (!tz || tz === userTimezone) return;
     authFetch("/auth/timezone", {
       method: "POST",
       body: JSON.stringify({ timezone: tz }),
@@ -150,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         /* best-effort; retries next session */
       });
-  }, [user?.id, user?.timezone]);
+  }, [userID, userTimezone]);
 
   const refreshUser = useCallback(async () => {
     const res = await authFetch("/auth/me");
@@ -274,5 +276,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
-export { getAccessToken };

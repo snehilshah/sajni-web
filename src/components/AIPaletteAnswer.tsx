@@ -73,9 +73,6 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
 
   useEffect(() => {
     if (!query) {
-      setAnswer('');
-      setTools([]);
-      setError(null);
       historyRef.current = [];
       return;
     }

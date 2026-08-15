@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/immutability, react-hooks/preserve-manual-memoization --
+/* eslint-disable react-hooks/preserve-manual-memoization --
    This file wires TipTap. We mutate editor.storage.<ext>.onOpen to bind the
    slash-command callbacks, and the editor instance drives the manual
    useCallback memoization here. Both are intentional, working integration

@@ -40,6 +40,7 @@ interface Props {
 
 export default function OverviewTab({ accounts }: Props) {
   const { formatMoney } = useFinanceFormatters();
+  const [renderedAt] = useState(Date.now);
   const [data, setData] = useState<OverviewData | null>(null);
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [snapping, setSnapping] = useState(false);
@@ -140,7 +141,7 @@ export default function OverviewTab({ accounts }: Props) {
           ) : (
             <div className="flex flex-col gap-1.5">
               {data.upcoming_bills.map((b) => {
-                const days = Math.round((new Date(b.due_date).getTime() - Date.now()) / 86400000);
+                const days = Math.round((new Date(b.due_date).getTime() - renderedAt) / 86400000);
                 return (
                   <div key={b.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
                     <div className="min-w-0 flex items-center gap-2">
@@ -171,7 +172,7 @@ export default function OverviewTab({ accounts }: Props) {
           ) : (
             <div className="flex flex-col gap-2">
               {data.upcoming_dues.map((d) => {
-                const days = Math.round((new Date(d.due_date).getTime() - Date.now()) / 86400000);
+                const days = Math.round((new Date(d.due_date).getTime() - renderedAt) / 86400000);
                 return (
                   <div key={d.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
                     <div className="min-w-0">

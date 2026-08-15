@@ -10,6 +10,7 @@
     "dev": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "lint:ci": "eslint . --quiet",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -40,8 +41,10 @@
     "framer-motion": "^12.38.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.18.0",
+    "markdown-it": "^14.2.0",
     "pino": "^10.3.1",
     "pixelarticons": "^2.1.2",
+    "prosemirror-markdown": "^1.13.4",
     "react": "^19.2.7",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.7",

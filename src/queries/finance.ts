@@ -58,10 +58,6 @@ export function useFinStatements(enabled = true) {
   return useQuery({ queryKey: qk.finance.statements(), queryFn: () => finance.listStatements(), enabled });
 }
 
-export function useFinOverview(enabled = true) {
-  return useQuery({ queryKey: qk.finance.overview(), queryFn: () => finance.overview(), enabled });
-}
-
 export function useFinBillers(includeArchived = false, enabled = true) {
   return useQuery({
     queryKey: qk.finance.billers(includeArchived),

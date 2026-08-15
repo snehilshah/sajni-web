@@ -1,4 +1,4 @@
-import { authFetch, API_BASE } from '@/auth/client';
+import { authFetch } from '@/auth/client';
 
 // ─── Privacy mode ──────────────────────────────────────────────────────────
 // A single global flag. When on, money and percentage formatters emit explicit
@@ -13,7 +13,7 @@ const PRIVACY_KEY = 'sajni.finance.privacy';
 // FinancePage re-hides on a timer/visibility change, and the on-load check
 // below catches reloads after the window lapsed.
 const REVEAL_UNTIL_KEY = 'sajni.finance.privacy.revealUntil';
-export const REVEAL_MS = 30 * 60 * 1000;
+const REVEAL_MS = 30 * 60 * 1000;
 
 // Default ON: figures are hidden unless the user has explicitly revealed them
 // (stored '0') AND the 30-minute reveal window hasn't lapsed. Anything else —
@@ -51,8 +51,6 @@ export function revealExpiry(): number | null {
   } catch { return null; }
 }
 
-export function togglePrivacyMode(): void { setPrivacyMode(!privacyOn); }
-
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
 function moneyFormatter(currency: string, maximumFractionDigits: number): Intl.NumberFormat {
@@ -75,15 +73,6 @@ export function formatMoney(amount: number, currency = 'INR', privacy = privacyO
     return moneyFormatter(currency, 0).format(amount);
   } catch {
     return currency + ' ' + Math.round(amount).toLocaleString('en-IN');
-  }
-}
-
-export function formatMoneyPrecise(amount: number, currency = 'INR', privacy = privacyOn): string {
-  if (privacy) return '***';
-  try {
-    return moneyFormatter(currency, 2).format(amount);
-  } catch {
-    return currency + ' ' + amount.toFixed(2);
   }
 }
 
@@ -129,8 +118,6 @@ export async function downloadCSV(path: string, filename: string) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-
-export const _API_BASE = API_BASE;
 
 // ─── Transaction time (txn_at) ──────────────────────────────────────────
 // The API carries a transaction's instant as an RFC3339 string anchored to IST

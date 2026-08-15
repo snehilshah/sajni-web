@@ -10,6 +10,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const SVG_DIR = path.join(ROOT, 'node_modules/pixelarticons/svg');
+const OUTPUT = path.join(ROOT, 'src/components/ui/icons.tsx');
 const has = (n) => n && fs.existsSync(path.join(SVG_DIR, n + '.svg'));
 
 // 1) collect every lucide icon name used in src
@@ -19,15 +20,17 @@ const files = [];
     const p = path.join(d, f);
     const s = fs.statSync(p);
     if (s.isDirectory()) walk(p);
-    else if (/\.(tsx?|jsx?)$/.test(f)) files.push(p);
+    else if (/\.(tsx?|jsx?)$/.test(f) && p !== OUTPUT) files.push(p);
   }
 })(path.join(ROOT, 'src'));
 
 const used = new Set();
 for (const f of files) {
   const t = fs.readFileSync(f, 'utf8');
-  // matches both the shim's own lucide imports and (pre-swap) source imports
-  const re = /import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"](?:lucide-react|@\/components\/ui\/icons)['"]/gs;
+  // Only names imported through the shim belong in the generated shim.
+  // Deliberate direct lucide imports stay direct and must not create a second
+  // re-export here.
+  const re = /import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"]@\/components\/ui\/icons['"]/gs;
   let m;
   while ((m = re.exec(t))) {
     m[1].split(',').map((s) => s.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, '').trim()).filter(Boolean).forEach((n) => used.add(n));
@@ -123,7 +126,7 @@ if (passthrough.length) {
 }
 out += "\nexport type { LucideIcon } from 'lucide-react';\n";
 
-fs.writeFileSync(path.join(ROOT, 'src/components/ui/icons.tsx'), out);
+fs.writeFileSync(OUTPUT, out);
 
 console.log(`icons.tsx regenerated — ${used.size} used, ${Object.keys(mapped).length} pixel-mapped, ${passthrough.length} lucide passthrough`);
 console.log('passthrough:', passthrough.join(' '));

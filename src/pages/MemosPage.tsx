@@ -33,7 +33,7 @@ export default function MemosPage() {
   }, [search]);
 
   const { data, isLoading: loading } = useMemos(debounced ? { search: debounced } : undefined);
-  const memosList = (data ?? []) as Memo[];
+  const memosList = useMemo(() => (data ?? []) as Memo[], [data]);
   const createMemo = useCreateMemo();
   const updateMemo = useUpdateMemo();
   const deleteMemo = useDeleteMemo();
@@ -331,7 +331,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
     setEditing(false);
     setEditContent(memo?.content || '');
     setCopied(false);
-  }, [memo?.id]);
+  }, [memo?.id, memo?.content]);
 
   if (!memo) return null;
 

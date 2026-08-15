@@ -72,7 +72,7 @@ export default function ThinkingProjectPage() {
   const qc = useQueryClient();
   const { data: projectData, isLoading: loading } = useThinkingProject(pid, Number.isFinite(pid));
   const project = projectData?.project ?? null;
-  const cards = projectData?.cards ?? [];
+  const cards = useMemo(() => projectData?.cards ?? [], [projectData?.cards]);
   const [draft, setDraft] = useState('');
   const [kind, setKind] = useState<ThinkingKind>('note');
   // Tracks whether the user has manually chosen the kind for the
