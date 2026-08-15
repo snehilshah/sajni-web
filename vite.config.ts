@@ -17,6 +17,11 @@ export default defineConfig({
     },
   },
   build: {
+    // RichEditor is loaded only when an editor surface opens. Keep its deferred
+    // payload out of the startup graph without forcing ProseMirror across a
+    // manual chunk boundary; those packages contain circular module links that
+    // Rolldown must resolve together.
+    chunkSizeWarningLimit: 700,
     rolldownOptions: {
       // Asset transforms and the React Compiler are intentional. Keep every
       // correctness check, but skip Rolldown's advisory build-time breakdown.
@@ -33,14 +38,6 @@ export default defineConfig({
               name: 'theme-vendor',
               test: /node_modules[\\/]@material[\\/]material-color-utilities[\\/]/,
               priority: 18,
-            },
-            {
-              name: 'editor-vendor',
-              test: /node_modules[\\/](?:@tiptap|prosemirror-|tiptap-markdown)[\\/]/,
-              maxSize: 900 * 1024,
-              includeDependenciesRecursively: false,
-              entriesAware: true,
-              priority: 15,
             },
           ],
         },
