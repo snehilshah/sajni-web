@@ -219,8 +219,11 @@ export default function RichEditor({
       },
     },
     onUpdate: ({ editor: ed }) => {
+      if (ed.isDestroyed) return;
+      const markdown = store(ed).markdown;
+      if (!markdown) return;
       isLocalUpdate.current = true;
-      const md = store(ed).markdown.getMarkdown();
+      const md = markdown.getMarkdown();
       onChange(md);
       queueMicrotask(() => { isLocalUpdate.current = false; });
     },
@@ -262,9 +265,11 @@ export default function RichEditor({
 
   // Sync external value changes (e.g. selecting a different note)
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     if (isLocalUpdate.current) return;
-    const current = store(editor).markdown.getMarkdown();
+    const markdown = store(editor).markdown;
+    if (!markdown) return;
+    const current = markdown.getMarkdown();
     if (value !== current) {
       editor.commands.setContent(value || '', { emitUpdate: false });
     }

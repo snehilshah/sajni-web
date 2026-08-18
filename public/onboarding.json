@@ -40,8 +40,14 @@
     {
       "key": "notes",
       "title": "Notes",
-      "blurb": "Long-form writing with backlinks, folders, and an outliner — plus Memos, a tab for half-formed quick captures.",
+      "blurb": "Long-form writing with folders, live outlines, links, backlinks, and Markdown stored underneath.",
       "icon": "FileText"
+    },
+    {
+      "key": "memos",
+      "title": "Memos",
+      "blurb": "A separate timeline for half-formed thoughts and quick captures that do not need to become long-form notes.",
+      "icon": "StickyNote"
     },
     {
       "key": "media",

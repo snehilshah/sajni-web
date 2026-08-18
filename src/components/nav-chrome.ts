@@ -2,12 +2,12 @@ import { createContext, useContext } from 'react';
 
 import type { PixelIconName } from '@/components/ui/pixel-icon';
 
-// The 9 primary destinations (post-consolidation: Memos→Notes tab,
-// Tags→Analytics tab, Chat→Projects tab). `key` matches
+// The primary destinations. `key` matches
 // /public/onboarding.json anchors.
 export const NAV_ITEMS: { path: string; label: string; icon: PixelIconName; key: string }[] = [
   { path: '/', label: 'Today', icon: 'home', key: 'today' },
   { path: '/notes', label: 'Notes', icon: 'pen-nib', key: 'notes' },
+  { path: '/memos', label: 'Memos', icon: 'notebook', key: 'memos' },
   { path: '/journal', label: 'Journal', icon: 'book', key: 'journal' },
   { path: '/tasks', label: 'Tasks', icon: 'check-list', key: 'tasks' },
   { path: '/habits', label: 'Habits', icon: 'fire', key: 'habits' },

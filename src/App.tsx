@@ -53,12 +53,13 @@ function HomeRoute() {
 	return user ? <Layout /> : <LandingPage />;
 }
 
-// Consolidations: Memos lives under /notes?tab=memos, Tags under
-// /analytics?tab=tags, Thinking became /projects. Old paths (bookmarks,
-// PWA shortcuts, AI tool routes) redirect with params preserved.
-function NotesHub() {
+// Memos is a first-class destination again. Keep the old combined Notes URL
+// as a compatibility redirect for bookmarks and installed shortcuts.
+function NotesRoute() {
 	const { search } = useLocation();
-	return new URLSearchParams(search).get('tab') === 'memos' ? <MemosPage /> : <NotesPage />;
+	return new URLSearchParams(search).get('tab') === 'memos'
+		? <Navigate to="/memos" replace />
+		: <NotesPage />;
 }
 function HabitsHub() {
 	const { search } = useLocation();
@@ -119,12 +120,12 @@ export default function App() {
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/habits" element={<HabitsHub />} />
             <Route path="/media" element={<MediaPage />} />
-            <Route path="/notes" element={<NotesHub />} />
+            <Route path="/notes" element={<NotesRoute />} />
+            <Route path="/memos" element={<MemosPage />} />
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/finance/:tab" element={<FinancePage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             {/* Consolidation redirects. */}
-            <Route path="/memos" element={<Navigate to="/notes?tab=memos" replace />} />
             <Route path="/events" element={<Navigate to="/habits?tab=events" replace />} />
             <Route path="/thinking" element={<ThinkingRedirect />} />
             <Route path="/thinking/:id" element={<ThinkingRedirect />} />

@@ -14,11 +14,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ArrowUp, Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
-import PageShell, { PageShellTabs } from '@/components/PageShell';
-import { useNavigate } from 'react-router-dom';
+import PageShell from '@/components/PageShell';
 
 export default function MemosPage() {
-  const navigate = useNavigate();
   const [draft, setDraft] = useState('');
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -79,19 +77,7 @@ export default function MemosPage() {
 
   return (
     <PageShell
-      title="Notes"
-      navigation={
-        <PageShellTabs
-          bare
-          ariaLabel="Notes sections"
-          value="memos"
-          options={[
-            { value: 'notes', label: 'Vault' },
-            { value: 'memos', label: 'Memos' },
-          ]}
-          onChange={(v) => { if (v === 'notes') navigate('/notes'); }}
-        />
-      }
+      title="Memos"
       actions={
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />

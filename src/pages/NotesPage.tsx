@@ -1,7 +1,9 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import { notes as notesApi } from '@/api';
 import type { BacklinkRef, NoteFolder } from '@/types';
@@ -14,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
-import { PageChrome, PageShellTabs, chromeClearance } from '@/components/PageShell';
+import { SegmentedButton } from '@/components/ui/segmented-button';
 
 const RichEditor = lazy(() => import('@/components/editor/RichEditor'));
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -24,9 +26,9 @@ import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import {
-  Trash2, Search, Save, Link as LinkIcon, FileText, X,
+  Trash2, Search, Save, Link as LinkIcon, FileText, X, ArrowLeft, Calendar, Edit3, Eye, LayoutGrid, StickyNote,
   ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
-  PanelLeftClose, PanelLeft, FolderInput as FolderMoveIcon, Pin, PinOff, ArrowUpRight,
+  PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FolderInput as FolderMoveIcon, Pin, PinOff,
 } from '@/components/ui/icons';
 
 function deriveTitle(content: string): string {
@@ -42,6 +44,20 @@ interface NoteListItem {
   id: number; title: string; folder: string; description: string; pinned: boolean; tags: string[]; created_at: string; updated_at: string;
 }
 
+interface OutlineItem {
+  level: number;
+  text: string;
+  index: number;
+}
+
+interface LinkedNoteRef {
+  ref: string;
+  title: string;
+  id?: number;
+}
+
+type EditorMode = 'edit' | 'split' | 'preview';
+
 interface TreeNode {
   type: 'folder' | 'note';
   name: string;
@@ -51,14 +67,58 @@ interface TreeNode {
   children: TreeNode[];
 }
 
-const SIDEBAR_KEY = 'sajni:notes-sidebar';
+// This key intentionally differs from the old Notes layout. Reusing the old
+// preference could boot the redesigned page with its only library rail hidden
+// and no selected note, making existing notes appear to have disappeared.
+const SIDEBAR_KEY = 'sajni:notes-library-rail';
 const EXPANDED_KEY = 'sajni:notes-expanded';
-// Landing-index folds. Stores what's CLOSED, not what's open, so a folder
-// you've never touched — including one created after this shipped — starts
-// expanded. Separate from EXPANDED_KEY on purpose: the sidebar tree
-// auto-opens ancestors whenever you select a note, and that shouldn't
-// silently refold the index behind you.
-const LEDGER_FOLDED_KEY = 'sajni:notes-ledger-folded';
+const EDITOR_MODE_KEY = 'sajni:notes-editor-mode';
+
+function extractOutline(markdown: string): OutlineItem[] {
+  const items: OutlineItem[] = [];
+  for (const line of markdown.split('\n')) {
+    const match = line.match(/^\s*(#{1,3})\s+(.+?)\s*#*\s*$/);
+    if (!match) continue;
+    const text = match[2].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_~`]/g, '').trim();
+    if (text) items.push({ level: match[1].length, text, index: items.length });
+  }
+  return items;
+}
+
+function extractLinkedNotes(markdown: string, notes: NoteListItem[], selectedId: number | null): LinkedNoteRef[] {
+  const byTitle = new Map(notes.map((note) => [note.title.trim().toLowerCase(), note]));
+  const seen = new Set<string>();
+  const links: LinkedNoteRef[] = [];
+  const pattern = /\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g;
+  for (const match of markdown.matchAll(pattern)) {
+    const ref = match[1].trim();
+    const key = ref.toLowerCase();
+    if (!ref || key.startsWith('task:') || seen.has(key)) continue;
+    seen.add(key);
+    const note = byTitle.get(key);
+    if (note?.id === selectedId) continue;
+    links.push({ ref, title: match[2]?.trim() || note?.title || ref, id: note?.id });
+  }
+  return links;
+}
+
+function plainText(markdown: string): string {
+  return markdown
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, ref: string, label?: string) => label || ref)
+    .replace(/[#>*_~`()]/g, ' ')
+    .replaceAll('[', ' ')
+    .replaceAll(']', ' ')
+    .replaceAll('-', ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
+function wordCount(markdown: string): number {
+  const plain = plainText(markdown);
+  return plain ? plain.split(/\s+/u).length : 0;
+}
 
 function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNode {
   const root: TreeNode = { type: 'folder', name: '', path: '', children: [] };
@@ -118,6 +178,7 @@ function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNode {
 }
 
 export default function NotesPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -131,6 +192,7 @@ export default function NotesPage() {
   const [debounced, setDebounced] = useState('');
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [loadingNote, setLoadingNote] = useState(false);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) !== '0'; } catch { return true; }
   });
@@ -148,7 +210,17 @@ export default function NotesPage() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMobile = useIsMobile();
   const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
+  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [inspectorTab, setInspectorTab] = useState<'outline' | 'backlinks' | 'linked'>('outline');
+  const [editorMode, setEditorMode] = useState<EditorMode>(() => {
+    try {
+      const stored = localStorage.getItem(EDITOR_MODE_KEY);
+      return stored === 'split' || stored === 'preview' ? stored : 'edit';
+    } catch { return 'edit'; }
+  });
   const [drafting, setDrafting] = useState(false);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0'); } catch {}
@@ -156,6 +228,9 @@ export default function NotesPage() {
   useEffect(() => {
     try { localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expandedFolders))); } catch {}
   }, [expandedFolders]);
+  useEffect(() => {
+    try { localStorage.setItem(EDITOR_MODE_KEY, editorMode); } catch {}
+  }, [editorMode]);
 
   // Debounce search into the query param so each keystroke doesn't refetch.
   useEffect(() => {
@@ -167,6 +242,10 @@ export default function NotesPage() {
   const { data: foldersData } = useNoteFolders();
   const notesList = useMemo(() => (notesData ?? []) as NoteListItem[], [notesData]);
   const folders = useMemo(() => (foldersData ?? []) as NoteFolder[], [foldersData]);
+  const outline = useMemo(() => extractOutline(content), [content]);
+  const linkedNotes = useMemo(() => extractLinkedNotes(content, notesList, selectedId), [content, notesList, selectedId]);
+  const words = useMemo(() => wordCount(content), [content]);
+  const characters = useMemo(() => Array.from(plainText(content)).length, [content]);
 
   // Editor writes go straight through notesApi (single-doc surface); this
   // refreshes the cached list/folders + any other notes view after a write.
@@ -199,6 +278,7 @@ export default function NotesPage() {
       setContent(note.content || '');
       setTags(note.tags || []);
       setBacklinks(note.backlinks || []);
+      setActiveFolder(note.folder || '');
       // Auto-expand ancestors
       if (note.folder) {
         setExpandedFolders((prev) => {
@@ -219,13 +299,31 @@ export default function NotesPage() {
   const handleNew = (parentFolder?: string) => {
     setSelectedId(null);
     setTitle('');
-    setFolder(parentFolder || '');
+    const targetFolder = parentFolder ?? activeFolder ?? '';
+    setFolder(targetFolder);
+    setActiveFolder(targetFolder);
     setDescription('');
     setContent('');
     setTags([]);
     setBacklinks([]);
+    setEditorMode('edit');
     dirtyRef.current = false;
     setDrafting(true);
+    const next = new URLSearchParams(params);
+    next.delete('id');
+    setParams(next, { replace: true });
+  };
+
+  const clearToBrowse = () => {
+    setSelectedId(null);
+    setTitle('');
+    setFolder('');
+    setDescription('');
+    setContent('');
+    setTags([]);
+    setBacklinks([]);
+    setDrafting(false);
+    dirtyRef.current = false;
     const next = new URLSearchParams(params);
     next.delete('id');
     setParams(next, { replace: true });
@@ -290,14 +388,23 @@ export default function NotesPage() {
   }, [performSave, title, content]);
 
   const handleTitleChange = (v: string) => { dirtyRef.current = true; setTitle(v); };
-  const handleContentChange = (v: string) => { dirtyRef.current = true; setContent(v); };
-  const handleDescriptionChange = (v: string) => { dirtyRef.current = true; setDescription(v); };
-
+  const handleContentChange = (v: string) => {
+    // TipTap can normalize its initial Markdown while constructing the editor.
+    // Defer the parent update so that initialization never sets state during
+    // RichEditor's render; regular typing still lands in the same microtask.
+    queueMicrotask(() => {
+      setContent((current) => {
+        if (v === current) return current;
+        dirtyRef.current = true;
+        return v;
+      });
+    });
+  };
   const handleDelete = async () => {
     if (!selectedId) return;
     if (!(await confirmDialog(`Delete "${title || 'Untitled'}"?`))) return;
     await notesApi.delete(selectedId);
-    handleNew();
+    clearToBrowse();
     loadAll();
   };
 
@@ -369,36 +476,84 @@ export default function NotesPage() {
 
   const treeBody = (
     <>
+      <header className="px-4 py-3.5 border-b border-sidebar-border/60 shrink-0">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Notes</p>
+            <p className="mt-0.5 text-2xl font-medium tracking-tight">Library</p>
+          </div>
+          <span className="text-xs tabular-nums text-muted-foreground">{notesList.length} {notesList.length === 1 ? 'note' : 'notes'}</span>
+        </div>
+      </header>
+
       <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search notes…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-8 pr-7 text-xs"
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search notes…"
+            className="h-9 pl-8 pr-8 text-xs bg-[hsl(var(--surface-container))]"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
               <X className="size-3.5" />
             </button>
           )}
         </div>
-        <div className="flex gap-1">
+        <div className="grid grid-cols-2 gap-1">
           <Button
-            onClick={() => { handleNew(''); setMobileTreeOpen(false); }}
+            onClick={() => { handleNew(); setMobileTreeOpen(false); }}
             size="xs" variant="ghost"
-            className="flex-1 justify-start gap-1.5 font-normal text-xs"
+            className="justify-start gap-1.5 font-normal text-xs"
           >
             <FilePlus className="size-3.5" /> New note
           </Button>
-          <Button onClick={() => { setShowNewFolder(''); setNewFolderName(''); }} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
+          <Button onClick={() => { setShowNewFolder(''); setNewFolderName(''); }} size="xs" variant="ghost" className="justify-start gap-1.5 font-normal text-xs">
             <FolderPlus className="size-3.5" /> New folder
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-1.5 px-1">
+      <section className="p-2 border-b border-sidebar-border/60 shrink-0" aria-label="Quick access">
+        <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick access</p>
+        <button
+          type="button"
+          onClick={() => { setActiveFolder(null); setMobileTreeOpen(false); }}
+          className={cn(
+            'w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50',
+            activeFolder === null ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/40 text-foreground/85',
+          )}
+        >
+          <FileText className="size-3.5 text-muted-foreground" />
+          <span className="flex-1">All notes</span>
+          <span className="tabular-nums text-muted-foreground">{notesList.length}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => { navigate('/memos'); setMobileTreeOpen(false); }}
+          className="w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left text-foreground/85 outline-none transition-colors hover:bg-sidebar-accent/40 focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <StickyNote className="size-3.5 text-muted-foreground" />
+          <span>Scratch notes</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => { navigate('/journal'); setMobileTreeOpen(false); }}
+          className="w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left text-foreground/85 outline-none transition-colors hover:bg-sidebar-accent/40 focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <Calendar className="size-3.5 text-muted-foreground" />
+          <span>Daily notes</span>
+        </button>
+      </section>
+
+      <div className="flex-1 min-h-0 overflow-y-auto py-2 px-1 stable-scrollbar">
+        <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Folders</p>
         {loading ? (
           <div className="px-2 py-2 flex flex-col gap-1.5">
             {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
@@ -423,10 +578,12 @@ export default function NotesPage() {
               depth={0}
               expanded={expandedFolders}
               selectedId={selectedId}
+              activeFolder={activeFolder}
               showNewFolderUnder={showNewFolder}
               newFolderValue={newFolderName}
               onNewFolderChange={setNewFolderName}
               onToggle={toggleFolder}
+              onSelectFolder={(path) => { setActiveFolder(path); setMobileTreeOpen(false); }}
               onSelectNote={(id) => { selectNote(id); setMobileTreeOpen(false); }}
               onNewNoteIn={(p) => { handleNew(p); setMobileTreeOpen(false); }}
               onNewSubfolder={(p) => { setShowNewFolder(p); setNewFolderName(''); }}
@@ -443,215 +600,308 @@ export default function NotesPage() {
     </>
   );
 
-  // Landing = index ledger, full width: the ledger's folder sections ARE the
-  // navigation there, so the vault sidebar (and its toggle) only exist once a
-  // note is open or being drafted.
-  const onLanding = !selectedId && !drafting && !loadingNote && !title && !content;
+  const hasOpenNote = selectedId !== null || drafting || loadingNote;
+
+  const scrollToOutline = (item: OutlineItem) => {
+    const selector = editorMode === 'preview'
+      ? '[aria-label="Rendered Markdown preview"] h1, [aria-label="Rendered Markdown preview"] h2, [aria-label="Rendered Markdown preview"] h3'
+      : '.ProseMirror h1, .ProseMirror h2, .ProseMirror h3';
+    const headings = editorScrollRef.current?.querySelectorAll(selector);
+    headings?.item(item.index)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const openBacklink = (backlink: BacklinkRef) => {
+    setMobileInspectorOpen(false);
+    if (backlink.source_type === 'note') {
+      selectNote(backlink.source_id);
+      return;
+    }
+    if (backlink.source_type === 'journal') {
+      navigate(`/journal?date=${encodeURIComponent(backlink.title)}`);
+      return;
+    }
+    if (backlink.source_type === 'memo') {
+      navigate(`/memos?id=${backlink.source_id}`);
+      return;
+    }
+    if (backlink.source_type === 'task') {
+      window.dispatchEvent(new CustomEvent('task:open', { detail: { id: backlink.source_id } }));
+    }
+  };
+
+  const inspector = (
+    <NoteInspector
+      title={title}
+      hasOpenNote={hasOpenNote}
+      tab={inspectorTab}
+      onTabChange={setInspectorTab}
+      outline={outline}
+      backlinks={backlinks}
+      linkedNotes={linkedNotes}
+      tags={tags}
+      onOutlinePick={scrollToOutline}
+      onBacklinkPick={openBacklink}
+      onLinkedPick={(link) => {
+        if (link.id) selectNote(link.id);
+        setMobileInspectorOpen(false);
+      }}
+    />
+  );
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
-      {/* Vault corner island — desktop, editor view only. Sits top-left,
-          mirroring the search island top-right, so the pill itself never has
-          to host (or move for) the sidebar toggle. */}
-      {!onLanding && <button
-        type="button"
-        onClick={() => setSidebarOpen((v) => !v)}
-        title={sidebarOpen ? 'Hide vault' : 'Show vault'}
-        aria-label={sidebarOpen ? 'Hide vault' : 'Show vault'}
-        className="fixed z-50 hidden md:inline-flex items-center justify-center size-12 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-2)] text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground transition-colors"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 16 }}
-      >
-        {sidebarOpen ? <PanelLeftClose className="size-[18px]" /> : <PanelLeft className="size-[18px]" />}
-      </button>}
-
-      {/* Islands pill — page-level and viewport-centered, so toggling
-          the vault never shifts it. */}
-      <PageChrome
-        title="Notes"
-        navigation={
-          <PageShellTabs
-            bare
-            ariaLabel="Notes sections"
-            value="notes"
-            options={[
-              { value: 'notes', label: 'Vault' },
-              { value: 'memos', label: 'Memos' },
-            ]}
-            onChange={(v) => { if (v === 'memos') setParams({ tab: 'memos' }); }}
-          />
-        }
-        actions={
-          <>
-            {isMobile && (
-              <Button
-                variant="ghost" size="icon-sm"
-                onClick={() => setMobileTreeOpen(true)}
-                className="shrink-0 rounded-full"
-                title="Open vault"
-              >
-                <PanelLeft className="size-4" />
-              </Button>
-            )}
-            <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
-            {selectedId && (
-              <>
-                <Button
-                  variant="ghost" size="icon-sm"
-                  onClick={() => selectedNote && handleTogglePinNote(selectedNote)}
-                  className={`rounded-full ${selectedNote?.pinned ? 'text-primary' : ''}`}
-                  title={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
-                >
-                  {selectedNote?.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
-                </Button>
-                <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={() => setMoveTarget(notesList.find((n) => n.id === selectedId) || null)} title="Move to folder">
-                  <FolderMoveIcon className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" onClick={handleDelete} className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete">
-                  <Trash2 className="size-4" />
-                </Button>
-              </>
-            )}
-            <Button size="sm" onClick={() => handleNew('')} className="gap-1.5" title="New note">
-              <FilePlus className="size-3.5" />
-              <span className="hidden sm:inline">New note</span>
-            </Button>
-          </>
-        }
-      />
-
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Desktop vault sidebar */}
         <AnimatePresence initial={false} mode="popLayout">
-          {sidebarOpen && !onLanding && (
+          {sidebarOpen && (
             <motion.aside
-              key="sidebar"
+              key="notebooks"
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 280, opacity: 1 }}
+              animate={{ width: 264, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-              className="hidden md:flex md:pt-[68px] border-r border-border bg-sidebar/60 flex-col shrink-0 overflow-hidden"
+              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+              className="hidden md:flex border-r border-[hsl(var(--outline-variant))] bg-sidebar text-sidebar-foreground flex-col shrink-0 overflow-hidden order-1"
             >
               {treeBody}
             </motion.aside>
           )}
         </AnimatePresence>
 
-        {/* Mobile vault — left sheet */}
-        <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
-          <SheetContent
-            side="left"
-            className="md:hidden w-[86vw] max-w-[320px] p-0 bg-sidebar text-sidebar-foreground flex flex-col"
-          >
-            <SheetHeader className="p-3 pt-12">
-              <SheetTitle className="serif text-base normal-case tracking-tight">Vault</SheetTitle>
-            </SheetHeader>
-            {treeBody}
-          </SheetContent>
-        </Sheet>
-
-        {/* Editor body — fills remaining width; pads below the floating
-            pills (primary + Notes pill are fixed islands). */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto" style={{ paddingTop: chromeClearance(isMobile) }}>
-          {/* Index landing — folder-sectioned ledger when no note is open
-              and not actively drafting a new one. */}
-          {onLanding ? (
-            <NotesLedger
-              notes={notesList}
-              loading={loading}
-              onPick={(id) => selectNote(id)}
-              onNew={() => handleNew('')}
+        <main
+          className="flex flex-1 min-w-0 min-h-0 flex-col bg-background order-2"
+          style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 8 : 72}px)` }}
+        >
+          {!hasOpenNote ? (
+            <BrowseEmpty
+              showLibraryButton={isMobile || !sidebarOpen}
+              onNew={() => handleNew()}
+              onOpenLibrary={() => {
+                if (isMobile) setMobileTreeOpen(true);
+                else setSidebarOpen(true);
+              }}
             />
           ) : (
-            <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
-              <AnimatePresence initial={false} mode="wait">
-              {loadingNote ? (
-                <motion.div
-                  key="note-loading"
-                  initial={{ opacity: 0, filter: 'blur(2px)' }}
-                  animate={{ opacity: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, filter: 'blur(2px)' }}
-                  transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-                  className="flex flex-col gap-5"
-                >
-                  <Skeleton className="h-14 w-3/4" />
-                  <Skeleton className="h-64 w-full" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="note-editor"
-                  initial={{ opacity: 0, filter: 'blur(2px)' }}
-                  animate={{ opacity: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, filter: 'blur(2px)' }}
-                  transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-                  className="flex flex-col gap-5"
-                >
-                  {/* Folder path — was the header breadcrumb; now sits
-                      quietly above the title since the pill owns chrome. */}
-                  {breadcrumb.length > 0 && (
-                    <div className="mono text-xs tracking-[0.14em] uppercase text-muted-foreground -mb-3 flex items-center gap-1 min-w-0">
-                      {breadcrumb.map((seg, i) => (
-                        <span key={i} className="flex items-center gap-1 min-w-0">
-                          <span className="truncate">{seg}</span>
-                          {i < breadcrumb.length - 1 && <ChevronRight className="size-3 text-muted-foreground/60 shrink-0" />}
-                        </span>
-                      ))}
+            <>
+              <div ref={editorScrollRef} className="flex-1 min-h-0 overflow-y-auto stable-scrollbar">
+                <div className={cn(
+                  'w-full mx-auto px-4 md:px-8 lg:px-10 pt-5 md:pt-7 pb-24 min-h-full flex flex-col',
+                  editorMode === 'split' ? 'max-w-[100rem]' : 'max-w-5xl',
+                )}>
+                  {loadingNote ? (
+                    <div className="flex flex-col gap-5">
+                      <Skeleton className="h-12 w-3/4" />
+                      <Skeleton className="h-72 w-full rounded-2xl" />
                     </div>
+                  ) : (
+                    <motion.div
+                      key={selectedId ?? 'draft'}
+                      initial={{ opacity: 0, filter: 'blur(2px)' }}
+                      animate={{ opacity: 1, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                      className="flex flex-1 min-h-0 flex-col gap-6"
+                    >
+                      <header className="flex items-start justify-between gap-x-5 gap-y-4 flex-wrap">
+                        <div className="flex-1 min-w-[16rem]">
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={clearToBrowse}
+                            className="md:hidden self-start -ml-2 mb-2 gap-1.5 text-muted-foreground"
+                          >
+                            <ArrowLeft className="size-4" /> Notes
+                          </Button>
+                          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                            {breadcrumb.length > 0 ? breadcrumb.map((segment, index) => (
+                              <span key={`${segment}:${index}`} className="flex items-center gap-1 min-w-0">
+                                <span className="truncate">{segment}</span>
+                                {index < breadcrumb.length - 1 && <ChevronRight className="size-3 opacity-60" />}
+                              </span>
+                            )) : <span>Unfiled</span>}
+                            {selectedNote?.updated_at && <span>· Edited {fmtRelTime(selectedNote.updated_at)}</span>}
+                          </div>
+                          {editorMode === 'preview' ? (
+                            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-tight text-foreground">
+                              {title || 'Untitled'}
+                            </h1>
+                          ) : (
+                            <Input
+                              type="text"
+                              placeholder="Untitled"
+                              value={title}
+                              autoFocus={drafting}
+                              onChange={(event) => handleTitleChange(event.target.value)}
+                              className="w-full h-auto px-0 py-1 bg-transparent border-none outline-none focus-visible:shadow-none text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
+                            />
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
+                          <SegmentedButton
+                            value={editorMode}
+                            onChange={setEditorMode}
+                            showCheck={false}
+                            size="md"
+                            aria-label="Editor mode"
+                            options={[
+                              { value: 'edit', label: 'Edit', icon: Edit3 },
+                              { value: 'split', label: 'Split', icon: LayoutGrid },
+                              { value: 'preview', label: 'Preview', icon: Eye },
+                            ]}
+                          />
+                          <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden />
+                          <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
+                          {selectedId && (
+                            <>
+                              <Button
+                                variant="ghost" size="icon-sm"
+                                onClick={() => selectedNote && handleTogglePinNote(selectedNote)}
+                                className={cn('rounded-full max-md:size-11', selectedNote?.pinned && 'text-primary')}
+                                title={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
+                                aria-label={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
+                              >
+                                {selectedNote?.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon-sm"
+                                className="rounded-full max-md:size-11"
+                                onClick={() => setMoveTarget(notesList.find((note) => note.id === selectedId) || null)}
+                                title="Move to folder" aria-label="Move to folder"
+                              >
+                                <FolderMoveIcon className="size-4" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon-sm" onClick={handleDelete}
+                                className="rounded-full max-md:size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                title="Delete note" aria-label="Delete note"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </>
+                          )}
+                          <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden />
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            onClick={() => setMobileTreeOpen(true)}
+                            className="md:hidden rounded-full max-md:size-11"
+                            title="Open library" aria-label="Open library"
+                          >
+                            <PanelLeft className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            onClick={() => setSidebarOpen((open) => !open)}
+                            className="hidden md:inline-flex rounded-full"
+                            title={sidebarOpen ? 'Hide library' : 'Show library'}
+                            aria-label={sidebarOpen ? 'Hide library' : 'Show library'}
+                          >
+                            {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            onClick={() => setMobileInspectorOpen(true)}
+                            className="lg:hidden rounded-full max-md:size-11"
+                            title="Open note context" aria-label="Open note context"
+                          >
+                            <PanelRight className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            onClick={() => setInspectorOpen((open) => !open)}
+                            className="hidden lg:inline-flex rounded-full"
+                            title={inspectorOpen ? 'Hide note context' : 'Show note context'}
+                            aria-label={inspectorOpen ? 'Hide note context' : 'Show note context'}
+                          >
+                            {inspectorOpen ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
+                          </Button>
+                        </div>
+                      </header>
+
+                      {editorMode === 'split' ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 min-h-0 border-y border-[hsl(var(--outline-variant))]">
+                          <section className="min-w-0 py-4 lg:pr-6 lg:border-r border-[hsl(var(--outline-variant))]" aria-label="Edit note">
+                            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Edit</p>
+                            <Suspense fallback={<Skeleton className="h-72 w-full rounded-2xl" />}>
+                              <RichEditor
+                                value={content}
+                                onChange={handleContentChange}
+                                placeholder="Type / for commands. Use [[ to link to other notes."
+                                fill
+                              />
+                            </Suspense>
+                          </section>
+                          <section className="min-w-0 py-4 lg:pl-6 border-t lg:border-t-0 border-[hsl(var(--outline-variant))]" aria-label="Preview note">
+                            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preview</p>
+                            <MarkdownPreview content={content} />
+                          </section>
+                        </div>
+                      ) : editorMode === 'preview' ? (
+                        <div className="max-w-3xl w-full pb-12">
+                          <MarkdownPreview content={content} empty="Nothing to preview yet." />
+                        </div>
+                      ) : (
+                        <div className="flex flex-1 flex-col min-h-0 max-w-4xl w-full">
+                          <Suspense fallback={<Skeleton className="h-72 w-full rounded-2xl" />}>
+                            <RichEditor
+                              value={content}
+                              onChange={handleContentChange}
+                              placeholder="Type / for commands. Use [[ to link to other notes."
+                              fill
+                            />
+                          </Suspense>
+                        </div>
+                      )}
+                    </motion.div>
                   )}
-                  <Input
-                    type="text"
-                    placeholder="Untitled"
-                    value={title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
-                    className="w-full h-auto px-0 py-1 bg-transparent border-none outline-none focus-visible:shadow-none text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
-                  />
-
-                  {/* One-line description — surfaces on the Notes home cards. */}
-                  <Input
-                    type="text"
-                    placeholder="Add a description…"
-                    value={description}
-                    onChange={(e) => handleDescriptionChange(e.target.value)}
-                    className="w-full h-auto -mt-2 px-0 py-0.5 bg-transparent border-none outline-none focus-visible:shadow-none text-base md:text-lg text-muted-foreground placeholder:text-muted-foreground/30"
-                  />
-
-                  <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
-                    <RichEditor
-                      value={content}
-                      onChange={handleContentChange}
-                      placeholder="Type / for commands. Use [[ to link to other notes."
-                      fill
-                    />
-                  </Suspense>
-                </motion.div>
-              )}
-              </AnimatePresence>
-
-              {tags.length > 0 && (
-                <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
-                  {tags.map((tag) => <TagPill key={tag} tag={tag} />)}
                 </div>
-              )}
-
-              {backlinks.length > 0 && (
-                <div className="rounded-lg border border-border bg-card mt-2">
-                  <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/60 bg-muted/30">
-                    <LinkIcon className="size-3.5 text-primary" />
-                    <span className="text-xs font-medium">{backlinks.length} backlink{backlinks.length === 1 ? '' : 's'}</span>
-                  </div>
-                  <div className="p-2">
-                    {backlinks.map((bl, i) => (
-                      <div key={i} className="text-sm py-1 px-1 flex items-center gap-1.5">
-                        <Badge variant="secondary" className="text-xs capitalize shrink-0">{bl.source_type}</Badge>
-                        <span className="truncate">{bl.title || 'Untitled'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+              <footer className="h-11 px-4 md:px-6 shrink-0 border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] flex items-center gap-3 text-xs text-muted-foreground">
+                <span>{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</span>
+                <span aria-hidden>·</span>
+                <span>{characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}</span>
+                <span aria-hidden>·</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInspectorTab('backlinks');
+                    if (window.matchMedia('(min-width: 1024px)').matches) setInspectorOpen(true);
+                    else setMobileInspectorOpen(true);
+                  }}
+                  className="rounded px-1 py-0.5 hover:bg-[hsl(var(--surface-container-high))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  {backlinks.length.toLocaleString()} {backlinks.length === 1 ? 'backlink' : 'backlinks'}
+                </button>
+              </footer>
+            </>
           )}
-        </div>
+        </main>
+
+        <AnimatePresence initial={false} mode="popLayout">
+          {inspectorOpen && hasOpenNote && (
+            <motion.aside
+              key="inspector"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 288, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+              className="hidden lg:flex shrink-0 overflow-hidden border-l border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] order-3"
+            >
+              {inspector}
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </div>
+
+      <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
+        <SheetContent side="left" showCloseButton={false} className="md:hidden w-[88vw] max-w-[320px] p-0 pt-[env(safe-area-inset-top)] bg-sidebar text-sidebar-foreground flex flex-col">
+          <SheetHeader className="sr-only"><SheetTitle>Notebooks</SheetTitle></SheetHeader>
+          {treeBody}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={mobileInspectorOpen} onOpenChange={setMobileInspectorOpen}>
+        <SheetContent side="right" className="lg:hidden w-[90vw] max-w-[360px] p-0 bg-[hsl(var(--surface-container-low))] flex flex-col">
+          <SheetHeader className="sr-only"><SheetTitle>Note details</SheetTitle></SheetHeader>
+          {inspector}
+        </SheetContent>
+      </Sheet>
 
       {/* Move-to-folder dialog (sits at page root, outside the editor scroll) */}
       <Dialog open={!!moveTarget} onOpenChange={(o) => { if (!o) setMoveTarget(null); }}>
@@ -686,6 +936,171 @@ export default function NotesPage() {
   );
 }
 
+/* ---------------- Workspace panes ---------------- */
+
+function BrowseEmpty({
+  showLibraryButton, onNew, onOpenLibrary,
+}: {
+  showLibraryButton: boolean;
+  onNew: () => void;
+  onOpenLibrary: () => void;
+}) {
+  return (
+    <div className="flex-1 flex items-center justify-center p-8 text-center">
+      <div className="max-w-xs text-muted-foreground">
+        <FileText className="size-10 mx-auto mb-3 opacity-25" />
+        <p className="text-sm font-medium text-foreground">Choose a note to start writing</p>
+        <p className="text-sm mt-1">Open one from your library, or begin a new long-form note.</p>
+        <div className="mt-4 flex items-center justify-center gap-2">
+          {showLibraryButton && (
+            <Button variant="outline" size="sm" onClick={onOpenLibrary}>
+              <PanelLeft className="size-3.5" /> Open library
+            </Button>
+          )}
+          <Button size="sm" onClick={onNew}>
+            <FilePlus className="size-3.5" /> New note
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarkdownPreview({ content, empty = 'Start writing to see the preview.' }: { content: string; empty?: string }) {
+  if (!content.trim()) {
+    return <p className="py-12 text-sm text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <article className="prose prose-sajni dark:prose-invert max-w-none" aria-label="Rendered Markdown preview">
+      <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+    </article>
+  );
+}
+
+function NoteInspector({
+  title, hasOpenNote, tab, onTabChange, outline, backlinks, linkedNotes, tags,
+  onOutlinePick, onBacklinkPick, onLinkedPick,
+}: {
+  title: string;
+  hasOpenNote: boolean;
+  tab: 'outline' | 'backlinks' | 'linked';
+  onTabChange: (tab: 'outline' | 'backlinks' | 'linked') => void;
+  outline: OutlineItem[];
+  backlinks: BacklinkRef[];
+  linkedNotes: LinkedNoteRef[];
+  tags: string[];
+  onOutlinePick: (item: OutlineItem) => void;
+  onBacklinkPick: (backlink: BacklinkRef) => void;
+  onLinkedPick: (link: LinkedNoteRef) => void;
+}) {
+  const tabs = [
+    { value: 'outline' as const, label: 'Outline' },
+    { value: 'backlinks' as const, label: 'Backlinks' },
+    { value: 'linked' as const, label: 'Linked' },
+  ];
+  return (
+    <div className="w-full min-w-[288px] flex flex-col min-h-0">
+      <header className="p-3 border-b border-[hsl(var(--outline-variant))] shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <Badge variant="secondary" className="shrink-0">Note</Badge>
+          <span className="text-sm font-semibold truncate">{title || (hasOpenNote ? 'Untitled' : 'Note details')}</span>
+        </div>
+        <nav aria-label="Note details" className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-[hsl(var(--surface-container))] p-1">
+          {tabs.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onTabChange(item.value)}
+              className={cn(
+                'h-8 rounded-lg px-2 text-xs font-medium transition-colors',
+                tab === item.value
+                  ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-high))]',
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-y-auto stable-scrollbar">
+        <section className="p-3" aria-label={tab}>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tabs.find((item) => item.value === tab)?.label}</p>
+          {tab === 'outline' && (outline.length > 0 ? (
+            <div className="flex flex-col gap-0.5">
+              {outline.map((item) => (
+                <button
+                  key={`${item.index}:${item.text}`}
+                  type="button"
+                  onClick={() => onOutlinePick(item)}
+                  className="w-full rounded-md py-1.5 pr-2 text-left text-xs text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container))] transition-colors truncate"
+                  style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
+                  title={item.text}
+                >
+                  {item.text}
+                </button>
+              ))}
+            </div>
+          ) : <InspectorEmpty>Headings in this note will appear here.</InspectorEmpty>)}
+
+          {tab === 'backlinks' && (backlinks.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {backlinks.map((backlink) => (
+                <button
+                  key={`${backlink.source_type}:${backlink.source_id}`}
+                  type="button"
+                  onClick={() => onBacklinkPick(backlink)}
+                  className="w-full rounded-lg p-2 text-left hover:bg-[hsl(var(--surface-container))] transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <LinkIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate">{backlink.title || 'Untitled'}</span>
+                  </span>
+                  <span className="block pl-5.5 mt-0.5 text-xs capitalize text-muted-foreground">{backlink.source_type}</span>
+                </button>
+              ))}
+            </div>
+          ) : <InspectorEmpty>No other item links to this note yet.</InspectorEmpty>)}
+
+          {tab === 'linked' && (linkedNotes.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {linkedNotes.map((link) => (
+                <button
+                  key={link.ref.toLowerCase()}
+                  type="button"
+                  onClick={() => onLinkedPick(link)}
+                  disabled={!link.id}
+                  className="w-full rounded-lg p-2 text-left enabled:hover:bg-[hsl(var(--surface-container))] disabled:opacity-55 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileText className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate">{link.title}</span>
+                  </span>
+                  {!link.id && <span className="block pl-5.5 mt-0.5 text-xs text-muted-foreground">Not created</span>}
+                </button>
+              ))}
+            </div>
+          ) : <InspectorEmpty>Use [[Note title]] to link another note.</InspectorEmpty>)}
+        </section>
+
+        <div className="h-px bg-[hsl(var(--outline-variant))]" />
+        <section className="p-3" aria-label="Tags">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tags</p>
+          {tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">{tags.map((tag) => <TagPill key={tag} tag={tag} />)}</div>
+          ) : <InspectorEmpty>Type #tag in the note to add one.</InspectorEmpty>}
+        </section>
+      </div>
+
+    </div>
+  );
+}
+
+function InspectorEmpty({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-lg border border-dashed border-[hsl(var(--outline-variant))] px-3 py-4 text-xs leading-relaxed text-muted-foreground">{children}</p>;
+}
+
 /* ---------------- Tree view ---------------- */
 
 interface TreeViewProps {
@@ -693,10 +1108,12 @@ interface TreeViewProps {
   depth: number;
   expanded: Set<string>;
   selectedId: number | null;
+  activeFolder: string | null;
   showNewFolderUnder: string | null;
   newFolderValue: string;
   onNewFolderChange: (v: string) => void;
   onToggle: (path: string) => void;
+  onSelectFolder: (path: string) => void;
   onSelectNote: (id: number) => void;
   onNewNoteIn: (path: string) => void;
   onNewSubfolder: (path: string) => void;
@@ -720,7 +1137,9 @@ function TreeView(props: TreeViewProps) {
                 node={child}
                 depth={props.depth}
                 expanded={isExpanded}
+                active={props.activeFolder === child.path}
                 onToggle={() => props.onToggle(child.path)}
+                onSelect={() => props.onSelectFolder(child.path)}
                 onNewNote={() => props.onNewNoteIn(child.path)}
                 onNewSubfolder={() => props.onNewSubfolder(child.path)}
                 onDelete={() => props.onDeleteFolder(child.path)}
@@ -767,18 +1186,26 @@ function TreeView(props: TreeViewProps) {
   );
 }
 
+function countTreeNotes(node: TreeNode): number {
+  return node.children.reduce((count, child) => count + (child.type === 'note' ? 1 : countTreeNotes(child)), 0);
+}
+
 function FolderRowItem({
-  node, depth, expanded, onToggle, onNewNote, onNewSubfolder, onDelete, onTogglePin,
+  node, depth, expanded, active, onToggle, onSelect, onNewNote, onNewSubfolder, onDelete, onTogglePin,
 }: {
-  node: TreeNode; depth: number; expanded: boolean;
-  onToggle: () => void; onNewNote: () => void; onNewSubfolder: () => void; onDelete: () => void; onTogglePin: () => void;
+  node: TreeNode; depth: number; expanded: boolean; active: boolean;
+  onToggle: () => void; onSelect: () => void; onNewNote: () => void; onNewSubfolder: () => void; onDelete: () => void; onTogglePin: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const count = countTreeNotes(node);
   return (
     <div
-      className="group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md text-sm cursor-pointer transition-colors relative"
+      className={cn(
+        'group flex items-center gap-1 rounded-md text-sm cursor-pointer transition-colors relative',
+        active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/40',
+      )}
       style={{ paddingLeft: `${depth * 12 + 4}px` }}
-      onClick={onToggle}
+      onClick={() => { onSelect(); onToggle(); }}
     >
       <button className="size-4 flex items-center justify-center text-muted-foreground shrink-0">
         {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
@@ -789,6 +1216,7 @@ function FolderRowItem({
         <Folder className="size-3.5 text-muted-foreground shrink-0" />
       )}
       <span className="flex-1 truncate py-1 text-foreground/90 text-[13px]">{node.name}</span>
+      <span className="text-xs tabular-nums text-muted-foreground group-hover:hidden">{count}</span>
       {node.pinned && <Pin className="size-3 text-primary/70 shrink-0" aria-label="Pinned" />}
       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity pr-1">
         <button
@@ -928,199 +1356,6 @@ function SaveIndicator({ state, canSave, onSave }: { state: 'idle' | 'saving' | 
     <Button variant="ghost" size="sm" onClick={onSave} disabled={!canSave} className="text-xs gap-1.5">
       <Save className="size-3.5" /> Save
     </Button>
-  );
-}
-
-// NotesLedger — the landing is an index, not a card wall. Notes render as
-// generous rows grouped into folder sections (pinned strip first, unfiled
-// last), each section anchored by one oversized ghost initial in the left
-// gutter — the atlas idea kept as structure (a book's table of contents)
-// instead of per-card decoration. One container role per surface: rows sit
-// on the page surface, only the pinned strip carries secondary-container.
-
-function NoteRow({ note: n, pinned, onPick }: {
-  note: NoteListItem;
-  pinned?: boolean;
-  onPick: (id: number) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(n.id)}
-      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 min-h-11 text-left outline-none transition-colors duration-150 ease-[var(--motion-ease-out)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] active:bg-[hsl(var(--on-surface)/0.1)] tap-highlight-none ${
-        pinned
-          ? 'hover:bg-[hsl(var(--on-secondary-container)/0.08)]'
-          : 'hover:bg-[hsl(var(--surface-container))]'
-      }`}
-    >
-      {pinned && <Pin className="size-3.5 shrink-0 text-[hsl(var(--on-secondary-container))]" aria-label="Pinned" />}
-      <span className="min-w-0 flex-1">
-        <span className="block truncate serif text-[15px] font-medium tracking-[-0.01em] leading-snug text-foreground">
-          {n.title || 'Untitled'}
-        </span>
-        {n.description && (
-          <span className="block truncate text-sm text-muted-foreground leading-snug mt-0.5">
-            {n.description}
-          </span>
-        )}
-      </span>
-      {(n.tags || []).slice(0, 2).map((t) => (
-        <span key={t} className="chip chip-sage hidden sm:inline-flex max-w-[7rem] shrink-0">
-          <span className="truncate">#{t}</span>
-        </span>
-      ))}
-      <span className="mono text-xs tabular-nums text-muted-foreground shrink-0 w-14 text-right">
-        {fmtRelTime(n.updated_at)}
-      </span>
-      <ArrowUpRight className="fine-group-hover-arrow size-4 shrink-0 text-foreground/45 opacity-0 -translate-x-1 translate-y-1 transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none" />
-    </button>
-  );
-}
-
-function NotesLedger({
-  notes, loading, onPick, onNew,
-}: {
-  notes: NoteListItem[];
-  loading: boolean;
-  onPick: (id: number) => void;
-  onNew: () => void;
-}) {
-  // Pinned strip + folder sections (full path label, unfiled last),
-  // recency-ordered inside each.
-  const { pinned, sections } = useMemo(() => {
-    const pinned = notes.filter((n) => n.pinned)
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    const byFolder = new Map<string, NoteListItem[]>();
-    for (const n of notes) {
-      if (n.pinned) continue;
-      const key = n.folder || '';
-      if (!byFolder.has(key)) byFolder.set(key, []);
-      byFolder.get(key)!.push(n);
-    }
-    const sections = Array.from(byFolder.entries())
-      .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
-      .map(([folder, items]) => ({
-        folder,
-        items: items.sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
-      }));
-    return { pinned, sections };
-  }, [notes]);
-
-  // Folding is a reveal, not a route: the index never navigates INTO a
-  // folder, it just hides that section's rows in place.
-  const [folded, setFolded] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(LEDGER_FOLDED_KEY);
-      return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
-    } catch { return new Set<string>(); }
-  });
-  useEffect(() => {
-    try { localStorage.setItem(LEDGER_FOLDED_KEY, JSON.stringify(Array.from(folded))); } catch {}
-  }, [folded]);
-  const toggleFold = (folderPath: string) => {
-    setFolded((prev) => {
-      const next = new Set(prev);
-      if (next.has(folderPath)) next.delete(folderPath); else next.add(folderPath);
-      return next;
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16 flex flex-col gap-2.5">
-        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-          <Skeleton key={i} className="h-11 w-full rounded-xl" />
-        ))}
-      </div>
-    );
-  }
-
-  if (notes.length === 0) {
-    return (
-      <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16">
-        <div className="rounded-xl border border-dashed border-border py-20 text-center text-muted-foreground">
-          <FileText className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No notes yet. Start one to fill your index.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={onNew}>
-            <FilePlus className="size-3.5" /> New note
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto w-full max-w-4xl px-4 md:px-8 pt-5 md:pt-7 pb-16 flex flex-col gap-7">
-      {/* Pinned strip — the one tinted surface on the page. */}
-      {pinned.length > 0 && (
-        <section aria-label="Pinned notes" className="rounded-2xl bg-[hsl(var(--secondary-container)/0.45)] p-1.5">
-          {pinned.map((n) => <NoteRow key={n.id} note={n} pinned onPick={onPick} />)}
-        </section>
-      )}
-
-      {sections.map(({ folder, items }) => {
-        const label = folder ? folder.split('/').join(' / ') : 'Notes';
-        const initial = (folder ? folder.split('/').pop()! : 'N').charAt(0).toUpperCase();
-        const open = !folded.has(folder);
-        const panelId = `notes-section-${folder ? folder.replace(/[^a-zA-Z0-9]+/g, '-') : 'unfiled'}`;
-        return (
-          <section key={folder || '·'} aria-label={label} className="grid grid-cols-[40px_1fr] md:grid-cols-[64px_1fr] gap-x-2 md:gap-x-4">
-            {/* Ghost initial gutter — one oversized glyph anchors the section. */}
-            <div aria-hidden className="relative select-none pointer-events-none">
-              <span className="sticky top-2 block serif text-[44px] md:text-[64px] leading-none font-medium text-foreground/[0.07] text-right">
-                {initial}
-              </span>
-            </div>
-            <div className="min-w-0">
-              {/* The heading wraps the button rather than sitting inside it:
-                  the section keeps its outline semantics, and screen readers
-                  still announce a disclosure. */}
-              <h2>
-                <button
-                  type="button"
-                  onClick={() => toggleFold(folder)}
-                  aria-expanded={open}
-                  aria-controls={panelId}
-                  className="group flex w-full items-center gap-2 rounded-md px-3 py-1.5 mb-0.5 min-h-9 text-left outline-none transition-colors duration-150 ease-[var(--m3-ease-standard)] hover:bg-[hsl(var(--surface-container))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] active:bg-[hsl(var(--on-surface)/0.1)] tap-highlight-none"
-                >
-                  <ChevronRight
-                    aria-hidden
-                    className={cn(
-                      'size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ease-[var(--m3-ease-standard)] motion-reduce:transition-none',
-                      open && 'rotate-90',
-                    )}
-                  />
-                  {open
-                    ? <FolderOpen aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-                    : <Folder aria-hidden className="size-4 shrink-0 text-muted-foreground" />}
-                  <span className="mono text-xs uppercase tracking-[0.14em] text-muted-foreground truncate group-hover:text-foreground transition-colors">
-                    {label}
-                  </span>
-                  <span className="mono text-xs tabular-nums text-muted-foreground/60">{items.length}</span>
-                  <span aria-hidden className="flex-1 border-t border-[hsl(var(--outline-variant))] self-center" />
-                </button>
-              </h2>
-              <AnimatePresence initial={false}>
-                {open && (
-                  <motion.div
-                    id={panelId}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    <div className="flex flex-col">
-                      {items.map((n) => <NoteRow key={n.id} note={n} onPick={onPick} />)}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </section>
-        );
-      })}
-    </div>
   );
 }
 
