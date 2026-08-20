@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Star, Wand2, Pencil, Mail, Check, X } from '@/components/ui/icons';
+import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Star, Wand2, Pencil, Mail, Check, X, RefreshCw } from '@/components/ui/icons';
 // No pixel match — straight lucide (same as the icon shim's passthroughs).
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
 import { getPreset, THEMES } from '@/theme/presets';
 import PageShell from '@/components/PageShell';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
@@ -286,6 +287,7 @@ function NameEditor() {
           onClick={begin}
           className="size-7 rounded-full grid place-items-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]"
           title="Edit name"
+          aria-label="Edit display name"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -307,10 +309,10 @@ function NameEditor() {
           autoFocus
           className="max-w-xs"
         />
-        <Button size="icon-sm" onClick={save} disabled={saving} title="Save">
+        <Button size="icon-sm" onClick={save} disabled={saving} title="Save" aria-label="Save display name">
           {saving ? <M3CookieLoader size="xs" tone="primary" /> : <Check className="size-4" />}
         </Button>
-        <Button size="icon-sm" variant="ghost" onClick={cancel} disabled={saving} title="Cancel">
+        <Button size="icon-sm" variant="ghost" onClick={cancel} disabled={saving} title="Cancel" aria-label="Cancel display name edit">
           <X className="size-4" />
         </Button>
       </div>
@@ -321,12 +323,13 @@ function NameEditor() {
 
 export default function SettingsPage() {
   const { hash } = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, rerollAvatar } = useAuth();
   const { preset, setPreset, active: activeUserTheme, mode: resolvedMode } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
   const qc = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
+  const [rerollingAvatar, setRerollingAvatar] = useState(false);
 
   // Data — takeout / import / delete
   const [exporting, setExporting] = useState(false);
@@ -402,9 +405,86 @@ export default function SettingsPage() {
   return (
     <PageShell
       title="Settings"
-      contentClassName="max-w-2xl w-full mx-auto px-5 md:px-10 pt-8 pb-24"
+      contentClassName="max-w-3xl w-full mx-auto px-5 md:px-10 pt-8 pb-24"
     >
       <div>
+        {user && (
+          <section
+            aria-label="Profile"
+            className="mb-8 rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-4 sm:p-5 shadow-[var(--m3-elev-1)]"
+          >
+            <div className="grid grid-cols-[88px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+              <ProfileAvatar
+                user={user}
+                size={112}
+                className="!size-[88px] sm:!size-[112px]"
+              />
+              <div className="min-w-0 flex flex-col gap-3">
+                <div className="min-w-0">
+                  <NameEditor />
+                  <div className="mt-1 text-sm text-muted-foreground break-all">{user.email}</div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {user.identities.length === 0 && (
+                    <span className="text-xs text-muted-foreground">No sign-in methods linked.</span>
+                  )}
+                  {user.identities.map((identity) => {
+                    const meta = PROVIDER_META[identity.provider];
+                    return (
+                      <span
+                        key={identity.provider}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-[hsl(var(--outline-variant))]"
+                        style={{ background: meta.bg, color: meta.fg }}
+                      >
+                        {meta.node}
+                        {meta.label}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={rerollingAvatar}
+                    onClick={async () => {
+                      setRerollingAvatar(true);
+                      try { await rerollAvatar(); }
+                      catch (error) { toast.error((error as Error).message); }
+                      finally { setRerollingAvatar(false); }
+                    }}
+                  >
+                    {rerollingAvatar
+                      ? <M3CookieLoader size="xs" tone="primary" />
+                      : <RefreshCw className="size-3.5" />}
+                    {rerollingAvatar ? 'Rerolling…' : 'Reroll avatar'}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={signingOut}
+                    onClick={async () => {
+                      setSigningOut(true);
+                      try { await logout(); }
+                      finally { setSigningOut(false); }
+                    }}
+                  >
+                    {signingOut
+                      ? <M3CookieLoader size="xs" tone="primary" className="!text-destructive-foreground" />
+                      : <LogOut className="size-3.5" />}
+                    {signingOut ? 'Signing out…' : 'Sign out'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <p className="mt-4 sm:ml-[132px] text-xs text-muted-foreground">
+              Sign in again with Google, GitHub, or email code and Sajni links it to this account when the email matches.
+            </p>
+          </section>
+        )}
+
         <Section title="Appearance" caption="Light, dark, or follow the OS.">
           <div className="flex flex-wrap gap-2">
             <Choice value={'system' as ModePref} current={mode} onSelect={setMode} Icon={Monitor} label="System" />
@@ -464,57 +544,6 @@ export default function SettingsPage() {
             <Choice value={'compact'      as Density} current={density} onSelect={setDensity} Icon={Type} label="Compact" />
             <Choice value={'comfortable'  as Density} current={density} onSelect={setDensity} Icon={Type} label="Comfortable" />
             <Choice value={'cozy'         as Density} current={density} onSelect={setDensity} Icon={Type} label="Cozy" />
-          </div>
-        </Section>
-
-        <Section title="Account" caption="Who you are and how you sign in.">
-          <div className="flex flex-col gap-5">
-            <div className="grid sm:grid-cols-[120px_1fr] gap-y-3 gap-x-4 text-sm">
-              <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground self-center">Name</div>
-              <div><NameEditor /></div>
-
-              <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground self-center">Email</div>
-              <div className="serif font-semibold break-all">{user?.email || '—'}</div>
-
-              <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground self-start mt-1">Sign-in</div>
-              <div className="flex flex-wrap gap-2">
-                {(user?.identities ?? []).length === 0 && (
-                  <span className="text-xs text-muted-foreground">No methods linked.</span>
-                )}
-                {(user?.identities ?? []).map((id) => {
-                  const meta = PROVIDER_META[id.provider];
-                  return (
-                    <span
-                      key={id.provider}
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-[hsl(var(--outline-variant))]"
-                      style={{ background: meta.bg, color: meta.fg }}
-                    >
-                      {meta.node}
-                      {meta.label}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Sign in again with another provider — Google, GitHub, or email code — and Sajni links it
-              to this account automatically as long as the email matches.
-            </p>
-
-            <Button
-              variant="destructive"
-              className="w-fit"
-              disabled={signingOut}
-              onClick={async () => {
-                setSigningOut(true);
-                try { await logout(); }
-                finally { setSigningOut(false); }
-              }}
-            >
-              {signingOut ? <M3CookieLoader size="xs" tone="primary" className="!text-destructive-foreground" /> : <LogOut className="size-3.5" />}
-              {signingOut ? 'Signing out…' : 'Sign out'}
-            </Button>
           </div>
         </Section>
 

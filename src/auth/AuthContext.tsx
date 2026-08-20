@@ -20,6 +20,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** Incremented whenever the user asks for a different stable avatar. */
+  avatar_revision: number;
   /** RFC3339; null until the first-time walkthrough is finished. */
   onboarded_at: string | null;
   /** IANA tz captured from the browser; reminder emails render in it. */
@@ -45,6 +47,8 @@ interface AuthState {
   markOnboarded: () => Promise<void>;
   /** Update the user's display name. */
   updateName: (name: string) => Promise<void>;
+  /** Generate a different stable avatar and refresh the local user. */
+  rerollAvatar: () => Promise<void>;
   /** Set the session after a callback handoff (OAuthDone). */
   hydrateFromAccessToken: (token: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -235,6 +239,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me);
   }, []);
 
+  const rerollAvatar = useCallback(async () => {
+    const res = await authFetch("/auth/profile/avatar/reroll", { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    const me: User = await res.json();
+    setUser(me);
+  }, []);
+
+  // AI avatar rerolls arrive through the shared mutation event emitted by
+  // AIChat. Refresh the auth owner directly; avatar state is not query data.
+  useEffect(() => {
+    const onInvalidate = (event: Event) => {
+      const kind = (event as CustomEvent).detail?.kind;
+      if (kind === "avatar_rerolled") void refreshUser();
+    };
+    window.addEventListener("data:invalidate", onInvalidate);
+    return () => window.removeEventListener("data:invalidate", onInvalidate);
+  }, [refreshUser]);
+
   const logout = useCallback(async () => {
     try {
       await authFetch("/auth/logout", { method: "POST" });
@@ -257,6 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       markOnboarded,
       updateName,
+      rerollAvatar,
       hydrateFromAccessToken,
       logout,
     }),
@@ -269,6 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       markOnboarded,
       updateName,
+      rerollAvatar,
       hydrateFromAccessToken,
       logout,
     ],

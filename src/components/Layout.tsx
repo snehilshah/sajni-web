@@ -5,7 +5,8 @@ import {
   LogOut, Search, Settings, Sparkles, Loader2, BookOpen, History,
 } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
-import { useAuth } from '@/auth/AuthContext';
+import { useAuth, type User } from '@/auth/AuthContext';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import type { ChatOpenDetail, ChatOpenRequest } from '@/components/AIChat';
 import Backdrop from '@/components/Backdrop';
 import Onboarding from '@/components/Onboarding';
@@ -21,40 +22,6 @@ import {
 
 const CommandPalette = lazy(() => import('@/components/CommandPalette'));
 const AIChat = lazy(() => import('@/components/AIChat'));
-
-function initialsFor(email?: string | null): string {
-  const s = (email || '').trim();
-  if (!s) return '·';
-  return s.split('@')[0].slice(0, 2).toUpperCase();
-}
-
-function Avatar({
-  size = 36, ring = false, label, onClick,
-}: { size?: number; ring?: boolean; label: string; onClick?: () => void }) {
-  const Tag = onClick ? 'button' : 'span';
-  return (
-    <Tag
-      onClick={onClick}
-      className="relative shrink-0 inline-flex items-center justify-center font-serif font-medium text-primary-foreground"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        fontSize: Math.max(11, size * 0.40),
-        letterSpacing: '0.02em',
-        background:
-          'radial-gradient(circle at 30% 28%, hsl(var(--tertiary)) 0%, transparent 55%), radial-gradient(circle at 70% 72%, hsl(var(--secondary)) 0%, transparent 55%), linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)) 55%, hsl(var(--tertiary)))',
-        boxShadow: ring
-          ? '0 0 0 2px hsl(var(--background)), 0 0 0 3px hsl(var(--primary)), 0 6px 14px -6px hsl(var(--primary) / 0.5)'
-          : 'inset 0 1px 0 hsl(0 0% 100% / 0.22), 0 3px 8px -3px hsl(var(--primary) / 0.5)',
-        cursor: onClick ? 'pointer' : 'default',
-        border: 0,
-      }}
-    >
-      <span className="relative z-[1]">{label}</span>
-    </Tag>
-  );
-}
 
 function MenuRow({
   icon: Icon, label, hint, onClick, danger, disabled, spinning,
@@ -86,9 +53,9 @@ function MenuRow({
 }
 
 function UserMenuBody({
-  email, onOpenCommand, onOpenChat, onSettings, onDocs, onChangelog, onSignOut, onAction, signingOut,
+  user, onOpenCommand, onOpenChat, onSettings, onDocs, onChangelog, onSignOut, onAction, signingOut,
 }: {
-  email: string;
+  user: User;
   onOpenCommand: () => void;
   onOpenChat: () => void;
   onSettings: () => void;
@@ -105,11 +72,11 @@ function UserMenuBody({
 
   return (
     <div className="p-1">
-      <div className="px-3 pt-3 pb-2 flex items-center gap-3">
-        <Avatar size={40} ring label={email.slice(0, 2).toUpperCase()} />
+      <div className="px-3 pt-3 pb-2 flex items-center gap-3.5">
+        <ProfileAvatar user={user} size={64} />
         <div className="min-w-0">
-          <div className="serif text-sm font-semibold leading-tight truncate">{email}</div>
-          <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground mt-1">signed in</div>
+          <div className="serif text-sm font-semibold leading-tight truncate">{user.name || 'Sajni user'}</div>
+          <div className="text-xs text-muted-foreground mt-1 truncate">{user.email}</div>
         </div>
       </div>
       <div className="sajni-sep my-2" />
@@ -209,12 +176,12 @@ function DockNavIcon({
 // sidebars) run underneath to the viewport top. Slides up + fades when
 // the page scrolls; the merged pill (PageChrome) morphs into its place.
 function PrimaryBar({
-  pathname, scrolled, userMenuContent, initials, accountMenuOpen, setAccountMenuOpen,
+  pathname, scrolled, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
 }: {
   pathname: string;
   scrolled: boolean;
   userMenuContent: ReactNode;
-  initials: string;
+  user: User;
   accountMenuOpen: boolean;
   setAccountMenuOpen: (open: boolean) => void;
 }) {
@@ -272,12 +239,12 @@ function PrimaryBar({
         <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <DropdownMenuTrigger
             render={
-              <button className="rounded-full mr-0.5" title="Account" aria-label="Account">
-                <Avatar size={30} label={initials} />
+              <button className="size-10 mr-0.5 inline-flex items-center justify-center rounded-full outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring/45" title="Account" aria-label="Account">
+                <ProfileAvatar user={user} size={32} view="nav" />
               </button>
             }
           />
-          <DropdownMenuContent align="end" sideOffset={10} className="w-[280px]">
+          <DropdownMenuContent align="end" sideOffset={10} className="w-[300px]">
             {userMenuContent}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -310,13 +277,13 @@ function SearchIsland({ onOpen }: { onOpen: () => void }) {
 // Always visible: nav must stay in thumb reach. Icons scroll horizontally
 // when they overflow; search + avatar are pinned at the trailing edge.
 function BottomDock({
-  pathname, hidden, onOpenCommand, userMenuContent, initials, accountMenuOpen, setAccountMenuOpen,
+  pathname, hidden, onOpenCommand, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
 }: {
   pathname: string;
   hidden: boolean;
   onOpenCommand: () => void;
   userMenuContent: ReactNode;
-  initials: string;
+  user: User;
   accountMenuOpen: boolean;
   setAccountMenuOpen: (open: boolean) => void;
 }) {
@@ -368,12 +335,12 @@ function BottomDock({
         <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <DropdownMenuTrigger
             render={
-              <button className="rounded-full shrink-0" title="Account" aria-label="Account">
-                <Avatar size={30} label={initials} />
+              <button className="size-11 shrink-0 inline-flex items-center justify-center rounded-full outline-none transition-colors active:bg-[hsl(var(--on-surface)/0.08)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring/45" title="Account" aria-label="Account">
+                <ProfileAvatar user={user} size={32} view="nav" />
               </button>
             }
           />
-          <DropdownMenuContent align="end" side="top" sideOffset={12} className="w-[280px]">
+          <DropdownMenuContent align="end" side="top" sideOffset={12} className="w-[300px]">
             {userMenuContent}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -421,9 +388,6 @@ export default function Layout() {
     if (!open) setChatOpenRequest(null);
   }, []);
 
-  const email = user?.email || 'sign in';
-  const initials = useMemo(() => initialsFor(user?.email), [user]);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.key === 'k' || event.key === 'K') && (event.metaKey || event.ctrlKey)) {
@@ -460,9 +424,11 @@ export default function Layout() {
     finally { setSigningOut(false); }
   };
 
+  if (!user) return null;
+
   const userMenuBody = (
     <UserMenuBody
-      email={email}
+      user={user}
       onOpenCommand={openCommand}
       onOpenChat={() => {
         setChatOpenRequest(null);
@@ -489,7 +455,7 @@ export default function Layout() {
             pathname={location.pathname}
             scrolled={scrolled}
             userMenuContent={userMenuBody}
-            initials={initials}
+            user={user}
             accountMenuOpen={accountMenuOpen}
             setAccountMenuOpen={setAccountMenuOpen}
           />
@@ -507,7 +473,7 @@ export default function Layout() {
             hidden={keyboardOpen}
             onOpenCommand={openCommand}
             userMenuContent={userMenuBody}
-            initials={initials}
+            user={user}
             accountMenuOpen={accountMenuOpen}
             setAccountMenuOpen={setAccountMenuOpen}
           />
