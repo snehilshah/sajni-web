@@ -27,7 +27,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X, ArrowLeft, Calendar, Edit3, Eye, LayoutGrid, StickyNote,
-  ChevronRight, ChevronDown, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
+  ChevronRight, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
   PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FolderInput as FolderMoveIcon, Pin, PinOff,
 } from '@/components/ui/icons';
 
@@ -527,7 +527,9 @@ export default function NotesPage() {
           onClick={() => { setActiveFolder(null); setMobileTreeOpen(false); }}
           className={cn(
             'w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50',
-            activeFolder === null ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/40 text-foreground/85',
+            selectedId === null && activeFolder === null
+              ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+              : 'hover:bg-[hsl(var(--surface-container-high))] text-foreground/85',
           )}
         >
           <FileText className="size-3.5 text-muted-foreground" />
@@ -578,7 +580,6 @@ export default function NotesPage() {
               depth={0}
               expanded={expandedFolders}
               selectedId={selectedId}
-              activeFolder={activeFolder}
               showNewFolderUnder={showNewFolder}
               newFolderValue={newFolderName}
               onNewFolderChange={setNewFolderName}
@@ -683,7 +684,7 @@ export default function NotesPage() {
             <>
               <div ref={editorScrollRef} className="flex-1 min-h-0 overflow-y-auto stable-scrollbar">
                 <div className={cn(
-                  'w-full mx-auto px-4 md:px-8 lg:px-10 pt-5 md:pt-7 pb-24 min-h-full flex flex-col',
+                  'w-full mx-auto px-4 md:px-8 lg:px-10 pt-4 md:pt-5 pb-16 min-h-full flex flex-col',
                   editorMode === 'split' ? 'max-w-[100rem]' : 'max-w-5xl',
                 )}>
                   {loadingNote ? (
@@ -697,9 +698,9 @@ export default function NotesPage() {
                       initial={{ opacity: 0, filter: 'blur(2px)' }}
                       animate={{ opacity: 1, filter: 'blur(0px)' }}
                       transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-                      className="flex flex-1 min-h-0 flex-col gap-6"
+                      className="flex flex-1 min-h-0 flex-col gap-4"
                     >
-                      <header className="flex items-start justify-between gap-x-5 gap-y-4 flex-wrap">
+                      <header className="flex items-start justify-between gap-x-5 gap-y-2 md:gap-y-4 flex-wrap">
                         <div className="flex-1 min-w-[16rem]">
                           <Button
                             variant="ghost" size="sm"
@@ -708,7 +709,7 @@ export default function NotesPage() {
                           >
                             <ArrowLeft className="size-4" /> Notes
                           </Button>
-                          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                          <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                             {breadcrumb.length > 0 ? breadcrumb.map((segment, index) => (
                               <span key={`${segment}:${index}`} className="flex items-center gap-1 min-w-0">
                                 <span className="truncate">{segment}</span>
@@ -733,20 +734,7 @@ export default function NotesPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-end gap-1 flex-wrap">
-                          <SegmentedButton
-                            value={editorMode}
-                            onChange={setEditorMode}
-                            showCheck={false}
-                            size="md"
-                            aria-label="Editor mode"
-                            options={[
-                              { value: 'edit', label: 'Edit', icon: Edit3 },
-                              { value: 'split', label: 'Split', icon: LayoutGrid },
-                              { value: 'preview', label: 'Preview', icon: Eye },
-                            ]}
-                          />
-                          <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden />
+                        <div className="flex w-full md:w-auto items-center justify-end gap-0.5 md:gap-1 flex-nowrap">
                           <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
                           {selectedId && (
                             <>
@@ -776,7 +764,7 @@ export default function NotesPage() {
                               </Button>
                             </>
                           )}
-                          <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden />
+                          <span className="w-px h-5 mx-0.5 md:mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden />
                           <Button
                             variant="ghost" size="icon-sm"
                             onClick={() => setMobileTreeOpen(true)}
@@ -816,19 +804,20 @@ export default function NotesPage() {
 
                       {editorMode === 'split' ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 min-h-0 border-y border-[hsl(var(--outline-variant))]">
-                          <section className="min-w-0 py-4 lg:pr-6 lg:border-r border-[hsl(var(--outline-variant))]" aria-label="Edit note">
-                            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Edit</p>
+                          <section className="min-w-0 py-3 lg:pr-6 lg:border-r border-[hsl(var(--outline-variant))]" aria-label="Edit note">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Edit</p>
                             <Suspense fallback={<Skeleton className="h-72 w-full rounded-2xl" />}>
                               <RichEditor
                                 value={content}
                                 onChange={handleContentChange}
                                 placeholder="Type / for commands. Use [[ to link to other notes."
+                                className="[&_.ProseMirror>:first-child]:mt-0"
                                 fill
                               />
                             </Suspense>
                           </section>
-                          <section className="min-w-0 py-4 lg:pl-6 border-t lg:border-t-0 border-[hsl(var(--outline-variant))]" aria-label="Preview note">
-                            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preview</p>
+                          <section className="min-w-0 py-3 lg:pl-6 border-t lg:border-t-0 border-[hsl(var(--outline-variant))]" aria-label="Preview note">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preview</p>
                             <MarkdownPreview content={content} />
                           </section>
                         </div>
@@ -843,6 +832,7 @@ export default function NotesPage() {
                               value={content}
                               onChange={handleContentChange}
                               placeholder="Type / for commands. Use [[ to link to other notes."
+                              className="[&_.ProseMirror>:first-child]:mt-0"
                               fill
                             />
                           </Suspense>
@@ -852,22 +842,45 @@ export default function NotesPage() {
                   )}
                 </div>
               </div>
-              <footer className="h-11 px-4 md:px-6 shrink-0 border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] flex items-center gap-3 text-xs text-muted-foreground">
-                <span>{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</span>
-                <span aria-hidden>·</span>
-                <span>{characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}</span>
-                <span aria-hidden>·</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInspectorTab('backlinks');
-                    if (window.matchMedia('(min-width: 1024px)').matches) setInspectorOpen(true);
-                    else setMobileInspectorOpen(true);
-                  }}
-                  className="rounded px-1 py-0.5 hover:bg-[hsl(var(--surface-container-high))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  {backlinks.length.toLocaleString()} {backlinks.length === 1 ? 'backlink' : 'backlinks'}
-                </button>
+              <footer className="h-12 md:h-10 max-md:mb-[calc(env(safe-area-inset-bottom,0px)+76px)] px-2.5 md:px-5 shrink-0 border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div className="min-w-0 flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+                  <span aria-label={`${words.toLocaleString()} ${words === 1 ? 'word' : 'words'}`}>
+                    <span className="sm:hidden">{words.toLocaleString()}w</span>
+                    <span className="hidden sm:inline">{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</span>
+                  </span>
+                  <span aria-hidden>·</span>
+                  <span aria-label={`${characters.toLocaleString()} ${characters === 1 ? 'character' : 'characters'}`}>
+                    <span className="sm:hidden">{characters.toLocaleString()}c</span>
+                    <span className="hidden sm:inline">{characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}</span>
+                  </span>
+                  <span aria-hidden>·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInspectorTab('backlinks');
+                      if (window.matchMedia('(min-width: 1024px)').matches) setInspectorOpen(true);
+                      else setMobileInspectorOpen(true);
+                    }}
+                    aria-label={`${backlinks.length.toLocaleString()} ${backlinks.length === 1 ? 'backlink' : 'backlinks'}`}
+                    className="min-h-11 md:min-h-0 rounded px-1 py-0.5 hover:bg-[hsl(var(--surface-container-high))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <span className="sm:hidden">{backlinks.length.toLocaleString()} links</span>
+                    <span className="hidden sm:inline">{backlinks.length.toLocaleString()} {backlinks.length === 1 ? 'backlink' : 'backlinks'}</span>
+                  </button>
+                </div>
+                <SegmentedButton
+                  value={editorMode}
+                  onChange={setEditorMode}
+                  showCheck={false}
+                  size="sm"
+                  aria-label="Editor mode"
+                  className="[&>button]:h-11 [&>button]:px-2 [&>button]:text-xs md:[&>button]:h-7"
+                  options={[
+                    { value: 'edit', label: 'Edit', icon: Edit3 },
+                    { value: 'split', label: 'Split', icon: LayoutGrid },
+                    { value: 'preview', label: 'Preview', icon: Eye },
+                  ]}
+                />
               </footer>
             </>
           )}
@@ -971,7 +984,7 @@ function MarkdownPreview({ content, empty = 'Start writing to see the preview.' 
     return <p className="py-12 text-sm text-muted-foreground">{empty}</p>;
   }
   return (
-    <article className="prose prose-sajni dark:prose-invert max-w-none" aria-label="Rendered Markdown preview">
+    <article className="prose prose-sajni dark:prose-invert max-w-none [&>:first-child]:mt-0" aria-label="Rendered Markdown preview">
       <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
     </article>
   );
@@ -1108,7 +1121,6 @@ interface TreeViewProps {
   depth: number;
   expanded: Set<string>;
   selectedId: number | null;
-  activeFolder: string | null;
   showNewFolderUnder: string | null;
   newFolderValue: string;
   onNewFolderChange: (v: string) => void;
@@ -1127,7 +1139,7 @@ interface TreeViewProps {
 
 function TreeView(props: TreeViewProps) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" role={props.depth === 0 ? 'tree' : 'group'}>
       {props.node.children.map((child) => {
         if (child.type === 'folder') {
           const isExpanded = props.expanded.has(child.path);
@@ -1137,7 +1149,6 @@ function TreeView(props: TreeViewProps) {
                 node={child}
                 depth={props.depth}
                 expanded={isExpanded}
-                active={props.activeFolder === child.path}
                 onToggle={() => props.onToggle(child.path)}
                 onSelect={() => props.onSelectFolder(child.path)}
                 onNewNote={() => props.onNewNoteIn(child.path)}
@@ -1191,38 +1202,44 @@ function countTreeNotes(node: TreeNode): number {
 }
 
 function FolderRowItem({
-  node, depth, expanded, active, onToggle, onSelect, onNewNote, onNewSubfolder, onDelete, onTogglePin,
+  node, depth, expanded, onToggle, onSelect, onNewNote, onNewSubfolder, onDelete, onTogglePin,
 }: {
-  node: TreeNode; depth: number; expanded: boolean; active: boolean;
+  node: TreeNode; depth: number; expanded: boolean;
   onToggle: () => void; onSelect: () => void; onNewNote: () => void; onNewSubfolder: () => void; onDelete: () => void; onTogglePin: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const count = countTreeNotes(node);
   return (
     <div
-      className={cn(
-        'group flex items-center gap-1 rounded-md text-sm cursor-pointer transition-colors relative',
-        active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/40',
-      )}
-      style={{ paddingLeft: `${depth * 12 + 4}px` }}
+      role="treeitem"
+      tabIndex={0}
+      aria-expanded={expanded}
+      className="group relative my-px flex h-7 cursor-pointer items-center gap-1.5 rounded-[3px] pr-1 text-sm outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))]"
+      style={{ paddingLeft: `${depth * 14 + 8}px` }}
       onClick={() => { onSelect(); onToggle(); }}
+      onKeyDown={(event) => {
+        if (event.currentTarget !== event.target) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect();
+          onToggle();
+        }
+      }}
     >
-      <button className="size-4 flex items-center justify-center text-muted-foreground shrink-0">
-        {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-      </button>
       {expanded ? (
-        <FolderOpen className="size-3.5 text-muted-foreground shrink-0" />
+        <FolderOpen className="size-4 text-muted-foreground shrink-0" />
       ) : (
-        <Folder className="size-3.5 text-muted-foreground shrink-0" />
+        <Folder className="size-4 text-muted-foreground shrink-0" />
       )}
-      <span className="flex-1 truncate py-1 text-foreground/90 text-[13px]">{node.name}</span>
+      <span className="flex-1 truncate text-foreground/90 text-[13px]">{node.name}</span>
       <span className="text-xs tabular-nums text-muted-foreground group-hover:hidden">{count}</span>
       {node.pinned && <Pin className="size-3 text-primary/70 shrink-0" aria-label="Pinned" />}
       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity pr-1">
         <button
-          className="size-5 rounded hover:bg-sidebar-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
+          className="size-6 rounded-[3px] hover:bg-[hsl(var(--surface-container-highest))] flex items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
           onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
           title="More"
+          aria-label={`More options for ${node.name}`}
         >
           <MoreHorizontal className="size-3" />
         </button>
@@ -1275,26 +1292,40 @@ function NoteRowItem({
 }) {
   return (
     <div
+      role="treeitem"
+      tabIndex={0}
+      aria-selected={selected}
       onClick={onSelect}
-      className={`group flex items-center gap-1.5 rounded-md py-1 cursor-pointer transition-colors text-[13px] ${
-        selected ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/40 text-foreground/85'
+      onKeyDown={(event) => {
+        if (event.currentTarget !== event.target) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`group my-px flex h-7 cursor-pointer items-center gap-1.5 rounded-[3px] outline-none transition-colors text-[13px] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))] ${
+        selected
+          ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+          : 'hover:bg-[hsl(var(--surface-container-high))] text-foreground/85'
       }`}
-      style={{ paddingLeft: `${depth * 12 + 24}px`, paddingRight: '6px' }}
+      style={{ paddingLeft: `${depth * 14 + 26}px`, paddingRight: '4px' }}
     >
       <FileText className="size-3.5 text-muted-foreground shrink-0" />
       <span className="flex-1 truncate">{note.title || 'Untitled'}</span>
       {note.pinned && <Pin className="size-3 text-primary/70 shrink-0 group-hover:hidden" aria-label="Pinned" />}
       <button
         onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-        className="opacity-0 group-hover:opacity-100 size-5 rounded hover:bg-sidebar-accent hidden group-hover:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity"
+        className="opacity-0 group-hover:opacity-100 size-6 rounded-[3px] hover:bg-[hsl(var(--surface-container-highest))] hidden group-hover:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
         title={note.pinned ? 'Unpin' : 'Pin'}
+        aria-label={`${note.pinned ? 'Unpin' : 'Pin'} ${note.title || 'Untitled'}`}
       >
         {note.pinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); onMove(); }}
-        className="opacity-0 group-hover:opacity-100 size-5 rounded hover:bg-sidebar-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity"
+        className="opacity-0 group-hover:opacity-100 size-6 rounded-[3px] hover:bg-[hsl(var(--surface-container-highest))] flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
         title="Move"
+        aria-label={`Move ${note.title || 'Untitled'}`}
       >
         <FolderMoveIcon className="size-3" />
       </button>
