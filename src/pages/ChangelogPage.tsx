@@ -50,6 +50,46 @@ const GROUP_ORDER: Kind[] = ['feature', 'improvement', 'fix'];
 
 const RELEASES: Release[] = [
   {
+    version: '0.48.0',
+    date: '2026-08-21',
+    summary:
+      'You have a face now — a deterministic voxel-art character that lives in the nav dock, '
+      + 'the user menu, and a new profile card on Settings.',
+    entries: [
+      {
+        kind: 'feature',
+        area: 'Profile',
+        title: 'Voxel-art avatars',
+        detail:
+          'Every account gets a deterministic animated character generated from your user id '
+          + 'and a revision counter. The avatar appears in the navigation dock (head crop), '
+          + 'the account dropdown, and a new hero card at the top of Settings that also shows '
+          + 'your name, email, and linked sign-in methods. Hit "Reroll avatar" to get a '
+          + 'different character — or ask Sajni to do it. No image is stored; the API only '
+          + 'persists a single integer.',
+      },
+      {
+        kind: 'improvement',
+        area: 'Settings',
+        title: 'Profile hero card replaces Account section',
+        detail:
+          'The old grid-based Account section has been replaced by a compact profile card '
+          + 'with your avatar, display-name editor, email, provider badges, reroll and '
+          + 'sign-out actions all in one surface.',
+      },
+      {
+        kind: 'improvement',
+        area: 'Notes',
+        title: 'Tree keyboard navigation and tighter spacing',
+        detail:
+          'Folder and note rows in the sidebar now carry proper ARIA tree roles, keyboard '
+          + 'navigation (Enter / Space), and visible focus rings. Row height, indent, and '
+          + 'icon sizing are tightened for a denser, more consistent feel. The active-folder '
+          + 'highlight is replaced by M3 secondary-container selection tokens.',
+      },
+    ],
+  },
+  {
     version: '0.47.0',
     date: '2026-07-30',
     summary:
