@@ -1189,10 +1189,8 @@ export interface ThemeSeedsApi {
 export interface UserTheme {
   id: number;
   name: string;
-  source: 'ai' | 'manual' | 'preset';
   seeds: ThemeSeedsApi;
   prompt: string;
-  mode_pref: 'auto' | 'light' | 'dark';
   is_active: boolean;
   created_at: string;
 }
@@ -1200,10 +1198,10 @@ export interface UserTheme {
 export const themes = {
   list: () => request<UserTheme[]>('/themes'),
   active: () => request<UserTheme | null>('/themes/active'),
-  generate: (prompt: string, opts?: { activate?: boolean; mode_pref?: 'auto' | 'light' | 'dark' }) =>
+  generate: (prompt: string) =>
     request<UserTheme>('/themes/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, activate: opts?.activate ?? false, mode_pref: opts?.mode_pref ?? 'auto' }),
+      body: JSON.stringify({ prompt }),
     }),
   delete: (id: number) => request('/themes/' + id, { method: 'DELETE' }),
   activate: (id: number) =>

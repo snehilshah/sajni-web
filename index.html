@@ -20,28 +20,11 @@
       (function () {
         try {
           var root = document.documentElement;
-          // 'sajni:theme' = preset id, or 'custom' when an AI theme is active
-          // (its compiled CSS is cached so we can paint it before the app
-          // fetches the active theme — no preset flash).
+          // AI themes are server-owned. First paint uses the last local preset;
+          // ThemeProvider applies the active AI theme after authentication.
           var theme = localStorage.getItem('sajni:theme') || 'marine';
-          var preset = localStorage.getItem('sajni:preset') || (theme === 'custom' ? 'marine' : theme);
-          var presetCss = localStorage.getItem('sajni:preset-theme-css');
-          if (presetCss) {
-            var presetStyle = document.createElement('style');
-            presetStyle.id = 'sajni-theme-presets';
-            presetStyle.textContent = presetCss;
-            document.head.appendChild(presetStyle);
-          }
-          if (theme === 'custom') {
-            var css = localStorage.getItem('sajni:custom-theme-css');
-            if (css) {
-              var style = document.createElement('style');
-              style.id = 'sajni-custom-theme';
-              style.textContent = css;
-              document.head.appendChild(style);
-            } else {
-              theme = preset;
-            }
+          if (!/^(marine|powerpuff|gruvbox|peach|mauve)$/.test(theme)) {
+            theme = 'marine';
           }
           var modePref = localStorage.getItem('sajni:mode') || 'system';
           var density = localStorage.getItem('sajni:density') || 'comfortable';

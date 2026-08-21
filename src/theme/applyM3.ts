@@ -1,7 +1,5 @@
-// applyM3 — turn three seed hex colors into the full M3 token set the
-// app uses (primary, secondary, tertiary, surface family, outlines,
-// chart colors, sidebar, backdrop) and write them to the document root
-// as HSL CSS variables for both the light and dark modes simultaneously.
+// Material 3 palette engine — turn seed colors into the full token set the
+// app uses (accents, surfaces, outlines, charts, sidebar, and backdrop).
 
 import {
   argbFromHex,
@@ -146,50 +144,17 @@ export function buildPalette(seeds: ThemeSeeds): AppliedTheme {
   return out;
 }
 
-const CUSTOM_STYLE_ID = 'sajni-custom-theme';
-// Compiled custom-theme CSS, cached so index.html can inject it pre-paint
-// (no preset flash while the active server theme loads).
-const CUSTOM_CSS_KEY = 'sajni:custom-theme-css';
-
-// applyM3 injects a stylesheet for the custom theme with BOTH mode blocks,
-// riding the same `data-theme` + `data-mode` cascade as the presets — so the
-// Appearance toggle (and OS mode changes under "system") flip custom themes
-// exactly like built-ins. `data-mode` itself is owned by useThemePrefs; this
-// never touches it.
-//
-// A theme pinned via modePref ('light'/'dark') writes that palette into both
-// blocks, so it visually ignores the toggle — the documented behavior.
-export function applyM3(seeds: ThemeSeeds, modePref: 'auto' | 'light' | 'dark' = 'auto') {
+// Compile a saved AI theme into the same light/dark CSS cascade used by the
+// built-in presets. This function is pure: ThemeProvider owns the style node
+// and the document's data-theme attribute.
+export function customThemeStylesheet(seeds: ThemeSeeds): string {
   const palette = buildPalette(seeds);
-  const lightMap = modePref === 'dark' ? palette.dark : palette.light;
-  const darkMap = modePref === 'light' ? palette.light : palette.dark;
   const block = (m: Record<string, string>) =>
     Object.entries(m).map(([k, v]) => `--${k}:${v}`).join(';');
-  // :root-prefixed so specificity beats index.css's `:root[data-mode="dark"]`
-  // regardless of document order — the pre-paint copy injected by index.html
-  // sits BEFORE the built stylesheet, where a plain [data-theme] tie would
-  // lose the dark-mode cascade.
-  const css =
-    `:root[data-theme="custom"]{${block(lightMap)}}` +
-    `:root[data-theme="custom"][data-mode="dark"]{${block(darkMap)}}`;
-
-  let el = document.getElementById(CUSTOM_STYLE_ID) as HTMLStyleElement | null;
-  if (!el) {
-    el = document.createElement('style');
-    el.id = CUSTOM_STYLE_ID;
-    document.head.appendChild(el);
-  }
-  el.textContent = css;
-  try { localStorage.setItem(CUSTOM_CSS_KEY, css); } catch {}
-  document.documentElement.setAttribute('data-theme', 'custom');
-}
-
-// resetM3 removes the custom-theme stylesheet + its pre-paint cache so the
-// stylesheet defaults (or a selected CSS preset) win again. It intentionally
-// does NOT touch the data-theme attribute — the ThemeProvider restores it.
-export function resetM3() {
-  document.getElementById(CUSTOM_STYLE_ID)?.remove();
-  try { localStorage.removeItem(CUSTOM_CSS_KEY); } catch {}
+  return (
+    `:root[data-theme="custom"]{${block(palette.light)}}` +
+    `:root[data-theme="custom"][data-mode="dark"]{${block(palette.dark)}}`
+  );
 }
 
 // previewSwatches gives the settings UI a small array of representative

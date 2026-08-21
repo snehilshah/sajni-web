@@ -1,70 +1,66 @@
-// ThemeProvider — the single owner of <html data-theme>. It carries both
-// theme sources behind one context:
-//
-//   · presets  — built-in seed palettes, applied via the data-theme CSS
-//                cascade, persisted as `sajni:theme` = preset id plus a
-//                separate last-preset key
-//   · custom   — server-side (AI-generated) themes, applied as an injected
-//                stylesheet with both mode blocks (applyM3), persisted as
-//                `sajni:theme` = 'custom' plus a compiled-CSS cache that
-//                index.html re-injects pre-paint
-//
-// This provider also owns data-mode and data-density after index.html stamps
-// them pre-paint. Preset and custom stylesheets both carry light+dark blocks,
-// so changing mode flips either kind without rebuilding its palette.
-
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { themes as themesApi, type UserTheme } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
-import { applyM3, resetM3 } from './applyM3';
+import { customThemeStylesheet } from './applyM3';
 import { normalizePreset, presetStylesheet, type PresetId } from './presets';
 
-// 'sajni:theme' = active preset id, or 'custom' when a server theme is live.
 const THEME_KEY = 'sajni:theme';
-// Keep the last preset separately so leaving a custom theme restores the
-// user's actual choice instead of always snapping to Marine.
-const PRESET_KEY = 'sajni:preset';
-const PRESET_CSS_KEY = 'sajni:preset-theme-css';
 const MODE_KEY = 'sajni:mode';
 const DENSITY_KEY = 'sajni:density';
+const PRESET_STYLE_ID = 'sajni-theme-presets';
+const CUSTOM_STYLE_ID = 'sajni-custom-theme';
 
 export type ModePref = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact' | 'cozy';
+export type ThemeAction =
+  | { kind: 'preset'; preset: PresetId }
+  | { kind: 'activate'; id: number }
+  | { kind: 'delete'; id: number }
+  | { kind: 'generate' };
 
 interface Ctx {
-  /** Active server (AI/custom) theme; null = a preset is showing. */
   active: UserTheme | null;
-  /** Selected preset — what shows whenever no server theme is active. */
   preset: PresetId;
-  /** Pick a preset: applies it and deactivates any server theme. */
+  action: ThemeAction | null;
   setPreset: (id: PresetId) => Promise<void>;
-  /** Effective mode, mirrored live from <html data-mode>. */
+  activateTheme: (theme: UserTheme) => Promise<UserTheme>;
+  generateTheme: (prompt: string) => Promise<UserTheme>;
+  deleteTheme: (theme: UserTheme) => Promise<void>;
   mode: 'light' | 'dark';
   modePref: ModePref;
   setMode: (mode: ModePref) => void;
   density: Density;
   setDensity: (density: Density) => void;
   refresh: () => Promise<void>;
-  apply: (t: UserTheme | null) => void;
 }
 
 const ThemeCtx = createContext<Ctx>({
   active: null,
   preset: 'marine',
+  action: null,
   setPreset: async () => {},
+  activateTheme: async (theme) => theme,
+  generateTheme: async () => { throw new Error('ThemeProvider is unavailable'); },
+  deleteTheme: async () => {},
   mode: 'light',
   modePref: 'system',
   setMode: () => {},
   density: 'comfortable',
   setDensity: () => {},
   refresh: async () => {},
-  apply: () => {},
 });
 
 function readStoredPreset(): PresetId {
   try {
-    return normalizePreset(localStorage.getItem(PRESET_KEY) ?? localStorage.getItem(THEME_KEY));
+    return normalizePreset(localStorage.getItem(THEME_KEY));
   } catch {
     return 'marine';
   }
@@ -101,14 +97,16 @@ function resolveMode(pref: ModePref): 'light' | 'dark' {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const userID = user?.id;
   const [active, setActive] = useState<UserTheme | null>(null);
   const [preset, setPresetState] = useState<PresetId>(() => readStoredPreset());
+  const [action, setAction] = useState<ThemeAction | null>(null);
   const [mode, setResolvedMode] = useState<'light' | 'dark'>(() => readDomMode());
   const [modePref, setModePref] = useState<ModePref>(() => readModePref());
   const [density, setDensityState] = useState<Density>(() => readDensity());
+  const actionLock = useRef(false);
+  const selectionVersion = useRef(0);
 
-  // index.html stamps these attributes before React. From this point onward,
-  // this provider is their single owner, including the OS-mode listener.
   useEffect(() => {
     const applyMode = () => {
       const resolved = resolveMode(modePref);
@@ -140,74 +138,134 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(DENSITY_KEY, next); } catch {}
   }, []);
 
-  const showPreset = useCallback((id: PresetId) => {
-    resetM3();
-    document.documentElement.setAttribute('data-theme', id);
-    try { localStorage.setItem(THEME_KEY, id); } catch {}
-    try { localStorage.setItem(PRESET_KEY, id); } catch {}
-    setPresetState(id);
-    setActive(null);
+  // Built-in palettes are deterministic and generated from presets.ts once.
+  useEffect(() => {
+    let style = document.getElementById(PRESET_STYLE_ID) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = PRESET_STYLE_ID;
+      document.head.appendChild(style);
+    }
+    style.textContent = presetStylesheet();
   }, []);
 
-  const apply = useCallback((t: UserTheme | null) => {
-    if (!t) {
-      // No server theme — restore the last selected preset.
-      showPreset(readStoredPreset());
+  // This is the only effect that paints a theme. The selected React state is
+  // therefore always the same state represented by <html data-theme>.
+  useEffect(() => {
+    if (active) {
+      let style = document.getElementById(CUSTOM_STYLE_ID) as HTMLStyleElement | null;
+      if (!style) {
+        style = document.createElement('style');
+        style.id = CUSTOM_STYLE_ID;
+        document.head.appendChild(style);
+      }
+      style.textContent = customThemeStylesheet(active.seeds);
+      document.documentElement.dataset.theme = 'custom';
       return;
     }
-    applyM3(t.seeds, t.mode_pref); // also caches CSS for pre-paint
-    try { localStorage.setItem(THEME_KEY, 'custom'); } catch {}
-    setActive(t);
-  }, [showPreset]);
 
-  // Pick a preset from Settings: local swap first (instant), then release
-  // the server-side active theme so the next boot agrees.
-  const setPreset = useCallback(async (id: PresetId) => {
-    showPreset(id);
-    if (user) {
-      await themesApi.deactivate().catch(console.error);
-    }
-  }, [showPreset, user]);
+    document.getElementById(CUSTOM_STYLE_ID)?.remove();
+    document.documentElement.dataset.theme = preset;
+    try { localStorage.setItem(THEME_KEY, preset); } catch {}
+  }, [active, preset]);
 
-  const refresh = useCallback(async () => {
-    const t = await themesApi.active();
-    apply(t);
-  }, [apply]);
-
-  // Inject the generated preset stylesheets once.
-  useEffect(() => {
-    const ID = 'sajni-theme-presets';
-    const css = presetStylesheet();
-    let el = document.getElementById(ID) as HTMLStyleElement | null;
-    if (!el) {
-      el = document.createElement('style');
-      el.id = ID;
-      document.head.appendChild(el);
-    }
-    el.textContent = css;
-    try { localStorage.setItem(PRESET_CSS_KEY, css); } catch {}
+  const beginAction = useCallback((next: ThemeAction): number => {
+    if (actionLock.current) throw new Error('Another theme change is still in progress');
+    actionLock.current = true;
+    const version = ++selectionVersion.current;
+    setAction(next);
+    return version;
   }, []);
 
-  // Initial load. Theme endpoints are protected, so wait for auth boot.
-  // Keyed on user.id (not the user object) so a profile edit — e.g.
-  // changing the display name — does NOT re-run this and reset the theme.
+  const finishAction = useCallback((version: number) => {
+    if (selectionVersion.current !== version) return;
+    actionLock.current = false;
+    setAction(null);
+  }, []);
+
+  const setPreset = useCallback(async (id: PresetId) => {
+    const version = beginAction({ kind: 'preset', preset: id });
+    const previousPreset = preset;
+    const previousActive = active;
+    setPresetState(id);
+    setActive(null);
+    try {
+      if (userID) await themesApi.deactivate();
+    } catch (error) {
+      if (selectionVersion.current === version) {
+        setPresetState(previousPreset);
+        setActive(previousActive);
+      }
+      throw error;
+    } finally {
+      finishAction(version);
+    }
+  }, [active, beginAction, finishAction, preset, userID]);
+
+  const activateTheme = useCallback(async (theme: UserTheme) => {
+    const version = beginAction({ kind: 'activate', id: theme.id });
+    const previous = active;
+    setActive(theme);
+    try {
+      const confirmed = await themesApi.activate(theme.id);
+      if (selectionVersion.current === version) setActive(confirmed);
+      return confirmed;
+    } catch (error) {
+      if (selectionVersion.current === version) setActive(previous);
+      throw error;
+    } finally {
+      finishAction(version);
+    }
+  }, [active, beginAction, finishAction]);
+
+  const generateTheme = useCallback(async (prompt: string) => {
+    const version = beginAction({ kind: 'generate' });
+    try {
+      const generated = await themesApi.generate(prompt);
+      if (selectionVersion.current === version) setActive(generated);
+      return generated;
+    } finally {
+      finishAction(version);
+    }
+  }, [beginAction, finishAction]);
+
+  const deleteTheme = useCallback(async (theme: UserTheme) => {
+    const version = beginAction({ kind: 'delete', id: theme.id });
+    try {
+      await themesApi.delete(theme.id);
+      if (selectionVersion.current === version && active?.id === theme.id) {
+        setActive(null);
+      }
+    } finally {
+      finishAction(version);
+    }
+  }, [active?.id, beginAction, finishAction]);
+
+  const refresh = useCallback(async () => {
+    if (actionLock.current) return;
+    const version = selectionVersion.current;
+    const serverTheme = await themesApi.active();
+    if (!actionLock.current && selectionVersion.current === version) {
+      setActive(serverTheme);
+    }
+  }, []);
+
   useEffect(() => {
     if (loading) return;
-    if (!user) {
-      apply(null);
+    if (!userID) {
+      ++selectionVersion.current;
+      actionLock.current = false;
+      setAction(null);
+      setActive(null);
       return;
     }
     void refresh().catch(console.error);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, user?.id]);
+  }, [loading, refresh, userID]);
 
-  // AI tool events from AIChat. Both `theme_created` (with activate:true)
-  // and `theme_activated` should re-fetch the active theme.
   useEffect(() => {
-    const onInvalidate = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { kind?: string; activated?: boolean } | undefined;
-      const k = detail?.kind;
-      if (k === 'theme_activated' || (k === 'theme_created' && detail?.activated)) {
+    const onInvalidate = (event: Event) => {
+      const kind = (event as CustomEvent<{ kind?: string }>).detail?.kind;
+      if (kind === 'theme_activated' || kind === 'theme_created') {
         void refresh().catch(console.error);
       }
     };
@@ -219,14 +277,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ThemeCtx.Provider value={{
       active,
       preset,
+      action,
       setPreset,
+      activateTheme,
+      generateTheme,
+      deleteTheme,
       mode,
       modePref,
       setMode,
       density,
       setDensity,
       refresh,
-      apply,
     }}>
       {children}
     </ThemeCtx.Provider>

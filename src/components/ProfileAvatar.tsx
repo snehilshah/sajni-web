@@ -63,12 +63,9 @@ export function ProfileAvatar({
 }) {
   const { active, preset, mode } = useTheme();
   const seeds = active?.seeds ?? getPreset(preset).seeds;
-  const avatarMode = active?.mode_pref === 'light' || active?.mode_pref === 'dark'
-    ? active.mode_pref
-    : mode;
   const colors = useMemo(
-    () => previewSwatches(seeds, avatarMode),
-    [avatarMode, seeds.primary, seeds.secondary, seeds.tertiary, seeds.neutral],
+    () => previewSwatches(seeds, mode),
+    [mode, seeds.primary, seeds.secondary, seeds.tertiary, seeds.neutral],
   );
   const [src, setSrc] = useState('');
 

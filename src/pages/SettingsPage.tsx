@@ -10,7 +10,7 @@ import { useMode, useDensity, type ModePref, type Density } from '@/hooks/useThe
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { account, themes as themesApi } from '@/api';
+import { account, type UserTheme } from '@/api';
 import { useThemes } from '@/queries/themes';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -26,55 +26,66 @@ import { AnimatePresence, motion } from 'framer-motion';
 // applied through the ThemeProvider so other pages observe the swap
 // the moment activate fires.
 function AIThemes() {
-  const { mode, apply, active } = useUserTheme();
+  const {
+    mode,
+    active,
+    action,
+    activateTheme,
+    generateTheme,
+    deleteTheme,
+  } = useUserTheme();
   const qc = useQueryClient();
   const { data: list = [], isLoading: loading } = useThemes();
   const [prompt, setPrompt] = useState('');
-  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const generating = action?.kind === 'generate';
+  const busy = action !== null;
 
-  // Theme mutations stay on themesApi (tied to the provider's apply/refresh);
-  // refreshing the cached list keeps this management view in sync.
+  // ThemeProvider owns mutations and painting; this query is only the stable
+  // management list shown here.
   const reloadThemes = () => qc.invalidateQueries({ queryKey: qk.themes.all });
 
   const generate = async () => {
     const p = prompt.trim();
-    if (!p) return;
-    setGenerating(true);
+    if (!p || busy) return;
     setError(null);
     try {
-      const t = await themesApi.generate(p, { activate: true });
+      await generateTheme(p);
       setPrompt('');
-      apply(t);
-      reloadThemes();
+      await reloadThemes();
     } catch (e) {
-      setError((e as Error).message || 'Generation failed');
-    } finally {
-      setGenerating(false);
+      const message = (e as Error).message;
+      setError(message === 'internal error' ? 'Couldn’t mix this theme. Try again.' : message || 'Generation failed');
     }
   };
 
-  const activate = async (id: number) => {
+  const activate = async (theme: UserTheme) => {
+    if (busy || active?.id === theme.id) return;
+    setError(null);
     try {
-      const t = await themesApi.activate(id);
-      apply(t);
-      reloadThemes();
-    } catch (e) { console.error(e); }
+      await activateTheme(theme);
+      await reloadThemes();
+    } catch (e) {
+      setError((e as Error).message || 'Couldn’t activate this theme');
+    }
   };
 
-  const remove = async (id: number) => {
+  const remove = async (theme: UserTheme) => {
+    if (busy) return;
     if (!(await confirmDialog('Delete this theme?'))) return;
-    await themesApi.delete(id);
-    if (active?.id === id) {
-      apply(null);
+    setError(null);
+    try {
+      await deleteTheme(theme);
+      await reloadThemes();
+    } catch (e) {
+      setError((e as Error).message || 'Couldn’t delete this theme');
     }
-    reloadThemes();
   };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -82,12 +93,12 @@ function AIThemes() {
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); generate(); } }}
             disabled={generating}
           />
-          <Button onClick={generate} disabled={generating || !prompt.trim()} className="shrink-0 gap-2">
+          <Button onClick={generate} disabled={busy || !prompt.trim()} className="w-full gap-2 sm:w-auto sm:shrink-0">
             {generating ? <M3CookieLoader size="xs" tone="primary" /> : <Wand2 className="size-4" />}
             {generating ? 'Mixing…' : 'Generate'}
           </Button>
         </div>
-        {error && <div className="text-xs text-destructive">{error}</div>}
+        {error && <div role="alert" className="text-xs text-destructive">{error}</div>}
       </div>
 
       {loading ? (
@@ -99,63 +110,65 @@ function AIThemes() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {list.map((t) => {
-            const isActive = t.is_active;
-            const previewMode = t.mode_pref === 'auto' ? mode : t.mode_pref;
-            const swatches = previewSwatches(t.seeds, previewMode);
+            const isActive = active?.id === t.id;
+            const isActivating = action?.kind === 'activate' && action.id === t.id;
+            const isDeleting = action?.kind === 'delete' && action.id === t.id;
+            const swatches = previewSwatches(t.seeds, mode);
             return (
               <div
                 key={t.id}
-                onClick={() => !isActive && activate(t.id)}
                 className={cn(
-                  'flex items-center gap-3 rounded-2xl border p-3 transition-[border-color,box-shadow]',
+                  'flex min-w-0 items-stretch rounded-2xl border transition-[border-color,box-shadow]',
                   isActive
                     ? 'border-primary ring-1 ring-primary/30'
-                    : 'border-border hover:border-muted-foreground/30 cursor-pointer',
+                    : 'border-border hover:border-muted-foreground/30',
                 )}
               >
-                <div className="flex shrink-0">
-                  {swatches.map((s, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'size-7 rounded-full border-2 border-[hsl(var(--surface))]',
-                        i > 0 && '-ml-2',
-                      )}
-                      style={{ background: s }}
-                    />
-                  ))}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-serif font-semibold text-sm truncate">{t.name}</span>
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground truncate">
-                    {t.prompt || (t.source === 'manual' ? 'custom' : t.source)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {!isActive && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); activate(t.id); }}
-                      className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-primary hover:bg-accent"
-                      title="Activate"
-                    >
-                      <Star className="size-4" />
-                    </button>
-                  )}
-                  {isActive && (
-                    <span className="size-8 rounded-md grid place-items-center text-primary" title="Active">
-                      <Star className="size-4 fill-current" />
+                <button
+                  type="button"
+                  onClick={() => activate(t)}
+                  disabled={busy || isActive}
+                  aria-pressed={isActive}
+                  aria-label={isActive ? `${t.name}, active theme` : `Activate ${t.name}`}
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-l-2xl p-3 text-left outline-none transition-colors enabled:hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
+                >
+                  <span className="flex shrink-0" aria-hidden="true">
+                    {swatches.map((swatch, index) => (
+                      <span
+                        key={index}
+                        className={cn(
+                          'size-7 rounded-full border-2 border-[hsl(var(--surface))]',
+                          index > 0 && '-ml-2',
+                        )}
+                        style={{ background: swatch }}
+                      />
+                    ))}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-serif text-sm font-semibold">{t.name}</span>
+                    <span className="block truncate font-mono text-xs text-muted-foreground">
+                      {t.prompt}
                     </span>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); remove(t.id); }}
-                    className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-destructive hover:bg-accent"
-                    title="Delete"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
+                  </span>
+                  <span className="grid size-8 shrink-0 place-items-center text-primary" aria-hidden="true">
+                    {isActivating
+                      ? <M3CookieLoader size="xs" tone="primary" />
+                      : <Star className={cn('size-4', isActive && 'fill-current')} />}
+                  </span>
+                </button>
+                <div className="my-2 w-px bg-border" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => remove(t)}
+                  disabled={busy}
+                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-2xl text-muted-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-destructive focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
+                  title={`Delete ${t.name}`}
+                  aria-label={`Delete ${t.name}`}
+                >
+                  {isDeleting
+                    ? <M3CookieLoader size="xs" tone="primary" />
+                    : <Trash2 className="size-4" />}
+                </button>
               </div>
             );
           })}
@@ -324,7 +337,13 @@ function NameEditor() {
 export default function SettingsPage() {
   const { hash } = useLocation();
   const { user, logout, rerollAvatar } = useAuth();
-  const { preset, setPreset, active: activeUserTheme, mode: resolvedMode } = useUserTheme();
+  const {
+    preset,
+    setPreset,
+    active: activeUserTheme,
+    mode: resolvedMode,
+    action: themeAction,
+  } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
   const qc = useQueryClient();
@@ -502,14 +521,21 @@ export default function SettingsPage() {
                 <button
                   key={t.id}
                   // setPreset applies the preset and releases any active
-                  // AI/custom theme server-side; refresh the list so its
-                  // is_active stars update.
+                  // Release the server-side AI theme, then refresh the saved
+                  // list's persistence metadata.
                   onClick={async () => {
-                    await setPreset(t.id);
-                    qc.invalidateQueries({ queryKey: qk.themes.all });
+                    try {
+                      await setPreset(t.id);
+                      await qc.invalidateQueries({ queryKey: qk.themes.all });
+                    } catch (error) {
+                      toast.error((error as Error).message || 'Couldn’t change theme');
+                    }
                   }}
+                  disabled={themeAction !== null}
+                  aria-pressed={active}
+                  aria-busy={themeAction?.kind === 'preset' && themeAction.preset === t.id}
                   className={cn(
-                    'h-10 pl-2 pr-5 inline-flex items-center gap-2.5 border text-sm rounded-full transition-colors',
+                    'h-11 pl-2 pr-5 inline-flex items-center gap-2.5 border text-sm rounded-full transition-colors disabled:opacity-60',
                     active
                       ? 'bg-primary text-primary-foreground border-primary shadow-[var(--m3-elev-1)]'
                       : 'bg-transparent border-[hsl(var(--outline))] text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.06)]',
