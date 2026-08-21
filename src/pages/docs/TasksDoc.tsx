@@ -4,13 +4,13 @@ export const tasksMeta = {
   id: 'tasks',
   label: 'Tasks',
   title: 'Tasks',
-  blurb: 'Lists, smart views, day/week/month scopes, blocking chains, steps, subtasks and reminders.',
+  blurb: 'Lists, smart views, scoped work, blocking chains, subtasks and lightweight reminders.',
   sections: [
     { id: 'views', label: 'Smart views & lists' },
     { id: 'scopes', label: 'Day / week / month scope' },
     { id: 'anatomy', label: 'Anatomy of a task' },
     { id: 'blocking', label: 'Blocked tasks' },
-    { id: 'reminders', label: 'Reminders' },
+    { id: 'reminders', label: 'Tasks & reminders' },
     { id: 'lifecycle', label: 'Lifecycle & missed' },
     { id: 'board', label: 'List & Board' },
   ],
@@ -162,12 +162,53 @@ export default function TasksDoc() {
         </Callout>
       </Section>
 
-      <Section id="reminders" title="Reminders">
+      <Section id="reminders" title="Tasks & standalone reminders" chip="Tasks · Reminders">
+        <p>
+          The secondary bar separates work from nudges. A task models
+          something you intend to complete; a standalone reminder only needs
+          a message and a time.
+        </p>
+        <RefTable
+          head={['use', 'when it fits']}
+          rows={[
+            ['Task', 'Work with status, scope, priority, steps, subtasks or a completion trail.'],
+            ['Reminder', 'A lightweight interruption such as “call Mom tomorrow at 4”.'],
+            ['Task reminder', 'A notification that belongs to an existing task and should stay attached to it.'],
+          ]}
+        />
         <FeatureList>
+          <Feature name="The reminder ledger">
+            <p>
+              Reminders group chronologically into Today, Tomorrow, Later and
+              Recurring. A row carries the message, next fire time, optional
+              note and compact actions. Delivered and skipped occurrences
+              move into the collapsed Recent ledger instead of lingering in
+              the active list.
+            </p>
+          </Feature>
+          <Feature name="Recurring series">
+            <p>
+              Repeat every N days, weeks, months or years; select weekdays;
+              use a monthly date or an ordinal weekday such as “last Friday”;
+              and stop on a date or after a count. Editing changes the series.
+              Skipping or snoozing acts on the current occurrence, so a
+              one-off delay never shifts future cadence.
+            </p>
+          </Feature>
+          <Feature name="Snooze and delivery">
+            <p>
+              Snooze for ten minutes, an hour, tomorrow morning or a custom
+              date and time. Android reminder notifications expose a direct
+              “Snooze 10 min” action. Delivery follows the account's Email /
+              Push / Both choice; a push-only reminder falls back to email if
+              no registered device receives it.
+            </p>
+          </Feature>
           <Feature name="Multiple reminders per task">
             <p>
-              Each reminder is its own date + time. Every one fires on both
-              channels: push to all your devices <em>and</em> email.
+              A task can still carry several attached reminders, each with
+              its own date and time. They follow the same account delivery
+              choice as standalone reminders.
             </p>
           </Feature>
           <Feature name="Extra recipients">
@@ -184,6 +225,11 @@ export default function TasksDoc() {
             </p>
           </Feature>
         </FeatureList>
+        <Callout tone="why">
+          “Remind me” should stay small. It becomes a standalone reminder
+          unless you explicitly ask for a task, or ask for a reminder on an
+          existing task.
+        </Callout>
       </Section>
 
       <Section id="lifecycle" title="Lifecycle & missed">

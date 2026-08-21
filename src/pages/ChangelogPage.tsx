@@ -50,6 +50,36 @@ const GROUP_ORDER: Kind[] = ['feature', 'improvement', 'fix'];
 
 const RELEASES: Release[] = [
   {
+    version: '0.49.0',
+    date: '2026-08-21',
+    summary:
+      'Reminders become a lightweight space of their own, with recurring schedules, snooze, '
+      + 'Android actions, and full Sajni parity without turning every nudge into a task.',
+    entries: [
+      {
+        kind: 'feature',
+        area: 'Reminders',
+        title: 'Lightweight reminders, separate from tasks',
+        detail:
+          'Tasks now has a Reminders tab for message-and-time nudges with optional notes. Upcoming '
+          + 'reminders form one chronological ledger grouped into Today, Tomorrow, Later and '
+          + 'Recurring, while delivered and skipped occurrences settle into Recent. Recurrence '
+          + 'supports intervals, selected weekdays, monthly date or weekday patterns, and date or '
+          + 'count limits. Snoozing changes only the current occurrence; future cadence stays put. '
+          + 'Android notifications include a one-tap “Snooze 10 min” action, and Sajni can create, '
+          + 'list, edit, snooze, skip or delete the same reminders from natural language.',
+      },
+      {
+        kind: 'improvement',
+        area: 'Profile',
+        title: 'A gentler navigation avatar crop',
+        detail:
+          'The small voxel avatar keeps its close, recognisable head crop without feeling as '
+          + 'zoomed-in in the navigation profile slot.',
+      },
+    ],
+  },
+  {
     version: '0.48.0',
     date: '2026-08-21',
     summary:

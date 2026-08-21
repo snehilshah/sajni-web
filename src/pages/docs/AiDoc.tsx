@@ -47,7 +47,11 @@ export default function AiDoc() {
       <Section id="abilities" title="What it can do">
         <p>A non-exhaustive map of the tool surface, by space:</p>
         <ul>
-          <li><strong>Tasks</strong> — create/update/complete tasks, lists, reminders; query what's due.</li>
+          <li><strong>Tasks</strong> — create/update/complete tasks and lists; query what's due.</li>
+          <li>
+            <strong>Reminders</strong> — create, list, edit, snooze, skip and
+            delete standalone one-time or recurring reminders.
+          </li>
           <li><strong>Habits</strong> — log ticks, check streaks.</li>
           <li><strong>Notes & memos</strong> — capture memos, search notes, read content back.</li>
           <li><strong>Journal</strong> — read/write entries.</li>
@@ -65,6 +69,15 @@ export default function AiDoc() {
 
       <Section id="behavior" title="How it behaves">
         <FeatureList>
+          <Feature name="Reminder wording stays lightweight">
+            <p>
+              “Remind me to call Mom tomorrow at 4” creates a standalone
+              reminder, not a task. An explicit task stays a task, and a
+              reminder requested for an existing task stays attached to that
+              task. If you give a day but no clock time, Sajni asks one short
+              follow-up instead of inventing an hour.
+            </p>
+          </Feature>
           <Feature name="It acts, then answers">
             <p>
               Asked to do something, it does it and confirms in a line — no

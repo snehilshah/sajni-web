@@ -4,7 +4,7 @@ export const settingsMeta = {
   id: 'settings',
   label: 'Settings & data',
   title: 'Settings & data',
-  blurb: 'Appearance, themes (including AI-mixed ones), density, account, takeout and deletion.',
+  blurb: 'Appearance, themes, profile identity, reminder delivery, takeout and deletion.',
   sections: [
     { id: 'appearance', label: 'Appearance & density' },
     { id: 'themes', label: 'Themes & AI themes' },
@@ -65,11 +65,33 @@ export default function SettingsDoc() {
       </Section>
 
       <Section id="account" title="Account">
-        <p>
-          Email + Google OAuth sign-in; sessions refresh silently and end on
-          sign-out. Display name is editable; the guided tour can be
-          replayed from here.
-        </p>
+        <FeatureList>
+          <Feature name="Profile and voxel avatar">
+            <p>
+              The profile card keeps your larger voxel character beside your
+              editable display name, email and linked sign-in methods. Reroll
+              changes the character without uploading or storing an image —
+              it is generated locally from your account and revision. Theme
+              swatches tint it, motion follows reduced-motion preferences,
+              and navigation uses a calmer close crop at its compact size.
+            </p>
+          </Feature>
+          <Feature name="Sign-in and sessions">
+            <p>
+              Email, Google and GitHub sign-in methods land in the same
+              account. Sessions refresh silently and end on sign-out; the
+              guided tour can be replayed from Settings.
+            </p>
+          </Feature>
+          <Feature name="Reminder delivery">
+            <p>
+              Android Settings offers one account-level choice for Email,
+              Push or Both. It applies to personal reminders, task reminders,
+              digests and other timed notices instead of adding channel knobs
+              to every reminder.
+            </p>
+          </Feature>
+        </FeatureList>
       </Section>
 
       <Section id="data" title="Your data">
