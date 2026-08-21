@@ -4,7 +4,7 @@ import { addDays, format, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
+  Bell, Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
 } from '@/components/ui/icons';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -27,11 +27,12 @@ import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 import MissedBanner from '@/components/tasks/MissedBanner';
+import RemindersPanel from '@/components/reminders/RemindersPanel';
 import {
   STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, weekMondayKey, monthFirstKey,
 } from '@/components/tasks/helpers';
 import { useNavChrome } from '@/components/nav-chrome';
-import PageShell from '@/components/PageShell';
+import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 
 type ViewMode = 'list' | 'board';
@@ -53,6 +54,7 @@ export default function TasksPage() {
   const [taskFormLayoutId, setTaskFormLayoutId] = useState<string | undefined>();
 
   const [quickTitle, setQuickTitle] = useState('');
+  const [reminderCreateSignal, setReminderCreateSignal] = useState(0);
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, viewMode); } catch {}
@@ -92,18 +94,20 @@ export default function TasksPage() {
   // so Today-page links always resolve; other filters may not include it.
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get('focus');
+  const activeTab = searchParams.get('tab') === 'reminders' ? 'reminders' : 'tasks';
   const focusHandled = useRef<string | null>(null);
   useEffect(() => {
-    if (!focusId || focusHandled.current === focusId) return;
+    if (activeTab !== 'tasks' || !focusId || focusHandled.current === focusId) return;
     const inList = tasksList.find((x) => String(x.id) === focusId);
     if (inList) {
       focusHandled.current = focusId;
       setEditingTask(inList);
       setShowForm(true);
-      searchParams.delete('focus');
-      setSearchParams(searchParams, { replace: true });
+      const next = new URLSearchParams(searchParams);
+      next.delete('focus');
+      setSearchParams(next, { replace: true });
     }
-  }, [focusId, tasksList, searchParams, setSearchParams]);
+  }, [activeTab, focusId, tasksList, searchParams, setSearchParams]);
 
   const grouped = useMemo(() => {
     const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], blocked: [], done: [], scratched: [] };
@@ -183,25 +187,26 @@ export default function TasksPage() {
   const isMobile = useIsMobile();
   const effectiveView = isMobile ? 'list' : viewMode;
 
+  const switchTab = (tab: 'tasks' | 'reminders') => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'reminders') next.set('tab', 'reminders');
+    else next.delete('tab');
+    next.delete('focus');
+    setShowForm(false);
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <PageShell
       title="Tasks"
       actions={
         !isMobile ? (
-          <div className="inline-flex items-center gap-2">
-            <SplitButton
-              size="sm"
-              value={viewMode}
-              options={[
-                { value: 'list',  label: 'List',  icon: ListChecks },
-                { value: 'board', label: 'Board', icon: LayoutGrid },
-              ]}
-              onChange={(v) => setViewMode(v as ViewMode)}
-              onPrimary={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
-            />
-            {/* Same visual source, state-specific layoutId: the page chrome can
-                morph rest↔merged without this CTA doing a delayed shared jump. */}
-            {showForm && !editingTask ? (
+          activeTab === 'reminders' ? (
+            <Button onClick={() => setReminderCreateSignal((value) => value + 1)} size="sm" className="gap-1.5">
+              <Plus className="size-3.5" /> New reminder
+            </Button>
+          ) : (
+            showForm && !editingTask ? (
               <span className="inline-flex rounded-full">
                 <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
                   <Plus className="size-3.5" /> New task
@@ -213,54 +218,87 @@ export default function TasksPage() {
                   <Plus className="size-3.5" /> New task
                 </Button>
               </motion.span>
-            )}
-          </div>
+            )
+          )
         ) : undefined
       }
-    >
-      <div className="flex flex-col gap-3.5">
-        {/* Smart + user list pills — single swipeable row. */}
-        <PillScroller
-          lists={lists}
-          selection={selection}
-          smartCounts={{ missed: missedCount, blocked: blockedTasks.length }}
-          onSelect={setSelection}
-          onCreate={async (name) => { await createList.mutateAsync({ name }); }}
-          onRename={async (id, name) => { await updateList.mutateAsync({ id, data: { name } }); }}
-          onDelete={async (id) => {
-            await deleteList.mutateAsync(id);
-            if (selection.kind === 'list' && selection.id === id) {
-              setSelection({ kind: 'smart', smart: 'all' });
-            }
-          }}
+      navigation={
+        <PageShellTabs
+          bare
+          ariaLabel="Task sections"
+          value={activeTab}
+          options={[
+            { value: 'tasks', label: 'Tasks', icon: ListChecks },
+            { value: 'reminders', label: 'Reminders', icon: Bell },
+          ]}
+          onChange={switchTab}
         />
+      }
+    >
+      {activeTab === 'reminders' ? (
+        <RemindersPanel
+          createSignal={reminderCreateSignal}
+          focusId={focusId ? Number(focusId) : undefined}
+        />
+      ) : (
+        <div className="flex flex-col gap-3.5">
+          <section
+            aria-label="Task controls"
+            className="flex flex-col gap-2.5 rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-2.5 sm:p-3"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <PillScroller
+                  lists={lists}
+                  selection={selection}
+                  smartCounts={{ missed: missedCount, blocked: blockedTasks.length }}
+                  onSelect={setSelection}
+                  onCreate={async (name) => { await createList.mutateAsync({ name }); }}
+                  onRename={async (id, name) => { await updateList.mutateAsync({ id, data: { name } }); }}
+                  onDelete={async (id) => {
+                    await deleteList.mutateAsync(id);
+                    if (selection.kind === 'list' && selection.id === id) {
+                      setSelection({ kind: 'smart', smart: 'all' });
+                    }
+                  }}
+                />
+              </div>
+              {!isMobile && (
+                <SplitButton
+                  size="sm"
+                  value={viewMode}
+                  options={[
+                    { value: 'list', label: 'List', icon: ListChecks },
+                    { value: 'board', label: 'Board', icon: LayoutGrid },
+                  ]}
+                  onChange={(value) => setViewMode(value as ViewMode)}
+                  onPrimary={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
+                />
+              )}
+            </div>
+
+            {!isMobile && (
+              <div className="flex h-11 items-center gap-2.5 rounded-xl bg-[hsl(var(--surface-container))] px-3.5">
+                <Plus className="size-4 shrink-0 text-muted-foreground" />
+                <Input
+                  name="quick-task-title"
+                  value={quickTitle}
+                  onChange={(e) => setQuickTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
+                  placeholder="Add a task. Press ↵."
+                  className="h-8 border-0 bg-transparent px-2 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0"
+                />
+                {quickTitle.trim() && (
+                  <Button size="sm" className="h-8 px-3 text-xs" onClick={handleQuickAdd}>Add</Button>
+                )}
+              </div>
+            )}
+          </section>
 
         {/* Missed-tasks highlight + reschedule CTA. Hidden while actually
             viewing the Missed list (would be redundant). Self-hides when empty. */}
         {!(selection.kind === 'smart' && selection.smart === 'missed') && (
           <MissedBanner />
-        )}
-
-        {/* Inline quick-add — desktop only. Mobile uses the FAB → full sheet. */}
-        {!isMobile && (
-          <div className="rounded-xl border border-border bg-card/60 px-3.5 flex items-center gap-2.5 h-11">
-            <Plus className="size-4 text-muted-foreground shrink-0" />
-            <Input
-              name="quick-task-title"
-              value={quickTitle}
-              onChange={(e) => setQuickTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleQuickAdd();
-              }}
-              placeholder="Add a task. Press ↵."
-              className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-0 px-2 text-sm"
-            />
-            {quickTitle.trim() && (
-              <Button size="sm" className="h-7 px-3 text-xs" onClick={handleQuickAdd}>
-                Add
-              </Button>
-            )}
-          </div>
         )}
 
         {/* Body */}
@@ -305,29 +343,30 @@ export default function TasksPage() {
             />
           )}
         </div>
-      </div>
+        </div>
+      )}
 
-      <Suspense fallback={null}>
-        <TaskFormDialog
-          open={showForm}
-          onOpenChange={setShowForm}
-          editing={editingTask}
-          defaults={formDefaults}
-          lists={lists}
-          onSaved={refreshTasks}
-          layoutId={taskFormLayoutId}
-          onCloseComplete={() => {
-            if (!showForm) setTaskFormLayoutId(undefined);
-          }}
-        />
-      </Suspense>
+      {activeTab === 'tasks' && (
+        <Suspense fallback={null}>
+          <TaskFormDialog
+            open={showForm}
+            onOpenChange={setShowForm}
+            editing={editingTask}
+            defaults={formDefaults}
+            lists={lists}
+            onSaved={refreshTasks}
+            layoutId={taskFormLayoutId}
+            onCloseComplete={() => { if (!showForm) setTaskFormLayoutId(undefined); }}
+          />
+        </Suspense>
+      )}
 
       {/* Mobile FAB — bottom-right, above the safe area. */}
       {isMobile && (
         <button
           type="button"
-          aria-label="New task"
-          onClick={() => openCreate()}
+          aria-label={activeTab === 'tasks' ? 'New task' : 'New reminder'}
+          onClick={() => activeTab === 'tasks' ? openCreate() : setReminderCreateSignal((value) => value + 1)}
           className="md:hidden fixed right-4 z-40 size-14 inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-[var(--m3-elev-3)] active:translate-y-px"
           style={{
             bottom: 'calc(env(safe-area-inset-bottom) + 84px)',

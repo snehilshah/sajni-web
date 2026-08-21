@@ -13,6 +13,9 @@ import type {
   Memo,
   Note,
   NoteFolder,
+  Reminder,
+  ReminderHistoryItem,
+  ReminderInput,
   SmartList,
   TagEntities,
   Task,
@@ -187,6 +190,29 @@ export const tasks = {
     request<{ id: number }>('/tasks/' + id + '/reminders', { method: 'POST', body: JSON.stringify({ remind_at }) }),
   deleteReminder: (id: number, rid: number) =>
     request('/tasks/' + id + '/reminders/' + rid, { method: 'DELETE' }),
+};
+
+export const reminders = {
+  list: (params?: { search?: string; all?: boolean; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
+    if (params?.all) q.set('all', 'true');
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return request<Reminder[]>('/reminders' + (qs ? `?${qs}` : ''));
+  },
+  recent: (limit = 30, offset = 0) =>
+    request<ReminderHistoryItem[]>(`/reminders/recent?limit=${limit}&offset=${offset}`),
+  get: (id: number) => request<Reminder>(`/reminders/${id}`),
+  create: (data: ReminderInput) =>
+    request<Reminder>('/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: ReminderInput) =>
+    request<Reminder>(`/reminders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request(`/reminders/${id}`, { method: 'DELETE' }),
+  snooze: (id: number, data: { occurrence_id?: number; minutes?: number; fire_at?: string }) =>
+    request<Reminder>(`/reminders/${id}/snooze`, { method: 'POST', body: JSON.stringify(data) }),
+  skip: (id: number, occurrence_id?: number) =>
+    request<Reminder>(`/reminders/${id}/skip`, { method: 'POST', body: JSON.stringify({ occurrence_id }) }),
 };
 
 export interface TaskEvent {

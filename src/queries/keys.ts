@@ -17,6 +17,12 @@ export const qk = {
     events: (id: number) => ['tasks', 'events', id] as const,
     reminders: (id: number) => ['tasks', 'reminders', id] as const,
   },
+  reminders: {
+    all: ['reminders'] as const,
+    list: (params?: unknown) => ['reminders', 'list', params ?? {}] as const,
+    detail: (id: number) => ['reminders', 'detail', id] as const,
+    recent: (limit = 30, offset = 0) => ['reminders', 'recent', limit, offset] as const,
+  },
   taskLists: {
     all: ['taskLists'] as const,
     list: () => ['taskLists', 'list'] as const,

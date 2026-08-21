@@ -62,6 +62,55 @@ export interface Task {
   updated_at: string;
 }
 
+export interface ReminderRecurrence {
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval?: number;
+  weekdays?: number[];
+  monthly_mode?: 'date' | 'weekday';
+  month_day?: number;
+  weekday?: number;
+  ordinal?: number;
+  until?: string;
+  count?: number;
+}
+
+export interface ReminderOccurrence {
+  id: number;
+  sequence: number;
+  scheduled_at: string;
+  fire_at: string;
+  status: 'pending' | 'delivered' | 'skipped' | 'cancelled';
+  delivered_at?: string;
+  skipped_at?: string;
+}
+
+export interface Reminder {
+  id: number;
+  message: string;
+  notes: string;
+  timezone: string;
+  starts_at: string;
+  recurrence: ReminderRecurrence;
+  active: boolean;
+  next_occurrence?: ReminderOccurrence;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReminderHistoryItem extends ReminderOccurrence {
+  reminder_id: number;
+  message: string;
+  notes: string;
+}
+
+export interface ReminderInput {
+  message: string;
+  notes?: string;
+  timezone?: string;
+  starts_at: string;
+  recurrence?: ReminderRecurrence;
+}
+
 export type TaskPatch = Partial<Pick<
   Task,
   | 'title'
