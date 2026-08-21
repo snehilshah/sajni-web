@@ -38,7 +38,7 @@ function avatarDataUri(seed: string, colors: readonly string[], view: AvatarView
     // DiceBear v10's library accepts hex colors without the leading '#'.
     shirtColor: colors[0].slice(1),
     pantsColor: colors[1].slice(1),
-    ...(view === 'nav' ? { scale: 1.8, translateY: 32 } : {}),
+    ...(view === 'nav' ? { scale: 1.65, translateY: 32 } : {}),
   }).toDataUri());
 
   if (avatarCache.size >= MAX_CACHE_ENTRIES) {
