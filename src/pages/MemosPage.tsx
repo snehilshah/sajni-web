@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ArrowUp, Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
+import { ArrowDown, Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
 import PageShell from '@/components/PageShell';
 
 export default function MemosPage() {
@@ -121,7 +121,7 @@ export default function MemosPage() {
                 title="Save memo (⌘ + Enter)"
                 aria-label="Save memo"
               >
-                {creating ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-4" />}
+                {creating ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowDown className="size-4" />}
               </Button>
             </div>
           </div>
