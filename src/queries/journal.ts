@@ -10,6 +10,14 @@ export function useJournalList() {
   });
 }
 
+export function useJournalEntry(date: string) {
+  return useQuery({
+    queryKey: qk.journal.entry(date),
+    queryFn: () => journalApi.get(date),
+    enabled: Boolean(date),
+  });
+}
+
 export function useSaveJournal() {
   const qc = useQueryClient();
   return useMutation({

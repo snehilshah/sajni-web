@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   accounts: FinAccount[];
   categories: FinCategory[];
+  enabled: boolean;
 }
 
 const FREQ_LABEL: Record<BillerFrequency, string> = {
@@ -48,7 +49,7 @@ const FREQ_LABEL: Record<BillerFrequency, string> = {
 const effectiveAmount = (b: FinBiller) =>
   b.kind === 'bill' ? (b.last_paid_amount ?? 0) || b.amount : b.amount;
 
-export default function BillersTab({ accounts, categories }: Props) {
+export default function BillersTab({ accounts, categories, enabled }: Props) {
   const { formatMoney } = useFinanceFormatters();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FinBiller | null>(null);
@@ -58,8 +59,14 @@ export default function BillersTab({ accounts, categories }: Props) {
 
   // List comes from the shared cache, so manual writes AND AI biller_ events
   // (bridged to qk.finance.all by InvalidateBridge) both refresh it.
-  const { data: billers = [], isLoading } = useFinBillers(showArchived);
-  const refresh = () => qc.invalidateQueries({ queryKey: qk.finance.all });
+  const { data: billers = [], isLoading } = useFinBillers(showArchived, enabled);
+  const refreshBillers = () => {
+    qc.invalidateQueries({ queryKey: ['finance', 'billers'] });
+    qc.invalidateQueries({ queryKey: qk.finance.overview() });
+  };
+  // Paying a bill can create/attach a transaction and change balances,
+  // budgets, slate totals, payment history and the overview.
+  const refreshAfterPayment = () => qc.invalidateQueries({ queryKey: qk.finance.all });
 
   const detail = billers.find((b) => b.id === detailId) || null;
 
@@ -119,7 +126,7 @@ export default function BillersTab({ accounts, categories }: Props) {
                   biller={b}
                   accounts={accounts}
                   onOpen={() => setDetailId(b.id)}
-                  onPaid={refresh}
+                  onPaid={refreshAfterPayment}
                 />
               ))}
             </AnimatePresence>
@@ -133,7 +140,7 @@ export default function BillersTab({ accounts, categories }: Props) {
         accounts={accounts}
         categories={categories}
         onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); refresh(); }}
+        onSaved={() => { setCreating(false); setEditing(null); refreshBillers(); }}
       />
 
       <BillerDetailSheet
@@ -142,8 +149,8 @@ export default function BillersTab({ accounts, categories }: Props) {
         categories={categories}
         onClose={() => setDetailId(null)}
         onEdit={() => { setEditing(detail); setDetailId(null); }}
-        onChanged={refresh}
-        onGone={() => { setDetailId(null); refresh(); }}
+        onChanged={refreshBillers}
+        onGone={() => { setDetailId(null); refreshBillers(); }}
       />
     </div>
   );

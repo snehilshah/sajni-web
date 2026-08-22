@@ -1,55 +1,32 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { TrendingUp, TrendingDown, Wallet, Camera, AlertCircle, Receipt, Zap } from '@/components/ui/icons';
 
-import { finance, type FinAccount } from '@/api';
+import { finance } from '@/api';
+import { useFinNetworthHistory, useFinOverview } from '@/queries/finance';
+import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 
-interface OverviewData {
-  net_worth: number;
-  total_assets: number;
-  total_liabilities: number;
-  investments_total: number;
-  month_income: number;
-  month_expense: number;
-  month_savings: number;
-  month_recurring_invest: number;
-  accounts: { account_id: number; name: string; type: string; balance: number; color: string }[];
-  top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
-  daily_trend: { date: string; income: number; expense: number }[];
-  upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
-  upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; is_subscription: boolean; auto_renew: boolean }[];
-  investments_breakdown: { type: string; amount: number }[];
-}
-
-interface Snapshot {
-  date: string;
-  assets: number;
-  liabilities: number;
-  net_worth: number;
-}
+type OverviewData = Awaited<ReturnType<typeof finance.overview>>;
+type Snapshot = Awaited<ReturnType<typeof finance.networthHistory>>[number];
 
 interface Props {
-  accounts: FinAccount[];
+  enabled: boolean;
 }
 
-export default function OverviewTab({ accounts }: Props) {
+export default function OverviewTab({ enabled }: Props) {
   const { formatMoney } = useFinanceFormatters();
+  const qc = useQueryClient();
   const [renderedAt] = useState(Date.now);
-  const [data, setData] = useState<OverviewData | null>(null);
-  const [history, setHistory] = useState<Snapshot[]>([]);
+  const { data = null } = useFinOverview(enabled);
+  const { data: history = [] } = useFinNetworthHistory(enabled);
   const [snapping, setSnapping] = useState(false);
-
-  const load = () => {
-    finance.overview().then(setData).catch(() => {});
-    finance.networthHistory().then(setHistory).catch(() => {});
-  };
-  useEffect(() => { load(); }, [accounts]);
 
   if (!data) {
     return (
@@ -68,7 +45,10 @@ export default function OverviewTab({ accounts }: Props) {
     setSnapping(true);
     try {
       await finance.takeSnapshot();
-      load();
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: qk.finance.overview() }),
+        qc.invalidateQueries({ queryKey: qk.finance.networthHistory() }),
+      ]);
       toast.success('Net worth snapshot saved', {
         description: `${formatMoney(data.net_worth)} captured for ${format(new Date(), 'MMM d, yyyy')}.`,
       });

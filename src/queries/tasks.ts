@@ -23,6 +23,14 @@ export function useMissedTasks() {
   });
 }
 
+export function useMissedTasksForDate(date: string) {
+  return useQuery({
+    queryKey: qk.tasks.missed(date),
+    queryFn: () => tasksApi.missed(date),
+    enabled: Boolean(date),
+  });
+}
+
 export function useTaskLists() {
   return useQuery({
     queryKey: qk.taskLists.list(),

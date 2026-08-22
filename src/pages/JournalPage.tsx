@@ -9,8 +9,16 @@ import {
 } from 'date-fns';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { journal as journalApi, habits as habitsApi, tasks as tasksApi, type JournalLocation } from '@/api';
-import { useJournalList } from '@/queries/journal';
+import {
+  journal as journalApi,
+  habits as habitsApi,
+  tasks as tasksApi,
+  type JournalLocation,
+  type MissedTask,
+} from '@/api';
+import { useJournalEntry, useJournalList } from '@/queries/journal';
+import { useHabitPeriodStatus } from '@/queries/habits';
+import { useMissedTasksForDate, useTasks, useToggleTaskStatus } from '@/queries/tasks';
 import { useEventDayEntries } from '@/queries/events';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -27,7 +35,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
-import type { MissedTask } from '@/api';
 import type { BacklinkRef, HabitStatus, Task } from '@/types';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
@@ -62,14 +69,8 @@ export default function JournalPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [backlinks, setBacklinks] = useState<BacklinkRef[]>([]);
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [loading, setLoading] = useState(true);
 
   const [habitStatuses, setHabitStatuses] = useState<HabitStatus[]>([]);
-  const [dueTasks, setDueTasks] = useState<TaskItem[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<TaskItem[]>([]);
-  const [missedTasks, setMissedTasks] = useState<MissedTask[]>([]);
-  const [loadingHabits, setLoadingHabits] = useState(true);
-  const [loadingTasks, setLoadingTasks] = useState(true);
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) !== '0'; } catch { return true; }
@@ -94,7 +95,6 @@ export default function JournalPage() {
 
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const tasksLoadedDateRef = useRef<string | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0'); } catch {}
@@ -169,60 +169,42 @@ export default function JournalPage() {
   const { data: entriesData } = useJournalList();
   const entries = useMemo(() => (entriesData ?? []) as JournalEntry[], [entriesData]);
   const { data: eventDayEntries = [], isLoading: loadingEvents } = useEventDayEntries(selectedDate);
+  const { data: entryData, isLoading: loadingEntry } = useJournalEntry(selectedDate);
+  const loading = loadingEntry;
+  const { data: habitStatusData = [], isLoading: loadingHabits } = useHabitPeriodStatus(selectedDate);
+  const { data: dueTaskData = [], isLoading: loadingDueTasks } = useTasks({ due_date: selectedDate });
+  const { data: completedTasks = [], isLoading: loadingCompletedTasks } = useTasks({ completed_date: selectedDate });
+  const { data: missedTasks = [], isLoading: loadingMissedTasks } = useMissedTasksForDate(selectedDate);
+  const dueTasks = dueTaskData.filter((t) => t.status !== 'done' && t.status !== 'scratched');
+  const loadingTasks = loadingDueTasks || loadingCompletedTasks || loadingMissedTasks;
+  const toggleTaskStatus = useToggleTaskStatus();
   // Editor writes go through journalApi (day-scoped); refresh the cached list
   // (and any other journal view) after a save/delete.
   const loadEntries = useCallback(() => {
-    qc.invalidateQueries({ queryKey: qk.journal.all });
+    qc.invalidateQueries({ queryKey: qk.journal.list() });
   }, [qc]);
 
-  const loadEntry = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (!entryData) return;
     dirtyRef.current = false;
-    try {
-      const entry = await journalApi.get(selectedDate);
-      setContent(entry.content || '');
-      setLocation(entry.location_label
-        ? { label: entry.location_label, lat: entry.location_lat ?? null, lon: entry.location_lon ?? null }
+    setContent(entryData.content || '');
+    setLocation(entryData.location_label
+        ? { label: entryData.location_label, lat: entryData.location_lat ?? null, lon: entryData.location_lon ?? null }
         : null);
-      setTags(entry.tags || []);
-      setBacklinks(entry.backlinks || []);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDate]);
+    setTags(entryData.tags || []);
+    setBacklinks(entryData.backlinks || []);
+  }, [entryData, selectedDate]);
 
-  const loadHabits = useCallback(async () => {
-    setLoadingHabits(true);
-    try { setHabitStatuses(await habitsApi.periodStatusForDate(selectedDate)); }
-    finally { setLoadingHabits(false); }
-  }, [selectedDate]);
-
-  const loadTasks = useCallback(async () => {
-    if (tasksLoadedDateRef.current !== selectedDate) {
-      setLoadingTasks(true);
-    }
-    try {
-      const [due, done, missed] = await Promise.all([
-        tasksApi.list({ due_date: selectedDate }),
-        tasksApi.list({ completed_date: selectedDate }),
-        tasksApi.missed(selectedDate),
-      ]);
-      setDueTasks(due.filter((t: TaskItem) => t.status !== 'done' && t.status !== 'scratched'));
-      setCompletedTasks(done);
-      setMissedTasks(missed);
-      tasksLoadedDateRef.current = selectedDate;
-    } finally { setLoadingTasks(false); }
-  }, [selectedDate]);
-
-  useEffect(() => { loadEntry(); }, [loadEntry]);
-  useEffect(() => { loadHabits(); }, [loadHabits]);
-  useEffect(() => { loadTasks(); }, [loadTasks]);
+  useEffect(() => {
+    setHabitStatuses(habitStatusData);
+  }, [habitStatusData, selectedDate]);
 
   const performSave = useCallback(async (silent = false) => {
     if (!silent) setSavingState('saving');
     try {
       await journalApi.save(selectedDate, content, location);
       const entry = await journalApi.get(selectedDate);
+      qc.setQueryData(qk.journal.entry(selectedDate), entry);
       setTags(entry.tags || []);
       setBacklinks(entry.backlinks || []);
       setSavingState('saved');
@@ -233,7 +215,7 @@ export default function JournalPage() {
       console.error(err);
       setSavingState('idle');
     }
-  }, [selectedDate, content, location, loadEntries]);
+  }, [selectedDate, content, location, loadEntries, qc]);
 
   // Debounced auto-save when dirty
   useEffect(() => {
@@ -257,15 +239,17 @@ export default function JournalPage() {
   };
 
   const completeTask = async (taskId: number) => {
-    setDueTasks((prev) => prev.filter((t) => t.id !== taskId));
-    await tasksApi.update(taskId, { status: 'done' });
-    loadTasks();
-    qc.invalidateQueries({ queryKey: qk.tasks.all });
+    await toggleTaskStatus.mutateAsync({ id: taskId, status: 'done' });
   };
 
   const deleteEntry = async () => {
     if (!(await confirmDialog(`Delete journal entry for ${selectedDate}?`))) return;
     await journalApi.delete(selectedDate);
+    qc.setQueryData(qk.journal.entry(selectedDate), {
+      id: 0, date: selectedDate, content: '', location_label: '',
+      location_lat: null, location_lon: null, tags: [], backlinks: [],
+      created_at: '', updated_at: '',
+    });
     setContent(''); setLocation(null); setTags([]); setBacklinks([]);
     loadEntries();
   };
@@ -377,7 +361,7 @@ export default function JournalPage() {
             ))}
           </div>
         )}
-        <QuickAddTask dueDate={selectedDate} onCreated={loadTasks} />
+        <QuickAddTask dueDate={selectedDate} />
         {missedTasks.length > 0 && (
           <div className="mt-3 pt-2 border-t border-border/60">
             <div className="mono text-xs tracking-[0.18em] uppercase text-destructive/80 mb-1.5 flex items-center gap-1.5">
@@ -1233,7 +1217,7 @@ function StatTile({ label, value, tone }: {
   );
 }
 
-function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () => void }) {
+function QuickAddTask({ dueDate }: { dueDate: string }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
@@ -1251,7 +1235,6 @@ function QuickAddTask({ dueDate, onCreated }: { dueDate: string; onCreated: () =
     try {
       await tasksApi.create({ title, due_date: dueDate });
       setValue('');
-      onCreated();
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.tags.all });
     } finally {

@@ -79,13 +79,14 @@ export default function FinancePage() {
 
   const qc = useQueryClient();
 
-  // Heavy per-tab sets load lazily: a query turns on once its tab has been
-  // visited, then stays cached. accounts + categories are cheap and always on.
+  // Each data set turns on when the first tab that needs it is visited, then
+  // stays cached. This keeps the overview from hydrating hidden tabs.
   const [activated, setActivated] = useState<Set<string>>(() => new Set([active]));
   useEffect(() => {
     setActivated((prev) => (prev.has(active) ? prev : new Set(prev).add(active)));
   }, [active]);
   const want = (k: string) => activated.has(k);
+  const wantAny = (...tabs: TabId[]) => tabs.some((id) => want(id));
 
   // Slate filter: null = off, N = that slate. Plain is a real row, no sentinel.
   // The transactions query is params-keyed, so each filter caches separately.
@@ -103,13 +104,13 @@ export default function FinancePage() {
       : { from, limit: TXN_LIMIT, slate_id: slateFilter };
   }, [slateFilter, monthsBack]);
 
-  const accountsQ = useFinAccounts();
-  const categoriesQ = useFinCategories();
+  const accountsQ = useFinAccounts(wantAny('accounts', 'transactions', 'billers', 'investments', 'cards'));
+  const categoriesQ = useFinCategories(wantAny('accounts', 'transactions', 'budgets', 'billers'));
   // Archived slates come down with the rest — every consumer that offers a
   // slate to pick filters `!archived` itself, and the Slates tab's "show
   // archived" toggle is its own local state. Nothing about that toggle
   // reaches this component, so it can't re-render the page.
-  const slatesQ = useFinSlates(); // cheap; powers the Slates tab + txn dialogs
+  const slatesQ = useFinSlates(wantAny('transactions', 'slates', 'budgets'));
   const transactionsQ = useFinTransactions(txnParams, want('transactions'));
   const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
@@ -216,7 +217,7 @@ export default function FinancePage() {
             This eliminates the "wrong UI flash" entirely - content for every
             tab is already in the DOM by the time the user taps it. */}
         <TabPanel active={active === 'overview'}>
-          <OverviewTab accounts={data.accounts} />
+          <OverviewTab enabled={want('overview')} />
         </TabPanel>
         <TabPanel active={active === 'accounts'}>
           <AccountsTab
@@ -256,6 +257,7 @@ export default function FinancePage() {
           <BudgetsTab
             categories={data.categories}
             slates={slates.items}
+            enabled={want('budgets')}
             reloadCategories={loadCategories}
           />
         </TabPanel>
@@ -268,7 +270,11 @@ export default function FinancePage() {
           />
         </TabPanel>
         <TabPanel active={active === 'billers'}>
-          <BillersTab accounts={data.accounts} categories={data.categories} />
+          <BillersTab
+            accounts={data.accounts}
+            categories={data.categories}
+            enabled={want('billers')}
+          />
         </TabPanel>
         <TabPanel active={active === 'cards'}>
           <CardsTab

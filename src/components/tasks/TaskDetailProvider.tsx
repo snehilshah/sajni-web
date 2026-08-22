@@ -2,8 +2,10 @@ import {
   createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type ReactNode,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList } from '@/types';
+import { qk } from '@/queries/keys';
 // Lazy: TaskFormDialog drags the whole tiptap editor along; this provider
 // wraps every page, so an eager import would put tiptap in the boot bundle.
 const TaskFormDialog = lazy(() => import('./TaskFormDialog'));
@@ -38,6 +40,7 @@ export function useTaskDetail(): TaskDetailState {
 }
 
 export function TaskDetailProvider({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [defaults, setDefaults] = useState<Record<string, unknown>>({});
@@ -46,12 +49,17 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   // Tracks the most recent openTask invocation so an in-flight fetch
   // for an earlier task can't overwrite the state set by a newer one.
   const openSeqRef = useRef(0);
-  // Lazy-load lists so unauthenticated routes don't make a wasted call.
-  // Refreshed every time the dialog opens so newly-created lists show up.
+  // Lazy-load lists so unauthenticated routes don't make a wasted call. The
+  // shared query key lets a Tasks-page read satisfy the dialog too.
   const ensureLists = useCallback(async () => {
-    try { setLists(await listsApi.list()); }
+    try {
+      setLists(await qc.fetchQuery({
+        queryKey: qk.taskLists.list(),
+        queryFn: () => listsApi.list(),
+      }));
+    }
     catch {/* ignore — dialog still works with an empty list array */}
-  }, []);
+  }, [qc]);
 
   const openTask = useCallback(async (id: number) => {
     const seq = ++openSeqRef.current;
@@ -60,7 +68,23 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
     // which is what users see as a "blank page" flicker.
     ensureLists();
     try {
-      const t = await tasksApi.get(id);
+      // List responses carry the complete editable task shape. Seed the
+      // detail key from any fresh list before falling back to GET /tasks/:id.
+      if (!qc.getQueryData(qk.tasks.detail(id))) {
+        const now = Date.now();
+        const cached = qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'list'] })
+          .filter(([key]) => {
+            const state = qc.getQueryState(key);
+            return state && !state.isInvalidated && now - state.dataUpdatedAt < 60_000;
+          })
+          .flatMap(([, rows]) => rows ?? [])
+          .find((task) => task.id === id);
+        if (cached) qc.setQueryData(qk.tasks.detail(id), cached);
+      }
+      const t = await qc.fetchQuery({
+        queryKey: qk.tasks.detail(id),
+        queryFn: () => tasksApi.get(id),
+      });
       // A later openTask call has superseded this one — drop the stale
       // result so we don't overwrite the newer task.
       if (seq !== openSeqRef.current) return;
@@ -72,7 +96,7 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
       setEditingTask(null);
       setOpen(false);
     }
-  }, [ensureLists]);
+  }, [ensureLists, qc]);
 
   const openNew = useCallback((d: Record<string, unknown> = {}) => {
     ++openSeqRef.current;

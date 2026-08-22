@@ -5,6 +5,7 @@
    patterns the React Compiler can't model (it flags them as errors). All other
    react-hooks rules stay active for this file. */
 import { useEffect, useRef, useCallback, useMemo, useState, lazy, Suspense } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -20,6 +21,7 @@ import { toast } from 'sonner';
 
 import { uploads, notes as notesApi, tasks as tasksApi, taskLists as listsApi, links as linksApi } from '@/api';
 import type { Task, TaskList as TaskListModel } from '@/types';
+import { qk } from '@/queries/keys';
 import { WikiLink, TagSuggest } from './wikilink';
 import { SlashCommand } from './slashMenu';
 import { TimeChip, TimeChipSuggest } from './timeChip';
@@ -73,6 +75,7 @@ export default function RichEditor({
   value, onChange, placeholder, className, autoFocus, minHeight, fill, contextDate,
 }: Props) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const isLocalUpdate = useRef(false);
 
   // Picker for /task — search-and-pick over existing tasks, plus a "Create
@@ -293,8 +296,10 @@ export default function RichEditor({
       setTaskPicker(true);
       // Fetch lazily so users who never invoke /task never pay the cost.
       setTaskLoading(true);
-      tasksApi
-        .list({ smart: 'all' })
+      qc.fetchQuery({
+        queryKey: qk.tasks.list({ smart: 'all' }),
+        queryFn: () => tasksApi.list({ smart: 'all' }),
+      })
         .then((list) => setTaskList(list.filter((t) => t.status !== 'done' && t.status !== 'scratched')))
         .catch(() => setTaskList([]))
         .finally(() => setTaskLoading(false));
@@ -302,7 +307,7 @@ export default function RichEditor({
     return () => {
       if (storage) storage.onOpen = null;
     };
-  }, [editor]);
+  }, [editor, qc]);
 
   const insertTaskChip = useCallback((t: Pick<Task, 'id' | 'title'>) => {
     if (!editor) return;
@@ -327,8 +332,11 @@ export default function RichEditor({
       ...(contextDate ? { due_date: contextDate } : {}),
     });
     setCreateOpen(true);
-    listsApi.list().then(setCreateLists).catch(() => setCreateLists([]));
-  }, [taskQuery, contextDate]);
+    qc.fetchQuery({
+      queryKey: qk.taskLists.list(),
+      queryFn: () => listsApi.list(),
+    }).then(setCreateLists).catch(() => setCreateLists([]));
+  }, [taskQuery, contextDate, qc]);
 
   // Bind the /link slash command → M3 link dialog (title + url).
   useEffect(() => {

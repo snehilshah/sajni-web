@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -9,6 +10,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskList, TaskStep } from '@/types';
 import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
+import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
@@ -116,6 +118,7 @@ interface Props {
 }
 
 export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, layoutId, onCreated }: Props) {
+  const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(blank);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [events, setEvents] = useState<TaskEvent[]>([]);
@@ -149,10 +152,19 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       setHistory([]);
       setEvents([]);
       setParent(null);
-      tasksApi.history(editing.id).then(setHistory).catch(() => {});
-      tasksApi.events(editing.id).then(setEvents).catch(() => {});
+      qc.fetchQuery({
+        queryKey: qk.tasks.history(editing.id),
+        queryFn: () => tasksApi.history(editing.id),
+      }).then(setHistory).catch(() => {});
+      qc.fetchQuery({
+        queryKey: qk.tasks.events(editing.id),
+        queryFn: () => tasksApi.events(editing.id),
+      }).then(setEvents).catch(() => {});
       if (editing.parent_task_id != null) {
-        tasksApi.get(editing.parent_task_id)
+        qc.fetchQuery({
+          queryKey: qk.tasks.detail(editing.parent_task_id),
+          queryFn: () => tasksApi.get(editing.parent_task_id!),
+        })
           .then((p) => setParent({ id: p.id, title: p.title }))
           .catch(() => setParent(null));
       }
@@ -162,8 +174,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       setEvents([]);
       setParent(null);
     }
-    tasksApi.list({ smart: 'all' }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
-  }, [open, editing, defaults]);
+    qc.fetchQuery({
+      queryKey: qk.tasks.list({ smart: 'all' }),
+      queryFn: () => tasksApi.list({ smart: 'all' }),
+    }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
+  }, [open, editing, defaults, qc]);
 
   const blockerCandidates = blockerTasks.filter((candidate) => {
     if (candidate.id === editing?.id || candidate.status === 'done' || candidate.status === 'scratched') return false;
@@ -718,6 +733,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 // and the inline row adds a new one. This is the explicit "add subtask" CTA
 // that previously only existed (hidden) behind the list-row expander.
 function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId: number; listId: number | null; isGoal?: boolean; onChanged: () => void }) {
+  const qc = useQueryClient();
   const [subs, setSubs] = useState<Task[] | null>(null);
   const [draft, setDraft] = useState('');
   // Month-goal sessions can carry a date as they're added (the "+ add session"
@@ -725,8 +741,11 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
   const [dateDraft, setDateDraft] = useState('');
 
   const load = useCallback(() => {
-    tasksApi.subtasks(taskId).then(setSubs).catch(() => setSubs([]));
-  }, [taskId]);
+    qc.fetchQuery({
+      queryKey: qk.tasks.subtasks(taskId),
+      queryFn: () => tasksApi.subtasks(taskId),
+    }).then(setSubs).catch(() => setSubs([]));
+  }, [qc, taskId]);
   useEffect(() => { load(); }, [load]);
 
   const add = async () => {
@@ -735,16 +754,19 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
     setDraft('');
     setDateDraft('');
     await tasksApi.create({ title, parent_task_id: taskId, list_id: listId, due_date: dateDraft || undefined });
+    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
     load();
     onChanged();
   };
   const toggle = async (s: Task) => {
     await tasksApi.update(s.id, { status: s.status === 'done' ? 'todo' : 'done' });
+    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
     load();
     onChanged();
   };
   const remove = async (s: Task) => {
     await tasksApi.delete(s.id);
+    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
     load();
     onChanged();
   };
@@ -935,6 +957,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
   draft?: string[];
   onDraftChange?: (v: string[]) => void;
 }) {
+  const qc = useQueryClient();
   const isDraft = taskId == null;
   const [apiRems, setApiRems] = useState<TaskReminder[] | null>(null);
   const [adding, setAdding] = useState(false);
@@ -950,8 +973,11 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
 
   const load = useCallback(() => {
     if (isDraft || taskId == null) return;
-    tasksApi.reminders(taskId).then(setApiRems).catch(() => setApiRems([]));
-  }, [isDraft, taskId]);
+    qc.fetchQuery({
+      queryKey: qk.tasks.reminders(taskId),
+      queryFn: () => tasksApi.reminders(taskId),
+    }).then(setApiRems).catch(() => setApiRems([]));
+  }, [isDraft, qc, taskId]);
   useEffect(() => { load(); }, [load]);
 
   const add = async () => {
@@ -966,6 +992,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
     setSaving(true);
     try {
       await tasksApi.addReminder(taskId!, d.toISOString());
+      await qc.invalidateQueries({ queryKey: qk.tasks.reminders(taskId!) });
       setAdding(false);
       setDate('');
       setTime('09:00');
@@ -980,6 +1007,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
       return;
     }
     await tasksApi.deleteReminder(taskId!, rid);
+    await qc.invalidateQueries({ queryKey: qk.tasks.reminders(taskId!) });
     load();
   };
 

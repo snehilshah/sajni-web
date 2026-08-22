@@ -26,6 +26,14 @@ export function useHabitLogRange(from: string, to: string) {
   });
 }
 
+export function useHabitPeriodStatus(date: string) {
+  return useQuery({
+    queryKey: qk.habits.periodStatus(date),
+    queryFn: () => habitsApi.periodStatusForDate(date),
+    enabled: Boolean(date),
+  });
+}
+
 export function useToggleHabitPeriod() {
   const qc = useQueryClient();
   return useMutation({

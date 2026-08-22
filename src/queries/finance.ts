@@ -74,3 +74,19 @@ export function useBillerPayments(id: number, enabled = true) {
     enabled: enabled && id > 0,
   });
 }
+
+export function useFinOverview(enabled = true) {
+  return useQuery({
+    queryKey: qk.finance.overview(),
+    queryFn: () => finance.overview(),
+    enabled,
+  });
+}
+
+export function useFinNetworthHistory(enabled = true) {
+  return useQuery({
+    queryKey: qk.finance.networthHistory(),
+    queryFn: () => finance.networthHistory(),
+    enabled,
+  });
+}

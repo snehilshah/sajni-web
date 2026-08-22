@@ -30,21 +30,22 @@ import { cn } from '@/lib/utils';
 interface Props {
   categories: FinCategory[];
   slates: FinSlate[];
+  enabled: boolean;
   reloadCategories: () => void;
 }
 
 /** A draft to prefill the dialog with — a duplicate, or blank for a new one. */
 type Prefill = Omit<BudgetDraft, 'items'> & { items: { category_id: number | null; amount: string }[] };
 
-export default function BudgetsTab({ categories, slates, reloadCategories }: Props) {
+export default function BudgetsTab({ categories, slates, enabled, reloadCategories }: Props) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FinBudget | null>(null);
   const [creating, setCreating] = useState<Prefill | null>(null);
 
   const [manageCats, setManageCats] = useState(false);
 
-  const { data: budgets = [], isSuccess } = useFinBudgets();
-  const reload = () => qc.invalidateQueries({ queryKey: qk.finance.all });
+  const { data: budgets = [], isSuccess } = useFinBudgets(enabled);
+  const reload = () => qc.invalidateQueries({ queryKey: qk.finance.budgets() });
 
   const expenseCats = useMemo(() => categories.filter((c) => c.kind === 'expense'), [categories]);
   // Nothing rolls, so the only split that matters is whether the window has
