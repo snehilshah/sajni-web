@@ -17,6 +17,10 @@ const MODE_KEY = 'sajni:mode';
 const DENSITY_KEY = 'sajni:density';
 const PRESET_STYLE_ID = 'sajni-theme-presets';
 const CUSTOM_STYLE_ID = 'sajni-custom-theme';
+// Compiled active-theme CSS, mirrored to localStorage so index.html can
+// inject it pre-paint (no preset flash while /themes/active loads).
+// Server remains the source of truth: refresh() overwrites or clears it.
+const CUSTOM_CSS_KEY = 'sajni:custom-theme-css';
 
 export type ModePref = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact' | 'cozy';
@@ -159,12 +163,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         style.id = CUSTOM_STYLE_ID;
         document.head.appendChild(style);
       }
-      style.textContent = customThemeStylesheet(active.seeds);
+      const css = customThemeStylesheet(active.seeds);
+      style.textContent = css;
+      try { localStorage.setItem(CUSTOM_CSS_KEY, css); } catch {}
       document.documentElement.dataset.theme = 'custom';
       return;
     }
 
     document.getElementById(CUSTOM_STYLE_ID)?.remove();
+    try { localStorage.removeItem(CUSTOM_CSS_KEY); } catch {}
     document.documentElement.dataset.theme = preset;
     try { localStorage.setItem(THEME_KEY, preset); } catch {}
   }, [active, preset]);

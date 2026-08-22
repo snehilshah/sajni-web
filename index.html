@@ -20,11 +20,24 @@
       (function () {
         try {
           var root = document.documentElement;
-          // AI themes are server-owned. First paint uses the last local preset;
-          // ThemeProvider applies the active AI theme after authentication.
-          var theme = localStorage.getItem('sajni:theme') || 'marine';
-          if (!/^(marine|powerpuff|gruvbox|peach|mauve)$/.test(theme)) {
-            theme = 'marine';
+          // Custom (AI) theme: compiled CSS is mirrored by ThemeProvider at
+          // paint time. Inject it before first frame so server-owned themes
+          // don't flash the fallback preset; refresh() re-paints from the
+          // API once auth resolves.
+          var customCss = localStorage.getItem('sajni:custom-theme-css');
+          if (customCss) {
+            var custom = document.createElement('style');
+            custom.id = 'sajni-custom-theme';
+            custom.textContent = customCss;
+            document.head.appendChild(custom);
+            root.dataset.theme = 'custom';
+          } else {
+            // First visit or preset user: last local preset paints instantly.
+            var theme = localStorage.getItem('sajni:theme') || 'marine';
+            if (!/^(marine|powerpuff|gruvbox|peach|mauve)$/.test(theme)) {
+              theme = 'marine';
+            }
+            root.dataset.theme = theme;
           }
           var modePref = localStorage.getItem('sajni:mode') || 'system';
           var density = localStorage.getItem('sajni:density') || 'comfortable';
@@ -32,7 +45,6 @@
           if (modePref === 'system') {
             effectiveMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
-          root.dataset.theme = theme;
           root.dataset.mode = effectiveMode;
           root.dataset.density = density;
         } catch (e) {}
