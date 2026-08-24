@@ -248,7 +248,7 @@ export type TrackedEventPatch = Partial<
   Pick<TrackedEvent, 'name' | 'description' | 'color' | 'icon' | 'archived'>
 >;
 
-export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'archived' | 'dropped' | 'scratched' | 'upcoming';
+export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'new_season' | 'archived' | 'dropped' | 'scratched' | 'upcoming';
 
 export interface MediaEntry {
   id: number;

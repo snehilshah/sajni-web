@@ -389,6 +389,12 @@ export interface CollectionPayload {
   parts: CollectionPart[];
 }
 
+export interface MediaRefreshResult {
+  checked: number;
+  changed: number;
+  titles: string[];
+}
+
 export const media = {
   list: (params?: { type?: string; status?: string; collection_id?: string }) => {
     const q = new URLSearchParams();
@@ -403,6 +409,7 @@ export const media = {
   update: (id: number, data: MediaPatch) =>
     request('/media/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/media/' + id, { method: 'DELETE' }),
+  refresh: () => request<MediaRefreshResult>('/media/refresh', { method: 'POST' }),
   search: (query: string, type: string, signal?: AbortSignal) => {
     const q = new URLSearchParams({ q: query, type });
     return request<MediaSearchResult[]>('/media/search?' + q.toString(), { signal });
@@ -440,6 +447,7 @@ export type MediaEventKind =
   | 'completed'
   | 'dropped'
   | 'released'
+  | 'new_season'
   | 'rating';
 
 export interface MediaEventMeta {
@@ -451,6 +459,8 @@ export interface MediaEventMeta {
   episodes_watched?: number;
   episodes_total?: number;
   seasons_watched?: number;
+  old_seasons?: number;
+  new_seasons?: number;
   release_date?: string;
   rating?: number;
 }

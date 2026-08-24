@@ -35,6 +35,7 @@ import TweaksPanel from '@/components/TweaksPanel';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import MediaStartupRefresh from '@/components/MediaStartupRefresh';
 
 // Redirects already-authenticated users away from /signin.
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -90,6 +91,7 @@ export default function App() {
 			<TaskDetailProvider>
 				<M3Shapes />
 				<Toaster richColors closeButton position="bottom-right" />
+				<MediaStartupRefresh />
 				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}

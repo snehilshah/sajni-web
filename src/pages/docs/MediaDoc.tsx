@@ -63,6 +63,7 @@ export default function MediaDoc() {
             ['upcoming', 'not released yet — tracked from its release date'],
             ['pending', 'owned/queued, not started'],
             ['waiting', 'paused on something external (next season, library copy)'],
+            ['new season', 'a higher season was detected automatically; choose the next status manually'],
             ['complete', 'finished'],
             ['archived', 'shelved, out of the active views'],
             ['dropped', 'started and abandoned — a valid ending'],

@@ -78,13 +78,14 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 // in-progress / pending stay near the top and dropped/scratched sink.
 const STATUS_ORDER: Record<MediaStatus, number> = {
   in_progress: 0,
-  upcoming: 1,
-  pending: 2,
-  waiting: 3,
-  complete: 4,
-  archived: 5,
-  dropped: 6,
-  scratched: 7,
+  new_season: 1,
+  upcoming: 2,
+  pending: 3,
+  waiting: 4,
+  complete: 5,
+  archived: 6,
+  dropped: 7,
+  scratched: 8,
 };
 
 // SeriesRow — what we actually render. A "single" row is one entry; a
@@ -102,6 +103,7 @@ type SeriesRow =
 
 const STATUS_OPTIONS: { value: MediaStatus; label: string; dot: string }[] = [
   { value: 'in_progress', label: 'In progress', dot: 'bg-blue-500' },
+  { value: 'new_season', label: 'New Season', dot: 'bg-[hsl(var(--secondary))]' },
   { value: 'upcoming', label: 'Upcoming', dot: 'bg-[hsl(var(--tertiary))]' },
   { value: 'pending', label: 'Pending', dot: 'bg-muted-foreground' },
   { value: 'waiting', label: 'Waiting', dot: 'bg-purple-500' },
@@ -110,6 +112,9 @@ const STATUS_OPTIONS: { value: MediaStatus; label: string; dot: string }[] = [
   { value: 'dropped', label: 'Dropped', dot: 'bg-red-500' },
   { value: 'scratched', label: 'Scratched', dot: 'bg-rose-500' },
 ];
+const EDITABLE_STATUS_OPTIONS = STATUS_OPTIONS.filter(
+  (status) => status.value !== 'upcoming' && status.value !== 'new_season',
+);
 
 const PLATFORM_OPTIONS = [
   { value: 'netflix', label: 'Netflix' },
@@ -177,6 +182,11 @@ function formatReleaseDate(value?: string | null): string {
 function isUpcomingRelease(item: Pick<MediaEntry, 'status' | 'release_date'>): boolean {
   const d = dateOnly(item.release_date);
   return (item.status === 'pending' || item.status === 'upcoming') && !!d && d > todayISODate();
+}
+
+function hasFutureRelease(type: MediaKind, releaseDate?: string | null): boolean {
+  const d = dateOnly(releaseDate);
+  return (type === 'movie' || type === 'show') && !!d && d > todayISODate();
 }
 
 function isUpcomingCollectionPart(part: Pick<CollectionPart, 'release_date' | 'release_state'>): boolean {
@@ -273,6 +283,7 @@ function PlatformLogo({
 function statusPillColor(status: MediaStatus): string {
   switch (status) {
     case 'in_progress': return 'hsl(var(--secondary))';
+    case 'new_season': return 'hsl(var(--secondary))';
     case 'complete':    return 'hsl(var(--color-complete))';
     case 'dropped':
     case 'scratched':   return 'hsl(var(--destructive))';
@@ -701,6 +712,7 @@ export default function MediaPage() {
   }), [activeType]);
 
   const [form, setForm] = useState<FormState>(blankForm());
+  const formIsUpcoming = hasFutureRelease(form.type, form.release_date);
 
   // Cached library. keepPreviousData (in useMedia) holds the current shelf
   // visible while a tab switch refetches; bookmark tabs load their own data
@@ -848,12 +860,13 @@ export default function MediaPage() {
     // tab flips to 'show' and reveals the show-progress section. Books
     // keep their type (Open Library ids carry no tmdb kind).
     const kind = tmdbKindLabel(r.external_id);
-    const isUpcoming = r.release_date && dateOnly(r.release_date) > todayISODate();
+    const selectedType = kind === 'Show' ? 'show' : kind === 'Movie' ? 'movie' : form.type;
+    const isUpcoming = hasFutureRelease(selectedType, r.release_date);
     // Optimistic prefill from the search row.
     setForm((f) => ({
       ...f,
       title: r.title,
-      type: kind === 'Show' ? 'show' : kind === 'Movie' ? 'movie' : f.type,
+      type: selectedType,
       status: isUpcoming ? 'upcoming' : 'pending',
       poster_url: r.poster_url,
       year: r.year ? parseInt(r.year) : null,
@@ -866,24 +879,30 @@ export default function MediaPage() {
     if (!r.external_id.startsWith('tmdb:')) return;
     try {
       const d = await mediaApi.details(r.external_id);
-      const isUpcomingDetailed = d.release_date && dateOnly(d.release_date) > todayISODate();
-      setForm((f) => ({
-        ...f,
-        // Don't clobber the title if the user already started typing.
-        title: f.title || d.title,
-        status: isUpcomingDetailed ? 'upcoming' : f.status,
-        poster_url: f.poster_url || d.poster_url,
-        year: f.year || (d.year ? parseInt(d.year) : null),
-        release_date: d.release_date || f.release_date,
-        genre: f.genre || d.genre,
-        seasons_total: d.seasons_total || f.seasons_total,
-        episodes_total: d.episodes_total || f.episodes_total,
-        season_episodes: d.season_episodes && d.season_episodes.length > 0
-          ? d.season_episodes
-          : f.season_episodes,
-        collection_id: d.collection_id || f.collection_id,
-        collection_name: d.collection_name || f.collection_name,
-      }));
+      const detailedType = d.type;
+      setForm((f) => {
+        const releaseDate = d.release_date || f.release_date;
+        return {
+          ...f,
+          // Don't clobber the title if the user already started typing.
+          title: f.title || d.title,
+          type: detailedType,
+          status: hasFutureRelease(detailedType, releaseDate)
+            ? 'upcoming'
+            : f.status === 'upcoming' ? 'pending' : f.status,
+          poster_url: f.poster_url || d.poster_url,
+          year: f.year || (d.year ? parseInt(d.year) : null),
+          release_date: releaseDate,
+          genre: f.genre || d.genre,
+          seasons_total: d.seasons_total || f.seasons_total,
+          episodes_total: d.episodes_total || f.episodes_total,
+          season_episodes: d.season_episodes && d.season_episodes.length > 0
+            ? d.season_episodes
+            : f.season_episodes,
+          collection_id: d.collection_id || f.collection_id,
+          collection_name: d.collection_name || f.collection_name,
+        };
+      });
     } catch {
       // Detail fetch is a best-effort enrichment — the search row is
       // already in the form; silently fall back if TMDB hiccups.
@@ -915,7 +934,11 @@ export default function MediaPage() {
         return;
       }
 
-      const payload: MediaPatch = { ...form, rating: form.rating || null };
+      const payload: MediaPatch = {
+        ...form,
+        status: formIsUpcoming ? 'upcoming' : form.status === 'upcoming' ? 'pending' : form.status,
+        rating: form.rating || null,
+      };
       // Marking complete snaps progress to the end — last season, last episode —
       // so the S?E? label and bar read 100% instead of wherever the user stopped.
       if (form.status === 'complete') {
@@ -1117,6 +1140,7 @@ export default function MediaPage() {
                   title: v,
                   external_id: changedExternalTitle ? '' : f.external_id,
                   release_date: changedExternalTitle ? '' : f.release_date,
+                  status: changedExternalTitle && (f.status === 'upcoming' || f.status === 'new_season') ? 'pending' : f.status,
                 };
               })}
               onSelect={handleExternalSelect}
@@ -1141,14 +1165,24 @@ export default function MediaPage() {
         <FieldSelect
           label="Type"
           value={form.type}
-          onChange={(v) => setForm({ ...form, type: mediaKind(v || 'movie') })}
+          onChange={(v) => {
+            const type = mediaKind(v || 'movie');
+            setForm({
+              ...form,
+              type,
+              status: hasFutureRelease(type, form.release_date)
+                ? 'upcoming'
+                : form.status === 'upcoming' || form.status === 'new_season' ? 'pending' : form.status,
+            });
+          }}
           options={Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))}
         />
         <FieldSelect
-          label="Status"
+          label={formIsUpcoming ? 'Status · automatic' : 'Status'}
           value={form.status}
           onChange={(v) => setForm({ ...form, status: (v as MediaStatus) || 'pending' })}
-          options={STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, dot: s.dot }))}
+          options={EDITABLE_STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, dot: s.dot }))}
+          disabled={formIsUpcoming}
           renderValue={(value) => {
             const meta = statusMeta(value as MediaStatus);
             return (
@@ -1636,19 +1670,20 @@ function FieldSimple({ label, children }: { label: string; children: React.React
   );
 }
 
-function FieldSelect({ label, value, onChange, options, renderValue, renderOption }: {
+function FieldSelect({ label, value, onChange, options, renderValue, renderOption, disabled = false }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string; dot?: string }[];
   renderValue?: (v: string) => React.ReactNode;
   renderOption?: (o: { value: string; label: string; dot?: string }) => React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
       <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
-      <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
-        <SelectTrigger className="h-9 text-sm">
+      <Select value={value} onValueChange={(v) => onChange(v ?? '')} disabled={disabled}>
+        <SelectTrigger className="h-9 text-sm" aria-label={disabled ? `${label}: ${value}` : undefined}>
           <SelectValue>{renderValue ? renderValue(value) : options.find((o) => o.value === value)?.label}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -1973,6 +2008,7 @@ function progressLabel(item: MediaEntry): string {
 function chipClassFor(status: MediaStatus): string {
   switch (status) {
     case 'in_progress': return 'chip-amber';
+    case 'new_season':  return 'chip-sky';
     case 'complete':    return 'chip-olive';   // green — done
     case 'waiting':     return 'chip-sky';     // slate — on hold
     case 'dropped':
@@ -2594,6 +2630,7 @@ function dotColorFor(kind: MediaEventRow['kind']): string {
     case 'started': return 'hsl(var(--secondary))';
     case 'progress': return 'hsl(var(--secondary) / 0.6)';
     case 'released': return 'hsl(var(--tertiary))';
+    case 'new_season': return 'hsl(var(--secondary))';
     case 'dropped': return 'hsl(var(--destructive))';
     case 'rating': return 'hsl(var(--secondary))';
     default: return 'hsl(var(--muted-foreground) / 0.6)';
@@ -2607,6 +2644,7 @@ function eventLabel(e: MediaEventRow, type: MediaKind): string {
     case 'started': return `Started ${verb}`;
     case 'progress': return 'Progress';
     case 'released': return 'Released · moved to Pending';
+    case 'new_season': return 'New season detected';
     case 'completed': return 'Completed';
     case 'dropped': return 'Dropped';
     case 'rating': return `Rated ${e.meta.rating ?? '?'}/5`;
@@ -2618,6 +2656,9 @@ function eventSublabel(e: MediaEventRow): string {
   // For shows: "S2 · E6 (16/100 episodes)". For books: "p. 184/280".
   const m = e.meta || {};
   const parts: string[] = [];
+  if (e.kind === 'new_season' && typeof m.old_seasons === 'number' && typeof m.new_seasons === 'number') {
+    parts.push(`${m.old_seasons} → ${m.new_seasons} seasons`);
+  }
   if (typeof m.season === 'number' && m.season > 0) {
     parts.push(`S${m.season}`);
     if (typeof m.episode === 'number' && m.episode > 0) parts.push(`E${m.episode}`);
