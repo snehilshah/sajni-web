@@ -517,7 +517,7 @@ export default function JournalPage() {
       </div>
       <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
         <div className="flex gap-1">
-          <Button onClick={() => { goToday(); closeMobileSidebar(); }} size="xs" variant="ghost" className="flex-1 justify-start gap-1.5 font-normal text-xs">
+          <Button onClick={() => { goToday(); closeMobileSidebar(); }} size="xs" variant="ghost" className="flex-1 justify-center gap-1.5 font-normal text-xs">
             <CalendarIcon className="size-3.5" /> Today
           </Button>
         </div>
