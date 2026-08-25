@@ -683,11 +683,6 @@ export default function JournalPage() {
                   ride its trailing edge (no chrome rows above). */}
               <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
                 <div className="min-w-0">
-                  {entryDates.has(format(subDays(dateObj, 1), 'yyyy-MM-dd')) && (
-                    <div className="mono text-xs tracking-[0.22em] uppercase text-primary/80 mb-3">
-                      ── continued from yesterday
-                    </div>
-                  )}
                   <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
                     {format(dateObj, 'EEEE')}
                   </h1>
