@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import StartDoc, { startMeta } from './StartDoc';
 import TodayDoc, { todayMeta } from './TodayDoc';
 import NotesDoc, { notesMeta } from './NotesDoc';
+import MemosDoc, { memosMeta } from './MemosDoc';
 import JournalDoc, { journalMeta } from './JournalDoc';
 import TasksDoc, { tasksMeta } from './TasksDoc';
 import HabitsDoc, { habitsMeta } from './HabitsDoc';
@@ -44,6 +45,7 @@ const GROUPS: { name: string; pages: PageDef[] }[] = [
     pages: [
       { meta: todayMeta, Component: TodayDoc },
       { meta: notesMeta, Component: NotesDoc },
+      { meta: memosMeta, Component: MemosDoc },
       { meta: journalMeta, Component: JournalDoc },
       { meta: tasksMeta, Component: TasksDoc },
       { meta: habitsMeta, Component: HabitsDoc },
