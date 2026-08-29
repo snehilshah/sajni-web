@@ -16,6 +16,7 @@ import type {
   Reminder,
   ReminderHistoryItem,
   ReminderInput,
+  PlannerResponse,
   SmartList,
   TagEntities,
   Task,
@@ -149,6 +150,7 @@ export const tasks = {
     title: string;
     description?: string;
     priority?: string;
+    color?: Task['color'];
     status?: string;
     due_date?: string;
     week_of?: string;
@@ -171,8 +173,8 @@ export const tasks = {
   unscratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'todo' }) }),
   // Reschedule a (usually overdue) task. Server records the move off a past
   // day as a 'rescheduled' lifecycle entry, not a miss.
-  reschedule: (id: number, due_date: string) =>
-    request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ due_date }) }),
+  reschedule: (id: number, data: { target_date: string; schedule_mode?: 'preserve' | 'set' | 'clear'; scheduled_at?: string }) =>
+    request<{ id: number; due_date: string; scheduled_at: string | null }>('/tasks/' + id + '/reschedule', { method: 'POST', body: JSON.stringify(data) }),
   reorder: (ids: number[]) =>
     request('/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
   subtasks: (id: number) =>
@@ -190,6 +192,10 @@ export const tasks = {
     request<{ id: number }>('/tasks/' + id + '/reminders', { method: 'POST', body: JSON.stringify({ remind_at }) }),
   deleteReminder: (id: number, rid: number) =>
     request('/tasks/' + id + '/reminders/' + rid, { method: 'DELETE' }),
+};
+
+export const planner = {
+  range: (from: string, to: string) => request<PlannerResponse>(`/planner?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
 };
 
 export const reminders = {

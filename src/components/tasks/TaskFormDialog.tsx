@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail } from '@/components/ui/icons';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
-import type { Task, TaskList, TaskStep } from '@/types';
+import type { Task, TaskColor, TaskList, TaskStep } from '@/types';
 import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -25,6 +25,10 @@ import {
 } from '@/components/ui/select';
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey, monthFirstKey,
 } from './helpers';
 import { StepsEditor } from './TaskRow';
@@ -33,6 +37,7 @@ export interface FormState {
   title: string;
   description: string;
   priority: Task['priority'];
+  color: TaskColor | null;
   status: Task['status'];
   blocked_by_task_id: number | null;
   /** 'day' = a dated task (due_date); 'week' = a week-scoped task (week_of);
@@ -60,10 +65,19 @@ export interface FormState {
 export type TaskDefaults = Partial<FormState>;
 
 const blank: FormState = {
-  title: '', description: '', priority: 'medium', status: 'todo', blocked_by_task_id: null,
+  title: '', description: '', priority: 'medium', color: null, status: 'todo', blocked_by_task_id: null,
   due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
   notify_emails: [], list_id: null, important: false, steps: [], reminders: [],
 };
+
+const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
+  { value: '#2D5A4F', label: 'Forest' }, { value: '#7C9A92', label: 'Sage' },
+  { value: '#C49A6C', label: 'Sand' }, { value: '#A14B4F', label: 'Rose' },
+  { value: '#4F6FA1', label: 'Blue' }, { value: '#8B6FA1', label: 'Lavender' },
+  { value: '#7A7A7A', label: 'Slate' },
+];
+
+const MORE_DETAILS_KEY = 'sajni:task-editor:more-details';
 
 // Local "HH:MM" from an ISO instant, in the browser's tz. '' when null.
 function timeFromISO(iso?: string | null): string {
@@ -127,6 +141,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   // The parent task when editing a subtask — drives the "Subtask of …" banner
   // so a child never reads as a standalone task, and so the user can promote it.
   const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
+  const [moreDetails, setMoreDetails] = useState(() => {
+    try { return localStorage.getItem(MORE_DETAILS_KEY) === 'true'; } catch { return false; }
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -135,6 +152,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         title: editing.title,
         description: editing.description || '',
         priority: editing.priority,
+        color: editing.color ?? null,
         status: editing.status,
         blocked_by_task_id: editing.blocked_by_task_id ?? null,
         due_type: editing.month_of ? 'month' : editing.week_of ? 'week' : 'day',
@@ -213,6 +231,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           title: form.title,
           description: form.description,
           priority: form.priority,
+          color: form.color ?? undefined,
+          clear_color: form.color === null,
           status: form.status,
           blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
           clear_blocked_by: form.status !== 'blocked',
@@ -249,6 +269,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           title: form.title,
           description: form.description,
           priority: form.priority,
+          color: form.color ?? undefined,
           status: form.status,
           blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
           due_date: noDay ? undefined : (form.due_date || undefined),
@@ -320,30 +341,64 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       ariaLabel={editing ? 'Edit task' : 'New task'}
       className={cn(
         isMobile
-          ? 'inset-x-0 bottom-0 max-w-full w-full h-[92dvh] rounded-b-none border-t border-border'
-          : 'left-0 right-0 top-[7vh] mx-auto w-[min(42rem,92vw)] h-[min(85vh,720px)]',
+          ? cn(
+              'inset-x-0 bottom-0 max-w-full w-full max-h-[92dvh] rounded-b-none border-t border-border',
+              moreDetails ? 'h-[92dvh]' : 'h-auto',
+            )
+          : cn(
+              'left-0 right-0 top-[7vh] mx-auto w-[min(42rem,92vw)] max-h-[min(85vh,720px)]',
+              moreDetails ? 'h-[min(85vh,720px)]' : 'h-auto',
+            ),
       )}
     >
-        <div className="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 pr-14 border-b border-border">
-          <div className="flex items-start gap-3">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, important: !form.important })}
-              className={`mt-0.5 p-1.5 hover:bg-accent transition-colors ${form.important ? 'text-secondary' : 'text-muted-foreground'}`}
-              title={form.important ? 'Remove from Important' : 'Mark important'}
-            >
-              <Star className={`size-4 ${form.important ? 'fill-current' : ''}`} />
-            </button>
-            <div className="min-w-0">
-              <div className="text-lg font-semibold leading-none tracking-tight font-serif">{editing ? 'Edit task' : 'New task'}</div>
-              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-1">
-                {editing ? 'Update details below' : 'Capture something to do'}
-              </p>
-            </div>
-          </div>
-        </div>
+		<div className="shrink-0 border-b border-border px-4 pb-3 pt-4 md:px-6 md:pt-5">
+		  <div className="flex items-center justify-between gap-3">
+		    <button
+		      type="button"
+		      onClick={() => setForm({ ...form, status: form.status === 'done' ? 'todo' : 'done' })}
+		      className="flex min-h-10 min-w-0 items-center gap-2 rounded-full px-2 text-left text-sm hover:bg-[hsl(var(--on-surface)/0.06)]"
+		      title={form.status === 'done' ? 'Mark incomplete' : 'Complete task'}
+		    >
+		      <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full border-2', form.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))]')}>
+		        {form.status === 'done' && <Check className="size-4" />}
+		      </span>
+		      <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
+		      <span className="truncate font-medium">
+		        {form.due_type === 'month' && form.month_of ? format(parseISO(form.month_of), 'MMMM yyyy')
+		          : form.due_type === 'week' && form.week_of ? `Week of ${format(parseISO(form.week_of), 'MMM d')}`
+		            : form.due_date ? format(parseISO(form.due_date), 'EEE, MMM d') : 'No date'}
+		      </span>
+		    </button>
+		    <div className="flex shrink-0 items-center gap-0.5">
+		      <Button variant="ghost" size="icon-sm" aria-label="Task list" title="Task list" onClick={() => setMoreDetails(true)}><ListChecks /></Button>
+		      <DropdownMenu>
+		        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Task color" title="Task color" />}>
+		          <span className="size-4 rounded-full border border-[hsl(var(--outline))]" style={{ backgroundColor: form.color ?? 'transparent' }}><Circle className={cn('size-3.5', form.color && 'opacity-0')} /></span>
+		        </DropdownMenuTrigger>
+		        <DropdownMenuContent align="end" className="min-w-44">
+		          <DropdownMenuLabel>Task color</DropdownMenuLabel>
+		          <DropdownMenuItem onClick={() => setForm({ ...form, color: null })}><span className="size-4 rounded-full border border-[hsl(var(--outline))]" /> None</DropdownMenuItem>
+		          {TASK_COLORS.map((color) => <DropdownMenuItem key={color.value} onClick={() => setForm({ ...form, color: color.value })}><span className="size-4 rounded-full" style={{ backgroundColor: color.value }} />{color.label}{form.color === color.value && <Check className="ml-auto size-4" />}</DropdownMenuItem>)}
+		        </DropdownMenuContent>
+		      </DropdownMenu>
+		      <Button variant="ghost" size="icon-sm" aria-label="Reminder settings" title="Reminder settings" onClick={() => setMoreDetails(true)} className={form.remind || form.reminders.length ? 'text-primary' : undefined}><Bell /></Button>
+		      <Button variant="ghost" size="icon-sm" aria-label={form.important ? 'Remove important' : 'Mark important'} title={form.important ? 'Remove important' : 'Mark important'} onClick={() => setForm({ ...form, important: !form.important })}><Star className={form.important ? 'fill-current text-[hsl(var(--tertiary))]' : ''} /></Button>
+		      {editing && (
+		        <DropdownMenu modal={false}>
+		          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More task actions" title="More task actions" />}><MoreHorizontal /></DropdownMenuTrigger>
+		          <DropdownMenuContent align="end" sideOffset={8} className="z-[70]">
+		            <DropdownMenuItem onClick={handleScratch}>{form.status === 'scratched' ? <RotateCcw /> : <Ban />}{form.status === 'scratched' ? 'Unscratch' : 'Scratch'}</DropdownMenuItem>
+		            <DropdownMenuSeparator />
+		            <DropdownMenuItem variant="destructive" onClick={handleDelete}><Trash2 /> Delete task</DropdownMenuItem>
+		          </DropdownMenuContent>
+		        </DropdownMenu>
+		      )}
+		      <Button variant="ghost" size="icon-sm" aria-label="Close task editor" onClick={() => onOpenChange(false)}><X /></Button>
+		    </div>
+		  </div>
+		</div>
 
-        <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5">
+        <div className="flex flex-col gap-3.5 flex-1 overflow-y-auto px-4 py-4 md:px-6">
           {/* Subtask context — makes parentage explicit (a child must never
               read as a normal task) and lets the user promote it out so it can
               live in its own list. */}
@@ -364,20 +419,50 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Title</Label>
-            <Input
+		  <div className="flex flex-col gap-1.5">
+		    <Input
               id="task-title"
               name="task-title"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               autoFocus={!editing}
               placeholder="What needs doing?"
-              className="h-auto font-serif text-lg md:text-2xl font-medium tracking-tight placeholder:text-muted-foreground/40 px-3 py-2"
-            />
-          </div>
+		      className="h-auto rounded-none border-x-0 border-t-0 bg-transparent px-1 py-2 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0 md:text-3xl"
+		    />
+		  </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 shrink-0">
+		  <div className="min-h-[92px] border-b border-[hsl(var(--outline-variant)/0.8)] px-1 pb-2">
+		    <RichEditor value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Add some extra notes here…" toolbar="compact" />
+		  </div>
+
+		  <div className="border-b border-[hsl(var(--outline-variant)/0.8)] px-1 py-1.5">
+		    <StepsEditor
+		      steps={form.steps}
+		      onChange={(next) => setForm({ ...form, steps: next })}
+		      onCommit={editing ? (next) => { tasksApi.update(editing.id, { steps: next }).then(onSaved).catch(() => {}); } : undefined}
+		    />
+		  </div>
+
+		  <button
+		    type="button"
+		    aria-expanded={moreDetails}
+		    onClick={() => {
+		      const next = !moreDetails;
+		      setMoreDetails(next);
+		      try { localStorage.setItem(MORE_DETAILS_KEY, String(next)); } catch {}
+		    }}
+		    className="flex min-h-11 items-center gap-2 rounded-lg border border-[hsl(var(--outline-variant))] px-3.5 text-left text-sm font-medium hover:bg-[hsl(var(--on-surface)/0.05)]"
+		  >
+		    <span className="flex-1">More details</span>
+		    {!moreDetails && form.status === 'blocked' && <span className="rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-error-container))]">Blocked</span>}
+		    {!moreDetails && form.priority === 'high' && <span className="rounded-full bg-[hsl(var(--tertiary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-tertiary-container))]">High priority</span>}
+		    {!moreDetails && form.reminders.length > 0 && <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">{form.reminders.length} extra reminder{form.reminders.length > 1 ? 's' : ''}</span>}
+		    <ChevronDown className={cn('size-4 transition-transform', moreDetails && 'rotate-180')} />
+		  </button>
+
+		  {moreDetails && <div className="flex flex-col gap-4 rounded-[24px] bg-[hsl(var(--surface-container-low))] p-3 md:gap-5 md:p-4">
+
+		  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 shrink-0">
             <div className="flex flex-col gap-1.5">
               <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}>
@@ -611,26 +696,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           </div>
 
-          {/* Steps editor — a quick inline checklist (lighter than subtasks). */}
-          <div className="flex flex-col gap-2">
-            <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-              <ListChecks className="size-3" /> Steps
-            </Label>
-            <div className="rounded-lg border border-border bg-card/50 px-2 py-1.5">
-              <StepsEditor
-                steps={form.steps}
-                onChange={(next) => setForm({ ...form, steps: next })}
-                onCommit={editing ? (next) => {
-                  // Persist step mutations immediately when editing an
-                  // existing task so Enter/toggle/delete don't require
-                  // a separate Save click.
-                  tasksApi.update(editing.id, { steps: next }).then(onSaved).catch(() => {});
-                } : undefined}
-              />
-            </div>
-          </div>
-
-          {/* Subtasks — real child tasks (own status/due). Only on an existing
+		  {/* Subtasks — real child tasks (own status/due). Only on an existing
               task; a new task has no id to parent them to yet. */}
           {editing && (
             <SubtasksSection taskId={editing.id} listId={editing.list_id ?? null} isGoal={!!editing.month_of} onChanged={onSaved} />
@@ -662,7 +728,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
           {/* Activity — GitHub-style audit timeline (create / status / title
               / list moves). Note edits are intentionally not tracked. */}
-          {editing && events.length > 0 && (
+		  {editing && events.length > 0 && (
             <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
               <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                 <History className="size-3" /> Activity ({events.length})
@@ -679,45 +745,14 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 ))}
               </ol>
             </div>
-          )}
-
-          <div className="flex flex-col flex-1 min-h-[140px] md:min-h-[200px] border border-border rounded-lg overflow-hidden bg-card">
-            <div className="bg-muted/30 border-b border-border px-3 py-1.5 flex items-center justify-between shrink-0">
-              <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Notes</Label>
-              <span className="text-xs text-muted-foreground/80">/ commands · # tags · [[ links</span>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3">
-              <RichEditor
-                value={form.description}
-                onChange={(v) => setForm({ ...form, description: v })}
-                placeholder="Add details, links, sub-context…"
-              />
-            </div>
-          </div>
-        </div>
+		  )}
+		  </div>}
+		</div>
 
         <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border bg-muted/20">
-          {editing && (
-            <div className="mr-auto flex items-center gap-1">
-              <Button
-                variant="ghost"
-                onClick={handleScratch}
-                className="text-muted-foreground hover:text-foreground gap-1.5"
-                title={form.status === 'scratched' ? 'Restore this task' : 'Scratch (abandon, but keep)'}
-              >
-                {form.status === 'scratched'
-                  ? <><RotateCcw className="size-3.5" /> Unscratch</>
-                  : <><Ban className="size-3.5" /> Scratch</>}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleDelete}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
-              >
-                <Trash2 className="size-3.5" /> Delete
-              </Button>
-            </div>
-          )}
+		  <div className="mr-auto min-w-0 text-xs text-muted-foreground">
+		    {form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
+		  </div>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title.trim() || (form.status === 'blocked' && !form.blocked_by_task_id)} className="gap-1.5">
             {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}

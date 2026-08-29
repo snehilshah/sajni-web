@@ -92,6 +92,7 @@ export function useCreateTask() {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
       qc.invalidateQueries({ queryKey: qk.tags.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
     },
   });
 }
@@ -106,6 +107,7 @@ export function useUpdateTask() {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
       qc.invalidateQueries({ queryKey: qk.tags.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
     },
   });
 }
@@ -130,6 +132,7 @@ export function useToggleTaskStatus() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
     },
   });
 }
@@ -151,18 +154,22 @@ export function useToggleTaskImportant() {
       ctx?.prev?.forEach(([key, data]) => qc.setQueryData(key, data));
       toast.error('Could not update task');
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.tasks.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.tasks.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
+    },
   });
 }
 
 export function useRescheduleTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, date }: { id: number; date: string }) => tasksApi.reschedule(id, date),
+    mutationFn: ({ id, date }: { id: number; date: string }) => tasksApi.reschedule(id, { target_date: date, schedule_mode: 'preserve' }),
     onError: () => toast.error('Could not reschedule'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
     },
   });
 }
@@ -175,6 +182,7 @@ export function useScratchTask() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
     },
   });
 }

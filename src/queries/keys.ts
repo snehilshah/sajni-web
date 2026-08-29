@@ -7,6 +7,10 @@
 // and derived queries in one shot.
 
 export const qk = {
+  planner: {
+    all: ['planner'] as const,
+    range: (from: string, to: string) => ['planner', 'range', from, to] as const,
+  },
   tasks: {
     all: ['tasks'] as const,
     list: (params?: unknown) => ['tasks', 'list', params ?? {}] as const,

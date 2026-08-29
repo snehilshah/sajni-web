@@ -424,7 +424,7 @@ function RecentLedger({ items }: { items: ReminderHistoryItem[] }) {
   );
 }
 
-function ReminderEditor({ open, editing, onOpenChange }: { open: boolean; editing: Reminder | null; onOpenChange: (open: boolean) => void }) {
+export function ReminderEditor({ open, editing, onOpenChange }: { open: boolean; editing: Reminder | null; onOpenChange: (open: boolean) => void }) {
   const mobile = useIsMobile();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const create = useCreateReminder();

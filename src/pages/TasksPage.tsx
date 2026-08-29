@@ -4,9 +4,10 @@ import { addDays, format, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bell, Plus, Loader2, LayoutGrid, ListChecks, ChevronDown,
+  Bell, Plus, Loader2, LayoutGrid, ListChecks, ChevronDown, CalendarDays, StickyNote,
 } from '@/components/ui/icons';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 import type { Task } from '@/types';
 import {
@@ -26,6 +27,7 @@ import TaskRow from '@/components/tasks/TaskRow';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
+const PlannerView = lazy(() => import('@/components/tasks/PlannerView'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import RemindersPanel from '@/components/reminders/RemindersPanel';
 import {
@@ -87,6 +89,7 @@ export default function TasksPage() {
   const refreshTasks = () => {
     qc.invalidateQueries({ queryKey: qk.tasks.all });
     qc.invalidateQueries({ queryKey: qk.taskLists.all });
+    qc.invalidateQueries({ queryKey: qk.planner.all });
   };
 
   // Deep-link support: /tasks?focus=<id> opens that task's edit dialog
@@ -94,7 +97,9 @@ export default function TasksPage() {
   // so Today-page links always resolve; other filters may not include it.
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get('focus');
-  const activeTab = searchParams.get('tab') === 'reminders' ? 'reminders' : 'tasks';
+  const activeTab = searchParams.get('tab') === 'reminders'
+    ? 'reminders'
+    : searchParams.get('tab') === 'planner' ? 'planner' : 'tasks';
   const focusHandled = useRef<string | null>(null);
   useEffect(() => {
     if (activeTab !== 'tasks' || !focusId || focusHandled.current === focusId) return;
@@ -187,9 +192,10 @@ export default function TasksPage() {
   const isMobile = useIsMobile();
   const effectiveView = isMobile ? 'list' : viewMode;
 
-  const switchTab = (tab: 'tasks' | 'reminders') => {
+  const switchTab = (tab: 'tasks' | 'planner' | 'reminders') => {
     const next = new URLSearchParams(searchParams);
     if (tab === 'reminders') next.set('tab', 'reminders');
+    else if (tab === 'planner') next.set('tab', 'planner');
     else next.delete('tab');
     next.delete('focus');
     setShowForm(false);
@@ -199,12 +205,24 @@ export default function TasksPage() {
   return (
     <PageShell
       title="Tasks"
+      contentClassName={activeTab === 'planner'
+        ? 'mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 pb-28 pt-5 md:px-6 md:pb-20 md:pt-6 xl:px-8'
+        : undefined}
       actions={
         !isMobile ? (
           activeTab === 'reminders' ? (
             <Button onClick={() => setReminderCreateSignal((value) => value + 1)} size="sm" className="gap-1.5">
               <Plus className="size-3.5" /> New reminder
             </Button>
+          ) : activeTab === 'planner' ? (
+            <div className="flex items-center gap-2">
+              <Button variant="tonal" onClick={() => { setReminderCreateSignal((value) => value + 1); switchTab('reminders'); }} size="sm" className="gap-1.5">
+                <Bell className="size-3.5" /> New reminder
+              </Button>
+              <Button onClick={() => openCreate()} size="sm" className="gap-1.5">
+                <Plus className="size-3.5" /> New task
+              </Button>
+            </div>
           ) : (
             showForm && !editingTask ? (
               <span className="inline-flex rounded-full">
@@ -229,6 +247,7 @@ export default function TasksPage() {
           value={activeTab}
           options={[
             { value: 'tasks', label: 'Tasks', icon: ListChecks },
+            { value: 'planner', label: 'Planner', icon: CalendarDays },
             { value: 'reminders', label: 'Reminders', icon: Bell },
           ]}
           onChange={switchTab}
@@ -240,6 +259,10 @@ export default function TasksPage() {
           createSignal={reminderCreateSignal}
           focusId={focusId ? Number(focusId) : undefined}
         />
+      ) : activeTab === 'planner' ? (
+        <Suspense fallback={<PlannerLoading />}>
+          <PlannerView onCreateTask={openCreate} onEditTask={openEdit} />
+        </Suspense>
       ) : (
         <div className="flex flex-col gap-3.5">
           <section
@@ -346,7 +369,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {activeTab === 'tasks' && (
+      {activeTab !== 'reminders' && (
         <Suspense fallback={null}>
           <TaskFormDialog
             open={showForm}
@@ -362,11 +385,11 @@ export default function TasksPage() {
       )}
 
       {/* Mobile FAB — bottom-right, above the safe area. */}
-      {isMobile && (
+      {isMobile && activeTab !== 'planner' && (
         <button
           type="button"
-          aria-label={activeTab === 'tasks' ? 'New task' : 'New reminder'}
-          onClick={() => activeTab === 'tasks' ? openCreate() : setReminderCreateSignal((value) => value + 1)}
+          aria-label={activeTab === 'reminders' ? 'New reminder' : 'New task'}
+          onClick={() => activeTab === 'reminders' ? setReminderCreateSignal((value) => value + 1) : openCreate()}
           className="md:hidden fixed right-4 z-40 size-14 inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-[var(--m3-elev-3)] active:translate-y-px"
           style={{
             bottom: 'calc(env(safe-area-inset-bottom) + 84px)',
@@ -376,6 +399,17 @@ export default function TasksPage() {
         </button>
       )}
     </PageShell>
+  );
+}
+
+function PlannerLoading() {
+  return (
+    <div className="grid gap-3">
+      <Skeleton className="h-24 rounded-[28px]" />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-7">
+        {Array.from({ length: 7 }, (_, index) => <Skeleton key={index} className="h-40 rounded-[20px]" />)}
+      </div>
+    </div>
   );
 }
 
@@ -636,7 +670,8 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
           hover:border-primary/40 hover:shadow-sm`}
       >
         <div className="flex items-start gap-2">
-          <span className={`size-2 rounded-full mt-1.5 shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
+          <span className={cn('size-2 rounded-full mt-1.5 shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
+          {task.description.trim() && <StickyNote className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
           <span className={`font-medium text-sm leading-tight flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
             {task.title}
           </span>

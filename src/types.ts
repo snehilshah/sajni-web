@@ -29,6 +29,7 @@ export interface Task {
    *  lists / smart views / reminders, reversible back to 'todo'. */
   status: 'todo' | 'in_progress' | 'blocked' | 'done' | 'scratched';
   priority: 'low' | 'medium' | 'high';
+  color?: TaskColor | null;
   tags?: string[];
   due_date?: string | null;
   /** Monday-anchored week (YYYY-MM-DD) for a week-scoped task (no specific
@@ -116,6 +117,7 @@ export type TaskPatch = Partial<Pick<
   | 'title'
   | 'description'
   | 'priority'
+  | 'color'
   | 'status'
   | 'due_date'
   | 'week_of'
@@ -136,7 +138,34 @@ export type TaskPatch = Partial<Pick<
   clear_list?: boolean;
   clear_parent?: boolean;
   clear_blocked_by?: boolean;
+  clear_color?: boolean;
 };
+
+export type TaskColor = '#2D5A4F' | '#7C9A92' | '#C49A6C' | '#A14B4F' | '#4F6FA1' | '#8B6FA1' | '#7A7A7A';
+
+export interface PlannerReminderOccurrence {
+  key: string;
+  reminder_id: number;
+  occurrence_id?: number;
+  sequence: number;
+  message: string;
+  notes: string;
+  scheduled_at: string;
+  fire_at: string;
+  status: 'pending' | 'delivered' | 'skipped' | 'projected';
+  recurring: boolean;
+  projected: boolean;
+  delivered_at?: string;
+  skipped_at?: string;
+}
+
+export interface PlannerResponse {
+  timezone: string;
+  from: string;
+  to: string;
+  tasks: Task[];
+  reminder_occurrences: PlannerReminderOccurrence[];
+}
 
 export interface TaskList {
   id: number;

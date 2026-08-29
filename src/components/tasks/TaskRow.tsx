@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch,
+  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch, StickyNote,
 } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -149,7 +149,8 @@ export default function TaskRow({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`size-2.5 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority]}`} />
+              <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
+              {task.description.trim() && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
               <span className={`font-medium text-[0.9375rem] leading-snug flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
                 {task.title}
               </span>

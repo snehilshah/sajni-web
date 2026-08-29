@@ -69,10 +69,12 @@ interface Props {
    * surrounding page (e.g. the journal right-rail "+ Add task" row).
    */
   contextDate?: string;
+  /** Keep a small formatting row visible above compact note fields. */
+  toolbar?: 'bubble' | 'compact';
 }
 
 export default function RichEditor({
-  value, onChange, placeholder, className, autoFocus, minHeight, fill, contextDate,
+  value, onChange, placeholder, className, autoFocus, minHeight, fill, contextDate, toolbar = 'bubble',
 }: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -382,10 +384,13 @@ export default function RichEditor({
 
   return (
     <div className={`relative w-full ${fill ? 'flex flex-1 flex-col min-h-0' : ''} ${className || ''}`}>
-      {editor && (
+      {editor && toolbar === 'bubble' && (
         <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }}>
           <Toolbar editor={editor} onImage={() => imagePicker(uploadAndInsertImage)} />
         </BubbleMenu>
+      )}
+      {editor && toolbar === 'compact' && (
+        <Toolbar editor={editor} onImage={() => imagePicker(uploadAndInsertImage)} compact />
       )}
       <div
         className={fill ? 'editor-fill flex flex-1 flex-col min-h-0 [&_.ProseMirror]:flex-1' : undefined}
@@ -547,7 +552,7 @@ function imagePicker(insert: (file: File) => void) {
   input.click();
 }
 
-function Toolbar({ editor, onImage }: { editor: Editor; onImage: () => void }) {
+function Toolbar({ editor, onImage, compact = false }: { editor: Editor; onImage: () => void; compact?: boolean }) {
   // Subscribe to editor transactions so isActive() recomputes on every
   // selection change. Without this the BubbleMenu's React subtree doesn't
   // re-render as the cursor moves, so the toolbar froze on whatever marks
@@ -575,11 +580,30 @@ function Toolbar({ editor, onImage }: { editor: Editor; onImage: () => void }) {
       type="button"
       onClick={(e) => { e.preventDefault(); onClick(); }}
       title={title}
-      className={`p-1.5 rounded-md transition-colors hover:bg-accent ${active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}
+      aria-label={title}
+      className={`${compact ? 'flex size-9 items-center justify-center' : 'p-1.5'} rounded-md transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 ${active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}
     >
       <Icon className="size-3.5" />
     </button>
   );
+  if (compact) {
+    return (
+      <div className="mb-1 flex items-center gap-0.5 border-b border-[hsl(var(--outline-variant)/0.65)] py-1">
+        {btn(a.h1, () => editor.chain().focus().toggleHeading({ level: 1 }).run(), Heading1, 'Heading')}
+        {btn(a.bold, () => editor.chain().focus().toggleBold().run(), Bold, 'Bold')}
+        {btn(a.bulletList, () => editor.chain().focus().toggleBulletList().run(), List, 'Bullet list')}
+        {btn(a.orderedList, () => editor.chain().focus().toggleOrderedList().run(), ListOrdered, 'Numbered list')}
+        {btn(a.link, () => {
+          const prev = (editor.getAttributes('link').href as string) || '';
+          const url = window.prompt('Link URL', prev);
+          if (url === null) return;
+          const chain = editor.chain().focus().extendMarkRange('link');
+          if (url.trim() === '') chain.unsetLink().run();
+          else chain.setLink({ href: url.trim() }).run();
+        }, Link2, a.link ? 'Edit link' : 'Link')}
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-lg p-1">
       {btn(a.h1, () => editor.chain().focus().toggleHeading({ level: 1 }).run(), Heading1, 'Heading 1')}

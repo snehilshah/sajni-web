@@ -24,7 +24,10 @@ function useReminderMutation<T>(mutationFn: (value: T) => Promise<unknown>, erro
   return useMutation({
     mutationFn,
     onError: () => toast.error(error),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.reminders.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.reminders.all });
+      qc.invalidateQueries({ queryKey: qk.planner.all });
+    },
   });
 }
 
