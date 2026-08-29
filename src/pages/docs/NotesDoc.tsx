@@ -3,23 +3,21 @@ import { Section, Callout, Code, Kbd, RefTable, Feature, FeatureList } from './p
 export const notesMeta = {
   id: 'notes',
   label: 'Notes',
-  title: 'Notes & Memos',
-  blurb: 'Long-form writing with structure — and a frictionless inbox for half-formed thoughts.',
+  title: 'Notes',
+  blurb: 'Long-form writing with folders, structure, backlinks, and inline task references.',
   sections: [
     { id: 'notes', label: 'Notes' },
     { id: 'editor', label: 'The editor' },
-    { id: 'memos', label: 'Memos' },
   ],
 };
 
 export default function NotesDoc() {
   return (
     <>
-      <Section id="notes" title="Notes" chip="notes tab">
+      <Section id="notes" title="Notes">
         <p>
-          Notes are titled, long-form documents. Rule of thumb across the two
-          tabs: <em>if it has a title, it's a note; if it's a flash, it's a
-          memo.</em>
+          Notes are titled, long-form documents for writing that needs more
+          structure than a quick capture.
         </p>
         <FeatureList>
           <Feature name="The index">
@@ -115,29 +113,6 @@ export default function NotesDoc() {
           Without it you either lose the commitment in prose or duplicate it
           by hand into Tasks — and duplicates always drift.
         </Callout>
-      </Section>
-
-      <Section id="memos" title="Memos" chip="memos tab">
-        <p>
-          Memos are the capture inbox: no title, no folder, no friction. Type,
-          save, move on.
-        </p>
-        <FeatureList>
-          <Feature name="Quick capture">
-            <p>
-              A single text box at the top; entries stack newest-first.
-              <Code>#tags</Code> work; pinning keeps a memo at the top.
-            </p>
-          </Feature>
-          <Feature name="The Echo loop">
-            <p>
-              Memos don't rot silently: the Today page resurfaces a memo from
-              3+ days ago (“Echo from earlier”). On re-read it either
-              graduates — into a note, a task, a project card — or gets
-              deleted with a clear conscience.
-            </p>
-          </Feature>
-        </FeatureList>
       </Section>
     </>
   );
