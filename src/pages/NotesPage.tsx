@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
 import { SegmentedButton } from '@/components/ui/segmented-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const RichEditor = lazy(() => import('@/components/editor/RichEditor'));
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -73,6 +74,7 @@ interface TreeNode {
 const SIDEBAR_KEY = 'sajni:notes-library-rail';
 const EXPANDED_KEY = 'sajni:notes-expanded';
 const EDITOR_MODE_KEY = 'sajni:notes-editor-mode';
+const ROOT_FOLDER_VALUE = '__root__';
 
 function extractOutline(markdown: string): OutlineItem[] {
   const items: OutlineItem[] = [];
@@ -474,6 +476,12 @@ export default function NotesPage() {
     return folder.split('/');
   }, [folder]);
 
+  const handleDraftFolderChange = (value: string | null) => {
+    const nextFolder = value === ROOT_FOLDER_VALUE ? '' : value || '';
+    setFolder(nextFolder);
+    setActiveFolder(nextFolder);
+  };
+
   const treeBody = (
     <>
       <header className="px-4 py-3.5 border-b border-sidebar-border/60 shrink-0">
@@ -709,15 +717,40 @@ export default function NotesPage() {
                           >
                             <ArrowLeft className="size-4" /> Notes
                           </Button>
-                          <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                            {breadcrumb.length > 0 ? breadcrumb.map((segment, index) => (
-                              <span key={`${segment}:${index}`} className="flex items-center gap-1 min-w-0">
-                                <span className="truncate">{segment}</span>
-                                {index < breadcrumb.length - 1 && <ChevronRight className="size-3 opacity-60" />}
-                              </span>
-                            )) : <span>Unfiled</span>}
-                            {selectedNote?.updated_at && <span>· Edited {fmtRelTime(selectedNote.updated_at)}</span>}
-                          </div>
+                          {drafting ? (
+                            <div className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="shrink-0">Create in</span>
+                              <Select value={folder || ROOT_FOLDER_VALUE} onValueChange={handleDraftFolderChange}>
+                                <SelectTrigger
+                                  size="sm"
+                                  className="h-8 w-auto min-w-36 max-w-full border-[hsl(var(--outline-variant))] px-2.5 text-xs"
+                                  aria-label="Choose where to create the note"
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                  <SelectItem value={ROOT_FOLDER_VALUE}>
+                                    <Folder className="size-3.5" /> Root
+                                  </SelectItem>
+                                  {folders.map((item) => (
+                                    <SelectItem key={item.path} value={item.path}>
+                                      <Folder className="size-3.5" /> {item.path}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                              {breadcrumb.length > 0 ? breadcrumb.map((segment, index) => (
+                                <span key={`${segment}:${index}`} className="flex items-center gap-1 min-w-0">
+                                  <span className="truncate">{segment}</span>
+                                  {index < breadcrumb.length - 1 && <ChevronRight className="size-3 opacity-60" />}
+                                </span>
+                              )) : <span>Root</span>}
+                              {selectedNote?.updated_at && <span>· Edited {fmtRelTime(selectedNote.updated_at)}</span>}
+                            </div>
+                          )}
                           {editorMode === 'preview' ? (
                             <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-tight text-foreground">
                               {title || 'Untitled'}
@@ -1308,7 +1341,7 @@ function NoteRowItem({
           ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
           : 'hover:bg-[hsl(var(--surface-container-high))] text-foreground/85'
       }`}
-      style={{ paddingLeft: `${depth * 14 + 26}px`, paddingRight: '4px' }}
+      style={{ paddingLeft: `${depth * 14 + 8}px`, paddingRight: '4px' }}
     >
       <FileText className="size-3.5 text-muted-foreground shrink-0" />
       <span className="flex-1 truncate">{note.title || 'Untitled'}</span>
