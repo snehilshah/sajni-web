@@ -26,6 +26,7 @@ const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   // Money moves ripple across balances, overview and budgets — nuke the whole
   // finance root rather than guess which derived view is affected.
   { prefix: 'transaction_', keys: [qk.finance.all] },
+  { prefix: 'lend_', keys: [qk.finance.all] },
   { prefix: 'biller_', keys: [qk.finance.all] },
   { prefix: 'account_', keys: [qk.finance.all] },
   { prefix: 'slate_', keys: [qk.finance.all] },

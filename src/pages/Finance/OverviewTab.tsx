@@ -41,6 +41,7 @@ export default function OverviewTab({ enabled }: Props) {
     );
   }
   const investmentAssets = data.investment_assets ?? [];
+  const lendAssets = data.lends_breakdown ?? [];
 
   const takeSnapshot = async () => {
     setSnapping(true);
@@ -80,6 +81,7 @@ export default function OverviewTab({ enabled }: Props) {
           <Distribution
             accounts={data.accounts}
             investments={investmentAssets}
+            lends={lendAssets}
           />
         </Panel>
 
@@ -261,10 +263,11 @@ function Hero({ data, history, onSnapshot, snapping }: {
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
         <HeroStat label="Assets" value={data.total_assets} />
         <HeroStat label="Liabilities" value={data.total_liabilities} />
-        <HeroStat label="Investments" value={data.investments_total} className="col-span-2 md:col-span-1" />
+        <HeroStat label="Investments" value={data.investments_total} />
+        <HeroStat label="Money lent" value={data.money_lent_total} />
       </div>
 
       {/* Mini sparkline */}
@@ -324,9 +327,10 @@ function MonthCard({ label, value, tone, icon: Icon }: {
   );
 }
 
-function Distribution({ accounts, investments }: {
+function Distribution({ accounts, investments, lends }: {
   accounts: OverviewData['accounts'];
   investments: NonNullable<OverviewData['investment_assets']>;
+  lends: NonNullable<OverviewData['lends_breakdown']>;
 }) {
   const { formatMoney, formatPercent } = useFinanceFormatters();
   const items = useMemo(() => {
@@ -343,8 +347,18 @@ function Distribution({ accounts, investments }: {
         });
       }
     });
+    lends.forEach((lend, index) => {
+      if (lend.outstanding > 0) {
+        list.push({
+          key: 'l' + lend.id,
+          name: `Lent · ${lend.borrower}`,
+          color: investmentColors[(investments.length + index) % investmentColors.length],
+          amount: lend.outstanding,
+        });
+      }
+    });
     return list.sort((a, b) => b.amount - a.amount);
-  }, [accounts, investments]);
+  }, [accounts, investments, lends]);
 
   const total = items.reduce((s, i) => s + i.amount, 0);
 

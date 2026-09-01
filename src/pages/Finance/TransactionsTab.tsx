@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, startOfWeek, endOfWeek, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import {
-  Plus, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Tags, Hash, Check, Wallet,
+  Plus, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Tags, Hash, Check, Wallet, Coins,
 } from '@/components/ui/icons';
 
-import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnKind } from '@/api';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -135,17 +135,20 @@ interface Props {
   truncated: boolean;
   canLoadEarlier: boolean;
   onLoadEarlier: () => void;
+  newLendRequest: number;
 }
 
 export default function TransactionsTab({
   accounts, categories, slates, transactions, loaded,
   slateFilter, onSlateFilter, reload, reloadCategories,
   truncated, canLoadEarlier, onLoadEarlier,
+  newLendRequest,
 }: Props) {
   const { formatMoney } = useFinanceFormatters();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createKind, setCreateKind] = useState<TxnKind>('expense');
   const [manageCats, setManageCats] = useState(false);
   const [search, setSearch] = useState('');
   const [accountFilter, setAccountFilter] = useState<string>('');
@@ -153,6 +156,12 @@ export default function TransactionsTab({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [newSlate, setNewSlate] = useState(false);
   const [sweeping, setSweeping] = useState(false);
+
+  useEffect(() => {
+    if (newLendRequest <= 0) return;
+    setCreateKind('lend');
+    setCreating(true);
+  }, [newLendRequest]);
 
   // Optimistic edits (esp. account switches). Keyed by txn id, layered over the
   // parent's list so a row updates the instant you save — no wait for reload,
@@ -215,7 +224,7 @@ export default function TransactionsTab({
   // Selection is WYSIWYG: anything the filters hide is dropped, so the count in
   // the action bar always matches what the user can see and check.
   const visibleIds = useMemo(
-    () => new Set(days.flatMap((d) => d.items.map((t) => t.id))),
+    () => new Set(days.flatMap((d) => d.items.filter((t) => t.type !== 'lend' && t.type !== 'lend_repayment').map((t) => t.id))),
     [days],
   );
   useEffect(() => {
@@ -293,7 +302,7 @@ export default function TransactionsTab({
           <Button variant="outline" onClick={() => setManageCats(true)} title="Add / edit categories">
             <Tags className="size-4 md:mr-1" /> <span className="hidden md:inline">Categories</span>
           </Button>
-          <Button onClick={() => setCreating(true)}>
+          <Button onClick={() => { setCreateKind('expense'); setCreating(true); }}>
             <Plus className="size-4 md:mr-1" /> <span className="hidden md:inline">Add</span>
           </Button>
         </div>
@@ -312,7 +321,7 @@ export default function TransactionsTab({
             </SelectContent>
           </Select>
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
-            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'transfer_out', label: 'Transfer' }]}>
+            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }]}>
             <SelectTrigger size="sm" className="w-[130px] shrink-0">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
@@ -321,6 +330,8 @@ export default function TransactionsTab({
               <SelectItem value="expense">Expense</SelectItem>
               <SelectItem value="income">Income</SelectItem>
               <SelectItem value="transfer_out">Transfer</SelectItem>
+              <SelectItem value="lend">Lend</SelectItem>
+              <SelectItem value="lend_repayment">Lend repayment</SelectItem>
             </SelectContent>
           </Select>
           {/* Server-side slate filter (params-keyed query in FinancePage). */}
@@ -420,8 +431,8 @@ export default function TransactionsTab({
                       slate={slateById(t.slate_id)}
                       selecting={selecting}
                       checked={selected.has(t.id)}
-                      onToggle={() => toggle(t.id)}
-                      onOpen={() => setEditing(t)}
+                      onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment') ? navigate('/finance/lends') : toggle(t.id)}
+                      onOpen={() => (t.type === 'lend' || t.type === 'lend_repayment') ? navigate('/finance/lends') : setEditing(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
                       linkedName={linkedAccountName(t.linked_account)}
                       formatMoney={formatMoney}
@@ -501,6 +512,7 @@ export default function TransactionsTab({
         accounts={accounts}
         categories={categories}
         slates={slates}
+        initialType={createKind}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={(patch) => {
           setCreating(false);
@@ -549,8 +561,10 @@ function LedgerRow({
 }) {
   const isTransfer = t.type === 'transfer_out';
   const isExpense = t.type === 'expense';
-  const Icon = isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
-  const tint = t.category_color || (isTransfer ? '#6B7280' : isExpense ? '#A14B4F' : '#2D5A4F');
+  const isLend = t.type === 'lend';
+  const isLendRepayment = t.type === 'lend_repayment';
+  const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
+  const tint = t.category_color || (isLend || isLendRepayment || isTransfer ? '#6B7280' : isExpense ? '#A14B4F' : '#2D5A4F');
   // Plain is silent: only an outlier earns a spine and a chip. `slate` can be
   // missing while the slates query is still in flight — treat that as silent
   // rather than guessing, so nothing flickers a wrong colour.
@@ -607,7 +621,7 @@ function LedgerRow({
       >
         <div className="min-w-0 md:col-start-1">
           <div className="text-sm font-medium truncate">
-            {t.description || (isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'))}
+            {t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'))}
           </div>
           {(outlier || tags.length > 0) && (
             <div className="flex flex-wrap gap-1 mt-1">
@@ -644,7 +658,7 @@ function LedgerRow({
               <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: t.category_color }} />
             )}
             <span className="truncate">
-              {isTransfer ? 'Transfer' : t.category_name || 'Uncategorized'}
+              {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || 'Uncategorized'}
             </span>
           </span>
           <span aria-hidden className="md:hidden">·</span>
@@ -655,9 +669,9 @@ function LedgerRow({
         </div>
 
         <div className={`col-start-2 row-start-1 row-span-2 self-center text-right font-mono text-sm tabular-nums md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
-          isExpense ? 'text-destructive' : !isTransfer ? 'text-primary' : 'text-muted-foreground'
+          isExpense ? 'text-destructive' : isLend || isTransfer ? 'text-muted-foreground' : 'text-primary'
         }`}>
-          {isExpense ? '−' : !isTransfer ? '+' : ''}{formatMoney(t.amount)}
+          {isExpense || isLend ? '−' : !isTransfer ? '+' : ''}{formatMoney(t.amount)}
         </div>
       </button>
     </div>

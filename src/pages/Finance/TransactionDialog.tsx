@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Switch } from '@/components/ui/switch';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,7 +30,7 @@ function editKind(kind: FinTransaction['type']): TxnKind {
 }
 
 export default function TransactionDialog({
-  open, txn, accounts, categories, slates, defaultSlateId, onClose, onSaved,
+  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', onClose, onSaved,
 }: {
   open: boolean;
   txn: FinTransaction | null;
@@ -38,16 +39,20 @@ export default function TransactionDialog({
   slates: FinSlate[];
   /** Preselect this slate for new txns. */
   defaultSlateId?: number;
+  initialType?: TxnKind;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
 }) {
-  const [type, setType] = useState<'expense' | 'income' | 'transfer'>('expense');
+  const [type, setType] = useState<TxnKind>('expense');
   const [accountId, setAccountId] = useState('');
   const [linkedId, setLinkedId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
+  const [borrower, setBorrower] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [remind, setRemind] = useState(false);
   // Slate the txn files under; '0' = Plain. There is no active-slate mode:
   // everything is normal life until the user says otherwise.
   const [slateId, setSlateId] = useState('0');
@@ -77,18 +82,24 @@ export default function TransactionDialog({
       setAmount(String(txn.amount));
       setDescription(txn.description);
       setNote(txn.note || '');
+      setBorrower('');
+      setDueDate('');
+      setRemind(false);
       setSlateId(String(txn.slate_id ?? 0));
       { const p = txnAtToParts(txn.txn_at); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
       setUserPickedCategory(true);
     } else {
-      setType('expense');
+      setType(initialType);
       setAccountId(accounts[0] ? String(accounts[0].id) : '');
       setLinkedId('');
       setCategoryId('');
       setAmount('');
       setDescription('');
       setNote('');
+      setBorrower('');
+      setDueDate('');
+      setRemind(false);
       setSlateId(String(defaultSlateId ?? slates.find((p) => p.is_plain)?.id ?? 0));
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
@@ -100,7 +111,7 @@ export default function TransactionDialog({
     // re-runs and wipes whatever the user has typed into an open dialog. The
     // reset belongs to "the dialog opened", not "the data changed".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txn, open, defaultSlateId]);
+  }, [txn, open, defaultSlateId, initialType]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
   const othersCategory = filteredCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
@@ -120,7 +131,7 @@ export default function TransactionDialog({
   // by the shared AI budget.
   useEffect(() => {
     if (txn) return;                              // edit mode — don't auto-pick
-    if (type === 'transfer') return;              // transfers have no category
+    if (type === 'transfer' || type === 'lend') return; // neither has a category
     if (userPickedCategoryRef.current) return;    // user took the wheel
     const title = description.trim();
     if (title.length < 3) {                       // avoid noise / 1-letter spam
@@ -164,6 +175,7 @@ export default function TransactionDialog({
       if (!linkedId) e.linked = 'Choose a destination account.';
       else if (linkedId === accountId) e.linked = 'Destination must differ from the source.';
     }
+    if (type === 'lend' && !borrower.trim()) e.borrower = 'Enter who borrowed the money.';
     return e;
   };
 
@@ -226,6 +238,17 @@ export default function TransactionDialog({
           txn_at: txnAt,
           linked_account: parseInt(linkedId),
         });
+      } else if (type === 'lend') {
+        await finance.createLend({
+          source_account_id: parseInt(accountId),
+          borrower: borrower.trim(),
+          amount: amt,
+          description,
+          note,
+          lent_at: txnAt,
+          due_date: dueDate || null,
+          remind: remind && !!dueDate,
+        });
       } else {
         await finance.createTransaction({
           account_id: parseInt(accountId),
@@ -265,8 +288,8 @@ export default function TransactionDialog({
           <DialogTitle>{txn ? 'Edit transaction' : 'New transaction'}</DialogTitle>
         </DialogHeader>
         {!txn && (
-          <div className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1">
-            {(['expense', 'income', 'transfer'] as const).map((t) => (
+          <div className="grid grid-cols-4 gap-1 rounded-md bg-muted p-1">
+            {(['expense', 'income', 'transfer', 'lend'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}
@@ -284,13 +307,13 @@ export default function TransactionDialog({
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={type === 'transfer' ? 'e.g. Move to savings' : type === 'income' ? 'e.g. October salary' : 'e.g. Lunch at Cafe X'}
+              placeholder={type === 'lend' ? 'e.g. Emergency help' : type === 'transfer' ? 'e.g. Move to savings' : type === 'income' ? 'e.g. October salary' : 'e.g. Lunch at Cafe X'}
               maxLength={120}
               autoFocus={!txn}
               
             />
           </Field>
-          <Field label={type === 'transfer' ? 'From account' : 'Account'} className="col-span-2" error={errors.account}>
+          <Field label={type === 'transfer' || type === 'lend' ? 'From account' : 'Account'} className="col-span-2" error={errors.account}>
             <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }}
               items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
               <SelectTrigger aria-invalid={!!errors.account}>
@@ -318,7 +341,7 @@ export default function TransactionDialog({
               </Select>
             </Field>
           )}
-          {type !== 'transfer' && (
+          {type !== 'transfer' && type !== 'lend' && (
             <Field
               label="Category"
               className="col-span-2"
@@ -353,7 +376,7 @@ export default function TransactionDialog({
               </Select>
             </Field>
           )}
-          {type !== 'transfer' && (
+          {type !== 'transfer' && type !== 'lend' && (
             <Field
               label="Slate"
               className="col-span-2"
@@ -392,12 +415,28 @@ export default function TransactionDialog({
               
             />
           </Field>
+          {type === 'lend' && (
+            <Field label="Borrower" className="col-span-2" error={errors.borrower}>
+              <Input value={borrower} onChange={(e) => { setBorrower(e.target.value); clearError('borrower'); }} placeholder="Name" aria-invalid={!!errors.borrower} />
+            </Field>
+          )}
           <Field label="Date">
             <DatePicker value={date} onChange={setDate} />
           </Field>
           <Field label="Time">
             <TimePicker value={time} onChange={setTime} />
           </Field>
+          {type === 'lend' && (
+            <>
+              <Field label="Due date" className="col-span-2">
+                <DatePicker value={dueDate} onChange={(value) => { setDueDate(value); if (!value) setRemind(false); }} />
+              </Field>
+              <div className="col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                <div><Label>Due reminder</Label><p className="text-xs text-muted-foreground">One notification when repayment is due.</p></div>
+                <Switch checked={remind && !!dueDate} disabled={!dueDate} onCheckedChange={setRemind} />
+              </div>
+            </>
+          )}
           <Field label="Note" className="col-span-2">
             <Textarea
               value={note}

@@ -767,7 +767,7 @@ export interface FinTransaction {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
-  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out';
+  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'lend' | 'lend_repayment';
   amount: number;
   description: string;
   note: string;
@@ -839,6 +839,44 @@ export interface FinInvestment {
   /** Cron posts the contribution from account_id each cycle when on. */
   auto_debit: boolean;
   next_debit_date: string | null;
+}
+
+export interface FinLendRepayment {
+  id: number;
+  destination_account_id: number;
+  destination_account: string;
+  amount: number;
+  repaid_at: string;
+  note: string;
+}
+
+export interface FinLend {
+  id: number;
+  source_account_id: number;
+  source_account: string;
+  source_account_type: FinAccount['type'];
+  borrower: string;
+  principal: number;
+  repaid: number;
+  outstanding: number;
+  description: string;
+  note: string;
+  lent_at: string;
+  due_date: string | null;
+  remind: boolean;
+  status: 'open' | 'settled';
+  repayments: FinLendRepayment[];
+}
+
+export interface LendDraft {
+  source_account_id: number;
+  borrower: string;
+  amount: number;
+  description?: string;
+  note?: string;
+  lent_at: string;
+  due_date?: string | null;
+  remind?: boolean;
 }
 
 export interface FinSaving {
@@ -948,7 +986,7 @@ export type AccountDraft = Partial<Pick<
   | 'archived'
 >>;
 
-export type TxnKind = 'expense' | 'income' | 'transfer';
+export type TxnKind = 'expense' | 'income' | 'transfer' | 'lend';
 
 export interface TxnDraft {
   account_id: number;
@@ -1056,6 +1094,20 @@ export const finance = {
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request('/finance/transactions/' + id, { method: 'DELETE' }),
+
+  // Lending receivables. Principal moves out of/in to real accounts while
+  // outstanding principal remains a separate asset in net worth.
+  listLends: () => request<FinLend[]>('/finance/lends'),
+  createLend: (data: LendDraft) =>
+    request<{ id: number; transaction_id: number }>('/finance/lends', { method: 'POST', body: JSON.stringify(data) }),
+  updateLend: (id: number, data: Pick<FinLend, 'borrower' | 'description' | 'note' | 'remind'> & { due_date: string }) =>
+    request('/finance/lends/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteLend: (id: number) =>
+    request('/finance/lends/' + id, { method: 'DELETE' }),
+  recordLendRepayment: (id: number, data: { destination_account_id?: number; amount: number; repaid_at: string; note?: string }) =>
+    request<{ id: number; transaction_id: number }>('/finance/lends/' + id + '/repayments', { method: 'POST', body: JSON.stringify(data) }),
+  deleteLendRepayment: (lendId: number, repaymentId: number) =>
+    request('/finance/lends/' + lendId + '/repayments/' + repaymentId, { method: 'DELETE' }),
   // AI category inference. Returns { category_id, category_name } where
   // category_id is null when no existing category matched (falls back
   // to "Others"). 429 means the user has exhausted their AI quota.
@@ -1169,6 +1221,7 @@ export const finance = {
     total_assets: number;
     total_liabilities: number;
     investments_total: number;
+    money_lent_total: number;
     month_income: number;
     month_expense: number;
     month_savings: number;
@@ -1180,6 +1233,7 @@ export const finance = {
     upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; is_subscription: boolean; auto_renew: boolean }[];
     investments_breakdown: { type: string; amount: number }[];
     investment_assets?: { id: number; name: string; type: string; amount: number }[];
+    lends_breakdown?: { id: number; borrower: string; description: string; outstanding: number }[];
   }>('/finance/overview'),
 
   networthHistory: () =>

@@ -5,18 +5,18 @@ import { motion } from 'framer-motion';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import {
   LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
-  TrendingUp, CreditCard, Download, Receipt, Wallet,
+  TrendingUp, CreditCard, Download, Receipt, Wallet, Coins,
   Eye, VenetianMask,
 } from '@/components/ui/icons';
 
 import {
   finance,
   type FinAccount, type FinCategory, type FinTransaction,
-  type FinInvestment, type FinSaving, type FinStatement,
+  type FinInvestment, type FinLend, type FinSaving, type FinStatement,
 } from '@/api';
 import {
   useFinAccounts, useFinCategories, useFinTransactions,
-  useFinInvestments, useFinSavings, useFinStatements, useFinSlates,
+  useFinInvestments, useFinLends, useFinSavings, useFinStatements, useFinSlates,
 } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import OverviewTab from './OverviewTab';
@@ -24,6 +24,7 @@ import AccountsTab from './AccountsTab';
 import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
+import LendsTab from './LendsTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
 import SlatesTab from './SlatesTab';
@@ -42,6 +43,7 @@ const financeTabs = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { id: 'lends', label: 'Lends', icon: Coins },
   { id: 'slates', label: 'Slates', icon: Wallet },
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
   { id: 'billers', label: 'Billers', icon: Receipt },
@@ -56,6 +58,7 @@ export interface FinanceData {
   accounts: FinAccount[];
   categories: FinCategory[];
   transactions: FinTransaction[];
+  lends: FinLend[];
   investments: FinInvestment[];
   savings: FinSaving[];
   statements: FinStatement[];
@@ -63,6 +66,7 @@ export interface FinanceData {
     accounts: boolean;
     categories: boolean;
     transactions: boolean;
+    lends: boolean;
     investments: boolean;
     savings: boolean;
     statements: boolean;
@@ -104,7 +108,7 @@ export default function FinancePage() {
       : { from, limit: TXN_LIMIT, slate_id: slateFilter };
   }, [slateFilter, monthsBack]);
 
-  const accountsQ = useFinAccounts(wantAny('accounts', 'transactions', 'billers', 'investments', 'cards'));
+  const accountsQ = useFinAccounts(wantAny('accounts', 'transactions', 'lends', 'billers', 'investments', 'cards'));
   const categoriesQ = useFinCategories(wantAny('accounts', 'transactions', 'budgets', 'billers'));
   // Archived slates come down with the rest — every consumer that offers a
   // slate to pick filters `!archived` itself, and the Slates tab's "show
@@ -112,6 +116,7 @@ export default function FinancePage() {
   // reaches this component, so it can't re-render the page.
   const slatesQ = useFinSlates(wantAny('transactions', 'slates', 'budgets'));
   const transactionsQ = useFinTransactions(txnParams, want('transactions'));
+  const lendsQ = useFinLends(want('lends'));
   const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
   const statementsQ = useFinStatements(want('cards'));
@@ -120,6 +125,7 @@ export default function FinancePage() {
     accounts: accountsQ.data ?? [],
     categories: categoriesQ.data ?? [],
     transactions: transactionsQ.data ?? [],
+    lends: lendsQ.data ?? [],
     investments: investmentsQ.data ?? [],
     savings: savingsQ.data ?? [],
     statements: statementsQ.data ?? [],
@@ -127,6 +133,7 @@ export default function FinancePage() {
       accounts: accountsQ.isSuccess,
       categories: categoriesQ.isSuccess,
       transactions: transactionsQ.isSuccess,
+      lends: lendsQ.isSuccess,
       investments: investmentsQ.isSuccess,
       savings: savingsQ.isSuccess,
       statements: statementsQ.isSuccess,
@@ -142,11 +149,13 @@ export default function FinancePage() {
   const loadSavings = () => qc.invalidateQueries({ queryKey: qk.finance.savings() });
   // Prefix (no params) so every slate-filtered variant refetches too.
   const loadTransactions = () => qc.invalidateQueries({ queryKey: ['finance', 'transactions'] });
+  const loadLends = () => qc.invalidateQueries({ queryKey: qk.finance.lends() });
   const loadInvestments = () => qc.invalidateQueries({ queryKey: qk.finance.investments() });
   const loadStatements = () => qc.invalidateQueries({ queryKey: qk.finance.statements() });
   const loadSlates = () => qc.invalidateQueries({ queryKey: qk.finance.slates() });
 
   const [exportOpen, setExportOpen] = useState(false);
+  const [newLendRequest, setNewLendRequest] = useState(0);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag
   // (read by every formatMoney across all tabs) + localStorage; setPrivacy() then
   // forces this component — and its always-mounted tab children — to re-render,
@@ -240,8 +249,18 @@ export default function FinancePage() {
             truncated={data.transactions.length >= TXN_LIMIT}
             canLoadEarlier={data.loaded.transactions}
             onLoadEarlier={() => setMonthsBack((n) => n + 3)}
-            reload={() => { loadTransactions(); loadAccounts(); loadSlates(); }}
+            newLendRequest={newLendRequest}
+            reload={() => { loadTransactions(); loadAccounts(); loadLends(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); loadSlates(); }}
             reloadCategories={loadCategories}
+          />
+        </TabPanel>
+        <TabPanel active={active === 'lends'}>
+          <LendsTab
+            accounts={data.accounts}
+            lends={data.lends}
+            loaded={data.loaded.lends}
+            reload={() => { loadLends(); loadAccounts(); loadTransactions(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); }}
+            onNewLend={() => { setActive('transactions'); setNewLendRequest((value) => value + 1); }}
           />
         </TabPanel>
         <TabPanel active={active === 'slates'}>

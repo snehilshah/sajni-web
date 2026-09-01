@@ -94,6 +94,7 @@ export const qk = {
     accounts: () => ['finance', 'accounts'] as const,
     categories: (kind?: string) => ['finance', 'categories', kind ?? 'all'] as const,
     transactions: (params?: unknown) => ['finance', 'transactions', params ?? {}] as const,
+    lends: () => ['finance', 'lends'] as const,
     budgets: () => ['finance', 'budgets'] as const,
     slates: () => ['finance', 'slates'] as const,
     investments: () => ['finance', 'investments'] as const,

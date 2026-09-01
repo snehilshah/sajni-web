@@ -27,6 +27,10 @@ export function useFinTransactions(
   });
 }
 
+export function useFinLends(enabled = true) {
+  return useQuery({ queryKey: qk.finance.lends(), queryFn: () => finance.listLends(), enabled });
+}
+
 // Budgets are discrete and never reset, so there is no history view to page
 // through: every budget already carries the window it was created for.
 export function useFinBudgets(enabled = true) {

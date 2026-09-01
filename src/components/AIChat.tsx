@@ -38,6 +38,8 @@ const ACTION_ICONS: Record<string, typeof CheckSquare> = {
   media_added: Film,
   transaction_created: Wallet,
   transaction_updated: Wallet,
+  lend_created: Wallet,
+  lend_repayment_created: Wallet,
   theme_created: Sparkles,
   theme_activated: Sparkles,
 };
@@ -53,6 +55,8 @@ const ACTION_LABELS: Record<string, string> = {
   media_added: 'Added to library',
   transaction_created: 'Recorded transaction',
   transaction_updated: 'Updated transaction',
+  lend_created: 'Recorded lend',
+  lend_repayment_created: 'Recorded repayment',
   theme_created: 'Created theme',
   theme_activated: 'Activated theme',
 };
