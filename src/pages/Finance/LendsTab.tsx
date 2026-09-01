@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -17,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { ListSkeleton } from './Skeletons';
+import { partsToTxnAt, txnAtToParts } from './utils';
 
 interface Props {
   accounts: FinAccount[];
@@ -139,7 +141,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
         </div>
       )}
 
-      <EditLendDialog lend={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
+      <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
       <RepaymentDialog lend={repaying} accounts={accounts} onClose={() => setRepaying(null)} onSaved={() => { setRepaying(null); reload(); }} />
     </div>
   );
@@ -159,25 +161,46 @@ function Figure({ label, value, strong = false }: { label: string; value: string
   </div>;
 }
 
-function EditLendDialog({ lend, onClose, onSaved }: { lend: FinLend | null; onClose: () => void; onSaved: () => void }) {
+export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend | null; accounts: FinAccount[]; onClose: () => void; onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
+  const [sourceAccountId, setSourceAccountId] = useState('');
+  const [amount, setAmount] = useState('');
   const [borrower, setBorrower] = useState('');
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
+  const [lentDate, setLentDate] = useState('');
+  const [lentTime, setLentTime] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [remind, setRemind] = useState(false);
 
   const open = !!lend;
   useEffect(() => {
     if (!lend) return;
+    const lentAt = txnAtToParts(lend.lent_at);
+    setSourceAccountId(String(lend.source_account_id)); setAmount(String(lend.principal));
     setBorrower(lend.borrower); setDescription(lend.description); setNote(lend.note);
+    setLentDate(lentAt.date); setLentTime(lentAt.time);
     setDueDate(lend.due_date ?? ''); setRemind(lend.remind);
   }, [lend]);
   const save = async () => {
-    if (!lend || !borrower.trim() || saving) return;
+    const parsedAmount = Number(amount);
+    if (!lend || !sourceAccountId || !borrower.trim() || !lentDate || !lentTime || saving) return;
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      toast.error('Enter a valid principal amount.');
+      return;
+    }
+    if (parsedAmount < lend.repaid) {
+      toast.error(`Principal cannot be below the amount already returned (${lend.repaid.toFixed(2)}).`);
+      return;
+    }
     setSaving(true);
     try {
-      await finance.updateLend(lend.id, { borrower: borrower.trim(), description, note, due_date: dueDate, remind: remind && !!dueDate });
+      await finance.updateLend(lend.id, {
+        source_account_id: Number(sourceAccountId), amount: parsedAmount,
+        borrower: borrower.trim(), description, note,
+        lent_at: partsToTxnAt(lentDate, lentTime),
+        due_date: dueDate, remind: remind && !!dueDate,
+      });
       onSaved();
     } catch (error) { toast.error(msg(error)); } finally { setSaving(false); }
   };
@@ -185,8 +208,20 @@ function EditLendDialog({ lend, onClose, onSaved }: { lend: FinLend | null; onCl
     <DialogContent className="sm:max-w-md">
       <DialogHeader><DialogTitle>Edit lend</DialogTitle></DialogHeader>
       <div className="grid gap-3">
+        <Field label="From account">
+          <Select value={sourceAccountId} onValueChange={(value) => setSourceAccountId(value ?? '')} items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
+            <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+            <SelectContent>{accounts.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Principal"><Input type="number" inputMode="decimal" min={lend?.repaid || 0} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+        {!!lend?.repaid && <p className="-mt-2 text-xs text-muted-foreground">{lend.repaid.toFixed(2)} has already been returned, so principal cannot be lower than that.</p>}
         <Field label="Borrower"><Input value={borrower} onChange={(e) => setBorrower(e.target.value)} /></Field>
         <Field label="Description"><Input value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+          <Field label="Lent date"><DatePicker value={lentDate} onChange={setLentDate} /></Field>
+          <Field label="Time"><TimePicker value={lentTime} onChange={setLentTime} /></Field>
+        </div>
         <Field label="Due date"><DatePicker value={dueDate} onChange={setDueDate} /></Field>
         <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
           <div><Label>Due reminder</Label><p className="text-xs text-muted-foreground">One notification when due.</p></div>
@@ -194,7 +229,7 @@ function EditLendDialog({ lend, onClose, onSaved }: { lend: FinLend | null; onCl
         </div>
         <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} /></Field>
       </div>
-      <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={saving || !borrower.trim()}>{saving ? 'Saving…' : 'Save'}</Button></DialogFooter>
+      <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={saving || !sourceAccountId || !borrower.trim() || !amount || !lentDate || !lentTime}>{saving ? 'Saving…' : 'Save'}</Button></DialogFooter>
     </DialogContent>
   </Dialog>;
 }

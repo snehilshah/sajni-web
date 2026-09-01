@@ -7,7 +7,7 @@ import {
   Plus, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Tags, Hash, Check, Wallet, Coins,
 } from '@/components/ui/icons';
 
-import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnKind } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinLend, type FinSlate, type FinTransaction, type TxnKind } from '@/api';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import TransactionDialog from './TransactionDialog';
 import SlateDialog from './SlateDialog';
+import { EditLendDialog } from './LendsTab';
 
 // The ledger is one surface, and its job beyond "what did I spend" is to show
 // which spending was NOT normal life. So: rows on a slate other than Plain
@@ -127,6 +128,7 @@ interface Props {
   categories: FinCategory[];
   slates: FinSlate[];
   transactions: FinTransaction[];
+  lends: FinLend[];
   loaded: boolean;
   /** Server-side slate filter: null off, N that slate. Plain is a real row. */
   slateFilter: number | null;
@@ -141,7 +143,7 @@ interface Props {
 }
 
 export default function TransactionsTab({
-  accounts, categories, slates, transactions, loaded,
+  accounts, categories, slates, transactions, lends, loaded,
   slateFilter, onSlateFilter, reload, reloadCategories,
   truncated, canLoadEarlier, onLoadEarlier,
   newLendRequest,
@@ -149,6 +151,7 @@ export default function TransactionsTab({
   const { formatMoney } = useFinanceFormatters();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
+  const [editingLend, setEditingLend] = useState<FinLend | null>(null);
   const [creating, setCreating] = useState(false);
   const [createKind, setCreateKind] = useState<TxnKind>('expense');
   const [manageCats, setManageCats] = useState(false);
@@ -244,6 +247,19 @@ export default function TransactionsTab({
     if (next.has(id)) next.delete(id); else next.add(id);
     return next;
   });
+
+  const openTransaction = (txn: FinTransaction) => {
+    if (txn.type !== 'lend' && txn.type !== 'lend_repayment') {
+      setEditing(txn);
+      return;
+    }
+    const lend = lends.find((item) => item.id === txn.lend_id);
+    if (!lend) {
+      toast.error('Lend details are unavailable. Refresh and try again.');
+      return;
+    }
+    setEditingLend(lend);
+  };
 
   const selectedTotal = useMemo(
     () => filtered
@@ -433,8 +449,8 @@ export default function TransactionsTab({
                       slate={slateById(t.slate_id)}
                       selecting={selecting}
                       checked={selected.has(t.id)}
-                      onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment') ? navigate('/finance/lends') : toggle(t.id)}
-                      onOpen={() => (t.type === 'lend' || t.type === 'lend_repayment') ? navigate('/finance/lends') : setEditing(t)}
+                      onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment') ? openTransaction(t) : toggle(t.id)}
+                      onOpen={() => openTransaction(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
                       linkedName={linkedAccountName(t.linked_account)}
                       formatMoney={formatMoney}
@@ -523,6 +539,12 @@ export default function TransactionsTab({
           if (patch) setOverrides((prev) => ({ ...prev, [patch.id]: { ...prev[patch.id], ...patch } }));
           reload();
         }}
+      />
+      <EditLendDialog
+        lend={editingLend}
+        accounts={accounts}
+        onClose={() => setEditingLend(null)}
+        onSaved={() => { setEditingLend(null); reload(); }}
       />
       {/* Create-then-sweep in one motion: back from a trip, select the rows,
           name the slate, done. */}

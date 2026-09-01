@@ -116,7 +116,7 @@ export default function FinancePage() {
   // reaches this component, so it can't re-render the page.
   const slatesQ = useFinSlates(wantAny('transactions', 'slates', 'budgets'));
   const transactionsQ = useFinTransactions(txnParams, want('transactions'));
-  const lendsQ = useFinLends(want('lends'));
+  const lendsQ = useFinLends(wantAny('lends', 'transactions'));
   const investmentsQ = useFinInvestments(want('investments'));
   const savingsQ = useFinSavings(want('accounts'));
   const statementsQ = useFinStatements(want('cards'));
@@ -243,6 +243,7 @@ export default function FinancePage() {
             categories={data.categories}
             slates={slates.items}
             transactions={data.transactions}
+            lends={data.lends}
             loaded={data.loaded.transactions}
             slateFilter={slateFilter}
             onSlateFilter={setSlateFilter}

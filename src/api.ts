@@ -777,6 +777,7 @@ export interface FinTransaction {
   /** Slate. Never null — Plain when the txn is part of normal life. */
   slate_id: number;
   slate_name: string;
+  lend_id: number | null;
   created_at: string;
 }
 
@@ -1102,7 +1103,7 @@ export const finance = {
   listLends: () => request<FinLend[]>('/finance/lends'),
   createLend: (data: LendDraft) =>
     request<{ id: number; transaction_id: number }>('/finance/lends', { method: 'POST', body: JSON.stringify(data) }),
-  updateLend: (id: number, data: Pick<FinLend, 'borrower' | 'description' | 'note' | 'remind'> & { due_date: string }) =>
+  updateLend: (id: number, data: Pick<FinLend, 'borrower' | 'description' | 'note' | 'remind' | 'source_account_id'> & { amount: number; lent_at: string; due_date: string }) =>
     request('/finance/lends/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteLend: (id: number) =>
     request('/finance/lends/' + id, { method: 'DELETE' }),
