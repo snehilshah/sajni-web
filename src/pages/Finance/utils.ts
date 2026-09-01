@@ -61,18 +61,22 @@ function moneyFormatter(currency: string, maximumFractionDigits: number): Intl.N
   const formatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency,
+    minimumFractionDigits: maximumFractionDigits,
     maximumFractionDigits,
   });
   moneyFormatters.set(key, formatter);
   return formatter;
 }
 
-export function formatMoney(amount: number, currency = 'INR', privacy = privacyOn): string {
+export function formatMoney(amount: number, currency = 'INR', privacy = privacyOn, fractionDigits = 0): string {
   if (privacy) return '***';
   try {
-    return moneyFormatter(currency, 0).format(amount);
+    return moneyFormatter(currency, fractionDigits).format(amount);
   } catch {
-    return currency + ' ' + Math.round(amount).toLocaleString('en-IN');
+    return currency + ' ' + amount.toLocaleString('en-IN', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    });
   }
 }
 

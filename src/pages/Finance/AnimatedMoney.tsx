@@ -6,6 +6,7 @@ import { formatMoney } from './utils';
 interface AnimatedMoneyProps {
   value: number;
   currency?: string;
+  fractionDigits?: number;
   duration?: number;
   className?: string;
 }
@@ -16,13 +17,14 @@ interface AnimatedMoneyProps {
 export function AnimatedMoney({
   value,
   currency = 'INR',
+  fractionDigits = 0,
   duration = 520,
   className = '',
 }: AnimatedMoneyProps) {
   const valueRef = useRef(0);
   const textRef = useRef<HTMLSpanElement>(null);
   const privacy = useFinancePrivacy();
-  const finalText = formatMoney(value, currency, privacy);
+  const finalText = formatMoney(value, currency, privacy, fractionDigits);
 
   useLayoutEffect(() => {
     const node = textRef.current;
@@ -57,7 +59,7 @@ export function AnimatedMoney({
       const progress = Math.min((now - startedAt) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       const displayedValue = from + (value - from) * eased;
-      const nextText = progress === 1 ? finalText : formatMoney(displayedValue, currency, false);
+      const nextText = progress === 1 ? finalText : formatMoney(displayedValue, currency, false, fractionDigits);
 
       if (nextText !== displayedText) {
         node.textContent = nextText;
@@ -69,10 +71,10 @@ export function AnimatedMoney({
       else valueRef.current = value;
     };
 
-    node.textContent = formatMoney(from, currency, false);
+    node.textContent = formatMoney(from, currency, false, fractionDigits);
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [currency, duration, finalText, privacy, value]);
+  }, [currency, duration, finalText, fractionDigits, privacy, value]);
 
   return (
     <span className={`inline-grid align-baseline ${className}`}>

@@ -17,9 +17,13 @@ export function useFinanceFormatters() {
     (amount: number, currency = 'INR') => formatMoneyValue(amount, currency, privacy),
     [privacy],
   );
+  const formatMoneyExact = useCallback(
+    (amount: number, currency = 'INR') => formatMoneyValue(amount, currency, privacy, 2),
+    [privacy],
+  );
   const formatPercent = useCallback(
     (value: number, fractionDigits = 0) => formatPercentValue(value, fractionDigits, privacy),
     [privacy],
   );
-  return { formatMoney, formatPercent };
+  return { formatMoney, formatMoneyExact, formatPercent };
 }

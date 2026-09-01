@@ -43,7 +43,7 @@ interface Props {
 }
 
 export default function AccountsTab({ accounts, categories, savings: parentSavings, loaded, reload }: Props) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatMoneyExact: formatMoney, formatPercent } = useFinanceFormatters();
   const [editingAcct, setEditingAcct] = useState<FinAccount | null>(null);
   const [creating, setCreating] = useState(false);
   // Local copy so the bucket dialog can mutate without round-tripping every keystroke.
@@ -253,7 +253,7 @@ function SummaryCard({ label, value, tone, className = '' }: { label: string; va
   return (
     <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
       <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`font-serif text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}><AnimatedMoney value={value} /></div>
+      <div className={`font-serif text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}><AnimatedMoney value={value} fractionDigits={2} /></div>
     </div>
   );
 }
@@ -498,7 +498,7 @@ function SalaryActions({ account, categories, onDone }: {
   categories: FinCategory[];
   onDone: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
+  const { formatMoneyExact: formatMoney } = useFinanceFormatters();
   const [busy, setBusy] = useState(false);
   const [bonusOpen, setBonusOpen] = useState(false);
   const [bonusAmt, setBonusAmt] = useState('');
@@ -581,7 +581,7 @@ function SavingsDialog({ account, savings, onClose }: {
   savings: FinSaving[];
   onClose: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
+  const { formatMoneyExact: formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
