@@ -290,7 +290,8 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
       {/* Breakdown: previous balance carried in + this cycle's new charges. */}
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-muted-foreground">
         <span>Prev {formatMoney(statement.previous_balance)}</span>
-        <span>New {formatMoney(statement.new_charges)}</span>
+        <span>Personal {formatMoney(Math.max(statement.new_charges - statement.lend_charges, 0))}</span>
+        {statement.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(statement.lend_charges)}</span>}
       </div>
 
       <div className="flex items-center justify-end gap-1 mt-1.5">
@@ -329,6 +330,7 @@ function StatementDialog({ card, onClose, onSaved }: {
     previous_balance: number;
     cashback_earned: number;
     payments: number;
+    lend_charges: number;
   } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -423,7 +425,8 @@ function StatementDialog({ card, onClose, onSaved }: {
           ) : preview ? (
             <>
               <span>Prev {formatMoney(preview.previous_balance)}</span>
-              <span>New {formatMoney(preview.new_charges)}</span>
+              <span>Personal {formatMoney(Math.max(preview.new_charges - preview.lend_charges, 0))}</span>
+              {preview.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(preview.lend_charges)}</span>}
               <span>Payments {formatMoney(preview.payments)}</span>
             </>
           ) : (

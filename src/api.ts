@@ -962,6 +962,8 @@ export interface FinStatement {
   amount_due: number;
   new_charges: number;
   previous_balance: number;
+  /** Card-funded principal lent during this billing cycle. Included in new_charges. */
+  lend_charges: number;
   cashback_earned: number;
   paid: boolean;
   paid_at: string | null;
@@ -1178,12 +1180,12 @@ export const finance = {
   listStatements: (account_id?: number) =>
     request<FinStatement[]>('/finance/cards/statements' + (account_id ? '?account_id=' + account_id : '')),
   previewStatement: (account_id: number, data: Pick<StmtDraft, 'statement_date'> & Partial<Pick<StmtDraft, 'amount_due' | 'new_charges' | 'cashback_earned'>>) =>
-    request<{ statement_date: string; due_date: string; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; payments: number }>(
+    request<{ statement_date: string; due_date: string; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; payments: number; lend_charges: number }>(
       '/finance/cards/' + account_id + '/statement-preview',
       { method: 'POST', body: JSON.stringify(data) },
     ),
   createStatement: (account_id: number, data: StmtDraft) =>
-    request<{ id: number; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number }>(
+    request<{ id: number; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; lend_charges: number }>(
       '/finance/cards/' + account_id + '/statements',
       { method: 'POST', body: JSON.stringify(data) },
     ),

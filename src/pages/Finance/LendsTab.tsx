@@ -208,9 +208,15 @@ function RepaymentDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend |
   const open = !!lend;
   useEffect(() => {
     if (!lend) return;
-    setAccountId(String(lend.source_account_id)); setAmount(String(lend.outstanding));
+    const source = accounts.find((account) => account.id === lend.source_account_id);
+    const receiving = source?.type === 'credit_card'
+      ? accounts.find((account) => account.type === 'salary')
+        ?? accounts.find((account) => account.type === 'savings')
+        ?? accounts.find((account) => account.type !== 'credit_card')
+      : source;
+    setAccountId(receiving ? String(receiving.id) : ''); setAmount(String(lend.outstanding));
     setDate(format(new Date(), 'yyyy-MM-dd')); setNote('');
-  }, [lend]);
+  }, [lend, accounts]);
   const save = async () => {
     const parsed = Number(amount);
     if (!lend || !accountId || parsed <= 0 || parsed > lend.outstanding || saving) return;

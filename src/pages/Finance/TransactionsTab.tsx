@@ -47,7 +47,7 @@ function extractHashtags(s: string): string[] {
   return out;
 }
 
-interface Tally { spent: number; earned: number }
+interface Tally { spent: number; earned: number; lent: number; returned: number }
 interface Bucket extends Tally { key: string }
 interface DayBucket extends Bucket {
   items: FinTransaction[];
@@ -74,16 +74,18 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
     const monthKey = day.slice(0, 7);
 
     let m = months.get(monthKey);
-    if (!m) { m = { key: monthKey, spent: 0, earned: 0, weeks: [] }; months.set(monthKey, m); }
+    if (!m) { m = { key: monthKey, spent: 0, earned: 0, lent: 0, returned: 0, weeks: [] }; months.set(monthKey, m); }
     let w = m.weeks.find((x) => x.key === monday);
-    if (!w) { w = { key: monday, spent: 0, earned: 0, days: [] }; m.weeks.push(w); }
+    if (!w) { w = { key: monday, spent: 0, earned: 0, lent: 0, returned: 0, days: [] }; m.weeks.push(w); }
     let d = w.days.find((x) => x.key === day);
-    if (!d) { d = { key: day, spent: 0, earned: 0, items: [] }; w.days.push(d); }
+    if (!d) { d = { key: day, spent: 0, earned: 0, lent: 0, returned: 0, items: [] }; w.days.push(d); }
 
     d.items.push(t);
     for (const b of [m, w, d] as Tally[]) {
       if (t.type === 'expense') b.spent += t.amount;
       if (t.type === 'income') b.earned += t.amount;
+      if (t.type === 'lend') b.lent += t.amount;
+      if (t.type === 'lend_repayment') b.returned += t.amount;
     }
   }
 
@@ -98,8 +100,8 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
       const weekOver = format(endOfWeek(parseISO(w.key), { weekStartsOn: 1 }), 'yyyy-MM-dd') < today;
       let firstOfWeek = true;
       for (const d of w.days) {
-        if (firstOfWeek && weekOver) d.week = { spent: w.spent, earned: w.earned };
-        if (firstOfMonth && monthOver) d.month = { spent: m.spent, earned: m.earned };
+        if (firstOfWeek && weekOver) d.week = { spent: w.spent, earned: w.earned, lent: w.lent, returned: w.returned };
+        if (firstOfMonth && monthOver) d.month = { spent: m.spent, earned: m.earned, lent: m.lent, returned: m.returned };
         firstOfWeek = false;
         firstOfMonth = false;
         out.push(d);
@@ -687,12 +689,14 @@ function Rule() {
 // Zero sides are dropped so a normal day reads as one figure, not two.
 function Totals({ label, t }: { label: string; t: Tally }) {
   const { formatMoney } = useFinanceFormatters();
-  if (t.spent === 0 && t.earned === 0) return null;
+  if (t.spent === 0 && t.earned === 0 && t.lent === 0 && t.returned === 0) return null;
   return (
     <span className="flex items-baseline gap-1.5 font-mono text-xs tabular-nums">
       <span className="uppercase tracking-wider text-muted-foreground">{label}</span>
-      {t.earned > 0 && <span className="text-primary">+{formatMoney(t.earned)}</span>}
-      {t.spent > 0 && <span className="text-foreground">−{formatMoney(t.spent)}</span>}
+      {t.earned > 0 && <span className="text-primary">+{formatMoney(t.earned)} income</span>}
+      {t.spent > 0 && <span className="text-foreground">−{formatMoney(t.spent)} personal</span>}
+      {t.lent > 0 && <span className="text-muted-foreground">−{formatMoney(t.lent)} lent</span>}
+      {t.returned > 0 && <span className="text-primary">+{formatMoney(t.returned)} returned</span>}
     </span>
   );
 }
