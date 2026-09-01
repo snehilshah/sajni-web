@@ -82,7 +82,6 @@ export function formatPercent(value: number, fractionDigits = 0, privacy = priva
 
 export const ACCOUNT_TYPES: { value: string; label: string }[] = [
   { value: 'savings', label: 'Savings' },
-  { value: 'checking', label: 'Checking' },
   { value: 'salary', label: 'Salary' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'investment', label: 'Investment' },

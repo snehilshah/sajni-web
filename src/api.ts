@@ -732,7 +732,7 @@ export const analytics = {
 export interface FinAccount {
   id: number;
   name: string;
-  type: 'savings' | 'checking' | 'credit_card' | 'investment' | 'cash' | 'salary';
+  type: 'savings' | 'credit_card' | 'investment' | 'cash' | 'salary';
   institution: string;
   currency: string;
   opening_balance: number;

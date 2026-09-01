@@ -27,7 +27,6 @@ const typeIcon = (type: string) => {
     case 'cash': return Coins;
     case 'salary': return Wallet;
     case 'savings':
-    case 'checking':
     default: return Landmark;
   }
 };

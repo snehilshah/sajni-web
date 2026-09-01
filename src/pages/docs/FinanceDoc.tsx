@@ -62,7 +62,7 @@ export default function FinanceDoc() {
 
       <Section id="accounts" title="Accounts" chip="tab">
         <p>
-          Types: savings, checking, salary, credit card, investment, cash.
+          Types: savings, salary, credit card, investment, cash.
           Balances are <strong>computed from the ledger</strong> (opening
           balance + transactions), never edited directly.
         </p>
