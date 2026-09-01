@@ -316,9 +316,11 @@ export default function FinanceDoc() {
 
       <Section id="investments" title="Investments" chip="tab">
         <p>
-          Manually-valued instruments: SIP, RD, FD, mutual fund, other. You
-          own the numbers — invested amount and current value are yours to
-          update when you check in; gain/loss and totals derive from them.
+          Track SIPs, recurring deposits, fixed deposits and other
+          investments. RD and cumulative FD values are estimated to today
+          from the deposited amount, dates and annual rate using quarterly
+          compounding. SIP and other market-linked values remain yours to
+          update from the latest statement.
         </p>
         <FeatureList>
           <Feature name="Auto-debit">
@@ -345,7 +347,8 @@ export default function FinanceDoc() {
           <Feature name="Maturity">
             <p>
               FDs/RDs carry a maturity date; cards count down (“45d to
-              maturity”).
+              maturity”). Their pre-tax estimate stops growing at maturity,
+              and the bank's final rounding may differ.
             </p>
           </Feature>
         </FeatureList>

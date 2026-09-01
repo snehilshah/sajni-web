@@ -40,6 +40,7 @@ export default function OverviewTab({ enabled }: Props) {
       </div>
     );
   }
+  const investmentAssets = data.investment_assets ?? [];
 
   const takeSnapshot = async () => {
     setSnapping(true);
@@ -78,7 +79,7 @@ export default function OverviewTab({ enabled }: Props) {
         <Panel title="Asset distribution">
           <Distribution
             accounts={data.accounts}
-            invested={data.investments_total}
+            investments={investmentAssets}
           />
         </Panel>
 
@@ -172,16 +173,19 @@ export default function OverviewTab({ enabled }: Props) {
         </Panel>
 
         <Panel title="Investments">
-          {data.investments_breakdown.length === 0 ? (
+          {investmentAssets.length === 0 ? (
             <Empty>No investments tracked yet.</Empty>
           ) : (
             <div className="flex flex-col gap-2">
-              {data.investments_breakdown.map((i) => {
-                const max = Math.max(...data.investments_breakdown.map((x) => x.amount), 1);
+              {investmentAssets.map((i) => {
+                const max = Math.max(...investmentAssets.map((x) => x.amount), 1);
                 const pct = (i.amount / max) * 100;
                 return (
-                  <div key={i.type} className="flex items-center gap-2">
-                    <span className="text-xs flex-1 capitalize">{i.type.replace('_', ' ')}</span>
+                  <div key={i.id} className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs truncate">{i.name}</div>
+                      <div className="text-xs text-muted-foreground uppercase">{i.type.replace('_', ' ')}</div>
+                    </div>
                     <div className="flex-1 max-w-[120px] h-1.5 bg-muted rounded-full overflow-hidden">
                       <motion.div
                         initial={{ transform: 'scaleX(0)' }}
@@ -320,14 +324,27 @@ function MonthCard({ label, value, tone, icon: Icon }: {
   );
 }
 
-function Distribution({ accounts, invested }: { accounts: OverviewData['accounts']; invested: number }) {
+function Distribution({ accounts, investments }: {
+  accounts: OverviewData['accounts'];
+  investments: NonNullable<OverviewData['investment_assets']>;
+}) {
   const { formatMoney, formatPercent } = useFinanceFormatters();
   const items = useMemo(() => {
     const pos = accounts.filter((a) => a.balance > 0);
     const list = pos.map((a) => ({ key: 'a' + a.account_id, name: a.name, color: a.color, amount: a.balance }));
-    if (invested > 0) list.push({ key: 'inv', name: 'Investments', color: '#4F6FA1', amount: invested });
+    const investmentColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
+    investments.forEach((investment, index) => {
+      if (investment.amount > 0) {
+        list.push({
+          key: 'i' + investment.id,
+          name: investment.name,
+          color: investmentColors[index % investmentColors.length],
+          amount: investment.amount,
+        });
+      }
+    });
     return list.sort((a, b) => b.amount - a.amount);
-  }, [accounts, invested]);
+  }, [accounts, investments]);
 
   const total = items.reduce((s, i) => s + i.amount, 0);
 

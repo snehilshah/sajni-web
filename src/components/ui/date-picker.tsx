@@ -19,6 +19,7 @@ export interface DatePickerProps {
   disabled?: boolean
   id?: string
   name?: string
+  showWeekday?: boolean
 }
 
 function isoToDate(iso?: string): Date | undefined {
@@ -46,12 +47,13 @@ export function DatePicker({
   disabled,
   id,
   name,
+  showWeekday = true,
 }: DatePickerProps) {
   const generatedId = React.useId()
   const fieldId = id ?? generatedId
   const [open, setOpen] = React.useState(false)
   const selected = isoToDate(value)
-  const display = selected ? format(selected, "EEE, d MMM") : placeholder
+  const display = selected ? format(selected, showWeekday ? "EEE, d MMM" : "d MMM yyyy") : placeholder
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -88,13 +88,12 @@ export const ACCOUNT_TYPES: { value: string; label: string }[] = [
   { value: 'cash', label: 'Cash' },
 ];
 
-// Manual instruments — market trading was removed; sip/mutual_fund live on
-// as manually valued entries alongside the guaranteed kinds.
+// Fixed deposits can be estimated from their rate; SIP remains manually
+// valued because market performance cannot be derived from an expected rate.
 export const INVESTMENT_TYPES: { value: string; label: string }[] = [
   { value: 'sip', label: 'SIP' },
   { value: 'rd', label: 'RD' },
   { value: 'fd', label: 'FD' },
-  { value: 'mutual_fund', label: 'Mutual Fund' },
   { value: 'other', label: 'Other' },
 ];
 

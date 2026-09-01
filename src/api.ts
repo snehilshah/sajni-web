@@ -1179,6 +1179,7 @@ export const finance = {
     upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
     upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; is_subscription: boolean; auto_renew: boolean }[];
     investments_breakdown: { type: string; amount: number }[];
+    investment_assets?: { id: number; name: string; type: string; amount: number }[];
   }>('/finance/overview'),
 
   networthHistory: () =>

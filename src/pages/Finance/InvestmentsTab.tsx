@@ -67,7 +67,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         <ListSkeleton rows={4} />
       ) : investments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No investments yet. Track SIPs, RDs, FDs, mutual funds and other manually-valued instruments here — update the current value whenever you check in.
+          No investments yet. Track SIPs, recurring deposits, fixed deposits and other investments here.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -93,7 +93,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                   <div className="min-w-0">
                     <div className="font-medium truncate">{inv.name}</div>
                     <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                      {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label}
+                      {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label ?? inv.type.replace('_', ' ')}
                       {inv.frequency === 'monthly' && inv.monthly_amount > 0 && ' · ' + formatMoney(inv.monthly_amount) + '/mo'}
                     </div>
                   </div>
@@ -111,7 +111,9 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                 </div>
                 <div className="font-mono text-xs text-muted-foreground mt-1">
                   Invested {formatMoney(inv.invested_amount)}
-                  {inv.last_updated && ' · updated ' + format(parseISO(inv.last_updated), 'MMM d')}
+                  {(inv.type === 'rd' || inv.type === 'fd')
+                    ? ' · estimated today'
+                    : inv.last_updated && ' · updated ' + format(parseISO(inv.last_updated), 'MMM d')}
                 </div>
 
                 {(inv.frequency !== 'lumpsum' || inv.maturity_date) && (
@@ -212,12 +214,23 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
     }
   }, [investment, open]);
 
+  const fixedDeposit = type === 'rd' || type === 'fd';
+  const recurring = type === 'rd' || type === 'sip';
+
   // Auto-debit needs a source account, a per-cycle amount, and a recurring
   // frequency — same validation the server enforces.
-  const recurring = frequency !== 'lumpsum';
   const cycleAmt = parseFloat(monthly) || 0;
   const autoDebitBlocked = !accountId ? 'link an account first' : cycleAmt <= 0 ? 'set the per-cycle amount' : null;
   const autoDebitOn = autoDebit && recurring && !autoDebitBlocked;
+  const estimatedValue = estimateFixedInvestmentValue({
+    type,
+    investedAmount: parseFloat(invested) || 0,
+    cycleAmount: cycleAmt,
+    frequency,
+    startDate,
+    maturityDate,
+    annualRate: parseFloat(expectedReturn) || 0,
+  });
 
   const save = async () => {
     if (!name.trim()) return;
@@ -226,12 +239,12 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
       type,
       account_id: accountId ? parseInt(accountId) : null,
       invested_amount: parseFloat(invested) || 0,
-      current_value: parseFloat(current) || parseFloat(invested) || 0,
-      monthly_amount: cycleAmt,
-      frequency,
+      current_value: fixedDeposit ? estimatedValue : parseFloat(current) || parseFloat(invested) || 0,
+      monthly_amount: recurring ? cycleAmt : 0,
+      frequency: recurring ? frequency : 'lumpsum',
       start_date: startDate || null,
       maturity_date: maturityDate || null,
-      expected_return: parseFloat(expectedReturn) || 0,
+      expected_return: type === 'other' || type === 'mutual_fund' ? 0 : parseFloat(expectedReturn) || 0,
       notes,
       auto_debit: autoDebitOn,
       next_debit_date: autoDebitOn && nextDebitDate ? nextDebitDate : null,
@@ -290,26 +303,35 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Invested amount">
-            <Input type="number" inputMode="decimal" value={invested} onChange={(e) => setInvested(e.target.value)} />
+          <Field
+            label={type === 'rd' ? 'Total deposited' : type === 'fd' ? 'Deposit amount' : 'Total invested'}
+            hint={type === 'rd' ? 'Principal paid into this RD so far.' : undefined}
+          >
+            <Input type="number" min="0" inputMode="decimal" value={invested} onChange={(e) => setInvested(e.target.value)} placeholder="₹ 0" />
           </Field>
-          <Field label="Current value">
-            <Input type="number" inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Defaults to invested" />
-          </Field>
-          <Field label="Frequency">
-            <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}
-              items={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'yearly', label: 'Yearly' }, { value: 'lumpsum', label: 'Lumpsum' }]}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly</SelectItem>
-                <SelectItem value="yearly">Yearly</SelectItem>
-                <SelectItem value="lumpsum">Lumpsum</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+          {!fixedDeposit && (
+            <Field
+              label={type === 'sip' ? 'Current market value' : 'Current value'}
+              hint={type === 'sip' ? 'Use the value from your latest statement; market prices are not estimated.' : undefined}
+            >
+              <Input type="number" min="0" inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Defaults to invested" />
+            </Field>
+          )}
+          {recurring && (
+            <Field label="Frequency">
+              <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}
+                items={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'yearly', label: 'Yearly' }]}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
           {recurring && (
             <Field label="Amount per cycle">
               <Input type="number" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder="e.g. 5000" />
@@ -336,15 +358,30 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
               )}
             </div>
           )}
-          <Field label="Start date">
-            <DatePicker value={startDate} onChange={setStartDate} />
-          </Field>
-          <Field label="Maturity date">
-            <DatePicker value={maturityDate} onChange={setMaturityDate} />
-          </Field>
-          <Field label="Expected return %">
-            <Input type="number" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 12" />
-          </Field>
+          {type !== 'other' && type !== 'mutual_fund' && (
+            <>
+              <Field label="Start date">
+                <DatePicker value={startDate} onChange={setStartDate} showWeekday={false} />
+              </Field>
+              <Field label={type === 'fd' ? 'Maturity date' : 'End date'}>
+                <DatePicker value={maturityDate} onChange={setMaturityDate} showWeekday={false} />
+              </Field>
+              <Field label={fixedDeposit ? 'Interest rate (p.a.)' : 'Expected return (p.a.)'}>
+                <Input type="number" min="0" step="0.01" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 6.6" />
+              </Field>
+            </>
+          )}
+          {fixedDeposit && (
+            <div className="col-span-2 rounded-xl bg-secondary/45 px-4 py-3">
+              <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Estimated current value</div>
+              <div className="font-serif text-2xl font-semibold tabular-nums mt-0.5">
+                <AnimatedMoney value={estimatedValue} />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pre-tax estimate to today, capped at maturity, using quarterly compounding. Your bank may round differently.
+              </p>
+            </div>
+          )}
           <Field label="Notes" className="col-span-2">
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
           </Field>
@@ -365,13 +402,77 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   );
 }
 
-function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
+function Field({ label, hint, className = '', children }: { label: string; hint?: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
+}
+
+function estimateFixedInvestmentValue({
+  type, investedAmount, cycleAmount, frequency, startDate, maturityDate, annualRate,
+}: {
+  type: FinInvestment['type'];
+  investedAmount: number;
+  cycleAmount: number;
+  frequency: string;
+  startDate: string;
+  maturityDate: string;
+  annualRate: number;
+}) {
+  if ((type !== 'rd' && type !== 'fd') || investedAmount <= 0 || annualRate <= 0 || !startDate) {
+    return investedAmount;
+  }
+  const start = parseISO(startDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maturity = maturityDate ? parseISO(maturityDate) : null;
+  const asOf = maturity && maturity < today ? maturity : today;
+  if (asOf <= start) return investedAmount;
+  const rate = annualRate / 100;
+  if (type === 'fd' || cycleAmount <= 0) {
+    return roundMoney(compoundDeposit(investedAmount, rate, start, asOf));
+  }
+
+  let remaining = investedAmount;
+  let value = 0;
+  let due = start;
+  while (remaining > 0 && due <= asOf) {
+    const deposit = Math.min(cycleAmount, remaining);
+    value += compoundDeposit(deposit, rate, due, asOf);
+    remaining -= deposit;
+    due = advanceCycle(due, frequency, start.getDate());
+  }
+  return roundMoney(value + remaining);
+}
+
+function compoundDeposit(principal: number, annualRate: number, from: Date, to: Date) {
+  let value = principal;
+  let cursor = from;
+  while (true) {
+    const next = advanceCycle(cursor, 'quarterly', from.getDate());
+    if (next > to) break;
+    value *= 1 + annualRate / 4;
+    cursor = next;
+  }
+  const days = differenceInDays(to, cursor);
+  if (days > 0) value *= 1 + annualRate * days / 365;
+  return value;
+}
+
+function advanceCycle(date: Date, frequency: string, anchorDay: number) {
+  const months = frequency === 'yearly' ? 12 : frequency === 'quarterly' ? 3 : 1;
+  const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(anchorDay, lastDay));
+  return target;
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
 }
 
 // Labelled toggle row with an inline reason when disabled (same pattern as
