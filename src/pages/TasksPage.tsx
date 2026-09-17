@@ -671,7 +671,7 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
       >
         <div className="flex items-start gap-2">
           <span className={cn('size-2 rounded-full mt-1.5 shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-          {task.description.trim() && <StickyNote className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
+          {Boolean(task.description?.trim()) && <StickyNote className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
           <span className={`font-medium text-sm leading-tight flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
             {task.title}
           </span>
@@ -686,13 +686,13 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
           </button>
         </div>
 
-        {(task.subtask_count > 0 || (task.steps?.length ?? 0) > 0) && (
+        {((task.subtask_count ?? 0) > 0 || (task.steps?.length ?? 0) > 0) && (
           <div className="flex items-center gap-3 mt-2 ml-4 text-xs font-mono text-muted-foreground">
-            {(task.steps?.length ?? 0) > 0 && (
+            {task.steps && task.steps.length > 0 && (
               <span>{task.steps.filter((s) => s.done).length}/{task.steps.length} steps</span>
             )}
-            {task.subtask_count > 0 && (
-              <span>{task.subtasks_done}/{task.subtask_count} subtasks</span>
+            {(task.subtask_count ?? 0) > 0 && (
+              <span>{task.subtasks_done ?? 0}/{task.subtask_count ?? 0} subtasks</span>
             )}
           </div>
         )}

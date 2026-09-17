@@ -1892,9 +1892,9 @@ function MonthTasksSection({
                 </button>
                 {/* Session progress — month goals are broken into dated child
                     sessions; show done/total so the rollup is visible here. */}
-                {t.subtask_count > 0 && (
+                {(t.subtask_count ?? 0) > 0 && (
                   <span className="mono text-xs tabular-nums text-muted-foreground shrink-0" title="Sessions done">
-                    {t.subtasks_done}/{t.subtask_count}
+                    {t.subtasks_done ?? 0}/{t.subtask_count}
                   </span>
                 )}
                 {t.priority === 'high' && !isDone && (

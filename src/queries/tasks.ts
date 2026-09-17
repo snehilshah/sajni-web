@@ -74,7 +74,18 @@ function patchTaskInLists(
   patch: Partial<Task>,
 ) {
   qc.setQueriesData<Task[]>({ queryKey: ['tasks', 'list'] }, (old) =>
-    Array.isArray(old) ? old.map((t) => (t.id === id ? { ...t, ...patch } : t)) : old,
+    Array.isArray(old)
+      ? old.map((t) => {
+          const updated = t.id === id ? { ...t, ...patch } : t;
+          if (updated.subtasks) {
+            return {
+              ...updated,
+              subtasks: updated.subtasks.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+            };
+          }
+          return updated;
+        })
+      : old,
   );
   qc.setQueriesData<Task[]>({ queryKey: ['tasks', 'subtasks'] }, (old) =>
     Array.isArray(old) ? old.map((t) => (t.id === id ? { ...t, ...patch } : t)) : old,

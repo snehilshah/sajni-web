@@ -469,7 +469,7 @@ function PlannerTaskPill({ task, compact, timezone, onEdit, onToggle, containerR
         className="flex min-w-0 flex-1 items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
         onClick={(event) => { event.stopPropagation(); onEdit(task); }}
       >
-        {task.description.trim() && <StickyNote className={cn('shrink-0', compact ? 'size-3' : 'size-3.5')} aria-label="Has note" />}
+        {Boolean(task.description?.trim()) && <StickyNote className={cn('shrink-0', compact ? 'size-3' : 'size-3.5')} aria-label="Has note" />}
         {task.scheduled_at && <span className="shrink-0 font-medium">{instantTime(task.scheduled_at, timezone)}</span>}
         <span className={cn('min-w-0 flex-1 truncate', task.status === 'done' && 'line-through')}>{task.title}</span>
       </button>

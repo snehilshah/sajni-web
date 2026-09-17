@@ -26,6 +26,7 @@ const LinkChallengePage = lazy(() => import('./pages/Auth/LinkChallenge'));
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import RequireAuth from './auth/RequireAuth';
 import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
@@ -95,6 +96,7 @@ export default function App() {
 				<ConfirmRoot />
 				<TweaksPanel />
 				{/* prettier-ignore */}
+				<ErrorBoundary>
 				<Suspense fallback={<AppLoader />}>
 				<Routes>
           <Route path="/" element={<HomeRoute />}>
@@ -139,6 +141,7 @@ export default function App() {
           </Route>
         </Routes>
 				</Suspense>
+				</ErrorBoundary>
       <Analytics />
       <SpeedInsights />
 			</TaskDetailProvider>

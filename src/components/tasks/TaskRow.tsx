@@ -53,9 +53,9 @@ export default function TaskRow({
 
   const completedSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
-  const hasSubtasks = task.subtask_count > 0;
+  const hasSubtasks = (task.subtask_count ?? 0) > 0;
   const subtaskPct = hasSubtasks
-    ? Math.round((task.subtasks_done / task.subtask_count) * 100)
+    ? Math.round(((task.subtasks_done ?? 0) / (task.subtask_count || 1)) * 100)
     : 0;
   const dimmed = task.status === 'done' || task.status === 'scratched';
   const rowPct = hasSubtasks
@@ -150,7 +150,7 @@ export default function TaskRow({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-              {task.description.trim() && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
+              {Boolean(task.description?.trim()) && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
               <span className={`font-medium text-[0.9375rem] leading-snug flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
                 {task.title}
               </span>
@@ -244,10 +244,10 @@ export default function TaskRow({
                 onPointerEnter={() => { void prefetchSubtasks(task.id); }}
                 onFocus={() => { void prefetchSubtasks(task.id); }}
                 aria-expanded={expanded}
-                aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count} subtasks`}
+                aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1.5 text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] transition-[background-color,filter]"
               >
-                <span className="mono text-xs tabular-nums">{task.subtasks_done}/{task.subtask_count}</span>
+                <span className="mono text-xs tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
                 <span className="hidden sm:inline text-xs font-medium">{expanded ? 'Hide' : 'View'} subtasks</span>
                 <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
               </button>
@@ -274,7 +274,7 @@ export default function TaskRow({
               className="flex-1"
             />
             <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">
-              {hasSubtasks ? `${task.subtasks_done}/${task.subtask_count}` : `${completedSteps}/${totalSteps}`}
+              {hasSubtasks ? `${task.subtasks_done ?? 0}/${task.subtask_count ?? 0}` : `${completedSteps}/${totalSteps}`}
             </span>
           </div>
         )}

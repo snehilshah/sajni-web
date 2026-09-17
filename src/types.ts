@@ -24,7 +24,7 @@ export interface TaskStep {
 export interface Task {
   id: number;
   title: string;
-  description: string;
+  description?: string;
   /** 'scratched' = abandoned-but-kept: struck through, dropped from open
    *  lists / smart views / reminders, reversible back to 'todo'. */
   status: 'todo' | 'in_progress' | 'blocked' | 'done' | 'scratched';
@@ -52,15 +52,15 @@ export interface Task {
   blocked_by_task_title?: string | null;
   blocked_by_task_status?: Task['status'] | null;
   important: boolean;
-  steps: TaskStep[];
+  steps?: TaskStep[];
   sort_order: number;
-  subtask_count: number;
-  subtasks_done: number;
+  subtask_count?: number;
+  subtasks_done?: number;
   /** Brief children embedded by the list endpoint so subtasks expand
    *  instantly without a per-row fetch. Absent on detail/subtask responses. */
   subtasks?: Task[];
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ReminderRecurrence {
