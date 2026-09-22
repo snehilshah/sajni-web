@@ -249,7 +249,7 @@ export default function ThinkingProjectPage() {
           {synthesizing ? 'Synthesizing…' : project.thesis ? 'Re-synthesize' : 'Synthesize'}
         </Button>
       }
-      contentClassName={`w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 transition-[max-width] duration-400 ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'max-w-[1500px]' : 'max-w-6xl'}`}
+      contentClassName={`w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 transition-[max-width] duration-[450ms] ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'max-w-[100vw]' : 'max-w-6xl'}`}
     >
       <div className={`grid items-start transition-[grid-template-columns,gap] duration-400 ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-5' : 'lg:grid-cols-[minmax(0,1fr)_0px]'}`}>
         <main className="flex min-w-0 flex-col gap-6">
