@@ -60,6 +60,7 @@ const KIND_TONE: Record<ThinkingKind, string> = {
 
 const CARD_SURFACE =
   'rounded-2xl border border-border bg-[hsl(var(--surface-container-low))]';
+const THREAD_TEXTAREA_SIZE = 'max-h-[100px] overflow-y-auto overscroll-contain';
 
 // Local cache of stale-banner dismissals so reloading doesn't keep
 // nagging the user about the same un-synthesized cards.
@@ -814,6 +815,7 @@ function CardDetail({
                     onChange={(ev) => setClosingComment(ev.target.value)}
                     maxLength={4000}
                     rows={3}
+                    className={THREAD_TEXTAREA_SIZE}
                     placeholder={card.kind === 'question' ? 'What answered this question?' : 'How was this resolved?'}
                     aria-label={card.kind === 'question' ? 'Answer comment' : 'Resolution comment'}
                   />
@@ -867,6 +869,7 @@ function CardDetail({
                       onChange={(ev) => setEditingEventBody(ev.target.value)}
                       maxLength={4000}
                       rows={3}
+                      className={THREAD_TEXTAREA_SIZE}
                       aria-label="Edit comment"
                     />
                     <div className="flex justify-end gap-2">
@@ -885,7 +888,8 @@ function CardDetail({
               value={comment}
               onChange={(ev) => setComment(ev.target.value)}
               maxLength={4000}
-              rows={2}
+              rows={3}
+              className={THREAD_TEXTAREA_SIZE}
               placeholder="Add context or an update…"
               aria-label="Add a comment"
             />
