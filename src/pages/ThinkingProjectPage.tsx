@@ -481,15 +481,12 @@ export default function ThinkingProjectPage() {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-3 py-2 @min-[40rem]:flex-col @min-[40rem]:items-stretch @min-[40rem]:justify-center @min-[40rem]:gap-1 @min-[40rem]:border-l @min-[40rem]:border-t-0">
                     <div className="flex items-center gap-2">
                       {c.kind === 'todo' && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <TodoToggle
-                            complete={c.status === 'closed'}
-                            disabled={changingCardId !== null}
-                            reduceMotion={Boolean(reduceMotion)}
-                            onToggle={() => void toggleTodo(c)}
-                          />
-                          <span className="text-xs text-muted-foreground">{c.status === 'closed' ? 'Done' : 'Open'}</span>
-                        </span>
+                        <TodoToggle
+                          complete={c.status === 'closed'}
+                          disabled={changingCardId !== null}
+                          reduceMotion={Boolean(reduceMotion)}
+                          onToggle={() => void toggleTodo(c)}
+                        />
                       )}
                       {stateLabel && (
                         <span className={`inline-flex h-8 items-center rounded-full px-2 text-xs font-medium ${c.status === 'closed' ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground'}`}>
@@ -589,35 +586,39 @@ function TodoToggle({
       aria-pressed={complete}
       aria-label={label}
       title={label}
-      className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-[18px] bg-[hsl(var(--surface-container-highest))] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60"
-      style={{ boxShadow: complete ? 'none' : 'inset 0 0 0 2px hsl(var(--primary))' }}
+      className="relative grid size-11 shrink-0 place-items-center rounded-[18px] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60"
     >
-      <AnimatePresence initial={false}>
-        {complete && (
-          <motion.span
-            key="fill"
-            className="absolute inset-0 rounded-[18px] bg-primary"
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.75 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.86 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.2, 0, 0, 1] }}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence initial={false}>
-        {complete && (
-          <motion.span
-            key="check"
-            className="relative z-10 inline-flex text-primary-foreground"
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.16, ease: [0.2, 0, 0, 1] }}
-          >
-            <Check className="size-4" strokeWidth={3} />
-          </motion.span>
-        )}
-      </AnimatePresence>
+      <span
+        className="relative grid size-8 place-items-center overflow-hidden rounded-[12px] bg-[hsl(var(--surface-container-highest))]"
+        style={{ boxShadow: complete ? 'none' : 'inset 0 0 0 2px hsl(var(--primary))' }}
+      >
+        <AnimatePresence initial={false}>
+          {complete && (
+            <motion.span
+              key="fill"
+              className="absolute inset-0 rounded-[12px] bg-primary"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.75 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.86 }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            />
+          )}
+        </AnimatePresence>
+        <AnimatePresence initial={false}>
+          {complete && (
+            <motion.span
+              key="check"
+              className="relative z-10 inline-flex text-primary-foreground"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.16, ease: [0.2, 0, 0, 1] }}
+            >
+              <Check className="size-3.5" strokeWidth={3} />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </span>
     </button>
   );
 }
