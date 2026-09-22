@@ -62,6 +62,7 @@ export const qk = {
     all: ['thinking'] as const,
     projects: () => ['thinking', 'projects'] as const,
     project: (id: number) => ['thinking', 'project', id] as const,
+    events: (id: number) => ['thinking', 'card-events', id] as const,
   },
   journal: {
     all: ['journal'] as const,

@@ -20,6 +20,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   thinking, type ThinkingCard, type ThinkingKind,
   type ThinkingConnection, type ThinkingRelation, type ThinkingEnrichment,
@@ -62,8 +64,7 @@ const CARD_SURFACE =
 
 // Local cache of stale-banner dismissals so reloading doesn't keep
 // nagging the user about the same un-synthesized cards.
-const STALE_DISMISS_KEY = (pid: number) => `sajni:thinking:stale-dismissed:${pid}`;
-const STALE_THRESHOLD = 5;
+const STALE_DISMISS_KEY = (pid: number, changedAt: string) => `sajni:thinking:stale-dismissed:${pid}:${changedAt}`;
 
 export default function ThinkingProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -90,7 +91,7 @@ export default function ThinkingProjectPage() {
   const [adding, setAdding] = useState(false);
   const [openCardId, setOpenCardId] = useState<number | null>(null);
   const [synthesizing, setSynthesizing] = useState(false);
-  const [staleDismissed, setStaleDismissed] = useState<boolean>(false);
+  const [dismissedAt, setDismissedAt] = useState<string | null>(null);
 
   // Card writes go through thinkingApi (project-scoped editor); this refreshes
   // the cached project + cards after each mutation, including the delayed poll
@@ -99,11 +100,12 @@ export default function ThinkingProjectPage() {
     qc.invalidateQueries({ queryKey: qk.thinking.project(pid) });
   }, [qc, pid]);
 
-  useEffect(() => {
-    try {
-      setStaleDismissed(localStorage.getItem(STALE_DISMISS_KEY(pid)) === '1');
-    } catch { /* noop */ }
-  }, [pid]);
+  const staleDismissed = useMemo(() => {
+    if (!project?.context_updated_at) return false;
+    if (dismissedAt === project.context_updated_at) return true;
+    try { return localStorage.getItem(STALE_DISMISS_KEY(pid, project.context_updated_at)) === '1'; }
+    catch { return false; }
+  }, [pid, project, dismissedAt]);
 
   // Auto-categorize: debounce draft text, hit the classifier, silently
   // flip Select unless the user manually changed it. Skip empty drafts
@@ -178,8 +180,7 @@ export default function ThinkingProjectPage() {
     try {
       await thinking.synthesize(pid);
       await load();
-      try { localStorage.removeItem(STALE_DISMISS_KEY(pid)); } catch { /* noop */ }
-      setStaleDismissed(false);
+      setDismissedAt(null);
     } finally {
       setSynthesizing(false);
     }
@@ -203,22 +204,16 @@ export default function ThinkingProjectPage() {
 
   const openCard = cards.find((c) => c.id === openCardId) || null;
 
-  // Stale = cards added since synthesized_at > threshold.
-  const synthAt = project?.synthesized_at;
-  const cardsSinceSynth = useMemo(() => {
-    if (!synthAt) return cards.length;
-    const t = new Date(synthAt).getTime();
-    return cards.filter((c) => new Date(c.created_at).getTime() > t).length;
-  }, [cards, synthAt]);
+  // User-authored card changes, comments and resolutions can all change the thesis.
   const showStaleBanner =
     project?.thesis &&
-    cardsSinceSynth > STALE_THRESHOLD &&
+    project.needs_synthesis &&
     !staleDismissed &&
     !synthesizing;
 
   const dismissStale = () => {
-    setStaleDismissed(true);
-    try { localStorage.setItem(STALE_DISMISS_KEY(pid), '1'); } catch { /* noop */ }
+    setDismissedAt(project?.context_updated_at ?? null);
+    try { localStorage.setItem(STALE_DISMISS_KEY(pid, project?.context_updated_at ?? ''), '1'); } catch { /* noop */ }
   };
 
   const toggleKind = (k: ThinkingKind) => {
@@ -257,7 +252,7 @@ export default function ThinkingProjectPage() {
         <div className="rounded-xl border border-primary/40 bg-[hsl(var(--primary-container)/0.5)] text-[hsl(var(--on-primary-container))] px-4 py-3 flex items-start gap-3">
           <Sparkles className="size-4 mt-0.5 shrink-0" />
           <div className="flex-1 text-sm">
-            <strong>{cardsSinceSynth} new cards</strong> added since the last synthesis — the thesis may be stale.
+            This project changed since the last synthesis — the thesis may be stale.
           </div>
           <Button size="sm" onClick={synthesize} disabled={synthesizing}>
             Re-synthesize
@@ -393,6 +388,11 @@ export default function ThinkingProjectPage() {
                   <div className="prose prose-sm dark:prose-invert max-w-none break-words">
                     <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
                   </div>
+                  {c.status === 'closed' && (
+                    <span className="mt-1 inline-block text-xs text-muted-foreground">
+                      {c.kind === 'todo' ? 'Completed' : 'Resolved'}
+                    </span>
+                  )}
                   {c.ai_enrichment?.summary && (
                     <div className="mt-1.5 text-xs italic text-foreground/60 border-l-2 border-primary/40 pl-2">
                       {c.ai_enrichment.summary}
@@ -436,6 +436,7 @@ export default function ThinkingProjectPage() {
               onDelete={() => removeCard(openCard.id)}
               onSaveEnrichment={(next) => saveEnrichment(openCard.id, next)}
               onChangeKind={(k) => updateCardKind(openCard.id, k)}
+              onActivity={load}
             />
           )}
         </SheetContent>
@@ -473,7 +474,7 @@ function Section({
 }
 
 function CardDetail({
-  card, siblings, onJump, onReEnrich, onDelete, onSaveEnrichment, onChangeKind,
+  card, siblings, onJump, onReEnrich, onDelete, onSaveEnrichment, onChangeKind, onActivity,
 }: {
   card: ThinkingCard;
   siblings: ThinkingCard[];
@@ -482,7 +483,42 @@ function CardDetail({
   onDelete: () => void;
   onSaveEnrichment: (next: ThinkingEnrichment) => void;
   onChangeKind: (k: ThinkingKind) => void;
+  onActivity: () => void;
 }) {
+  const qc = useQueryClient();
+  const { data: events = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
+    queryKey: qk.thinking.events(card.id),
+    queryFn: () => thinking.cardEvents(card.id),
+  });
+  const [comment, setComment] = useState('');
+  const [closingComment, setClosingComment] = useState('');
+  const [showCloseForm, setShowCloseForm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const refreshActivity = async () => {
+    await qc.invalidateQueries({ queryKey: qk.thinking.events(card.id) });
+    onActivity();
+  };
+  const postComment = async () => {
+    if (!comment.trim()) return;
+    setBusy(true);
+    try {
+      await thinking.commentOnCard(card.id, comment.trim());
+      setComment('');
+      await refreshActivity();
+    } catch { toast.error('Could not post comment'); }
+    finally { setBusy(false); }
+  };
+  const changeState = async (closed: boolean) => {
+    if (closed && card.kind === 'contradiction' && !closingComment.trim()) return;
+    setBusy(true);
+    try {
+      await thinking.setCardState(card.id, closed, closed ? closingComment.trim() : '');
+      setClosingComment('');
+      setShowCloseForm(false);
+      await refreshActivity();
+    } catch { toast.error(closed ? 'Could not close card' : 'Could not reopen card'); }
+    finally { setBusy(false); }
+  };
   const e: ThinkingEnrichment = card.ai_enrichment || {};
   const hasAny =
     !!e.summary ||
@@ -513,7 +549,7 @@ function CardDetail({
     <>
       <SheetHeader className="px-5 pt-5 pb-3 border-b border-border space-y-2 pr-12">
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)}>
+          <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
             <SelectTrigger className="h-7 w-auto text-xs mono uppercase tracking-wider rounded-full">
               <SelectValue />
             </SelectTrigger>
@@ -526,6 +562,9 @@ function CardDetail({
           <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
             {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
           </span>
+          {card.status === 'closed' && (
+            <span className="text-xs text-muted-foreground">{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
+          )}
         </div>
         <SheetTitle className="serif text-base font-semibold leading-tight">
           {card.content.split('\n')[0].slice(0, 80) || 'Card detail'}
@@ -539,6 +578,78 @@ function CardDetail({
         <Section title="Content">
           <div className="prose prose-sm dark:prose-invert max-w-none break-words">
             <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
+          </div>
+        </Section>
+
+        <Separator />
+
+        {(card.kind === 'todo' || card.kind === 'contradiction') && (
+          <>
+            <Section title="Status">
+              {card.status === 'closed' ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span>{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
+                </div>
+              ) : showCloseForm ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={closingComment}
+                    onChange={(ev) => setClosingComment(ev.target.value)}
+                    maxLength={4000}
+                    rows={3}
+                    placeholder={card.kind === 'contradiction' ? 'How was this resolved?' : 'What was done? (optional)'}
+                    aria-label={card.kind === 'contradiction' ? 'How was this resolved?' : 'Completion comment'}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
+                    <Button size="sm" disabled={busy || (card.kind === 'contradiction' && !closingComment.trim())} onClick={() => changeState(true)}>
+                      {card.kind === 'todo' ? 'Complete' : 'Resolve'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>
+                  {card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}
+                </Button>
+              )}
+            </Section>
+            <Separator />
+          </>
+        )}
+
+        <Section title="Thread">
+          <div className="space-y-3">
+            {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
+              <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
+            ) : events.length === 0 ? (
+              <p className="text-muted-foreground">No comments yet.</p>
+            ) : events.map((event) => (
+              <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
+                  </span>
+                  <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
+                </div>
+                {event.body && (
+                  <div className="prose prose-sm dark:prose-invert max-w-none break-words mt-1">
+                    <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
+                  </div>
+                )}
+              </div>
+            ))}
+            <Textarea
+              value={comment}
+              onChange={(ev) => setComment(ev.target.value)}
+              maxLength={4000}
+              rows={2}
+              placeholder="Add context or an update…"
+              aria-label="Add a comment"
+            />
+            <div className="flex justify-end">
+              <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
+            </div>
           </div>
         </Section>
 

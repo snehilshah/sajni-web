@@ -59,9 +59,16 @@ export default function ProjectsDoc() {
           </Feature>
           <Feature name="Detail drawer">
             <p>
-              Opening a card shows its text, its AI enrichment, and its
-              connections with jump-through to the related cards. Kind and
-              relations are editable in place.
+              Opening a card shows its text, a dated thread of comments and
+              state changes, its AI enrichment, and connections to related
+              cards. Kind and relations are editable in place.
+            </p>
+          </Feature>
+          <Feature name="Completing and resolving">
+            <p>
+              Complete a todo with an optional comment. Resolving a
+              contradiction requires a comment explaining how it was resolved.
+              Either can be reopened; the earlier explanation stays in the thread.
             </p>
           </Feature>
         </FeatureList>
@@ -79,10 +86,10 @@ export default function ProjectsDoc() {
             <p>
               With two or more cards, Sajni reads the whole board and drafts
               the through-line — a thesis for the project. Behavior: the
-              synthesis is stamped with when it ran; when enough new cards
-              accumulate after it, the page marks it stale and offers
-              re-synthesis (it won't nag about the same un-synthesized
-              cards twice).
+              synthesis is stamped with when it ran. New cards, comments,
+              resolutions, and edits mark it stale and offer re-synthesis.
+              Sajni reads the thread and current state so resolved tensions
+              appear as outcomes rather than open problems.
             </p>
           </Feature>
           <Feature name="Enrich">

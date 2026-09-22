@@ -61,6 +61,8 @@ export interface ThinkingProject {
   card_count: number;
   created_at: string;
   updated_at: string;
+  context_updated_at: string;
+  needs_synthesis: boolean;
 }
 
 export type ThinkingKind =
@@ -95,6 +97,16 @@ export interface ThinkingCard {
   enriched_at: string;
   created_at: string;
   updated_at: string;
+  status: 'open' | 'closed';
+  closed_at: string;
+}
+
+export interface ThinkingCardEvent {
+  id: number;
+  card_id: number;
+  kind: 'comment' | 'closed' | 'reopened';
+  body: string;
+  created_at: string;
 }
 
 export const thinking = {
@@ -119,6 +131,12 @@ export const thinking = {
     request('/thinking/cards/' + id + '/enrich', { method: 'POST' }),
   saveEnrichment: (id: number, enrichment: ThinkingEnrichment) =>
     request('/thinking/cards/' + id + '/enrichment', { method: 'PUT', body: JSON.stringify(enrichment) }),
+  cardEvents: (id: number) =>
+    request<ThinkingCardEvent[]>('/thinking/cards/' + id + '/events'),
+  commentOnCard: (id: number, comment: string) =>
+    request('/thinking/cards/' + id + '/events', { method: 'POST', body: JSON.stringify({ comment }) }),
+  setCardState: (id: number, closed: boolean, comment = '') =>
+    request('/thinking/cards/' + id + '/state', { method: 'PUT', body: JSON.stringify({ closed, comment }) }),
   classify: (content: string) =>
     request<{ kind: ThinkingKind }>('/thinking/classify', { method: 'POST', body: JSON.stringify({ content }) }),
 };
