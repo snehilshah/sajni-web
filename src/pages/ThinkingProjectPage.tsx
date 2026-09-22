@@ -22,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   thinking, type ThinkingCard, type ThinkingKind,
-  type ThinkingConnection, type ThinkingRelation, type ThinkingEnrichment,
+  type ThinkingCardEvent, type ThinkingConnection, type ThinkingRelation, type ThinkingEnrichment,
 } from '@/api';
 import { useThinkingProject } from '@/queries/thinking';
 import { qk } from '@/queries/keys';
@@ -394,21 +394,29 @@ export default function ThinkingProjectPage() {
                   <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
                     {c.kind}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-                      <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
+                  <div className={`grid min-w-0 flex-1 gap-1.5 ${c.ai_enrichment?.summary ? 'xl:grid-cols-[minmax(0,0.85fr)_minmax(16rem,1.15fr)] xl:gap-5' : ''}`}>
+                    <div className="min-w-0">
+                      <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                        <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
+                      </div>
+                      {c.status === 'closed' && (
+                        <span className="mt-1 inline-block text-xs text-muted-foreground">
+                          {c.kind === 'todo' ? 'Completed' : 'Resolved'}
+                        </span>
+                      )}
                     </div>
-                    {c.status === 'closed' && (
-                      <span className="mt-1 inline-block text-xs text-muted-foreground">
-                        {c.kind === 'todo' ? 'Completed' : 'Resolved'}
-                      </span>
-                    )}
                     {c.ai_enrichment?.summary && (
-                      <div className="mt-1.5 text-xs italic text-foreground/60 border-l-2 border-primary/40 pl-2">
-                        {c.ai_enrichment.summary}
+                      <div className="min-w-0 border-l-2 border-primary/40 pl-2 text-xs italic text-foreground/60 xl:pl-3">
+                        <span className="line-clamp-3">{c.ai_enrichment.summary}</span>
+                        {c.ai_enrichment.connections && c.ai_enrichment.connections.length > 0 && (
+                          <div className="mt-1.5 flex items-center gap-1 not-italic text-xs mono uppercase tracking-wider text-muted-foreground">
+                            <Link2 className="size-3" />
+                            {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
+                          </div>
+                        )}
                       </div>
                     )}
-                    {c.ai_enrichment?.connections && c.ai_enrichment.connections.length > 0 && (
+                    {!c.ai_enrichment?.summary && c.ai_enrichment?.connections && c.ai_enrichment.connections.length > 0 && (
                       <div className="mt-1.5 flex items-center gap-1 text-xs mono uppercase tracking-wider text-muted-foreground">
                         <Link2 className="size-3" />
                         {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
@@ -555,11 +563,18 @@ function CardDetail({
   const deleteComment = async (eventID: number) => {
     if (!(await confirmDialog('Delete this comment?'))) return;
     setBusy(true);
+    const queryKey = qk.thinking.events(card.id);
+    await qc.cancelQueries({ queryKey });
+    const previousEvents = qc.getQueryData<ThinkingCardEvent[]>(queryKey) ?? events;
+    qc.setQueryData<ThinkingCardEvent[]>(queryKey, previousEvents.filter((event) => event.id !== eventID));
+    if (editingEventId === eventID) cancelCommentEdit();
     try {
       await thinking.deleteCardComment(card.id, eventID);
-      if (editingEventId === eventID) cancelCommentEdit();
-      await refreshActivity();
-    } catch { toast.error('Could not delete comment'); }
+      onActivity();
+    } catch {
+      qc.setQueryData(queryKey, previousEvents);
+      toast.error('Could not delete comment');
+    }
     finally { setBusy(false); }
   };
   const changeState = async (closed: boolean) => {
