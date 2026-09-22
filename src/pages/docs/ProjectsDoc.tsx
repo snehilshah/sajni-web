@@ -66,10 +66,11 @@ export default function ProjectsDoc() {
           </Feature>
           <Feature name="Completing and resolving">
             <p>
-              Complete a todo with an optional comment. Resolving a
-              contradiction requires a comment explaining how it was resolved.
-              Either can be reopened; the earlier explanation stays in the thread.
-              Ordinary comments can be edited or deleted.
+              Check a todo directly on its card to complete or reopen it, then
+              add optional context to its thread. Resolving a contradiction
+              requires a comment explaining how it was resolved. Earlier
+              explanations stay in the thread, and ordinary comments can be
+              edited or deleted.
             </p>
           </Feature>
         </FeatureList>
@@ -90,7 +91,8 @@ export default function ProjectsDoc() {
               synthesis is stamped with when it ran. New cards, comments,
               resolutions, and edits mark it stale and offer re-synthesis.
               Sajni reads the thread and current state so resolved tensions
-              appear as outcomes rather than open problems.
+              appear as outcomes rather than open problems. Fold the synthesis
+              when you want more room for the board.
             </p>
           </Feature>
           <Feature name="Enrich">
