@@ -59,9 +59,10 @@ export default function ProjectsDoc() {
           </Feature>
           <Feature name="Card detail">
             <p>
-              Opening a card moves into a focused page with its content,
-              summary, enrichment, status, and dated thread. Connections
-              open related cards in the same view. Each card has its own URL.
+              Opening a card expands it into a focused workspace. The thought
+              stays prominent, its dated thread sits alongside it, and summary
+              and enrichment continue below. Connections open related cards in
+              the same view. Each card has its own URL.
             </p>
           </Feature>
           <Feature name="Completing and resolving">

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
@@ -59,12 +60,17 @@ const KIND_TONE: Record<ThinkingKind, string> = {
 const CARD_SURFACE =
   'rounded-2xl border border-border bg-[hsl(var(--surface-container-low))]';
 
+const CARD_SPRING = { type: 'spring', stiffness: 220, damping: 30 } as const;
+const CARD_PATH = /^cards\/(\d+)$/;
+
 // Local cache of stale-banner dismissals so reloading doesn't keep
 // nagging the user about the same un-synthesized cards.
 const STALE_DISMISS_KEY = (pid: number, changedAt: string) => `sajni:thinking:stale-dismissed:${pid}:${changedAt}`;
 
 export default function ThinkingProjectPage() {
-  const { id, cardId } = useParams<{ id: string; cardId?: string }>();
+  const params = useParams();
+  const id = params.id;
+  const cardId = params['*']?.match(CARD_PATH)?.[1];
   const pid = Number(id);
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -93,7 +99,7 @@ export default function ThinkingProjectPage() {
   // the cached project + cards after each mutation, including the delayed poll
   // for async server-side enrichment.
   const load = useCallback(() => {
-    qc.invalidateQueries({ queryKey: qk.thinking.project(pid) });
+    return qc.invalidateQueries({ queryKey: qk.thinking.project(pid) });
   }, [qc, pid]);
 
   const staleDismissed = useMemo(() => {
@@ -223,58 +229,64 @@ export default function ThinkingProjectPage() {
   if (loading) return <PageShell title="Projects">Loading…</PageShell>;
   if (!project) return <PageShell title="Not found">Project not found.</PageShell>;
 
-  if (cardId) {
-    return (
-      <PageShell
-        title={
-          <span className="inline-flex min-w-0 items-center gap-2">
-            <button type="button" onClick={() => navigate(`/projects/${pid}`)} className="text-muted-foreground hover:text-foreground" aria-label="Back to project">
-              <ArrowLeft className="size-4" />
-            </button>
-            <span className="truncate">{project.title}</span>
-          </span>
-        }
-        contentClassName="max-w-7xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20"
-      >
-        {focusedCard ? (
-          <CardDetail
-            key={focusedCard.id}
-            card={focusedCard}
-            siblings={cards}
-            onJump={(cid) => navigate(`/projects/${pid}/cards/${cid}`)}
-            onReEnrich={() => reEnrich(focusedCard.id)}
-            onDelete={() => removeCard(focusedCard.id)}
-            onSaveEnrichment={(next) => saveEnrichment(focusedCard.id, next)}
-            onChangeKind={(k) => updateCardKind(focusedCard.id, k)}
-            onActivity={load}
-          />
-        ) : (
-          <div className="space-y-3">
-            <p className="text-muted-foreground">Card not found in this project.</p>
-            <Button variant="outline" onClick={() => navigate(`/projects/${pid}`)}>Back to project</Button>
-          </div>
-        )}
-      </PageShell>
-    );
-  }
-
   return (
-    <PageShell
-      title={
-        <span className="inline-flex items-center gap-2">
-          <button onClick={() => navigate('/projects')} className="text-muted-foreground hover:text-foreground" aria-label="Back">
+    <LayoutGroup id={`thinking-project-${pid}`}>
+      <PageShell
+        title={project.title}
+        leading={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => navigate(cardId ? `/projects/${pid}` : '/projects')}
+            aria-label={cardId ? 'Back to project' : 'Back to projects'}
+          >
             <ArrowLeft className="size-4" />
-          </button>
-          {project.title}
-        </span>
-      }
-      actions={
-        <Button size="sm" onClick={synthesize} disabled={synthesizing || cards.length < 2}>
-          <Sparkles className="size-4 mr-1" />
-          {synthesizing ? 'Synthesizing…' : project.thesis ? 'Re-synthesize' : 'Synthesize'}
-        </Button>
-      }
-    >
+          </Button>
+        }
+        actions={!cardId ? (
+          <Button size="sm" onClick={synthesize} disabled={synthesizing || cards.length < 2}>
+            <Sparkles className="size-4 mr-1" />
+            {synthesizing ? 'Synthesizing…' : project.thesis ? 'Re-synthesize' : 'Synthesize'}
+          </Button>
+        ) : undefined}
+        contentClassName={cardId ? 'max-w-7xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20' : undefined}
+        scrollStateKey={cardId ? `${pid}:card-${cardId}` : `${pid}:board`}
+      >
+        <AnimatePresence initial={false} mode="sync">
+          {cardId ? (
+            focusedCard ? (
+              <CardDetail
+                key={`detail-${focusedCard.id}`}
+                card={focusedCard}
+                siblings={cards}
+                onJump={(cid) => navigate(`/projects/${pid}/cards/${cid}`)}
+                onReEnrich={() => reEnrich(focusedCard.id)}
+                onDelete={() => removeCard(focusedCard.id)}
+                onSaveEnrichment={(next) => saveEnrichment(focusedCard.id, next)}
+                onChangeKind={(k) => updateCardKind(focusedCard.id, k)}
+                onActivity={load}
+              />
+            ) : (
+              <motion.div
+                key="missing-card"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-3"
+              >
+                <p className="text-muted-foreground">Card not found in this project.</p>
+                <Button variant="outline" onClick={() => navigate(`/projects/${pid}`)}>Back to project</Button>
+              </motion.div>
+            )
+          ) : (
+            <motion.div
+              key="project-board"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+              className="flex flex-col gap-6"
+            >
       {project.description && (
         <div className="text-sm text-muted-foreground">{project.description}</div>
       )}
@@ -406,9 +418,11 @@ export default function ThinkingProjectPage() {
         <div className="flex flex-col gap-2">
           {visibleCards.map((c) => (
             <div key={c.id} className="relative group">
-              <button
+              <motion.button
                 type="button"
                 onClick={() => navigate(`/projects/${pid}/cards/${c.id}`)}
+                layoutId={`thinking-card-${c.id}`}
+                transition={CARD_SPRING}
                 className={`${CARD_SURFACE} w-full text-left p-3 pr-12 hover:bg-[hsl(var(--surface-container))] transition-colors`}
               >
               <div className="flex items-start gap-2">
@@ -441,7 +455,7 @@ export default function ThinkingProjectPage() {
                 <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
                 <ChevronRight className="size-3" />
               </div>
-              </button>
+              </motion.button>
               <button
                 type="button"
                 onClick={() => removeCard(c.id)}
@@ -454,8 +468,11 @@ export default function ThinkingProjectPage() {
           ))}
         </div>
       )}
-
-    </PageShell>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </PageShell>
+    </LayoutGroup>
   );
 }
 
@@ -499,6 +516,7 @@ function CardDetail({
   onChangeKind: (k: ThinkingKind) => void;
   onActivity: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const qc = useQueryClient();
   const { data: events = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: qk.thinking.events(card.id),
@@ -558,81 +576,139 @@ function CardDetail({
     setEditing(false);
   };
 
+  const isActionable = card.kind === 'todo' || card.kind === 'contradiction';
+  const reveal = reduceMotion
+    ? { initial: false as const }
+    : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 8 } };
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 flex-wrap">
-          <span className="mono text-xs uppercase tracking-wider text-muted-foreground">Card #{card.id}</span>
-          <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
-            <SelectTrigger className="h-8 w-auto text-xs mono uppercase tracking-wider rounded-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {KINDS.map((k) => (
-                <SelectItem key={k} value={k}>{k}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
-            {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
-          </span>
-          {card.status === 'closed' && (
-            <span className="text-xs text-muted-foreground">{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={onReEnrich}>
-            <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]">
-            <Trash2 className="size-3.5 mr-1.5" /> Delete
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-        <div className="min-w-0 space-y-5">
-          <div className={`${CARD_SURFACE} min-w-0 p-5 md:p-7`}>
-            <Section title="Content">
-              <div className="prose prose-base dark:prose-invert max-w-none break-words leading-relaxed">
-                <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
-              </div>
-            </Section>
-            {!editing && e.summary && (
-              <>
-                <Separator className="my-5" />
-                <Section title="Summary"><p className="text-base leading-relaxed">{e.summary}</p></Section>
-              </>
-            )}
-          </div>
-
-          {/* Enrichment block — read mode OR edit mode */}
-          <div className={`${CARD_SURFACE} min-w-0 space-y-4 p-5 md:p-7`}>
-            <div className="flex items-center justify-between">
-              <SectionLabel>Enrichment</SectionLabel>
-              <div className="flex items-center gap-2">
-                {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
-                  <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
-                    confidence {Math.round((e.confidence ?? 0) * 100)}%
+    <motion.div
+      initial={false}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+      className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] xl:gap-12"
+    >
+      <motion.article
+        layoutId={`thinking-card-${card.id}`}
+        transition={CARD_SPRING}
+        className="order-1 min-w-0 overflow-hidden rounded-[28px] bg-[hsl(var(--surface-container-low))] shadow-[var(--m3-elev-2)] lg:col-start-1 lg:row-start-1"
+      >
+          <div className="p-5 md:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
+                  <SelectTrigger className="h-8 w-auto rounded-full text-xs uppercase tracking-wider">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KINDS.map((k) => (
+                      <SelectItem key={k} value={k}>{k}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
+                </span>
+                {card.status === 'closed' && (
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${KIND_TONE[card.kind]}`}>
+                    {card.kind === 'todo' ? 'Completed' : 'Resolved'}
                   </span>
                 )}
-                {!editing ? (
-                  <Button size="sm" variant="ghost" onClick={startEdit}>
-                    <Edit3 className="size-3.5 mr-1" /> Edit
-                  </Button>
-                ) : (
-                  <>
-                    <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
-                    <Button size="sm" onClick={saveEdit}>
-                      <Save className="size-3.5 mr-1" /> Save
-                    </Button>
-                  </>
-                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={onReEnrich}>
+                  <RefreshCw className="size-3.5" /> Re-enrich
+                </Button>
+                <Button size="icon-sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]" aria-label="Delete card">
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
             </div>
 
+            <div className="prose prose-lg dark:prose-invert mt-7 max-w-none break-words leading-relaxed prose-p:my-3">
+              <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
+            </div>
+          </div>
+
+          {!editing && e.summary && (
+            <div className="bg-[hsl(var(--surface-container))] px-5 py-5 md:px-8 md:py-6">
+              <SectionLabel>Summary</SectionLabel>
+              <p className="mt-2 text-base leading-relaxed text-foreground/90">{e.summary}</p>
+            </div>
+          )}
+
+          {isActionable && (
+            <div className="border-t border-[hsl(var(--outline-variant))] px-5 py-4 md:px-8">
+              {card.status === 'closed' ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">{card.kind === 'todo' ? 'Todo completed' : 'Contradiction resolved'}</span>
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
+                </div>
+              ) : showCloseForm ? (
+                <div className="space-y-3">
+                  <SectionLabel>{card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}</SectionLabel>
+                  <Textarea
+                    value={closingComment}
+                    onChange={(ev) => setClosingComment(ev.target.value)}
+                    maxLength={4000}
+                    rows={3}
+                    placeholder={card.kind === 'contradiction' ? 'How was this resolved?' : 'What was done? (optional)'}
+                    aria-label={card.kind === 'contradiction' ? 'How was this resolved?' : 'Completion comment'}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
+                    <Button size="sm" disabled={busy || (card.kind === 'contradiction' && !closingComment.trim())} onClick={() => changeState(true)}>
+                      {card.kind === 'todo' ? 'Complete' : 'Resolve'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">{card.kind === 'todo' ? 'This todo is still open.' : 'This contradiction is unresolved.'}</span>
+                  <Button size="sm" variant="tonal" onClick={() => setShowCloseForm(true)}>
+                    {card.kind === 'todo' ? 'Complete' : 'Resolve'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+      </motion.article>
+
+      <motion.section
+        {...reveal}
+        transition={{ duration: 0.32, delay: reduceMotion ? 0 : 0.1, ease: [0.2, 0, 0, 1] }}
+        className="order-3 px-1 pb-6 md:px-5 lg:col-start-1 lg:row-start-2"
+      >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <SectionLabel>Enrichment</SectionLabel>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">What this thought adds</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {Math.round(e.confidence * 100)}% confidence
+                </span>
+              )}
+              {!editing ? (
+                <Button size="sm" variant="ghost" onClick={startEdit}>
+                  <Edit3 className="size-3.5" /> Edit
+                </Button>
+              ) : (
+                <>
+                  <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
+                  <Button size="sm" onClick={saveEdit}>
+                    <Save className="size-3.5" /> Save
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-7">
             {!editing ? (
-              <>
+              <div className="space-y-7">
                 {!hasDetails && (
                   <p className="text-sm text-muted-foreground italic">
                     {e.summary ? 'No further insights yet.' : "Sajni hasn't enriched this card yet. Use Re-enrich above."}
@@ -640,51 +716,54 @@ function CardDetail({
                 )}
                 {e.implications && e.implications.length > 0 && (
                   <Section title="Implications">
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-2">
                       {e.implications.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5 shrink-0">→</span><span>{s}</span>
+                        <li key={i} className="flex items-start gap-3">
+                          <span className="mt-0.5 text-primary">→</span><span>{s}</span>
                         </li>
                       ))}
                     </ul>
                   </Section>
                 )}
+                {e.implications && e.implications.length > 0 && e.questions_raised && e.questions_raised.length > 0 && <Separator />}
                 {e.questions_raised && e.questions_raised.length > 0 && (
                   <Section title="Questions raised">
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-2">
                       {e.questions_raised.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5 shrink-0">?</span><span>{s}</span>
+                        <li key={i} className="flex items-start gap-3">
+                          <span className="mt-0.5 text-primary">?</span><span>{s}</span>
                         </li>
                       ))}
                     </ul>
                   </Section>
                 )}
+                {((e.implications?.length ?? 0) > 0 || (e.questions_raised?.length ?? 0) > 0) && (e.connections?.length ?? 0) > 0 && <Separator />}
                 {e.connections && e.connections.length > 0 && (
                   <Section title="Connections">
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-2">
                       {e.connections.map((c, i) => {
                         const target = siblings.find((x) => x.id === c.card_id);
                         const preview = target
-                          ? (target.content.split('\n')[0].slice(0, 50) || `card #${c.card_id}`)
-                          : `(deleted card)`;
+                          ? (target.content.split('\n')[0].slice(0, 64) || `card #${c.card_id}`)
+                          : '(deleted card)';
                         return (
                           <li key={i}>
                             <button
+                              type="button"
                               disabled={!target}
                               onClick={() => target && onJump(c.card_id)}
-                              className="w-full text-left rounded-lg border border-border bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex w-full items-center gap-2 rounded-xl bg-[hsl(var(--surface-container-low))] px-3 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-container))] disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              <span className="mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
+                              <span className="shrink-0 text-xs uppercase tracking-wider text-muted-foreground">
                                 {c.relation.replace('_', ' ')}
                               </span>
                               {target && (
-                                <span className={`shrink-0 text-xs mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
+                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs uppercase tracking-wider ${KIND_TONE[target.kind]}`}>
                                   {target.kind}
                                 </span>
                               )}
-                              <span className="text-sm truncate">{preview}</span>
-                              <ChevronRight className="size-3.5 text-muted-foreground ml-auto shrink-0" />
+                              <span className="truncate text-sm">{preview}</span>
+                              <ChevronRight className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
                             </button>
                           </li>
                         );
@@ -692,87 +771,72 @@ function CardDetail({
                     </ul>
                   </Section>
                 )}
-              </>
+              </div>
             ) : (
               <EnrichmentEditor draft={draft} setDraft={setDraft} siblings={siblings.filter((x) => x.id !== card.id)} />
             )}
           </div>
+      </motion.section>
+
+      <motion.aside
+        {...reveal}
+        transition={{ duration: 0.32, delay: reduceMotion ? 0 : 0.14, ease: [0.2, 0, 0, 1] }}
+        className="order-2 min-w-0 rounded-[28px] bg-[hsl(var(--surface-container-low))] p-5 shadow-[var(--m3-elev-1)] md:p-6 lg:sticky lg:top-5 lg:col-start-2 lg:row-start-1 lg:row-span-2"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SectionLabel>Thread</SectionLabel>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight">Context over time</h2>
+          </div>
+          {!eventsLoading && !eventsError && events.length > 0 && (
+            <span className="rounded-full bg-[hsl(var(--surface-container-high))] px-2.5 py-1 text-xs text-muted-foreground">
+              {events.length}
+            </span>
+          )}
         </div>
 
-        <div className="min-w-0 space-y-5">
-          {(card.kind === 'todo' || card.kind === 'contradiction') && (
-            <div className={`${CARD_SURFACE} min-w-0 p-5 md:p-6`}>
-              <Section title="Status">
-                {card.status === 'closed' ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <span>{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
+        <div className="mt-5">
+          {eventsLoading ? <p className="text-sm text-muted-foreground">Loading thread…</p> : eventsError ? (
+            <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
+          ) : events.length === 0 ? (
+            <p className="py-3 text-sm text-muted-foreground">No context has been added yet.</p>
+          ) : (
+            <div className="divide-y divide-[hsl(var(--outline-variant))]">
+              {events.map((event) => (
+                <div key={event.id} className="py-4 first:pt-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
+                    </span>
+                    <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
                   </div>
-                ) : showCloseForm ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={closingComment}
-                      onChange={(ev) => setClosingComment(ev.target.value)}
-                      maxLength={4000}
-                      rows={3}
-                      placeholder={card.kind === 'contradiction' ? 'How was this resolved?' : 'What was done? (optional)'}
-                      aria-label={card.kind === 'contradiction' ? 'How was this resolved?' : 'Completion comment'}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
-                      <Button size="sm" disabled={busy || (card.kind === 'contradiction' && !closingComment.trim())} onClick={() => changeState(true)}>
-                        {card.kind === 'todo' ? 'Complete' : 'Resolve'}
-                      </Button>
+                  {event.body && (
+                    <div className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words">
+                      <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
                     </div>
-                  </div>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>
-                    {card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}
-                  </Button>
-                )}
-              </Section>
+                  )}
+                </div>
+              ))}
             </div>
           )}
+        </div>
 
-          <div className={`${CARD_SURFACE} min-w-0 p-5 md:p-6`}>
-            <Section title="Thread">
-              <div className="space-y-3">
-                {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
-                  <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
-                ) : events.length === 0 ? (
-                  <p className="text-muted-foreground">No comments yet.</p>
-                ) : events.map((event) => (
-                  <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">
-                        {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
-                      </span>
-                      <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
-                    </div>
-                    {event.body && (
-                      <div className="prose prose-sm dark:prose-invert max-w-none break-words mt-1">
-                        <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <Textarea
-                  value={comment}
-                  onChange={(ev) => setComment(ev.target.value)}
-                  maxLength={4000}
-                  rows={2}
-                  placeholder="Add context or an update…"
-                  aria-label="Add a comment"
-                />
-                <div className="flex justify-end">
-                  <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
-                </div>
-              </div>
-            </Section>
+        <Separator className="my-5" />
+        <div className="space-y-3">
+          <Textarea
+            value={comment}
+            onChange={(ev) => setComment(ev.target.value)}
+            maxLength={4000}
+            rows={3}
+            placeholder="Add context or an update…"
+            aria-label="Add a comment"
+          />
+          <div className="flex justify-end">
+            <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }
 

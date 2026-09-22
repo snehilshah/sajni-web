@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 
@@ -191,7 +191,7 @@ export function PageChrome({
 // state through NavChromeContext (Layout collapses the primary bar off it).
 export default function PageShell({
   title, leading, actions, navigation,
-  children, contentClassName, hideScrollbar = false,
+  children, contentClassName, hideScrollbar = false, scrollStateKey,
 }: {
   title: ReactNode;
   leading?: ReactNode;
@@ -200,12 +200,29 @@ export default function PageShell({
   children: ReactNode;
   contentClassName?: string;
   hideScrollbar?: boolean;
+  scrollStateKey?: string;
 }) {
   const { setScrolled: reportScrolled } = useNavChrome();
   const isMobile = useIsMobile();
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollPositions = useRef(new Map<string, number>());
+  const previousScrollKey = useRef(scrollStateKey);
   const scrolled = useOwnScrolled(scrollRef, true);
+
+  // Detail views can share one persistent PageShell without inheriting the
+  // board's scroll position. Returning restores the exact board position so
+  // shared card transitions have a visible destination.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !scrollStateKey) return;
+    const previous = previousScrollKey.current;
+    if (previous && previous !== scrollStateKey) {
+      scrollPositions.current.set(previous, el.scrollTop);
+      el.scrollTop = scrollPositions.current.get(scrollStateKey) ?? 0;
+    }
+    previousScrollKey.current = scrollStateKey;
+  }, [scrollStateKey]);
 
   useEffect(() => {
     reportScrolled(scrolled);
