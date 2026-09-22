@@ -57,11 +57,11 @@ export default function ProjectsDoc() {
               still a question. Kinds filter the board.
             </p>
           </Feature>
-          <Feature name="Detail drawer">
+          <Feature name="Card detail">
             <p>
-              Opening a card shows its text, a dated thread of comments and
-              state changes, its AI enrichment, and connections to related
-              cards. Kind and relations are editable in place.
+              Opening a card moves into a focused page with its content,
+              summary, enrichment, status, and dated thread. Connections
+              open related cards in the same view. Each card has its own URL.
             </p>
           </Feature>
           <Feature name="Completing and resolving">

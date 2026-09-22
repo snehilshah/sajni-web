@@ -14,9 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
-} from '@/components/ui/sheet';
-import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
@@ -67,7 +64,7 @@ const CARD_SURFACE =
 const STALE_DISMISS_KEY = (pid: number, changedAt: string) => `sajni:thinking:stale-dismissed:${pid}:${changedAt}`;
 
 export default function ThinkingProjectPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, cardId } = useParams<{ id: string; cardId?: string }>();
   const pid = Number(id);
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -89,7 +86,6 @@ export default function ThinkingProjectPage() {
   const pendingClassify = useRef<Promise<ThinkingKind | null> | null>(null);
   const [activeKinds, setActiveKinds] = useState<Set<ThinkingKind>>(new Set());
   const [adding, setAdding] = useState(false);
-  const [openCardId, setOpenCardId] = useState<number | null>(null);
   const [synthesizing, setSynthesizing] = useState(false);
   const [dismissedAt, setDismissedAt] = useState<string | null>(null);
 
@@ -161,7 +157,7 @@ export default function ThinkingProjectPage() {
   const removeCard = async (cid: number) => {
     if (!(await confirmDialog('Delete this card?'))) return;
     await thinking.deleteCard(cid);
-    if (openCardId === cid) setOpenCardId(null);
+    if (Number(cardId) === cid) navigate(`/projects/${pid}`, { replace: true });
     load();
   };
 
@@ -202,7 +198,7 @@ export default function ThinkingProjectPage() {
     return cards.filter((c) => activeKinds.has(c.kind));
   }, [cards, activeKinds]);
 
-  const openCard = cards.find((c) => c.id === openCardId) || null;
+  const focusedCard = cardId ? cards.find((c) => c.id === Number(cardId)) : null;
 
   // User-authored card changes, comments and resolutions can all change the thesis.
   const showStaleBanner =
@@ -226,6 +222,41 @@ export default function ThinkingProjectPage() {
 
   if (loading) return <PageShell title="Projects">Loading…</PageShell>;
   if (!project) return <PageShell title="Not found">Project not found.</PageShell>;
+
+  if (cardId) {
+    return (
+      <PageShell
+        title={
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <button type="button" onClick={() => navigate(`/projects/${pid}`)} className="text-muted-foreground hover:text-foreground" aria-label="Back to project">
+              <ArrowLeft className="size-4" />
+            </button>
+            <span className="truncate">{project.title}</span>
+          </span>
+        }
+        contentClassName="max-w-7xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20"
+      >
+        {focusedCard ? (
+          <CardDetail
+            key={focusedCard.id}
+            card={focusedCard}
+            siblings={cards}
+            onJump={(cid) => navigate(`/projects/${pid}/cards/${cid}`)}
+            onReEnrich={() => reEnrich(focusedCard.id)}
+            onDelete={() => removeCard(focusedCard.id)}
+            onSaveEnrichment={(next) => saveEnrichment(focusedCard.id, next)}
+            onChangeKind={(k) => updateCardKind(focusedCard.id, k)}
+            onActivity={load}
+          />
+        ) : (
+          <div className="space-y-3">
+            <p className="text-muted-foreground">Card not found in this project.</p>
+            <Button variant="outline" onClick={() => navigate(`/projects/${pid}`)}>Back to project</Button>
+          </div>
+        )}
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
@@ -374,12 +405,12 @@ export default function ThinkingProjectPage() {
       ) : (
         <div className="flex flex-col gap-2">
           {visibleCards.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setOpenCardId(c.id)}
-              className={`${CARD_SURFACE} text-left p-3 hover:bg-[hsl(var(--surface-container))] transition-colors group`}
-            >
+            <div key={c.id} className="relative group">
+              <button
+                type="button"
+                onClick={() => navigate(`/projects/${pid}/cards/${c.id}`)}
+                className={`${CARD_SURFACE} w-full text-left p-3 pr-12 hover:bg-[hsl(var(--surface-container))] transition-colors`}
+              >
               <div className="flex items-start gap-2">
                 <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
                   {c.kind}
@@ -405,42 +436,25 @@ export default function ThinkingProjectPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] transition"
-                  title="Delete"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
               </div>
               <div className="mt-2 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
                 <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
                 <ChevronRight className="size-3" />
               </div>
-            </button>
+              </button>
+              <button
+                type="button"
+                onClick={() => removeCard(c.id)}
+                className="absolute right-3 top-3 rounded p-2 text-muted-foreground hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                aria-label="Delete card"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Detail drawer */}
-      <Sheet open={openCardId !== null} onOpenChange={(o) => !o && setOpenCardId(null)}>
-        <SheetContent side="right" className="!max-w-md w-full flex flex-col p-0 gap-0">
-          {openCard && (
-            <CardDetail
-              key={openCard.id /* remount on jump so edit drafts reset */}
-              card={openCard}
-              siblings={cards}
-              onJump={setOpenCardId}
-              onReEnrich={() => reEnrich(openCard.id)}
-              onDelete={() => removeCard(openCard.id)}
-              onSaveEnrichment={(next) => saveEnrichment(openCard.id, next)}
-              onChangeKind={(k) => updateCardKind(openCard.id, k)}
-              onActivity={load}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
     </PageShell>
   );
 }
@@ -520,8 +534,7 @@ function CardDetail({
     finally { setBusy(false); }
   };
   const e: ThinkingEnrichment = card.ai_enrichment || {};
-  const hasAny =
-    !!e.summary ||
+  const hasDetails =
     (e.implications?.length ?? 0) > 0 ||
     (e.questions_raised?.length ?? 0) > 0 ||
     (e.connections?.length ?? 0) > 0;
@@ -546,11 +559,12 @@ function CardDetail({
   };
 
   return (
-    <>
-      <SheetHeader className="px-5 pt-5 pb-3 border-b border-border space-y-2 pr-12">
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2 flex-wrap">
+          <span className="mono text-xs uppercase tracking-wider text-muted-foreground">Card #{card.id}</span>
           <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
-            <SelectTrigger className="h-7 w-auto text-xs mono uppercase tracking-wider rounded-full">
+            <SelectTrigger className="h-8 w-auto text-xs mono uppercase tracking-wider rounded-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -566,201 +580,199 @@ function CardDetail({
             <span className="text-xs text-muted-foreground">{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
           )}
         </div>
-        <SheetTitle className="serif text-base font-semibold leading-tight">
-          {card.content.split('\n')[0].slice(0, 80) || 'Card detail'}
-        </SheetTitle>
-        <SheetDescription className="sr-only">
-          Thought card detail with AI enrichment
-        </SheetDescription>
-      </SheetHeader>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-        <Section title="Content">
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-            <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
-          </div>
-        </Section>
-
-        <Separator />
-
-        {(card.kind === 'todo' || card.kind === 'contradiction') && (
-          <>
-            <Section title="Status">
-              {card.status === 'closed' ? (
-                <div className="flex items-center justify-between gap-3">
-                  <span>{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
-                </div>
-              ) : showCloseForm ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={closingComment}
-                    onChange={(ev) => setClosingComment(ev.target.value)}
-                    maxLength={4000}
-                    rows={3}
-                    placeholder={card.kind === 'contradiction' ? 'How was this resolved?' : 'What was done? (optional)'}
-                    aria-label={card.kind === 'contradiction' ? 'How was this resolved?' : 'Completion comment'}
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
-                    <Button size="sm" disabled={busy || (card.kind === 'contradiction' && !closingComment.trim())} onClick={() => changeState(true)}>
-                      {card.kind === 'todo' ? 'Complete' : 'Resolve'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>
-                  {card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}
-                </Button>
-              )}
-            </Section>
-            <Separator />
-          </>
-        )}
-
-        <Section title="Thread">
-          <div className="space-y-3">
-            {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
-              <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
-            ) : events.length === 0 ? (
-              <p className="text-muted-foreground">No comments yet.</p>
-            ) : events.map((event) => (
-              <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
-                  </span>
-                  <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
-                </div>
-                {event.body && (
-                  <div className="prose prose-sm dark:prose-invert max-w-none break-words mt-1">
-                    <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
-                  </div>
-                )}
-              </div>
-            ))}
-            <Textarea
-              value={comment}
-              onChange={(ev) => setComment(ev.target.value)}
-              maxLength={4000}
-              rows={2}
-              placeholder="Add context or an update…"
-              aria-label="Add a comment"
-            />
-            <div className="flex justify-end">
-              <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
-            </div>
-          </div>
-        </Section>
-
-        <Separator />
-
-        {/* Enrichment block — read mode OR edit mode */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <SectionLabel>Enrichment</SectionLabel>
-            <div className="flex items-center gap-2">
-              {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
-                <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
-                  confidence {Math.round((e.confidence ?? 0) * 100)}%
-                </span>
-              )}
-              {!editing ? (
-                <Button size="sm" variant="ghost" onClick={startEdit}>
-                  <Edit3 className="size-3.5 mr-1" /> Edit
-                </Button>
-              ) : (
-                <>
-                  <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
-                  <Button size="sm" onClick={saveEdit}>
-                    <Save className="size-3.5 mr-1" /> Save
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {!editing ? (
-            <>
-              {!hasAny && (
-                <p className="text-sm text-muted-foreground italic">
-                  Sajni hasn't enriched this card yet. Hit <em>Re-enrich</em> below.
-                </p>
-              )}
-              {e.summary && (
-                <Section title="Summary"><p>{e.summary}</p></Section>
-              )}
-              {e.implications && e.implications.length > 0 && (
-                <Section title="Implications">
-                  <ul className="space-y-1.5">
-                    {e.implications.map((s, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5 shrink-0">→</span><span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Section>
-              )}
-              {e.questions_raised && e.questions_raised.length > 0 && (
-                <Section title="Questions raised">
-                  <ul className="space-y-1.5">
-                    {e.questions_raised.map((s, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5 shrink-0">?</span><span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Section>
-              )}
-              {e.connections && e.connections.length > 0 && (
-                <Section title="Connections">
-                  <ul className="space-y-1.5">
-                    {e.connections.map((c, i) => {
-                      const target = siblings.find((x) => x.id === c.card_id);
-                      const preview = target
-                        ? (target.content.split('\n')[0].slice(0, 50) || `card #${c.card_id}`)
-                        : `(deleted card)`;
-                      return (
-                        <li key={i}>
-                          <button
-                            disabled={!target}
-                            onClick={() => target && onJump(c.card_id)}
-                            className="w-full text-left rounded-lg border border-border bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <span className="mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
-                              {c.relation.replace('_', ' ')}
-                            </span>
-                            {target && (
-                              <span className={`shrink-0 text-xs mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
-                                {target.kind}
-                              </span>
-                            )}
-                            <span className="text-sm truncate">{preview}</span>
-                            <ChevronRight className="size-3.5 text-muted-foreground ml-auto shrink-0" />
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </Section>
-              )}
-            </>
-          ) : (
-            <EnrichmentEditor draft={draft} setDraft={setDraft} siblings={siblings.filter((x) => x.id !== card.id)} />
-          )}
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={onReEnrich}>
+            <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]">
+            <Trash2 className="size-3.5 mr-1.5" /> Delete
+          </Button>
         </div>
       </div>
 
-      <div className="border-t border-border px-5 py-3 flex items-center gap-2">
-        <Button size="sm" variant="ghost" onClick={onReEnrich}>
-          <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
-        </Button>
-        <div className="flex-1" />
-        <Button size="sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]">
-          <Trash2 className="size-3.5 mr-1.5" /> Delete
-        </Button>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+        <div className="min-w-0 space-y-5">
+          <div className={`${CARD_SURFACE} min-w-0 p-5 md:p-7`}>
+            <Section title="Content">
+              <div className="prose prose-base dark:prose-invert max-w-none break-words leading-relaxed">
+                <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
+              </div>
+            </Section>
+            {!editing && e.summary && (
+              <>
+                <Separator className="my-5" />
+                <Section title="Summary"><p className="text-base leading-relaxed">{e.summary}</p></Section>
+              </>
+            )}
+          </div>
+
+          {/* Enrichment block — read mode OR edit mode */}
+          <div className={`${CARD_SURFACE} min-w-0 space-y-4 p-5 md:p-7`}>
+            <div className="flex items-center justify-between">
+              <SectionLabel>Enrichment</SectionLabel>
+              <div className="flex items-center gap-2">
+                {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
+                  <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
+                    confidence {Math.round((e.confidence ?? 0) * 100)}%
+                  </span>
+                )}
+                {!editing ? (
+                  <Button size="sm" variant="ghost" onClick={startEdit}>
+                    <Edit3 className="size-3.5 mr-1" /> Edit
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
+                    <Button size="sm" onClick={saveEdit}>
+                      <Save className="size-3.5 mr-1" /> Save
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {!editing ? (
+              <>
+                {!hasDetails && (
+                  <p className="text-sm text-muted-foreground italic">
+                    {e.summary ? 'No further insights yet.' : "Sajni hasn't enriched this card yet. Use Re-enrich above."}
+                  </p>
+                )}
+                {e.implications && e.implications.length > 0 && (
+                  <Section title="Implications">
+                    <ul className="space-y-1.5">
+                      {e.implications.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5 shrink-0">→</span><span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                )}
+                {e.questions_raised && e.questions_raised.length > 0 && (
+                  <Section title="Questions raised">
+                    <ul className="space-y-1.5">
+                      {e.questions_raised.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5 shrink-0">?</span><span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                )}
+                {e.connections && e.connections.length > 0 && (
+                  <Section title="Connections">
+                    <ul className="space-y-1.5">
+                      {e.connections.map((c, i) => {
+                        const target = siblings.find((x) => x.id === c.card_id);
+                        const preview = target
+                          ? (target.content.split('\n')[0].slice(0, 50) || `card #${c.card_id}`)
+                          : `(deleted card)`;
+                        return (
+                          <li key={i}>
+                            <button
+                              disabled={!target}
+                              onClick={() => target && onJump(c.card_id)}
+                              className="w-full text-left rounded-lg border border-border bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <span className="mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
+                                {c.relation.replace('_', ' ')}
+                              </span>
+                              {target && (
+                                <span className={`shrink-0 text-xs mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
+                                  {target.kind}
+                                </span>
+                              )}
+                              <span className="text-sm truncate">{preview}</span>
+                              <ChevronRight className="size-3.5 text-muted-foreground ml-auto shrink-0" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </Section>
+                )}
+              </>
+            ) : (
+              <EnrichmentEditor draft={draft} setDraft={setDraft} siblings={siblings.filter((x) => x.id !== card.id)} />
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-5">
+          {(card.kind === 'todo' || card.kind === 'contradiction') && (
+            <div className={`${CARD_SURFACE} min-w-0 p-5 md:p-6`}>
+              <Section title="Status">
+                {card.status === 'closed' ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
+                  </div>
+                ) : showCloseForm ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={closingComment}
+                      onChange={(ev) => setClosingComment(ev.target.value)}
+                      maxLength={4000}
+                      rows={3}
+                      placeholder={card.kind === 'contradiction' ? 'How was this resolved?' : 'What was done? (optional)'}
+                      aria-label={card.kind === 'contradiction' ? 'How was this resolved?' : 'Completion comment'}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
+                      <Button size="sm" disabled={busy || (card.kind === 'contradiction' && !closingComment.trim())} onClick={() => changeState(true)}>
+                        {card.kind === 'todo' ? 'Complete' : 'Resolve'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>
+                    {card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}
+                  </Button>
+                )}
+              </Section>
+            </div>
+          )}
+
+          <div className={`${CARD_SURFACE} min-w-0 p-5 md:p-6`}>
+            <Section title="Thread">
+              <div className="space-y-3">
+                {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
+                  <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
+                ) : events.length === 0 ? (
+                  <p className="text-muted-foreground">No comments yet.</p>
+                ) : events.map((event) => (
+                  <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
+                      </span>
+                      <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
+                    </div>
+                    {event.body && (
+                      <div className="prose prose-sm dark:prose-invert max-w-none break-words mt-1">
+                        <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <Textarea
+                  value={comment}
+                  onChange={(ev) => setComment(ev.target.value)}
+                  maxLength={4000}
+                  rows={2}
+                  placeholder="Add context or an update…"
+                  aria-label="Add a comment"
+                />
+                <div className="flex justify-end">
+                  <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
+                </div>
+              </div>
+            </Section>
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 

@@ -120,6 +120,7 @@ export default function App() {
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="/projects" element={<ThinkingPage />} />
             <Route path="/projects/:id" element={<ThinkingProjectPage />} />
+            <Route path="/projects/:id/cards/:cardId" element={<ThinkingProjectPage />} />
             <Route path="/journal" element={<JournalPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/habits" element={<HabitsHub />} />
