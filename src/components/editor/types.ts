@@ -3,8 +3,7 @@ import type { Node as PMNode, Mark } from '@tiptap/pm/model';
 import type { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion';
 import type { MarkdownSerializerState } from 'prosemirror-markdown';
 import type { MarkdownStorage } from 'tiptap-markdown';
-import type MarkdownIt from 'markdown-it';
-import type { StateInline } from 'markdown-it';
+import type { MarkdownIt, StateInline } from 'markdown-it';
 import type { ComponentType } from 'react';
 
 export interface Item {
