@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, ArrowUp, Plus, Trash2, ChevronDown, AlertCircle,
@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { ai, type AIEvent, type AISessionMeta, type AIToolResult } from '@/api';
 import { SKILLS } from '@/lib/aiSkills';
 import { aborted, msg } from '@/lib/errors';
@@ -142,6 +143,30 @@ export function ChatPanel({
   const handledOpenRequestRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const resizeComposer = useCallback(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = '0px';
+    textarea.style.overflowY = 'hidden';
+    const style = getComputedStyle(textarea);
+    const lineHeight = parseFloat(style.lineHeight);
+    const chrome = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+      + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+    const maxHeight = lineHeight * 4 + chrome;
+    const contentHeight = textarea.scrollHeight
+      + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+
+    textarea.style.height = `${Math.min(contentHeight, maxHeight)}px`;
+    textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+  }, []);
+
+  useLayoutEffect(() => { resizeComposer(); }, [input, resizeComposer]);
+  useEffect(() => {
+    window.addEventListener('resize', resizeComposer);
+    return () => window.removeEventListener('resize', resizeComposer);
+  }, [resizeComposer]);
 
   // Load AI status + session list on first activation.
   useEffect(() => {
@@ -480,7 +505,7 @@ export function ChatPanel({
           }}
         >
           <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors p-1.5 pl-4">
-            <textarea
+            <Textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -488,8 +513,7 @@ export function ChatPanel({
               placeholder={enabled === false ? 'AI disabled' : 'Ask Sajni…'}
               disabled={enabled === false}
               rows={1}
-              className="flex-1 resize-none bg-transparent border-0 text-sm outline-none max-h-32 py-2 disabled:opacity-50 placeholder:text-muted-foreground/70"
-              style={{ minHeight: 36 }}
+              className="min-h-0 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-2 text-sm leading-6 shadow-none hover:border-0 focus-visible:border-0 focus-visible:shadow-none placeholder:text-muted-foreground/70"
               title="Shift+Enter for newline"
             />
             <Button
