@@ -59,10 +59,9 @@ export default function ProjectsDoc() {
           </Feature>
           <Feature name="Card detail">
             <p>
-              Opening a card expands it into a focused workspace. The thought
-              stays prominent, its dated thread sits alongside it, and summary
-              and enrichment continue below. Connections open related cards in
-              the same view. Each card has its own URL.
+              Opening a card slides in a detail panel while keeping the project
+              visible. The panel holds its status, dated thread, summary, and
+              enrichment. Connections open related cards in the same panel.
             </p>
           </Feature>
           <Feature name="Completing and resolving">
@@ -70,6 +69,7 @@ export default function ProjectsDoc() {
               Complete a todo with an optional comment. Resolving a
               contradiction requires a comment explaining how it was resolved.
               Either can be reopened; the earlier explanation stays in the thread.
+              Ordinary comments can be edited or deleted.
             </p>
           </Feature>
         </FeatureList>

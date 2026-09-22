@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
@@ -60,19 +60,15 @@ const KIND_TONE: Record<ThinkingKind, string> = {
 const CARD_SURFACE =
   'rounded-2xl border border-border bg-[hsl(var(--surface-container-low))]';
 
-const CARD_SPRING = { type: 'spring', stiffness: 220, damping: 30 } as const;
-const CARD_PATH = /^cards\/(\d+)$/;
-
 // Local cache of stale-banner dismissals so reloading doesn't keep
 // nagging the user about the same un-synthesized cards.
 const STALE_DISMISS_KEY = (pid: number, changedAt: string) => `sajni:thinking:stale-dismissed:${pid}:${changedAt}`;
 
 export default function ThinkingProjectPage() {
-  const params = useParams();
-  const id = params.id;
-  const cardId = params['*']?.match(CARD_PATH)?.[1];
+  const { id } = useParams<{ id: string }>();
   const pid = Number(id);
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const qc = useQueryClient();
   const { data: projectData, isLoading: loading } = useThinkingProject(pid, Number.isFinite(pid));
   const project = projectData?.project ?? null;
@@ -92,6 +88,7 @@ export default function ThinkingProjectPage() {
   const pendingClassify = useRef<Promise<ThinkingKind | null> | null>(null);
   const [activeKinds, setActiveKinds] = useState<Set<ThinkingKind>>(new Set());
   const [adding, setAdding] = useState(false);
+  const [openCardId, setOpenCardId] = useState<number | null>(null);
   const [synthesizing, setSynthesizing] = useState(false);
   const [dismissedAt, setDismissedAt] = useState<string | null>(null);
 
@@ -124,6 +121,15 @@ export default function ThinkingProjectPage() {
     }, 600);
     return () => clearTimeout(t);
   }, [draft]);
+
+  useEffect(() => {
+    if (openCardId === null) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setOpenCardId(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [openCardId]);
 
   const onUserPickKind = (v: ThinkingKind) => {
     userPickedKind.current = true;
@@ -163,7 +169,7 @@ export default function ThinkingProjectPage() {
   const removeCard = async (cid: number) => {
     if (!(await confirmDialog('Delete this card?'))) return;
     await thinking.deleteCard(cid);
-    if (Number(cardId) === cid) navigate(`/projects/${pid}`, { replace: true });
+    if (openCardId === cid) setOpenCardId(null);
     load();
   };
 
@@ -204,7 +210,7 @@ export default function ThinkingProjectPage() {
     return cards.filter((c) => activeKinds.has(c.kind));
   }, [cards, activeKinds]);
 
-  const focusedCard = cardId ? cards.find((c) => c.id === Number(cardId)) : null;
+  const openCard = cards.find((c) => c.id === openCardId) || null;
 
   // User-authored card changes, comments and resolutions can all change the thesis.
   const showStaleBanner =
@@ -230,63 +236,23 @@ export default function ThinkingProjectPage() {
   if (!project) return <PageShell title="Not found">Project not found.</PageShell>;
 
   return (
-    <LayoutGroup id={`thinking-project-${pid}`}>
-      <PageShell
-        title={project.title}
-        leading={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => navigate(cardId ? `/projects/${pid}` : '/projects')}
-            aria-label={cardId ? 'Back to project' : 'Back to projects'}
-          >
-            <ArrowLeft className="size-4" />
-          </Button>
-        }
-        actions={!cardId ? (
-          <Button size="sm" onClick={synthesize} disabled={synthesizing || cards.length < 2}>
-            <Sparkles className="size-4 mr-1" />
-            {synthesizing ? 'Synthesizing…' : project.thesis ? 'Re-synthesize' : 'Synthesize'}
-          </Button>
-        ) : undefined}
-        contentClassName={cardId ? 'max-w-7xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20' : undefined}
-        scrollStateKey={cardId ? `${pid}:card-${cardId}` : `${pid}:board`}
-      >
-        <AnimatePresence initial={false} mode="sync">
-          {cardId ? (
-            focusedCard ? (
-              <CardDetail
-                key={`detail-${focusedCard.id}`}
-                card={focusedCard}
-                siblings={cards}
-                onJump={(cid) => navigate(`/projects/${pid}/cards/${cid}`)}
-                onReEnrich={() => reEnrich(focusedCard.id)}
-                onDelete={() => removeCard(focusedCard.id)}
-                onSaveEnrichment={(next) => saveEnrichment(focusedCard.id, next)}
-                onChangeKind={(k) => updateCardKind(focusedCard.id, k)}
-                onActivity={load}
-              />
-            ) : (
-              <motion.div
-                key="missing-card"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="space-y-3"
-              >
-                <p className="text-muted-foreground">Card not found in this project.</p>
-                <Button variant="outline" onClick={() => navigate(`/projects/${pid}`)}>Back to project</Button>
-              </motion.div>
-            )
-          ) : (
-            <motion.div
-              key="project-board"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-              className="flex flex-col gap-6"
-            >
+    <PageShell
+      title={project.title}
+      leading={
+        <Button variant="ghost" size="icon-sm" className="size-11 md:size-9" onClick={() => navigate('/projects')} aria-label="Back to projects">
+          <ArrowLeft className="size-4" />
+        </Button>
+      }
+      actions={
+        <Button size="sm" onClick={synthesize} disabled={synthesizing || cards.length < 2}>
+          <Sparkles className="size-4 mr-1" />
+          {synthesizing ? 'Synthesizing…' : project.thesis ? 'Re-synthesize' : 'Synthesize'}
+        </Button>
+      }
+      contentClassName={`w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 transition-[max-width] duration-400 ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'max-w-[1500px]' : 'max-w-6xl'}`}
+    >
+      <div className={`grid items-start transition-[grid-template-columns,gap] duration-400 ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-5' : 'lg:grid-cols-[minmax(0,1fr)_0px]'}`}>
+        <main className="flex min-w-0 flex-col gap-6">
       {project.description && (
         <div className="text-sm text-muted-foreground">{project.description}</div>
       )}
@@ -418,48 +384,47 @@ export default function ThinkingProjectPage() {
         <div className="flex flex-col gap-2">
           {visibleCards.map((c) => (
             <div key={c.id} className="relative group">
-              <motion.button
+              <button
                 type="button"
-                onClick={() => navigate(`/projects/${pid}/cards/${c.id}`)}
-                layoutId={`thinking-card-${c.id}`}
-                transition={CARD_SPRING}
-                className={`${CARD_SURFACE} w-full text-left p-3 pr-12 hover:bg-[hsl(var(--surface-container))] transition-colors`}
+                onClick={() => setOpenCardId(c.id)}
+                aria-pressed={openCardId === c.id}
+                className={`${CARD_SURFACE} w-full text-left p-3 pr-12 transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}
               >
-              <div className="flex items-start gap-2">
-                <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
-                  {c.kind}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-                    <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
+                <div className="flex items-start gap-2">
+                  <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
+                    {c.kind}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                      <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
+                    </div>
+                    {c.status === 'closed' && (
+                      <span className="mt-1 inline-block text-xs text-muted-foreground">
+                        {c.kind === 'todo' ? 'Completed' : 'Resolved'}
+                      </span>
+                    )}
+                    {c.ai_enrichment?.summary && (
+                      <div className="mt-1.5 text-xs italic text-foreground/60 border-l-2 border-primary/40 pl-2">
+                        {c.ai_enrichment.summary}
+                      </div>
+                    )}
+                    {c.ai_enrichment?.connections && c.ai_enrichment.connections.length > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1 text-xs mono uppercase tracking-wider text-muted-foreground">
+                        <Link2 className="size-3" />
+                        {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
+                      </div>
+                    )}
                   </div>
-                  {c.status === 'closed' && (
-                    <span className="mt-1 inline-block text-xs text-muted-foreground">
-                      {c.kind === 'todo' ? 'Completed' : 'Resolved'}
-                    </span>
-                  )}
-                  {c.ai_enrichment?.summary && (
-                    <div className="mt-1.5 text-xs italic text-foreground/60 border-l-2 border-primary/40 pl-2">
-                      {c.ai_enrichment.summary}
-                    </div>
-                  )}
-                  {c.ai_enrichment?.connections && c.ai_enrichment.connections.length > 0 && (
-                    <div className="mt-1.5 flex items-center gap-1 text-xs mono uppercase tracking-wider text-muted-foreground">
-                      <Link2 className="size-3" />
-                      {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
-                    </div>
-                  )}
                 </div>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
-                <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
-                <ChevronRight className="size-3" />
-              </div>
-              </motion.button>
+                <div className="mt-2 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
+                  <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
+                  <ChevronRight className="size-3" />
+                </div>
+              </button>
               <button
                 type="button"
                 onClick={() => removeCard(c.id)}
-                className="absolute right-3 top-3 rounded p-2 text-muted-foreground hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground transition-colors hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                 aria-label="Delete card"
               >
                 <Trash2 className="size-4" />
@@ -468,11 +433,38 @@ export default function ThinkingProjectPage() {
           ))}
         </div>
       )}
-            </motion.div>
+
+        </main>
+
+        <AnimatePresence initial={false}>
+          {openCard && (
+            <motion.aside
+              key="card-sidebar"
+              initial={reduceMotion ? false : { opacity: 0, x: 56 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 40 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+              className="fixed inset-x-0 bottom-0 top-[calc(env(safe-area-inset-top,0px)+68px)] z-50 overflow-hidden bg-background px-3 pb-3 lg:sticky lg:inset-auto lg:top-16 lg:z-auto lg:h-[calc(100dvh-5rem)] lg:bg-transparent lg:px-0 lg:pb-0"
+            >
+              <div className="h-full overflow-hidden rounded-[28px] bg-[hsl(var(--surface-container-low))] shadow-[var(--m3-elev-2)]">
+                <CardDetail
+                  key={openCard.id}
+                  card={openCard}
+                  siblings={cards}
+                  onClose={() => setOpenCardId(null)}
+                  onJump={setOpenCardId}
+                  onReEnrich={() => reEnrich(openCard.id)}
+                  onDelete={() => removeCard(openCard.id)}
+                  onSaveEnrichment={(next) => saveEnrichment(openCard.id, next)}
+                  onChangeKind={(k) => updateCardKind(openCard.id, k)}
+                  onActivity={load}
+                />
+              </div>
+            </motion.aside>
           )}
         </AnimatePresence>
-      </PageShell>
-    </LayoutGroup>
+      </div>
+    </PageShell>
   );
 }
 
@@ -505,10 +497,11 @@ function Section({
 }
 
 function CardDetail({
-  card, siblings, onJump, onReEnrich, onDelete, onSaveEnrichment, onChangeKind, onActivity,
+  card, siblings, onClose, onJump, onReEnrich, onDelete, onSaveEnrichment, onChangeKind, onActivity,
 }: {
   card: ThinkingCard;
   siblings: ThinkingCard[];
+  onClose: () => void;
   onJump: (id: number) => void;
   onReEnrich: () => void;
   onDelete: () => void;
@@ -516,13 +509,14 @@ function CardDetail({
   onChangeKind: (k: ThinkingKind) => void;
   onActivity: () => void;
 }) {
-  const reduceMotion = useReducedMotion();
   const qc = useQueryClient();
   const { data: events = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: qk.thinking.events(card.id),
     queryFn: () => thinking.cardEvents(card.id),
   });
   const [comment, setComment] = useState('');
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [editingEventBody, setEditingEventBody] = useState('');
   const [closingComment, setClosingComment] = useState('');
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -540,6 +534,34 @@ function CardDetail({
     } catch { toast.error('Could not post comment'); }
     finally { setBusy(false); }
   };
+  const startCommentEdit = (id: number, body: string) => {
+    setEditingEventId(id);
+    setEditingEventBody(body);
+  };
+  const cancelCommentEdit = () => {
+    setEditingEventId(null);
+    setEditingEventBody('');
+  };
+  const saveCommentEdit = async () => {
+    if (editingEventId === null || !editingEventBody.trim()) return;
+    setBusy(true);
+    try {
+      await thinking.updateCardComment(card.id, editingEventId, editingEventBody.trim());
+      cancelCommentEdit();
+      await refreshActivity();
+    } catch { toast.error('Could not update comment'); }
+    finally { setBusy(false); }
+  };
+  const deleteComment = async (eventID: number) => {
+    if (!(await confirmDialog('Delete this comment?'))) return;
+    setBusy(true);
+    try {
+      await thinking.deleteCardComment(card.id, eventID);
+      if (editingEventId === eventID) cancelCommentEdit();
+      await refreshActivity();
+    } catch { toast.error('Could not delete comment'); }
+    finally { setBusy(false); }
+  };
   const changeState = async (closed: boolean) => {
     if (closed && card.kind === 'contradiction' && !closingComment.trim()) return;
     setBusy(true);
@@ -552,7 +574,8 @@ function CardDetail({
     finally { setBusy(false); }
   };
   const e: ThinkingEnrichment = card.ai_enrichment || {};
-  const hasDetails =
+  const hasAny =
+    !!e.summary ||
     (e.implications?.length ?? 0) > 0 ||
     (e.questions_raised?.length ?? 0) > 0 ||
     (e.connections?.length ?? 0) > 0;
@@ -576,78 +599,56 @@ function CardDetail({
     setEditing(false);
   };
 
-  const isActionable = card.kind === 'todo' || card.kind === 'contradiction';
-  const reveal = reduceMotion
-    ? { initial: false as const }
-    : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 8 } };
-
   return (
-    <motion.div
-      initial={false}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-      className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] xl:gap-12"
-    >
-      <motion.article
-        layoutId={`thinking-card-${card.id}`}
-        transition={CARD_SPRING}
-        className="order-1 min-w-0 overflow-hidden rounded-[28px] bg-[hsl(var(--surface-container-low))] shadow-[var(--m3-elev-2)] lg:col-start-1 lg:row-start-1"
-      >
-          <div className="p-5 md:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
-                  <SelectTrigger className="h-8 w-auto rounded-full text-xs uppercase tracking-wider">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {KINDS.map((k) => (
-                      <SelectItem key={k} value={k}>{k}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
-                </span>
-                {card.status === 'closed' && (
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${KIND_TONE[card.kind]}`}>
-                    {card.kind === 'todo' ? 'Completed' : 'Resolved'}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" onClick={onReEnrich}>
-                  <RefreshCw className="size-3.5" /> Re-enrich
-                </Button>
-                <Button size="icon-sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]" aria-label="Delete card">
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="prose prose-lg dark:prose-invert mt-7 max-w-none break-words leading-relaxed prose-p:my-3">
-              <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
-            </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="space-y-2 border-b border-[hsl(var(--outline-variant))] px-5 pb-4 pt-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
+              <SelectTrigger className="h-8 w-auto rounded-full text-xs uppercase tracking-wider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {KINDS.map((k) => (
+                  <SelectItem key={k} value={k}>{k}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
+            </span>
+            {card.status === 'closed' && (
+              <span className="text-xs text-muted-foreground">{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
+            )}
           </div>
+          <Button variant="ghost" size="icon-sm" className="size-11 lg:size-9" onClick={onClose} aria-label="Close card detail">
+            <X className="size-4" />
+          </Button>
+        </div>
+        <h2 className="line-clamp-2 text-base font-semibold leading-tight">
+          {card.content.split('\n')[0].slice(0, 80) || 'Card detail'}
+        </h2>
+      </header>
 
-          {!editing && e.summary && (
-            <div className="bg-[hsl(var(--surface-container))] px-5 py-5 md:px-8 md:py-6">
-              <SectionLabel>Summary</SectionLabel>
-              <p className="mt-2 text-base leading-relaxed text-foreground/90">{e.summary}</p>
-            </div>
-          )}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <Section title="Content">
+          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+            <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
+          </div>
+        </Section>
 
-          {isActionable && (
-            <div className="border-t border-[hsl(var(--outline-variant))] px-5 py-4 md:px-8">
+        <Separator />
+
+        {(card.kind === 'todo' || card.kind === 'contradiction') && (
+          <>
+            <Section title="Status">
               {card.status === 'closed' ? (
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">{card.kind === 'todo' ? 'Todo completed' : 'Contradiction resolved'}</span>
-                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
+                  <span>{card.kind === 'todo' ? 'Completed' : 'Resolved'}</span>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
                 </div>
               ) : showCloseForm ? (
-                <div className="space-y-3">
-                  <SectionLabel>{card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}</SectionLabel>
+                <div className="space-y-2">
                   <Textarea
                     value={closingComment}
                     onChange={(ev) => setClosingComment(ev.target.value)}
@@ -664,179 +665,184 @@ function CardDetail({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-muted-foreground">{card.kind === 'todo' ? 'This todo is still open.' : 'This contradiction is unresolved.'}</span>
-                  <Button size="sm" variant="tonal" onClick={() => setShowCloseForm(true)}>
-                    {card.kind === 'todo' ? 'Complete' : 'Resolve'}
-                  </Button>
-                </div>
+                <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>
+                  {card.kind === 'todo' ? 'Complete todo' : 'Resolve contradiction'}
+                </Button>
               )}
-            </div>
-          )}
-      </motion.article>
+            </Section>
+            <Separator />
+          </>
+        )}
 
-      <motion.section
-        {...reveal}
-        transition={{ duration: 0.32, delay: reduceMotion ? 0 : 0.1, ease: [0.2, 0, 0, 1] }}
-        className="order-3 px-1 pb-6 md:px-5 lg:col-start-1 lg:row-start-2"
-      >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <SectionLabel>Enrichment</SectionLabel>
-              <h2 className="mt-1 text-xl font-semibold tracking-tight">What this thought adds</h2>
+        <Section title="Thread">
+          <div className="space-y-3">
+            {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
+              <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
+            ) : events.length === 0 ? (
+              <p className="text-muted-foreground">No comments yet.</p>
+            ) : events.map((event) => (
+              <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
+                    </span>
+                    <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
+                  </div>
+                  {event.kind === 'comment' && editingEventId !== event.id && (
+                    <div className="flex shrink-0 items-center">
+                      <Button variant="ghost" size="icon-xs" className="size-11 lg:size-7" disabled={busy} onClick={() => startCommentEdit(event.id, event.body)} aria-label="Edit comment">
+                        <Edit3 className="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-xs" disabled={busy} onClick={() => deleteComment(event.id)} className="size-11 text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] lg:size-7" aria-label="Delete comment">
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {editingEventId === event.id ? (
+                  <div className="mt-2 space-y-2">
+                    <Textarea
+                      value={editingEventBody}
+                      onChange={(ev) => setEditingEventBody(ev.target.value)}
+                      maxLength={4000}
+                      rows={3}
+                      aria-label="Edit comment"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="ghost" disabled={busy} onClick={cancelCommentEdit}>Cancel</Button>
+                      <Button size="sm" disabled={busy || !editingEventBody.trim()} onClick={saveCommentEdit}>Save</Button>
+                    </div>
+                  </div>
+                ) : event.body && (
+                  <div className="prose prose-sm dark:prose-invert max-w-none break-words mt-1">
+                    <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
+                  </div>
+                )}
+              </div>
+            ))}
+            <Textarea
+              value={comment}
+              onChange={(ev) => setComment(ev.target.value)}
+              maxLength={4000}
+              rows={2}
+              placeholder="Add context or an update…"
+              aria-label="Add a comment"
+            />
+            <div className="flex justify-end">
+              <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
             </div>
+          </div>
+        </Section>
+
+        <Separator />
+
+        {/* Enrichment block — read mode OR edit mode */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <SectionLabel>Enrichment</SectionLabel>
             <div className="flex items-center gap-2">
               {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {Math.round(e.confidence * 100)}% confidence
+                <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
+                  confidence {Math.round((e.confidence ?? 0) * 100)}%
                 </span>
               )}
               {!editing ? (
                 <Button size="sm" variant="ghost" onClick={startEdit}>
-                  <Edit3 className="size-3.5" /> Edit
+                  <Edit3 className="size-3.5 mr-1" /> Edit
                 </Button>
               ) : (
                 <>
                   <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
                   <Button size="sm" onClick={saveEdit}>
-                    <Save className="size-3.5" /> Save
+                    <Save className="size-3.5 mr-1" /> Save
                   </Button>
                 </>
               )}
             </div>
           </div>
 
-          <div className="mt-7">
-            {!editing ? (
-              <div className="space-y-7">
-                {!hasDetails && (
-                  <p className="text-sm text-muted-foreground italic">
-                    {e.summary ? 'No further insights yet.' : "Sajni hasn't enriched this card yet. Use Re-enrich above."}
-                  </p>
-                )}
-                {e.implications && e.implications.length > 0 && (
-                  <Section title="Implications">
-                    <ul className="space-y-2">
-                      {e.implications.map((s, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <span className="mt-0.5 text-primary">→</span><span>{s}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </Section>
-                )}
-                {e.implications && e.implications.length > 0 && e.questions_raised && e.questions_raised.length > 0 && <Separator />}
-                {e.questions_raised && e.questions_raised.length > 0 && (
-                  <Section title="Questions raised">
-                    <ul className="space-y-2">
-                      {e.questions_raised.map((s, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <span className="mt-0.5 text-primary">?</span><span>{s}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </Section>
-                )}
-                {((e.implications?.length ?? 0) > 0 || (e.questions_raised?.length ?? 0) > 0) && (e.connections?.length ?? 0) > 0 && <Separator />}
-                {e.connections && e.connections.length > 0 && (
-                  <Section title="Connections">
-                    <ul className="space-y-2">
-                      {e.connections.map((c, i) => {
-                        const target = siblings.find((x) => x.id === c.card_id);
-                        const preview = target
-                          ? (target.content.split('\n')[0].slice(0, 64) || `card #${c.card_id}`)
-                          : '(deleted card)';
-                        return (
-                          <li key={i}>
-                            <button
-                              type="button"
-                              disabled={!target}
-                              onClick={() => target && onJump(c.card_id)}
-                              className="flex w-full items-center gap-2 rounded-xl bg-[hsl(var(--surface-container-low))] px-3 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-container))] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <span className="shrink-0 text-xs uppercase tracking-wider text-muted-foreground">
-                                {c.relation.replace('_', ' ')}
+          {!editing ? (
+            <>
+              {!hasAny && (
+                <p className="text-sm text-muted-foreground italic">
+                  Sajni hasn't enriched this card yet. Hit <em>Re-enrich</em> below.
+                </p>
+              )}
+              {e.summary && (
+                <Section title="Summary"><p>{e.summary}</p></Section>
+              )}
+              {e.implications && e.implications.length > 0 && (
+                <Section title="Implications">
+                  <ul className="space-y-1.5">
+                    {e.implications.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-primary mt-0.5 shrink-0">→</span><span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+              {e.questions_raised && e.questions_raised.length > 0 && (
+                <Section title="Questions raised">
+                  <ul className="space-y-1.5">
+                    {e.questions_raised.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-primary mt-0.5 shrink-0">?</span><span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+              {e.connections && e.connections.length > 0 && (
+                <Section title="Connections">
+                  <ul className="space-y-1.5">
+                    {e.connections.map((c, i) => {
+                      const target = siblings.find((x) => x.id === c.card_id);
+                      const preview = target
+                        ? (target.content.split('\n')[0].slice(0, 50) || `card #${c.card_id}`)
+                        : `(deleted card)`;
+                      return (
+                        <li key={i}>
+                          <button
+                            disabled={!target}
+                            onClick={() => target && onJump(c.card_id)}
+                            className="w-full text-left rounded-lg border border-border bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <span className="mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
+                              {c.relation.replace('_', ' ')}
+                            </span>
+                            {target && (
+                              <span className={`shrink-0 text-xs mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
+                                {target.kind}
                               </span>
-                              {target && (
-                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs uppercase tracking-wider ${KIND_TONE[target.kind]}`}>
-                                  {target.kind}
-                                </span>
-                              )}
-                              <span className="truncate text-sm">{preview}</span>
-                              <ChevronRight className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </Section>
-                )}
-              </div>
-            ) : (
-              <EnrichmentEditor draft={draft} setDraft={setDraft} siblings={siblings.filter((x) => x.id !== card.id)} />
-            )}
-          </div>
-      </motion.section>
-
-      <motion.aside
-        {...reveal}
-        transition={{ duration: 0.32, delay: reduceMotion ? 0 : 0.14, ease: [0.2, 0, 0, 1] }}
-        className="order-2 min-w-0 rounded-[28px] bg-[hsl(var(--surface-container-low))] p-5 shadow-[var(--m3-elev-1)] md:p-6 lg:sticky lg:top-5 lg:col-start-2 lg:row-start-1 lg:row-span-2"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <SectionLabel>Thread</SectionLabel>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight">Context over time</h2>
-          </div>
-          {!eventsLoading && !eventsError && events.length > 0 && (
-            <span className="rounded-full bg-[hsl(var(--surface-container-high))] px-2.5 py-1 text-xs text-muted-foreground">
-              {events.length}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-5">
-          {eventsLoading ? <p className="text-sm text-muted-foreground">Loading thread…</p> : eventsError ? (
-            <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
-          ) : events.length === 0 ? (
-            <p className="py-3 text-sm text-muted-foreground">No context has been added yet.</p>
+                            )}
+                            <span className="text-sm truncate">{preview}</span>
+                            <ChevronRight className="size-3.5 text-muted-foreground ml-auto shrink-0" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </Section>
+              )}
+            </>
           ) : (
-            <div className="divide-y divide-[hsl(var(--outline-variant))]">
-              {events.map((event) => (
-                <div key={event.id} className="py-4 first:pt-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
-                    </span>
-                    <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
-                  </div>
-                  {event.body && (
-                    <div className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words">
-                      <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <EnrichmentEditor draft={draft} setDraft={setDraft} siblings={siblings.filter((x) => x.id !== card.id)} />
           )}
         </div>
+      </div>
 
-        <Separator className="my-5" />
-        <div className="space-y-3">
-          <Textarea
-            value={comment}
-            onChange={(ev) => setComment(ev.target.value)}
-            maxLength={4000}
-            rows={3}
-            placeholder="Add context or an update…"
-            aria-label="Add a comment"
-          />
-          <div className="flex justify-end">
-            <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
-          </div>
-        </div>
-      </motion.aside>
-    </motion.div>
+      <div className="border-t border-border px-5 py-3 flex items-center gap-2">
+        <Button size="sm" variant="ghost" onClick={onReEnrich}>
+          <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
+        </Button>
+        <div className="flex-1" />
+        <Button size="sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]">
+          <Trash2 className="size-3.5 mr-1.5" /> Delete
+        </Button>
+      </div>
+    </div>
   );
 }
 

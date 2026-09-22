@@ -135,6 +135,10 @@ export const thinking = {
     request<ThinkingCardEvent[]>('/thinking/cards/' + id + '/events'),
   commentOnCard: (id: number, comment: string) =>
     request('/thinking/cards/' + id + '/events', { method: 'POST', body: JSON.stringify({ comment }) }),
+  updateCardComment: (cardId: number, eventId: number, comment: string) =>
+    request('/thinking/cards/' + cardId + '/events/' + eventId, { method: 'PUT', body: JSON.stringify({ comment }) }),
+  deleteCardComment: (cardId: number, eventId: number) =>
+    request('/thinking/cards/' + cardId + '/events/' + eventId, { method: 'DELETE' }),
   setCardState: (id: number, closed: boolean, comment = '') =>
     request('/thinking/cards/' + id + '/state', { method: 'PUT', body: JSON.stringify({ closed, comment }) }),
   classify: (content: string) =>
