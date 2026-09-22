@@ -99,6 +99,7 @@ export interface ThinkingCard {
   updated_at: string;
   status: 'open' | 'closed';
   closed_at: string;
+  thread_count: number;
 }
 
 export interface ThinkingCardEvent {

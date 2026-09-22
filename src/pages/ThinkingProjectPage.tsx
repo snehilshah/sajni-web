@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Markdown from 'react-markdown';
@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import {
   ArrowLeft, Plus, Sparkles, Trash2, RefreshCw, ChevronRight, ChevronDown, X,
-  Check,
+  Check, MessageSquare,
   Edit3, Save, Link2,
 } from '@/components/ui/icons';
 
@@ -91,6 +91,7 @@ export default function ThinkingProjectPage() {
   const [activeKinds, setActiveKinds] = useState<Set<ThinkingKind>>(new Set());
   const [adding, setAdding] = useState(false);
   const [openCardId, setOpenCardId] = useState<number | null>(null);
+  const [threadJumpToken, setThreadJumpToken] = useState(0);
   const [changingCardId, setChangingCardId] = useState<number | null>(null);
   const [synthesisOpen, setSynthesisOpen] = useState(true);
   const [synthesizing, setSynthesizing] = useState(false);
@@ -206,6 +207,7 @@ export default function ThinkingProjectPage() {
   const toggleTodo = async (card: ThinkingCard) => {
     const queryKey = qk.thinking.project(pid);
     const nextClosed = card.status !== 'closed';
+    const changedAt = new Date().toISOString();
     setChangingCardId(card.id);
     await qc.cancelQueries({ queryKey });
     const previous = qc.getQueryData<Awaited<ReturnType<typeof thinking.getProject>>>(queryKey);
@@ -214,7 +216,9 @@ export default function ThinkingProjectPage() {
       cards: current.cards.map((item) => item.id === card.id ? {
         ...item,
         status: nextClosed ? 'closed' : 'open',
-        closed_at: nextClosed ? new Date().toISOString() : '',
+        closed_at: nextClosed ? changedAt : '',
+        updated_at: changedAt,
+        thread_count: (item.thread_count ?? 0) + 1,
       } : item),
     }));
     try {
@@ -442,79 +446,82 @@ export default function ThinkingProjectPage() {
         <div className="text-sm text-muted-foreground italic">No cards yet — drop a thought above.</div>
       ) : (
         <div className="flex flex-col gap-2">
-          {visibleCards.map((c) => (
-            <div key={c.id} className="relative group">
-              <button
-                type="button"
-                onClick={() => setOpenCardId(c.id)}
-                aria-pressed={openCardId === c.id}
-                className={`${CARD_SURFACE} w-full p-3 text-left transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${c.kind === 'todo' ? 'pr-[124px]' : c.kind === 'question' ? 'pr-[140px]' : 'pr-12'} ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}
-              >
-                <div className="flex items-start gap-2">
-                  <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
-                    {c.kind}
-                  </span>
-                  <div className={`grid min-w-0 flex-1 gap-1.5 ${c.ai_enrichment?.summary ? 'xl:grid-cols-[minmax(0,0.85fr)_minmax(16rem,1.15fr)] xl:gap-5' : ''}`}>
-                    <div className="min-w-0">
-                      <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-                        <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
-                      </div>
-                      {c.status === 'closed' && c.kind === 'contradiction' && (
-                        <span className="mt-1 inline-block text-xs text-muted-foreground">
-                          Resolved
-                        </span>
-                      )}
-                    </div>
-                    {c.ai_enrichment?.summary && (
-                      <div className="min-w-0 border-l-2 border-primary/40 pl-2 text-xs italic text-foreground/60 xl:pl-3">
-                        <span className="line-clamp-3">{c.ai_enrichment.summary}</span>
-                        {c.ai_enrichment.connections && c.ai_enrichment.connections.length > 0 && (
-                          <div className="mt-1.5 flex items-center gap-1 not-italic text-xs mono uppercase tracking-wider text-muted-foreground">
-                            <Link2 className="size-3" />
-                            {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
+          {visibleCards.map((c) => {
+            const connectionCount = c.ai_enrichment?.connections?.length ?? 0;
+            const stateLabel = c.kind === 'question'
+              ? c.status === 'closed' ? 'Answered' : 'Open'
+              : c.kind === 'contradiction'
+                ? c.status === 'closed' ? 'Resolved' : 'Open'
+                : null;
+            return (
+              <div key={c.id} className={`${CARD_SURFACE} @container group overflow-hidden transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}>
+                <div className="grid @min-[40rem]:grid-cols-[minmax(0,1fr)_12rem]">
+                  <button
+                    type="button"
+                    onClick={() => { setThreadJumpToken(0); setOpenCardId(c.id); }}
+                    aria-pressed={openCardId === c.id}
+                    className="flex min-w-0 items-start p-3 text-left outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]"
+                  >
+                    <div className="grid w-full grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
+                      <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs mono uppercase tracking-wider ${KIND_TONE[c.kind]}`}>
+                        {c.kind}
+                      </span>
+                      <div className={`grid min-w-0 gap-2 ${c.ai_enrichment?.summary ? '@min-[50rem]:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @min-[50rem]:gap-5' : ''}`}>
+                        <div className="prose prose-sm dark:prose-invert min-w-0 max-w-none break-words">
+                          <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
+                        </div>
+                        {c.ai_enrichment?.summary && (
+                          <div className="min-w-0 border-t-2 border-primary/40 pt-2 text-xs italic text-foreground/60 @min-[50rem]:border-l-2 @min-[50rem]:border-t-0 @min-[50rem]:pl-3 @min-[50rem]:pt-0">
+                            <span className="line-clamp-3">{c.ai_enrichment.summary}</span>
                           </div>
                         )}
                       </div>
-                    )}
-                    {!c.ai_enrichment?.summary && c.ai_enrichment?.connections && c.ai_enrichment.connections.length > 0 && (
-                      <div className="mt-1.5 flex items-center gap-1 text-xs mono uppercase tracking-wider text-muted-foreground">
-                        <Link2 className="size-3" />
-                        {c.ai_enrichment.connections.length} connection{c.ai_enrichment.connections.length === 1 ? '' : 's'}
-                      </div>
-                    )}
+                    </div>
+                  </button>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-3 py-2 @min-[40rem]:flex-col @min-[40rem]:items-stretch @min-[40rem]:justify-center @min-[40rem]:gap-1 @min-[40rem]:border-l @min-[40rem]:border-t-0">
+                    <div className="flex items-center gap-2">
+                      {c.kind === 'todo' && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <TodoToggle
+                            complete={c.status === 'closed'}
+                            disabled={changingCardId !== null}
+                            reduceMotion={Boolean(reduceMotion)}
+                            onToggle={() => void toggleTodo(c)}
+                          />
+                          <span className="text-xs text-muted-foreground">{c.status === 'closed' ? 'Done' : 'Open'}</span>
+                        </span>
+                      )}
+                      {stateLabel && (
+                        <span className={`inline-flex h-8 items-center rounded-full px-2 text-xs font-medium ${c.status === 'closed' ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground'}`}>
+                          {stateLabel}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setOpenCardId(c.id); setThreadJumpToken((token) => token + 1); }}
+                        className="inline-flex min-h-11 items-center gap-1 rounded-lg text-xs font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                        aria-label={`Open thread for ${c.kind} card, ${c.thread_count ?? 0} entries`}
+                      >
+                        <MessageSquare className="size-3.5 shrink-0" />
+                        <span>Thread {c.thread_count ?? 0}</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                      {connectionCount > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <Link2 className="size-3.5 shrink-0" />
+                          {connectionCount} link{connectionCount === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      <span>
+                        Updated {formatDistanceToNow(new Date(c.updated_at), { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
-                  <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
-                  <ChevronRight className="size-3" />
-                </div>
-              </button>
-              {c.kind === 'todo' && (
-                <TodoToggle
-                  complete={c.status === 'closed'}
-                  disabled={changingCardId !== null}
-                  reduceMotion={Boolean(reduceMotion)}
-                  overlay
-                  onToggle={() => void toggleTodo(c)}
-                />
-              )}
-              {c.kind === 'question' && (
-                <span
-                  className={`pointer-events-none absolute right-3 top-3 z-10 inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${c.status === 'closed' ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground'}`}
-                >
-                  {c.status === 'closed' ? 'Answered' : 'Open'}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => removeCard(c.id)}
-                className={`absolute top-3 rounded-full p-2 text-muted-foreground transition-colors hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 ${c.kind === 'todo' ? 'right-[68px]' : c.kind === 'question' ? 'right-[92px]' : 'right-3'}`}
-                aria-label="Delete card"
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -534,9 +541,10 @@ export default function ThinkingProjectPage() {
                 <CardDetail
                   key={openCard.id}
                   card={openCard}
+                  threadJumpToken={threadJumpToken}
                   siblings={cards}
-                  onClose={() => setOpenCardId(null)}
-                  onJump={setOpenCardId}
+                  onClose={() => { setThreadJumpToken(0); setOpenCardId(null); }}
+                  onJump={(id) => { setThreadJumpToken(0); setOpenCardId(id); }}
                   onToggleTodo={() => void toggleTodo(openCard)}
                   todoBusy={changingCardId !== null}
                   onReEnrich={() => reEnrich(openCard.id)}
@@ -565,12 +573,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function TodoToggle({
-  complete, disabled, reduceMotion, overlay = false, onToggle,
+  complete, disabled, reduceMotion, onToggle,
 }: {
   complete: boolean;
   disabled: boolean;
   reduceMotion: boolean;
-  overlay?: boolean;
   onToggle: () => void;
 }) {
   const label = complete ? 'Completed — reopen todo' : 'Open — complete todo';
@@ -582,7 +589,7 @@ function TodoToggle({
       aria-pressed={complete}
       aria-label={label}
       title={label}
-      className={`${overlay ? 'absolute right-3 top-3 z-10' : 'relative'} grid size-11 place-items-center overflow-hidden rounded-[18px] bg-[hsl(var(--surface-container-highest))] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60`}
+      className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-[18px] bg-[hsl(var(--surface-container-highest))] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60"
       style={{ boxShadow: complete ? 'none' : 'inset 0 0 0 2px hsl(var(--primary))' }}
     >
       <AnimatePresence initial={false}>
@@ -616,14 +623,15 @@ function TodoToggle({
 }
 
 function Section({
-  title, action, children,
+  title, action, children, sectionRef,
 }: {
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
+  sectionRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div ref={sectionRef} className="space-y-1.5">
       <div className="flex items-center justify-between">
         <SectionLabel>{title}</SectionLabel>
         {action}
@@ -634,9 +642,10 @@ function Section({
 }
 
 function CardDetail({
-  card, siblings, onClose, onJump, onToggleTodo, todoBusy, onReEnrich, onDelete, onSaveEnrichment, onChangeKind, onActivity,
+  card, threadJumpToken, siblings, onClose, onJump, onToggleTodo, todoBusy, onReEnrich, onDelete, onSaveEnrichment, onChangeKind, onActivity,
 }: {
   card: ThinkingCard;
+  threadJumpToken: number;
   siblings: ThinkingCard[];
   onClose: () => void;
   onJump: (id: number) => void;
@@ -650,6 +659,13 @@ function CardDetail({
 }) {
   const reduceMotion = useReducedMotion();
   const qc = useQueryClient();
+  const detailScrollRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!threadJumpToken || !detailScrollRef.current || !threadRef.current) return;
+    const scroll = detailScrollRef.current;
+    scroll.scrollTop += threadRef.current.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12;
+  }, [threadJumpToken]);
   const { data: events = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: qk.thinking.events(card.id),
     queryFn: () => thinking.cardEvents(card.id),
@@ -791,7 +807,7 @@ function CardDetail({
         </h2>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div ref={detailScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         <Section title="Content">
           <div className="prose prose-sm dark:prose-invert max-w-none break-words">
             <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
@@ -836,7 +852,7 @@ function CardDetail({
           </>
         )}
 
-        <Section title="Thread">
+        <Section title="Thread" sectionRef={threadRef}>
           <div className="space-y-3">
             {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
               <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
