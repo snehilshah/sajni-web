@@ -447,7 +447,7 @@ export default function ThinkingProjectPage() {
                 type="button"
                 onClick={() => setOpenCardId(c.id)}
                 aria-pressed={openCardId === c.id}
-                className={`${CARD_SURFACE} w-full text-left p-3 pr-12 transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${c.kind === 'todo' ? 'pl-[68px]' : ''} ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}
+                className={`${CARD_SURFACE} w-full p-3 text-left transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${c.kind === 'todo' ? 'pr-[124px]' : c.kind === 'question' ? 'pr-[140px]' : 'pr-12'} ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}
               >
                 <div className="flex items-start gap-2">
                   <span className={`shrink-0 inline-flex items-center justify-center w-24 text-xs mono uppercase tracking-wider px-2 py-0.5 rounded-full ${KIND_TONE[c.kind]}`}>
@@ -497,10 +497,17 @@ export default function ThinkingProjectPage() {
                   onToggle={() => void toggleTodo(c)}
                 />
               )}
+              {c.kind === 'question' && (
+                <span
+                  className={`pointer-events-none absolute right-3 top-3 z-10 inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${c.status === 'closed' ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground'}`}
+                >
+                  {c.status === 'closed' ? 'Answered' : 'Open'}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => removeCard(c.id)}
-                className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground transition-colors hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                className={`absolute top-3 rounded-full p-2 text-muted-foreground transition-colors hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 ${c.kind === 'todo' ? 'right-[68px]' : c.kind === 'question' ? 'right-[92px]' : 'right-3'}`}
                 aria-label="Delete card"
               >
                 <Trash2 className="size-4" />
@@ -574,7 +581,7 @@ function TodoToggle({
       aria-pressed={complete}
       aria-label={label}
       title={label}
-      className={`${overlay ? 'absolute left-3 top-3 z-10' : 'relative'} grid size-11 place-items-center overflow-hidden rounded-[18px] bg-[hsl(var(--surface-container-highest))] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60`}
+      className={`${overlay ? 'absolute right-3 top-3 z-10' : 'relative'} grid size-11 place-items-center overflow-hidden rounded-[18px] bg-[hsl(var(--surface-container-highest))] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60`}
       style={{ boxShadow: complete ? 'none' : 'inset 0 0 0 2px hsl(var(--primary))' }}
     >
       <AnimatePresence initial={false}>
@@ -702,14 +709,18 @@ function CardDetail({
     finally { setBusy(false); }
   };
   const changeState = async (closed: boolean) => {
-    if (closed && card.kind === 'contradiction' && !closingComment.trim()) return;
+    if (closed && (card.kind === 'question' || card.kind === 'contradiction') && !closingComment.trim()) return;
     setBusy(true);
     try {
       await thinking.setCardState(card.id, closed, closed ? closingComment.trim() : '');
       setClosingComment('');
       setShowCloseForm(false);
       await refreshActivity();
-    } catch { toast.error(closed ? 'Could not close card' : 'Could not reopen card'); }
+    } catch {
+      toast.error(closed
+        ? card.kind === 'question' ? 'Could not mark question answered' : 'Could not resolve contradiction'
+        : 'Could not reopen card');
+    }
     finally { setBusy(false); }
   };
   const e: ThinkingEnrichment = card.ai_enrichment || {};
@@ -756,8 +767,8 @@ function CardDetail({
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
             </span>
-            {card.status === 'closed' && card.kind === 'contradiction' && (
-              <span className="text-xs text-muted-foreground">Resolved</span>
+            {card.status === 'closed' && (card.kind === 'question' || card.kind === 'contradiction') && (
+              <span className="text-xs text-muted-foreground">{card.kind === 'question' ? 'Answered' : 'Resolved'}</span>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -788,12 +799,12 @@ function CardDetail({
 
         <Separator />
 
-        {card.kind === 'contradiction' && (
+        {(card.kind === 'question' || card.kind === 'contradiction') && (
           <>
             <Section title="Status">
               {card.status === 'closed' ? (
                 <div className="flex items-center justify-between gap-3">
-                  <span>Resolved</span>
+                  <span>{card.kind === 'question' ? 'Answered' : 'Resolved'}</span>
                   <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
                 </div>
               ) : showCloseForm ? (
@@ -803,18 +814,20 @@ function CardDetail({
                     onChange={(ev) => setClosingComment(ev.target.value)}
                     maxLength={4000}
                     rows={3}
-                    placeholder="How was this resolved?"
-                    aria-label="How was this resolved?"
+                    placeholder={card.kind === 'question' ? 'What answered this question?' : 'How was this resolved?'}
+                    aria-label={card.kind === 'question' ? 'Answer comment' : 'Resolution comment'}
                   />
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
                     <Button size="sm" disabled={busy || !closingComment.trim()} onClick={() => changeState(true)}>
-                      Resolve
+                      {card.kind === 'question' ? 'Mark answered' : 'Resolve'}
                     </Button>
                   </div>
                 </div>
               ) : (
-                <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>Resolve contradiction</Button>
+                <Button size="sm" variant="outline" onClick={() => setShowCloseForm(true)}>
+                  {card.kind === 'question' ? 'Answer question' : 'Resolve contradiction'}
+                </Button>
               )}
             </Section>
             <Separator />
@@ -832,7 +845,7 @@ function CardDetail({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : 'Resolved'}
+                      {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : card.kind === 'question' ? 'Answered' : 'Resolved'}
                     </span>
                     <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
                   </div>

@@ -67,10 +67,11 @@ export default function ProjectsDoc() {
           <Feature name="Completing and resolving">
             <p>
               Check a todo directly on its card to complete or reopen it, then
-              add optional context to its thread. Resolving a contradiction
-              requires a comment explaining how it was resolved. Earlier
-              explanations stay in the thread, and ordinary comments can be
-              edited or deleted.
+              add optional context to its thread. Questions can be marked
+              answered with the answer retained as a required comment.
+              Resolving a contradiction also requires an explanation. Earlier
+              answers and explanations stay in the thread, and ordinary
+              comments can be edited or deleted.
             </p>
           </Feature>
         </FeatureList>
