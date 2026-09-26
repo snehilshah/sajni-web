@@ -22,8 +22,6 @@ export interface User {
   name: string;
   /** Incremented whenever the user asks for a different stable avatar. */
   avatar_revision: number;
-  /** RFC3339; null until the first-time walkthrough is finished. */
-  onboarded_at: string | null;
   /** IANA tz captured from the browser; reminder emails render in it. */
   timezone?: string;
   /** Linked sign-in methods. */
@@ -41,10 +39,8 @@ interface AuthState {
   verifyEmailCode: (email: string, code: string) => Promise<void>;
   /** Browser navigation to the provider consent screen. */
   beginOAuth: (provider: "google" | "github") => void;
-  /** Re-fetches /auth/me; useful after onboarding finishes. */
+  /** Re-fetches the current profile from /auth/me. */
   refreshUser: () => Promise<void>;
-  /** Mark walkthrough complete on the server and locally. */
-  markOnboarded: () => Promise<void>;
   /** Update the user's display name. */
   updateName: (name: string) => Promise<void>;
   /** Generate a different stable avatar and refresh the local user. */
@@ -218,14 +214,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     log.info({ userId: me.id }, "oauth handoff");
   }, [setUserSafe]);
 
-  const markOnboarded = useCallback(async () => {
-    const res = await authFetch("/auth/onboarded", { method: "POST" });
-    if (!res.ok) throw new Error("could not save onboarding");
-    setUser((prev) =>
-      prev ? { ...prev, onboarded_at: new Date().toISOString() } : prev,
-    );
-  }, []);
-
   const updateName = useCallback(async (name: string) => {
     const res = await authFetch("/auth/profile", {
       method: "POST",
@@ -280,7 +268,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmailCode,
       beginOAuth,
       refreshUser,
-      markOnboarded,
       updateName,
       rerollAvatar,
       hydrateFromAccessToken,
@@ -293,7 +280,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmailCode,
       beginOAuth,
       refreshUser,
-      markOnboarded,
       updateName,
       rerollAvatar,
       hydrateFromAccessToken,

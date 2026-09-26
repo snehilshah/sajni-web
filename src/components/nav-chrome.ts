@@ -2,19 +2,18 @@ import { createContext, useContext } from 'react';
 
 import type { PixelIconName } from '@/components/ui/pixel-icon';
 
-// The primary destinations. `key` matches
-// /public/onboarding.json anchors.
-export const NAV_ITEMS: { path: string; label: string; icon: PixelIconName; key: string }[] = [
-  { path: '/', label: 'Today', icon: 'home', key: 'today' },
-  { path: '/notes', label: 'Notes', icon: 'pen-nib', key: 'notes' },
-  { path: '/memos', label: 'Memos', icon: 'notebook', key: 'memos' },
-  { path: '/journal', label: 'Journal', icon: 'book', key: 'journal' },
-  { path: '/tasks', label: 'Tasks', icon: 'check-list', key: 'tasks' },
-  { path: '/habits', label: 'Habits', icon: 'fire', key: 'habits' },
-  { path: '/projects', label: 'Projects', icon: 'sparkles', key: 'thinking' },
-  { path: '/media', label: 'Media', icon: 'video-camera', key: 'media' },
-  { path: '/finance', label: 'Finance', icon: 'rupee', key: 'finance' },
-  { path: '/analytics', label: 'Analytics', icon: 'analytics', key: 'analytics' },
+// The primary navigation destinations.
+export const NAV_ITEMS: { path: string; label: string; icon: PixelIconName }[] = [
+  { path: '/', label: 'Today', icon: 'home' },
+  { path: '/notes', label: 'Notes', icon: 'pen-nib' },
+  { path: '/memos', label: 'Memos', icon: 'notebook' },
+  { path: '/journal', label: 'Journal', icon: 'book' },
+  { path: '/tasks', label: 'Tasks', icon: 'check-list' },
+  { path: '/habits', label: 'Habits', icon: 'fire' },
+  { path: '/projects', label: 'Projects', icon: 'sparkles' },
+  { path: '/media', label: 'Media', icon: 'video-camera' },
+  { path: '/finance', label: 'Finance', icon: 'rupee' },
+  { path: '/analytics', label: 'Analytics', icon: 'analytics' },
 ];
 
 export function isActivePath(pathname: string, path: string): boolean {

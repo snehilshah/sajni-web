@@ -9,7 +9,6 @@ import { useAuth, type User } from '@/auth/AuthContext';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import type { ChatOpenDetail, ChatOpenRequest } from '@/components/AIChat';
 import Backdrop from '@/components/Backdrop';
-import Onboarding from '@/components/Onboarding';
 import { NAV_ITEMS, NavChromeContext, isActivePath } from '@/components/nav-chrome';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
@@ -96,14 +95,13 @@ function UserMenuBody({
 // (Infinity when it leaves); each icon springs its size by distance.
 // Subtle by design: +8px at dead centre, felt more than seen.
 function DockNavIcon({
-  pointerX, path, label, icon, onboardingKey, isActive, base, max, activeLayoutId,
+  pointerX, path, label, icon, isActive, base, max, activeLayoutId,
   hovered = false, hoverLayoutId, onHover,
 }: {
   pointerX: MotionValue<number>;
   path: string;
   label: string;
   icon: Parameters<typeof PixelIcon>[0]['name'];
-  onboardingKey?: string;
   isActive: boolean;
   base: number;
   max: number;
@@ -130,7 +128,6 @@ function DockNavIcon({
       ref={ref}
       to={path}
       end={path === '/'}
-      data-onboarding-key={onboardingKey}
       title={label}
       aria-label={label}
       onMouseEnter={onHover}
@@ -218,14 +215,13 @@ function PrimaryBar({
         )}
         aria-label="Primary"
       >
-        {NAV_ITEMS.map(({ path, label, icon, key }) => (
+        {NAV_ITEMS.map(({ path, label, icon }) => (
           <DockNavIcon
             key={path}
             pointerX={pointerX}
             path={path}
             label={label}
             icon={icon}
-            onboardingKey={key}
             isActive={isActivePath(pathname, path)}
             base={40}
             max={48}
@@ -489,7 +485,6 @@ export default function Layout() {
             <AIChat open onOpenChange={setAIChatOpen} openRequest={chatOpenRequest} />
           </Suspense>
         )}
-        <Onboarding />
       </div>
     </>
   );

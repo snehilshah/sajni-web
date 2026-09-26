@@ -26,7 +26,6 @@ export interface RefreshResult {
     email: string;
     name: string;
     avatar_revision: number;
-    onboarded_at: string | null;
     identities: Array<{ provider: 'google' | 'github' | 'email' }>;
     deleted_at?: string | null;
   };
