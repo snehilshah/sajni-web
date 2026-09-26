@@ -417,6 +417,9 @@ function RecentLedger({ items }: { items: ReminderHistoryItem[] }) {
             <div className="mt-0.5 text-xs text-muted-foreground">
               {item.status === 'skipped' ? 'Skipped' : 'Delivered'} · {format(new Date(item.delivered_at ?? item.skipped_at ?? item.fire_at), 'MMM d · h:mm a')}
             </div>
+            {item.notes.trim() && (
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.notes}</p>
+            )}
           </div>
         </div>
       ))}

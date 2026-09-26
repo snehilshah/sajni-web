@@ -116,6 +116,13 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
   const [hideCompleted, setHideCompleted] = useState(() => {
     try { return localStorage.getItem(HIDE_COMPLETED_KEY) === 'true'; } catch { return false; }
   });
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!hideCompleted) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [hideCompleted]);
   const [agendaDay, setAgendaDay] = useState<Date | null>(null);
   const [moveModeTask, setMoveModeTask] = useState<Task | null>(null);
   const [reminderEditorOpen, setReminderEditorOpen] = useState(false);
@@ -154,13 +161,17 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
   const dayReminders = useMemo(() => {
     const map = new Map<string, PlannerReminderOccurrence[]>();
     for (const reminder of data?.reminder_occurrences ?? []) {
+      if (hideCompleted && (
+        reminder.status === 'delivered' || reminder.status === 'skipped'
+        || new Date(reminder.fire_at).getTime() <= now
+      )) continue;
       const key = instantDateKey(reminder.scheduled_at, data?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
       const list = map.get(key) ?? [];
       list.push(reminder);
       map.set(key, list);
     }
     return map;
-  }, [data?.reminder_occurrences, data?.timezone]);
+  }, [data?.reminder_occurrences, data?.timezone, hideCompleted, now]);
 
   const openReminder = async (item: PlannerReminderOccurrence) => {
     try {
