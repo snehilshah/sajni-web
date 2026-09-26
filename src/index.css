@@ -1,21 +1,18 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./styles/fonts.css";
 @plugin "@tailwindcss/typography";
 
 /* ============================================================
    Sajni — Material 3 Expressive
    ------------------------------------------------------------
-   Type   : Roboto Flex — single family, expressive axes
-            (wdth/opsz carry display vs body; JetBrains Mono is
-            reserved for actual code via --font-code)
+   Type   : Chubbo headings/display, Supreme body/labels,
+            Maple Mono reserved for code via --font-code
    Color  : M3 tonal palette (seed -> primary/secondary/tertiary +
             container variants, plus surface-container layering)
    Shape  : Rounded scale 4→32px, full-pill for chips/FAB
    Motion : Emphasized springs + standard easing
    ============================================================ */
-
-@import "@fontsource-variable/roboto-flex/index.css";
-@import "@fontsource-variable/jetbrains-mono/index.css";
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
@@ -235,13 +232,14 @@
   --radius-2xl: 28px;
   --radius-3xl: 32px;
 
-  /* Typography — one family. Legacy `font-serif` / `font-mono` utility
-     usages resolve to the same sans so the whole app converges on the
-     M3 type scale without touching every call site. Real code surfaces
-     opt back into mono through --font-code (defined in :root below). */
-  --font-sans:  'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono:  'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Semantic roles. Legacy serif utilities mean display; mono utilities
+     mean UI metadata. Keep these aliases so components need no font names. */
+  --default-font-family: 'Supreme', Arial, Helvetica, sans-serif;
+  --font-sans: var(--default-font-family);
+  --font-heading: 'Chubbo', 'Supreme', Arial, Helvetica, sans-serif;
+  --font-serif: var(--font-heading);
+  --font-mono: var(--font-sans);
+  --font-code: 'Maple Mono Web', ui-monospace, 'SF Mono', 'Courier New', monospace;
 }
 
 /* ============================================================
@@ -277,10 +275,6 @@
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
-
-  /* Real monospace, reserved for code: editor code blocks, prose code,
-     anything that renders source. UI labels never use this. */
-  --font-code: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Courier New', monospace;
 }
 
 /* ============================================================
@@ -298,11 +292,17 @@ html, body, #root {
 body {
   @apply bg-background text-foreground antialiased;
   font-family: var(--font-sans);
-  font-variation-settings: "opsz" 14, "wdth" 100;
-  font-feature-settings: "kern", "ss01", "cv11";
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Source text uses the custom Maple build; keyboard hints remain UI labels. */
+pre, code, samp, .font-code {
+  font-family: var(--font-code);
+  font-feature-settings: "calt" 1;
+  font-variant-ligatures: contextual;
+  font-synthesis: none;
 }
 ::selection { background: hsl(var(--primary) / 0.22); color: hsl(var(--on-primary-container)); }
 
@@ -400,23 +400,23 @@ body {
 }
 
 /* ============================================================
-   Type helpers — M3 Expressive scale on one variable family.
-   `.serif` / `font-serif` call sites become expressive display
-   (wide width axis, large optical size); `font-mono` call sites
-   fall through to the sans stack and read as emphasized labels.
+   Type helpers — Chubbo display/title roles, Supreme body/labels.
+   `.serif` / `font-serif` are legacy display aliases; `font-mono`
+   remains a UI metadata alias. Actual source text uses --font-code.
    Floors: body 14px, label 12px.
    ============================================================ */
 .serif, .font-serif {
-  font-family: var(--font-sans);
-  font-variation-settings: "wdth" 118, "opsz" 32;
+  font-family: var(--font-heading);
   letter-spacing: -0.015em;
 }
 .mono { font-family: var(--font-sans); }
 
 /* M3 type roles */
-.m3-display  { font-size: 2.25rem;   line-height: 1.12; font-weight: 600; font-variation-settings: "wdth" 122, "opsz" 36; letter-spacing: -0.02em; }
-.m3-headline { font-size: 1.5rem;    line-height: 1.2;  font-weight: 600; font-variation-settings: "wdth" 118, "opsz" 32; letter-spacing: -0.015em; }
-.m3-title    { font-size: 1.125rem;  line-height: 1.3;  font-weight: 600; font-variation-settings: "wdth" 112, "opsz" 24; letter-spacing: -0.01em; }
+.m3-display, .m3-headline, .m3-title, .m3-title-sm { font-family: var(--font-heading); }
+.m3-body, .m3-label, .m3-label-sm { font-family: var(--font-sans); }
+.m3-display  { font-size: 2.25rem;   line-height: 1.12; font-weight: 600; letter-spacing: -0.02em; }
+.m3-headline { font-size: 1.5rem;    line-height: 1.2;  font-weight: 600; letter-spacing: -0.015em; }
+.m3-title    { font-size: 1.125rem;  line-height: 1.3;  font-weight: 600; letter-spacing: -0.01em; }
 .m3-title-sm { font-size: 0.9375rem; line-height: 1.35; font-weight: 600; }
 .m3-body     { font-size: 0.875rem;  line-height: 1.5;  font-weight: 400; }
 .m3-label    { font-size: 0.8125rem; line-height: 1.35; font-weight: 500; letter-spacing: 0.01em; }
@@ -468,16 +468,15 @@ body {
 }
 
 /* ============================================================
-   Headings — M3 display + headline scales, expressive sans.
+   Headings — Chubbo on the M3 display + headline scales.
    ============================================================ */
-h1, h2, h3, h4 {
-  font-family: var(--font-sans);
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: -0.014em;
   line-height: 1.15;
-  font-variation-settings: "wdth" 116, "opsz" 32;
 }
-h1 { font-weight: 650; letter-spacing: -0.02em; font-variation-settings: "wdth" 120, "opsz" 36; }
+h1 { font-weight: 650; letter-spacing: -0.02em; }
 em, .italic { font-style: italic; }
 
 /* ============================================================

@@ -1,0 +1,69 @@
+/* Self-hosted WOFF2. CSS URLs let Vite hash and cache each font independently. */
+
+/* Chubbo — Rafał Buchner, © 2026 Indian Type Foundry. fontshare.com/fonts/chubbo */
+@font-face {
+  font-family: 'Chubbo';
+  src: url('../assets/fonts/chubbo/Chubbo-Variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chubbo';
+  src: url('../assets/fonts/chubbo/Chubbo-VariableItalic.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Supreme — Jérémie Hornus and Ilya Naumoff, © 2026 Indian Type Foundry.
+   fontshare.com/fonts/supreme */
+@font-face {
+  font-family: 'Supreme';
+  src: url('../assets/fonts/supreme/Supreme-Variable.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Supreme';
+  src: url('../assets/fonts/supreme/Supreme-VariableItalic.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Maple Mono — custom v8.0-beta.3 web build; license and provenance alongside assets. */
+@font-face {
+  font-family: 'Maple Mono Web';
+  src: url('../assets/fonts/maple-mono/MapleMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono Web';
+  src: url('../assets/fonts/maple-mono/MapleMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono Web';
+  src: url('../assets/fonts/maple-mono/MapleMono-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono Web';
+  src: url('../assets/fonts/maple-mono/MapleMono-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
