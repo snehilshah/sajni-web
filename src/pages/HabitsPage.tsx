@@ -605,8 +605,8 @@ function PeriodToggle({
 }) {
   const disabled = future || loading;
   const title = future
-    ? `${period.accessibleLabel} — future period`
-    : `${period.accessibleLabel} — ${complete ? 'completed' : 'not completed'}`;
+    ? `${period.accessibleLabel}, future period`
+    : `${period.accessibleLabel}, ${complete ? 'completed' : 'not completed'}`;
   return (
     <button
       type="button"

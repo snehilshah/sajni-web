@@ -4,7 +4,7 @@ export const projectsMeta = {
   id: 'projects',
   label: 'Projects',
   title: 'Projects',
-  blurb: 'Thinking as a material: cards with kinds and relations, AI synthesis — and the full chat next door.',
+  blurb: 'Thinking as a material: cards with kinds and relations, AI synthesis, and the full chat next door.',
   sections: [
     { id: 'projects', label: 'Projects tab' },
     { id: 'cards', label: 'Cards, kinds & relations' },
@@ -18,7 +18,7 @@ export default function ProjectsDoc() {
     <>
       <Section id="projects" title="Projects" chip="projects tab">
         <p>
-          A project is a container for a line of thinking — a decision you're
+          A project is a container for a line of thinking, a decision you're
           circling, a thing you're designing, a question you keep reopening.
           Inside it: cards, a synthesis, and the AI tools that work the
           material. The page keeps a second tab, <em>Chat</em>, so long
@@ -52,7 +52,7 @@ export default function ProjectsDoc() {
         <FeatureList>
           <Feature name="Kind chips">
             <p>
-              Every card wears its kind as a tonal chip — a board scans as
+              Every card wears its kind as a tonal chip, a board scans as
               epistemology at a glance: what's claimed, what's known, what's
               still a question. Kinds filter the board.
             </p>
@@ -76,7 +76,7 @@ export default function ProjectsDoc() {
           </Feature>
         </FeatureList>
         <Callout tone="why">
-          Prose hides disagreement — two contradicting beliefs can live three
+          Prose hides disagreement, two contradicting beliefs can live three
           paragraphs apart forever. Cards force claims to stand alone, and
           typed relations (<Code>contradicts</Code>, <Code>depends_on</Code>)
           make the tension a first-class object you can see and resolve.
@@ -88,7 +88,7 @@ export default function ProjectsDoc() {
           <Feature name="Synthesize">
             <p>
               With two or more cards, Sajni reads the whole board and drafts
-              the through-line — a thesis for the project. Behavior: the
+              the through-line, a thesis for the project. Behavior: the
               synthesis is stamped with when it ran. New cards, comments,
               resolutions, and edits mark it stale and offer re-synthesis.
               Sajni reads the thread and current state so resolved tensions
@@ -98,7 +98,7 @@ export default function ProjectsDoc() {
           </Feature>
           <Feature name="Enrich">
             <p>
-              Per card, Sajni expands the thought — a summary, angles,
+              Per card, Sajni expands the thought, a summary, angles,
               questions, and suggested connections to sibling cards.
               Enrichment runs server-side asynchronously; the card fills in
               when it lands. You can edit or re-run it; your edits are kept
@@ -108,7 +108,7 @@ export default function ProjectsDoc() {
           <Feature name="Connections">
             <p>
               Suggested links surface on the card (“3 connections”) and can
-              be accepted into real relations — the AI proposes, you commit.
+              be accepted into real relations, the AI proposes, you commit.
             </p>
           </Feature>
         </FeatureList>
@@ -121,7 +121,7 @@ export default function ProjectsDoc() {
 
       <Section id="chat" title="Chat" chip="chat tab">
         <p>
-          The full conversation surface with Sajni — the same brain as the
+          The full conversation surface with Sajni, the same brain as the
           palette, with room to go long.
         </p>
         <FeatureList>
@@ -134,7 +134,7 @@ export default function ProjectsDoc() {
           </Feature>
           <Feature name="It acts, not just answers">
             <p>
-              Chat has the full tool set — it can create tasks, log
+              Chat has the full tool set, it can create tasks, log
               transactions, pay billers, file pockets, search your notes.
               When it changes data, the affected pages refresh themselves;
               action cards deep-link to what it touched.

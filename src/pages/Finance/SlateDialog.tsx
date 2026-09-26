@@ -89,7 +89,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
           </div>
           {!slate && (
             <p className="text-xs text-muted-foreground">
-              A slate holds spending that isn't your normal life — a trip, a
+              A slate holds spending that isn't your normal life, a trip, a
               wedding, a one-off purchase. Whatever you move into it stops
               counting against your ordinary budgets.
             </p>

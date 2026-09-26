@@ -18,22 +18,22 @@ export default function HabitsDoc() {
     <>
       <Section id="model" title="The model">
         <p>
-          A habit is a name, a color, and a frequency — <strong>daily</strong>,{' '}
-          <strong>weekly</strong>, <strong>fortnightly</strong>, or{' '}
+          A habit is a name, a color, and a frequency, <strong>daily</strong>,{' '}
+          <strong>weekly</strong>: <strong>fortnightly</strong>: or{' '}
           <strong>monthly</strong>. There are no quantities, partial credits,
           or skip tokens: one check completes one calendar period.
         </p>
         <FeatureList>
           <Feature name="Ticking">
             <p>
-              Tick from Habits, Today, Journal, or Sajni — every surface resolves
+              Tick from Habits, Today, Journal, or Sajni, every surface resolves
               the same cadence period. An unfinished current period stays open.
             </p>
           </Feature>
           <Feature name="Editing">
             <p>
               Name, color and frequency are editable any time; history stays.
-              Deleting a habit deletes its logs — the dialog says so before
+              Deleting a habit deletes its logs, the dialog says so before
               you do.
             </p>
           </Feature>

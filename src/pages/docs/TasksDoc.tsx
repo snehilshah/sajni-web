@@ -22,13 +22,13 @@ export default function TasksDoc() {
       <Section id="views" title="Smart views & lists" chip="pill row">
         <p>
           One swipeable pill row holds the smart views and your own lists.
-          Smart views are queries, not containers — a task appears in every
+          Smart views are queries, not containers, a task appears in every
           view it matches:
         </p>
         <RefTable
           head={['view', 'what it shows']}
           rows={[
-            ['My Day', 'due today + overdue — the default working set'],
+            ['My Day', 'due today + overdue, the default working set'],
             ['This week', 'week-scoped tasks for the current week'],
             ['Month', 'month goals for the current month'],
             ['Important', 'starred tasks, any date'],
@@ -42,7 +42,7 @@ export default function TasksDoc() {
           <Feature name="Your lists">
             <p>
               Create, rename, delete from the same pill row. Deleting a list
-              doesn't delete its tasks — they fall back to the Inbox. New
+              doesn't delete its tasks, they fall back to the Inbox. New
               tasks default into whichever list you're viewing.
             </p>
           </Feature>
@@ -60,7 +60,7 @@ export default function TasksDoc() {
 
       <Section id="scopes" title="Day / week / month scope">
         <p>
-          A task's due-ness has a <strong>scope</strong>, not just a date —
+          A task's due-ness has a <strong>scope</strong>, not just a date,
           picked in the form as Day / Week / Month:
         </p>
         <FeatureList>
@@ -72,7 +72,7 @@ export default function TasksDoc() {
           </Feature>
           <Feature name="Week">
             <p>
-              “Sometime this week” — anchored to a week, no specific day.
+              “Sometime this week”, anchored to a week, no specific day.
               Drives the This-week view and the journal's weekly review.
               Mutually exclusive with a date: switching scope clears the
               other anchors so nothing stale lingers.
@@ -80,7 +80,7 @@ export default function TasksDoc() {
           </Feature>
           <Feature name="Month (month goals)">
             <p>
-              A month-long agenda — “Ship the redesign” — broken into dated
+              A month-long agenda, “Ship the redesign”, broken into dated
               child <em>sessions</em>. The goal shows session progress
               (“3/8”); sessions are ordinary dated subtasks you schedule as
               the month unfolds. Reviewed in the journal's monthly view.
@@ -98,7 +98,7 @@ export default function TasksDoc() {
         <FeatureList>
           <Feature name="Steps">
             <p>
-              A lightweight checklist <em>inside</em> the task — “pack
+              A lightweight checklist <em>inside</em> the task, “pack
               charger, pack kindle”. Steps have no dates, no reminders, no
               identity of their own; they're for shape, not scheduling.
             </p>
@@ -126,8 +126,8 @@ export default function TasksDoc() {
           </Feature>
           <Feature name="History & activity">
             <p>
-              Editing a task shows its trail — status flips, date moves,
-              reschedules — so “when did I push this?” has an answer.
+              Editing a task shows its trail, status flips, date moves,
+              reschedules, so “when did I push this?” has an answer.
             </p>
           </Feature>
         </FeatureList>
@@ -145,7 +145,7 @@ export default function TasksDoc() {
             freed.
           </li>
           <li>
-            Cycles are prevented at selection time — a task can't block a
+            Cycles are prevented at selection time, a task can't block a
             task that (transitively) blocks it; the picker simply won't
             offer it.
           </li>
@@ -156,7 +156,7 @@ export default function TasksDoc() {
         </ul>
         <Callout tone="why">
           “Waiting on X” tasks pollute My Day and train you to ignore the
-          list. Making blockage explicit gives waiting work a place to be —
+          list. Making blockage explicit gives waiting work a place to be,
           and the Blocked view doubles as a “what should I unblock first?”
           queue.
         </Callout>
@@ -213,7 +213,7 @@ export default function TasksDoc() {
           </Feature>
           <Feature name="Extra recipients">
             <p>
-              A task can carry additional email addresses — when its
+              A task can carry additional email addresses, when its
               reminders fire, those people get the mail too. Useful for the
               “remind us both about the booking” class of task.
             </p>
@@ -239,8 +239,8 @@ export default function TasksDoc() {
             ['todo', 'open'],
             ['in progress', 'actively being worked'],
             ['blocked', 'waiting on its blocker task'],
-            ['done', 'completed — moves to the collapsible Completed group'],
-            ['scratched', 'abandoned on purpose — struck through, kept'],
+            ['done', 'completed, moves to the collapsible Completed group'],
+            ['scratched', 'abandoned on purpose, struck through, kept'],
           ]}
         />
         <FeatureList>
@@ -256,7 +256,7 @@ export default function TasksDoc() {
             <p>
               Tasks whose date passed while open are “missed”. A banner on
               the Tasks page (and on Today) surfaces them with a one-tap
-              reschedule — a missed task should become a decision, fast.
+              reschedule, a missed task should become a decision, fast.
             </p>
           </Feature>
         </FeatureList>
@@ -266,7 +266,7 @@ export default function TasksDoc() {
         <p>
           Desktop offers two projections of the same data: <strong>List</strong>{' '}
           (grouped Overdue / Today / This week / Later / No date) and{' '}
-          <strong>Board</strong> (kanban columns by status — todo, in
+          <strong>Board</strong> (kanban columns by status, todo, in
           progress, blocked, done). Drag between columns to change status.
           Phones always get the list; a board on a phone is a horizontal
           scroll of regret.

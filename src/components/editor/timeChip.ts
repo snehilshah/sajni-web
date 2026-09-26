@@ -271,7 +271,7 @@ export const TimeChipSuggest = Extension.create({
           }
           return items;
         },
-        render: makePopupRenderer<TimeSuggestItem>('No time matches — type a 24h time'),
+        render: makePopupRenderer<TimeSuggestItem>('No time matches. Type a 24h time'),
         command: ({ editor, range, props: item }: Cmd<TimeSuggestItem>) => {
           editor
             .chain()

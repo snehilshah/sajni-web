@@ -304,7 +304,7 @@ export default function TaskRow({
               )}
 
               {subs && subs.length === 0 && !addingSub && (
-                <div className={cn('text-sm text-muted-foreground italic px-3 py-3', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>No subtasks yet — break this down.</div>
+                <div className={cn('text-sm text-muted-foreground italic px-3 py-3', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>No subtasks yet. Break this down.</div>
               )}
 
               {subs?.map((sub, idx) => (

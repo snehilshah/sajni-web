@@ -357,7 +357,7 @@ export default function CommandPalette({ onOpenChange }: Props) {
                 </Suspense>
               ) : ranked.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search — or use @sajni to ask the AI, or > for actions.'}
+                  {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search, or use @sajni to ask the AI, or > for actions.'}
                 </div>
               ) : (
                 ranked.map((hit, i) => (

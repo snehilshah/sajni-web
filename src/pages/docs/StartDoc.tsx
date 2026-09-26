@@ -19,17 +19,16 @@ export default function StartDoc() {
     <>
       <Section id="what" title="What Sajni is">
         <p>
-          Sajni is a personal knowledge &amp; life system — one quiet codex for
+          Sajni is a personal knowledge &amp; life system for
           notes, journal, tasks, habits, projects, media and money. It is built
           for one person at a time: your data, your pace, no feed, no
           gamification, no one watching.
         </p>
         <p>
           The design bet is <em>calm density</em>: every space shows a lot
-          without shouting. An AI (also called Sajni) lives ambiently inside —
-          it can do anything the buttons can do, but it never advertises
-          itself. These docs describe every feature, how it behaves, and — where
-          it isn't obvious — why it behaves that way.
+          without shouting. An AI (also called Sajni) lives ambiently inside.
+          It can do anything the buttons can do, but it never advertises
+          itself. These docs describe every feature, how it behaves, and why it behaves that way.
         </p>
       </Section>
 
@@ -37,14 +36,14 @@ export default function StartDoc() {
         <FeatureList>
           <Feature name="The name">
             <p>
-              “Sajni” is a Hindi/Urdu term of endearment — <em>beloved</em>.
+              “Sajni” is a Hindi/Urdu term of endearment meaning <em>beloved</em>.
               The app is meant to feel like that: something personal you
               return to daily, not a productivity dashboard.
             </p>
           </Feature>
           <Feature name="The mark">
             <p>
-              The app icon is a mehendi (henna) motif — dark paisleys on
+              The app icon is a mehendi (henna) motif, dark paisleys on
               cream. Ornament with intent: hand-drawn, Indian, unhurried.
             </p>
           </Feature>
@@ -67,7 +66,7 @@ export default function StartDoc() {
             </p>
           </Feature>
           <Feature name="Motion">
-            <p>Springs, not fades — quick, emphatic, done. Nothing animates for decoration.</p>
+            <p>Springs, not fades: quick, emphatic, done. Nothing animates for decoration.</p>
           </Feature>
         </FeatureList>
         <Callout>
@@ -78,8 +77,8 @@ export default function StartDoc() {
 
       <Section id="navigation" title="Moving around">
         <p>
-          Nine spaces sit in the navigation pill — <em>Today, Notes, Journal,
-          Tasks, Habits, Projects, Media, Finance, Analytics</em> — each with
+          Nine spaces sit in the navigation pill, <em>Today, Notes, Journal,
+          Tasks, Habits, Projects, Media, Finance, Analytics</em>, each with
           its own docs page in the rail here. Inside a space, a secondary bar
           holds its tabs (Finance's Accounts/Transactions/…, Media's
           Movies/Shows/…). On scroll the two bars merge into one condensed
@@ -101,7 +100,7 @@ export default function StartDoc() {
             <p>
               Fuzzy-searches everything you own: memos, tasks, notes, journal
               entries, habits, media, tags, accounts, transactions, bookmarks.
-              Prefix with a type to narrow — plurals and short forms accepted:
+              Prefix with a type to narrow, plurals and short forms accepted:
             </p>
             <RefTable
               head={['you type', 'it searches']}
@@ -125,7 +124,7 @@ export default function StartDoc() {
           <Feature name="Ask Sajni">
             <p>
               Type <Code>@sajni</Code> (or <Code>@s</Code> / <Code>@ai</Code>)
-              and a space — the palette flips into AI mode and your next Enter
+              and a space, the palette flips into AI mode and your next Enter
               asks the question. See the <em>Ask Sajni</em> page.
             </p>
           </Feature>
@@ -137,7 +136,7 @@ export default function StartDoc() {
         <ul>
           <li>
             <strong>#tags are universal.</strong> Write <Code>#tag</Code> in a
-            note, memo, task note, transaction note or bookmark — it's
+            note, memo, task note, transaction note or bookmark. It's
             collected globally, browsable under Analytics → Tags, and every
             tag pill is tappable.
           </li>
@@ -149,7 +148,7 @@ export default function StartDoc() {
           <li>
             <strong>Abandoning is an outcome, not a deletion.</strong> Tasks
             can be <em>scratched</em>, media <em>dropped</em>, pockets{' '}
-            <em>archived</em> — history stays honest instead of vanishing.
+            <em>archived</em>. History stays honest instead of vanishing.
           </li>
           <li>
             <strong>Everything the UI does, the AI can do.</strong> A standing

@@ -947,7 +947,7 @@ function WeekView({
         <StatTile label="Entries" value={`${entriesWritten}/7`} tone="tertiary" />
         <StatTile
           label="Expenses"
-          value={summary ? formatMoney(summary.expense_total) : '—'}
+          value={summary ? formatMoney(summary.expense_total) : '–'}
           tone="secondary"
         />
       </div>
@@ -1026,7 +1026,7 @@ function WeekView({
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
                   <span className="mono text-xs text-foreground/80 tabular-nums">
-                    {stat ? `${stat.tasks_done}/${totalForDay}` : '—'}
+                    {stat ? `${stat.tasks_done}/${totalForDay}` : '–'}
                   </span>
                   {stat && stat.tasks_missed > 0 ? (
                     <span className="mono text-xs text-destructive/80 tabular-nums">
@@ -1756,7 +1756,7 @@ function MonthView({
         <StatTile label="Tasks done" value={`${totalDone}/${totalDue}`} tone="primary" />
         <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
         <StatTile label="Entries" value={`${entriesWritten}/${daysInMonth}`} tone="tertiary" />
-        <StatTile label="Expenses" value={summary ? formatMoney(summary.expense_total) : '—'} tone="secondary" />
+        <StatTile label="Expenses" value={summary ? formatMoney(summary.expense_total) : '–'} tone="secondary" />
       </div>
 
       {/* Editor — full-width, matches the daily/weekly layout. */}

@@ -294,7 +294,7 @@ export default function ThinkingProjectPage() {
         <div className="rounded-xl border border-primary/40 bg-[hsl(var(--primary-container)/0.5)] text-[hsl(var(--on-primary-container))] px-4 py-3 flex items-start gap-3">
           <Sparkles className="size-4 mt-0.5 shrink-0" />
           <div className="flex-1 text-sm">
-            This project changed since the last synthesis — the thesis may be stale.
+            This project changed since the last synthesis. The thesis may be stale.
           </div>
           <Button size="sm" onClick={synthesize} disabled={synthesizing}>
             Re-synthesize
@@ -443,7 +443,7 @@ export default function ThinkingProjectPage() {
 
       {/* Cards list */}
       {visibleCards.length === 0 ? (
-        <div className="text-sm text-muted-foreground italic">No cards yet — drop a thought above.</div>
+        <div className="text-sm text-muted-foreground italic">No cards yet. Drop a thought above.</div>
       ) : (
         <div className="flex flex-col gap-2">
           {visibleCards.map((c) => {
@@ -577,7 +577,7 @@ function TodoToggle({
   reduceMotion: boolean;
   onToggle: () => void;
 }) {
-  const label = complete ? 'Completed — reopen todo' : 'Open — complete todo';
+  const label = complete ? 'Completed · reopen todo' : 'Open · complete todo';
   return (
     <button
       type="button"

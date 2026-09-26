@@ -155,7 +155,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
       {!query && (
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           <Sparkles className="size-4" />
-          Type a question after <kbd className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@sajni</kbd> — try "what's on my plate today?"
+          Type a question after <kbd className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@sajni</kbd>. Try "what's on my plate today?"
         </div>
       )}
 

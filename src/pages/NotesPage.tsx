@@ -570,7 +570,7 @@ export default function NotesPage() {
           </div>
         ) : tree.children.length === 0 && showNewFolder !== '' ? (
           <div className="text-center text-xs text-muted-foreground py-12 px-3">
-            {search ? 'No notes match' : 'No notes yet — start writing'}
+            {search ? 'No notes match' : 'No notes yet. Start writing.'}
           </div>
         ) : (
           <>

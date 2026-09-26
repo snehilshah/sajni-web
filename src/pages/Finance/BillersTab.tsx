@@ -113,8 +113,8 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
             <div className="text-xs text-muted-foreground text-center py-8">Loading…</div>
           ) : (
             <div className="rounded-xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
-              Nothing tracked yet. Add subscriptions (Netflix, rent — fixed amount)
-              and bills (electricity — amount varies) to see them here.
+              Nothing tracked yet. Add subscriptions (Netflix, rent; fixed amount)
+              and bills (electricity; amount varies) to see them here.
             </div>
           )
         ) : (
@@ -224,7 +224,7 @@ function BillerRow({
         <div className="text-right shrink-0">
           <div className="font-mono font-semibold tabular-nums text-sm">
             {biller.kind === 'bill' && !(biller.amount > 0)
-              ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '—')
+              ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
               : formatMoney(biller.amount)}
           </div>
           <div
@@ -287,7 +287,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
   }, [open, biller]);
 
   const done = (r: { already_paid: boolean }) => {
-    if (r.already_paid) toast.info('This cycle was already recorded — due date rolled forward.');
+    if (r.already_paid) toast.info('This cycle was already recorded. The due date rolled forward.');
     else toast.success(`${biller.name} marked paid`);
     setOpen(false);
     onPaid();
@@ -370,7 +370,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
             <p className="text-xs text-muted-foreground">
               {biller.account_id
                 ? 'Posts an expense from the linked account.'
-                : 'No linked account — pick one on the biller to post a transaction.'}
+                : 'No linked account. Pick one on the biller to post a transaction.'}
             </p>
             <Button onClick={record} disabled={busy || !biller.account_id} className="w-full">
               {busy ? 'Saving…' : 'Record payment'}
@@ -411,7 +411,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              Links transactions you already logged — nothing new is posted.
+              Links transactions you already logged. Nothing new is posted.
             </p>
             <Button onClick={attach} disabled={busy || picked.size === 0} className="w-full">
               {busy ? 'Saving…' : picked.size === 0 ? 'Attach' : `Attach ${picked.size} · ${formatMoney(pickedSum)}`}
@@ -496,7 +496,7 @@ function BillerDetailSheet({
               <div className="rounded-xl border border-border bg-[hsl(var(--surface-container-low))] p-4">
                 <div className="font-serif text-2xl font-semibold tabular-nums">
                   {biller.kind === 'bill' && !(biller.amount > 0)
-                    ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '—')
+                    ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
                     : formatMoney(biller.amount)}
                   {biller.kind === 'bill' && (
                     <span className="ml-2 align-middle text-xs font-sans font-normal text-muted-foreground">
@@ -513,8 +513,8 @@ function BillerDetailSheet({
               <section>
                 <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">Details</h3>
                 <dl className="rounded-xl border border-border divide-y divide-border text-sm">
-                  <DetailRow label="Paid from" value={acct?.name || '—'} />
-                  <DetailRow label="Category" value={cat?.name || '—'} />
+                  <DetailRow label="Paid from" value={acct?.name || '–'} />
+                  <DetailRow label="Category" value={cat?.name || '–'} />
                   <DetailRow label="Reminder task" value={biller.remind_task ? 'On' : 'Off'} />
                   <DetailRow label="Alert" value={`${biller.alert_days}d before due`} />
                   {biller.notes && <DetailRow label="Notes" value={biller.notes} />}
@@ -706,8 +706,8 @@ function BillerDialog({
           />
           <p className="text-xs text-muted-foreground -mt-1">
             {kind === 'subscription'
-              ? 'Fixed amount each cycle — Netflix, rent, EMI. Can auto-pay itself.'
-              : 'Amount varies each cycle — electricity, water. You enter the actual when you pay.'}
+              ? 'Fixed amount each cycle: Netflix, rent, EMI. Can auto-pay itself.'
+              : 'Amount varies each cycle: electricity, water. You enter the actual when you pay.'}
           </p>
 
           <Field label="Name">
@@ -760,13 +760,13 @@ function BillerDialog({
               <Select
                 value={accountID == null ? 'none' : String(accountID)}
                 onValueChange={(v) => setAccountID(v === 'none' ? null : Number(v))}
-                items={[{ value: 'none', label: '—' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
+                items={[{ value: 'none', label: '–' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
               >
                 <SelectTrigger size="sm">
-                  <SelectValue placeholder="—" />
+                  <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">—</SelectItem>
+                  <SelectItem value="none">–</SelectItem>
                   {accounts.map((a) => (
                     <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
                   ))}
@@ -777,13 +777,13 @@ function BillerDialog({
               <Select
                 value={categoryID == null ? 'none' : String(categoryID)}
                 onValueChange={(v) => setCategoryID(v === 'none' ? null : Number(v))}
-                items={[{ value: 'none', label: '—' }, ...categories.filter((c) => c.kind === 'expense').map((c) => ({ value: String(c.id), label: c.name }))]}
+                items={[{ value: 'none', label: '–' }, ...categories.filter((c) => c.kind === 'expense').map((c) => ({ value: String(c.id), label: c.name }))]}
               >
                 <SelectTrigger size="sm">
-                  <SelectValue placeholder="—" />
+                  <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">—</SelectItem>
+                  <SelectItem value="none">–</SelectItem>
                   {categories.filter((c) => c.kind === 'expense').map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}
@@ -796,7 +796,7 @@ function BillerDialog({
             {kind === 'subscription' && (
               <CheckRow
                 label="Auto-pay"
-                desc="Post the expense automatically each cycle — renews on its own, no manual pay."
+                desc="Post the expense automatically each cycle. Renews on its own without manual payment."
                 checked={autoRenew}
                 onChange={setAutoRenew}
                 disabled={accountID == null}

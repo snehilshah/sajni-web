@@ -4,7 +4,7 @@ export const mediaMeta = {
   id: 'media',
   label: 'Media',
   title: 'Media',
-  blurb: 'Movies, shows and books with real tracking — plus the read-later shelves for shared links.',
+  blurb: 'Movies, shows and books with real tracking, plus the read-later shelves for shared links.',
   sections: [
     { id: 'library', label: 'Movies · Shows · Books' },
     { id: 'statuses', label: 'Statuses' },
@@ -25,7 +25,7 @@ export default function MediaDoc() {
         <FeatureList>
           <Feature name="Search-to-add (TMDB)">
             <p>
-              Adding a movie or show searches TMDB — poster, year, genre and
+              Adding a movie or show searches TMDB, poster, year, genre and
               release date come along for free. Books are added by hand.
               Everything is editable after; the external link just seeds it.
             </p>
@@ -34,7 +34,7 @@ export default function MediaDoc() {
             <p>
               Rating (your own scale), platform (Netflix, Prime, Disney+ …),
               notes with <em>#tags</em>, genre, year. The platform field is a
-              memory aid — “where was I watching this?” — not an integration.
+              memory aid, “where was I watching this?”, not an integration.
             </p>
           </Feature>
           <Feature name="Library controls">
@@ -46,8 +46,8 @@ export default function MediaDoc() {
           </Feature>
           <Feature name="Events timeline">
             <p>
-              Each item accumulates events — added, started, finished,
-              episode progress — so “when did we watch this?” has an answer.
+              Each item accumulates events, added, started, finished,
+              episode progress, so “when did we watch this?” has an answer.
               The latest completion date is what the “recently completed”
               sort uses.
             </p>
@@ -60,13 +60,13 @@ export default function MediaDoc() {
           head={['status', 'meaning']}
           rows={[
             ['in progress', 'currently watching / reading'],
-            ['upcoming', 'not released yet — tracked from its release date'],
+            ['upcoming', 'not released yet, tracked from its release date'],
             ['pending', 'owned/queued, not started'],
             ['waiting', 'paused on something external (next season, library copy)'],
             ['new season', 'a higher season was detected automatically; choose the next status manually'],
             ['complete', 'finished'],
             ['archived', 'shelved, out of the active views'],
-            ['dropped', 'started and abandoned — a valid ending'],
+            ['dropped', 'started and abandoned, a valid ending'],
             ['scratched', 'decided against before starting'],
           ]}
         />
@@ -95,11 +95,11 @@ export default function MediaDoc() {
           </li>
           <li>
             Marking the show <em>complete</em> snaps progress to the very
-            end — last season, last episode — so a finished show never reads
+            end, last season, last episode, so a finished show never reads
             half-watched.
           </li>
           <li>
-            When TMDB doesn't know the counts, set totals by hand — tracking
+            When TMDB doesn't know the counts, set totals by hand, tracking
             degrades gracefully instead of blocking.
           </li>
         </ul>
@@ -110,7 +110,7 @@ export default function MediaDoc() {
           <Feature name="Collections">
             <p>
               A movie that belongs to a franchise carries its TMDB
-              collection (“The Godfather Collection”) — the detail sheet
+              collection (“The Godfather Collection”), the detail sheet
               shows the sibling films so the next installment is one tap to
               add.
             </p>
@@ -128,14 +128,14 @@ export default function MediaDoc() {
 
       <Section id="bookmarks" title="Read-later shelves" chip="videos · sites">
         <p>
-          The last two tabs are bookmarks, not library items — links you
+          The last two tabs are bookmarks, not library items, links you
           saved to come back to, split by kind (video hosts vs everything
           else).
         </p>
         <FeatureList>
           <Feature name="Share to save">
             <p>
-              Share any page or video to Sajni (PWA share sheet) — it lands
+              Share any page or video to Sajni (PWA share sheet), it lands
               here with the title fetched server-side when the share didn't
               carry one. YouTube/Vimeo/Twitch links auto-file under Videos.
               A note with <em>#tags</em> can be added at save time.
@@ -145,13 +145,13 @@ export default function MediaDoc() {
             <p>
               New bookmarks are <em>unread</em>; opening or explicitly
               marking clears it. Archive keeps the link but removes it from
-              the active shelf — the read-later pile stays a pile you can
+              the active shelf, the read-later pile stays a pile you can
               actually finish.
             </p>
           </Feature>
         </FeatureList>
         <Callout>
-          Sharing a bank/UPI SMS does <em>not</em> land here — text that
+          Sharing a bank/UPI SMS does <em>not</em> land here, text that
           looks like a transaction routes to Finance's add-from-message flow
           instead. The share target reads the content, not just the type.
         </Callout>

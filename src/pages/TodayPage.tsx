@@ -198,7 +198,7 @@ export default function TodayPage() {
 		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-6 md:pt-8 pb-24">
 			{/* Hero */}
 			<div>
-				<div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-3">{dateLabel}</div>
+				<div className="text-base font-medium tracking-normal text-muted-foreground mb-3">{dateLabel}</div>
 				<h1 className="serif text-4xl md:text-[56px] font-normal tracking-[-0.025em] leading-[1.05] text-foreground">
 					{greeting}.
 				</h1>
@@ -367,7 +367,7 @@ export default function TodayPage() {
 						<div className="flex flex-col gap-2.5">
 							{recentMemos.length === 0 ? (
 								<div className="rounded-xl px-5 py-6 text-center text-sm text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
-									Nothing captured yet — try the bar above.
+									Nothing captured yet. Try the bar above.
 								</div>
 							) : (
 								recentMemos.map((m) => (

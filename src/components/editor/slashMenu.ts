@@ -42,7 +42,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
   },
   {
-    id: 'rule', title: 'Divider', subtitle: 'Horizontal rule', icon: '—',
+    id: 'rule', title: 'Divider', subtitle: 'Horizontal rule', icon: '–',
     command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
   },
   {

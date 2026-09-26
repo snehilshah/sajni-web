@@ -4,7 +4,7 @@ export const todayMeta = {
   id: 'today',
   label: 'Today',
   title: 'Today',
-  blurb: 'The morning page — one screen that pulls the day together so you don’t have to tour the app.',
+  blurb: 'The morning page, one screen that pulls the day together so you don’t have to tour the app.',
   sections: [
     { id: 'intent', label: 'Intent' },
     { id: 'sections', label: 'What’s on it' },
@@ -23,7 +23,7 @@ export default function TodayDoc() {
         </p>
         <Callout tone="why">
           Aggregation pages rot when they become editors. Today stays a
-          surface, so it stays fast to scan — every element on it links back
+          surface, so it stays fast to scan, every element on it links back
           to the space that owns it.
         </Callout>
       </Section>
@@ -32,7 +32,7 @@ export default function TodayDoc() {
         <FeatureList>
           <Feature name="Missed tasks banner">
             <p>
-              Yesterday's slips surface at the very top — not buried — with a
+              Yesterday's slips surface at the very top, not buried, with a
               reschedule action so a missed task becomes a decision, not a
               lingering guilt object.
             </p>
@@ -48,7 +48,7 @@ export default function TodayDoc() {
               Every habit with a one-tap check for its current day, week,
               fortnight, or month. The header counts current periods
               (“3/5 done”). Ticking here is identical to ticking on the
-              Habits page — same period, same streak math.
+              Habits page, same period, same streak math.
             </p>
           </Feature>
           <Feature name="Recent thinking">
@@ -70,7 +70,7 @@ export default function TodayDoc() {
             </p>
           </Feature>
           <Feature name="At a glance">
-            <p>The day's numbers — compact stat tiles, no charts.</p>
+            <p>The day's numbers, compact stat tiles, no charts.</p>
           </Feature>
           <Feature name="Today's prompt">
             <p>

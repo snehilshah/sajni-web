@@ -193,7 +193,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                       </button>
                     </div>
                     {acctSavings.length === 0 ? (
-                      <div className="text-xs text-muted-foreground">No buckets — add savings goals like emergency fund, vacation, etc.</div>
+                      <div className="text-xs text-muted-foreground">No buckets. Add savings goals like emergency fund, vacation, etc.</div>
                     ) : (
                       <div className="flex flex-col gap-1.5">
                         {acctSavings.slice(0, 3).map((s) => {
@@ -638,7 +638,7 @@ function SavingsDialog({ account, savings, onClose }: {
           <DialogTitle>Reserved on {account.name}</DialogTitle>
         </DialogHeader>
         <div className="text-xs text-muted-foreground -mt-2">
-          Buckets are virtual — money stays in the account. Reserved {formatMoney(reservedTotal)} of {formatMoney(account.balance)} balance.
+          Buckets are virtual. Money stays in the account. Reserved {formatMoney(reservedTotal)} of {formatMoney(account.balance)} balance.
         </div>
         {overReserved && (
           <div className="text-xs rounded-md bg-destructive/10 text-destructive px-3 py-2">

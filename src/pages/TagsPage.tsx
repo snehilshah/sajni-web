@@ -96,7 +96,7 @@ export default function TagsPanel() {
               <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
                 <Hash className="size-8 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">
-                  {search ? 'No tags match your search.' : 'No tags yet — use #tag in any memo, note, journal, task, or transaction note.'}
+                  {search ? 'No tags match your search.' : 'No tags yet. Use #tag in any memo, note, journal, task, or transaction note.'}
                 </p>
               </div>
             ) : (

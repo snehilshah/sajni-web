@@ -102,7 +102,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
                 <Stat label="Cashback" value={formatMoney(totalCashback)} icon={Gift} tone="primary" />
                 <Stat
                   label="Cycle"
-                  value={card.statement_day && card.due_day ? `${card.statement_day} / ${card.due_day}` : '—'}
+                  value={card.statement_day && card.due_day ? `${card.statement_day} / ${card.due_day}` : '–'}
                   small
                 />
               </div>

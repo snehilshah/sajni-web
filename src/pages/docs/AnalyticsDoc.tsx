@@ -20,8 +20,8 @@ export default function AnalyticsDoc() {
         <FeatureList>
           <Feature name="Activity heatmap (365 days)">
             <p>
-              One cell per day, intensity = contributions across every module
-              — notes, tasks, habits, journal, media, finance. The header
+              One cell per day, intensity = contributions across every module,
+              notes, tasks, habits, journal, media, finance. The header
               counts total contributions and active days.
             </p>
           </Feature>
@@ -29,14 +29,14 @@ export default function AnalyticsDoc() {
             <p>Days written vs days elapsed this month, as a percentage.</p>
           </Feature>
           <Feature name="Module breakdown (30 days)">
-            <p>Where the activity went — per-module counts for the last month.</p>
+            <p>Where the activity went, per-module counts for the last month.</p>
           </Feature>
           <Feature name="Task velocity">
-            <p>Completed tasks per week — trend, not judgment.</p>
+            <p>Completed tasks per week, trend, not judgment.</p>
           </Feature>
           <Feature name="Habit streaks">
             <p>
-              Current <em>and</em> longest streak per habit, side by side —
+              Current <em>and</em> longest streak per habit, side by side,
               the longest is the reminder that the current one is rebuildable.
             </p>
           </Feature>
@@ -49,7 +49,7 @@ export default function AnalyticsDoc() {
       <Section id="insights" title="Insights" chip="tab">
         <p>
           Each week Sajni reads your data and writes short observations worth
-          acting on — spending drifts, habit patterns, task pile-ups. They
+          acting on, spending drifts, habit patterns, task pile-ups. They
           accrue as a feed; skim them Sunday evening. Insights are
           observations, not nags: nothing here fires a notification beyond
           the weekly digest.
@@ -58,8 +58,8 @@ export default function AnalyticsDoc() {
 
       <Section id="tags" title="Tags" chip="tab">
         <p>
-          Every <Code>#tag</Code> you've written anywhere — notes, memos,
-          task notes, transaction notes, bookmarks — collected with counts.
+          Every <Code>#tag</Code> you've written anywhere, notes, memos,
+          task notes, transaction notes, bookmarks, collected with counts.
           Opening a tag lists everything filed under it across all modules,
           with jump-throughs. Tags are created by writing them; there is no
           tag manager to maintain.

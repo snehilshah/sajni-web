@@ -4,7 +4,7 @@ export const journalMeta = {
   id: 'journal',
   label: 'Journal',
   title: 'Journal',
-  blurb: 'One entry per day, on purpose — with weekly and monthly roll-ups that do the remembering.',
+  blurb: 'One entry per day, on purpose, with weekly and monthly roll-ups that do the remembering.',
   sections: [
     { id: 'daily', label: 'Daily editor' },
     { id: 'margin', label: 'The margin' },
@@ -25,14 +25,14 @@ export default function JournalDoc() {
         <FeatureList>
           <Feature name="Autosave">
             <p>
-              Entries save as you type — there is no save button. Content
+              Entries save as you type, there is no save button. Content
               and location both mark the entry dirty and flush together.
             </p>
           </Feature>
           <Feature name="Location">
             <p>
               The location pill attaches a place (label + coordinates) to the
-              day — a quiet map of where your days happened, searchable
+              day, a quiet map of where your days happened, searchable
               later.
             </p>
           </Feature>
@@ -61,7 +61,7 @@ export default function JournalDoc() {
         <FeatureList>
           <Feature name="That day's habits & tasks">
             <p>
-              Two columns show what you ticked and what was due that day —
+              Two columns show what you ticked and what was due that day,
               read-only checkmarks with jump-throughs. The journal never
               edits tasks; it shows the shape of the day.
             </p>
@@ -76,8 +76,8 @@ export default function JournalDoc() {
           </Feature>
         </FeatureList>
         <Callout tone="why">
-          Reflection needs evidence. Seeing what actually happened that day —
-          habits ticked, tasks done or missed — next to what you{' '}
+          Reflection needs evidence. Seeing what actually happened that day,
+          habits ticked, tasks done or missed, next to what you{' '}
           <em>wrote</em> about it is the whole point of a journal in a system
           that already knows your day.
         </Callout>
@@ -92,14 +92,14 @@ export default function JournalDoc() {
           <Feature name="Week stats">
             <p>
               Four tiles: Tasks done (x/y due), Missed, Entries written
-              (x/7), and Expenses for the week — the journal borrows the
+              (x/7), and Expenses for the week, the journal borrows the
               number from Finance so the review includes money without
               switching apps.
             </p>
           </Feature>
           <Feature name="This week's tasks">
             <p>
-              Week-scoped tasks (see the Tasks page — tasks can be due “this
+              Week-scoped tasks (see the Tasks page, tasks can be due “this
               week” rather than a specific day) list here with inline
               quick-add, because the weekly review is where week-level
               commitments are made.
@@ -116,7 +116,7 @@ export default function JournalDoc() {
             <p>
               You can write a weekly entry in your own words; Sajni also
               drafts a summary of the week from your daily entries. Both are
-              kept — the machine's memory and yours.
+              kept, the machine's memory and yours.
             </p>
           </Feature>
         </FeatureList>
@@ -127,7 +127,7 @@ export default function JournalDoc() {
           The same shape one level up: month stats (tasks done, missed,
           entries x/days, expenses), the month's goals with their session
           progress (“3/8 sessions”), a monthly entry, and a month shifter.
-          Month goals themselves are a Tasks feature — the journal is where
+          Month goals themselves are a Tasks feature, the journal is where
           you review them.
         </p>
       </Section>

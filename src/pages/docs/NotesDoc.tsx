@@ -4,7 +4,7 @@ export const notesMeta = {
   id: 'notes',
   label: 'Notes',
   title: 'Notes & Memos',
-  blurb: 'Long-form writing with structure — and a frictionless inbox for half-formed thoughts.',
+  blurb: 'Long-form writing with structure, and a frictionless inbox for half-formed thoughts.',
   sections: [
     { id: 'notes', label: 'Notes' },
     { id: 'editor', label: 'The editor' },
@@ -26,7 +26,7 @@ export default function NotesDoc() {
             <p>
               With no note open, Notes is an index rather than a card wall:
               rows grouped into folder sections, pinned notes in a strip at
-              the top. Each section header is a toggle — the chevron and
+              the top. Each section header is a toggle, the chevron and
               folder icon fold that folder's notes away and back. It's a
               reveal, not a route: the index never navigates <em>into</em> a
               folder, so the other sections stay where they are. What you
@@ -45,7 +45,7 @@ export default function NotesDoc() {
           </Feature>
           <Feature name="Pin">
             <p>
-              Both notes and folders pin. Pinning is ordering, nothing more —
+              Both notes and folders pin. Pinning is ordering, nothing more,
               no badges, no notifications.
             </p>
           </Feature>
@@ -58,7 +58,7 @@ export default function NotesDoc() {
           </Feature>
           <Feature name="Backlinks">
             <p>
-              Every note shows what links to it — journal entries and other
+              Every note shows what links to it, journal entries and other
               notes that reference it. Backlinks are collected server-side on
               save; you never maintain them.
             </p>
@@ -96,7 +96,7 @@ export default function NotesDoc() {
         <FeatureList>
           <Feature name="Task chips (/task)">
             <p>
-              The chip in your note <em>is</em> the task — one object, two
+              The chip in your note <em>is</em> the task, one object, two
               views. Check it in Tasks and the chip reflects it; the chip
               opens the full task sheet. Notes stay prose; commitments stay
               in the task system.
@@ -113,7 +113,7 @@ export default function NotesDoc() {
         <Callout tone="why">
           <Code>/task</Code> exists because meeting notes breed commitments.
           Without it you either lose the commitment in prose or duplicate it
-          by hand into Tasks — and duplicates always drift.
+          by hand into Tasks, and duplicates always drift.
         </Callout>
       </Section>
 
@@ -133,7 +133,7 @@ export default function NotesDoc() {
             <p>
               Memos don't rot silently: the Today page resurfaces a memo from
               3+ days ago (“Echo from earlier”). On re-read it either
-              graduates — into a note, a task, a project card — or gets
+              graduates, into a note, a task, a project card, or gets
               deleted with a clear conscience.
             </p>
           </Feature>

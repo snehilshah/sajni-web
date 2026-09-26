@@ -4,7 +4,7 @@ export const aiMeta = {
   id: 'ai',
   label: 'Ask Sajni',
   title: 'Ask Sajni',
-  blurb: 'The ambient AI: one brain, two doors — the palette for quick asks, chat for long ones.',
+  blurb: 'The ambient AI: one brain, two doors, the palette for quick asks, chat for long ones.',
   sections: [
     { id: 'doors', label: 'The two doors' },
     { id: 'abilities', label: 'What it can do' },
@@ -25,7 +25,7 @@ export default function AiDoc() {
             ],
             [
               'Projects → Chat',
-              'long conversations with kept history — sessions you can reopen and continue',
+              'long conversations with kept history, sessions you can reopen and continue',
             ],
           ]}
         />
@@ -36,7 +36,7 @@ export default function AiDoc() {
           that deep-link to what changed.
         </p>
         <Callout tone="why">
-          AI is deliberately ambient — no floating bubble, no “try asking
+          AI is deliberately ambient, no floating bubble, no “try asking
           me!”. The rule of the codebase is that AI is discovered, not
           promoted. The one hard guarantee backing it: <strong>every action
           the UI can take exists as a tool</strong>, so whatever you learned
@@ -47,23 +47,23 @@ export default function AiDoc() {
       <Section id="abilities" title="What it can do">
         <p>A non-exhaustive map of the tool surface, by space:</p>
         <ul>
-          <li><strong>Tasks</strong> — create/update/complete tasks and lists; query what's due.</li>
+          <li><strong>Tasks</strong>: create/update/complete tasks and lists; query what's due.</li>
           <li>
-            <strong>Reminders</strong> — create, list, edit, snooze, skip and
+            <strong>Reminders</strong>: create, list, edit, snooze, skip and
             delete standalone one-time or recurring reminders.
           </li>
-          <li><strong>Habits</strong> — log ticks, check streaks.</li>
-          <li><strong>Notes & memos</strong> — capture memos, search notes, read content back.</li>
-          <li><strong>Journal</strong> — read/write entries.</li>
-          <li><strong>Media</strong> — add/search the library, move statuses, advance episodes.</li>
+          <li><strong>Habits</strong>: log ticks, check streaks.</li>
+          <li><strong>Notes & memos</strong>: capture memos, search notes, read content back.</li>
+          <li><strong>Journal</strong>: read/write entries.</li>
+          <li><strong>Media</strong>: add/search the library, move statuses, advance episodes.</li>
           <li>
-            <strong>Finance</strong> — add/edit transactions (they file into
+            <strong>Finance</strong>: add/edit transactions (they file into
             Plain like any direct entry), pay billers (record or
             attach), create slates and sweep existing transactions into them,
             read and create budgets, toggle investment auto-debit.
           </li>
-          <li><strong>Projects</strong> — cards, synthesis, enrichment.</li>
-          <li><strong>Themes</strong> — generate and activate M3 themes from a description.</li>
+          <li><strong>Projects</strong>: cards, synthesis, enrichment.</li>
+          <li><strong>Themes</strong>: generate and activate M3 themes from a description.</li>
         </ul>
       </Section>
 
@@ -80,14 +80,14 @@ export default function AiDoc() {
           </Feature>
           <Feature name="It acts, then answers">
             <p>
-              Asked to do something, it does it and confirms in a line — no
+              Asked to do something, it does it and confirms in a line, no
               feature tours, no “I can also…” upsells. That's a designed
               persona, not an accident.
             </p>
           </Feature>
           <Feature name="The screen refreshes itself">
             <p>
-              Every mutation emits an event the open pages listen for —
+              Every mutation emits an event the open pages listen for,
               lists, chips and totals update in place without a manual
               reload.
             </p>
@@ -95,7 +95,7 @@ export default function AiDoc() {
           <Feature name="Context it carries">
             <p>
               It knows the current date (IST), your open tasks and daily
-              habits — so “tomorrow”, “my usual” and “what's left today”
+              habits, so “tomorrow”, “my usual” and “what's left today”
               resolve correctly.
             </p>
           </Feature>

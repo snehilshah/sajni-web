@@ -441,7 +441,7 @@ export default function TransactionDialog({
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note — context, who it was with. Use #tags to file it."
+              placeholder="Optional note: context, who it was with. Use #tags to file it."
               rows={3}
               maxLength={1000}
               // Fixed height (field-sizing:fixed) — auto-growing inside the

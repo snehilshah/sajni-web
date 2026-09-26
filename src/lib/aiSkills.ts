@@ -33,7 +33,7 @@ export const SKILLS: Skill[] = [
     label: 'Weekly review',
     icon: ListChecks,
     prompt:
-      "Summarize what I did this past week — habits hit/missed, tasks completed, and money spent grouped by category.",
+      "Summarize what I did this past week, habits hit/missed, tasks completed, and money spent grouped by category.",
   },
   {
     id: 'recommend',

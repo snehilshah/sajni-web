@@ -119,7 +119,7 @@ export default function ThinkingPage() {
             <div className="serif text-sm font-semibold px-1">New project</div>
             <Input
               autoFocus
-              placeholder="Title — what are you thinking about?"
+              placeholder="Title: what are you thinking about?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
@@ -146,7 +146,7 @@ export default function ThinkingPage() {
           <Sparkles className="size-8 mx-auto text-primary" />
           <div className="serif text-lg">Start thinking</div>
           <div className="text-sm text-muted-foreground max-w-md mx-auto">
-            Projects hold typed thought-cards — questions, ideas, claims, evidence.
+            Projects hold typed thought-cards: questions, ideas, claims, evidence.
             Sajni enriches each card with meaning, then synthesizes a thesis.
           </div>
           <Button onClick={() => setOpen(true)}><Plus className="size-4 mr-1" /> New project</Button>

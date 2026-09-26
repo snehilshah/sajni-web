@@ -94,7 +94,7 @@ function eventText(e: TaskEvent): React.ReactNode {
     case 'created':
       return 'Created this task';
     case 'status':
-      return <>Status <b className="font-medium">{label(e.from) || '—'}</b> → <b className="font-medium">{label(e.to)}</b></>;
+      return <>Status <b className="font-medium">{label(e.from) || '–'}</b> → <b className="font-medium">{label(e.to)}</b></>;
     case 'title':
       return <>Renamed to <b className="font-medium">“{e.to}”</b></>;
     case 'list':
@@ -659,7 +659,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {!form.scheduled_time
-                    ? 'Set a time — scheduled for the due date, or today if none is set.'
+                    ? 'Set a time. Scheduled for the due date, or today if none is set.'
                     : form.remind
                       ? "You'll be emailed at this task's scheduled time. Want another nudge too? Add a custom reminder below."
                       : 'Shows on your Today agenda. Turn on Remind for an email nudge at the scheduled time.'}
@@ -669,7 +669,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               <div className="p-3">
                 <p className="text-xs text-muted-foreground inline-flex items-start gap-1.5">
                   <Clock className="size-3 mt-0.5 shrink-0" /> <span>{form.due_type === 'month'
-                    ? 'Month goals have no set time. Sajni emails your pending month tasks on the last day of the month — break them into dated sessions below.'
+                    ? 'Month goals have no set time. Sajni emails your pending month tasks on the last day of the month. Break them into dated sessions below.'
                     : 'Week tasks have no set time. Sajni emails your pending week tasks every Friday morning. Add a reminder below for a custom nudge.'}</span>
                 </p>
               </div>
@@ -1081,7 +1081,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
         </AnimatePresence>
 
         {rems && rems.length === 0 && !adding && (
-          <p className="text-xs text-muted-foreground px-1">No extra reminders — add one for any date and time.</p>
+          <p className="text-xs text-muted-foreground px-1">No extra reminders. Add one for any date and time.</p>
         )}
 
         {adding ? (

@@ -55,7 +55,7 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'important', label: 'Important', description: 'Starred tasks' },
   { smart: 'planned', label: 'Planned', description: 'Tasks with a due date' },
   { smart: 'week', label: 'This Week', description: 'Week-scoped tasks due this week' },
-  { smart: 'month', label: 'This Month', description: 'Month goals — long agendas broken into sessions' },
+  { smart: 'month', label: 'This Month', description: 'Month goals: long agendas broken into sessions' },
   { smart: 'scheduled', label: 'Scheduled', description: 'Tasks with a time / reminder' },
   { smart: 'blocked', label: 'Blocked', description: 'Tasks waiting on another task' },
   { smart: 'missed', label: 'Missed', description: 'Overdue & still open' },

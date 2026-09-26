@@ -358,7 +358,7 @@ export default function LandingPage() {
               </h1>
               <p className="mt-7 max-w-lg text-lg leading-8 text-muted-foreground sm:text-xl">
                 Sajni brings your notes, days, plans, habits, projects, media, and money into one
-                personal codex—then tends each thread with care.
+                personal space. Keep each thread connected.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link to="/signin" className={buttonVariants({ variant: 'default', size: 'lg' })}>
@@ -434,7 +434,7 @@ export default function LandingPage() {
                   The system should feel personal before you put anything in it.
                 </h2>
                 <p className="mt-5 max-w-lg text-base leading-7 text-[hsl(var(--on-primary-container)/0.78)]">
-                  Every Sajni theme is a complete Material 3 tonal system—not a coat of paint.
+                  Every Sajni theme is a complete Material 3 tonal system, not a coat of paint.
                   Surfaces, focus states, charts, light mode, and dark mode all follow together.
                 </p>
               </div>
@@ -524,7 +524,7 @@ export default function LandingPage() {
             <div className="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-end">
             <div>
                 <h2 className="serif max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.04em] sm:text-6xl">
-                  A beloved place to return to—not another system to perform for.
+                  A beloved place to return to, not another system to perform for.
                 </h2>
               </div>
               <div>
@@ -564,7 +564,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
           <Brand />
           <p className="max-w-md text-sm leading-6 text-muted-foreground sm:text-right">
-            A personal codex for notes, days, plans, habits, projects, media, and money.
+            A personal space for notes, days, plans, habits, projects, media, and money.
           </p>
         </div>
       </footer>

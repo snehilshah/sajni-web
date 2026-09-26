@@ -290,13 +290,13 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Select
               value={accountId || 'none'}
               onValueChange={(v) => setAccountId(!v || v === 'none' ? '' : v)}
-              items={[{ value: 'none', label: '— none —' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
+              items={[{ value: 'none', label: 'None' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
             >
               <SelectTrigger>
-                <SelectValue placeholder="— none —" />
+                <SelectValue placeholder="None" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">— none —</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {accounts.map((a) => (
                   <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
                 ))}
@@ -341,7 +341,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <div className="col-span-2 rounded-xl border border-border divide-y divide-border">
               <CheckRow
                 label="Automatically debit?"
-                desc="Each cycle Sajni posts the contribution from the linked account and grows this investment — you'll get a notification."
+                desc="Each cycle Sajni posts the contribution from the linked account and grows this investment. You'll get a notification."
                 checked={autoDebit && !autoDebitBlocked}
                 onChange={setAutoDebit}
                 disabled={!!autoDebitBlocked}

@@ -244,7 +244,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
             </div>
           ) : (
             <div className="font-mono text-xs mt-2 opacity-75">
-              {lastSnap ? `Last snapshot ${format(parseISO(lastSnap.date), 'MMM d, yyyy')}` : 'No snapshots yet — take one to start the trend.'}
+              {lastSnap ? `Last snapshot ${format(parseISO(lastSnap.date), 'MMM d, yyyy')}` : 'No snapshots yet. Take one to start the trend.'}
             </div>
           )}
         </div>

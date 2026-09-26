@@ -20,14 +20,14 @@ export default function SettingsDoc() {
         <FeatureList>
           <Feature name="Light / Dark / System">
             <p>
-              System follows the OS live — flip your OS at sunset and Sajni
+              System follows the OS live, flip your OS at sunset and Sajni
               follows without a reload. The choice applies before first paint,
               so there's no flash on load.
             </p>
           </Feature>
           <Feature name="Density">
             <p>
-              Compact / Comfortable / Cozy scales the entire type ramp — one
+              Compact / Comfortable / Cozy scales the entire type ramp, one
               knob, no per-page settings.
             </p>
           </Feature>
@@ -39,15 +39,15 @@ export default function SettingsDoc() {
           <Feature name="Preset themes">
             <p>
               Marine, PowerPuff, Gruvbox, Peach, Mauve. Each is just a set of
-              Material 3 seed colors — the full light <em>and</em> dark token
+              Material 3 seed colors, the full light <em>and</em> dark token
               families derive from the seeds, which is why every theme
               respects the Appearance toggle.
             </p>
           </Feature>
           <Feature name="AI themes">
             <p>
-              Describe a vibe — <Code>“forest morning, calm,
-              dark-leaning”</Code> — and Sajni mixes seed colors and derives
+              Describe a vibe, <Code>“forest morning, calm,
+              dark-leaning”</Code>, and Sajni mixes seed colors and derives
               the same token set. Behavior:
             </p>
             <ul>
@@ -67,7 +67,7 @@ export default function SettingsDoc() {
             <p>
               The profile card keeps your larger voxel character beside your
               editable display name, email and linked sign-in methods. Reroll
-              changes the character without uploading or storing an image —
+              changes the character without uploading or storing an image,
               it is generated locally from your account and revision. Theme
               swatches tint it, motion follows reduced-motion preferences,
               and navigation uses a calmer close crop at its compact size.
@@ -96,14 +96,14 @@ export default function SettingsDoc() {
           <Feature name="Takeout">
             <p>
               One button downloads a .zip of everything you own. The same
-              section imports a takeout back — the import reports exactly
+              section imports a takeout back, the import reports exactly
               what it restored, per module.
             </p>
           </Feature>
           <Feature name="Delete account">
             <p>
               Type-to-confirm, and deletion is <em>scheduled</em> with a
-              purge date rather than instant — a cooling-off window during
+              purge date rather than instant, a cooling-off window during
               which you can cancel from the same screen. After the purge
               date, it's gone server-side.
             </p>
@@ -111,7 +111,7 @@ export default function SettingsDoc() {
         </FeatureList>
         <Callout>
           Finance has its own CSV exports (transactions, budgets, net-worth)
-          under Finance → Export — spreadsheet-shaped, no lock-in.
+          under Finance → Export, spreadsheet-shaped, no lock-in.
         </Callout>
       </Section>
     </>

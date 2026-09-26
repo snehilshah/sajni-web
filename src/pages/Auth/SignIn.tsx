@@ -112,17 +112,16 @@ export default function SignIn() {
             <span className="sajni-logo" aria-hidden="true" />
             <div>
               <div className="serif text-[20px] font-semibold leading-tight">sajni</div>
-              <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">codex</div>
             </div>
           </Link>
 
           <div className="max-w-md">
             <h1 className="serif text-5xl lg:text-6xl font-normal tracking-[-0.02em] leading-[1.05]">
               Notes, journal, tasks, habits.<br />
-              <em className="text-muted-foreground">One quiet codex.</em>
+              <em className="text-muted-foreground">One place for your day.</em>
             </h1>
             <div className="serif italic text-base text-muted-foreground mt-6 max-w-sm">
-              A printer's specimen book for the second brain. Capture quickly. Reflect slowly.
+              Capture quickly. Reflect at your own pace.
             </div>
           </div>
 
@@ -141,7 +140,6 @@ export default function SignIn() {
               <span className="sajni-logo" aria-hidden="true" />
               <div>
                 <div className="serif text-[18px] font-semibold leading-tight">sajni</div>
-                <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground">codex</div>
               </div>
             </Link>
 

@@ -99,7 +99,7 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
         <CardsSkeleton count={3} />
       ) : budgets.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No budgets yet. A budget is a limit over a set of transactions — this
+          No budgets yet. A budget is a limit over a set of transactions: this
           month's food, this week's spending, a trip. Dates are optional, and
           nothing resets on its own.
         </div>
@@ -457,7 +457,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
             </div>
             <p className="text-xs text-muted-foreground">
               {startDate && endDate
-                ? 'Counts only transactions in this range. It will not roll into the next one — duplicate the budget when the window closes.'
+                ? 'Counts only transactions in this range. It will not roll into the next one. Duplicate the budget when the window closes.'
                 : 'No dates means every transaction counts, whenever it happened.'}
             </p>
           </div>
@@ -493,7 +493,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Leave this empty and the budget counts Plain only — your normal
+                Leave this empty and the budget counts Plain only, your normal
                 life, with outliers kept out. Pick a slate to budget the outlier
                 instead: select Goa trip and nothing else, and this becomes the
                 trip's budget.
@@ -512,7 +512,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
             </div>
             {items.length === 0 ? (
               <div className="text-xs text-muted-foreground italic py-2">
-                Optional soft caps per category — they warn, they don't block.
+                Optional soft caps per category warn without blocking.
                 {slateIds.size > 0 && ' Caps count only the slates selected above.'}
               </div>
             ) : (
@@ -522,13 +522,13 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                     <Select
                       value={it.category_id == null ? 'none' : String(it.category_id)}
                       onValueChange={(v) => updateItem(idx, { category_id: !v || v === 'none' ? null : parseInt(v) })}
-                      items={[{ value: 'none', label: '— category —' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
+                      items={[{ value: 'none', label: 'Choose category' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="— category —" />
+                        <SelectValue placeholder="Choose category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">— category —</SelectItem>
+                        <SelectItem value="none">Choose category</SelectItem>
                         {categories.map((c) => (
                           <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                         ))}

@@ -67,7 +67,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
       // and its budgets keep counting them. Say so, because "archive" elsewhere
       // in the app usually means "out of the way and out of the numbers".
       toast.success(archived
-        ? `"${s.name}" archived — its transactions stay where they are`
+        ? `"${s.name}" archived, its transactions stay where they are`
         : `"${s.name}" is back`);
       refreshSlates();
     } catch (e) { toast.error(msg(e)); }
@@ -81,7 +81,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
       const ok = await confirmDialog({
         title: `Delete "${s.name}"?`,
         description:
-          `${n === 1 ? 'Its 1 transaction moves' : `All ${n} transactions move`} to Plain — ` +
+          `${n === 1 ? 'Its 1 transaction moves' : `All ${n} transactions move`} to Plain, ` +
           'they become part of your normal spending again. Any budget covering ' +
           'those dates will count them from now on, including past months.',
         confirmText: n === 1 ? 'Move 1 and delete' : `Move ${n} and delete`,
@@ -111,7 +111,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
             the width and the month figure rather than a lifetime total. */}
         <SlateTile
           slate={plain}
-          headline={plain ? formatMoney(plain.month_spend) : '—'}
+          headline={plain ? formatMoney(plain.month_spend) : '–'}
           headlineLabel="this month"
           meta={plain
             ? `${plain.txn_count === 1 ? '1 transaction' : `${plain.txn_count} transactions`} · what your budgets count`
@@ -145,7 +145,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
           <div className="rounded-xl border border-dashed border-border p-8 text-center">
             <p className="text-sm font-medium">No slates yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              A slate holds spending that isn't your normal life — a trip, a
+              A slate holds spending that isn't your normal life, a trip, a
               wedding, a one-off purchase. Anything in one stops counting
               against your ordinary budgets, so your baseline stays honest.
             </p>

@@ -83,7 +83,7 @@ const RELEASES: Release[] = [
     version: '0.48.0',
     date: '2026-08-21',
     summary:
-      'You have a face now — a deterministic voxel-art character that lives in the nav dock, '
+      'You have a face now, a deterministic voxel-art character that lives in the nav dock, '
       + 'the user menu, and a new profile card on Settings.',
     entries: [
       {
@@ -95,7 +95,7 @@ const RELEASES: Release[] = [
           + 'and a revision counter. The avatar appears in the navigation dock (head crop), '
           + 'the account dropdown, and a new hero card at the top of Settings that also shows '
           + 'your name, email, and linked sign-in methods. Hit "Reroll avatar" to get a '
-          + 'different character — or ask Sajni to do it. No image is stored; the API only '
+          + 'different character, or ask Sajni to do it. No image is stored; the API only '
           + 'persists a single integer.',
       },
       {
@@ -173,7 +173,7 @@ const RELEASES: Release[] = [
         detail:
           'Every transaction now sits in exactly one slate, and slates answer a single question: '
           + 'is this normal life, or not? “Plain” is normal life and is where everything lands '
-          + 'unless you say otherwise; every other slate is an outlier you named — a trip, a move, '
+          + 'unless you say otherwise; every other slate is an outlier you named, a trip, a move, '
           + 'a one-off. Budgets ignore any slate they do not explicitly name, so a fortnight in Goa '
           + 'no longer wrecks your baseline. Sharing and splitting a pocket across transactions is '
           + 'gone with them; a transaction belongs to one slate or to Plain.',
@@ -183,7 +183,7 @@ const RELEASES: Release[] = [
         area: 'Notes',
         title: 'Fold folders on the notes index',
         detail:
-          'Each folder section on the notes index now has a toggle — a chevron and a folder icon — '
+          'Each folder section on the notes index now has a toggle, a chevron and a folder icon, '
           + 'that folds that folder’s notes away and back. It reveals in place rather than '
           + 'navigating: you never end up “inside” a folder, and the other sections stay put. '
           + 'What you fold is remembered; anything you haven’t touched stays open.',
@@ -198,7 +198,7 @@ const RELEASES: Release[] = [
           'The emoji mood picker has been removed from daily, weekly and monthly entries, along '
           + 'with the mood glyph beside each day in the sidebar, the weekly stat tiles, the '
           + 'keyboard shortcut that cycled it, and the mood-versus-tasks insight. Moods recorded '
-          + 'previously have been deleted rather than hidden. Nothing else in the journal changed — '
+          + 'previously have been deleted rather than hidden. Nothing else in the journal changed, '
           + 'entries, locations and attachments are untouched, and older exports that still carry a '
           + 'mood line import fine.',
       },
@@ -207,7 +207,7 @@ const RELEASES: Release[] = [
         area: 'Memos',
         title: 'Memo cards read as cards again',
         detail:
-          'Memo cards were rounded to nearly a capsule — on a short one-line memo the corners met '
+          'Memo cards were rounded to nearly a capsule, on a short one-line memo the corners met '
           + 'in the middle. They now use the standard card corner, so a one-liner and a long memo '
           + 'look like the same object at different heights.',
       },
@@ -227,7 +227,7 @@ const RELEASES: Release[] = [
         area: 'Finance',
         title: 'Showing archived slates stops redrawing the page',
         detail:
-          'Turning on “show archived” in Slates rebuilt the whole Finance page — every tab '
+          'Turning on “show archived” in Slates rebuilt the whole Finance page, every tab '
           + 'refetched and the screen blanked for a moment to reveal a few extra tiles. Archived '
           + 'slates now come down with the rest and the toggle simply filters what is already '
           + 'loaded. Renaming, recolouring or archiving a slate also stops refetching accounts, '
@@ -310,7 +310,7 @@ const RELEASES: Release[] = [
           'The primary icon bar and the page tabs now show a faint highlight that glides to whatever '
           + 'you hover, separate from the solid marker on the page you are actually on. It appears in '
           + 'place when your cursor enters a bar, travels only when you move between items, and '
-          + 'disappears in place when you leave — never flying in from the edge. On the primary bar the '
+          + 'disappears in place when you leave, never flying in from the edge. On the primary bar the '
           + 'highlight is a circle that stays centred under the magnifying dock icons and is sized to '
           + 'frame the enlarged icon. It respects the reduced-motion setting.',
       },
@@ -322,7 +322,7 @@ const RELEASES: Release[] = [
         title: 'Completed progress bars turn green',
         detail:
           'When a show, a movie series, or a task with subtasks/steps reaches 100%, its wavy progress '
-          + 'bar flattens into a calm line — and now that line is green to signify completion, instead '
+          + 'bar flattens into a calm line, and now that line is green to signify completion, instead '
           + 'of staying the in-progress accent colour.',
       },
       {
@@ -350,7 +350,7 @@ const RELEASES: Release[] = [
         area: 'Library',
         title: 'Editing a book no longer errors on save',
         detail:
-          'Saving an edit to a book — or any entry without a release date — failed with '
+          'Saving an edit to a book, or any entry without a release date, failed with '
           + '“invalid release_date”, because an empty date was being rejected. Empty dates now clear the '
           + 'field correctly, the same way creating an entry already did.',
       },
@@ -367,8 +367,8 @@ const RELEASES: Release[] = [
         area: 'Navigation',
         title: 'Visible hover in the page switcher',
         detail:
-          'In the compact “all pages” dropdown — the one that appears once the top bars merge as you '
-          + 'scroll — each tile’s hover colour matched the panel background, so hovering did nothing '
+          'In the compact “all pages” dropdown, the one that appears once the top bars merge as you '
+          + 'scroll, each tile’s hover colour matched the panel background, so hovering did nothing '
           + 'visible. Tiles now shift to a clearly distinct shade on hover in both light and dark themes.',
       },
       {
@@ -507,7 +507,7 @@ export default function ChangelogPage() {
         <header>
           <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">Changelog</h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-            Everything that changes in Sajni, newest first — features, improvements, and fixes, down to
+            Everything that changes in Sajni, newest first, features, improvements, and fixes, down to
             the small stuff.
           </p>
         </header>

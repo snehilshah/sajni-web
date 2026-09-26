@@ -521,8 +521,8 @@ function TitleAutocomplete({
   };
 
   const placeholder = type === 'book'
-    ? 'Title — search Open Library or type manually'
-    : 'Title — search movies & shows on TMDB or type manually';
+    ? 'Title: search Open Library or type manually'
+    : 'Title: search movies & shows on TMDB or type manually';
 
   return (
     <div className="relative group" ref={wrapRef}>
@@ -2262,7 +2262,7 @@ function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = nul
                     <span className="serif font-medium truncate max-w-[18rem]">{item.title || 'Untitled'}</span>
                   </span>
                 </td>
-                <td className="px-3 py-2 mono text-xs tabular-nums text-muted-foreground">{item.year || '—'}</td>
+                <td className="px-3 py-2 mono text-xs tabular-nums text-muted-foreground">{item.year || '–'}</td>
                 <td className="px-3 py-2">
                   <span className={cn('chip h-6 px-2.5 text-xs leading-none max-w-full', statusDisplay.chipClass)} title={statusDisplay.label}>
                     <span className="truncate">{statusDisplay.shortLabel}</span>
@@ -2274,19 +2274,19 @@ function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = nul
                       <Star className="size-3 fill-current" />
                       <span className="tabular-nums">{item.rating}</span>
                     </span>
-                  ) : <span className="text-muted-foreground/50">—</span>}
+                  ) : <span className="text-muted-foreground/50">–</span>}
                 </td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {showPlatform ? (
                     item.platform
                       ? <PlatformLogo platform={item.platform} iconClassName="size-[15px]" />
-                      : <span className="text-muted-foreground/50">—</span>
+                      : <span className="text-muted-foreground/50">–</span>
                   ) : (
-                    <span className="mono tabular-nums">{pct !== null ? `${pct}%` : '—'}</span>
+                    <span className="mono tabular-nums">{pct !== null ? `${pct}%` : '–'}</span>
                   )}
                 </td>
                 <td className="px-3 py-2 mono text-xs text-muted-foreground text-right pr-4 whitespace-nowrap">
-                  {item.updated_at ? relativeTiny(item.updated_at) : '—'}
+                  {item.updated_at ? relativeTiny(item.updated_at) : '–'}
                 </td>
               </tr>
             );
@@ -2322,7 +2322,7 @@ function SeriesPosterCard({
     <button
       onClick={onOpen}
       className="group relative text-left flex flex-col gap-2 w-full"
-      title={`${row.collectionName} — ${watched}/${row.members.length} watched`}
+      title={`${row.collectionName}, ${watched}/${row.members.length} watched`}
     >
       {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster
           fills it edge-to-edge. The stacked-card depth shadow is desktop-
@@ -2592,7 +2592,7 @@ function ActivityTimeline({ mediaId, type }: { mediaId: number; type: MediaKind 
       )}
       {!loading && events && events.length === 0 && (
         <div className="text-xs text-muted-foreground">
-          No events yet — they're recorded as you update progress.
+          No events yet. They're recorded as you update progress.
         </div>
       )}
       {!loading && events && events.length > 0 && (

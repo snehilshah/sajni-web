@@ -295,7 +295,7 @@ function NameEditor() {
   if (!editing) {
     return (
       <div className="flex items-center gap-2">
-        <span className="serif font-semibold">{user.name || '—'}</span>
+        <span className="serif font-semibold">{user.name || '–'}</span>
         <button
           onClick={begin}
           className="size-7 rounded-full grid place-items-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]"
@@ -512,7 +512,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Theme" caption="Each theme has light and dark variants — toggle with Appearance above.">
+        <Section title="Theme" caption="Each theme has light and dark variants. Toggle with Appearance above.">
           <div className="flex flex-wrap gap-2">
             {THEMES.map((t) => {
               const active = !activeUserTheme && preset === t.id;
@@ -560,7 +560,7 @@ export default function SettingsPage() {
         <Section
           id="themes"
           title="AI themes"
-          caption='Describe a vibe — "moss & bone, calm, dark-leaning" — and Sajni will mix you an M3 palette.'
+          caption='Describe a vibe like "moss & bone, calm, dark-leaning" and Sajni will mix you an M3 palette.'
         >
           <AIThemes />
         </Section>

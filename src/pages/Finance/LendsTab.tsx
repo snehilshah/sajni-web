@@ -273,7 +273,7 @@ function RepaymentDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend |
         </Field>
         <Field label={`Principal returned · max ${lend?.outstanding.toFixed(2) ?? '0.00'}`}><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
         <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
-        <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Optional — record interest separately as income." /></Field>
+        <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Optional. Record interest separately as income." /></Field>
       </div>
       <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Record repayment'}</Button></DialogFooter>
     </DialogContent>

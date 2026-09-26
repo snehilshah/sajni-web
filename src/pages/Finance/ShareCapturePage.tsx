@@ -322,7 +322,7 @@ function Capture({ text }: { text: string }) {
             {text}
           </p>
         ) : (
-          <p className="mt-3 text-xs text-muted-foreground">No message text — fill in the transaction manually.</p>
+          <p className="mt-3 text-xs text-muted-foreground">No message text. Fill in the transaction manually.</p>
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -371,11 +371,11 @@ function Capture({ text }: { text: string }) {
             <Select
               value={categoryId || 'none'}
               onValueChange={(v) => setCategoryId(!v || v === 'none' ? '' : v)}
-              items={[{ value: 'none', label: '— category —' }, ...filteredCats.map((c) => ({ value: String(c.id), label: c.name }))]}
+              items={[{ value: 'none', label: 'Choose category' }, ...filteredCats.map((c) => ({ value: String(c.id), label: c.name }))]}
             >
-              <SelectTrigger><SelectValue placeholder="— category —" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Choose category" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">— category —</SelectItem>
+                <SelectItem value="none">Choose category</SelectItem>
                 {filteredCats.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                 ))}
@@ -412,7 +412,7 @@ function Capture({ text }: { text: string }) {
           </Field>
 
           <Field label="Note" className="col-span-2">
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Extra context — ref no., purpose. Use #tags." maxLength={1000} />
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Extra context: ref no., purpose. Use #tags." maxLength={1000} />
           </Field>
 
           <Field label="Date">
