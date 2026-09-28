@@ -19,7 +19,7 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -391,11 +391,13 @@ function ReminderRow({ item, separated, onEdit, onSnooze, onCustomSnooze, onSkip
           <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Snooze</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Snooze</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => onSnooze(10)}><Clock />10 minutes</DropdownMenuItem>
           <DropdownMenuItem onClick={() => onSnooze(60)}><Clock />1 hour</DropdownMenuItem>
           <DropdownMenuItem onClick={() => onSnooze(minutesUntilTomorrowNine())}><CalendarClock />Tomorrow at 9 AM</DropdownMenuItem>
           <DropdownMenuItem onClick={onCustomSnooze}><CalendarClock />Pick date & time</DropdownMenuItem>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onEdit}><Pencil />Edit series</DropdownMenuItem>
           {item.recurrence.frequency && <DropdownMenuItem onClick={onSkip}><ChevronRight />Skip this occurrence</DropdownMenuItem>}

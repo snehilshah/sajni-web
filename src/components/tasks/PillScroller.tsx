@@ -106,35 +106,41 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
         return (
           <div
             key={l.id}
-            className={`group inline-flex items-center gap-1 h-9 pl-3.5 pr-1.5 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
+            className={`group inline-flex items-center h-9 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
               ${active
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
                 : 'bg-transparent text-foreground/85 border border-[hsl(var(--outline-variant))] hover:bg-[hsl(var(--on-surface)/0.08)]'}`}
           >
-            <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
             {isEditing ? (
-              <Input
-                name={`rename-list-${l.id}`}
-                autoFocus
-                value={editDraft}
-                onChange={(e) => setEditDraft(e.target.value)}
-                onBlur={() => submitRename(l.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') submitRename(l.id);
-                  if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
-                }}
-                className="h-6 w-24 border-0 border-b border-current bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-current focus-visible:shadow-none text-[12.5px]"
-              />
+              <span className="inline-flex items-center gap-1 h-full pl-3.5 pr-1.5">
+                <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
+                <Input
+                  name={`rename-list-${l.id}`}
+                  autoFocus
+                  value={editDraft}
+                  onChange={(e) => setEditDraft(e.target.value)}
+                  onBlur={() => submitRename(l.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitRename(l.id);
+                    if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
+                  }}
+                  className="h-6 w-24 border-0 border-b border-current bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-current focus-visible:shadow-none text-[12.5px]"
+                />
+              </span>
             ) : (
+              // The select target fills the whole pill (dot, name, count and
+              // padding) — only the kebab carves out its own hit area.
               <button
+                type="button"
                 onClick={() => onSelect({ kind: 'list', id: l.id })}
-                className="text-left"
+                className={`inline-flex items-center gap-1 h-full pl-3.5 rounded-full text-left ${onRename || onDelete ? 'pr-0.5' : 'pr-3.5'}`}
               >
+                <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
                 {l.name}
+                {l.task_count > 0 && (
+                  <span className="text-xs tabular-nums opacity-70 ml-1">{l.task_count}</span>
+                )}
               </button>
-            )}
-            {!isEditing && l.task_count > 0 && (
-              <span className="text-xs tabular-nums opacity-70 ml-1">{l.task_count}</span>
             )}
             {!isEditing && (onRename || onDelete) && (
               <DropdownMenu>
@@ -142,7 +148,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
                   render={
                     <button
                       onClick={(e) => e.stopPropagation()}
-                      className="ml-1 size-5 inline-flex items-center justify-center rounded-full opacity-60 hover:opacity-100 hover:bg-foreground/10"
+                      className="mr-1 size-7 inline-flex items-center justify-center rounded-full opacity-60 hover:opacity-100 hover:bg-foreground/10"
                       title="List options"
                     >
                       <MoreVertical className="size-3.5" />

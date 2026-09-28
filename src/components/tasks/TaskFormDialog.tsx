@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -376,9 +376,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		          <span className="size-4 rounded-full border border-[hsl(var(--outline))]" style={{ backgroundColor: form.color ?? 'transparent' }}><Circle className={cn('size-3.5', form.color && 'opacity-0')} /></span>
 		        </DropdownMenuTrigger>
 		        <DropdownMenuContent align="end" className="min-w-44">
+		          <DropdownMenuGroup>
 		          <DropdownMenuLabel>Task color</DropdownMenuLabel>
 		          <DropdownMenuItem onClick={() => setForm({ ...form, color: null })}><span className="size-4 rounded-full border border-[hsl(var(--outline))]" /> None</DropdownMenuItem>
 		          {TASK_COLORS.map((color) => <DropdownMenuItem key={color.value} onClick={() => setForm({ ...form, color: color.value })}><span className="size-4 rounded-full" style={{ backgroundColor: color.value }} />{color.label}{form.color === color.value && <Check className="ml-auto size-4" />}</DropdownMenuItem>)}
+		          </DropdownMenuGroup>
 		        </DropdownMenuContent>
 		      </DropdownMenu>
 		      <Button variant="ghost" size="icon-sm" aria-label="Reminder settings" title="Reminder settings" onClick={() => setMoreDetails(true)} className={form.remind || form.reminders.length ? 'text-primary' : undefined}><Bell /></Button>

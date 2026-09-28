@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -503,6 +503,7 @@ export default function TransactionsTab({
                 <Wallet className="size-4" /> {sweeping ? 'Moving…' : 'Move to slate'}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
+                <DropdownMenuGroup>
                 <DropdownMenuLabel>Move out of the budget baseline</DropdownMenuLabel>
                 {/* Never a sweep target: archiving a slate means it is finished. */}
                 {slates.filter((s) => !s.archived && !s.is_plain).map((s) => (
@@ -514,6 +515,7 @@ export default function TransactionsTab({
                 <DropdownMenuItem onClick={() => setNewSlate(true)}>
                   <Plus /> New slate…
                 </DropdownMenuItem>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => sweep(0, plain?.name ?? 'Plain')}>
                   <Check /> Back to normal life

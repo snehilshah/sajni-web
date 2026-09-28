@@ -58,11 +58,7 @@ export default function TaskRow({
     ? Math.round(((task.subtasks_done ?? 0) / (task.subtask_count || 1)) * 100)
     : 0;
   const dimmed = task.status === 'done' || task.status === 'scratched';
-  const rowPct = hasSubtasks
-    ? subtaskPct
-    : totalSteps > 0
-      ? Math.round((completedSteps / totalSteps) * 100)
-      : null;
+  const stepPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
   const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,11 +87,21 @@ export default function TaskRow({
     });
   };
 
+  // Single fixed-height line: title on the left, attributes as tonal chips
+  // in the right-hand gutter. Chips drop by priority via container queries
+  // (row width, not viewport), so nested and narrow rows never grow taller.
+  const chip = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs leading-none';
+  const calendarIcon = (
+    <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
+    </svg>
+  );
+
   const row = (
       <div
         onClick={onClick}
         className={cn(
-          'group cursor-pointer transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.995] text-left',
+          '@container group cursor-pointer transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.995] text-left',
           attached
             ? cn('rounded-none border-0 bg-[hsl(var(--surface-container-low))]', !first && 'border-t border-[hsl(var(--outline-variant))]')
             : hasSubtasks
@@ -105,7 +111,7 @@ export default function TaskRow({
         )}
         style={!attached && !hasSubtasks ? { marginLeft: depth * 24 } : undefined}
       >
-        <div className={cn('flex items-start gap-3', compact ? 'min-h-[68px] px-3 py-2.5' : 'min-h-12 px-3.5 py-3')}>
+        <div className={cn('flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
           <motion.button
             onClick={handleToggleStatus}
@@ -147,27 +153,75 @@ export default function TaskRow({
             </motion.span>
           </motion.button>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-              {Boolean(task.description?.trim()) && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
-              <span className={`font-medium text-[0.9375rem] leading-snug flex-1 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
-                {task.title}
-              </span>
-            </div>
+          <div className="flex flex-1 min-w-0 items-center gap-2">
+            <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
+            {Boolean(task.description?.trim()) && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
+            <span className={`font-medium text-[0.9375rem] leading-snug flex-1 min-w-0 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
+              {task.title}
+            </span>
 
-            {/* Meta row */}
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
+            {/* Attribute chips, highest priority last so it sits nearest the edge. */}
+            <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+              {task.tags && task.tags.length > 0 && (
+                <span className="hidden @2xl:inline-flex items-center gap-1">
+                  {task.tags.slice(0, 2).map((tag) => <TagPill key={tag} tag={tag} />)}
+                  {task.tags.length > 2 && <span className="text-xs">+{task.tags.length - 2}</span>}
+                </span>
+              )}
               {/* Subtask hint — only when shown as a flat row (smart/missed/all
-                  views). Stops a child task from reading as a normal top-level
-                  task, which is what made "Talk with chandan once" confusing. */}
+                  views), so a child task doesn't read as a top-level one. */}
               {depth === 0 && task.parent_task_id != null && !attached && (
-                <span className="inline-flex items-center gap-0.5 text-muted-foreground/80" title="This is a subtask">
-                  <CornerDownRight className="size-3" /> subtask
+                <span className={cn(chip, 'hidden @sm:inline-flex bg-[hsl(var(--on-surface)/0.06)]')} title="This is a subtask">
+                  <CornerDownRight className="size-3" /><span className="hidden @xl:inline">subtask</span>
                 </span>
               )}
               {task.status === 'scratched' && (
-                <span className="inline-flex items-center rounded-full px-1.5 py-px bg-[hsl(var(--on-surface)/0.08)]">scratched</span>
+                <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.08)]')}>scratched</span>
+              )}
+              {task.week_of && !task.due_date && (
+                <span className={cn(chip, 'hidden @md:inline-flex bg-[hsl(var(--on-surface)/0.06)]')} title="Week task">
+                  {calendarIcon} wk of {format(parseISO(task.week_of), 'MMM d')}
+                </span>
+              )}
+              {task.month_of && !task.due_date && !task.week_of && (
+                <span className={cn(chip, 'hidden @md:inline-flex bg-[hsl(var(--on-surface)/0.06)]')} title="Month goal">
+                  {calendarIcon} {format(parseISO(task.month_of), 'MMM')}
+                </span>
+              )}
+              {task.due_date && (
+                <span
+                  className={cn(chip, 'hidden @xs:inline-flex', overdue
+                    ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]'
+                    : 'bg-[hsl(var(--on-surface)/0.06)]')}
+                  title={overdue ? 'Overdue' : 'Due'}
+                >
+                  {calendarIcon} {format(parseISO(task.due_date), 'MMM d')}
+                </span>
+              )}
+              {task.scheduled_at && (
+                <span
+                  className={cn(chip, task.remind
+                    ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+                    : 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]')}
+                  title={task.remind ? 'Reminder set' : 'Scheduled'}
+                >
+                  {task.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
+                  {format(parseISO(task.scheduled_at), 'h:mm a')}
+                </span>
+              )}
+              {!hasSubtasks && totalSteps > 0 && (
+                <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.06)]')} title="Steps">
+                  <WavyProgress
+                    value={stepPct}
+                    height={10}
+                    active={stepPct > 0 && stepPct < 100}
+                    marker={false}
+                    label="Steps"
+                    className="hidden @md:block w-10"
+                  />
+                  <ListChecks className="size-3 @md:hidden" />
+                  <span className="mono tabular-nums">{completedSteps}/{totalSteps}</span>
+                </span>
               )}
               {task.status === 'blocked' && (
                 <button
@@ -178,80 +232,39 @@ export default function TaskRow({
                       window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.blocked_by_task_id } }));
                     }
                   }}
-                  className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-[hsl(var(--on-error-container))]"
+                  className={cn(chip, 'min-w-0 bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}
                   title={task.blocked_by_task_title ? `Blocked by ${task.blocked_by_task_title}` : 'Blocked'}
                 >
                   <GitBranch className="size-3 shrink-0" />
-                  <span className="truncate max-w-44">Blocked by {task.blocked_by_task_title || 'another task'}</span>
+                  <span className="@lg:hidden">Blocked</span>
+                  <span className="hidden @lg:inline truncate max-w-40">Blocked by {task.blocked_by_task_title || 'another task'}</span>
                 </button>
-              )}
-              {task.due_date && (
-                <span className={`inline-flex items-center gap-1 ${overdue ? 'text-destructive' : ''}`}>
-                  <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
-                  </svg>
-                  {format(parseISO(task.due_date), 'MMM d')}
-                </span>
-              )}
-              {task.week_of && !task.due_date && (
-                <span className="inline-flex items-center gap-1" title="Week task">
-                  <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
-                  </svg>
-                  wk of {format(parseISO(task.week_of), 'MMM d')}
-                </span>
-              )}
-              {task.month_of && !task.due_date && !task.week_of && (
-                <span className="inline-flex items-center gap-1" title="Month goal">
-                  <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
-                  </svg>
-                  {format(parseISO(task.month_of), 'MMMM')}
-                </span>
-              )}
-              {task.scheduled_at && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
-                    task.remind
-                      ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
-                      : 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
-                  }`}
-                  title={task.remind ? 'Reminder set' : 'Scheduled'}
-                >
-                  {task.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
-                  <span>{format(parseISO(task.scheduled_at), 'h:mm a')}</span>
-                </span>
-              )}
-              {totalSteps > 0 && (
-                <span className="inline-flex items-center gap-1">
-                  <ListChecks className="size-3" /> {completedSteps}/{totalSteps}
-                </span>
-              )}
-              {task.tags && task.tags.length > 0 && (
-                <span className="inline-flex gap-1 flex-wrap">
-                  {task.tags.slice(0, 3).map((tag) => <TagPill key={tag} tag={tag} />)}
-                  {task.tags.length > 3 && <span className="text-xs">+{task.tags.length - 3}</span>}
-                </span>
               )}
             </div>
           </div>
 
           {hasSubtasks && (
-            <div className="shrink-0 flex flex-col items-end gap-1.5">
-              <button
-                type="button"
-                onClick={toggleExpand}
-                onPointerEnter={() => { void prefetchSubtasks(task.id); }}
-                onFocus={() => { void prefetchSubtasks(task.id); }}
-                aria-expanded={expanded}
-                aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1.5 text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] transition-[background-color,filter]"
-              >
-                <span className="mono text-xs tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
-                <span className="hidden sm:inline text-xs font-medium">{expanded ? 'Hide' : 'View'} subtasks</span>
-                <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={toggleExpand}
+              onPointerEnter={() => { void prefetchSubtasks(task.id); }}
+              onFocus={() => { void prefetchSubtasks(task.id); }}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
+              title={expanded ? 'Hide subtasks' : 'View subtasks'}
+              className="shrink-0 inline-flex h-9 items-center gap-2 rounded-full bg-[hsl(var(--secondary-container))] pl-3 pr-2 text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] transition-[background-color,filter]"
+            >
+              <WavyProgress
+                value={subtaskPct}
+                height={10}
+                active={subtaskPct > 0 && subtaskPct < 100}
+                marker={false}
+                label="Subtasks"
+                className="hidden @sm:block w-12"
+              />
+              <span className="mono text-xs tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
+              <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
+            </button>
           )}
 
           <button
@@ -262,22 +275,6 @@ export default function TaskRow({
             <Star className={`size-[18px] ${task.important ? 'fill-current' : ''}`} />
           </button>
         </div>
-
-        {/* Progress spans the whole row — subtasks win over steps. */}
-        {rowPct !== null && (
-          <div className={cn('flex items-center gap-2.5 pb-2.5 -mt-1', compact ? 'px-3' : 'px-3.5')}>
-            <WavyProgress
-              value={rowPct}
-              height={12}
-              active={rowPct > 0 && rowPct < 100}
-              label={hasSubtasks ? 'Subtasks' : 'Steps'}
-              className="flex-1"
-            />
-            <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">
-              {hasSubtasks ? `${task.subtasks_done ?? 0}/${task.subtask_count ?? 0}` : `${completedSteps}/${totalSteps}`}
-            </span>
-          </div>
-        )}
       </div>
   );
 
