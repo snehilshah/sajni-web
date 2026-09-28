@@ -59,6 +59,8 @@ export default function TaskRow({
     : 0;
   const dimmed = task.status === 'done' || task.status === 'scratched';
   const stepPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+  // Subtasks win over steps; null = no progress bar.
+  const rowPct = hasSubtasks ? subtaskPct : totalSteps > 0 ? stepPct : null;
 
   const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -156,9 +158,26 @@ export default function TaskRow({
           <div className="flex flex-1 min-w-0 items-center gap-2">
             <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
             {Boolean(task.description?.trim()) && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
-            <span className={`font-medium text-[0.9375rem] leading-snug flex-1 min-w-0 truncate ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
+            <span className={`font-medium text-[0.9375rem] leading-snug min-w-0 truncate ${rowPct === null ? 'flex-1' : 'shrink @sm:max-w-[60%]'} ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
               {task.title}
             </span>
+
+            {/* Progress fills the gap between title and chips, so the wave
+                always has room to breathe instead of cramming into a chip. */}
+            {rowPct !== null && (
+              <>
+                <span className="flex-1 @sm:hidden" aria-hidden />
+                <div className="hidden @sm:flex flex-1 min-w-16 items-center px-3">
+                  <WavyProgress
+                    value={rowPct}
+                    height={12}
+                    active={rowPct > 0 && rowPct < 100}
+                    label={hasSubtasks ? 'Subtasks' : 'Steps'}
+                    className="flex-1"
+                  />
+                </div>
+              </>
+            )}
 
             {/* Attribute chips, highest priority last so it sits nearest the edge. */}
             <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
@@ -211,15 +230,7 @@ export default function TaskRow({
               )}
               {!hasSubtasks && totalSteps > 0 && (
                 <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.06)]')} title="Steps">
-                  <WavyProgress
-                    value={stepPct}
-                    height={10}
-                    active={stepPct > 0 && stepPct < 100}
-                    marker={false}
-                    label="Steps"
-                    className="hidden @md:block w-10"
-                  />
-                  <ListChecks className="size-3 @md:hidden" />
+                  <ListChecks className="size-3" />
                   <span className="mono tabular-nums">{completedSteps}/{totalSteps}</span>
                 </span>
               )}
@@ -254,14 +265,6 @@ export default function TaskRow({
               title={expanded ? 'Hide subtasks' : 'View subtasks'}
               className="shrink-0 inline-flex h-9 items-center gap-2 rounded-full bg-[hsl(var(--secondary-container))] pl-3 pr-2 text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] transition-[background-color,filter]"
             >
-              <WavyProgress
-                value={subtaskPct}
-                height={10}
-                active={subtaskPct > 0 && subtaskPct < 100}
-                marker={false}
-                label="Subtasks"
-                className="hidden @sm:block w-12"
-              />
               <span className="mono text-xs tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
               <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
             </button>
