@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/icons';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PRESETS, type PresetId } from '@/theme/presets';
+import { PRESETS, presetSwatches, type PresetId } from '@/theme/presets';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type CareViewId = 'today' | 'remember' | 'tend' | 'reflect';
@@ -458,11 +458,7 @@ export default function LandingPage() {
                       key={theme.id}
                       id={theme.id}
                       label={theme.label}
-                      colors={[
-                        theme.seeds.primary,
-                        theme.seeds.secondary,
-                        theme.seeds.tertiary,
-                      ]}
+                      colors={presetSwatches(theme.id).slice(0, 3)}
                       selected={preset === theme.id}
                       onSelect={selectTheme}
                     />

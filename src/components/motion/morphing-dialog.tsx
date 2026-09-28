@@ -49,7 +49,7 @@ export function MorphingDialog({
         <>
           <motion.div
             key="md-backdrop"
-            className="fixed inset-0 z-50 bg-foreground/35"
+            className="fixed inset-0 z-50 bg-scrim/35"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

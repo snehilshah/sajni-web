@@ -17,49 +17,12 @@
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 /* ============================================================
-   FIRST-PAINT FALLBACK — Marine
-   Matches the generated Marine preset so the initial document, loader,
-   and React theme all use one canonical palette.
+   Theme tokens. The M3 base tokens (--primary, --surface, …) come
+   from `virtual:theme-presets.css` (compiled from src/theme/presets.ts
+   at build time) or, for AI themes, the runtime custom stylesheet.
+   This file only maps them onto shadcn/Tailwind semantic names.
    ============================================================ */
 :root {
-  /* M3 KEY COLORS */
-  --primary:                188 100% 24%;
-  --on-primary:             0 0% 100%;
-  --primary-container:      193 100% 83%;
-  --on-primary-container:   191 100% 7%;
-
-  --secondary:              210 47% 38%;
-  --on-secondary:           0 0% 100%;
-  --secondary-container:    215 100% 91%;
-  --on-secondary-container: 207 100% 10%;
-
-  --tertiary:               164 100% 21%;
-  --on-tertiary:            0 0% 100%;
-  --tertiary-container:     155 80% 78%;
-  --on-tertiary-container:  160 100% 6%;
-
-  --error:                  0 75% 42%;
-  --on-error:               0 0% 100%;
-  --error-container:        6 100% 92%;
-  --on-error-container:     358 100% 13%;
-
-  --surface:                192 38% 97%;
-  --surface-dim:            192 7% 85%;
-  --surface-bright:         192 38% 97%;
-  --surface-container-lowest: 0 0% 100%;
-  --surface-container-low:  204 22% 95%;
-  --surface-container:      204 14% 93%;
-  --surface-container-high: 192 11% 91%;
-  --surface-container-highest: 192 8% 88%;
-  --on-surface:             200 11% 11%;
-  --on-surface-variant:     192 11% 27%;
-  --outline:                195 7% 46%;
-  --outline-variant:        194 15% 77%;
-  --scrim:                  0 0% 0%;
-  --inverse-surface:        192 5% 19%;
-  --inverse-on-surface:     204 17% 94%;
-  --inverse-primary:        192 66% 71%;
-
   /* shadcn / Tailwind semantic aliases */
   --background:             var(--surface);
   --foreground:             var(--on-surface);
@@ -92,75 +55,11 @@
   --sidebar-border:         var(--outline-variant);
   --sidebar-ring:           var(--primary);
 
-  --backdrop-blob-1:        193 100% 87%;
-  --backdrop-blob-2:        193 100% 90%;
-  --backdrop-blob-3:        193 100% 83%;
-  --backdrop-blob-4:        194 44% 92%;
-  --backdrop-blob-5:        192 38% 97%;
-  --backdrop-grain:         0.04;
-  --backdrop-intensity:     0.5;
-
-  /* Status accents */
-  --color-complete:         164 100% 20%;
-  --color-waiting:          210 42% 42%;
-
   /* Density + sizing */
   --text-scale: 1;
   --radius: 12px;
 
 }
-
-:root[data-mode="dark"] {
-  --primary:                192 66% 71%;
-  --on-primary:             189 100% 13%;
-  --primary-container:      189 100% 18%;
-  --on-primary-container:   193 100% 83%;
-
-  --secondary:              212 96% 81%;
-  --on-secondary:           206 100% 17%;
-  --secondary-container:    208 70% 27%;
-  --on-secondary-container: 215 100% 91%;
-
-  --tertiary:               155 54% 67%;
-  --on-tertiary:            162 100% 11%;
-  --tertiary-container:     164 100% 16%;
-  --on-tertiary-container:  155 80% 78%;
-
-  --error:                  6 100% 84%;
-  --on-error:               357 100% 21%;
-  --error-container:        356 100% 29%;
-  --on-error-container:     6 100% 92%;
-
-  --surface:                192 14% 7%;
-  --surface-dim:            192 14% 7%;
-  --surface-bright:         190 5% 22%;
-  --surface-container-lowest: 190 23% 5%;
-  --surface-container-low:  200 11% 11%;
-  --surface-container:      200 10% 12%;
-  --surface-container-high: 190 7% 16%;
-  --surface-container-highest: 200 6% 20%;
-  --on-surface:             192 8% 88%;
-  --on-surface-variant:     194 15% 77%;
-  --outline:                194 8% 56%;
-  --outline-variant:        192 11% 27%;
-  --scrim:                  0 0% 0%;
-  --inverse-surface:        192 8% 88%;
-  --inverse-on-surface:     192 5% 19%;
-  --inverse-primary:        188 100% 24%;
-
-  --backdrop-blob-1:        189 100% 16%;
-  --backdrop-blob-2:        189 100% 14%;
-  --backdrop-blob-3:        189 100% 11%;
-  --backdrop-blob-4:        192 18% 16%;
-  --backdrop-blob-5:        200 13% 9%;
-  --backdrop-grain:         0.05;
-  --backdrop-intensity:     0.5;
-
-  --color-complete:         157 37% 52%;
-  --color-waiting:          212 56% 68%;
-
-}
-
 
 /* ============================================================
    Density presets — scale html font-size.
@@ -222,6 +121,9 @@
   --color-on-tertiary-container:         hsl(var(--on-tertiary-container));
   --color-outline:                       hsl(var(--outline));
   --color-outline-variant:               hsl(var(--outline-variant));
+  --color-error-container:               hsl(var(--error-container));
+  --color-on-error-container:            hsl(var(--on-error-container));
+  --color-scrim:                         hsl(var(--scrim));
 
   /* M3 shape scale */
   --radius-xs:  4px;
@@ -309,30 +211,13 @@ pre, code, samp, .font-code {
 .app-h, .screen-h { height: 100vh; height: 100dvh; }
 
 /* ============================================================
-   Backdrop — solid M3 surface. The old multi-hue blob wash mixed
-   primary/secondary/tertiary under translucent panels and produced
-   unpredictable colors; M3 wants flat tonal surfaces.
+   Backdrop — solid M3 surface.
    ============================================================ */
 .sajni-backdrop {
   position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
   background: hsl(var(--background));
 }
-.sajni-mesh { @apply pointer-events-none; }
-
-/* ============================================================
-   Glass — frosted M3 surface.
-   ============================================================ */
-.glass {
-  background: hsl(var(--surface-container));
-  border: 1px solid hsl(var(--outline-variant));
-}
-.glass-strong {
-  background: hsl(var(--surface-container-high));
-  border: 1px solid hsl(var(--outline-variant));
-}
-[data-mode="dark"] .glass        { background: hsl(var(--surface-container)); }
-[data-mode="dark"] .glass-strong { background: hsl(var(--surface-container-high)); }
 
 .m3-expressive-panel {
   background: hsl(var(--surface-container));

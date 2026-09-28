@@ -241,7 +241,7 @@ export default function CommandPalette({ onOpenChange }: Props) {
 
   return (
         <div
-          className="fixed inset-0 z-[60] bg-foreground/30 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-3"
+          className="fixed inset-0 z-[60] bg-scrim/30 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-3"
           onClick={() => onOpenChange(false)}
         >
           <div

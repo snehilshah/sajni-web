@@ -13,8 +13,6 @@ type Tweak = {
 };
 
 const TWEAKS: Tweak[] = [
-  { key: '--backdrop-intensity', label: 'Backdrop intensity', min: 0, max: 1, step: 0.05, initial: 0.5 },
-  { key: '--backdrop-grain',     label: 'Grain opacity',      min: 0, max: 0.4, step: 0.01, initial: 0.14 },
   { key: '--text-scale',         label: 'Text scale',         min: 0.8, max: 1.2, step: 0.02, initial: 1 },
 ];
 

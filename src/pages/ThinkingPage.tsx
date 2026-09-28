@@ -168,7 +168,7 @@ export default function ThinkingPage() {
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); remove(p.id); }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/10 hover:text-rose-500 transition"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
                   title="Delete"
                 >
                   <Trash2 className="size-3.5" />

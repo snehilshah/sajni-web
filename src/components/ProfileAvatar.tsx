@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { User } from '@/auth/AuthContext';
 import { cn } from '@/lib/utils';
 import { previewSwatches } from '@/theme/applyM3';
-import { getPreset } from '@/theme/presets';
+import { presetSwatches } from '@/theme/presets';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const avatarCache = new Map<string, Promise<string>>();
@@ -62,10 +62,9 @@ export function ProfileAvatar({
   className?: string;
 }) {
   const { active, preset, mode } = useTheme();
-  const seeds = active?.seeds ?? getPreset(preset).seeds;
   const colors = useMemo(
-    () => previewSwatches(seeds, mode),
-    [mode, seeds.primary, seeds.secondary, seeds.tertiary, seeds.neutral],
+    () => (active ? previewSwatches(active.seeds, mode) : presetSwatches(preset, mode)),
+    [active, mode, preset],
   );
   const [src, setSrc] = useState('');
 

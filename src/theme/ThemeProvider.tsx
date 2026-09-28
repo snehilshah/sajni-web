@@ -10,12 +10,11 @@ import {
 import { themes as themesApi, type UserTheme } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
 import { customThemeStylesheet } from './applyM3';
-import { normalizePreset, presetStylesheet, type PresetId } from './presets';
+import { DEFAULT_PRESET, normalizePreset, type PresetId } from './presets';
 
 const THEME_KEY = 'sajni:theme';
 const MODE_KEY = 'sajni:mode';
 const DENSITY_KEY = 'sajni:density';
-const PRESET_STYLE_ID = 'sajni-theme-presets';
 const CUSTOM_STYLE_ID = 'sajni-custom-theme';
 // Compiled active-theme CSS, mirrored to localStorage so index.html can
 // inject it pre-paint (no preset flash while /themes/active loads).
@@ -48,7 +47,7 @@ interface Ctx {
 
 const ThemeCtx = createContext<Ctx>({
   active: null,
-  preset: 'marine',
+  preset: DEFAULT_PRESET,
   action: null,
   setPreset: async () => {},
   activateTheme: async (theme) => theme,
@@ -66,7 +65,7 @@ function readStoredPreset(): PresetId {
   try {
     return normalizePreset(localStorage.getItem(THEME_KEY));
   } catch {
-    return 'marine';
+    return DEFAULT_PRESET;
   }
 }
 
@@ -142,19 +141,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(DENSITY_KEY, next); } catch {}
   }, []);
 
-  // Built-in palettes are deterministic and generated from presets.ts once.
-  useEffect(() => {
-    let style = document.getElementById(PRESET_STYLE_ID) as HTMLStyleElement | null;
-    if (!style) {
-      style = document.createElement('style');
-      style.id = PRESET_STYLE_ID;
-      document.head.appendChild(style);
-    }
-    style.textContent = presetStylesheet();
-  }, []);
-
-  // This is the only effect that paints a theme. The selected React state is
-  // therefore always the same state represented by <html data-theme>.
+  // This is the only effect that paints a theme. Preset CSS is static (built
+  // into the stylesheet), so painting a preset is just the data-theme switch;
+  // only AI themes need a runtime style node.
   useEffect(() => {
     if (active) {
       let style = document.getElementById(CUSTOM_STYLE_ID) as HTMLStyleElement | null;

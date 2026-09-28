@@ -17,7 +17,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
-import { getPreset, THEMES } from '@/theme/presets';
+import { presetSwatches, THEMES } from '@/theme/presets';
 import PageShell from '@/components/PageShell';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -516,7 +516,7 @@ export default function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             {THEMES.map((t) => {
               const active = !activeUserTheme && preset === t.id;
-              const swatches = previewSwatches(getPreset(t.id).seeds, resolvedMode);
+              const swatches = presetSwatches(t.id, resolvedMode);
               return (
                 <button
                   key={t.id}

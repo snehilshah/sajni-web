@@ -716,7 +716,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                     <span className={`font-mono text-xs uppercase tracking-wider ${
                       h.outcome === 'rescheduled'
                         ? 'text-[hsl(var(--primary))]'
-                        : 'text-amber-600 dark:text-amber-400'
+                        : 'text-[hsl(var(--color-waiting))]'
                     }`}>
                       {h.outcome}
                     </span>

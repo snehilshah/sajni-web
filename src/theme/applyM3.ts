@@ -1,5 +1,6 @@
 // Material 3 palette engine — turn seed colors into the full token set the
-// app uses (accents, surfaces, outlines, charts, sidebar, and backdrop).
+// app uses (accents, surfaces, outlines, status). Every theme, seeded or
+// hand-authored, resolves to the same `Palette` shape and the same CSS.
 
 import {
   argbFromHex,
@@ -47,7 +48,7 @@ function hslFromTone(p: TonalPalette, tone: number): string {
   return hexToHsl(hexFromArgb(p.tone(tone)));
 }
 
-function hexToHsl(hex: string): string {
+export function hexToHsl(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -68,11 +69,22 @@ function hexToHsl(hex: string): string {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function hslToHex(hsl: string): string {
+  const [h, s, l] = hsl.split(' ').map((v) => parseFloat(v));
+  const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 // M3 token → tonal-palette + tone for light + dark modes. Values follow
 // the canonical Material 3 specification.
 type Pal = ReturnType<typeof palettes>;
 type Plan = (p: Pal) => { light: string; dark: string };
-const tokens: Record<string, Plan> = {
+const tokens = {
   // Primary
   primary:                   (p) => mode(p.primary, 40, 80),
   'on-primary':              (p) => mode(p.primary, 100, 20),
@@ -110,33 +122,31 @@ const tokens: Record<string, Plan> = {
   'inverse-surface':         (p) => mode(p.neutral, 20, 90),
   'inverse-on-surface':      (p) => mode(p.neutral, 95, 20),
   'inverse-primary':         (p) => mode(p.primary, 80, 40),
-  // Decorative tints (NotesPage card mesh) — one hue family, stepped
-  // tones, so any cycled pick stays cohesive instead of mixing accents.
-  'backdrop-blob-1':         (p) => mode(p.primary, 92, 26),
-  'backdrop-blob-2':         (p) => mode(p.primary, 94, 22),
-  'backdrop-blob-3':         (p) => mode(p.primary, 90, 18),
-  'backdrop-blob-4':         (p) => mode(p.neutralVariant, 94, 18),
-  'backdrop-blob-5':         (p) => mode(p.neutral, 98, 8),
   // Status accents — bias toward tertiary (calm) and secondary (cool).
   'color-complete':          (p) => mode(p.tertiary, 38, 66),
   'color-waiting':           (p) => mode(p.secondary, 44, 68),
-};
+} satisfies Record<string, Plan>;
+
+export type ThemeToken = keyof typeof tokens;
+/** One mode's resolved token set: token → "h s% l%". */
+export type Palette = Record<ThemeToken, string>;
+/** Hand-authored token set: token → "#rrggbb". */
+export type HexPalette = Record<ThemeToken, string>;
 
 function mode(p: TonalPalette, lightTone: number, darkTone: number) {
   return { light: hslFromTone(p, lightTone), dark: hslFromTone(p, darkTone) };
 }
 
 export interface AppliedTheme {
-  light: Record<string, string>;
-  dark: Record<string, string>;
+  light: Palette;
+  dark: Palette;
 }
 
-// build returns the resolved HSL strings for both modes, but does NOT
-// touch the DOM. Useful for previews + the settings panel swatches.
+// buildPalette derives both modes from seeds. Pure — no DOM.
 export function buildPalette(seeds: ThemeSeeds): AppliedTheme {
   const pal = palettes(seeds);
-  const out: AppliedTheme = { light: {}, dark: {} };
-  for (const [name, plan] of Object.entries(tokens)) {
+  const out = { light: {}, dark: {} } as AppliedTheme;
+  for (const [name, plan] of Object.entries(tokens) as [ThemeToken, Plan][]) {
     const m = plan(pal);
     out.light[name] = m.light;
     out.dark[name] = m.dark;
@@ -144,28 +154,38 @@ export function buildPalette(seeds: ThemeSeeds): AppliedTheme {
   return out;
 }
 
-// Compile a saved AI theme into the same light/dark CSS cascade used by the
-// built-in presets. This function is pure: ThemeProvider owns the style node
-// and the document's data-theme attribute.
-export function customThemeStylesheet(seeds: ThemeSeeds): string {
-  const palette = buildPalette(seeds);
-  const block = (m: Record<string, string>) =>
+// fromHex converts a hand-authored hex palette into the CSS-var format.
+export function fromHex(hex: { light: HexPalette; dark: HexPalette }): AppliedTheme {
+  const conv = (m: HexPalette) =>
+    Object.fromEntries(Object.entries(m).map(([k, v]) => [k, hexToHsl(v)])) as Palette;
+  return { light: conv(hex.light), dark: conv(hex.dark) };
+}
+
+// paletteCss emits the light block under `selector` and the dark block under
+// `selector[data-mode="dark"]`. Every theme — built-in or AI — goes through here.
+export function paletteCss(selector: string, palette: AppliedTheme): string {
+  const block = (m: Palette) =>
     Object.entries(m).map(([k, v]) => `--${k}:${v}`).join(';');
   return (
-    `:root[data-theme="custom"]{${block(palette.light)}}` +
-    `:root[data-theme="custom"][data-mode="dark"]{${block(palette.dark)}}`
+    `${selector}{${block(palette.light)}}` +
+    `${selector}[data-mode="dark"]{${block(palette.dark)}}`
   );
 }
 
-// previewSwatches gives the settings UI a small array of representative
-// colors for a theme card without applying it globally.
+// Compile a saved AI theme. `:root[data-theme="custom"]` (0-2-0) beats every
+// preset selector regardless of stylesheet order. ThemeProvider owns the node.
+export function customThemeStylesheet(seeds: ThemeSeeds): string {
+  return paletteCss(':root[data-theme="custom"]', buildPalette(seeds));
+}
+
+// Representative hex colors (primary, secondary, tertiary, surface) for
+// swatches and the avatar, read from the resolved palette so what you see in
+// the picker is exactly what gets painted.
+export function paletteSwatches(palette: AppliedTheme, mode: 'light' | 'dark' = 'light'): string[] {
+  const m = palette[mode];
+  return [m.primary, m.secondary, m.tertiary, m['surface-container']].map(hslToHex);
+}
+
 export function previewSwatches(seeds: ThemeSeeds, mode: 'light' | 'dark' = 'light'): string[] {
-  const p = palettes(seeds);
-  const tone = mode === 'dark' ? 80 : 40;
-  return [
-    hexFromArgb(p.primary.tone(tone)),
-    hexFromArgb(p.secondary.tone(tone)),
-    hexFromArgb(p.tertiary.tone(tone)),
-    hexFromArgb(p.neutral.tone(mode === 'dark' ? 12 : 94)),
-  ];
+  return paletteSwatches(buildPalette(seeds), mode);
 }

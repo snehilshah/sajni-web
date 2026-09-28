@@ -1,13 +1,14 @@
-// Built-in theme presets. Each is just a set of M3 seeds; the full token
-// set (light + dark) is derived from them via buildPalette — the same
-// engine the AI-generated themes use. Single source of truth: change a
-// seed here and both the swatch preview and the applied colors update.
+// Built-in theme presets. A preset is either a set of M3 seeds (the palette
+// is derived by buildPalette — the same engine AI themes use) or a complete
+// hand-authored hex palette for themes with a canonical spec (Gruvbox), where
+// tonal derivation can't reproduce the real colors. Both resolve to the same
+// `AppliedTheme`, so swatches, avatar, and painted CSS always agree.
 //
-// Presets are applied through the proven `data-theme` + `data-mode` CSS
-// cascade (see presetStylesheet, injected by ThemeProvider) rather than
-// inline vars, so the Settings light/dark toggle keeps flipping them.
+// The stylesheet is compiled at build time (vite.config.ts →
+// `virtual:theme-presets.css`) and shipped as a render-blocking <link>, so no
+// runtime code ever paints presets and first paint is always correct.
 
-import { buildPalette, type ThemeSeeds } from './applyM3';
+import { buildPalette, fromHex, paletteCss, paletteSwatches, type AppliedTheme, type HexPalette, type ThemeSeeds } from './applyM3';
 
 export type PresetId =
   | 'marine'
@@ -16,77 +17,125 @@ export type PresetId =
   | 'peach'
   | 'mauve';
 
+export const DEFAULT_PRESET: PresetId = 'marine';
+
 export interface ThemePreset {
   id: PresetId;
   label: string;
   emoji: string;
-  seeds: ThemeSeeds;
-  overrides?: {
-    light?: Record<string, string>;
-    dark?: Record<string, string>;
-  };
+  palette: AppliedTheme;
 }
+
+const seeded = (seeds: ThemeSeeds) => buildPalette(seeds);
+
+// Gruvbox (morhetz/gruvbox). Light uses the "faded" accents and dark the
+// "bright" ones — the spec's own pairing for each background. Containers are
+// accent-tinted backgrounds. Every text/fill pair clears WCAG AA (4.5:1),
+// outlines clear 3:1 on every surface they sit on.
+const GRUVBOX_LIGHT: HexPalette = {
+  primary: '#076678',
+  'on-primary': '#fbf1c7',
+  'primary-container': '#c8dcd4',
+  'on-primary-container': '#0b3a44',
+  secondary: '#8f5902',
+  'on-secondary': '#fbf1c7',
+  'secondary-container': '#f6d99a',
+  'on-secondary-container': '#4a2f02',
+  tertiary: '#8f3f71',
+  'on-tertiary': '#fbf1c7',
+  'tertiary-container': '#efcfd6',
+  'on-tertiary-container': '#4d1a3b',
+  error: '#9d0006',
+  'on-error': '#fbf1c7',
+  'error-container': '#f6c9bb',
+  'on-error-container': '#5a0a05',
+  surface: '#fbf1c7',
+  'surface-dim': '#ebdbb2',
+  'surface-bright': '#f9f5d7',
+  'surface-container-lowest': '#fffbe8',
+  'surface-container-low': '#f6ebc1',
+  'surface-container': '#f2e5bc',
+  'surface-container-high': '#ebdbb2',
+  'surface-container-highest': '#e3d2a8',
+  'on-surface': '#3c3836',
+  'on-surface-variant': '#5a524c',
+  outline: '#928374',
+  'outline-variant': '#bdae93',
+  scrim: '#000000',
+  'inverse-surface': '#3c3836',
+  'inverse-on-surface': '#fbf1c7',
+  'inverse-primary': '#83a598',
+  'color-complete': '#66620d',
+  'color-waiting': '#af3a03',
+};
+
+const GRUVBOX_DARK: HexPalette = {
+  primary: '#83a598',
+  'on-primary': '#1d2021',
+  'primary-container': '#2f4640',
+  'on-primary-container': '#c8dcd4',
+  secondary: '#fabd2f',
+  'on-secondary': '#1d2021',
+  'secondary-container': '#5a4516',
+  'on-secondary-container': '#fbe3a6',
+  tertiary: '#d3869b',
+  'on-tertiary': '#1d2021',
+  'tertiary-container': '#57343f',
+  'on-tertiary-container': '#f5d3dc',
+  error: '#fd7a64',
+  'on-error': '#1d2021',
+  'error-container': '#6b1e17',
+  'on-error-container': '#fdd3c9',
+  surface: '#282828',
+  'surface-dim': '#1d2021',
+  'surface-bright': '#45403d',
+  'surface-container-lowest': '#1d2021',
+  'surface-container-low': '#32302f',
+  'surface-container': '#3c3836',
+  'surface-container-high': '#45403d',
+  'surface-container-highest': '#504945',
+  'on-surface': '#ebdbb2',
+  'on-surface-variant': '#d5c4a1',
+  outline: '#928374',
+  'outline-variant': '#665c54',
+  scrim: '#000000',
+  'inverse-surface': '#ebdbb2',
+  'inverse-on-surface': '#282828',
+  'inverse-primary': '#076678',
+  'color-complete': '#b8bb26',
+  'color-waiting': '#fe8019',
+};
 
 export const PRESETS: ThemePreset[] = [
   {
     id: 'marine',
     label: 'Marine',
     emoji: '🌊',
-    seeds: { primary: '#1F7A8C', secondary: '#3E6B99', tertiary: '#2E8B6B' },
+    palette: seeded({ primary: '#1F7A8C', secondary: '#3E6B99', tertiary: '#2E8B6B' }),
   },
   {
     id: 'powerpuff',
     label: 'PowerPuff',
     emoji: '🎀',
-    seeds: { primary: '#eb6f92', secondary: '#C693EC', tertiary: '#ebbcba' },
+    palette: seeded({ primary: '#eb6f92', secondary: '#C693EC', tertiary: '#ebbcba' }),
   },
   {
     id: 'gruvbox',
     label: 'Gruvbox',
     emoji: '🍂',
-    seeds: { primary: '#458588', secondary: '#D8A657', tertiary: '#D3869B', neutral: '#FBF1C7' },
-    overrides: {
-      light: {
-        surface: '48 84% 88%',
-        'on-surface': '20 5% 22%',
-        'surface-dim': '43 56% 81%',
-        'surface-bright': '48 100% 95%',
-        'surface-container-lowest': '0 0% 100%',
-        'surface-container-low': '48 84% 92%',
-        'surface-container': '48 79% 87%',
-        'surface-container-high': '48 60% 84%',
-        'surface-container-highest': '48 50% 80%',
-        'on-surface-variant': '20 6% 38%',
-        outline: '20 6% 52%',
-        'outline-variant': '20 8% 82%',
-      },
-      dark: {
-        surface: '0 0% 16%',
-        'on-surface': '43 56% 81%',
-        'surface-dim': '195 6% 12%',
-        'surface-bright': '20 7% 29%',
-        'surface-container-lowest': '0 0% 10%',
-        'surface-container-low': '0 0% 13%',
-        'surface-container': '20 5% 22%',
-        'surface-container-high': '20 7% 29%',
-        'surface-container-highest': '24 10% 37%',
-        'on-surface-variant': '43 35% 72%',
-        outline: '43 20% 50%',
-        'outline-variant': '43 25% 30%',
-      },
-    },
+    palette: fromHex({ light: GRUVBOX_LIGHT, dark: GRUVBOX_DARK }),
   },
   {
     id: 'peach',
     label: 'Peach',
     emoji: '🍑',
-    seeds: { primary: '#D7897F', secondary: '#F9B95C', tertiary: '#96C7B3' },
+    palette: seeded({ primary: '#D7897F', secondary: '#F9B95C', tertiary: '#96C7B3' }),
   },
   {
     id: 'mauve',
     label: 'Mauve',
     emoji: '🔮',
-    seeds: { primary: '#191724', secondary: '#e0def4', tertiary: '#eb6f92' },
+    palette: seeded({ primary: '#191724', secondary: '#e0def4', tertiary: '#eb6f92' }),
   },
 ];
 
@@ -96,13 +145,11 @@ export const THEMES: { id: PresetId; label: string; emoji: string }[] =
 
 const VALID = new Set<string>(PRESETS.map((p) => p.id));
 
-// Use a stored theme id only if it's a current preset; anything else — a
-// removed theme, a legacy id, or junk — falls back to marine. Themes are
-// final, so there's no alias migration: valid choices are kept as-is,
-// unknown ones snap to marine.
+// A stored id is used only if it's a current preset; anything else snaps to
+// the default. No alias table — themes are final.
 export function normalizePreset(id: string | null | undefined): PresetId {
   if (id && VALID.has(id)) return id as PresetId;
-  return 'marine';
+  return DEFAULT_PRESET;
 }
 
 export function getPreset(id: string | null | undefined): ThemePreset {
@@ -110,26 +157,22 @@ export function getPreset(id: string | null | undefined): ThemePreset {
   return PRESETS.find((p) => p.id === norm) ?? PRESETS[0];
 }
 
-// presetStylesheet emits one CSS block per preset for light + dark. Only the
-// M3 base tokens are written; the shadcn aliases (--background, --card, …)
-// live in index.css as var() references and re-resolve automatically once
-// the base tokens are overridden.
+export function presetSwatches(id: PresetId, mode: 'light' | 'dark' = 'light'): string[] {
+  return paletteSwatches(getPreset(id).palette, mode);
+}
+
+// presetStylesheet compiles every preset (build time only). The default is
+// also emitted under `:where(:root)` (0-0-0 specificity) so an unknown or
+// missing data-theme still paints a complete palette without competing with
+// any real preset selector. Only M3 base tokens are written; shadcn aliases
+// in index.css are var() references and re-resolve automatically.
 export function presetStylesheet(): string {
-  return PRESETS.map((p) => {
-    const pal = buildPalette(p.seeds);
-    if (p.overrides?.light) {
-      pal.light = { ...pal.light, ...p.overrides.light };
-    }
-    if (p.overrides?.dark) {
-      pal.dark = { ...pal.dark, ...p.overrides.dark };
-    }
-    const block = (m: Record<string, string>) =>
-      Object.entries(m)
-        .map(([k, v]) => `--${k}:${v}`)
-        .join(';');
-    return (
-      `[data-theme="${p.id}"]{${block(pal.light)}}` +
-      `[data-theme="${p.id}"][data-mode="dark"]{${block(pal.dark)}}`
-    );
-  }).join('\n');
+  const fallback = getPreset(DEFAULT_PRESET).palette;
+  const block = (m: AppliedTheme['light']) =>
+    Object.entries(m).map(([k, v]) => `--${k}:${v}`).join(';');
+  return [
+    `:where(:root){${block(fallback.light)}}`,
+    `:where(:root[data-mode="dark"]){${block(fallback.dark)}}`,
+    ...PRESETS.map((p) => paletteCss(`[data-theme="${p.id}"]`, p.palette)),
+  ].join('\n');
 }

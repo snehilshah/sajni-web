@@ -372,7 +372,7 @@ export function ChatPanel({
             </div>
             <button
               onClick={(e) => removeSession(s.id, e)}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/10 hover:text-rose-500 transition"
+              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
               title="Delete"
             >
               <Trash2 className="size-3.5" />
@@ -486,7 +486,7 @@ export function ChatPanel({
           )}
 
           {error && (
-            <div className="flex items-start gap-2 text-sm text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded-md px-3 py-2">
+            <div className="flex items-start gap-2 text-sm bg-error-container text-on-error-container rounded-md px-3 py-2">
               <AlertCircle className="size-4 mt-0.5 shrink-0" />
               <div>{error}</div>
             </div>
@@ -554,7 +554,7 @@ function AssistantMessage({
               <span
                 key={i}
                 className={`font-mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                  t.ok ? 'bg-muted text-muted-foreground' : 'bg-rose-500/10 text-rose-600'
+                  t.ok ? 'bg-muted text-muted-foreground' : 'bg-error-container text-on-error-container'
                 }`}
                 title={t.error || t.name}
               >
@@ -631,7 +631,7 @@ function AssistantMessage({
         )}
 
         {msg.error && (
-          <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded px-2 py-1">
+          <div className="text-xs bg-error-container text-on-error-container rounded px-2 py-1">
             {msg.error}
           </div>
         )}

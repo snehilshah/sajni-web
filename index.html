@@ -34,12 +34,9 @@
             document.head.appendChild(custom);
             root.dataset.theme = 'custom';
           } else {
-            // First visit or preset user: last local preset paints instantly.
-            var theme = localStorage.getItem('sajni:theme') || 'marine';
-            if (!/^(marine|powerpuff|gruvbox|peach|mauve)$/.test(theme)) {
-              theme = 'marine';
-            }
-            root.dataset.theme = theme;
+            // Preset palettes are static CSS; an unknown id falls through to
+            // the :where(:root) default, and ThemeProvider normalizes it.
+            root.dataset.theme = localStorage.getItem('sajni:theme') || 'marine';
           }
           var modePref = localStorage.getItem('sajni:mode') || 'system';
           var density = localStorage.getItem('sajni:density') || 'comfortable';

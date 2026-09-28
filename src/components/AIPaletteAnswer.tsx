@@ -228,7 +228,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-sm text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded-md px-3 py-2">
+            <div className="flex items-start gap-2 text-sm bg-error-container text-on-error-container rounded-md px-3 py-2">
               <AlertCircle className="size-4 mt-0.5 shrink-0" />
               <div>{error}</div>
             </div>
