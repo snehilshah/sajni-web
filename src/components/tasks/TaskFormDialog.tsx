@@ -400,7 +400,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		  </div>
 		</div>
 
-        <div className="flex flex-col gap-3.5 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+        {/* Sections never shrink: once "More details" pins the dialog height,
+            flex would squeeze the notes box (explicit min-h) to 92px and the
+            editor would overflow onto the sections below. Scroll instead. */}
+        <div className="flex flex-col gap-3.5 flex-1 overflow-y-auto px-4 py-4 md:px-6 [&>*]:shrink-0">
           {/* Subtask context — makes parentage explicit (a child must never
               read as a normal task) and lets the user promote it out so it can
               live in its own list. */}

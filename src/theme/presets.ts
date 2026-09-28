@@ -1,6 +1,6 @@
 // Built-in theme presets. A preset is either a set of M3 seeds (the palette
 // is derived by buildPalette — the same engine AI themes use) or a complete
-// hand-authored hex palette for themes with a canonical spec (Gruvbox), where
+// hand-authored hex palette for themes with a canonical spec (Gruvbox Material), where
 // tonal derivation can't reproduce the real colors. Both resolve to the same
 // `AppliedTheme`, so swatches, avatar, and painted CSS always agree.
 //
@@ -28,82 +28,84 @@ export interface ThemePreset {
 
 const seeded = (seeds: ThemeSeeds) => buildPalette(seeds);
 
-// Gruvbox (morhetz/gruvbox). Light uses the "faded" accents and dark the
-// "bright" ones — the spec's own pairing for each background. Containers are
-// accent-tinted backgrounds. Every text/fill pair clears WCAG AA (4.5:1),
-// outlines clear 3:1 on every surface they sit on.
+// Gruvbox Material (sainnhe/gruvbox-material, "medium" background, "material"
+// foreground). Surfaces and foregrounds are the spec values verbatim; dark
+// containers are its visual-selection tints. The spec's accents are tuned for
+// code on bg0, so where one falls short of WCAG AA as a UI role it is shifted
+// in lightness only (hue/saturation kept) — noted inline as `spec → tuned`.
+// Every text/fill pair clears 4.5:1; outlines clear 3:1 on surfaces they sit on.
 const GRUVBOX_LIGHT: HexPalette = {
-  primary: '#076678',
+  primary: '#426c75', //                 blue   #45707a → AA
   'on-primary': '#fbf1c7',
-  'primary-container': '#c8dcd4',
-  'on-primary-container': '#0b3a44',
-  secondary: '#8f5902',
+  'primary-container': '#d6e0cf',
+  'on-primary-container': '#2a454b',
+  secondary: '#8d5907', //               yellow #b47109 → AA
   'on-secondary': '#fbf1c7',
-  'secondary-container': '#f6d99a',
-  'on-secondary-container': '#4a2f02',
-  tertiary: '#8f3f71',
+  'secondary-container': '#f5dca6',
+  'on-secondary-container': '#5a3a05',
+  tertiary: '#885675', //                purple #945e80 → AA
   'on-tertiary': '#fbf1c7',
-  'tertiary-container': '#efcfd6',
-  'on-tertiary-container': '#4d1a3b',
-  error: '#9d0006',
+  'tertiary-container': '#f0d4d9',
+  'on-tertiary-container': '#4f2c42',
+  error: '#b23d3d', //                   red    #c14a4a → AA
   'on-error': '#fbf1c7',
-  'error-container': '#f6c9bb',
-  'on-error-container': '#5a0a05',
-  surface: '#fbf1c7',
-  'surface-dim': '#ebdbb2',
-  'surface-bright': '#f9f5d7',
-  'surface-container-lowest': '#fffbe8',
-  'surface-container-low': '#f6ebc1',
-  'surface-container': '#f2e5bc',
-  'surface-container-high': '#ebdbb2',
-  'surface-container-highest': '#e3d2a8',
-  'on-surface': '#3c3836',
-  'on-surface-variant': '#5a524c',
-  outline: '#928374',
-  'outline-variant': '#bdae93',
+  'error-container': '#f6d0bd',
+  'on-error-container': '#6a1f1f',
+  surface: '#fbf1c7', //                 bg0
+  'surface-dim': '#f2e5bc', //           bg_dim
+  'surface-bright': '#f9f5d7', //        bg0 (hard)
+  'surface-container-lowest': '#f9f5d7',
+  'surface-container-low': '#f4e8be', // bg1
+  'surface-container': '#f2e5bc', //     bg2
+  'surface-container-high': '#eee0b7', // bg3
+  'surface-container-highest': '#e5d5ad', // bg4
+  'on-surface': '#654735', //            fg0
+  'on-surface-variant': '#645a51', //    grey2  #7c6f64 → AA
+  outline: '#8a7b6c', //                 grey1  #928374 → 3:1
+  'outline-variant': '#a89984', //       grey0
   scrim: '#000000',
-  'inverse-surface': '#3c3836',
+  'inverse-surface': '#45403d',
   'inverse-on-surface': '#fbf1c7',
-  'inverse-primary': '#83a598',
-  'color-complete': '#66620d',
-  'color-waiting': '#af3a03',
+  'inverse-primary': '#7daea3',
+  'color-complete': '#606b29', //        green  #6c782e → AA
+  'color-waiting': '#a34f08', //         orange #c35e0a → AA
 };
 
 const GRUVBOX_DARK: HexPalette = {
-  primary: '#83a598',
-  'on-primary': '#1d2021',
-  'primary-container': '#2f4640',
-  'on-primary-container': '#c8dcd4',
-  secondary: '#fabd2f',
-  'on-secondary': '#1d2021',
-  'secondary-container': '#5a4516',
-  'on-secondary-container': '#fbe3a6',
-  tertiary: '#d3869b',
-  'on-tertiary': '#1d2021',
-  'tertiary-container': '#57343f',
-  'on-tertiary-container': '#f5d3dc',
-  error: '#fd7a64',
-  'on-error': '#1d2021',
-  'error-container': '#6b1e17',
-  'on-error-container': '#fdd3c9',
-  surface: '#282828',
-  'surface-dim': '#1d2021',
-  'surface-bright': '#45403d',
-  'surface-container-lowest': '#1d2021',
-  'surface-container-low': '#32302f',
-  'surface-container': '#3c3836',
-  'surface-container-high': '#45403d',
-  'surface-container-highest': '#504945',
-  'on-surface': '#ebdbb2',
-  'on-surface-variant': '#d5c4a1',
-  outline: '#928374',
-  'outline-variant': '#665c54',
+  primary: '#7daea3', //                 blue
+  'on-primary': '#1b1b1b',
+  'primary-container': '#374141', //     bg_visual_blue
+  'on-primary-container': '#b8d4cc',
+  secondary: '#d8a657', //               yellow
+  'on-secondary': '#1b1b1b',
+  'secondary-container': '#4f422e', //   bg_visual_yellow
+  'on-secondary-container': '#ecd3a6',
+  tertiary: '#d3869b', //                purple
+  'on-tertiary': '#1b1b1b',
+  'tertiary-container': '#4a3540',
+  'on-tertiary-container': '#efc9d3',
+  error: '#ec766f', //                   red    #ea6962 → AA on cards
+  'on-error': '#1b1b1b',
+  'error-container': '#4c3432', //       bg_visual_red
+  'on-error-container': '#f5c2bd',
+  surface: '#282828', //                 bg0
+  'surface-dim': '#1b1b1b', //           bg_dim
+  'surface-bright': '#45403d', //        bg3
+  'surface-container-lowest': '#1b1b1b',
+  'surface-container-low': '#32302f', // bg1
+  'surface-container': '#3a3735', //     bg_statusline2
+  'surface-container-high': '#45403d', // bg3
+  'surface-container-highest': '#504945', // bg_statusline3
+  'on-surface': '#d4be98', //            fg0
+  'on-surface-variant': '#c5baac', //    grey2  #a89984 → AA on dialogs
+  outline: '#928374', //                 grey1
+  'outline-variant': '#5a524c', //       bg5
   scrim: '#000000',
-  'inverse-surface': '#ebdbb2',
+  'inverse-surface': '#d4be98',
   'inverse-on-surface': '#282828',
-  'inverse-primary': '#076678',
-  'color-complete': '#b8bb26',
-  'color-waiting': '#fe8019',
+  'inverse-primary': '#45707a',
+  'color-complete': '#a9b665', //        green
+  'color-waiting': '#e78a4e', //         orange
 };
 
 export const PRESETS: ThemePreset[] = [
