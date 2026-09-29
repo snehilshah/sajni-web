@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 
 import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
+import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
@@ -673,6 +674,7 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
           <span className={cn('size-2 rounded-full mt-1.5 shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
           {Boolean(task.description?.trim()) && <StickyNote className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
           <span className={`font-medium text-sm leading-tight flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+            <TaskScopeBadge task={task} className="mr-2 align-middle" />
             {task.title}
           </span>
           <button

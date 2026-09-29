@@ -36,6 +36,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { BacklinkRef, HabitStatus, Task } from '@/types';
+import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
@@ -343,6 +344,7 @@ export default function JournalPage() {
                   className="flex-1 text-left text-[12.5px] text-foreground/85 leading-snug hover:text-foreground transition-colors"
                   title="Open task"
                 >
+                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
               </div>
@@ -355,6 +357,7 @@ export default function JournalPage() {
                   className="flex-1 text-left text-[12.5px] line-through text-muted-foreground leading-snug hover:text-foreground/70 transition-colors"
                   title="Open task"
                 >
+                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
               </div>
@@ -375,6 +378,7 @@ export default function JournalPage() {
                   className="text-[12px] text-foreground/70 truncate text-left hover:text-foreground transition-colors"
                   title="Open task"
                 >
+                  <TaskScopeBadge scope="day" className="mr-2 align-middle" />
                   {t.title}
                 </button>
               ))}
@@ -1476,6 +1480,7 @@ function DailySection({
                     {dueTasks.map((t) => (
                       <div key={t.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40">
                         <Checkbox onCheckedChange={() => onCompleteTask(t.id)} className="size-3.5" />
+                        <TaskScopeBadge task={t} />
                         <span className="text-[13px] flex-1 truncate">{t.title}</span>
                         <PriorityDot priority={t.priority} />
                       </div>
@@ -1483,6 +1488,7 @@ function DailySection({
                     {completedTasks.map((t) => (
                       <div key={t.id} className="flex items-center gap-2 px-1.5 py-1 text-muted-foreground">
                         <span className="size-3.5 rounded-full bg-primary/40 shrink-0" />
+                        <TaskScopeBadge task={t} />
                         <span className="text-[13px] flex-1 truncate line-through">{t.title}</span>
                       </div>
                     ))}
@@ -1591,6 +1597,7 @@ function WeekTasksSection({
                   onClick={() => onOpen(t.id)}
                   className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
                 >
+                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
                 {t.priority === 'high' && !isDone && (
@@ -1888,6 +1895,7 @@ function MonthTasksSection({
                   onClick={() => onOpen(t.id)}
                   className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
                 >
+                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
                 {/* Session progress — month goals are broken into dated child
@@ -1940,6 +1948,7 @@ function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: stri
   return (
     <div className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 group">
       <span className={`size-3.5 rounded-full border shrink-0 ${isDone ? 'bg-primary/40 border-primary/40' : 'border-amber-500/60 bg-amber-500/10'}`} />
+      <TaskScopeBadge scope="day" />
       <div className="flex-1 min-w-0">
         <div className={`text-[13px] truncate ${isDone ? 'text-muted-foreground line-through' : 'text-foreground/80'}`}>
           {task.title}

@@ -27,6 +27,7 @@ import {
   Plus, Repeat, StickyNote, X,
 } from '@/components/ui/icons';
 import { ReminderEditor } from '@/components/reminders/RemindersPanel';
+import TaskScopeBadge from './TaskScopeBadge';
 
 type PlannerViewMode = 'week' | 'month';
 
@@ -481,6 +482,7 @@ function PlannerTaskPill({ task, compact, timezone, onEdit, onToggle, containerR
         onClick={(event) => { event.stopPropagation(); onEdit(task); }}
       >
         {Boolean(task.description?.trim()) && <StickyNote className={cn('shrink-0', compact ? 'size-3' : 'size-3.5')} aria-label="Has note" />}
+        <TaskScopeBadge task={task} />
         {task.scheduled_at && <span className="shrink-0 font-medium">{instantTime(task.scheduled_at, timezone)}</span>}
         <span className={cn('min-w-0 flex-1 truncate', task.status === 'done' && 'line-through')}>{task.title}</span>
       </button>

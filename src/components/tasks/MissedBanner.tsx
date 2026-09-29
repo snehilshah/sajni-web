@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, parseISO, isYesterday, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
-import { CalendarX2, X, Loader2, ChevronDown } from '@/components/ui/icons';
+import { format, parseISO, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
+import { CalendarX2, X, Loader2, ChevronDown, ArrowRight } from '@/components/ui/icons';
 
 import { useMissedTasks, useRescheduleTask, useScratchTask, useUpdateTask } from '@/queries/tasks';
 import type { Task } from '@/types';
 import { monthFirstKey, weekMondayKey } from './helpers';
+import TaskScopeBadge from './TaskScopeBadge';
 
 // MissedBanner surfaces every still-open overdue task with one-tap
 // rescheduling to its current scope (day/week/month) and a quick scratch.
@@ -62,13 +63,13 @@ export default function MissedBanner() {
 
   if (missed.length === 0) return null;
 
-  // Age label: "Yesterday" leads, then "Nd/1w/1m ago" so age is legible by scope.
+  // Compact units keep each scope legible inside the same-width age badge.
   const ageLabel = (task: Task) => {
     if (task.month_of && !task.due_date) {
       try {
         const months = Math.max(1, differenceInCalendarMonths(new Date(), parseISO(task.month_of)));
-        return `${months}m ago`;
-      } catch { return '1m ago'; }
+        return `${months}mo ago`;
+      } catch { return '1mo ago'; }
     }
     if (task.week_of && !task.due_date) {
       try {
@@ -80,16 +81,9 @@ export default function MissedBanner() {
     if (!task.due_date) return '';
     try {
       const d = parseISO(task.due_date);
-      if (isYesterday(d)) return 'Yesterday';
       const days = differenceInCalendarDays(new Date(), d);
-      return days > 1 ? `${days}d ago` : format(d, 'MMM d');
+      return days >= 1 ? `${days}d ago` : format(d, 'MMM d');
     } catch { return task.due_date; }
-  };
-
-  const ctaLabel = (task: Task) => {
-    if (task.month_of && !task.due_date) return 'This Month';
-    if (task.week_of && !task.due_date) return 'This Week';
-    return 'Today';
   };
 
   const ctaTitle = (task: Task) => {
@@ -154,11 +148,12 @@ export default function MissedBanner() {
                       <button
                         type="button"
                         onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: t.id } }))}
-                        className="flex-1 min-w-0 text-left"
+                        className="flex flex-1 min-w-0 items-center gap-2 text-left"
                       >
-                        <span className="text-sm truncate block">{t.title}</span>
+                        <TaskScopeBadge task={t} />
+                        <span className="min-w-0 text-sm truncate block">{t.title}</span>
                       </button>
-                      <span className="mono text-xs tabular-nums shrink-0 rounded-full px-1.5 py-0.5 bg-[hsl(var(--color-waiting)/0.14)] text-[hsl(var(--color-waiting))]">
+                      <span className="shrink-0 inline-flex items-center justify-center h-7 w-20 whitespace-nowrap rounded-full px-2 text-xs font-medium tabular-nums bg-[hsl(var(--color-waiting)/0.14)] text-[hsl(var(--color-waiting))]">
                         {ageLabel(t)}
                       </span>
                       <button
@@ -166,9 +161,10 @@ export default function MissedBanner() {
                         onClick={() => rescheduleOne(t)}
                         disabled={busy}
                         title={ctaTitle(t)}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 h-7 text-xs font-medium bg-[hsl(var(--on-surface)/0.08)] hover:bg-[hsl(var(--on-surface)/0.14)] transition disabled:opacity-50"
+                        aria-label={ctaTitle(t)}
+                        className="relative shrink-0 size-7 inline-flex items-center justify-center rounded-full bg-[hsl(var(--on-surface)/0.08)] hover:bg-[hsl(var(--on-surface)/0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition disabled:opacity-50 before:absolute before:-inset-2 before:content-['']"
                       >
-                        {rescheduling(t.id) ? <Loader2 className="size-3 animate-spin" /> : ctaLabel(t)}
+                        {rescheduling(t.id) ? <Loader2 className="size-3 animate-spin" /> : <ArrowRight className="size-3.5" aria-hidden="true" />}
                       </button>
                       <button
                         type="button"

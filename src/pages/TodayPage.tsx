@@ -17,6 +17,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import MissedBanner from '@/components/tasks/MissedBanner';
+import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import { PageChrome, chromeClearance, useOwnScrolled } from '@/components/PageShell';
 import { useNavChrome } from '@/components/nav-chrome';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -337,6 +338,7 @@ export default function TodayPage() {
 													aria-label="Mark complete"
 													className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 hover:border-primary hover:bg-primary/10 transition-colors"
 												/>
+												<TaskScopeBadge task={t} />
 												<div className="flex-1 min-w-0">
 													<div className="text-[14px] text-foreground font-medium truncate">
 														{t.title}

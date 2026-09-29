@@ -15,6 +15,7 @@ import {
 import { PRIORITY_COLORS } from './helpers';
 import { cn } from '@/lib/utils';
 import { WavyProgress } from '@/components/ui/wavy-progress';
+import TaskScopeBadge from './TaskScopeBadge';
 
 interface Props {
   task: Task;
@@ -158,6 +159,7 @@ export default function TaskRow({
           <div className="flex flex-1 min-w-0 items-center gap-2">
             <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
             {Boolean(task.description?.trim()) && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
+            <TaskScopeBadge task={task} />
             <span className={`font-medium text-[0.9375rem] leading-snug min-w-0 truncate ${rowPct === null ? 'flex-1' : 'shrink @sm:max-w-[60%]'} ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
               {task.title}
             </span>
