@@ -15,7 +15,7 @@ export const aiMeta = {
 export default function AiDoc() {
   return (
     <>
-      <Section id="doors" title="The two doors">
+      <Section id="doors" title="The Two Doors">
         <RefTable
           head={['door', 'built for']}
           rows={[
@@ -44,7 +44,7 @@ export default function AiDoc() {
         </Callout>
       </Section>
 
-      <Section id="abilities" title="What it can do">
+      <Section id="abilities" title="What It Can Do">
         <p>A non-exhaustive map of the tool surface, by space:</p>
         <ul>
           <li><strong>Tasks</strong>: create/update/complete tasks and lists; query what's due.</li>
@@ -67,7 +67,7 @@ export default function AiDoc() {
         </ul>
       </Section>
 
-      <Section id="behavior" title="How it behaves">
+      <Section id="behavior" title="How It Behaves">
         <FeatureList>
           <Feature name="Reminder wording stays lightweight">
             <p>

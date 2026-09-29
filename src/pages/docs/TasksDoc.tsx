@@ -19,7 +19,7 @@ export const tasksMeta = {
 export default function TasksDoc() {
   return (
     <>
-      <Section id="views" title="Smart views & lists" chip="pill row">
+      <Section id="views" title="Smart Views & Lists" chip="pill row">
         <p>
           One swipeable pill row holds the smart views and your own lists.
           Smart views are queries, not containers, a task appears in every
@@ -58,7 +58,7 @@ export default function TasksDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="scopes" title="Day / week / month scope">
+      <Section id="scopes" title="Day / Week / Month Scope">
         <p>
           A task's due-ness has a <strong>scope</strong>, not just a date,
           picked in the form as Day / Week / Month:
@@ -94,7 +94,7 @@ export default function TasksDoc() {
         </Callout>
       </Section>
 
-      <Section id="anatomy" title="Anatomy of a task">
+      <Section id="anatomy" title="Anatomy of a Task">
         <FeatureList>
           <Feature name="Steps">
             <p>
@@ -133,7 +133,7 @@ export default function TasksDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="blocking" title="Blocked tasks">
+      <Section id="blocking" title="Blocked Tasks">
         <p>
           A task can be marked <strong>blocked by</strong> exactly one other
           task. Behavior:
@@ -162,7 +162,7 @@ export default function TasksDoc() {
         </Callout>
       </Section>
 
-      <Section id="reminders" title="Tasks & standalone reminders" chip="Tasks · Reminders">
+      <Section id="reminders" title="Tasks & Standalone Reminders" chip="Tasks · Reminders">
         <p>
           The secondary bar separates work from nudges. A task models
           something you intend to complete; a standalone reminder only needs
@@ -232,7 +232,7 @@ export default function TasksDoc() {
         </Callout>
       </Section>
 
-      <Section id="lifecycle" title="Lifecycle & missed">
+      <Section id="lifecycle" title="Lifecycle & Missed">
         <RefTable
           head={['status', 'meaning']}
           rows={[

@@ -26,7 +26,7 @@ export default function ProjectsDoc() {
         </p>
       </Section>
 
-      <Section id="cards" title="Cards, kinds & relations">
+      <Section id="cards" title="Cards, Kinds & Relations">
         <p>
           The unit of thought is a <strong>card</strong>: short text with a{' '}
           <strong>kind</strong>, connectable to other cards with typed{' '}
@@ -83,7 +83,7 @@ export default function ProjectsDoc() {
         </Callout>
       </Section>
 
-      <Section id="ai" title="Synthesize & enrich">
+      <Section id="ai" title="Synthesize & Enrich">
         <FeatureList>
           <Feature name="Synthesize">
             <p>

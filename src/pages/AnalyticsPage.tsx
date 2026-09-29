@@ -126,7 +126,7 @@ function ActivityPanel() {
   return (
       <div className="flex flex-col gap-5">
           {/* Heatmap */}
-          <Panel title="Activity (last 365 days)" subtitle={`${heatmap.total} contributions · ${heatmap.activeDays} active days`}>
+          <Panel title="Activity (Last 365 Days)" subtitle={`${heatmap.total} contributions · ${heatmap.activeDays} active days`}>
             <div className="overflow-x-auto -mx-1 px-1">
               <div className="inline-flex flex-col gap-1 min-w-full">
                 {/* Month labels */}
@@ -213,7 +213,7 @@ function ActivityPanel() {
             </Panel>
 
             {/* Module breakdown */}
-            <Panel title="Last 30 days" subtitle="By module">
+            <Panel title="Last 30 Days" subtitle="By module">
               {moduleEntries.length === 0 ? (
                 <Empty>No activity yet.</Empty>
               ) : (
@@ -241,7 +241,7 @@ function ActivityPanel() {
             </Panel>
 
             {/* Task velocity */}
-            <Panel title="Task velocity" subtitle="Completed by week">
+            <Panel title="Task Velocity" subtitle="Completed by week">
               {data.task_velocity.length === 0 ? (
                 <Empty>No completed tasks yet.</Empty>
               ) : (
@@ -274,7 +274,7 @@ function ActivityPanel() {
 
             {/* Habit streaks */}
             <Panel
-              title="Habit streaks"
+              title="Habit Streaks"
               subtitle={data.habit_streaks.length ? `${data.habit_streaks.length} tracked` : undefined}
             >
               {data.habit_streaks.length === 0 ? (
@@ -305,7 +305,7 @@ function ActivityPanel() {
             </Panel>
 
             {/* Top tags */}
-            <Panel title="Top tags" subtitle={`${data.top_tags.length} ranked`}>
+            <Panel title="Top Tags" subtitle={`${data.top_tags.length} ranked`}>
               {data.top_tags.length === 0 ? (
                 <Empty>No tags used yet.</Empty>
               ) : (

@@ -73,7 +73,7 @@ export default function NotesDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="editor" title="The editor">
+      <Section id="editor" title="The Editor">
         <p>
           The rich editor (used by Notes; the journal shares its link and tag
           behavior) is block-based. Type <Kbd>/</Kbd> on an empty line for

@@ -16,7 +16,7 @@ export const settingsMeta = {
 export default function SettingsDoc() {
   return (
     <>
-      <Section id="appearance" title="Appearance & density">
+      <Section id="appearance" title="Appearance & Density">
         <FeatureList>
           <Feature name="Light / Dark / System">
             <p>
@@ -34,7 +34,7 @@ export default function SettingsDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="themes" title="Themes & AI themes">
+      <Section id="themes" title="Themes & AI Themes">
         <FeatureList>
           <Feature name="Preset themes">
             <p>
@@ -91,7 +91,7 @@ export default function SettingsDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="data" title="Your data">
+      <Section id="data" title="Your Data">
         <FeatureList>
           <Feature name="Takeout">
             <p>

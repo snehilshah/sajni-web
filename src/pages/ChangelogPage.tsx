@@ -59,7 +59,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Reminders',
-        title: 'Lightweight reminders, separate from tasks',
+        title: 'Lightweight Reminders, Separate from Tasks',
         detail:
           'Tasks now has a Reminders tab for message-and-time nudges with optional notes. Upcoming '
           + 'reminders form one chronological ledger grouped into Today, Tomorrow, Later and '
@@ -72,7 +72,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Profile',
-        title: 'A gentler navigation avatar crop',
+        title: 'A Gentler Navigation Avatar Crop',
         detail:
           'The small voxel avatar keeps its close, recognisable head crop without feeling as '
           + 'zoomed-in in the navigation profile slot.',
@@ -89,7 +89,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Profile',
-        title: 'Voxel-art avatars',
+        title: 'Voxel-Art Avatars',
         detail:
           'Every account gets a deterministic animated character generated from your user id '
           + 'and a revision counter. The avatar appears in the navigation dock (head crop), '
@@ -101,7 +101,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Settings',
-        title: 'Profile hero card replaces Account section',
+        title: 'Profile Hero Card Replaces Account Section',
         detail:
           'The old grid-based Account section has been replaced by a compact profile card '
           + 'with your avatar, display-name editor, email, provider badges, reroll and '
@@ -110,7 +110,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Notes',
-        title: 'Tree keyboard navigation and tighter spacing',
+        title: 'Tree Keyboard Navigation and Tighter Spacing',
         detail:
           'Folder and note rows in the sidebar now carry proper ARIA tree roles, keyboard '
           + 'navigation (Enter / Space), and visible focus rings. Row height, indent, and '
@@ -128,7 +128,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Events',
-        title: 'Track when life happened',
+        title: 'Track When Life Happened',
         detail:
           'Events now live beside Habits for haircuts, beard trims, leave, maintenance, '
           + 'appointments, or anything else measured by elapsed time instead of a streak. '
@@ -148,7 +148,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Habits',
-        title: 'Track habits at the rhythm they happen',
+        title: 'Track Habits at the Rhythm They Happen',
         detail:
           'Daily habits keep their Monday–Sunday week, weekly and fortnightly habits move through '
           + 'stable twelve-period pages, and monthly habits run JAN–DEC. Month bands and W1–W5 '
@@ -169,7 +169,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Finance',
-        title: 'Slates replace pockets',
+        title: 'Slates Replace Pockets',
         detail:
           'Every transaction now sits in exactly one slate, and slates answer a single question: '
           + 'is this normal life, or not? “Plain” is normal life and is where everything lands '
@@ -181,7 +181,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Notes',
-        title: 'Fold folders on the notes index',
+        title: 'Fold Folders on the Notes Index',
         detail:
           'Each folder section on the notes index now has a toggle, a chevron and a folder icon, '
           + 'that folds that folder’s notes away and back. It reveals in place rather than '
@@ -193,7 +193,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Journal',
-        title: 'The mood scale is gone',
+        title: 'The Mood Scale Is Gone',
         detail:
           'The emoji mood picker has been removed from daily, weekly and monthly entries, along '
           + 'with the mood glyph beside each day in the sidebar, the weekly stat tiles, the '
@@ -205,7 +205,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Memos',
-        title: 'Memo cards read as cards again',
+        title: 'Memo Cards Read as Cards Again',
         detail:
           'Memo cards were rounded to nearly a capsule, on a short one-line memo the corners met '
           + 'in the middle. They now use the standard card corner, so a one-liner and a long memo '
@@ -216,7 +216,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Finance',
-        title: 'Transactions no longer overlap each other',
+        title: 'Transactions No Longer Overlap Each Other',
         detail:
           'On the Transactions tab each day’s header sat on top of its own first rows, so entries '
           + 'and the date ran into one another. The header now scrolls with the rows it belongs to '
@@ -225,7 +225,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Finance',
-        title: 'Showing archived slates stops redrawing the page',
+        title: 'Showing Archived Slates Stops Redrawing the Page',
         detail:
           'Turning on “show archived” in Slates rebuilt the whole Finance page, every tab '
           + 'refetched and the screen blanked for a moment to reveal a few extra tiles. Archived '
@@ -236,7 +236,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Memos',
-        title: 'New memos settle instead of bouncing',
+        title: 'New Memos Settle Instead of Bouncing',
         detail:
           'A memo saved from the composer used to overshoot its position and snap back, and could '
           + 'flicker out of view mid-flight while the feed reflowed around it. It now eases into '
@@ -254,7 +254,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Navigation',
-        title: 'A rupee coin for Finance',
+        title: 'A Rupee Coin for Finance',
         detail:
           'Finance now uses a custom pixel rupee printed inside a coin. It keeps the navigation’s '
           + 'outline-to-solid selected state while making the destination easier to recognise.',
@@ -262,7 +262,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Finance',
-        title: 'Important totals count into place',
+        title: 'Important Totals Count Into Place',
         detail:
           'Net worth and summary totals now settle into their values with a brief count-up. Dense '
           + 'lists stay still, surrounding content keeps its width, and reduced-motion preferences '
@@ -271,7 +271,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Privacy',
-        title: 'Private figures look private',
+        title: 'Private Figures Look Private',
         detail:
           'Privacy mode now shows *** for money and %%% for percentages instead of plausible fake '
           + 'numbers. Toggling it changes only rendered text, so Finance tabs keep their state and '
@@ -280,7 +280,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Navigation',
-        title: 'A smoother compact secondary bar',
+        title: 'A Smoother Compact Secondary Bar',
         detail:
           'The secondary bar now reduces into a slimmer, steady shape in one continuous motion, '
           + 'without blinking, staggered labels, icon jitter, or a colour change.',
@@ -288,7 +288,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Habits',
-        title: 'Habit checks finish their motion',
+        title: 'Habit Checks Finish Their Motion',
         detail:
           'Checking or unchecking a day now flows cleanly to its final state instead of briefly going blank.',
       },
@@ -305,7 +305,7 @@ const RELEASES: Release[] = [
       {
         kind: 'feature',
         area: 'Navigation',
-        title: 'Sliding hover highlight on the bars',
+        title: 'Sliding Hover Highlight on the Bars',
         detail:
           'The primary icon bar and the page tabs now show a faint highlight that glides to whatever '
           + 'you hover, separate from the solid marker on the page you are actually on. It appears in '
@@ -319,7 +319,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Library',
-        title: 'Completed progress bars turn green',
+        title: 'Completed Progress Bars Turn Green',
         detail:
           'When a show, a movie series, or a task with subtasks/steps reaches 100%, its wavy progress '
           + 'bar flattens into a calm line, and now that line is green to signify completion, instead '
@@ -328,7 +328,7 @@ const RELEASES: Release[] = [
       {
         kind: 'improvement',
         area: 'Library',
-        title: 'Gentler close for the media card',
+        title: 'Gentler Close for the Media Card',
         detail:
           'Closing a movie or show card eases back into its poster over a slightly longer, softer curve '
           + '(about 420ms, Material standard easing) so it reads as a deliberate settle rather than a '
@@ -339,7 +339,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Library',
-        title: 'Poster no longer flashes when a card closes',
+        title: 'Poster No Longer Flashes When a Card Closes',
         detail:
           'The edit dialog used to disappear while still almost fully opaque as it shrank, hard-cutting '
           + 'to the poster underneath it. It now fades to fully transparent as it shrinks into the '
@@ -348,7 +348,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Library',
-        title: 'Editing a book no longer errors on save',
+        title: 'Editing a Book No Longer Errors on Save',
         detail:
           'Saving an edit to a book, or any entry without a release date, failed with '
           + '“invalid release_date”, because an empty date was being rejected. Empty dates now clear the '
@@ -357,7 +357,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Library',
-        title: 'Books say “Started reading”',
+        title: 'Books Say “Started reading”',
         detail:
           'A book’s activity timeline showed “Started watching” when you began it. Books now read '
           + '“Started reading”; movies and shows keep “Started watching”.',
@@ -365,7 +365,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Navigation',
-        title: 'Visible hover in the page switcher',
+        title: 'Visible Hover in the Page Switcher',
         detail:
           'In the compact “all pages” dropdown, the one that appears once the top bars merge as you '
           + 'scroll, each tile’s hover colour matched the panel background, so hovering did nothing '
@@ -374,7 +374,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Tasks',
-        title: 'No sideways jump when opening “missed” review',
+        title: 'No Sideways Jump When Opening “missed” Review',
         detail:
           'Expanding the missed-tasks review grew the page tall enough to summon the scrollbar, which '
           + 'pushed all the content sideways. The scrollbar’s space is now permanently reserved (on '
@@ -383,7 +383,7 @@ const RELEASES: Release[] = [
       {
         kind: 'fix',
         area: 'Habits',
-        title: 'Steady arrows when changing weeks',
+        title: 'Steady Arrows When Changing Weeks',
         detail:
           'Stepping through weeks nudged the ‹ › arrows left and right because the date-range label '
           + 'changed width between months and single- vs double-digit days. The label now has a fixed '

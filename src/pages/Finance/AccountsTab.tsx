@@ -345,7 +345,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{account ? 'Edit account' : 'New account'}</DialogTitle>
+          <DialogTitle>{account ? 'Edit Account' : 'New Account'}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Name" className="sm:col-span-2">
@@ -553,7 +553,7 @@ function SalaryActions({ account, categories, onDone }: {
 
       <Dialog open={bonusOpen} onOpenChange={(o) => !o && setBonusOpen(false)}>
         <DialogContent showCloseButton={false} className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Add bonus to {account.name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add Bonus to {account.name}</DialogTitle></DialogHeader>
           <div className="flex flex-col gap-1.5">
             <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Bonus amount</Label>
             <Input

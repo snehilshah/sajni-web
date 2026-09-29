@@ -28,7 +28,7 @@ export default function TodayDoc() {
         </Callout>
       </Section>
 
-      <Section id="sections" title="What's on it">
+      <Section id="sections" title="What's on It">
         <FeatureList>
           <Feature name="Missed tasks banner">
             <p>

@@ -17,7 +17,7 @@ export const startMeta = {
 export default function StartDoc() {
   return (
     <>
-      <Section id="what" title="What Sajni is">
+      <Section id="what" title="What Sajni Is">
         <p>
           Sajni is a personal knowledge &amp; life system for
           notes, journal, tasks, habits, projects, media and money. It is built
@@ -32,7 +32,7 @@ export default function StartDoc() {
         </p>
       </Section>
 
-      <Section id="brand" title="The look & the name">
+      <Section id="brand" title="The Look & the Name">
         <FeatureList>
           <Feature name="The name">
             <p>
@@ -75,7 +75,7 @@ export default function StartDoc() {
         </Callout>
       </Section>
 
-      <Section id="navigation" title="Moving around">
+      <Section id="navigation" title="Moving Around">
         <p>
           Nine spaces sit in the navigation pill, <em>Today, Notes, Journal,
           Tasks, Habits, Projects, Media, Finance, Analytics</em>, each with
@@ -90,7 +90,7 @@ export default function StartDoc() {
         </p>
       </Section>
 
-      <Section id="palette" title="Command palette">
+      <Section id="palette" title="Command Palette">
         <p>
           Press <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd> (or <Kbd>⌘K</Kbd>, or the search
           pill) anywhere. One box, three behaviors:
@@ -131,7 +131,7 @@ export default function StartDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="conventions" title="House rules">
+      <Section id="conventions" title="House Rules">
         <p>Behaviors that hold everywhere, so the per-page docs don't repeat them:</p>
         <ul>
           <li>

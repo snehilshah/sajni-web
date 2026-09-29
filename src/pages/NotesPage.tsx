@@ -944,7 +944,7 @@ export default function NotesPage() {
 
       <Sheet open={mobileInspectorOpen} onOpenChange={setMobileInspectorOpen}>
         <SheetContent side="right" className="lg:hidden w-[90vw] max-w-[360px] p-0 bg-[hsl(var(--surface-container-low))] flex flex-col">
-          <SheetHeader className="sr-only"><SheetTitle>Note details</SheetTitle></SheetHeader>
+          <SheetHeader className="sr-only"><SheetTitle>Note Details</SheetTitle></SheetHeader>
           {inspector}
         </SheetContent>
       </Sheet>
@@ -953,7 +953,7 @@ export default function NotesPage() {
       <Dialog open={!!moveTarget} onOpenChange={(o) => { if (!o) setMoveTarget(null); }}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Move note</DialogTitle>
+            <DialogTitle>Move Note</DialogTitle>
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>
           </DialogHeader>
           <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">

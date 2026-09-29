@@ -206,7 +206,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
   };
   return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
     <DialogContent className="sm:max-w-md">
-      <DialogHeader><DialogTitle>Edit lend</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>Edit Lend</DialogTitle></DialogHeader>
       <div className="grid gap-3">
         <Field label="From account">
           <Select value={sourceAccountId} onValueChange={(value) => setSourceAccountId(value ?? '')} items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>

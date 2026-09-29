@@ -87,7 +87,7 @@ export function ConfirmRoot() {
           >
             {destructive ? <AlertTriangle /> : <CircleHelp />}
           </AlertDialogMedia>
-          <AlertDialogTitle>{req?.title ?? 'Are you sure?'}</AlertDialogTitle>
+          <AlertDialogTitle>{req?.title ?? 'Are You Sure?'}</AlertDialogTitle>
           <AlertDialogDescription>{req?.description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

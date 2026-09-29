@@ -43,7 +43,7 @@ const CARE_VIEWS: CareView[] = [
   {
     id: 'today',
     label: 'Today',
-    title: 'The day, already gathered.',
+    title: 'The Day, Already Gathered.',
     body: 'What is due, what you are tending, and one thought worth returning to.',
     items: [
       { icon: CheckSquare, title: 'Review the project draft', detail: 'On deck · 10:30', state: 'Task' },
@@ -54,7 +54,7 @@ const CARE_VIEWS: CareView[] = [
   {
     id: 'remember',
     label: 'Remember',
-    title: 'Nothing useful has to disappear.',
+    title: 'Nothing Useful Has to Disappear.',
     body: 'Notes keep their links, quick captures return, and media remembers where you left off.',
     items: [
       { icon: NotebookPen, title: 'Garden planning', detail: 'Linked to three notes', state: 'Note' },
@@ -65,7 +65,7 @@ const CARE_VIEWS: CareView[] = [
   {
     id: 'tend',
     label: 'Tend',
-    title: 'Small care, at the right time.',
+    title: 'Small Care, at the Right Time.',
     body: 'Reminders follow your local clock. Recurring money and routines move without duplicate work.',
     items: [
       { icon: Bell, title: 'Call home', detail: 'Tomorrow · 7:00 PM', state: 'Reminder' },
@@ -76,7 +76,7 @@ const CARE_VIEWS: CareView[] = [
   {
     id: 'reflect',
     label: 'Reflect',
-    title: 'Your days become a longer story.',
+    title: 'Your Days Become a Longer Story.',
     body: 'Journal, projects, and analytics help you see patterns without turning life into a score.',
     items: [
       { icon: BookOpen, title: 'What felt lighter today?', detail: 'A prompt, not a demand', state: 'Journal' },
@@ -96,28 +96,28 @@ const TENDING_ROWS: {
   {
     icon: NotebookPen,
     number: '01',
-    title: 'Capture and connect',
+    title: 'Capture and Connect',
     body: 'Notes, memos, backlinks, folders, and universal tags keep a passing thought close to the work it belongs to.',
     detail: 'Notes · memos · tags',
   },
   {
     icon: CheckSquare,
     number: '02',
-    title: 'Plan and tend',
+    title: 'Plan and Tend',
     body: 'Tasks, habits, reminders, and a contextual Today page surface what deserves attention without making everything urgent.',
     detail: 'Tasks · habits · reminders',
   },
   {
     icon: BookOpen,
     number: '03',
-    title: 'Remember and reflect',
+    title: 'Remember and Reflect',
     body: 'Journal entries, project threads, old echoes, books, films, and shows preserve both progress and the texture around it.',
     detail: 'Journal · projects · media',
   },
   {
     icon: Wallet,
     number: '04',
-    title: 'Understand and protect',
+    title: 'Understand and Protect',
     body: 'Money, trends, private exports, and calm analytics help you understand your life while keeping ownership with you.',
     detail: 'Finance · analytics · takeout',
   },
@@ -354,7 +354,7 @@ export default function LandingPage() {
           <div className="relative mx-auto grid min-w-0 max-w-7xl items-center gap-14 px-5 py-16 sm:px-8 sm:py-22 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:px-10 lg:py-28">
             <div className="min-w-0 max-w-xl">
               <h1 className="serif text-[clamp(2.75rem,4.5vw,4rem)] font-semibold leading-[1] tracking-[-0.045em]">
-                A quieter place for everything that matters.
+                A Quieter Place for Everything That Matters.
               </h1>
               <p className="mt-7 max-w-lg text-lg leading-8 text-muted-foreground sm:text-xl">
                 Sajni brings your notes, days, plans, habits, projects, media, and money into one
@@ -383,7 +383,7 @@ export default function LandingPage() {
             <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
               <div className="lg:sticky lg:top-28 lg:self-start">
                 <h2 className="serif max-w-md text-4xl font-semibold leading-[1.02] tracking-[-0.035em] sm:text-5xl">
-                  Each part is looked after in context.
+                  Each Part Is Looked After in Context.
                 </h2>
                 <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
                   Sajni keeps the spaces distinct enough to stay clear, and connected enough to
@@ -431,7 +431,7 @@ export default function LandingPage() {
             <div className="grid overflow-hidden rounded-[32px] bg-[hsl(var(--primary-container))] lg:grid-cols-[0.92fr_1.08fr]">
               <div className="p-7 sm:p-10 lg:p-14">
                 <h2 className="serif max-w-lg text-4xl font-semibold leading-[1.02] tracking-[-0.035em] text-[hsl(var(--on-primary-container))] sm:text-5xl">
-                  The system should feel personal before you put anything in it.
+                  The System Should Feel Personal Before You Put Anything in It.
                 </h2>
                 <p className="mt-5 max-w-lg text-base leading-7 text-[hsl(var(--on-primary-container)/0.78)]">
                   Every Sajni theme is a complete Material 3 tonal system, not a coat of paint.
@@ -442,7 +442,7 @@ export default function LandingPage() {
               <div className="m-3 rounded-[26px] bg-[hsl(var(--surface-container-low))] p-5 sm:m-4 sm:p-7 lg:p-9">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-semibold">Choose the tone</h3>
+                    <h3 className="text-lg font-semibold">Choose the Tone</h3>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
                       This changes the real page. Your choice stays with you.
                     </p>
@@ -486,7 +486,7 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 sm:py-26 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-18 lg:px-10">
             <div>
               <h2 className="serif max-w-lg text-4xl font-semibold leading-[1.02] tracking-[-0.035em] sm:text-5xl">
-                It stays out of sight until language is easier.
+                It Stays Out of Sight Until Language Is Easier.
               </h2>
               <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
                 Sajni has no floating assistant and no prompt parade. Ask from the command palette
@@ -520,7 +520,7 @@ export default function LandingPage() {
             <div className="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-end">
             <div>
                 <h2 className="serif max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.04em] sm:text-6xl">
-                  A beloved place to return to, not another system to perform for.
+                  A Beloved Place to Return to, Not Another System to Perform For.
                 </h2>
               </div>
               <div>

@@ -201,7 +201,7 @@ function TimeTravelSearch() {
     <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
       <div className="flex items-center gap-2 mb-3">
         <Search className="size-3.5 text-muted-foreground" />
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time travel</h2>
+        <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time Travel</h2>
       </div>
       <Input
         value={q}

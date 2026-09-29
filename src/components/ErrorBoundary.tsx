@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <div className="flex flex-col gap-1">
               <h3 className="font-sans text-lg font-semibold tracking-tight text-foreground">
-                Something went wrong
+                Something Went Wrong
               </h3>
               <p className="text-sm text-muted-foreground">
                 An unexpected error occurred while rendering this section.

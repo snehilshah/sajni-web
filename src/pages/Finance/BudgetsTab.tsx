@@ -388,7 +388,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{budget ? 'Edit budget' : 'New budget'}</DialogTitle>
+          <DialogTitle>{budget ? 'Edit Budget' : 'New Budget'}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-3">

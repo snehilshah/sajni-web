@@ -105,7 +105,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
     <div className="flex flex-col gap-6">
       <section aria-labelledby="slates-plain" className="flex flex-col gap-2">
         <h2 id="slates-plain" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-          Normal life
+          Normal Life
         </h2>
         {/* Plain is the baseline everything else is measured against, so it gets
             the width and the month figure rather than a lifetime total. */}

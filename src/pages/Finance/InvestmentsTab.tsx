@@ -268,7 +268,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{investment ? 'Edit investment' : 'New investment'}</DialogTitle>
+          <DialogTitle>{investment ? 'Edit Investment' : 'New Investment'}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Name" className="col-span-2">

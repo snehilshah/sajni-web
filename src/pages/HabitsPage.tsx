@@ -256,7 +256,7 @@ export default function HabitsPage() {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit habit' : 'New habit'}</DialogTitle>
+            <DialogTitle>{editing ? 'Edit Habit' : 'New Habit'}</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">

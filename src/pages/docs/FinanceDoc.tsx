@@ -22,7 +22,7 @@ export const financeMeta = {
 export default function FinanceDoc() {
   return (
     <>
-      <Section id="privacy" title="Privacy mode" chip="header toggle">
+      <Section id="privacy" title="Privacy Mode" chip="header toggle">
         <p>
           Figures are <strong>hidden by default</strong>. Every amount renders
           as stable decoy digits, same sign, same digit count, deterministic

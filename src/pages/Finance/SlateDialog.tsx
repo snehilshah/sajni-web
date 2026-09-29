@@ -53,7 +53,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{slate ? 'Edit slate' : 'New slate'}</DialogTitle>
+          <DialogTitle>{slate ? 'Edit Slate' : 'New Slate'}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">

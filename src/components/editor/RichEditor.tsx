@@ -474,7 +474,7 @@ export default function RichEditor({
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent showCloseButton={false} className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Insert link</DialogTitle>
+            <DialogTitle>Insert Link</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-1">
             <div className="flex flex-col gap-1.5">

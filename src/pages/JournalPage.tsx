@@ -751,7 +751,7 @@ export default function JournalPage() {
         >
           <div className="mx-auto mb-3 h-[3px] w-9 bg-muted-foreground/35" aria-hidden="true" />
           <SheetHeader className="p-0 px-2">
-            <SheetTitle className="serif text-base normal-case tracking-tight">Today's context</SheetTitle>
+            <SheetTitle className="serif text-base normal-case tracking-tight">Today's Context</SheetTitle>
           </SheetHeader>
           {contextPanel}
         </SheetContent>
@@ -782,7 +782,7 @@ export default function JournalPage() {
           className="md:hidden w-[86vw] max-w-[20rem] p-0 pt-[env(safe-area-inset-top)] flex flex-col bg-sidebar"
         >
           <SheetHeader className="sr-only p-0">
-            <SheetTitle>Journal & calendar</SheetTitle>
+            <SheetTitle>Journal & Calendar</SheetTitle>
           </SheetHeader>
           {sidebarContent}
         </SheetContent>

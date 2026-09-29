@@ -692,7 +692,7 @@ function EventTrends({ event }: { event: TrackedEvent }) {
         <div className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-4 sm:p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="font-semibold">Recorded variable</h3>
+              <h3 className="font-semibold">Recorded Variable</h3>
               <p className="mt-0.5 text-sm text-muted-foreground">How a measurement changes over time</p>
             </div>
             <Select
@@ -931,7 +931,7 @@ function EventEditor({
     <Dialog open={value !== null} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit event' : 'New event'}</DialogTitle>
+          <DialogTitle>{editing ? 'Edit Event' : 'New Event'}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-5">
           <div className="space-y-1.5">

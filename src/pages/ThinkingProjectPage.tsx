@@ -266,7 +266,7 @@ export default function ThinkingProjectPage() {
   };
 
   if (loading) return <PageShell title="Projects">Loading…</PageShell>;
-  if (!project) return <PageShell title="Not found">Project not found.</PageShell>;
+  if (!project) return <PageShell title="Not Found">Project not found.</PageShell>;
 
   return (
     <PageShell
@@ -345,7 +345,7 @@ export default function ThinkingProjectPage() {
                   {project.thesis && project.gap_questions?.length > 0 && <Separator />}
                   {project.gap_questions && project.gap_questions.length > 0 && (
                     <div>
-                      <SectionLabel>Gap questions</SectionLabel>
+                      <SectionLabel>Gap Questions</SectionLabel>
                       <ul className="space-y-1.5 mt-2">
                         {project.gap_questions.map((q, i) => (
                           <li key={i} className="text-sm flex items-start gap-2">
@@ -965,7 +965,7 @@ function CardDetail({
                 </Section>
               )}
               {e.questions_raised && e.questions_raised.length > 0 && (
-                <Section title="Questions raised">
+                <Section title="Questions Raised">
                   <ul className="space-y-1.5">
                     {e.questions_raised.map((s, i) => (
                       <li key={i} className="flex items-start gap-2">

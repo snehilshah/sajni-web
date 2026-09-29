@@ -1212,7 +1212,7 @@ export default function MediaPage() {
       )}
 
       {form.type === 'book' && (
-        <Section title="Reading progress">
+        <Section title="Reading Progress">
           <div className="grid grid-cols-2 gap-3">
             <NumberField label="Pages read" value={form.episodes_watched} onChange={(n) => setForm({ ...form, episodes_watched: n })} />
             <NumberField label="Total pages" value={form.episodes_total} onChange={(n) => setForm({ ...form, episodes_total: n })} />
@@ -2838,7 +2838,7 @@ function ShowProgressSection({
   };
 
   return (
-    <Section title="Watch progress">
+    <Section title="Watch Progress">
       {knownSeasons ? (
         <>
           <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">

@@ -124,7 +124,15 @@ export default function TodayPage() {
 	}, [habitsList, recentLogsMap]);
 
 	const greeting =
-		hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Winding down';
+		hour < 5
+			? 'Still Up'
+			: hour < 12
+				? 'Good Morning'
+				: hour < 17
+					? 'Good Afternoon'
+					: hour < 21
+						? 'Good Evening'
+						: 'Winding Down';
 
 	const habitsLeft = habitStatus.filter((h) => !h.logged).length;
 	const habitsDone = habitStatus.filter((h) => h.logged).length;
@@ -193,360 +201,427 @@ export default function TodayPage() {
 
 	return (
 		<div className="flex-1 min-h-0 flex flex-col">
-		<PageChrome title="Today" />
-		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ paddingTop: chromeClearance(isMobile) }}>
-		<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-6 md:pt-8 pb-24">
-			{/* Hero */}
-			<div>
-				<div className="text-base font-medium tracking-normal text-muted-foreground mb-3">{dateLabel}</div>
-				<h1 className="serif text-4xl md:text-[56px] font-normal tracking-[-0.025em] leading-[1.05] text-foreground">
-					{greeting}.
-				</h1>
-				<p className="serif italic text-lg md:text-[28px] font-light tracking-[-0.01em] leading-[1.25] text-muted-foreground mt-2 max-w-[720px]">
-					You have{' '}
-					<span className="text-foreground not-italic">
-						{openTasksCount} {openTasksCount === 1 ? 'thing' : 'things'}
-					</span>{' '}
-					on deck and{' '}
-					<span className="text-foreground not-italic">
-						{habitsLeft} {habitsLeft === 1 ? 'habit' : 'habits'}
-					</span>{' '}
-					left to log.
-				</p>
-			</div>
-
-			{/* Capture bar */}
-			<div className="m3-expressive-panel rounded-xl p-5 mt-9 fade-in">
-				<div className="flex items-center gap-2.5 mb-2.5">
-					<div className="sajni-logo" style={{ width: 22, height: 22, borderRadius: 6 }} />
-					<span className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">Capture</span>
-					<div className="flex-1" />
-					<span className="text-xs text-muted-foreground hidden md:inline">I'll route to the right place</span>
-				</div>
-				<Textarea
-					value={capture}
-					onChange={(e) => setCapture(e.target.value)}
-					onKeyDown={onCaptureKey}
-					placeholder="A thought, a task, a #tag… anything."
-					rows={2}
-					className="text-base leading-[1.55] min-h-[72px]"
-				/>
-				<div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
-					<div className="flex gap-1.5">
-						<CaptureChip
-							kind="memo"
-							current={captureKind}
-							onPick={setCaptureKind}
-							icon={<PixelIcon name="notebook" solid={captureKind === 'memo'} className="size-3" />}
-							label="Memo"
-						/>
-						<CaptureChip
-							kind="task"
-							current={captureKind}
-							onPick={setCaptureKind}
-							icon={<CheckSquare className="size-3" />}
-							label="Task"
-						/>
-						<CaptureChip
-							kind="journal"
-							current={captureKind}
-							onPick={setCaptureKind}
-							icon={<BookOpen className="size-3" />}
-							label="Journal"
-						/>
+			<PageChrome title="Today" />
+			<div
+				ref={scrollRef}
+				className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+				style={{ paddingTop: chromeClearance(isMobile) }}
+			>
+				<div className="page-fade-in max-w-6xl w-full mx-auto px-6 md:px-14 pt-6 md:pt-8 pb-24">
+					{/* Hero */}
+					<div>
+						<div className="text-base font-medium tracking-normal text-muted-foreground mb-3">
+							{dateLabel}
+						</div>
+						<h1 className="serif text-4xl md:text-[56px] font-normal tracking-[-0.025em] leading-[1.05] text-foreground">
+							{greeting}.
+						</h1>
+						<p className="serif italic text-lg md:text-[28px] font-light tracking-[-0.01em] leading-[1.25] text-muted-foreground mt-2 max-w-[720px]">
+							You have{' '}
+							<span className="text-foreground not-italic">
+								{openTasksCount} {openTasksCount === 1 ? 'thing' : 'things'}
+							</span>{' '}
+							on deck and{' '}
+							<span className="text-foreground not-italic">
+								{habitsLeft} {habitsLeft === 1 ? 'habit' : 'habits'}
+							</span>{' '}
+							left to log.
+						</p>
 					</div>
-					<button
-						onClick={handleCapture}
-						disabled={!capture.trim() || saving}
-						className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
-					>
-						{saving ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : null}
-						Save
-						<kbd className="mono text-xs px-1 py-px rounded bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground/85">
-							⌘↵
-						</kbd>
-					</button>
-				</div>
-			</div>
 
-			{/* Missed tasks — surfaced up top so yesterday's slips don't vanish.
-			    Self-hides when nothing is overdue. */}
-			<div className="mt-6">
-				<MissedBanner />
-			</div>
-
-			{/* Two-column grid */}
-			<div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 mt-8">
-				<div className="flex flex-col gap-6">
-					{/* On deck */}
-					<Section
-						title="On deck"
-						hint={`${dueOpen.length} due today`}
-						action={
-							<Link
-								to="/tasks"
-								className="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-							>
-								Open Tasks <ArrowRight className="size-3" />
-							</Link>
-						}
-					>
-						<div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
-							{dueOpen.length === 0 ? (
-								<div className="px-5 py-8 text-center text-sm text-muted-foreground">Nothing scheduled for today.</div>
-							) : (
-								dueOpenSorted.map((t, i) => (
-									<div
-										key={t.id}
-										onClick={() => openTask(t.id)}
-										role="button"
-										tabIndex={0}
-										className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-[hsl(var(--surface-container-high))] transition-colors cursor-pointer
-                    ${i === 0 ? '' : 'border-t border-border/50'}`}
-									>
-										<button
-											type="button"
-											onClick={(e) => {
-												e.stopPropagation();
-												toggleTask.mutate({ id: t.id, status: 'done' });
-											}}
-											aria-label="Mark complete"
-											className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 hover:border-primary hover:bg-primary/10 transition-colors"
-										/>
-										<div className="flex-1 min-w-0">
-											<div className="text-[14px] text-foreground font-medium truncate">{t.title}</div>
-											<div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-												{t.scheduled_at ? (
-													<span
-														className={`mono inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
-															t.remind
-																? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
-																: 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
-														}`}
-														title={t.remind ? 'Reminder set' : 'Scheduled'}
-													>
-														{t.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
-														{format(parseISO(t.scheduled_at), 'h:mm a')}
-													</span>
-												) : t.due_date ? (
-													<span className="mono inline-flex items-center gap-1">
-														<Clock className="size-3" /> {format(parseISO(t.due_date), 'MMM d')}
-													</span>
-												) : null}
-												{t.tags?.slice(0, 3).map((tag) => (
-													<span key={tag} className="text-primary/80">
-														#{tag}
-													</span>
-												))}
-											</div>
-										</div>
-										<span
-											className={`chip ${t.priority === 'high' ? 'chip-rose' : t.priority === 'medium' ? 'chip-amber' : ''}`}
-										>
-											{t.priority}
-										</span>
-									</div>
-								))
-							)}
+					{/* Capture bar */}
+					<div className="m3-expressive-panel rounded-xl p-5 mt-9 fade-in">
+						<div className="flex items-center gap-2.5 mb-2.5">
+							<div className="sajni-logo" style={{ width: 22, height: 22, borderRadius: 6 }} />
+							<span className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">
+								Capture
+							</span>
+							<div className="flex-1" />
+							<span className="text-xs text-muted-foreground hidden md:inline">
+								I'll route to the right place
+							</span>
 						</div>
-					</Section>
-
-					{/* Recent thinking */}
-					<Section
-						title="Recent thinking"
-						hint="last few captures"
-						action={
-							<Link
-								to="/memos"
-								className="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-							>
-								All memos <ArrowRight className="size-3" />
-							</Link>
-						}
-					>
-						<div className="flex flex-col gap-2.5">
-							{recentMemos.length === 0 ? (
-								<div className="rounded-xl px-5 py-6 text-center text-sm text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
-									Nothing captured yet. Try the bar above.
-								</div>
-							) : (
-								recentMemos.map((m) => (
-									<div key={m.id} className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border hover:border-border transition-colors">
-										<div className="prose-sajni text-[14.5px] leading-[1.55] line-clamp-3">
-											<ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
-										</div>
-										<div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-border/50 text-xs">
-											<span className="mono text-muted-foreground">
-												{formatDistanceToNow(parseISO(m.created_at), { addSuffix: true })}
-											</span>
-											{m.tags?.map((t) => (
-												<span key={t} className="chip chip-sage">
-													#{t}
-												</span>
-											))}
-										</div>
-									</div>
-								))
-							)}
-						</div>
-					</Section>
-
-					{/* Echo from earlier */}
-					{echo && (
-						<Section title="Echo from earlier" hint="surfaced from a few days ago">
-							<div className="sajni-spot rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border">
-								<Quote className="size-4 text-secondary mb-2.5" />
-								<p className="serif italic text-[17px] leading-[1.55] text-foreground/85 mb-3">
-									{echo.content
-										.replace(/\*\*/g, '')
-										.replace(/\[\[|\]\]/g, '')
-										.slice(0, 220)}
-								</p>
-								<div className="mono text-xs tracking-[0.1em] uppercase text-muted-foreground">
-									YOU · {formatDistanceToNow(parseISO(echo.created_at), { addSuffix: true })}
-								</div>
+						<Textarea
+							value={capture}
+							onChange={(e) => setCapture(e.target.value)}
+							onKeyDown={onCaptureKey}
+							placeholder="A thought, a task, a #tag… anything."
+							rows={2}
+							className="text-base leading-[1.55] min-h-[72px]"
+						/>
+						<div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
+							<div className="flex gap-1.5">
+								<CaptureChip
+									kind="memo"
+									current={captureKind}
+									onPick={setCaptureKind}
+									icon={
+										<PixelIcon name="notebook" solid={captureKind === 'memo'} className="size-3" />
+									}
+									label="Memo"
+								/>
+								<CaptureChip
+									kind="task"
+									current={captureKind}
+									onPick={setCaptureKind}
+									icon={<CheckSquare className="size-3" />}
+									label="Task"
+								/>
+								<CaptureChip
+									kind="journal"
+									current={captureKind}
+									onPick={setCaptureKind}
+									icon={<BookOpen className="size-3" />}
+									label="Journal"
+								/>
 							</div>
-						</Section>
-					)}
-
-					{/* At a glance — kept on the left so the two columns end at
-					    roughly the same height. */}
-					<Section title="At a glance">
-						<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] border border-border">
-							<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
-							<Stat label="Tasks closed" value={String(dueToday.filter((t) => t.status === 'done').length)} />
-							<Stat label="Journal streak" value={`${recentJournal.length}d`} />
-							<Stat label="Habit periods" value={`${habitsDone}/${totalHabitsToday}`} />
-						</div>
-					</Section>
-				</div>
-
-				<div className="flex flex-col gap-6">
-					{/* Current habit periods */}
-					<Section title="Habits" hint={totalHabitsToday > 0 ? `${habitsDone}/${totalHabitsToday} current periods` : undefined}>
-						<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border">
-							{habitStatus.length === 0 ? (
-								<div className="text-sm text-muted-foreground text-center py-2">No habits yet.</div>
-							) : (
-								habitStatus.map((h, i) => {
-									const week = habitWeek[h.id] || [];
-									const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0 … Sun=6
-									const habit = habitsList.find((x) => x.id === h.id);
-									const streak = habit?.current_streak ?? 0;
-									return (
-										<div
-											key={h.id}
-											className={`flex items-center gap-3 py-2.5 -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
-										>
-											<button
-												onClick={() => {
-													if (!habit) return;
-													const period = habitPeriodForDate(new Date(), habit.frequency);
-													toggleHabit.mutate({
-														id: h.id,
-														periodStart: period.key,
-														periodEnd: dateKey(period.end),
-														isCurrent: true,
-													});
-												}}
-												className="size-11 shrink-0 rounded-[16px] flex items-center justify-center transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-												style={{
-													background: h.logged ? h.color : 'transparent',
-													border: `1.5px solid ${h.logged ? h.color : 'hsl(var(--muted-foreground))'}`,
-													color: 'hsl(var(--primary-foreground))',
-												}}
-												title={h.logged ? 'Unmark' : 'Mark done'}
-											>
-												{h.logged && (
-													<svg
-														viewBox="0 0 12 12"
-														className="size-3"
-														fill="none"
-														stroke="currentColor"
-														strokeWidth="2.5"
-													>
-														<path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
-													</svg>
-												)}
-											</button>
-											<button
-												type="button"
-												onClick={() => navigate(`/habits?focus=${h.id}`)}
-												className="min-w-0 flex-1 rounded-md text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
-											>
-												<div className="text-[13.5px] text-foreground font-medium truncate">{h.name}</div>
-												{habit?.frequency === 'daily' ? (
-													<div className="flex items-center gap-1.5 mt-1">
-														{Array.from({ length: 7 }).map((_, idx) => {
-														const filled = week[idx];
-														const isToday = idx === todayIdx;
-														const isFuture = idx > todayIdx;
-														return (
-															<div
-																key={idx}
-																className="rounded-[2px]"
-																style={{
-																	width: 14,
-																	height: isToday ? 6 : 4,
-																	background: filled
-																		? h.color
-																		: isFuture
-																			? 'hsl(var(--muted-foreground) / 0.08)'
-																			: 'hsl(var(--muted-foreground) / 0.18)',
-																	boxShadow: isToday ? '0 0 0 1.5px hsl(var(--primary))' : 'none',
-																}}
-															/>
-														);
-														})}
-													</div>
-												) : habit ? (
-													<div className="mt-1 mono text-xs tracking-[0.08em] text-muted-foreground">
-														{habitPeriodForDate(new Date(), habit.frequency).label}
-														<span className="ml-1.5 normal-case tracking-normal">
-															{habit.frequency === 'fortnightly' ? 'two-week period' : habit.frequency}
-														</span>
-													</div>
-												) : null}
-											</button>
-											<div className="flex items-center gap-1 text-xs text-muted-foreground">
-												<Flame className="size-3 text-secondary" />
-												<span className="mono">{streak}</span>
-											</div>
-										</div>
-									);
-								})
-							)}
-						</div>
-					</Section>
-
-					{/* Journal prompt */}
-					<Section title="Today's prompt">
-						<div
-							className="rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border"
-							style={{ background: 'hsl(var(--surface-container))' }}
-						>
-							<div className="mono text-xs tracking-[0.18em] uppercase text-primary mb-2.5">
-								continued from yesterday
-							</div>
-							<p className="serif italic text-[18px] leading-[1.45] text-foreground mb-3.5">{journalPrompt}</p>
 							<button
-								onClick={() => navigate('/journal')}
-								className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-lg border border-border bg-background/50 hover:bg-background text-[13px] text-foreground/85 transition-colors"
+								onClick={handleCapture}
+								disabled={!capture.trim() || saving}
+								className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
 							>
-								Write today's entry
-								<ArrowRight className="size-3" />
+								{saving ? (
+									<M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" />
+								) : null}
+								Save
+								<kbd className="mono text-xs px-1 py-px rounded bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground/85">
+									⌘↵
+								</kbd>
 							</button>
 						</div>
-					</Section>
+					</div>
+
+					{/* Missed tasks — surfaced up top so yesterday's slips don't vanish.
+			    Self-hides when nothing is overdue. */}
+					<div className="mt-6">
+						<MissedBanner />
+					</div>
+
+					{/* Two-column grid */}
+					<div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 mt-8">
+						<div className="flex flex-col gap-6">
+							{/* On deck */}
+							<Section
+								title="On Deck"
+								hint={`${dueOpen.length} due today`}
+								action={
+									<Link
+										to="/tasks"
+										className="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+									>
+										Open Tasks <ArrowRight className="size-3" />
+									</Link>
+								}
+							>
+								<div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
+									{dueOpen.length === 0 ? (
+										<div className="px-5 py-8 text-center text-sm text-muted-foreground">
+											Nothing scheduled for today.
+										</div>
+									) : (
+										dueOpenSorted.map((t, i) => (
+											<div
+												key={t.id}
+												onClick={() => openTask(t.id)}
+												role="button"
+												tabIndex={0}
+												className={`flex items-center gap-3 w-full text-left px-4 md:px-5 py-3.5 hover:bg-[hsl(var(--surface-container-high))] transition-colors cursor-pointer
+                    ${i === 0 ? '' : 'border-t border-border/50'}`}
+											>
+												<button
+													type="button"
+													onClick={(e) => {
+														e.stopPropagation();
+														toggleTask.mutate({ id: t.id, status: 'done' });
+													}}
+													aria-label="Mark complete"
+													className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 hover:border-primary hover:bg-primary/10 transition-colors"
+												/>
+												<div className="flex-1 min-w-0">
+													<div className="text-[14px] text-foreground font-medium truncate">
+														{t.title}
+													</div>
+													<div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+														{t.scheduled_at ? (
+															<span
+																className={`mono inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
+																	t.remind
+																		? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+																		: 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
+																}`}
+																title={t.remind ? 'Reminder set' : 'Scheduled'}
+															>
+																{t.remind ? (
+																	<Bell className="size-2.5 fill-current" />
+																) : (
+																	<Clock className="size-2.5" />
+																)}
+																{format(parseISO(t.scheduled_at), 'h:mm a')}
+															</span>
+														) : t.due_date ? (
+															<span className="mono inline-flex items-center gap-1">
+																<Clock className="size-3" />{' '}
+																{format(parseISO(t.due_date), 'MMM d')}
+															</span>
+														) : null}
+														{t.tags?.slice(0, 3).map((tag) => (
+															<span key={tag} className="text-primary/80">
+																#{tag}
+															</span>
+														))}
+													</div>
+												</div>
+												<span
+													className={`chip ${t.priority === 'high' ? 'chip-rose' : t.priority === 'medium' ? 'chip-amber' : ''}`}
+												>
+													{t.priority}
+												</span>
+											</div>
+										))
+									)}
+								</div>
+							</Section>
+
+							{/* Recent thinking */}
+							<Section
+								title="Recent Thinking"
+								hint="last few captures"
+								action={
+									<Link
+										to="/memos"
+										className="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+									>
+										All memos <ArrowRight className="size-3" />
+									</Link>
+								}
+							>
+								<div className="flex flex-col gap-2.5">
+									{recentMemos.length === 0 ? (
+										<div className="rounded-xl px-5 py-6 text-center text-sm text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
+											Nothing captured yet. Try the bar above.
+										</div>
+									) : (
+										recentMemos.map((m) => (
+											<div
+												key={m.id}
+												className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border hover:border-border transition-colors"
+											>
+												<div className="prose-sajni text-[14.5px] leading-[1.55] line-clamp-3">
+													<ReactMarkdown remarkPlugins={[remarkGfm]}>
+														{m.content}
+													</ReactMarkdown>
+												</div>
+												<div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-border/50 text-xs">
+													<span className="mono text-muted-foreground">
+														{formatDistanceToNow(parseISO(m.created_at), {
+															addSuffix: true,
+														})}
+													</span>
+													{m.tags?.map((t) => (
+														<span key={t} className="chip chip-sage">
+															#{t}
+														</span>
+													))}
+												</div>
+											</div>
+										))
+									)}
+								</div>
+							</Section>
+
+							{/* Echo from earlier */}
+							{echo && (
+								<Section title="Echo from Earlier" hint="surfaced from a few days ago">
+									<div className="sajni-spot rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border">
+										<Quote className="size-4 text-secondary mb-2.5" />
+										<p className="serif italic text-[17px] leading-[1.55] text-foreground/85 mb-3">
+											{echo.content
+												.replace(/\*\*/g, '')
+												.replace(/\[\[|\]\]/g, '')
+												.slice(0, 220)}
+										</p>
+										<div className="mono text-xs tracking-[0.1em] uppercase text-muted-foreground">
+											YOU · {formatDistanceToNow(parseISO(echo.created_at), { addSuffix: true })}
+										</div>
+									</div>
+								</Section>
+							)}
+
+							{/* At a glance — kept on the left so the two columns end at
+					    roughly the same height. */}
+							<Section title="At a Glance">
+								<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] border border-border">
+									<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
+									<Stat
+										label="Tasks closed"
+										value={String(dueToday.filter((t) => t.status === 'done').length)}
+									/>
+									<Stat label="Journal streak" value={`${recentJournal.length}d`} />
+									<Stat label="Habit periods" value={`${habitsDone}/${totalHabitsToday}`} />
+								</div>
+							</Section>
+						</div>
+
+						<div className="flex flex-col gap-6">
+							{/* Current habit periods */}
+							<Section
+								title="Habits"
+								hint={
+									totalHabitsToday > 0
+										? `${habitsDone}/${totalHabitsToday} current periods`
+										: undefined
+								}
+							>
+								<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border">
+									{habitStatus.length === 0 ? (
+										<div className="text-sm text-muted-foreground text-center py-2">
+											No habits yet.
+										</div>
+									) : (
+										habitStatus.map((h, i) => {
+											const week = habitWeek[h.id] || [];
+											const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0 … Sun=6
+											const habit = habitsList.find((x) => x.id === h.id);
+											const streak = habit?.current_streak ?? 0;
+											return (
+												<div
+													key={h.id}
+													className={`flex items-center gap-3 py-2.5 -mx-2 px-2 rounded-md transition-colors ${i === 0 ? '' : 'border-t border-border/40'}`}
+												>
+													<button
+														onClick={() => {
+															if (!habit) return;
+															const period = habitPeriodForDate(
+																new Date(),
+																habit.frequency,
+															);
+															toggleHabit.mutate({
+																id: h.id,
+																periodStart: period.key,
+																periodEnd: dateKey(period.end),
+																isCurrent: true,
+															});
+														}}
+														className="size-11 shrink-0 rounded-[16px] flex items-center justify-center transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														style={{
+															background: h.logged ? h.color : 'transparent',
+															border: `1.5px solid ${h.logged ? h.color : 'hsl(var(--muted-foreground))'}`,
+															color: 'hsl(var(--primary-foreground))',
+														}}
+														title={h.logged ? 'Unmark' : 'Mark done'}
+													>
+														{h.logged && (
+															<svg
+																viewBox="0 0 12 12"
+																className="size-3"
+																fill="none"
+																stroke="currentColor"
+																strokeWidth="2.5"
+															>
+																<path
+																	d="M2 6.5L5 9L10 3"
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																/>
+															</svg>
+														)}
+													</button>
+													<button
+														type="button"
+														onClick={() => navigate(`/habits?focus=${h.id}`)}
+														className="min-w-0 flex-1 rounded-md text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+													>
+														<div className="text-[13.5px] text-foreground font-medium truncate">
+															{h.name}
+														</div>
+														{habit?.frequency === 'daily' ? (
+															<div className="flex items-center gap-1.5 mt-1">
+																{Array.from({ length: 7 }).map((_, idx) => {
+																	const filled = week[idx];
+																	const isToday = idx === todayIdx;
+																	const isFuture = idx > todayIdx;
+																	return (
+																		<div
+																			key={idx}
+																			className="rounded-[2px]"
+																			style={{
+																				width: 14,
+																				height: isToday ? 6 : 4,
+																				background: filled
+																					? h.color
+																					: isFuture
+																						? 'hsl(var(--muted-foreground) / 0.08)'
+																						: 'hsl(var(--muted-foreground) / 0.18)',
+																				boxShadow: isToday
+																					? '0 0 0 1.5px hsl(var(--primary))'
+																					: 'none',
+																			}}
+																		/>
+																	);
+																})}
+															</div>
+														) : habit ? (
+															<div className="mt-1 mono text-xs tracking-[0.08em] text-muted-foreground">
+																{habitPeriodForDate(new Date(), habit.frequency).label}
+																<span className="ml-1.5 normal-case tracking-normal">
+																	{habit.frequency === 'fortnightly'
+																		? 'two-week period'
+																		: habit.frequency}
+																</span>
+															</div>
+														) : null}
+													</button>
+													<div className="flex items-center gap-1 text-xs text-muted-foreground">
+														<Flame className="size-3 text-secondary" />
+														<span className="mono">{streak}</span>
+													</div>
+												</div>
+											);
+										})
+									)}
+								</div>
+							</Section>
+
+							{/* Journal prompt */}
+							<Section title="Today's Prompt">
+								<div
+									className="rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border"
+									style={{ background: 'hsl(var(--surface-container))' }}
+								>
+									<div className="mono text-xs tracking-[0.18em] uppercase text-primary mb-2.5">
+										continued from yesterday
+									</div>
+									<p className="serif italic text-[18px] leading-[1.45] text-foreground mb-3.5">
+										{journalPrompt}
+									</p>
+									<button
+										onClick={() => navigate('/journal')}
+										className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-lg border border-border bg-background/50 hover:bg-background text-[13px] text-foreground/85 transition-colors"
+									>
+										Write today's entry
+										<ArrowRight className="size-3" />
+									</button>
+								</div>
+							</Section>
+						</div>
+					</div>
 				</div>
 			</div>
-		</div>
-		</div>
 		</div>
 	);
 }
 
-function Section({ title, hint, action, children }: { title: string; hint?: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Section({
+	title,
+	hint,
+	action,
+	children,
+}: {
+	title: string;
+	hint?: string;
+	action?: React.ReactNode;
+	children: React.ReactNode;
+}) {
 	return (
 		<section>
 			<div className="flex items-baseline justify-between gap-3 mb-3.5">

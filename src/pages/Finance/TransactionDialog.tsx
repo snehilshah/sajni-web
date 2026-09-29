@@ -285,7 +285,7 @@ export default function TransactionDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{txn ? 'Edit transaction' : 'New transaction'}</DialogTitle>
+          <DialogTitle>{txn ? 'Edit Transaction' : 'New Transaction'}</DialogTitle>
         </DialogHeader>
         {!txn && (
           <div className="grid grid-cols-4 gap-1 rounded-md bg-muted p-1">

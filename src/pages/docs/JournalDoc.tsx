@@ -16,7 +16,7 @@ export const journalMeta = {
 export default function JournalDoc() {
   return (
     <>
-      <Section id="daily" title="The daily editor" chip="day view">
+      <Section id="daily" title="The Daily Editor" chip="day view">
         <p>
           The journal is strictly <strong>one entry per day</strong>. The
           constraint is the feature: you can't binge-journal, you can only
@@ -52,7 +52,7 @@ export default function JournalDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="margin" title="The margin" chip="right rail">
+      <Section id="margin" title="The Margin" chip="right rail">
         <p>
           The collapsible right margin holds the day's <em>context</em> so the
           entry itself stays prose. Its open/closed state is remembered; on
@@ -83,7 +83,7 @@ export default function JournalDoc() {
         </Callout>
       </Section>
 
-      <Section id="weekly" title="Weekly view" chip="week">
+      <Section id="weekly" title="Weekly View" chip="week">
         <p>
           Days roll up into weeks (‹ › to shift). The weekly surface is a
           review, not an editor:
@@ -122,7 +122,7 @@ export default function JournalDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="monthly" title="Monthly view" chip="month">
+      <Section id="monthly" title="Monthly View" chip="month">
         <p>
           The same shape one level up: month stats (tasks done, missed,
           entries x/days, expenses), the month's goals with their session

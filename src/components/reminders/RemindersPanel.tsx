@@ -259,7 +259,7 @@ export default function RemindersPanel({ createSignal = 0, focusId }: { createSi
       <Dialog open={customSnooze !== null} onOpenChange={(open) => { if (!open) setCustomSnooze(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Snooze reminder</DialogTitle>
+            <DialogTitle>Snooze Reminder</DialogTitle>
             <DialogDescription>Choose when this occurrence should interrupt you again.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
@@ -286,7 +286,7 @@ export default function RemindersPanel({ createSignal = 0, focusId }: { createSi
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete reminder?</DialogTitle>
+            <DialogTitle>Delete Reminder?</DialogTitle>
             <DialogDescription>
               {deleteTarget?.recurrence.frequency ? 'This deletes the entire recurring series and its history.' : 'This reminder and its history will be removed.'}
             </DialogDescription>
@@ -463,7 +463,7 @@ export function ReminderEditor({ open, editing, onOpenChange }: { open: boolean;
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto">
           <SheetHeader className="pb-3">
-            <SheetTitle className="serif text-xl normal-case tracking-tight">{editing ? 'Edit reminder' : 'New reminder'}</SheetTitle>
+            <SheetTitle className="serif text-xl normal-case tracking-tight">{editing ? 'Edit Reminder' : 'New Reminder'}</SheetTitle>
             <SheetDescription>A message and a time. Everything else is optional.</SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-4">{form}</div>
@@ -476,7 +476,7 @@ export function ReminderEditor({ open, editing, onOpenChange }: { open: boolean;
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(86vh,760px)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit reminder' : 'New reminder'}</DialogTitle>
+          <DialogTitle>{editing ? 'Edit Reminder' : 'New Reminder'}</DialogTitle>
           <DialogDescription>A message and a time. Everything else is optional.</DialogDescription>
         </DialogHeader>
         {form}

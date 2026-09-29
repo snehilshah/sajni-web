@@ -17,7 +17,7 @@ export const mediaMeta = {
 export default function MediaDoc() {
   return (
     <>
-      <Section id="library" title="The library" chip="movies · shows · books">
+      <Section id="library" title="The Library" chip="movies · shows · books">
         <p>
           Three library tabs share one shape: search-to-add, a poster grid,
           and a detail sheet per item.
@@ -78,7 +78,7 @@ export default function MediaDoc() {
         </Callout>
       </Section>
 
-      <Section id="shows" title="Episode tracking" chip="shows">
+      <Section id="shows" title="Episode Tracking" chip="shows">
         <p>
           Shows track progress at two levels: seasons and episodes. TMDB
           supplies per-season episode counts, so behavior is precise:
@@ -105,7 +105,7 @@ export default function MediaDoc() {
         </ul>
       </Section>
 
-      <Section id="movies" title="Collections & upcoming" chip="movies">
+      <Section id="movies" title="Collections & Upcoming" chip="movies">
         <FeatureList>
           <Feature name="Collections">
             <p>
@@ -126,7 +126,7 @@ export default function MediaDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="bookmarks" title="Read-later shelves" chip="videos · sites">
+      <Section id="bookmarks" title="Read-Later Shelves" chip="videos · sites">
         <p>
           The last two tabs are bookmarks, not library items, links you
           saved to come back to, split by kind (video hosts vs everything

@@ -16,7 +16,7 @@ export const habitsMeta = {
 export default function HabitsDoc() {
   return (
     <>
-      <Section id="model" title="The model">
+      <Section id="model" title="The Model">
         <p>
           A habit is a name, a color, and a frequency, <strong>daily</strong>,{' '}
           <strong>weekly</strong>: <strong>fortnightly</strong>: or{' '}
@@ -46,7 +46,7 @@ export default function HabitsDoc() {
         </Callout>
       </Section>
 
-      <Section id="week" title="The rhythm ledger">
+      <Section id="week" title="The Rhythm Ledger">
         <p>
           Habits are grouped by cadence, so every row in a ledger shares the
           same timeline and highlighted current column. Creating a habit does
@@ -81,7 +81,7 @@ export default function HabitsDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="streaks" title="Streaks & backfill">
+      <Section id="streaks" title="Streaks & Backfill">
         <FeatureList>
           <Feature name="Streaks">
             <p>

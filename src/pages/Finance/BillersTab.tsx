@@ -524,7 +524,7 @@ function BillerDetailSheet({
               {/* Payment history */}
               <section>
                 <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">
-                  Payment history
+                  Payment History
                 </h3>
                 {isLoading ? (
                   <div className="text-xs text-muted-foreground py-4 text-center">Loading…</div>
@@ -688,7 +688,7 @@ function BillerDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{biller ? 'Edit biller' : 'New biller'}</DialogTitle>
+          <DialogTitle>{biller ? 'Edit Biller' : 'New Biller'}</DialogTitle>
         </DialogHeader>
 
         {/* Tall form — cap height and scroll the fields so the modal never

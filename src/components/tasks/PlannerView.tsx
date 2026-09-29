@@ -317,7 +317,7 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
             if (!items.length) return null;
             return (
               <div key={scope} className="min-w-0">
-                <h3 className="border-b border-[hsl(var(--outline-variant)/0.8)] pb-2 text-lg font-semibold text-muted-foreground">{scope === 'week' ? 'This week' : 'This month'}</h3>
+                <h3 className="border-b border-[hsl(var(--outline-variant)/0.8)] pb-2 text-lg font-semibold text-muted-foreground">{scope === 'week' ? 'This Week' : 'This Month'}</h3>
                 <div className="grid gap-1 pt-2">
                   {items.map((task) => <PlannerTask key={task.id} task={task} draggable={false} timezone={data?.timezone ?? 'UTC'} onEdit={onEditTask} onToggle={(item) => toggleStatus.mutate({ id: item.id, status: item.status === 'done' ? 'todo' : 'done' })} />)}
                 </div>

@@ -388,7 +388,7 @@ function StatementDialog({ card, onClose, onSaved }: {
     <Dialog open={!!card} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New statement · {card.name}</DialogTitle>
+          <DialogTitle>New Statement · {card.name}</DialogTitle>
         </DialogHeader>
         <div className="text-xs text-muted-foreground -mt-2">
           Calculated from previous balance, this cycle's charges, payments, and card cashback. Edit the fields if the bank statement differs.

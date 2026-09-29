@@ -54,7 +54,7 @@ export default function LinkChallenge() {
       <div className="relative z-10 min-h-[100dvh] flex items-center justify-center px-5">
         <div className="w-full max-w-sm">
           <div className="mb-6">
-            <h2 className="serif text-3xl font-semibold tracking-tight">Confirm it's you.</h2>
+            <h2 className="serif text-3xl font-semibold tracking-tight">Confirm It's You.</h2>
             <p className="serif italic text-base text-muted-foreground mt-1">
               {provider
                 ? `${provider[0].toUpperCase() + provider.slice(1)} couldn't confirm your email is verified. We sent a code to ${email} so we can link this sign-in safely.`

@@ -559,7 +559,7 @@ export default function SettingsPage() {
 
         <Section
           id="themes"
-          title="AI themes"
+          title="AI Themes"
           caption='Describe a vibe like "moss & bone, calm, dark-leaning" and Sajni will mix you an M3 palette.'
         >
           <AIThemes />
@@ -573,7 +573,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Your data" caption="Take a copy with you. Or restore from a previous takeout.">
+        <Section title="Your Data" caption="Take a copy with you. Or restore from a previous takeout.">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={exporting} onClick={onExport} className="gap-2">
@@ -608,7 +608,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Danger zone" caption="Permanently remove your account and all of its content.">
+        <Section title="Danger Zone" caption="Permanently remove your account and all of its content.">
           <AnimatePresence initial={false} mode="wait">
           {delState?.scheduled ? (
             <motion.div

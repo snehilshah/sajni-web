@@ -139,7 +139,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="serif text-lg font-semibold leading-tight">Save bookmark</h1>
+            <h1 className="serif text-lg font-semibold leading-tight">Save Bookmark</h1>
             <p className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1">
               <Sparkles className="size-3" /> review &amp; save
             </p>
@@ -310,7 +310,7 @@ function Capture({ text }: { text: string }) {
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="serif text-lg font-semibold leading-tight">Add from shared message</h1>
+            <h1 className="serif text-lg font-semibold leading-tight">Add from Shared Message</h1>
             <p className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1">
               <Sparkles className="size-3" /> {parsing ? 'Sajni reading…' : 'review & save'}
             </p>

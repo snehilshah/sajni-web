@@ -77,7 +77,7 @@ export default function OverviewTab({ enabled }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Panel title="Asset distribution">
+        <Panel title="Asset Distribution">
           <Distribution
             accounts={data.accounts}
             investments={investmentAssets}
@@ -85,7 +85,7 @@ export default function OverviewTab({ enabled }: Props) {
           />
         </Panel>
 
-        <Panel title="Top expenses · this month">
+        <Panel title="Top Expenses · This Month">
           {data.top_expense_categories.length === 0 ? (
             <Empty>No expenses recorded this month.</Empty>
           ) : (
@@ -114,11 +114,11 @@ export default function OverviewTab({ enabled }: Props) {
           )}
         </Panel>
 
-        <Panel title="Income vs expense · 30 days" className="md:col-span-2">
+        <Panel title="Income vs Expense · 30 Days" className="md:col-span-2">
           <TrendChart trend={data.daily_trend} />
         </Panel>
 
-        <Panel title="Upcoming bills" subtitle="next 14 days">
+        <Panel title="Upcoming Bills" subtitle="next 14 days">
           {data.upcoming_bills.length === 0 ? (
             <Empty>No bills due in the next 14 days.</Empty>
           ) : (
@@ -149,7 +149,7 @@ export default function OverviewTab({ enabled }: Props) {
           )}
         </Panel>
 
-        <Panel title="Upcoming card dues">
+        <Panel title="Upcoming Card Dues">
           {data.upcoming_dues.length === 0 ? (
             <Empty>No unpaid statements.</Empty>
           ) : (
