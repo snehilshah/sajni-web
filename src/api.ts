@@ -933,12 +933,9 @@ export interface FinBiller {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
-  /** Legacy fields kept until android parity; variable === (kind==='bill'). */
-  is_subscription: boolean;
   auto_renew: boolean;
   /** Opt-in: cron spawns a 'Pay {name}' reminder task each cycle. */
   remind_task: boolean;
-  variable: boolean;
   alert_days: number;
   color: string;
   notes: string;
@@ -1256,7 +1253,7 @@ export const finance = {
     top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
     daily_trend: { date: string; income: number; expense: number }[];
     upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
-    upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; is_subscription: boolean; auto_renew: boolean }[];
+    upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; kind: BillerKind; auto_renew: boolean }[];
     investments_breakdown: { type: string; amount: number }[];
     investment_assets?: { id: number; name: string; type: string; amount: number }[];
     lends_breakdown?: { id: number; borrower: string; description: string; outstanding: number }[];
