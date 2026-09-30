@@ -59,7 +59,7 @@ const KIND_TONE: Record<ThinkingKind, string> = {
 };
 
 const CARD_SURFACE =
-  'rounded-2xl border border-border bg-[hsl(var(--surface-container-low))]';
+  'rounded-2xl bg-[hsl(var(--surface-container-low))]';
 const THREAD_TEXTAREA_SIZE = 'max-h-[100px] overflow-y-auto overscroll-contain';
 
 // Local cache of stale-banner dismissals so reloading doesn't keep
@@ -266,7 +266,7 @@ export default function ThinkingProjectPage() {
   };
 
   if (loading) return <PageShell title="Projects">Loading…</PageShell>;
-  if (!project) return <PageShell title="Not Found">Project not found.</PageShell>;
+  if (!project) return <PageShell title="Not found">Project not found.</PageShell>;
 
   return (
     <PageShell
@@ -395,9 +395,9 @@ export default function ThinkingProjectPage() {
             </SelectContent>
           </Select>
           {!userPickedKindState && draft.trim().length >= 12 && (
-            <span className="mono text-xs uppercase tracking-wider text-muted-foreground">auto</span>
+            <span className="mono text-xs label-kicker text-muted-foreground">auto</span>
           )}
-          <span className="mono text-xs uppercase tracking-wider text-muted-foreground">⌘+Enter to add</span>
+          <span className="mono text-xs label-kicker text-muted-foreground">⌘+Enter to add</span>
           <div className="flex-1" />
           <Button size="sm" onClick={addCard} disabled={!draft.trim() || adding}>
             <Plus className="size-4 mr-1" /> {adding ? 'Adding…' : 'Add'}
@@ -413,7 +413,7 @@ export default function ThinkingProjectPage() {
             {activeKinds.size > 0 && (
               <button
                 onClick={() => setActiveKinds(new Set())}
-                className="text-xs mono uppercase tracking-wider text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                className="text-xs mono label-kicker text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
                 <X className="size-3" /> Clear
               </button>
@@ -426,7 +426,7 @@ export default function ThinkingProjectPage() {
                 <button
                   key={k}
                   onClick={() => toggleKind(k)}
-                  className={`h-8 px-2 rounded-full border text-xs mono uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
+                  className={`h-8 px-2 rounded-full border text-xs mono label-kicker flex items-center justify-center gap-1.5 transition-colors ${
                     on
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-[hsl(var(--on-surface))]'
@@ -463,7 +463,7 @@ export default function ThinkingProjectPage() {
                     className="flex min-w-0 items-start p-3 text-left outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]"
                   >
                     <div className="grid w-full grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
-                      <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs mono uppercase tracking-wider ${KIND_TONE[c.kind]}`}>
+                      <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs mono label-kicker ${KIND_TONE[c.kind]}`}>
                         {c.kind}
                       </span>
                       <div className={`grid min-w-0 gap-2 ${c.ai_enrichment?.summary ? '@min-[50rem]:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @min-[50rem]:gap-5' : ''}`}>
@@ -563,7 +563,7 @@ export default function ThinkingProjectPage() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mono text-xs uppercase tracking-wider text-muted-foreground">
+    <div className="mono text-xs label-kicker text-muted-foreground">
       {children}
     </div>
   );
@@ -773,7 +773,7 @@ function CardDetail({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
-              <SelectTrigger className="h-8 w-auto rounded-full text-xs uppercase tracking-wider">
+              <SelectTrigger className="h-8 w-auto rounded-full text-xs label-kicker">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -782,7 +782,7 @@ function CardDetail({
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs label-kicker text-muted-foreground">
               {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
             </span>
             {card.status === 'closed' && (card.kind === 'question' || card.kind === 'contradiction') && (
@@ -924,7 +924,7 @@ function CardDetail({
             <SectionLabel>Enrichment</SectionLabel>
             <div className="flex items-center gap-2">
               {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
-                <span className="mono text-xs uppercase tracking-wider text-muted-foreground">
+                <span className="mono text-xs label-kicker text-muted-foreground">
                   confidence {Math.round((e.confidence ?? 0) * 100)}%
                 </span>
               )}
@@ -965,7 +965,7 @@ function CardDetail({
                 </Section>
               )}
               {e.questions_raised && e.questions_raised.length > 0 && (
-                <Section title="Questions Raised">
+                <Section title="Questions raised">
                   <ul className="space-y-1.5">
                     {e.questions_raised.map((s, i) => (
                       <li key={i} className="flex items-start gap-2">
@@ -988,13 +988,13 @@ function CardDetail({
                           <button
                             disabled={!target}
                             onClick={() => target && onJump(c.card_id)}
-                            className="w-full text-left rounded-lg border border-border bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full text-left rounded-lg bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <span className="mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
+                            <span className="mono text-xs label-kicker text-muted-foreground shrink-0">
                               {c.relation.replace('_', ' ')}
                             </span>
                             {target && (
-                              <span className={`shrink-0 text-xs mono uppercase tracking-wider px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
+                              <span className={`shrink-0 text-xs mono label-kicker px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
                                 {target.kind}
                               </span>
                             )}

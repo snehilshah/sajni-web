@@ -431,7 +431,7 @@ export default function TransactionDialog({
               <Field label="Due date" className="col-span-2">
                 <DatePicker value={dueDate} onChange={(value) => { setDueDate(value); if (!value) setRemind(false); }} />
               </Field>
-              <div className="col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2">
+              <div className="col-span-2 flex items-center justify-between rounded-lg px-3 py-2">
                 <div><Label>Due reminder</Label><p className="text-xs text-muted-foreground">One notification when repayment is due.</p></div>
                 <Switch checked={remind && !!dueDate} disabled={!dueDate} onCheckedChange={setRemind} />
               </div>
@@ -474,7 +474,7 @@ function Field({ label, className = '', children, hint, error }: { label: string
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <div className="flex items-center justify-between gap-2 min-h-[14px]">
-        <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+        <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
         {hint}
       </div>
       {children}

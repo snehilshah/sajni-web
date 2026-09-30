@@ -398,7 +398,7 @@ export function ChatPanel({
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowSessions((v) => !v)}
-                className="font-mono text-xs uppercase tracking-wider"
+                className="font-mono text-xs label-kicker"
                 title="Switch chat"
               >
                 History <ChevronDown className={`size-3 ml-1 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
@@ -408,7 +408,7 @@ export function ChatPanel({
                 variant="ghost"
                 onClick={newChat}
                 title="Start a new chat"
-                className="font-mono text-xs uppercase tracking-wider"
+                className="font-mono text-xs label-kicker"
               >
                 <Plus className="size-3 mr-1" /> New
               </Button>
@@ -425,7 +425,7 @@ export function ChatPanel({
         {/* Headerless history — floats over the transcript; the host's
             pill History button toggles it through the imperative handle. */}
         {headerless && showSessions && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[min(94%,380px)] max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[min(94%,380px)] max-h-64 overflow-y-auto rounded-2xl bg-popover shadow-lg">
             {sessionsList}
           </div>
         )}
@@ -553,7 +553,7 @@ function AssistantMessage({
             {calls.map((t, i) => (
               <span
                 key={i}
-                className={`font-mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                className={`font-mono text-xs label-kicker px-1.5 py-0.5 rounded ${
                   t.ok ? 'bg-muted text-muted-foreground' : 'bg-error-container text-on-error-container'
                 }`}
                 title={t.error || t.name}
@@ -621,7 +621,7 @@ function AssistantMessage({
                   className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"
                 >
                   <Icon className="size-4 shrink-0 text-primary" />
-                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</span>
+                  <span className="text-xs font-mono label-kicker text-muted-foreground">{label}</span>
                   <span className="text-sm flex-1 truncate">{a.meta?.title}</span>
                   {route && <ArrowRight className="size-3.5 text-muted-foreground" />}
                 </button>

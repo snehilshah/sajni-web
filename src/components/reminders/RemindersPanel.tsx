@@ -338,7 +338,7 @@ function ReminderGroup({ label, items, onEdit, onSnooze, onCustomSnooze, onSkip,
   return (
     <section aria-labelledby={`reminders-${label.toLowerCase()}`}>
       <div className="mb-2 flex items-center gap-2.5 px-1">
-        <h2 id={`reminders-${label.toLowerCase()}`} className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</h2>
+        <h2 id={`reminders-${label.toLowerCase()}`} className="mono text-xs label-kicker text-muted-foreground">{label}</h2>
         <span className="mono text-xs tabular-nums text-muted-foreground/70">{items.length}</span>
         <span className="h-px flex-1 bg-[hsl(var(--outline-variant))]" />
       </div>

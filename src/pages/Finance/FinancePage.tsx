@@ -199,6 +199,7 @@ export default function FinancePage() {
       <PageShell
       title="Finance"
       hideScrollbar
+      columnClassName="max-w-6xl px-3 md:px-8"
       contentClassName="max-w-6xl w-full mx-auto px-3 md:px-8 py-5 pb-20 relative"
       actions={
         <FinanceHeaderActions
@@ -334,7 +335,7 @@ function FinanceHeaderActions({
         aria-pressed={privacy}
         title={privacy ? 'Privacy on - figures hidden. Tap to reveal.' : 'Hide all figures'}
         className={cn(
-          'relative h-10 w-10 px-0 sm:w-auto sm:px-3 sm:gap-1.5 font-mono text-xs uppercase tracking-wider',
+          'relative h-10 w-10 px-0 sm:w-auto sm:px-3 sm:gap-1.5 font-mono text-xs label-kicker',
           privacy && 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
         )}
       >
@@ -351,7 +352,7 @@ function FinanceHeaderActions({
           variant="outline"
           size="sm"
           onClick={() => setExportOpen((v) => !v)}
-          className="h-10 w-10 px-0 sm:w-auto sm:px-3 sm:gap-1.5 font-mono text-xs uppercase tracking-wider"
+          className="h-10 w-10 px-0 sm:w-auto sm:px-3 sm:gap-1.5 font-mono text-xs label-kicker"
           aria-expanded={exportOpen}
         >
           <Download className="size-3.5" />

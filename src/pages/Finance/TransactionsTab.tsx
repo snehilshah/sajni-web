@@ -425,7 +425,7 @@ export default function TransactionsTab({
                   {d.month && <><Rule /><Totals label="Month" t={d.month} /></>}
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                <div className="overflow-hidden rounded-xl bg-card">
                   {/* Scrolls away with its rows. It was sticky once; pinning it
                       inside the card meant the card had to drop
                       `overflow-hidden`, and the offset then had to be kept in
@@ -438,7 +438,7 @@ export default function TransactionsTab({
                     <span className="text-xs font-semibold md:col-span-2">
                       {format(parseISO(d.key), 'EEE, d MMM yyyy')}
                     </span>
-                    <span className="text-right font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                    <span className="text-right font-mono text-xs label-kicker text-muted-foreground">
                       {d.items.length === 1 ? '1 entry' : `${d.items.length} entries`}
                     </span>
                   </div>
@@ -716,7 +716,7 @@ function Totals({ label, t }: { label: string; t: Tally }) {
   if (t.spent === 0 && t.earned === 0 && t.lent === 0 && t.returned === 0) return null;
   return (
     <span className="flex items-baseline gap-1.5 font-mono text-xs tabular-nums">
-      <span className="uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="label-kicker text-muted-foreground">{label}</span>
       {t.earned > 0 && <span className="text-primary">+{formatMoney(t.earned)} income</span>}
       {t.spent > 0 && <span className="text-foreground">−{formatMoney(t.spent)} personal</span>}
       {t.lent > 0 && <span className="text-muted-foreground">−{formatMoney(t.lent)} lent</span>}

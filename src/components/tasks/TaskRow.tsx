@@ -102,7 +102,7 @@ export default function TaskRow({
         className={cn(
           '@container group cursor-pointer transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] text-left',
           attached
-            ? cn('bg-transparent hover:bg-[hsl(var(--on-surface)/0.04)]', !first && 'border-t border-border/50')
+            ? cn('bg-transparent hover:bg-[hsl(var(--on-surface)/0.04)]', !first && 'border-t border-[hsl(var(--background))] border-t-2')
             : 'hover:bg-[hsl(var(--on-surface)/0.03)]',
           dimmed && 'opacity-60',
         )}
@@ -331,7 +331,7 @@ export default function TaskRow({
           {children}
         </>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+        <div className="overflow-hidden rounded-2xl bg-card">
           {row}
           {children}
         </div>

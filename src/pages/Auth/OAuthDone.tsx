@@ -53,7 +53,7 @@ export default function OAuthDone() {
           <div className="serif text-base text-destructive">{error}</div>
           <button
             onClick={() => navigate('/signin', { replace: true })}
-            className="mono text-xs uppercase tracking-[0.22em] underline"
+            className="mono text-xs label-kicker underline"
           >
             try again
           </button>

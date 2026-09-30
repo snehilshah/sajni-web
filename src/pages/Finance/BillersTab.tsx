@@ -97,7 +97,7 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowArchived((v) => !v)}
-            className="text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            className="text-xs font-mono label-kicker text-muted-foreground hover:text-foreground"
           >
             {showArchived ? 'Hide archived' : 'Show archived'}
           </button>
@@ -186,7 +186,7 @@ function BillerRow({
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       exit={{ opacity: 0, transform: 'translateY(-4px)' }}
       className={cn(
-        'rounded-xl border border-border bg-card flex items-center gap-3 p-3 md:p-4 transition-colors',
+        'rounded-xl bg-card flex items-center gap-3 p-3 md:p-4 transition-colors',
         biller.archived && 'opacity-60',
       )}
     >
@@ -209,7 +209,7 @@ function BillerRow({
             <span className="font-medium text-sm truncate">{biller.name}</span>
             <KindBadge kind={biller.kind} />
             {biller.auto_renew ? (
-              <span className="inline-flex items-center gap-0.5 text-xs font-mono uppercase tracking-wider text-primary">
+              <span className="inline-flex items-center gap-0.5 text-xs font-mono label-kicker text-primary">
                 <Zap className="size-3" /> auto
               </span>
             ) : null}
@@ -247,7 +247,7 @@ function KindBadge({ kind }: { kind: BillerKind }) {
   return (
     <span
       className={cn(
-        'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider',
+        'shrink-0 rounded-full px-1.5 py-0.5 text-xs font-mono label-kicker',
         kind === 'subscription'
           ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
           : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground',
@@ -352,7 +352,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
         {mode === 'record' ? (
           <div className="flex flex-col gap-2.5">
             <div className="flex flex-col gap-1">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+              <Label className="text-xs font-mono label-kicker text-muted-foreground">
                 {biller.kind === 'bill' ? 'Actual amount' : 'Amount'}
               </Label>
               <Input
@@ -364,7 +364,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Paid on</Label>
+              <Label className="text-xs font-mono label-kicker text-muted-foreground">Paid on</Label>
               <DatePicker value={paidDate} onChange={(d) => d && setPaidDate(d)} />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -479,12 +479,12 @@ function BillerDetailSheet({
                   <div className="flex items-center gap-2 mt-1">
                     <KindBadge kind={biller.kind} />
                     {biller.auto_renew && (
-                      <span className="inline-flex items-center gap-0.5 text-xs font-mono uppercase tracking-wider text-primary">
+                      <span className="inline-flex items-center gap-0.5 text-xs font-mono label-kicker text-primary">
                         <Zap className="size-3" /> auto-renews
                       </span>
                     )}
                     {biller.archived && (
-                      <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">archived</span>
+                      <span className="text-xs font-mono label-kicker text-muted-foreground">archived</span>
                     )}
                   </div>
                 </div>
@@ -493,7 +493,7 @@ function BillerDetailSheet({
 
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
               {/* Amount + next due */}
-              <div className="rounded-xl border border-border bg-[hsl(var(--surface-container-low))] p-4">
+              <div className="rounded-xl bg-[hsl(var(--surface-container-low))] p-4">
                 <div className="font-serif text-2xl font-semibold tabular-nums">
                   {biller.kind === 'bill' && !(biller.amount > 0)
                     ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
@@ -511,7 +511,7 @@ function BillerDetailSheet({
 
               {/* Details */}
               <section>
-                <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">Details</h3>
+                <h3 className="text-xs font-mono label-kicker text-muted-foreground mb-2">Details</h3>
                 <dl className="rounded-xl border border-border divide-y divide-border text-sm">
                   <DetailRow label="Paid from" value={acct?.name || '–'} />
                   <DetailRow label="Category" value={cat?.name || '–'} />
@@ -523,7 +523,7 @@ function BillerDetailSheet({
 
               {/* Payment history */}
               <section>
-                <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">
+                <h3 className="text-xs font-mono label-kicker text-muted-foreground mb-2">
                   Payment History
                 </h3>
                 {isLoading ? (
@@ -540,7 +540,7 @@ function BillerDetailSheet({
                           <span className="text-sm">
                             {format(parseISO(p.paid_date), 'd MMM yyyy')}
                             {p.auto && (
-                              <span className="ml-2 inline-flex items-center gap-0.5 text-xs font-mono uppercase tracking-wider text-primary">
+                              <span className="ml-2 inline-flex items-center gap-0.5 text-xs font-mono label-kicker text-primary">
                                 <Zap className="size-3" /> auto
                               </span>
                             )}
@@ -592,7 +592,7 @@ function BillerDetailSheet({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-      <dt className="text-xs font-mono uppercase tracking-wider text-muted-foreground shrink-0 pt-0.5">{label}</dt>
+      <dt className="text-xs font-mono label-kicker text-muted-foreground shrink-0 pt-0.5">{label}</dt>
       <dd className="text-sm text-right min-w-0 break-words">{value}</dd>
     </div>
   );
@@ -847,7 +847,7 @@ function BillerDialog({
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={'flex flex-col gap-1 ' + (className || '')}>
-      <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-mono label-kicker text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -877,7 +877,7 @@ function CheckRow({
         <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
           {label}
           {disabled && disabledReason ? (
-            <span className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--tertiary))]">
+            <span className="text-xs font-mono label-kicker text-[hsl(var(--tertiary))]">
               · {disabledReason}
             </span>
           ) : null}

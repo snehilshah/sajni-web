@@ -90,7 +90,7 @@ export default function DocsPage() {
             <span className="font-serif text-lg font-semibold tracking-tight group-hover:text-[hsl(var(--primary))] transition-colors">
               Sajni
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            <span className="font-mono text-xs label-kicker text-muted-foreground">
               field guide
             </span>
           </Link>
@@ -131,7 +131,7 @@ export default function DocsPage() {
           <div className="sticky top-8 flex flex-col gap-5">
             {GROUPS.map((g) => (
               <div key={g.name}>
-                <div className="mb-1.5 px-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                <div className="mb-1.5 px-2.5 font-mono text-xs label-kicker text-muted-foreground">
                   {g.name}
                 </div>
                 <ul className="flex flex-col gap-0.5">
@@ -192,18 +192,18 @@ export default function DocsPage() {
             {prev ? (
               <Link
                 to={pathFor(prev.meta.id)}
-                className="group flex min-h-11 flex-col justify-center rounded-xl border border-border px-4 py-2.5 outline-none transition-colors hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                className="group flex min-h-11 flex-col justify-center rounded-xl px-4 py-2.5 outline-none transition-colors hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
               >
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">‹ previous</span>
+                <span className="font-mono text-xs label-kicker text-muted-foreground">‹ previous</span>
                 <span className="text-sm font-medium group-hover:text-[hsl(var(--primary))]">{prev.meta.label}</span>
               </Link>
             ) : <span />}
             {next ? (
               <Link
                 to={pathFor(next.meta.id)}
-                className="group flex min-h-11 flex-col items-end justify-center rounded-xl border border-border px-4 py-2.5 text-right outline-none transition-colors hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                className="group flex min-h-11 flex-col items-end justify-center rounded-xl px-4 py-2.5 text-right outline-none transition-colors hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
               >
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">next ›</span>
+                <span className="font-mono text-xs label-kicker text-muted-foreground">next ›</span>
                 <span className="text-sm font-medium group-hover:text-[hsl(var(--primary))]">{next.meta.label}</span>
               </Link>
             ) : <span />}

@@ -245,7 +245,7 @@ export default function CommandPalette({ onOpenChange }: Props) {
           onClick={() => onOpenChange(false)}
         >
           <div
-            className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden"
+            className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className={`border-b border-border transition-colors ${aiChip ? 'bg-primary/5' : ''}`}>
@@ -446,7 +446,7 @@ function PaletteRow({
           </div>
         )}
       </div>
-      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground shrink-0">
+      <span className="font-mono text-xs label-kicker text-muted-foreground shrink-0">
         {label}
       </span>
     </button>

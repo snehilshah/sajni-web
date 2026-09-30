@@ -588,14 +588,14 @@ function TitleAutocomplete({
                   <div className="font-medium text-sm truncate">{r.title}</div>
                   <div className="flex items-center gap-2 mt-0.5">
                     {kind && (
-                      <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md border border-current text-[10px] font-medium uppercase tracking-wide opacity-60 shrink-0">
+                      <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md border border-current text-xs font-medium label-kicker opacity-60 shrink-0">
                         {kind === 'Show' ? <Tv className="size-2.5" /> : <Film className="size-2.5" />}
                         {kind}
                       </span>
                     )}
                     {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
                     {r.release_state === 'upcoming' && (
-                      <span className="chip chip-upcoming h-5 px-1.5 text-[10px] uppercase tracking-wide">
+                      <span className="chip chip-upcoming h-5 px-1.5 text-xs label-kicker">
                         Upcoming{r.release_date ? ` ${formatReleaseDate(r.release_date)}` : ''}
                       </span>
                     )}
@@ -606,7 +606,7 @@ function TitleAutocomplete({
               );
             })}
             {/* Keyboard hint — pointless on touch, so hover-capable devices only. */}
-            <div className="hidden [@media(hover:hover)]:block px-3 pt-2.5 pb-1 mono text-xs uppercase tracking-[0.18em] text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
+            <div className="hidden [@media(hover:hover)]:block px-3 pt-2.5 pb-1 mono text-xs label-kicker text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
               Enter to pick · Esc to close
             </div>
           </motion.div>
@@ -972,7 +972,7 @@ export default function MediaPage() {
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <M3CookieLoader size="lg" tone="primary" />
-          <span className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground">
+          <span className="mono text-xs tracking-[0.22em] label-kicker text-muted-foreground">
             opening library…
           </span>
         </div>
@@ -1086,7 +1086,7 @@ export default function MediaPage() {
                 <span className="mono text-xs tabular-nums text-muted-foreground">{rows.length}</span>
               </header>
             )}
-            <div className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+            <div className="overflow-hidden rounded-[20px] bg-card">
               {renderRows(rows)}
             </div>
           </section>
@@ -1125,7 +1125,7 @@ export default function MediaPage() {
 
         <div className="flex flex-col gap-3 min-w-0">
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+            <Label className="text-xs font-mono label-kicker text-muted-foreground">
               Title <span className="text-destructive">*</span>
             </Label>
             <TitleAutocomplete
@@ -1155,7 +1155,7 @@ export default function MediaPage() {
             </FieldSimple>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Rating</Label>
+            <Label className="text-xs font-mono label-kicker text-muted-foreground">Rating</Label>
             <StarRating value={form.rating} interactive size="md" onChange={(v) => setForm({ ...form, rating: v })} />
           </div>
         </div>
@@ -1212,7 +1212,7 @@ export default function MediaPage() {
       )}
 
       {form.type === 'book' && (
-        <Section title="Reading Progress">
+        <Section title="Reading progress">
           <div className="grid grid-cols-2 gap-3">
             <NumberField label="Pages read" value={form.episodes_watched} onChange={(n) => setForm({ ...form, episodes_watched: n })} />
             <NumberField label="Total pages" value={form.episodes_total} onChange={(n) => setForm({ ...form, episodes_total: n })} />
@@ -1299,7 +1299,7 @@ export default function MediaPage() {
         <div className="flex flex-col gap-4 min-w-0">
           <section
             aria-label="Library controls"
-            className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-2.5 sm:p-3 flex flex-col gap-2.5"
+            className="flex flex-col gap-2.5"
           >
             <div className="flex items-center gap-2 min-w-0">
               <MediaSearchField
@@ -1385,7 +1385,7 @@ export default function MediaPage() {
                 <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
                   {mediaFormTitle}
                 </SheetTitle>
-                <SheetDescription className="mt-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                <SheetDescription className="mt-0 font-mono text-xs label-kicker text-muted-foreground">
                   {mediaFormSubtitle}
                 </SheetDescription>
               </div>
@@ -1421,7 +1421,7 @@ export default function MediaPage() {
             <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
               {mediaFormTitle}
             </div>
-            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">
+            <p className="font-mono text-xs label-kicker text-muted-foreground mt-0.5">
               {mediaFormSubtitle}
             </p>
           </div>
@@ -1573,7 +1573,7 @@ function MediaControlCluster({
         </button>
         {compactOpen && (
           <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-1.5 shadow-[var(--m3-elev-2)]">
-            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Sort</div>
+            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground label-kicker">Sort</div>
             {SORT_OPTIONS.map((o) => (
               <button
                 type="button"
@@ -1590,7 +1590,7 @@ function MediaControlCluster({
               </button>
             ))}
             <div className="mx-1.5 my-1.5 h-px bg-border/50" />
-            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">View</div>
+            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground label-kicker">View</div>
             {viewOptions.map((o) => {
               const Icon = o.icon;
               return (
@@ -1630,7 +1630,7 @@ function MediaControlCluster({
   );
 }
 
-function FilterChip({ active, onClick, children, count, dot }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; dot?: string }) {
+function FilterChip({ active, onClick, children, count }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; dot?: string }) {
   return (
     <button
       onClick={onClick}
@@ -1638,7 +1638,7 @@ function FilterChip({ active, onClick, children, count, dot }: { active: boolean
         'inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium transition-[background-color,color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] border',
         active
           ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
-          : 'bg-transparent text-foreground border-[hsl(var(--outline))] hover:bg-[hsl(var(--on-surface)/0.06)]',
+          : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground border-transparent hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))]',
       )}
     >
       {active && (
@@ -1646,7 +1646,7 @@ function FilterChip({ active, onClick, children, count, dot }: { active: boolean
           <CheckIconCircle />
         </span>
       )}
-      {dot && !active && <span className={`size-1.5 rounded-full ${dot}`} />}
+      {/* Colour is earned: inactive filters stay neutral (no status dot). */}
       {children}
       <span className={`font-mono text-xs tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
     </button>
@@ -1664,7 +1664,7 @@ function CheckIconCircle() {
 function FieldSimple({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-mono label-kicker text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -1681,7 +1681,7 @@ function FieldSelect({ label, value, onChange, options, renderValue, renderOptio
 }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-mono label-kicker text-muted-foreground">{label}</Label>
       <Select value={value} onValueChange={(v) => onChange(v ?? '')} disabled={disabled}>
         <SelectTrigger className="h-9 text-sm" aria-label={disabled ? `${label}: ${value}` : undefined}>
           <SelectValue>{renderValue ? renderValue(value) : options.find((o) => o.value === value)?.label}</SelectValue>
@@ -1705,8 +1705,8 @@ function FieldSelect({ label, value, onChange, options, renderValue, renderOptio
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-3">
-      <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{title}</h4>
+    <div className="rounded-lg bg-card p-3 flex flex-col gap-3">
+      <h4 className="font-mono text-xs label-kicker text-muted-foreground">{title}</h4>
       {children}
     </div>
   );
@@ -2040,7 +2040,8 @@ function RowRail({ ghost, rating, chip }: {
         className="hidden md:inline-flex w-[84px] justify-center"
         title={rating ? `Rated ${rating}/5` : 'Not rated'}
       >
-        <StarRating value={rating} />
+        {/* Slot stays reserved for column alignment; stars only once rated. */}
+        {rating > 0 ? <StarRating value={rating} /> : null}
       </span>
       <span className="flex w-auto md:w-28 justify-end">{chip}</span>
     </div>
@@ -2151,14 +2152,14 @@ function MediaListRow({
           <RowRail
             ghost={item.year || undefined}
             rating={item.rating || 0}
-            chip={
+            chip={item.status === 'pending' ? null : (
               <span
                 className={cn('chip h-6 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
                 title={statusDisplay.label}
               >
                 <span className="truncate">{statusDisplay.shortLabel}</span>
               </span>
-            }
+            )}
           />
         )}
       </div>
@@ -2208,10 +2209,10 @@ function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[
 // Sorting stays in the toolbar's sort control; the table is a flat readout.
 function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = null }: { items: MediaEntry[]; showPlatform: boolean; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
   return (
-    <div className="overflow-x-auto rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+    <div className="overflow-x-auto rounded-[20px] bg-card">
       <table className="w-full min-w-[560px] text-sm border-collapse">
         <thead>
-          <tr className="mono text-xs uppercase tracking-[0.14em] text-muted-foreground text-left">
+          <tr className="mono text-xs label-kicker text-muted-foreground text-left">
             <th className="font-medium px-4 py-3">Title</th>
             <th className="font-medium px-3 py-3 w-16">Year</th>
             <th className="font-medium px-3 py-3 w-32">Status</th>
@@ -2330,7 +2331,7 @@ function SeriesPosterCard({
           to single-movie tiles, so the series card matches PosterCard's
           plain border on small screens. */}
       <div
-        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]"
+        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]"
       >
         {cover.poster_url ? (
           <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -2838,10 +2839,10 @@ function ShowProgressSection({
   };
 
   return (
-    <Section title="Watch Progress">
+    <Section title="Watch progress">
       {knownSeasons ? (
         <>
-          <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          <div className="text-xs font-mono label-kicker text-muted-foreground">
             {totalSeasons} {totalSeasons === 1 ? 'season' : 'seasons'} · {totalEpisodes} total episodes
           </div>
           <div className="grid grid-cols-2 gap-3">

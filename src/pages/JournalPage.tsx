@@ -323,8 +323,8 @@ export default function JournalPage() {
       {/* Tasks today */}
       <section>
         <div className="flex items-baseline justify-between mb-2.5">
-          <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">tasks today</div>
-          <button onClick={() => navigate('/tasks')} className="mono text-xs tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
+          <div className="mono text-xs label-kicker text-muted-foreground">tasks today</div>
+          <button onClick={() => navigate('/tasks')} className="mono text-xs text-muted-foreground hover:text-foreground">OPEN →</button>
         </div>
         {loadingTasks ? (
           <Skeleton className="h-16 w-full" />
@@ -369,7 +369,7 @@ export default function JournalPage() {
         <QuickAddTask dueDate={selectedDate} />
         {missedTasks.length > 0 && (
           <div className="mt-3 pt-2 border-t border-border/60">
-            <div className="mono text-xs tracking-[0.18em] uppercase text-destructive/80 mb-1.5 flex items-center gap-1.5">
+            <div className="mono text-xs label-kicker text-destructive/80 mb-1.5 flex items-center gap-1.5">
               <AlertCircle className="size-3" /> missed
             </div>
             <div className="flex flex-col gap-1.5">
@@ -392,8 +392,8 @@ export default function JournalPage() {
       {/* Habit periods containing the selected date */}
       <section>
         <div className="flex items-baseline justify-between mb-2.5">
-          <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">habits</div>
-          <button onClick={() => navigate('/habits')} className="mono text-xs tracking-[0.1em] text-muted-foreground hover:text-foreground">OPEN →</button>
+          <div className="mono text-xs label-kicker text-muted-foreground">habits</div>
+          <button onClick={() => navigate('/habits')} className="mono text-xs text-muted-foreground hover:text-foreground">OPEN →</button>
         </div>
         {loadingHabits ? (
           <Skeleton className="h-16 w-full" />
@@ -421,7 +421,7 @@ export default function JournalPage() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12.5px] text-foreground/85">{h.name}</span>
                   {h.frequency !== 'daily' && (
-                    <span className="mt-0.5 block mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                    <span className="mt-0.5 block mono text-xs label-kicker text-muted-foreground">
                       {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
                     </span>
                   )}
@@ -435,10 +435,10 @@ export default function JournalPage() {
       {/* Events are historical context: read-only here, editable on the event timeline. */}
       <section>
         <div className="mb-2.5 flex items-baseline justify-between">
-          <div className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground">events</div>
+          <div className="mono text-xs label-kicker text-muted-foreground">events</div>
           <button
             onClick={() => navigate('/habits?tab=events')}
-            className="mono text-xs tracking-[0.1em] text-muted-foreground hover:text-foreground"
+            className="mono text-xs text-muted-foreground hover:text-foreground"
           >
             OPEN →
           </button>
@@ -476,7 +476,7 @@ export default function JournalPage() {
 
       {/* Backlinks */}
       <section>
-        <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground mb-2.5">backlinks</div>
+        <div className="mono text-xs label-kicker text-muted-foreground mb-2.5">backlinks</div>
         {backlinks.length === 0 ? (
           <div className="text-xs italic text-muted-foreground">Nothing points here yet.</div>
         ) : (
@@ -502,7 +502,7 @@ export default function JournalPage() {
     <>
       {/* Streak header — small but visible cue at the top of the rail. */}
       <div className="px-4 py-3.5 border-b border-sidebar-border/60">
-        <div className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground mb-1">journal</div>
+        <div className="mono text-xs label-kicker text-muted-foreground mb-1">journal</div>
         <div className="flex items-baseline gap-2">
           <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
           <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
@@ -576,7 +576,7 @@ export default function JournalPage() {
               <div key={monthKey}>
                 <button
                   onClick={() => toggleMonth(monthKey)}
-                  className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] font-mono uppercase tracking-wider text-muted-foreground transition-colors"
+                  className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] font-mono label-kicker text-muted-foreground transition-colors"
                 >
                   <ChevronRight className={`size-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                   <span className="flex-1 text-left truncate">{monthLabel}</span>
@@ -929,7 +929,7 @@ function WeekView({
       {/* Title + week shift controls. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
+          <div className="mono text-xs label-kicker text-muted-foreground mb-1.5">
             weekly entry
           </div>
           <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
@@ -993,7 +993,7 @@ function WeekView({
       <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
           <CheckSquare className="size-3.5 text-secondary" />
-          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Tasks by day</span>
+          <span className="font-mono text-xs label-kicker text-muted-foreground">Tasks by day</span>
         </div>
         <div className="divide-y divide-border/40">
           {weekDays.map((day, i) => {
@@ -1013,7 +1013,7 @@ function WeekView({
                 <div className={`flex flex-col items-center w-14 shrink-0 ${
                   isCurrent ? 'text-primary' : 'text-muted-foreground'
                 }`}>
-                  <span className="mono text-xs uppercase tracking-wider">{format(day, 'EEE')}</span>
+                  <span className="mono text-xs label-kicker">{format(day, 'EEE')}</span>
                   <span className={`serif text-2xl font-medium leading-none tabular-nums ${
                     isCurrent ? 'text-primary' : 'text-foreground/90'
                   }`}>
@@ -1026,7 +1026,7 @@ function WeekView({
                       {format(day, 'MMMM')}
                     </span>
                     {stat?.has_entry && (
-                      <span className="mono text-xs tracking-wider uppercase text-primary/70">entry</span>
+                      <span className="mono text-xs label-kicker text-primary/70">entry</span>
                     )}
                   </div>
                   <div className="h-1 rounded-full bg-muted-foreground/15 overflow-hidden">
@@ -1056,14 +1056,14 @@ function WeekView({
 
       {/* Habits — full-width tracker. Bigger affordances, M3 expressive
           tonal cards per row, weekly streak summary on the right. */}
-      <section className="rounded-3xl border border-border bg-card/40 overflow-hidden">
+      <section className="rounded-3xl bg-card overflow-hidden">
         <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center gap-2">
           <Target className="size-4 text-primary" />
-          <span className="font-mono text-xs uppercase tracking-[0.18em] text-foreground/80">
+          <span className="font-mono text-xs label-kicker tracking-[0.18em] text-foreground/80">
             Habits this week
           </span>
           {summary && summary.habits.length > 0 && (
-            <span className="ml-auto mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums">
+            <span className="ml-auto mono text-xs label-kicker text-muted-foreground tabular-nums">
               {habitProgress.done}/{habitProgress.target} periods
             </span>
           )}
@@ -1072,7 +1072,7 @@ function WeekView({
           {!summary || summary.habits.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
               <p className="serif italic text-base text-muted-foreground">No habits tracked yet.</p>
-              <p className="mono text-xs uppercase tracking-wider text-muted-foreground/70 mt-2">
+              <p className="mono text-xs label-kicker text-muted-foreground/70 mt-2">
                 Add habits from the Habits page to start the streak.
               </p>
             </div>
@@ -1088,7 +1088,7 @@ function WeekView({
                 return (
                   <div
                     key={h.id}
-                    className="rounded-2xl border border-border/60 bg-surface-container-low/40 px-4 py-3.5 flex flex-col gap-3 transition-colors hover:bg-surface-container-low/70"
+                    className="rounded-2xl bg-surface-container-low/40 px-4 py-3.5 flex flex-col gap-3 transition-colors hover:bg-surface-container-low/70"
                   >
                     {/* Row header: color swatch · name · count badge. */}
                     <div className="flex items-center gap-3">
@@ -1099,11 +1099,11 @@ function WeekView({
                       <span className="text-[14px] font-medium text-foreground/90 flex-1 truncate">
                         {h.name}
                       </span>
-                      <span className="mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                      <span className="mono text-xs label-kicker tracking-[0.08em] text-muted-foreground">
                         {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
                       </span>
                       <span
-                        className={`mono text-xs uppercase tracking-wider tabular-nums rounded-full px-2.5 py-0.5 ${
+                        className={`mono text-xs label-kicker tabular-nums rounded-full px-2.5 py-0.5 ${
                           isPerfect
                             ? 'bg-primary text-primary-foreground'
                             : ratio >= 0.5
@@ -1127,7 +1127,7 @@ function WeekView({
                             title={`${format(day, 'EEE d')} · ${on ? 'logged' : 'not logged'}`}
                             className="flex flex-col items-center gap-1"
                           >
-                            <span className="mono text-xs uppercase tracking-wider text-muted-foreground/70">
+                            <span className="mono text-xs label-kicker text-muted-foreground/70">
                               {format(day, 'EEEEE')}
                             </span>
                             <span
@@ -1189,7 +1189,7 @@ function WeekView({
                           }}
                         />
                       </div>
-                      <span className="mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums w-10 text-right">
+                      <span className="mono text-xs label-kicker text-muted-foreground tabular-nums w-10 text-right">
                         {Math.round(ratio * 100)}%
                       </span>
                     </div>
@@ -1218,7 +1218,7 @@ function StatTile({ label, value, tone }: {
   };
   return (
     <div className={`rounded-2xl px-4 py-3.5 flex flex-col gap-1.5 ${toneClasses[tone]}`}>
-      <span className="mono text-xs uppercase tracking-[0.18em] opacity-80">{label}</span>
+      <span className="mono text-xs label-kicker opacity-80">{label}</span>
       <span className="serif text-2xl font-medium tabular-nums leading-none">{value}</span>
     </div>
   );
@@ -1432,13 +1432,13 @@ function DailySection({
   ].filter(Boolean).join(' · ');
 
   return (
-    <div className="rounded-lg border border-border bg-card/40 overflow-hidden">
+    <div className="rounded-lg bg-card overflow-hidden">
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
       >
         <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${open ? '' : '-rotate-90'}`} />
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Daily</span>
+        <span className="font-mono text-xs label-kicker text-muted-foreground">Daily</span>
         {summary && (
           <span className="font-mono text-xs text-muted-foreground/80 ml-auto truncate">{summary}</span>
         )}
@@ -1503,7 +1503,7 @@ function DailySection({
 
                     {missedTasks.length > 0 && (
                       <div className="mt-1 pt-1 border-t border-border/60">
-                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-xs uppercase tracking-widest text-secondary">
+                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-xs label-kicker text-secondary">
                           <AlertCircle className="size-3" />
                           Missed
                         </div>
@@ -1532,7 +1532,7 @@ function DailyColumn({ icon, title, children }: { icon: React.ReactNode; title: 
     <div className="rounded-md border border-border/60 bg-background/60 overflow-hidden">
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-border/40 bg-muted/20">
         {icon}
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{title}</span>
+        <span className="font-mono text-xs label-kicker text-muted-foreground">{title}</span>
       </div>
       <div className="p-1.5">{children}</div>
     </div>
@@ -1566,10 +1566,10 @@ function WeekTasksSection({
   };
 
   return (
-    <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
+    <section className="rounded-2xl bg-card overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
         <CalendarRange className="size-3.5 text-secondary" />
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">This week</span>
+        <span className="font-mono text-xs label-kicker text-muted-foreground">This week</span>
         {open.length > 0 && (
           <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{open.length} open</span>
         )}
@@ -1749,7 +1749,7 @@ function MonthView({
       {/* Title + month shift controls. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
+          <div className="mono text-xs label-kicker text-muted-foreground mb-1.5">
             monthly entry
           </div>
           <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
@@ -1807,7 +1807,7 @@ function MonthView({
       <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
           <CheckSquare className="size-3.5 text-secondary" />
-          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Tasks by week</span>
+          <span className="font-mono text-xs label-kicker text-muted-foreground">Tasks by week</span>
         </div>
         <div className="divide-y divide-border/40">
           {(summary?.weeks ?? []).map((wk) => {
@@ -1820,7 +1820,7 @@ function MonthView({
                 className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
               >
                 <div className="flex flex-col w-16 shrink-0 text-muted-foreground">
-                  <span className="mono text-xs uppercase tracking-wider">Week</span>
+                  <span className="mono text-xs label-kicker">Week</span>
                   <span className="serif text-lg leading-none tabular-nums">{wk.iso_week}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1870,10 +1870,10 @@ function MonthTasksSection({
   };
 
   return (
-    <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
+    <section className="rounded-2xl bg-card overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
         <Target className="size-3.5 text-secondary" />
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">This month</span>
+        <span className="font-mono text-xs label-kicker text-muted-foreground">This month</span>
         {open.length > 0 && (
           <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{open.length} open</span>
         )}
@@ -1970,13 +1970,13 @@ function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: stri
         {wasRescheduled && targetDate ? (
           <button
             onClick={() => onJump(targetDate)}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-primary inline-flex items-center gap-1 mt-0.5 transition-colors"
+            className="font-mono text-xs label-kicker text-muted-foreground hover:text-primary inline-flex items-center gap-1 mt-0.5 transition-colors"
           >
             <ArrowRight className="size-2.5" />
             moved to {format(parseISO(targetDate), 'MMM d')}
           </button>
         ) : (
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs label-kicker text-muted-foreground">
             {isDone ? 'completed later' : 'still pending'}
           </span>
         )}

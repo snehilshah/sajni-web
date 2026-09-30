@@ -89,7 +89,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
           {lends.map((lend) => {
             const overdue = lend.status === 'open' && !!lend.due_date && lend.due_date < format(new Date(), 'yyyy-MM-dd');
             return (
-              <article key={lend.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+              <article key={lend.id} className="rounded-xl bg-card p-4 flex flex-col gap-3">
                 <div className="flex items-start gap-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Coins className="size-4" /></span>
                   <div className="min-w-0 flex-1">
@@ -148,15 +148,15 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
 }
 
 function Summary({ label, value, tone = 'default', className = '' }: { label: string; value: number; tone?: 'default' | 'primary'; className?: string }) {
-  return <div className={`rounded-xl border border-border bg-card p-3 ${className}`}>
-    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+  return <div className={`rounded-xl bg-card p-3 ${className}`}>
+    <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
     <div className={`font-serif text-lg font-semibold tabular-nums ${tone === 'primary' ? 'text-primary' : ''}`}><AnimatedMoney value={value} /></div>
   </div>;
 }
 
 function Figure({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return <div className="min-w-0">
-    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground truncate">{label}</div>
+    <div className="font-mono text-xs label-kicker text-muted-foreground truncate">{label}</div>
     <div className={`font-mono text-xs tabular-nums truncate ${strong ? 'font-semibold text-primary' : ''}`}>{value}</div>
   </div>;
 }
@@ -223,7 +223,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
           <Field label="Time"><TimePicker value={lentTime} onChange={setLentTime} /></Field>
         </div>
         <Field label="Due date"><DatePicker value={dueDate} onChange={setDueDate} /></Field>
-        <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+        <div className="flex items-center justify-between rounded-lg px-3 py-2">
           <div><Label>Due reminder</Label><p className="text-xs text-muted-foreground">One notification when due.</p></div>
           <Switch checked={remind && !!dueDate} disabled={!dueDate} onCheckedChange={setRemind} />
         </div>
@@ -281,5 +281,5 @@ function RepaymentDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend |
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="grid gap-1.5"><Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>{children}</div>;
+  return <div className="grid gap-1.5"><Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>{children}</div>;
 }

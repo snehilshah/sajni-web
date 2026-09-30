@@ -1,3 +1,4 @@
+import { markdownPlain } from '@/lib/markdown-plain';
 import { useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Sparkles, Trash2, MessageSquare, Lightbulb, History } from '@/components/ui/icons';
@@ -157,7 +158,7 @@ export default function ThinkingPage() {
             <div
               key={p.id}
               onClick={() => navigate(`/projects/${p.id}`)}
-              className="group cursor-pointer flex flex-col rounded-2xl border border-border bg-[hsl(var(--surface-container-low))] p-4 hover:bg-[hsl(var(--surface-container))] transition-colors"
+              className="group cursor-pointer flex flex-col rounded-2xl bg-[hsl(var(--surface-container-low))] p-4 hover:bg-[hsl(var(--surface-container))] transition-colors"
             >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
@@ -175,14 +176,14 @@ export default function ThinkingPage() {
                 </button>
               </div>
               {p.thesis && (
-                <div className="mt-3 text-xs italic text-foreground/70 line-clamp-3 border-l-2 border-primary/40 pl-2">
-                  {p.thesis}
+                <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
+                  {markdownPlain(p.thesis)}
                 </div>
               )}
               {/* mt-auto pins the meta bar to the card's bottom edge, so rows
                   of cards keep aligned footers even when description/thesis
                   are absent (grid items stretch to equal height). */}
-              <div className="mt-auto pt-3 flex items-center justify-between text-xs mono uppercase tracking-wider text-muted-foreground">
+              <div className="mt-auto pt-3 flex items-center justify-between text-xs mono label-kicker text-muted-foreground">
                 <span>{p.card_count} {p.card_count === 1 ? 'card' : 'cards'}</span>
                 <span>{formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}</span>
               </div>

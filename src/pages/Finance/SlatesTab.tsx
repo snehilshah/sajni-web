@@ -104,7 +104,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="slates-plain" className="flex flex-col gap-2">
-        <h2 id="slates-plain" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        <h2 id="slates-plain" className="font-mono text-xs label-kicker text-muted-foreground">
           Normal Life
         </h2>
         {/* Plain is the baseline everything else is measured against, so it gets
@@ -122,7 +122,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
 
       <section aria-labelledby="slates-outliers" className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 id="slates-outliers" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <h2 id="slates-outliers" className="font-mono text-xs label-kicker text-muted-foreground">
             Outliers
           </h2>
           <div className="flex items-center gap-1">
@@ -171,7 +171,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
 
       {showArchived && (
         <section aria-labelledby="slates-archived" className="flex flex-col gap-2">
-          <h2 id="slates-archived" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <h2 id="slates-archived" className="font-mono text-xs label-kicker text-muted-foreground">
             Archived
           </h2>
           {archived.length === 0 ? (

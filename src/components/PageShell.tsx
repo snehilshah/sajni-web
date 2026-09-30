@@ -53,6 +53,11 @@ export function useOwnScrolled(ref: React.RefObject<HTMLDivElement | null>, enab
 
 const CHROME_TWEEN = { duration: 0.3, ease: [0.2, 0, 0, 1] } as const;
 
+// The page column: max width + horizontal padding shared by the page header
+// and the scroll body, so both sit on the same leading/trailing edges (the
+// edge rule, DESIGN.md). Pages with a different body width pass their own.
+export const PAGE_COLUMN = 'max-w-6xl px-4 md:px-8';
+
 // PillSlot — one persistent content block inside the pill. Its children
 // drive the flex layout directly so there is no second layout animation
 // retargeting them while labels collapse.
@@ -71,13 +76,19 @@ function PillSlot({ className, children }: {
 // primary bar's position while its bounds, title, tabs, and actions reduce
 // together. Keeping one tree mounted avoids a blank frame before motion.
 // Desktop runs compact (h-9); mobile keeps 48dp touch targets.
+// At rest the header is a flat row on the page column's edges: title and
+// tabs start on the leading edge, actions end on the trailing edge. Once the
+// page scrolls it morphs into the compact centred pill (desktop: into the
+// primary bar's slot) exactly as before.
 export function PageChrome({
-  title, leading, navigation, actions,
+  title, leading, navigation, actions, columnClassName = PAGE_COLUMN,
 }: {
   title: ReactNode;
   leading?: ReactNode;
   navigation?: ReactNode;
   actions?: ReactNode;
+  /** Width + horizontal padding of the page body this header aligns to. */
+  columnClassName?: string;
 }) {
   const isMobile = useIsMobile();
   const { pathname } = useLocation();
@@ -88,13 +99,15 @@ export function PageChrome({
   useEffect(() => { setPlacesOpen(false); }, [pathname]);
   useEffect(() => { if (!scrolled) setPlacesOpen(false); }, [scrolled]);
 
-  const divider = <span className="w-px h-5 shrink-0 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />;
+  const divider = scrolled
+    ? <span className="w-px h-5 shrink-0 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+    : null;
   const tail = (
     <>
       {navigation && (
         <>
           {divider}
-          <PillSlot className="min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar">
+          <PillSlot className={cn('min-w-0 overflow-hidden', !scrolled && 'flex-1')}>
             {navigation}
           </PillSlot>
         </>
@@ -105,6 +118,7 @@ export function PageChrome({
           <PillSlot
             className={cn(
               'flex items-center gap-1.5 shrink-0',
+              !scrolled && 'ml-auto',
               scrolled && !isMobile && '[&_button]:h-8 [&_input]:h-8',
             )}
           >
@@ -124,7 +138,10 @@ export function PageChrome({
         transform: scrolled && !isMobile ? 'translateY(-56px)' : 'translateY(0)',
       }}
       transition={CHROME_TWEEN}
-      className="fixed inset-x-0 z-40 flex justify-center px-3 md:px-4 pointer-events-none"
+      className={cn(
+        'fixed inset-x-0 z-40 flex pointer-events-none',
+        scrolled ? 'justify-center px-3 md:px-4' : 'bg-[hsl(var(--background))]',
+      )}
       style={{
         top: isMobile
           ? 'calc(env(safe-area-inset-top, 0px) + 10px)'
@@ -137,10 +154,13 @@ export function PageChrome({
         role={scrolled ? 'toolbar' : undefined}
         aria-label={scrolled ? 'Page' : undefined}
         className={cn(
-          'pointer-events-auto flex items-center min-w-0 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]',
+          'pointer-events-auto flex items-center min-w-0',
           scrolled
-            ? cn('gap-2 pl-1 pr-1 max-w-[min(94vw,720px)]', isMobile ? 'min-h-12 py-1 pl-1.5 pr-1.5' : 'min-h-9 py-0.5')
-            : 'gap-2.5 min-h-12 max-w-[min(94vw,880px)] pl-4 pr-1.5 py-1',
+            ? cn(
+                'rounded-full bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-1)] gap-2 pl-1 pr-1 max-w-[min(94vw,720px)]',
+                isMobile ? 'min-h-12 py-1 pl-1.5 pr-1.5' : 'min-h-9 py-0.5',
+              )
+            : cn('w-full mx-auto gap-4 min-h-12', columnClassName),
         )}
       >
         {leading && (
@@ -167,7 +187,7 @@ export function PageChrome({
                   'shrink-0 inline-flex items-center rounded-full serif font-semibold tracking-tight whitespace-nowrap outline-none transition-colors',
                   scrolled
                     ? cn('pl-2.5 pr-1.5 gap-1 hover:bg-[hsl(var(--on-surface)/0.08)]', isMobile ? 'h-9 text-sm' : 'h-8 text-[13px]')
-                    : 'h-8 p-0 gap-0 text-[15px] cursor-default',
+                    : 'h-9 p-0 gap-0 text-xl cursor-default',
                 )}
               >
                 <span className="truncate max-w-[150px]">{title}</span>
@@ -191,7 +211,7 @@ export function PageChrome({
 // state through NavChromeContext (Layout collapses the primary bar off it).
 export default function PageShell({
   title, leading, actions, navigation,
-  children, contentClassName, hideScrollbar = false,
+  children, contentClassName, columnClassName = PAGE_COLUMN, hideScrollbar = false,
 }: {
   title: ReactNode;
   leading?: ReactNode;
@@ -199,6 +219,8 @@ export default function PageShell({
   navigation?: ReactNode;
   children: ReactNode;
   contentClassName?: string;
+  /** Width + horizontal padding shared by the header and the body. */
+  columnClassName?: string;
   hideScrollbar?: boolean;
 }) {
   const { setScrolled: reportScrolled } = useNavChrome();
@@ -214,7 +236,7 @@ export default function PageShell({
 
   return (
     <div className="page-fade-in flex-1 flex flex-col min-h-0">
-      <PageChrome title={title} leading={leading} navigation={navigation} actions={actions} />
+      <PageChrome title={title} leading={leading} navigation={navigation} actions={actions} columnClassName={columnClassName} />
 
       {/* stable-scrollbar reserves the scrollbar gutter so content doesn't
           shift sideways when a page grows tall enough to show the bar (e.g.
@@ -225,7 +247,7 @@ export default function PageShell({
         className={cn('flex-1 min-h-0 overflow-y-auto overscroll-contain', hideScrollbar ? 'no-scrollbar' : 'stable-scrollbar')}
         style={{ paddingTop: chromeClearance(isMobile) }}
       >
-        <div className={contentClassName ?? 'max-w-6xl w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 flex flex-col gap-6'}>
+        <div className={contentClassName ?? cn('w-full mx-auto pt-5 md:pt-6 pb-28 md:pb-20 flex flex-col gap-6', columnClassName)}>
           {children}
         </div>
       </div>
@@ -270,6 +292,32 @@ export function PageShellTabs<V extends string>({
   const compact = scrolled && bare && !isMobile;
   const reduceMotion = useReducedMotion();
 
+  // Overflow edges: tabs never clip silently. When the row scrolls, the
+  // overflowing end fades out, and the active tab is kept in view.
+  const navRef = useRef<HTMLElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const measure = () => setEdges({
+      start: el.scrollLeft > 1,
+      end: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    el.addEventListener('scroll', measure, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', measure); };
+  }, []);
+  useEffect(() => {
+    navRef.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [value, reduceMotion]);
+  const fadeMask = edges.start || edges.end
+    ? `linear-gradient(to right, ${edges.start ? 'transparent, black 24px' : 'black'}, ${edges.end ? 'black calc(100% - 24px), transparent' : 'black'})`
+    : undefined;
+
   // Vercel-style hover indicator: one faint pill measured to the hovered
   // tab's rect and sprung between tabs, distinct from the active pill. It's
   // suppressed over the active tab so it never doubles up the solid pill.
@@ -293,12 +341,18 @@ export function PageShellTabs<V extends string>({
   };
 
   return (
-    <nav aria-label={ariaLabel} className={cn('max-w-full min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar', className)}>
+    <nav
+      ref={navRef}
+      aria-label={ariaLabel}
+      className={cn('max-w-full min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar', className)}
+      style={fadeMask ? { maskImage: fadeMask, WebkitMaskImage: fadeMask } : undefined}
+    >
       <div
         ref={trackRef}
         onMouseLeave={() => setHoverRect(null)}
         className={cn(
-          'relative flex w-max max-w-none mx-auto items-center gap-1',
+          'relative flex w-max max-w-none items-center gap-1',
+          !bare && 'mx-auto',
           bare ? 'p-0.5' : 'rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] p-1',
         )}
       >

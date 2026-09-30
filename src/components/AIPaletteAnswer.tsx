@@ -261,7 +261,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                     className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"
                   >
                     <Icon className="size-4 shrink-0 text-primary" />
-                    <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</span>
+                    <span className="text-xs font-mono label-kicker text-muted-foreground">{label}</span>
                     <span className="text-sm flex-1 truncate">{a.meta?.title}</span>
                     {route && <ArrowRight className="size-3.5 text-muted-foreground" />}
                   </motion.button>

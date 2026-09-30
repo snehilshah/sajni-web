@@ -488,7 +488,7 @@ function EventDetail({
         <div className="relative flex items-start gap-4">
           <EventGlyph event={event} className="size-14 rounded-[20px] bg-[hsl(var(--surface)/0.75)]" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] opacity-70">Last happened</p>
+            <p className="text-xs font-medium label-kicker opacity-70">Last happened</p>
             <h1 className="serif mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
               {relativeTime(event.last_occurred_at)}
             </h1>
@@ -673,7 +673,7 @@ function EventTrends({ event }: { event: TrackedEvent }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="grid overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] sm:grid-cols-3">
+      <div className="grid overflow-hidden rounded-[28px] bg-[hsl(var(--surface-container-low))] sm:grid-cols-3">
         <Stat label="Last occurrence" value={data.last_occurred_at ? relativeTime(data.last_occurred_at) : 'Never'} />
         <Stat label="Total entries" value={String(data.total_entries)} />
         <Stat
@@ -720,7 +720,7 @@ function EventTrends({ event }: { event: TrackedEvent }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-b border-[hsl(var(--outline-variant))] px-5 py-5 last:border-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="text-xs label-kicker text-muted-foreground">{label}</p>
       <p className="mt-1.5 text-lg font-semibold">{value}</p>
     </div>
   );

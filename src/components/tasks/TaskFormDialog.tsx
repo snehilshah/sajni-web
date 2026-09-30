@@ -472,7 +472,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
 		  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 shrink-0">
             <div className="flex flex-col gap-1.5">
-              <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">Status</Label>
+              <Label className="flex h-6 items-center text-xs font-mono label-kicker text-muted-foreground">Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue>
@@ -496,7 +496,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">Priority</Label>
+              <Label className="flex h-6 items-center text-xs font-mono label-kicker text-muted-foreground">Priority</Label>
               <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: (v as Task['priority']) || 'medium' })}>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue>
@@ -520,7 +520,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="flex h-6 items-center text-xs font-mono uppercase tracking-wider text-muted-foreground">List</Label>
+              <Label className="flex h-6 items-center text-xs font-mono label-kicker text-muted-foreground">List</Label>
               <Select
                 value={form.list_id ? String(form.list_id) : 'inbox'}
                 onValueChange={(v) =>
@@ -548,7 +548,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
           {form.status === 'blocked' && (
             <div className="flex flex-col gap-1.5 rounded-xl border border-[hsl(var(--error)/0.25)] bg-[hsl(var(--error-container)/0.55)] p-3">
-              <Label className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--on-error-container))] inline-flex items-center gap-1.5">
+              <Label className="text-xs font-mono label-kicker text-[hsl(var(--on-error-container))] inline-flex items-center gap-1.5">
                 <GitBranch className="size-3" /> Blocked by
               </Label>
               <Select
@@ -580,8 +580,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               grid cell overran the List label). Connected M3 button-group picks
               the scope; the picker below adapts. Day → date, Week → Monday
               anchor, Month → 1st-of-month goal (broken into dated sessions). */}
-          <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card/50 p-3 shrink-0">
-            <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+          <div className="flex flex-col gap-2.5 rounded-xl bg-card p-3 shrink-0">
+            <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
               <CalendarClock className="size-3" /> Due date &amp; time
             </Label>
             <SegmentedButton
@@ -643,16 +643,16 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           </div>
 
           {/* Reminder controls stay together, separate from due date/time. */}
-          <div className="flex flex-col rounded-lg border border-border bg-card/50">
+          <div className="flex flex-col rounded-lg bg-card">
             {form.due_type === 'day' ? (
               <div className="flex flex-col gap-2 p-3">
-                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
                   <Bell className="size-3" /> Reminders
                 </Label>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <label
                     className={cn(
-                      'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 border border-border transition-colors',
+                      'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 transition-colors',
                       form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
                     )}
                   >
@@ -711,15 +711,15 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           )}
 
           {editing && history.length > 0 && (
-            <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
-              <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="rounded-lg bg-card p-3 flex flex-col gap-2 shrink-0">
+              <h4 className="font-mono text-xs label-kicker text-muted-foreground flex items-center gap-1.5">
                 <CalendarClock className="size-3" />
                 Lifecycle ({history.length})
               </h4>
               <div className="flex flex-col gap-1">
                 {history.map((h, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className={`font-mono text-xs uppercase tracking-wider ${
+                    <span className={`font-mono text-xs label-kicker ${
                       h.outcome === 'rescheduled'
                         ? 'text-[hsl(var(--primary))]'
                         : 'text-[hsl(var(--color-waiting))]'
@@ -738,7 +738,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               / list moves). Note edits are intentionally not tracked. */}
 		  {editing && events.length > 0 && (
             <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
-              <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <h4 className="font-mono text-xs label-kicker text-muted-foreground flex items-center gap-1.5">
                 <History className="size-3" /> Activity ({events.length})
               </h4>
               <ol className="relative ml-1 flex flex-col gap-3 border-l border-border/60 pl-4 pt-1">
@@ -825,7 +825,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+        <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
           <GitBranch className="size-3" /> {isGoal ? 'Sessions' : 'Subtasks'}
         </Label>
         {total > 0 && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
@@ -935,7 +935,7 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
   const full = value.length >= MAX_NOTIFY_EMAILS;
   return (
     <div className="flex flex-col gap-2">
-      <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+      <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
         <Mail className="size-3" /> Also email
       </Label>
       {value.length > 0 && (
@@ -1061,7 +1061,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
 
   return (
     <div className="flex flex-col gap-2">
-      <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+      <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
         <Bell className="size-3" /> Reminders
       </Label>
       <div className="flex flex-col gap-1.5">
@@ -1080,7 +1080,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
               <span className={`text-sm flex-1 ${r.sent_at ? 'text-muted-foreground line-through' : ''}`}>
                 {(() => { try { return format(parseISO(r.remind_at), 'EEE, MMM d · h:mm a'); } catch { return r.remind_at; } })()}
               </span>
-              {r.sent_at && <span className="mono text-xs uppercase tracking-wider text-muted-foreground">sent</span>}
+              {r.sent_at && <span className="mono text-xs label-kicker text-muted-foreground">sent</span>}
               <button
                 type="button"
                 onClick={() => remove(r.id)}

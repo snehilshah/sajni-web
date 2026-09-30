@@ -172,7 +172,7 @@ export function TimePicker({
                     "h-9 w-12 rounded-full text-xs font-medium tracking-wide transition-colors",
                     active
                       ? "bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]"
-                      : "border border-[hsl(var(--outline-variant))] text-foreground/70 hover:bg-[hsl(var(--on-surface)/0.06)]",
+                      : "text-foreground/70 hover:bg-[hsl(var(--on-surface)/0.06)]",
                   )}
                 >
                   {pm ? "PM" : "AM"}

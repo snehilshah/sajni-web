@@ -220,7 +220,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <M3CookieLoader size="lg" tone="primary" />
-          <span className="mono text-xs tracking-[0.22em] uppercase text-muted-foreground">
+          <span className="mono text-xs label-kicker text-muted-foreground">
             opening bookmarks…
           </span>
         </div>
@@ -262,7 +262,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
           </AnimatePresence>
         </motion.div>
       ) : (
-        <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
+        <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] ">
           <AnimatePresence initial={false}>
             {visible.map((b, i) => (
               <motion.div
@@ -297,7 +297,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
           <div className="grid gap-4 py-1">
             {!editItem && (
               <div className="grid gap-1.5">
-                <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Link</Label>
+                <Label className="font-mono text-xs label-kicker text-muted-foreground">Link</Label>
                 <Input
                   value={formUrl}
                   onChange={(e) => setFormUrl(e.target.value)}
@@ -308,7 +308,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
               </div>
             )}
             <div className="grid gap-1.5">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Title</Label>
+              <Label className="font-mono text-xs label-kicker text-muted-foreground">Title</Label>
               <Input
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
@@ -317,7 +317,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Note</Label>
+              <Label className="font-mono text-xs label-kicker text-muted-foreground">Note</Label>
               <Textarea
                 value={formNote}
                 onChange={(e) => setFormNote(e.target.value)}
@@ -432,7 +432,7 @@ function VideoCard({ b, onOpen, menu }: { b: Bookmark; onOpen: () => void; menu:
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border hover:border-[hsl(var(--outline))] transition-colors"
+      className="group cursor-pointer rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] hover:border-[hsl(var(--outline))] transition-colors"
     >
       <div className="relative aspect-video bg-[hsl(var(--surface-container-high))]">
         {b.image_url && !imgFailed ? (

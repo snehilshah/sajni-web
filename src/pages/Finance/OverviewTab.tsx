@@ -69,7 +69,8 @@ export default function OverviewTab({ enabled }: Props) {
       <Hero data={data} history={history} onSnapshot={takeSnapshot} snapping={snapping} />
 
       {/* Month summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* One segmented group (2px gaps, outer corners only). */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-0.5 rounded-xl overflow-hidden">
         <MonthCard label="Income" value={data.month_income} tone="primary" icon={TrendingUp} />
         <MonthCard label="Expense" value={data.month_expense} tone="destructive" icon={TrendingDown} />
         <MonthCard label="Saved" value={data.month_savings} tone={data.month_savings >= 0 ? 'primary' : 'destructive'} icon={Wallet} />
@@ -77,7 +78,7 @@ export default function OverviewTab({ enabled }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Panel title="Asset Distribution">
+        <Panel title="Asset distribution">
           <Distribution
             accounts={data.accounts}
             investments={investmentAssets}
@@ -85,7 +86,7 @@ export default function OverviewTab({ enabled }: Props) {
           />
         </Panel>
 
-        <Panel title="Top Expenses · This Month">
+        <Panel title="Top expenses · this month">
           {data.top_expense_categories.length === 0 ? (
             <Empty>No expenses recorded this month.</Empty>
           ) : (
@@ -114,11 +115,11 @@ export default function OverviewTab({ enabled }: Props) {
           )}
         </Panel>
 
-        <Panel title="Income vs Expense · 30 Days" className="md:col-span-2">
+        <Panel title="Income and expense · 30 days" className="md:col-span-2">
           <TrendChart trend={data.daily_trend} />
         </Panel>
 
-        <Panel title="Upcoming Bills" subtitle="next 14 days">
+        <Panel title="Upcoming bills" subtitle="next 14 days">
           {data.upcoming_bills.length === 0 ? (
             <Empty>No bills due in the next 14 days.</Empty>
           ) : (
@@ -149,7 +150,7 @@ export default function OverviewTab({ enabled }: Props) {
           )}
         </Panel>
 
-        <Panel title="Upcoming Card Dues">
+        <Panel title="Card dues">
           {data.upcoming_dues.length === 0 ? (
             <Empty>No unpaid statements.</Empty>
           ) : (
@@ -233,7 +234,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
     >
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <div className="font-mono text-xs uppercase tracking-wider opacity-80">Net worth</div>
+          <div className="font-mono text-xs label-kicker opacity-80">Net worth</div>
           <div className="font-serif text-4xl md:text-5xl font-semibold tabular-nums mt-1">
             <AnimatedMoney value={data.net_worth} />
           </div>
@@ -263,7 +264,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 mt-6">
         <HeroStat label="Assets" value={data.total_assets} />
         <HeroStat label="Liabilities" value={data.total_liabilities} />
         <HeroStat label="Investments" value={data.investments_total} />
@@ -278,8 +279,9 @@ function Hero({ data, history, onSnapshot, snapping }: {
 
 function HeroStat({ label, value, className = '' }: { label: string; value: number; className?: string }) {
   return (
-    <div className={`bg-white/10 rounded-lg px-3 py-2 ${className}`}>
-      <div className="font-mono text-xs uppercase tracking-wider opacity-80">{label}</div>
+    // Plain column in the hero — space separates, no card inside the card.
+    <div className={className}>
+      <div className="text-xs opacity-75">{label}</div>
       <div className="font-serif text-lg font-semibold tabular-nums"><AnimatedMoney value={value} /></div>
     </div>
   );
@@ -304,7 +306,7 @@ function Sparkline({ points }: { points: number[] }) {
   );
 }
 
-function MonthCard({ label, value, tone, icon: Icon }: {
+function MonthCard({ label, value, tone }: {
   label: string; value: number;
   tone: 'primary' | 'destructive' | 'default';
   icon: typeof TrendingUp;
@@ -315,11 +317,8 @@ function MonthCard({ label, value, tone, icon: Icon }: {
     default: 'text-foreground',
   };
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
-      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
-        <Icon className="size-3" />
-        {label}
-      </div>
+    <div className="rounded-md bg-card p-4">
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`font-serif text-lg md:text-xl font-semibold tabular-nums mt-0.5 ${tones[tone]}`}>
         <AnimatedMoney value={value} />
       </div>
@@ -440,11 +439,11 @@ function Panel({ title, subtitle, children, className = '' }: { title: string; s
       initial={{ opacity: 0, transform: 'translateY(4px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.2 }}
-      className={`rounded-xl border border-border bg-card p-4 md:p-5 ${className}`}
+      className={`rounded-xl bg-card p-4 md:p-5 ${className}`}
     >
       <header className="flex items-baseline justify-between gap-2 mb-3">
         <h2 className="font-serif text-base font-semibold">{title}</h2>
-        {subtitle && <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{subtitle}</span>}
+        {subtitle && <span className="font-mono text-xs label-kicker text-muted-foreground">{subtitle}</span>}
       </header>
       {children}
     </motion.section>

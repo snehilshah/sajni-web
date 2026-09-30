@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Star, Calendar, CalendarRange, Target, AlarmClock, CalendarX2, Inbox, ListTodo, Plus, MoreVertical, Pencil, Trash2, GitBranch } from '@/components/ui/icons';
+import { Plus, MoreVertical, Pencil, Trash2 } from '@/components/ui/icons';
 
 import type { TaskList, SmartList } from '@/types';
 import { Input } from '@/components/ui/input';
@@ -9,18 +9,6 @@ import {
 import { SMART_LISTS, type Selection } from './helpers';
 import { confirmDialog } from '@/lib/confirm';
 
-const SMART_ICON: Record<SmartList, typeof Sun> = {
-  my_day: Sun,
-  important: Star,
-  planned: Calendar,
-  week: CalendarRange,
-  month: Target,
-  scheduled: AlarmClock,
-  blocked: GitBranch,
-  missed: CalendarX2,
-  inbox: Inbox,
-  all: ListTodo,
-};
 
 interface Props {
   lists: TaskList[];
@@ -60,7 +48,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
 
   return (
     <div
-      className="flex items-center gap-2 overflow-x-auto overflow-y-hidden py-1 -mx-1 px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex items-center gap-2 overflow-x-auto overflow-y-hidden py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       onWheel={(e) => {
         if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
           (e.currentTarget as HTMLElement).scrollLeft += e.deltaY;
@@ -68,7 +56,6 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       }}
     >
       {SMART_LISTS.map((s) => {
-        const Icon = SMART_ICON[s.smart];
         const active = selection.kind === 'smart' && selection.smart === s.smart;
         const count = smartCounts?.[s.smart] ?? 0;
         // Missed is the one smart pill that flags a count, tinted as an alert
@@ -83,10 +70,10 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
                 : isMissedAlert
                   ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] border border-transparent'
-                  : 'bg-transparent text-foreground/85 border border-[hsl(var(--outline-variant))] hover:bg-[hsl(var(--on-surface)/0.08)]'}`}
+                  : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground border border-transparent hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))]'}`}
             title={s.description}
           >
-            <Icon className="size-4" /> {s.label}
+            {s.label}
             {count > 0 && (
               <span className={`text-xs tabular-nums rounded-full px-1.5 leading-[1.4] ${
                 isMissedAlert && !active ? 'bg-[hsl(var(--error))] text-[hsl(var(--on-error))]' : 'bg-foreground/10'
@@ -109,7 +96,7 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
             className={`group inline-flex items-center h-9 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
               ${active
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
-                : 'bg-transparent text-foreground/85 border border-[hsl(var(--outline-variant))] hover:bg-[hsl(var(--on-surface)/0.08)]'}`}
+                : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground border border-transparent hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))]'}`}
           >
             {isEditing ? (
               <span className="inline-flex items-center gap-1 h-full pl-3.5 pr-1.5">

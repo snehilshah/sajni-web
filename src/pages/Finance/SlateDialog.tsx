@@ -57,7 +57,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Name</Label>
+            <Label className="font-mono text-xs label-kicker text-muted-foreground">Name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -68,7 +68,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Color</Label>
+            <Label className="font-mono text-xs label-kicker text-muted-foreground">Color</Label>
             <div className="flex flex-wrap gap-2">
               {ACCOUNT_COLORS.map((c) => (
                 <button

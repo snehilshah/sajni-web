@@ -129,7 +129,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
 
   return (
     <div className="min-h-[100dvh] bg-background grid place-items-start sm:place-items-center px-4 py-6">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="w-full max-w-md rounded-2xl bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <button
             onClick={() => done(`/media?tab=${guessKind(url) === 'video' ? 'videos' : 'sites'}`)}
@@ -140,7 +140,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
           </button>
           <div className="min-w-0">
             <h1 className="serif text-lg font-semibold leading-tight">Save Bookmark</h1>
-            <p className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1">
+            <p className="mono text-xs label-kicker text-muted-foreground flex items-center gap-1">
               <Sparkles className="size-3" /> review &amp; save
             </p>
           </div>
@@ -154,7 +154,7 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
             onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
           />
           <div className="min-w-0">
-            <p className="mono text-xs uppercase tracking-wider text-muted-foreground">{host || 'link'}</p>
+            <p className="mono text-xs label-kicker text-muted-foreground">{host || 'link'}</p>
             <p className="text-xs text-muted-foreground truncate">{url}</p>
           </div>
         </div>
@@ -304,14 +304,14 @@ function Capture({ text }: { text: string }) {
 
   return (
     <div className="min-h-[100dvh] bg-background grid place-items-start sm:place-items-center px-4 py-6">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="w-full max-w-md rounded-2xl bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <button onClick={cancel} className="size-8 grid place-items-center rounded-md hover:bg-accent text-muted-foreground" aria-label="Back">
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0">
             <h1 className="serif text-lg font-semibold leading-tight">Add from Shared Message</h1>
-            <p className="mono text-xs uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1">
+            <p className="mono text-xs label-kicker text-muted-foreground flex items-center gap-1">
               <Sparkles className="size-3" /> {parsing ? 'Sajni reading…' : 'review & save'}
             </p>
           </div>
@@ -445,8 +445,8 @@ function Field({ label, className = '', children, hint }: {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-        {hint && <span className="font-mono text-xs uppercase tracking-wider text-primary">{hint}</span>}
+        <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
+        {hint && <span className="font-mono text-xs label-kicker text-primary">{hint}</span>}
       </div>
       {children}
     </div>

@@ -206,6 +206,7 @@ export default function TasksPage() {
   return (
     <PageShell
       title="Tasks"
+      columnClassName={activeTab === 'planner' ? 'max-w-[1600px] px-4 md:px-6 xl:px-8' : undefined}
       contentClassName={activeTab === 'planner'
         ? 'mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 pb-28 pt-5 md:px-6 md:pb-20 md:pt-6 xl:px-8'
         : undefined}
@@ -268,7 +269,7 @@ export default function TasksPage() {
         <div className="flex flex-col gap-3.5">
           <section
             aria-label="Task controls"
-            className="flex flex-col gap-2.5 rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-2.5 sm:p-3"
+            className="flex flex-col gap-2.5"
           >
             <div className="flex min-w-0 items-center gap-2">
               <div className="min-w-0 flex-1">
@@ -302,14 +303,14 @@ export default function TasksPage() {
             </div>
 
             {!isMobile && (
-              <div className="flex h-11 items-center gap-2.5 rounded-xl bg-[hsl(var(--surface-container))] px-3.5">
+              <div className="flex h-12 items-center gap-3 rounded-xl bg-card px-4 focus-within:ring-2 focus-within:ring-ring/45">
                 <Plus className="size-4 shrink-0 text-muted-foreground" />
                 <Input
                   name="quick-task-title"
                   value={quickTitle}
                   onChange={(e) => setQuickTitle(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
-                  placeholder="Add a task. Press ↵."
+                  placeholder="Add a task"
                   className="h-8 border-0 bg-transparent px-2 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0"
                 />
                 {quickTitle.trim() && (
@@ -443,7 +444,7 @@ function bucketOf(t: Task, todayKey: string, weekEndKey: string): BucketKey {
 function BucketHeader({ label, count, overdue }: { label: string; count: number; overdue?: boolean }) {
   return (
     <div className="flex items-center gap-2.5 pt-1.5">
-      <span className={`mono text-xs uppercase tracking-[0.18em] ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
+      <span className={`mono text-xs label-kicker ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
         {label}
       </span>
       <span className="mono text-xs tabular-nums text-muted-foreground/70">{count}</span>
@@ -568,7 +569,7 @@ function BoardView({
             const id = Number(e.dataTransfer.getData('text/task-id'));
             if (id) onMove(id, status);
           }}
-          className={`flex flex-col rounded-xl border border-border bg-card/40 transition-colors ${hover === status ? 'border-primary/40 bg-primary/5' : ''}`}
+          className={`flex flex-col rounded-xl bg-card transition-colors ${hover === status ? 'border-primary/40 bg-primary/5' : ''}`}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
             <div className="flex items-center gap-2">
@@ -666,7 +667,7 @@ function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleIm
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onClick={onClick}
-        className={`group rounded-lg border border-border bg-card px-3 py-2.5 cursor-pointer transition-[box-shadow,border-color,opacity] duration-200
+        className={`group rounded-lg bg-card px-3 py-2.5 cursor-pointer transition-[box-shadow,border-color,opacity] duration-200
           ${dragging ? 'opacity-40' : 'opacity-100'}
           hover:border-primary/40 hover:shadow-sm`}
       >

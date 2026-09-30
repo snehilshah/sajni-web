@@ -398,7 +398,7 @@ function Tag({ kind }: { kind: Kind }) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider',
+        'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 font-mono text-xs font-medium label-kicker',
         meta.tag,
       )}
     >
@@ -409,10 +409,10 @@ function Tag({ kind }: { kind: Kind }) {
 
 function EntryCard({ entry }: { entry: Entry }) {
   return (
-    <div className="rounded-xl border border-border bg-[hsl(var(--surface-container-low))] px-4 py-3.5">
+    <div className="rounded-xl bg-[hsl(var(--surface-container-low))] px-4 py-3.5">
       <div className="flex flex-wrap items-center gap-2">
         <Tag kind={entry.kind} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="font-mono text-xs label-kicker text-muted-foreground">
           {entry.area}
         </span>
       </div>
@@ -435,7 +435,7 @@ function ReleaseBlock({ release }: { release: Release }) {
         <h2 className="font-serif text-2xl font-semibold tracking-tight md:text-3xl">
           v{release.version}
         </h2>
-        <time className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <time className="font-mono text-xs label-kicker text-muted-foreground">
           {release.date}
         </time>
       </div>
@@ -482,7 +482,7 @@ export default function ChangelogPage() {
             <span className="font-serif text-lg font-semibold tracking-tight transition-colors group-hover:text-[hsl(var(--primary))]">
               Sajni
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            <span className="font-mono text-xs label-kicker text-muted-foreground">
               changelog
             </span>
           </Link>

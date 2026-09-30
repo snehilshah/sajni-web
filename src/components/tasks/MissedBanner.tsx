@@ -102,7 +102,7 @@ export default function MissedBanner() {
       initial={{ opacity: 0, transform: 'translateY(-4px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-      className="rounded-2xl border border-border bg-[hsl(var(--surface-container))] overflow-hidden"
+      className="rounded-2xl bg-[hsl(var(--surface-container))] overflow-hidden"
     >
       {/* Summary row — the whole strip toggles the detail list. */}
       <button

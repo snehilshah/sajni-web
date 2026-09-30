@@ -49,7 +49,7 @@ export default function InsightsPanel() {
               <button
                 key={w.id}
                 onClick={() => setWindow(w.id)}
-                className={`relative px-3 py-1 rounded-full text-[12px] font-mono uppercase tracking-wider transition-colors ${
+                className={`relative px-3 py-1 rounded-full text-[12px] font-mono label-kicker transition-colors ${
                   active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
                 title={w.long}
@@ -106,7 +106,7 @@ function InsightCard({
       initial={{ opacity: 0, transform: 'translateY(4px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       exit={{ opacity: 0, transform: 'translateY(-4px)' }}
-      className="rounded-2xl border border-border bg-card p-4 md:p-5 flex gap-3"
+      className="rounded-2xl bg-card p-4 md:p-5 flex gap-3"
     >
       <span className="size-9 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0">
         <Sparkles className="size-4" />
@@ -114,7 +114,7 @@ function InsightCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-serif text-base font-semibold">{insight.title}</span>
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs label-kicker text-muted-foreground">
             {insight.window_key} · score {insight.score.toFixed(2)}
           </span>
         </div>
@@ -198,10 +198,10 @@ function TimeTravelSearch() {
   };
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
+    <section className="rounded-2xl bg-card p-4 md:p-5">
       <div className="flex items-center gap-2 mb-3">
         <Search className="size-3.5 text-muted-foreground" />
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time Travel</h2>
+        <h2 className="font-mono text-xs label-kicker text-muted-foreground">Time Travel</h2>
       </div>
       <Input
         value={q}

@@ -79,7 +79,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowArchived((v) => !v)}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            className="font-mono text-xs label-kicker text-muted-foreground hover:text-foreground"
           >
             {showArchived ? 'Hide archived' : 'Show archived'}
           </button>
@@ -121,7 +121,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium truncate">{a.name}</div>
-                      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                      <div className="font-mono text-xs label-kicker text-muted-foreground">
                         {ACCOUNT_TYPES.find((t) => t.value === a.type)?.label}
                         {a.institution && ' · ' + a.institution}
                       </div>
@@ -140,7 +140,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                       <div className="font-serif text-2xl font-semibold tabular-nums">
                         {formatMoney(owed)}
                       </div>
-                      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                      <div className="font-mono text-xs label-kicker text-muted-foreground">
                         Outstanding {a.credit_limit ? '· limit ' + formatMoney(a.credit_limit) : ''}
                       </div>
                       {a.credit_limit ? (
@@ -165,7 +165,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                       <div className={`font-serif text-2xl font-semibold tabular-nums ${a.balance < 0 ? 'text-destructive' : ''}`}>
                         {formatMoney(a.balance)}
                       </div>
-                      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                      <div className="font-mono text-xs label-kicker text-muted-foreground">
                         Balance
                       </div>
                     </>
@@ -180,7 +180,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                 {!isCC && (
                   <div className="mt-3 pt-3 border-t border-border/50">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+                      <span className="font-mono text-xs label-kicker text-muted-foreground inline-flex items-center gap-1">
                         <Target className="size-3" />
                         Reserved
                         {reservedTotal > 0 && ' · ' + formatMoney(reservedTotal)}
@@ -251,8 +251,8 @@ function SummaryCard({ label, value, tone, className = '' }: { label: string; va
     default: 'text-foreground',
   };
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
-      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className={`rounded-xl bg-card p-4 ${className}`}>
+      <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
       <div className={`font-serif text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}><AnimatedMoney value={value} fractionDigits={2} /></div>
     </div>
   );
@@ -455,7 +455,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
             </>
           )}
           {account && (
-            <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+            <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl p-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium">Archived</div>
                 <div className="text-xs text-muted-foreground">Hide from the active view. Balance &amp; history stay intact.</div>
@@ -483,7 +483,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>}
+      {label && <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>}
       {children}
     </div>
   );
@@ -555,7 +555,7 @@ function SalaryActions({ account, categories, onDone }: {
         <DialogContent showCloseButton={false} className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Bonus to {account.name}</DialogTitle></DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Bonus amount</Label>
+            <Label className="font-mono text-xs label-kicker text-muted-foreground">Bonus amount</Label>
             <Input
               type="number"
               inputMode="decimal"
@@ -677,7 +677,7 @@ function SavingsDialog({ account, savings, onClose }: {
         </div>
 
         <div className="border-t border-border pt-3 mt-1">
-          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
+          <div className="font-mono text-xs label-kicker text-muted-foreground mb-2">
             {editing ? 'Edit bucket' : 'Add bucket'}
           </div>
           <div className="grid grid-cols-2 gap-2">

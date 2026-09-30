@@ -186,7 +186,7 @@ function AIThemes() {
 function Section({ id, title, caption, children }: { id?: string; title: string; caption?: string; children: React.ReactNode }) {
   return (
     <section id={id} className="border-t border-border first:border-t-0 py-6 first:pt-0 scroll-mt-6">
-      <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mb-1">{title}</div>
+      <div className="mono text-xs label-kicker text-muted-foreground mb-1">{title}</div>
       {caption && <div className="serif italic text-sm text-muted-foreground mb-4">{caption}</div>}
       {!caption && <div className="h-3" />}
       {children}
@@ -424,6 +424,7 @@ export default function SettingsPage() {
   return (
     <PageShell
       title="Settings"
+      columnClassName="max-w-3xl px-5 md:px-10"
       contentClassName="max-w-3xl w-full mx-auto px-5 md:px-10 pt-8 pb-24"
     >
       <div>
@@ -573,7 +574,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Your Data" caption="Take a copy with you. Or restore from a previous takeout.">
+        <Section title="Your data" caption="Take a copy with you. Or restore from a previous takeout.">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={exporting} onClick={onExport} className="gap-2">
@@ -608,7 +609,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Danger Zone" caption="Permanently remove your account and all of its content.">
+        <Section title="Danger zone" caption="Permanently remove your account and all of its content.">
           <AnimatePresence initial={false} mode="wait">
           {delState?.scheduled ? (
             <motion.div
@@ -680,7 +681,7 @@ export default function SettingsPage() {
           <span className="sajni-logo" aria-hidden="true" />
           <div>
             <div className="serif text-base font-semibold leading-tight">sajni</div>
-            <div className="mono text-xs uppercase tracking-[0.22em] text-muted-foreground mt-0.5">
+            <div className="mono text-xs label-kicker text-muted-foreground mt-0.5">
               your second brain · v1
             </div>
           </div>

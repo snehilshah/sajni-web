@@ -26,7 +26,8 @@
   /* shadcn / Tailwind semantic aliases */
   --background:             var(--surface);
   --foreground:             var(--on-surface);
-  --card:                   var(--surface-container-low);
+  /* Cards separate by tone, not borders (DESIGN.md): one clear step. */
+  --card:                   var(--surface-container);
   --card-foreground:        var(--on-surface);
   --popover:                var(--surface-container-high);
   --popover-foreground:     var(--on-surface);
@@ -182,7 +183,12 @@
 /* ============================================================
    Baseline.
    ============================================================ */
-* { @apply border-border; }
+/* Default border colour lives in the base layer. Unlayered, it outranked
+   every Tailwind border-colour utility (border-transparent, border-primary,
+   border-destructive…), so state borders all rendered as the grey outline. */
+@layer base {
+  * { @apply border-border; }
+}
 
 html {
   font-size: calc(16px * var(--text-scale, 1));
@@ -221,7 +227,6 @@ pre, code, samp, .font-code {
 
 .m3-expressive-panel {
   background: hsl(var(--surface-container));
-  border: 1px solid hsl(var(--outline-variant));
 }
 
 /* ============================================================
@@ -250,24 +255,26 @@ pre, code, samp, .font-code {
   font-size: 12.5px; font-weight: 500;
   letter-spacing: 0.02em;
   border-radius: 9999px;
+  /* Neutral by default; borders only carry state (DESIGN.md). */
   background: hsl(var(--surface-container-high));
-  border: 1px solid hsl(var(--outline-variant));
+  border: 1px solid transparent;
   color: hsl(var(--on-surface-variant));
   transition: background-color 150ms var(--m3-ease-standard), color 150ms var(--m3-ease-standard);
 }
 .chip:hover { background: hsl(var(--surface-container-highest)); color: hsl(var(--on-surface)); }
-.chip-sage   { color: hsl(var(--on-primary-container));   border-color: hsl(var(--primary) / 0.4);   background: hsl(var(--primary-container)); }
-.chip-amber  { color: hsl(var(--on-secondary-container)); border-color: hsl(var(--secondary) / 0.4); background: hsl(var(--secondary-container)); }
-.chip-upcoming { color: hsl(var(--on-tertiary-container)); border-color: hsl(var(--tertiary) / 0.45); background: hsl(var(--tertiary-container)); }
-.chip-rose   { color: hsl(var(--on-error-container)); border-color: hsl(var(--error) / 0.4); background: hsl(var(--error-container)); }
+.chip-selected, .chip-selected:hover { background: hsl(var(--secondary-container)); color: hsl(var(--on-secondary-container)); font-weight: 600; }
+.chip-sage   { color: hsl(var(--on-primary-container));   border-color: transparent;   background: hsl(var(--primary-container)); }
+.chip-amber  { color: hsl(var(--on-secondary-container)); border-color: transparent; background: hsl(var(--secondary-container)); }
+.chip-upcoming { color: hsl(var(--on-tertiary-container)); border-color: transparent; background: hsl(var(--tertiary-container)); }
+.chip-rose   { color: hsl(var(--on-error-container)); border-color: transparent; background: hsl(var(--error-container)); }
 .chip-olive {
   color: hsl(var(--color-complete));
-  border-color: hsl(var(--color-complete) / 0.5);
+  border-color: transparent;
   background: hsl(var(--color-complete) / 0.12);
 }
 .chip-sky {
   color: hsl(var(--color-waiting));
-  border-color: hsl(var(--color-waiting) / 0.5);
+  border-color: transparent;
   background: hsl(var(--color-waiting) / 0.12);
 }
 
@@ -734,3 +741,7 @@ button, [role="button"], a {
   background: hsl(var(--primary));
   animation: m3LinearSlide 1500ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Section kicker labels: sentence case, never tracked caps (DESIGN.md). */
+.label-kicker { text-transform: none; letter-spacing: normal; }
+.label-kicker::first-letter { text-transform: uppercase; }

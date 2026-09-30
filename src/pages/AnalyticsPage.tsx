@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { useAnalytics } from '@/queries/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from '@/components/ui/icons';
+import { Film, BookOpen, Tv, TrendingUp, Hash, Activity, Lightbulb } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import InsightsPanel from '@/pages/InsightsPage';
 import TagsPanel from '@/pages/TagsPage';
@@ -134,7 +134,7 @@ function ActivityPanel() {
                   {heatmap.monthLabels.map((m) => (
                     <span
                       key={`${m.month}-${m.weekIndex}`}
-                      className="absolute font-mono text-xs uppercase tracking-wider text-muted-foreground"
+                      className="absolute font-mono text-xs label-kicker text-muted-foreground"
                       style={{ left: `${m.weekIndex * 14}px` }}
                     >
                       {MONTH_LABELS[m.month]}
@@ -165,7 +165,7 @@ function ActivityPanel() {
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center justify-end gap-2 mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                <div className="flex items-center justify-end gap-2 mt-2 font-mono text-xs label-kicker text-muted-foreground">
                   <span>Less</span>
                   {['', 'l1', 'l2', 'l3', 'l4'].map((lvl) => (
                     <div key={lvl} className={`heatmap-cell ${lvl}`} />
@@ -202,7 +202,7 @@ function ActivityPanel() {
                     {data.journal_consistency.days_logged}
                     <span className="text-muted-foreground text-base"> / {data.journal_consistency.total_days}</span>
                   </div>
-                  <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                  <div className="font-mono text-xs label-kicker text-muted-foreground mt-1">
                     Days logged
                   </div>
                   <Link to="/journal" className="font-mono text-xs text-primary hover:underline mt-3 inline-block">
@@ -213,7 +213,7 @@ function ActivityPanel() {
             </Panel>
 
             {/* Module breakdown */}
-            <Panel title="Last 30 Days" subtitle="By module">
+            <Panel title="Last 30 days" subtitle="By module">
               {moduleEntries.length === 0 ? (
                 <Empty>No activity yet.</Empty>
               ) : (
@@ -241,7 +241,7 @@ function ActivityPanel() {
             </Panel>
 
             {/* Task velocity */}
-            <Panel title="Task Velocity" subtitle="Completed by week">
+            <Panel title="Tasks completed" subtitle="Completed by week">
               {data.task_velocity.length === 0 ? (
                 <Empty>No completed tasks yet.</Empty>
               ) : (
@@ -274,38 +274,39 @@ function ActivityPanel() {
 
             {/* Habit streaks */}
             <Panel
-              title="Habit Streaks"
+              title="Habit streaks"
               subtitle={data.habit_streaks.length ? `${data.habit_streaks.length} tracked` : undefined}
             >
               {data.habit_streaks.length === 0 ? (
                 <Empty>No habits tracked yet.</Empty>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {data.habit_streaks.slice(0, 6).map((s) => (
-                    <div key={s.name} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
-                      <span className="text-sm truncate flex-1">{s.name}</span>
-                      <span className="mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
-                        {s.unit}
-                      </span>
-                      <div className="flex items-center gap-3 font-mono text-xs shrink-0">
-                        <span className="inline-flex items-center gap-1">
-                          {s.current > 0 && <Flame className="size-3 text-orange-500" />}
-                          <span className="tabular-nums">{s.current}</span>
-                          <span className="text-xs text-muted-foreground uppercase">cur</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-muted-foreground">
-                          <span className="tabular-nums">{s.longest}</span>
-                          <span className="text-xs uppercase">best</span>
+                // Streak as a bar: track to the best run, fill to the current
+                // run — read at a glance instead of "DAY 0 CUR 3 BEST".
+                <div className="flex flex-col gap-3">
+                  {(() => {
+                    const scale = Math.max(1, ...data.habit_streaks.map((h) => Math.max(h.longest, h.current)));
+                    return data.habit_streaks.slice(0, 8).map((s) => (
+                      <div key={s.name} className="grid grid-cols-[minmax(0,38%)_1fr_auto] items-center gap-3">
+                        <span className="text-sm truncate">{s.name}</span>
+                        <div className="relative h-2 rounded-full bg-[hsl(var(--surface-container-highest))]">
+                          <div className="absolute inset-y-0 left-0 rounded-full bg-[hsl(var(--outline-variant))]" style={{ width: `${(s.longest / scale) * 100}%` }} />
+                          {s.current > 0 && (
+                            <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${(s.current / scale) * 100}%` }} />
+                          )}
+                        </div>
+                        <span className={`tabular-nums text-xs ${s.current > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {s.current}/{s.longest}
                         </span>
                       </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               )}
             </Panel>
 
             {/* Top tags */}
-            <Panel title="Top Tags" subtitle={`${data.top_tags.length} ranked`}>
+            {data.top_tags.length > 0 && (
+            <Panel title="Top tags" subtitle={`${data.top_tags.length} ranked`}>
               {data.top_tags.length === 0 ? (
                 <Empty>No tags used yet.</Empty>
               ) : (
@@ -338,6 +339,7 @@ function ActivityPanel() {
                 </div>
               )}
             </Panel>
+            )}
 
             {/* Media stats */}
             <Panel title="Media" subtitle={`${data.media_stats.total || 0} tracked`}>
@@ -352,7 +354,7 @@ function ActivityPanel() {
                     <div className="font-serif text-2xl font-semibold text-primary tabular-nums">
                       {data.media_stats[key] || 0}
                     </div>
-                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+                    <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
                   </div>
                 ))}
               </div>
@@ -377,11 +379,11 @@ function Panel({ title, subtitle, children }: { title: string; subtitle?: string
       initial={{ opacity: 0, transform: 'translateY(6px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.25 }}
-      className="rounded-xl border border-border bg-card p-5"
+      className="rounded-xl bg-card p-5"
     >
       <header className="flex items-baseline justify-between gap-2 mb-4">
         <h2 className="font-serif text-base font-semibold">{title}</h2>
-        {subtitle && <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{subtitle}</span>}
+        {subtitle && <span className="font-mono text-xs label-kicker text-muted-foreground">{subtitle}</span>}
       </header>
       {children}
     </motion.section>

@@ -431,7 +431,7 @@ export default function RichEditor({
                     }`} />
                     <span className="flex-1 truncate">{t.title}</span>
                     {t.due_date && (
-                      <span className="mono text-xs tracking-wider text-muted-foreground">
+                      <span className="mono text-xs text-muted-foreground">
                         {t.due_date}
                       </span>
                     )}
@@ -478,7 +478,7 @@ export default function RichEditor({
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-1">
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">URL</Label>
+              <Label className="text-xs font-mono label-kicker text-muted-foreground">URL</Label>
               <div className="flex gap-2">
                 <Input
                   autoFocus
@@ -500,7 +500,7 @@ export default function RichEditor({
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Title</Label>
+              <Label className="text-xs font-mono label-kicker text-muted-foreground">Title</Label>
               <Input
                 value={linkTitle}
                 onChange={(e) => setLinkTitle(e.target.value)}
@@ -605,7 +605,7 @@ function Toolbar({ editor, onImage, compact = false }: { editor: Editor; onImage
     );
   }
   return (
-    <div className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-lg p-1">
+    <div className="flex items-center gap-0.5 bg-popover rounded-lg shadow-lg p-1">
       {btn(a.h1, () => editor.chain().focus().toggleHeading({ level: 1 }).run(), Heading1, 'Heading 1')}
       {btn(a.h2, () => editor.chain().focus().toggleHeading({ level: 2 }).run(), Heading2, 'Heading 2')}
       {btn(a.h3, () => editor.chain().focus().toggleHeading({ level: 3 }).run(), Heading3, 'Heading 3')}

@@ -16,9 +16,10 @@ import { cn } from '@/lib/utils';
 type Variant = 'outlined' | 'filled' | 'elevated';
 
 const SURFACE: Record<Variant, string> = {
-  // Outlined is the default: quiet, and the one that stacks safely inside
-  // another surface without a tonal pile-up.
-  outlined: 'border border-border bg-card',
+  // Filled (tonal, borderless) is the default: separation comes from tone,
+  // not lines (DESIGN.md). Outlined is for a *state* (selected, drop target).
+  // Never nest a Card inside a Card — use a section inside one surface.
+  outlined: 'bg-card',
   filled: 'border border-transparent bg-[hsl(var(--surface-container))]',
   elevated: 'border border-transparent bg-[hsl(var(--surface-container-low))] m3-elev-1',
 };
@@ -33,14 +34,14 @@ export interface CardOptions {
 
 /** Class string for callers that need their own element — a `motion.div`
  *  wanting `layout`, or a `<button>`. `<Card>` is the same thing on a div. */
-export function cardClass({ variant = 'outlined', interactive, accent }: CardOptions = {}, className?: string) {
+export function cardClass({ variant = 'filled', interactive, accent }: CardOptions = {}, className?: string) {
   return cn(
     'relative rounded-xl transition-colors',
     SURFACE[variant],
     accent && 'pl-5',
     interactive && [
       'cursor-pointer outline-none tap-highlight-none',
-      'hover:bg-[hsl(var(--surface-container))]',
+      'hover:bg-[hsl(var(--surface-container-high))]',
       'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
     ],
     className,

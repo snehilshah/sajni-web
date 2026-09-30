@@ -60,7 +60,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             layout
             initial={{ opacity: 0, transform: 'translateY(4px)' }}
             animate={{ opacity: 1, transform: 'translateY(0)' }}
-            className="rounded-xl border border-border bg-card overflow-hidden"
+            className="rounded-xl bg-card overflow-hidden"
           >
             {/* Card header */}
             <div
@@ -69,7 +69,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-mono text-xs uppercase tracking-wider opacity-80">
+                  <div className="font-mono text-xs label-kicker opacity-80">
                     {card.institution || 'Credit card'}
                   </div>
                   <div className="font-medium truncate text-lg mt-0.5">{card.name}</div>
@@ -78,14 +78,14 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               </div>
               <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <div className="font-mono text-xs uppercase tracking-wider opacity-80">Outstanding</div>
+                  <div className="font-mono text-xs label-kicker opacity-80">Outstanding</div>
                   <div className="font-serif text-2xl md:text-3xl font-semibold tabular-nums">
                     {formatMoney(owed)}
                   </div>
                 </div>
                 {card.credit_limit ? (
                   <div className="text-right">
-                    <div className="font-mono text-xs uppercase tracking-wider opacity-80">Limit</div>
+                    <div className="font-mono text-xs label-kicker opacity-80">Limit</div>
                     <div className="font-mono text-sm tabular-nums">{formatMoney(card.credit_limit)}</div>
                     <div className="font-mono text-xs tabular-nums opacity-80">
                       {formatPercent((owed / card.credit_limit) * 100)} used
@@ -230,7 +230,7 @@ function Stat({ label, value, tone = 'default', icon: Icon, small }: {
   };
   return (
     <div className="rounded-lg bg-muted/40 p-2.5">
-      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+      <div className="font-mono text-xs label-kicker text-muted-foreground inline-flex items-center gap-1">
         {Icon && <Icon className="size-2.5" />}
         {label}
       </div>
@@ -450,7 +450,7 @@ function formatInputAmount(value: number | undefined) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
       {children}
     </div>
   );

@@ -1,6 +1,7 @@
+import { DateBadge } from '@/components/ui/state-chip';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, isPast, isToday, parseISO } from 'date-fns';
 import { CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import ReactMarkdown from 'react-markdown';
@@ -17,7 +18,6 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import MissedBanner from '@/components/tasks/MissedBanner';
-import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import { PageChrome, chromeClearance, useOwnScrolled } from '@/components/PageShell';
 import { useNavChrome } from '@/components/nav-chrome';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -196,7 +196,7 @@ export default function TodayPage() {
 
 	return (
 		<div className="flex-1 min-h-0 flex flex-col">
-			<PageChrome title="Today" />
+			<PageChrome title="Today" columnClassName="max-w-6xl px-6 md:px-14" />
 			<div
 				ref={scrollRef}
 				className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
@@ -225,24 +225,15 @@ export default function TodayPage() {
 					</div>
 
 					{/* Capture bar */}
-					<div className="m3-expressive-panel rounded-xl p-5 mt-9 fade-in">
-						<div className="flex items-center gap-2.5 mb-2.5">
-							<div className="sajni-logo" style={{ width: 22, height: 22, borderRadius: 6 }} />
-							<span className="mono text-xs tracking-[0.18em] uppercase text-muted-foreground">
-								Capture
-							</span>
-							<div className="flex-1" />
-							<span className="text-xs text-muted-foreground hidden md:inline">
-								I'll route to the right place
-							</span>
-						</div>
+					{/* One tonal surface; the field is the surface (no box inside a box). */}
+					<div className="rounded-xl bg-card px-5 pt-3 pb-4 mt-9 fade-in focus-within:ring-2 focus-within:ring-ring/45">
 						<Textarea
 							value={capture}
 							onChange={(e) => setCapture(e.target.value)}
 							onKeyDown={onCaptureKey}
-							placeholder="A thought, a task, a #tag… anything."
+							placeholder="A thought, a task, a #tag…"
 							rows={2}
-							className="text-base leading-[1.55] min-h-[72px]"
+							className="text-base leading-[1.55] min-h-[72px] border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 focus-visible:border-0"
 						/>
 						<div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
 							<div className="flex gap-1.5">
@@ -297,7 +288,7 @@ export default function TodayPage() {
 						<div className="flex flex-col gap-6">
 							{/* On deck */}
 							<Section
-								title="On Deck"
+								title="On deck"
 								hint={`${dueOpen.length} due today`}
 								action={
 									<Link
@@ -308,7 +299,7 @@ export default function TodayPage() {
 									</Link>
 								}
 							>
-								<div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] border border-border">
+								<div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] ">
 									{dueOpen.length === 0 ? (
 										<div className="px-5 py-8 text-center text-sm text-muted-foreground">
 											Nothing scheduled for today.
@@ -330,9 +321,11 @@ export default function TodayPage() {
 														toggleTask.mutate({ id: t.id, status: 'done' });
 													}}
 													aria-label="Mark complete"
-													className="size-4 rounded border-[1.5px] border-muted-foreground shrink-0 hover:border-primary hover:bg-primary/10 transition-colors"
+													// Priority is the ring colour (same as the task row), not a chip.
+													className={`size-[18px] rounded-full border-2 shrink-0 hover:bg-primary/10 transition-colors ${
+														t.priority === 'high' ? 'border-destructive' : t.priority === 'low' ? 'border-[hsl(var(--outline-variant))]' : 'border-[hsl(var(--outline))]'
+													}`}
 												/>
-												<TaskScopeBadge task={t} />
 												<div className="flex-1 min-w-0">
 													<div className="text-[14px] text-foreground font-medium truncate">
 														{t.title}
@@ -355,10 +348,9 @@ export default function TodayPage() {
 																{format(parseISO(t.scheduled_at), 'h:mm a')}
 															</span>
 														) : t.due_date ? (
-															<span className="mono inline-flex items-center gap-1">
-																<Clock className="size-3" />{' '}
-																{format(parseISO(t.due_date), 'MMM d')}
-															</span>
+															<DateBadge tone={isToday(parseISO(t.due_date)) ? 'accent' : isPast(parseISO(t.due_date)) ? 'alert' : 'neutral'}>
+																{isToday(parseISO(t.due_date)) ? 'Today' : format(parseISO(t.due_date), 'MMM d')}
+															</DateBadge>
 														) : null}
 														{t.tags?.slice(0, 3).map((tag) => (
 															<span key={tag} className="text-primary/80">
@@ -367,11 +359,6 @@ export default function TodayPage() {
 														))}
 													</div>
 												</div>
-												<span
-													className={`chip ${t.priority === 'high' ? 'chip-rose' : t.priority === 'medium' ? 'chip-amber' : ''}`}
-												>
-													{t.priority}
-												</span>
 											</div>
 										))
 									)}
@@ -380,7 +367,7 @@ export default function TodayPage() {
 
 							{/* Recent thinking */}
 							<Section
-								title="Recent Thinking"
+								title="Recent thinking"
 								hint="last few captures"
 								action={
 									<Link
@@ -393,14 +380,14 @@ export default function TodayPage() {
 							>
 								<div className="flex flex-col gap-2.5">
 									{recentMemos.length === 0 ? (
-										<div className="rounded-xl px-5 py-6 text-center text-sm text-muted-foreground bg-[hsl(var(--surface-container))] border border-border">
+										<div className="rounded-xl px-5 py-6 text-center text-sm text-muted-foreground bg-[hsl(var(--surface-container))] ">
 											Nothing captured yet. Try the bar above.
 										</div>
 									) : (
 										recentMemos.map((m) => (
 											<div
 												key={m.id}
-												className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border hover:border-border transition-colors"
+												className="rounded-xl p-4 bg-[hsl(var(--surface-container))] hover:border-border transition-colors"
 											>
 												<div className="prose-sajni text-[14.5px] leading-[1.55] line-clamp-3">
 													<ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -428,7 +415,7 @@ export default function TodayPage() {
 							{/* Echo from earlier */}
 							{echo && (
 								<Section title="Echo from Earlier" hint="surfaced from a few days ago">
-									<div className="sajni-spot rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border">
+									<div className="sajni-spot rounded-xl p-5 bg-[hsl(var(--surface-container))] ">
 										<Quote className="size-4 text-secondary mb-2.5" />
 										<p className="serif italic text-[17px] leading-[1.55] text-foreground/85 mb-3">
 											{echo.content
@@ -436,7 +423,7 @@ export default function TodayPage() {
 												.replace(/\[\[|\]\]/g, '')
 												.slice(0, 220)}
 										</p>
-										<div className="mono text-xs tracking-[0.1em] uppercase text-muted-foreground">
+										<div className="mono text-xs label-kicker text-muted-foreground">
 											YOU · {formatDistanceToNow(parseISO(echo.created_at), { addSuffix: true })}
 										</div>
 									</div>
@@ -446,7 +433,7 @@ export default function TodayPage() {
 							{/* At a glance — kept on the left so the two columns end at
 					    roughly the same height. */}
 							<Section title="At a Glance">
-								<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] border border-border">
+								<div className="rounded-xl p-5 grid grid-cols-2 gap-5 bg-[hsl(var(--surface-container))] ">
 									<Stat label="Memos this week" value={String(recentMemos.length === 0 ? 0 : '14')} />
 									<Stat
 										label="Tasks closed"
@@ -468,7 +455,7 @@ export default function TodayPage() {
 										: undefined
 								}
 							>
-								<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] border border-border">
+								<div className="rounded-xl p-4 bg-[hsl(var(--surface-container))] ">
 									{habitStatus.length === 0 ? (
 										<div className="text-sm text-muted-foreground text-center py-2">
 											No habits yet.
@@ -557,7 +544,7 @@ export default function TodayPage() {
 																})}
 															</div>
 														) : habit ? (
-															<div className="mt-1 mono text-xs tracking-[0.08em] text-muted-foreground">
+															<div className="mt-1 mono text-xs text-muted-foreground">
 																{habitPeriodForDate(new Date(), habit.frequency).label}
 																<span className="ml-1.5 normal-case tracking-normal">
 																	{habit.frequency === 'fortnightly'
@@ -581,10 +568,10 @@ export default function TodayPage() {
 							{/* Journal prompt */}
 							<Section title="Today's Prompt">
 								<div
-									className="rounded-xl p-5 bg-[hsl(var(--surface-container))] border border-border"
+									className="rounded-xl p-5 bg-[hsl(var(--surface-container))] "
 									style={{ background: 'hsl(var(--surface-container))' }}
 								>
-									<div className="mono text-xs tracking-[0.18em] uppercase text-primary mb-2.5">
+									<div className="mono text-xs label-kicker text-primary mb-2.5">
 										continued from yesterday
 									</div>
 									<p className="serif italic text-[18px] leading-[1.45] text-foreground mb-3.5">
@@ -592,7 +579,7 @@ export default function TodayPage() {
 									</p>
 									<button
 										onClick={() => navigate('/journal')}
-										className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-lg border border-border bg-background/50 hover:bg-background text-[13px] text-foreground/85 transition-colors"
+										className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-lg bg-background/50 hover:bg-background text-[13px] text-foreground/85 transition-colors"
 									>
 										Write today's entry
 										<ArrowRight className="size-3" />
@@ -635,7 +622,7 @@ function Section({
 function Stat({ label, value }: { label: string; value: string }) {
 	return (
 		<div>
-			<div className="mono text-xs tracking-[0.12em] uppercase text-muted-foreground mb-1.5">{label}</div>
+			<div className="mono text-xs label-kicker text-muted-foreground mb-1.5">{label}</div>
 			<div className="serif text-2xl font-medium tracking-[-0.01em] tabular-nums">{value}</div>
 		</div>
 	);
@@ -645,7 +632,6 @@ function CaptureChip({
 	kind,
 	current,
 	onPick,
-	icon,
 	label,
 }: {
 	kind: CaptureKind;
@@ -656,8 +642,9 @@ function CaptureChip({
 }) {
 	const active = current === kind;
 	return (
-		<button onClick={() => onPick(kind)} className={`chip transition-colors ${active ? 'chip-sage' : ''}`}>
-			{icon} {label}
+		// Selection = secondary-container; label only (the icon repeated it).
+		<button onClick={() => onPick(kind)} aria-pressed={active} className={`chip transition-colors ${active ? 'chip-selected' : ''}`}>
+			{label}
 		</button>
 	);
 }

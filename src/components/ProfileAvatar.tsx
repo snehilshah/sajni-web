@@ -79,7 +79,7 @@ export function ProfileAvatar({
   return (
     <span
       className={cn(
-        'relative isolate inline-flex shrink-0 overflow-hidden border border-[hsl(var(--outline-variant))] bg-[hsl(var(--primary-container))] shadow-[var(--m3-elev-1)]',
+        'relative isolate inline-flex shrink-0 overflow-hidden bg-[hsl(var(--primary-container))] shadow-[var(--m3-elev-1)]',
         view === 'nav' ? 'rounded-full' : 'rounded-[24%]',
         className,
       )}

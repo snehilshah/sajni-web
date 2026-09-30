@@ -46,14 +46,14 @@ export const SuggestionList = forwardRef<ItemRef, SuggestionListProps>((props, r
 
   if (items.length === 0) {
     return (
-      <div className="bg-popover text-popover-foreground rounded-lg border border-border shadow-lg overflow-hidden min-w-[220px] p-2 text-xs text-muted-foreground">
+      <div className="bg-popover text-popover-foreground rounded-lg shadow-lg overflow-hidden min-w-[220px] p-2 text-xs text-muted-foreground">
         {props.emptyText || 'No matches'}
       </div>
     );
   }
 
   return (
-    <div className="bg-popover text-popover-foreground rounded-lg border border-border shadow-lg overflow-hidden min-w-[240px] max-w-[340px] p-1 max-h-[280px] overflow-y-auto">
+    <div className="bg-popover text-popover-foreground rounded-lg shadow-lg overflow-hidden min-w-[240px] max-w-[340px] p-1 max-h-[280px] overflow-y-auto">
       {items.map((item, index) => (
         <button
           type="button"

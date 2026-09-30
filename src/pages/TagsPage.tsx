@@ -191,7 +191,7 @@ export default function TagsPanel() {
                       const Icon = meta?.icon || FileText;
                       return (
                         <div key={type}>
-                          <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                          <h3 className="font-mono text-xs label-kicker text-muted-foreground mb-2 flex items-center gap-1.5">
                             <Icon className="size-3" />
                             {meta?.label || type} <span className="opacity-60">({list.length})</span>
                           </h3>
@@ -200,7 +200,7 @@ export default function TagsPanel() {
                               <button
                                 key={`${e.type}-${e.id}`}
                                 onClick={() => navigate(meta?.route(e.id) || '/')}
-                                className="text-left rounded-lg border border-border bg-card hover:bg-accent/30 transition-colors px-4 py-2.5 group flex items-center gap-3"
+                                className="text-left rounded-lg bg-card hover:bg-accent/30 transition-colors px-4 py-2.5 group flex items-center gap-3"
                               >
                                 <Icon className="size-3.5 text-muted-foreground shrink-0" />
                                 <div className="flex-1 min-w-0">
@@ -239,7 +239,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
-      className={`font-mono text-xs uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors ${
+      className={`font-mono text-xs label-kicker px-2.5 py-1 rounded-full border transition-colors ${
         active
           ? 'bg-foreground text-background border-foreground'
           : 'border-border text-muted-foreground hover:bg-accent/40'

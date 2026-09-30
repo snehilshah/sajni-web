@@ -72,7 +72,7 @@ export function Callout({ children, tone = 'note' }: { children: React.ReactNode
       )}
     >
       {tone === 'why' && (
-        <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--primary))]">
+        <span className="mb-1 block font-mono text-xs label-kicker text-[hsl(var(--primary))]">
           why it works this way
         </span>
       )}
@@ -84,13 +84,13 @@ export function Callout({ children, tone = 'note' }: { children: React.ReactNode
 // Small two-column reference table (command → effect, view → meaning …).
 export function RefTable({ head, rows }: { head?: [string, string]; rows: [React.ReactNode, React.ReactNode][] }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
+    <div className="overflow-x-auto rounded-xl ">
       <table className="w-full text-sm">
         {head && (
           <thead>
             <tr className="border-b border-border bg-[hsl(var(--surface-container-low))] text-left">
-              <th className="px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{head[0]}</th>
-              <th className="px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{head[1]}</th>
+              <th className="px-3 py-2 font-mono text-xs label-kicker text-muted-foreground">{head[0]}</th>
+              <th className="px-3 py-2 font-mono text-xs label-kicker text-muted-foreground">{head[1]}</th>
             </tr>
           </thead>
         )}

@@ -107,7 +107,7 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
         <>
           {current.length > 0 && (
             <section className="flex flex-col gap-2">
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Running</span>
+              <span className="text-xs font-mono label-kicker text-muted-foreground">Running</span>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {current.map((b) => (
                   <BudgetCard
@@ -121,7 +121,7 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
 
           {past.length > 0 && (
             <section className="flex flex-col gap-2">
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Closed</span>
+              <span className="text-xs font-mono label-kicker text-muted-foreground">Closed</span>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {past.map((b) => (
                   <BudgetCard
@@ -188,7 +188,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-medium truncate">{b.name}</div>
-          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <div className="font-mono text-xs label-kicker text-muted-foreground">
             {b.start_date && b.end_date
               ? format(new Date(b.start_date), 'MMM d') + ' → ' + format(new Date(b.end_date), 'MMM d, yyyy')
               : 'no date limit'}
@@ -411,7 +411,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
               dates you give it, forever. Next month gets its own copy. */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              <Label className="font-mono text-xs label-kicker text-muted-foreground">
                 Dates <span className="normal-case tracking-normal">(optional)</span>
               </Label>
               {(startDate || endDate) && (
@@ -464,7 +464,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 
           {slates.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              <Label className="font-mono text-xs label-kicker text-muted-foreground">
                 Count spending from these slates
               </Label>
               <div className="flex flex-wrap gap-2">
@@ -503,7 +503,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 
           <div className="border-t border-border pt-3">
             <div className="flex items-center justify-between mb-2">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              <Label className="font-mono text-xs label-kicker text-muted-foreground">
                 Category caps{capsTotal > 0 ? ` · ${formatMoney(capsTotal)}` : ''}
               </Label>
               <Button variant="outline" size="sm" onClick={addItem}>
@@ -572,7 +572,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>}
+      {label && <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>}
       {children}
     </div>
   );

@@ -487,7 +487,7 @@ export default function NotesPage() {
       <header className="px-4 py-3.5 border-b border-sidebar-border/60 shrink-0">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Notes</p>
+            <p className="text-xs font-semibold label-kicker text-muted-foreground">Notes</p>
             <p className="mt-0.5 text-2xl font-medium tracking-tight">Library</p>
           </div>
           <span className="text-xs tabular-nums text-muted-foreground">{notesList.length} {notesList.length === 1 ? 'note' : 'notes'}</span>
@@ -529,7 +529,7 @@ export default function NotesPage() {
       </div>
 
       <section className="p-2 border-b border-sidebar-border/60 shrink-0" aria-label="Quick access">
-        <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick access</p>
+        <p className="px-2 pb-1 text-xs font-semibold label-kicker text-muted-foreground">Quick access</p>
         <button
           type="button"
           onClick={() => { setActiveFolder(null); setMobileTreeOpen(false); }}
@@ -563,7 +563,7 @@ export default function NotesPage() {
       </section>
 
       <div className="flex-1 min-h-0 overflow-y-auto py-2 px-1 stable-scrollbar">
-        <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Folders</p>
+        <p className="px-3 pb-1 text-xs font-semibold label-kicker text-muted-foreground">Folders</p>
         {loading ? (
           <div className="px-2 py-2 flex flex-col gap-1.5">
             {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
@@ -838,7 +838,7 @@ export default function NotesPage() {
                       {editorMode === 'split' ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 min-h-0 border-y border-[hsl(var(--outline-variant))]">
                           <section className="min-w-0 py-3 lg:pr-6 lg:border-r border-[hsl(var(--outline-variant))]" aria-label="Edit note">
-                            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Edit</p>
+                            <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">Edit</p>
                             <Suspense fallback={<Skeleton className="h-72 w-full rounded-2xl" />}>
                               <RichEditor
                                 value={content}
@@ -850,7 +850,7 @@ export default function NotesPage() {
                             </Suspense>
                           </section>
                           <section className="min-w-0 py-3 lg:pl-6 border-t lg:border-t-0 border-[hsl(var(--outline-variant))]" aria-label="Preview note">
-                            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preview</p>
+                            <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">Preview</p>
                             <MarkdownPreview content={content} />
                           </section>
                         </div>
@@ -954,7 +954,7 @@ export default function NotesPage() {
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Move Note</DialogTitle>
-            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>
+            <p className="font-mono text-xs label-kicker text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>
           </DialogHeader>
           <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
             <FolderRow
@@ -1072,7 +1072,7 @@ function NoteInspector({
 
       <div className="flex-1 min-h-0 overflow-y-auto stable-scrollbar">
         <section className="p-3" aria-label={tab}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tabs.find((item) => item.value === tab)?.label}</p>
+          <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">{tabs.find((item) => item.value === tab)?.label}</p>
           {tab === 'outline' && (outline.length > 0 ? (
             <div className="flex flex-col gap-0.5">
               {outline.map((item) => (
@@ -1132,7 +1132,7 @@ function NoteInspector({
 
         <div className="h-px bg-[hsl(var(--outline-variant))]" />
         <section className="p-3" aria-label="Tags">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tags</p>
+          <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">Tags</p>
           {tags.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">{tags.map((tag) => <TagPill key={tag} tag={tag} />)}</div>
           ) : <InspectorEmpty>Type #tag in the note to add one.</InspectorEmpty>}
@@ -1281,7 +1281,7 @@ function FolderRowItem({
         <>
           <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
           <div
-            className="absolute right-1 top-7 z-40 min-w-[160px] rounded-md border border-border bg-popover shadow-lg p-1 text-foreground"
+            className="absolute right-1 top-7 z-40 min-w-[160px] rounded-md bg-popover shadow-lg p-1 text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             <button

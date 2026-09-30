@@ -87,12 +87,12 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setEditing(inv); }}
-                className="rounded-xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow] tap-highlight-none"
+                className="rounded-xl bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow] tap-highlight-none"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{inv.name}</div>
-                    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-xs label-kicker text-muted-foreground">
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label ?? inv.type.replace('_', ' ')}
                       {inv.frequency === 'monthly' && inv.monthly_amount > 0 && ' · ' + formatMoney(inv.monthly_amount) + '/mo'}
                     </div>
@@ -163,8 +163,8 @@ function SummaryCard({ label, value, tone = 'default', className = '' }: { label
     default: 'text-foreground',
   };
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
-      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className={`rounded-xl bg-card p-4 ${className}`}>
+      <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
       <div className={`font-serif text-xl md:text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}>{value}</div>
     </div>
   );
@@ -349,7 +349,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
               />
               {autoDebitOn && (
                 <div className="flex flex-col gap-1.5 p-3">
-                  <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Next debit date</Label>
+                  <Label className="font-mono text-xs label-kicker text-muted-foreground">Next debit date</Label>
                   <DatePicker value={nextDebitDate} onChange={setNextDebitDate} />
                   <p className="text-xs text-muted-foreground">
                     Leave blank to project it from the start date.
@@ -373,7 +373,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
           )}
           {fixedDeposit && (
             <div className="col-span-2 rounded-xl bg-secondary/45 px-4 py-3">
-              <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Estimated current value</div>
+              <div className="font-mono text-xs label-kicker text-muted-foreground">Estimated current value</div>
               <div className="font-serif text-2xl font-semibold tabular-nums mt-0.5">
                 <AnimatedMoney value={estimatedValue} />
               </div>
@@ -405,7 +405,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
 function Field({ label, hint, className = '', children }: { label: string; hint?: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
       {children}
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
@@ -499,7 +499,7 @@ function CheckRow({
         <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
           {label}
           {disabled && disabledReason ? (
-            <span className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--tertiary))]">
+            <span className="text-xs font-mono label-kicker text-[hsl(var(--tertiary))]">
               · {disabledReason}
             </span>
           ) : null}
