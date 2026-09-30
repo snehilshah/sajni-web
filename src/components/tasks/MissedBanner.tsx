@@ -153,7 +153,7 @@ export default function MissedBanner() {
                         <TaskScopeBadge task={t} />
                         <span className="min-w-0 text-sm truncate block">{t.title}</span>
                       </button>
-                      <span className="shrink-0 inline-flex items-center justify-center h-7 w-20 whitespace-nowrap rounded-full px-2 text-xs font-medium tabular-nums bg-[hsl(var(--color-waiting)/0.14)] text-[hsl(var(--color-waiting))]">
+                      <span className="shrink-0 inline-flex items-center justify-center h-6 w-18 whitespace-nowrap rounded-[8px] border border-[hsl(var(--color-waiting)/0.3)] px-2 text-xs font-semibold tabular-nums bg-[hsl(var(--color-waiting)/0.12)] text-[hsl(var(--color-waiting))]">
                         {ageLabel(t)}
                       </span>
                       <button
@@ -162,9 +162,9 @@ export default function MissedBanner() {
                         disabled={busy}
                         title={ctaTitle(t)}
                         aria-label={ctaTitle(t)}
-                        className="relative shrink-0 size-7 inline-flex items-center justify-center rounded-full bg-[hsl(var(--on-surface)/0.08)] hover:bg-[hsl(var(--on-surface)/0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition disabled:opacity-50 before:absolute before:-inset-2 before:content-['']"
+                        className="relative shrink-0 size-6 inline-flex items-center justify-center rounded-[8px] border border-primary/30 bg-primary/12 text-primary hover:bg-primary/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition disabled:opacity-50 before:absolute before:-inset-2.5 before:content-['']"
                       >
-                        {rescheduling(t.id) ? <Loader2 className="size-3 animate-spin" /> : <ArrowRight className="size-3.5" aria-hidden="true" />}
+                        {rescheduling(t.id) ? <Loader2 className="size-3 animate-spin" /> : <ArrowRight className="size-4" aria-hidden="true" />}
                       </button>
                       <button
                         type="button"

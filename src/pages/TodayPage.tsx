@@ -140,14 +140,8 @@ export default function TodayPage() {
 	const totalHabitsToday = habitStatus.length;
 	const dueOpen = dueToday.filter((t) => t.status !== 'done' && t.status !== 'scratched');
 
-	// Agenda order: timed tasks first in clock order, untimed after.
-	const dueOpenSorted = useMemo(() => {
-		return [...dueOpen].sort((a, b) => {
-			const at = a.scheduled_at ? new Date(a.scheduled_at).getTime() : Infinity;
-			const bt = b.scheduled_at ? new Date(b.scheduled_at).getTime() : Infinity;
-			return at - bt;
-		});
-	}, [dueOpen]);
+	// Server order (last updated first) — the same order as every task view.
+	const dueOpenSorted = dueOpen;
 
 	const openTasksCount = dueOpen.length;
 

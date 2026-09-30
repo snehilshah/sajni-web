@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { clientMsg } from '@/lib/errors';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList, TaskPatch } from '@/types';
 import { qk } from './keys';
@@ -113,7 +114,7 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: TaskPatch }) =>
       tasksApi.update(id, data),
-    onError: () => toast.error('Could not save task'),
+    onError: (e) => toast.error(clientMsg(e, 'Could not save task')),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
       qc.invalidateQueries({ queryKey: qk.taskLists.all });
@@ -138,7 +139,7 @@ export function useToggleTaskStatus() {
     },
     onError: (_e, _v, ctx) => {
       ctx?.prev?.forEach(([key, data]) => qc.setQueryData(key, data));
-      toast.error('Could not update task');
+      toast.error(clientMsg(_e, 'Could not update task'));
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });

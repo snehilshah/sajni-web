@@ -9,6 +9,8 @@ import {
 } from 'date-fns';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { clientMsg } from '@/lib/errors';
 import {
   journal as journalApi,
   habits as habitsApi,
@@ -239,8 +241,8 @@ export default function JournalPage() {
     qc.invalidateQueries({ queryKey: qk.habits.all });
   };
 
-  const completeTask = async (taskId: number) => {
-    await toggleTaskStatus.mutateAsync({ id: taskId, status: 'done' });
+  const completeTask = (taskId: number) => {
+    toggleTaskStatus.mutate({ id: taskId, status: 'done' });
   };
 
   const deleteEntry = async () => {
@@ -842,7 +844,13 @@ function WeekView({
   const toggleWeekTask = async (t: Task) => {
     const next = t.status === 'done' ? 'todo' : 'done';
     setWeekTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
-    await tasksApi.update(t.id, { status: next });
+    try {
+      await tasksApi.update(t.id, { status: next });
+    } catch (e) {
+      setWeekTasks((prev) => prev.map((x) => (x.id === t.id ? t : x)));
+      toast.error(clientMsg(e, 'Could not update task'));
+      return;
+    }
     qc.invalidateQueries({ queryKey: qk.tasks.all });
   };
   const addWeekTask = async (title: string) => {
@@ -1667,7 +1675,13 @@ function MonthView({
   const toggleMonthTask = async (t: Task) => {
     const next = t.status === 'done' ? 'todo' : 'done';
     setMonthTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
-    await tasksApi.update(t.id, { status: next });
+    try {
+      await tasksApi.update(t.id, { status: next });
+    } catch (e) {
+      setMonthTasks((prev) => prev.map((x) => (x.id === t.id ? t : x)));
+      toast.error(clientMsg(e, 'Could not update task'));
+      return;
+    }
     loadMonthTasks();
     qc.invalidateQueries({ queryKey: qk.tasks.all });
   };

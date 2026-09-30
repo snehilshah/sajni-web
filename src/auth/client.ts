@@ -114,7 +114,7 @@ export async function requestJSON<T>(
     if (res.status >= 500) {
       log.error({ path, status: res.status }, `api error: ${msg}`);
     }
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { status: res.status });
   }
   return res.json();
 }

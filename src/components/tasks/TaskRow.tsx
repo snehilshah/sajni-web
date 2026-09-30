@@ -15,7 +15,6 @@ import {
 import { PRIORITY_COLORS } from './helpers';
 import { cn } from '@/lib/utils';
 import { WavyProgress } from '@/components/ui/wavy-progress';
-import TaskScopeBadge from './TaskScopeBadge';
 
 interface Props {
   task: Task;
@@ -55,13 +54,7 @@ export default function TaskRow({
   const completedSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
   const hasSubtasks = (task.subtask_count ?? 0) > 0;
-  const subtaskPct = hasSubtasks
-    ? Math.round(((task.subtasks_done ?? 0) / (task.subtask_count || 1)) * 100)
-    : 0;
   const dimmed = task.status === 'done' || task.status === 'scratched';
-  const stepPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  // Subtasks win over steps; null = no progress bar.
-  const rowPct = hasSubtasks ? subtaskPct : totalSteps > 0 ? stepPct : null;
 
   const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -90,10 +83,13 @@ export default function TaskRow({
     });
   };
 
-  // Single fixed-height line: title on the left, attributes as tonal chips
-  // in the right-hand gutter. Chips drop by priority via container queries
-  // (row width, not viewport), so nested and narrow rows never grow taller.
+  // One fixed-height line for every task, whatever it carries: checkbox,
+  // accent dot, title, then attribute chips in a fixed order (date → time →
+  // steps → subtasks → blocked) and the star. Nothing is ever inserted before
+  // the title, so titles line up across rows. Chips drop by priority via
+  // container queries (row width, not viewport).
   const chip = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs leading-none';
+  const neutral = 'bg-[hsl(var(--on-surface)/0.06)]';
   const calendarIcon = (
     <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
       <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
@@ -104,15 +100,12 @@ export default function TaskRow({
       <div
         onClick={onClick}
         className={cn(
-          '@container group cursor-pointer transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.995] text-left',
+          '@container group cursor-pointer transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] text-left',
           attached
-            ? cn('rounded-none border-0 bg-[hsl(var(--surface-container-low))]', !first && 'border-t border-[hsl(var(--outline-variant))]')
-            : hasSubtasks
-              ? 'rounded-none border-0 bg-[hsl(var(--surface-container-low))] hover:bg-[hsl(var(--surface-container))]'
-              : 'rounded-lg border border-border bg-card hover:border-primary/40 hover:shadow-sm',
+            ? cn('bg-transparent hover:bg-[hsl(var(--on-surface)/0.04)]', !first && 'border-t border-border/50')
+            : 'hover:bg-[hsl(var(--on-surface)/0.03)]',
           dimmed && 'opacity-60',
         )}
-        style={!attached && !hasSubtasks ? { marginLeft: depth * 24 } : undefined}
       >
         <div className={cn('flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
@@ -156,32 +149,12 @@ export default function TaskRow({
             </motion.span>
           </motion.button>
 
-          <div className="flex flex-1 min-w-0 items-center gap-2">
+          <div className="flex flex-1 min-w-0 items-center gap-2.5">
             <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-            {Boolean(task.description?.trim()) && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
-            <TaskScopeBadge task={task} />
-            <span className={`font-medium text-[0.9375rem] leading-snug min-w-0 truncate ${rowPct === null ? 'flex-1' : 'shrink @sm:max-w-[60%]'} ${task.status === 'done' || task.status === 'scratched' ? 'line-through' : ''}`}>
+            <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
               {task.title}
             </span>
 
-            {/* Progress fills the gap between title and chips, so the wave
-                always has room to breathe instead of cramming into a chip. */}
-            {rowPct !== null && (
-              <>
-                <span className="flex-1 @sm:hidden" aria-hidden />
-                <div className="hidden @sm:flex flex-1 min-w-16 items-center px-3">
-                  <WavyProgress
-                    value={rowPct}
-                    height={12}
-                    active={rowPct > 0 && rowPct < 100}
-                    label={hasSubtasks ? 'Subtasks' : 'Steps'}
-                    className="flex-1"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Attribute chips, highest priority last so it sits nearest the edge. */}
             <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
               {task.tags && task.tags.length > 0 && (
                 <span className="hidden @2xl:inline-flex items-center gap-1">
@@ -189,39 +162,38 @@ export default function TaskRow({
                   {task.tags.length > 2 && <span className="text-xs">+{task.tags.length - 2}</span>}
                 </span>
               )}
+              {Boolean(task.description?.trim()) && (
+                <StickyNote className="hidden @md:block size-3.5 shrink-0" aria-label="Has note" />
+              )}
               {/* Subtask hint — only when shown as a flat row (smart/missed/all
                   views), so a child task doesn't read as a top-level one. */}
               {depth === 0 && task.parent_task_id != null && !attached && (
-                <span className={cn(chip, 'hidden @sm:inline-flex bg-[hsl(var(--on-surface)/0.06)]')} title="This is a subtask">
+                <span className={cn(chip, neutral, 'hidden @sm:inline-flex')} title="This is a subtask">
                   <CornerDownRight className="size-3" /><span className="hidden @xl:inline">subtask</span>
                 </span>
               )}
-              {task.status === 'scratched' && (
-                <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.08)]')}>scratched</span>
-              )}
-              {task.week_of && !task.due_date && (
-                <span className={cn(chip, 'hidden @md:inline-flex bg-[hsl(var(--on-surface)/0.06)]')} title="Week task">
-                  {calendarIcon} wk of {format(parseISO(task.week_of), 'MMM d')}
-                </span>
-              )}
-              {task.month_of && !task.due_date && !task.week_of && (
-                <span className={cn(chip, 'hidden @md:inline-flex bg-[hsl(var(--on-surface)/0.06)]')} title="Month goal">
-                  {calendarIcon} {format(parseISO(task.month_of), 'MMM')}
-                </span>
-              )}
-              {task.due_date && (
+              {task.status === 'scratched' && <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.08)]')}>scratched</span>}
+              {task.due_date ? (
                 <span
                   className={cn(chip, 'hidden @xs:inline-flex', overdue
                     ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]'
-                    : 'bg-[hsl(var(--on-surface)/0.06)]')}
-                  title={overdue ? 'Overdue' : 'Due'}
+                    : neutral)}
+                  title={overdue ? 'Overdue' : 'Day task'}
                 >
                   {calendarIcon} {format(parseISO(task.due_date), 'MMM d')}
                 </span>
-              )}
+              ) : task.week_of ? (
+                <span className={cn(chip, neutral, 'hidden @xs:inline-flex')} title="Week task">
+                  {calendarIcon} Wk {format(parseISO(task.week_of), 'MMM d')}
+                </span>
+              ) : task.month_of ? (
+                <span className={cn(chip, neutral, 'hidden @xs:inline-flex')} title="Month goal">
+                  {calendarIcon} {format(parseISO(task.month_of), 'MMMM')}
+                </span>
+              ) : null}
               {task.scheduled_at && (
                 <span
-                  className={cn(chip, task.remind
+                  className={cn(chip, 'hidden @sm:inline-flex', task.remind
                     ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
                     : 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]')}
                   title={task.remind ? 'Reminder set' : 'Scheduled'}
@@ -230,11 +202,26 @@ export default function TaskRow({
                   {format(parseISO(task.scheduled_at), 'h:mm a')}
                 </span>
               )}
-              {!hasSubtasks && totalSteps > 0 && (
-                <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.06)]')} title="Steps">
+              {totalSteps > 0 && (
+                <span className={cn(chip, neutral, 'hidden @sm:inline-flex')} title="Steps">
                   <ListChecks className="size-3" />
-                  <span className="mono tabular-nums">{completedSteps}/{totalSteps}</span>
+                  <span className="tabular-nums">{completedSteps}/{totalSteps}</span>
                 </span>
+              )}
+              {hasSubtasks && (
+                <button
+                  type="button"
+                  onClick={toggleExpand}
+                  onPointerEnter={() => { void prefetchSubtasks(task.id); }}
+                  onFocus={() => { void prefetchSubtasks(task.id); }}
+                  aria-expanded={expanded}
+                  aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
+                  title={expanded ? 'Hide subtasks' : 'View subtasks'}
+                  className={cn(chip, 'relative bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] before:absolute before:-inset-2 before:content-[""]')}
+                >
+                  <span className="tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
+                  <ChevronRight className={cn('size-3.5 transition-transform', expanded && 'rotate-90')} strokeWidth={2.5} />
+                </button>
               )}
               {task.status === 'blocked' && (
                 <button
@@ -256,22 +243,6 @@ export default function TaskRow({
             </div>
           </div>
 
-          {hasSubtasks && (
-            <button
-              type="button"
-              onClick={toggleExpand}
-              onPointerEnter={() => { void prefetchSubtasks(task.id); }}
-              onFocus={() => { void prefetchSubtasks(task.id); }}
-              aria-expanded={expanded}
-              aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
-              title={expanded ? 'Hide subtasks' : 'View subtasks'}
-              className="shrink-0 inline-flex h-9 items-center gap-2 rounded-full bg-[hsl(var(--secondary-container))] pl-3 pr-2 text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] transition-[background-color,filter]"
-            >
-              <span className="mono text-xs tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
-              <ChevronRight className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`} strokeWidth={2.5} />
-            </button>
-          )}
-
           <button
             onClick={handleToggleStar}
             className={`-m-1.5 p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-[hsl(var(--surface-container-high))] transition-[background-color,color,opacity] shrink-0 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
@@ -291,73 +262,60 @@ export default function TaskRow({
             animate={{ opacity: 1, transform: 'translateY(0)' }}
             exit={{ opacity: 0, transform: 'translateY(-4px)' }}
             transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-            className={cn('overflow-hidden', hasSubtasks ? 'flex flex-col' : '')}
-            style={!hasSubtasks ? { marginLeft: (depth + 1) * 24 } : undefined}
+            className="overflow-hidden flex flex-col border-t border-border/50 bg-[hsl(var(--surface-container-low))] pl-6"
           >
-            <div
-              className={cn(
-              'flex flex-col',
-              hasSubtasks ? '' : 'mt-2 mb-1 gap-1.5 rounded-2xl border border-border/60 bg-[hsl(var(--surface-container-low))] p-2.5',
-            )}>
-              {loadingSubs && (
-                <div className={cn('text-sm text-muted-foreground flex items-center gap-2.5 px-3 py-3', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>
-                  <M3CookieLoader size="sm" tone="secondary" /> Loading…
-                </div>
-              )}
+            {loadingSubs && (
+              <div className="text-sm text-muted-foreground flex items-center gap-2.5 px-3 py-3">
+                <M3CookieLoader size="sm" tone="secondary" /> Loading…
+              </div>
+            )}
 
-              {subs && subs.length === 0 && !addingSub && (
-                <div className={cn('text-sm text-muted-foreground italic px-3 py-3', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>No subtasks yet. Break this down.</div>
-              )}
+            {subs && subs.length === 0 && !addingSub && (
+              <div className="text-sm text-muted-foreground italic px-3 py-3">No subtasks yet. Break this down.</div>
+            )}
 
-              {subs?.map((sub, idx) => (
-                <div
-                  key={sub.id}
-                >
-                  <TaskRow
-                    task={sub}
-                    onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
-                    compact
-                    attached={hasSubtasks}
-                    first={idx === 0}
-                  />
-                </div>
-              ))}
+            {subs?.map((sub, idx) => (
+              <TaskRow
+                key={sub.id}
+                task={sub}
+                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
+                compact
+                attached
+                first={idx === 0}
+              />
+            ))}
 
-              {addingSub ? (
-                <div className={cn('px-3 py-2.5', hasSubtasks && 'border-t border-[hsl(var(--outline-variant))]')}>
-                  <Input
-                    name={`subtask-${task.id}`}
-                    autoFocus
-                    placeholder="New subtask"
-                    value={subDraft}
-                    onChange={(e) => setSubDraft(e.target.value)}
-                    onBlur={addSubtask}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') addSubtask();
-                      if (e.key === 'Escape') { setAddingSub(false); setSubDraft(''); }
-                    }}
-                    className="h-10 text-sm"
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => setAddingSub(true)}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 text-sm font-medium text-[hsl(var(--on-secondary-container))] transition-colors',
-                    hasSubtasks
-                      ? 'min-h-11 w-full border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-3.5 py-2.5 text-left hover:bg-[hsl(var(--secondary-container))]'
-                      : 'self-start rounded-full bg-[hsl(var(--secondary-container))] px-3.5 py-2 hover:opacity-90 active:scale-[0.98] transition-[background-color,opacity,transform]',
-                  )}
-                >
-                  <Plus className="size-4" strokeWidth={2.5} /> Add subtask
-                </button>
-              )}
-            </div>
+            {addingSub ? (
+              <div className="px-3 py-2.5 border-t border-border/50">
+                <Input
+                  name={`subtask-${task.id}`}
+                  autoFocus
+                  placeholder="New subtask"
+                  value={subDraft}
+                  onChange={(e) => setSubDraft(e.target.value)}
+                  onBlur={addSubtask}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addSubtask();
+                    if (e.key === 'Escape') { setAddingSub(false); setSubDraft(''); }
+                  }}
+                  className="h-10 text-sm"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingSub(true)}
+                className="inline-flex min-h-11 w-full items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5 text-left text-sm font-medium text-[hsl(var(--on-secondary-container))] transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]"
+              >
+                <Plus className="size-4" strokeWidth={2.5} /> Add subtask
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
   );
 
+  // Attached children render bare inside their parent's card; every top-level
+  // task gets the same card, with or without subtasks.
   return (
     <motion.div
       layout="position"
@@ -365,18 +323,18 @@ export default function TaskRow({
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
       transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-      style={!attached && hasSubtasks ? { marginLeft: depth * 24 } : undefined}
+      style={!attached && depth > 0 ? { marginLeft: depth * 24 } : undefined}
     >
-      {hasSubtasks && !attached ? (
-        <div className="overflow-hidden rounded-[24px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
-          {row}
-          {children}
-        </div>
-      ) : (
+      {attached ? (
         <>
           {row}
           {children}
         </>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+          {row}
+          {children}
+        </div>
       )}
     </motion.div>
   );

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { clientMsg } from '@/lib/errors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle } from '@/components/ui/icons';
@@ -297,6 +298,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         onSaved();
         onCreated?.({ id: res.id, title: form.title.trim() });
       }
+    } catch (e) {
+      toast.error(clientMsg(e, 'Could not save task'));
     } finally {
       setSaving(false);
     }
@@ -799,7 +802,12 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
     onChanged();
   };
   const toggle = async (s: Task) => {
-    await tasksApi.update(s.id, { status: s.status === 'done' ? 'todo' : 'done' });
+    try {
+      await tasksApi.update(s.id, { status: s.status === 'done' ? 'todo' : 'done' });
+    } catch (e) {
+      toast.error(clientMsg(e, 'Could not update task'));
+      return;
+    }
     await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
     load();
     onChanged();
