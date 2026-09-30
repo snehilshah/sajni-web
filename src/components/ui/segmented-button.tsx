@@ -45,13 +45,16 @@ export function SegmentedButton<V extends string = string>({
     <div
       role="group"
       className={cn(
-        'items-stretch overflow-hidden rounded-full border border-[hsl(var(--outline))]',
+        // Tonal track, no outline or dividers: the selected segment is the
+        // only fill that changes (secondary-container), like Android's
+        // connected toggle row.
+        'items-stretch overflow-hidden rounded-full bg-[hsl(var(--surface-container-high))] p-0.5 gap-0.5',
         stretch ? 'flex w-full' : 'inline-flex shrink-0',
         className,
       )}
       {...props}
     >
-      {options.map((opt, i) => {
+      {options.map((opt) => {
         const active = opt.value === value;
         const Icon = opt.icon;
         const showLeading = active && showCheck;
@@ -65,12 +68,12 @@ export function SegmentedButton<V extends string = string>({
               'inline-flex items-center justify-center gap-1.5 whitespace-nowrap font-medium',
               'transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] outline-none',
               'focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
-              i > 0 && 'border-l border-[hsl(var(--outline))]',
+              'rounded-full',
               stretch && 'flex-1',
               compact ? 'h-6 px-2.5 text-[11px]' : 'h-9 px-4 text-sm',
               active
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                : 'bg-transparent text-[hsl(var(--on-surface))] hover:bg-[hsl(var(--on-surface)/0.06)]',
+                : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
             )}
           >
             {showLeading

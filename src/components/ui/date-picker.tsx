@@ -63,9 +63,9 @@ export function DatePicker({
         disabled={disabled}
         className={cn(
           "group inline-flex h-11 w-full items-center justify-between gap-2",
-          "rounded-md border border-[hsl(var(--outline))] bg-transparent px-3.5 py-2.5 text-sm",
+          "rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] px-3.5 py-2.5 text-sm",
           "text-foreground transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
-          "hover:border-[hsl(var(--on-surface))]",
+          "hover:border-transparent",
           "data-[popup-open]:border-transparent data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
           "disabled:opacity-50 disabled:pointer-events-none",
           !selected && "text-muted-foreground",

@@ -345,7 +345,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       className={cn(
         isMobile
           ? cn(
-              'inset-x-0 bottom-0 max-w-full w-full max-h-[92dvh] rounded-b-none border-t border-border',
+              'inset-x-0 bottom-0 max-w-full w-full max-h-[92dvh] rounded-b-none',
               moreDetails ? 'h-[92dvh]' : 'h-auto',
             )
           : cn(
@@ -354,7 +354,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             ),
       )}
     >
-		<div className="shrink-0 border-b border-border px-4 pb-3 pt-4 md:px-6 md:pt-5">
+		<div className="shrink-0 px-4 pb-1 pt-4 md:px-6 md:pt-5">
 		  <div className="flex items-center justify-between gap-3">
 		    <button
 		      type="button"
@@ -411,7 +411,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               read as a normal task) and lets the user promote it out so it can
               live in its own list. */}
           {parent && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-border bg-[hsl(var(--surface-container))] px-3 py-2 text-sm">
+            <div className="flex min-h-12 items-center gap-2.5 rounded-xl bg-card px-4 text-sm">
               <GitBranch className="size-3.5 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground shrink-0">Subtask of</span>
               <button
@@ -421,7 +421,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               >
                 {parent.title}
               </button>
-              <Button variant="outline" size="sm" className="ml-auto h-7 shrink-0" onClick={handleDetach}>
+              <Button variant="ghost" size="sm" className="ml-auto -mr-3 h-8 shrink-0 text-primary" onClick={handleDetach}>
                 Move out
               </Button>
             </div>
@@ -435,15 +435,15 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               autoFocus={!editing}
               placeholder="What needs doing?"
-		      className="h-auto rounded-none border-x-0 border-t-0 bg-transparent px-1 py-2 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0 md:text-3xl"
+		      className="h-auto rounded-none border-0 bg-transparent px-0 py-1 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:shadow-none md:text-3xl"
 		    />
 		  </div>
 
-		  <div className="min-h-[92px] border-b border-[hsl(var(--outline-variant)/0.8)] px-1 pb-2">
+		  <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
 		    <RichEditor value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Add some extra notes here…" toolbar="compact" />
 		  </div>
 
-		  <div className="border-b border-[hsl(var(--outline-variant)/0.8)] px-1 py-1.5">
+		  <div className="py-0.5">
 		    <StepsEditor
 		      steps={form.steps}
 		      onChange={(next) => setForm({ ...form, steps: next })}
@@ -459,7 +459,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		      setMoreDetails(next);
 		      try { localStorage.setItem(MORE_DETAILS_KEY, String(next)); } catch {}
 		    }}
-		    className="flex min-h-11 items-center gap-2 rounded-lg border border-[hsl(var(--outline-variant))] px-3.5 text-left text-sm font-medium hover:bg-[hsl(var(--on-surface)/0.05)]"
+		    className="flex min-h-12 items-center gap-2 rounded-xl bg-card px-4 text-left text-sm font-medium hover:bg-[hsl(var(--surface-container-high))]"
 		  >
 		    <span className="flex-1">More details</span>
 		    {!moreDetails && form.status === 'blocked' && <span className="rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-error-container))]">Blocked</span>}
@@ -468,7 +468,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		    <ChevronDown className={cn('size-4 transition-transform', moreDetails && 'rotate-180')} />
 		  </button>
 
-		  {moreDetails && <div className="flex flex-col gap-4 rounded-[24px] bg-[hsl(var(--surface-container-low))] p-3 md:gap-5 md:p-4">
+		  {moreDetails && <div className="flex flex-col gap-4 px-0.5 md:gap-5">
 
 		  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 shrink-0">
             <div className="flex flex-col gap-1.5">
@@ -526,13 +526,13 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 onValueChange={(v) =>
                   setForm({ ...form, list_id: v === 'inbox' ? null : Number(v) })
                 }
-                items={[{ value: 'inbox', label: '📥 Inbox' }, ...lists.map((l) => ({ value: String(l.id), label: l.name }))]}
+                items={[{ value: 'inbox', label: 'Inbox' }, ...lists.map((l) => ({ value: String(l.id), label: l.name }))]}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="inbox">📥 Inbox</SelectItem>
+                  <SelectItem value="inbox">Inbox</SelectItem>
                   {lists.map((l) => (
                     <SelectItem key={l.id} value={String(l.id)}>
                       <span className="flex items-center gap-2">
@@ -547,7 +547,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           </div>
 
           {form.status === 'blocked' && (
-            <div className="flex flex-col gap-1.5 rounded-xl border border-[hsl(var(--error)/0.25)] bg-[hsl(var(--error-container)/0.55)] p-3">
+            <div className="flex flex-col gap-1.5 rounded-xl bg-[hsl(var(--error-container)/0.55)] p-3">
               <Label className="text-xs font-mono label-kicker text-[hsl(var(--on-error-container))] inline-flex items-center gap-1.5">
                 <GitBranch className="size-3" /> Blocked by
               </Label>
@@ -665,13 +665,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                     />
                   </label>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {!form.scheduled_time
-                    ? 'Set a time. Scheduled for the due date, or today if none is set.'
-                    : form.remind
-                      ? "You'll be emailed at this task's scheduled time. Want another nudge too? Add a custom reminder below."
-                      : 'Shows on your Today agenda. Turn on Remind for an email nudge at the scheduled time.'}
-                </p>
+
               </div>
             ) : (
               <div className="p-3">
@@ -683,7 +677,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               </div>
             )}
             {/* Custom recipients — also email these people when reminders fire. */}
-            <div className="border-t border-border/70 p-3">
+            <div className="p-3">
               <EmailRecipients
                 value={form.notify_emails}
                 onChange={(em) => setForm({ ...form, notify_emails: em })}
@@ -692,7 +686,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             {/* Extra reminders — any date/time, delivered by the cron. Editing
                 talks to the API directly; creating buffers them in form state
                 and the create handler flushes them once the task exists. */}
-            <div className="border-t border-border/70 p-3">
+            <div className="p-3">
               {editing ? (
                 <RemindersSection taskId={editing.id} />
               ) : (
@@ -737,7 +731,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           {/* Activity — GitHub-style audit timeline (create / status / title
               / list moves). Note edits are intentionally not tracked. */}
 		  {editing && events.length > 0 && (
-            <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-2 shrink-0">
+            <div className="rounded-xl bg-card p-4 flex flex-col gap-2 shrink-0">
               <h4 className="font-mono text-xs label-kicker text-muted-foreground flex items-center gap-1.5">
                 <History className="size-3" /> Activity ({events.length})
               </h4>
@@ -757,7 +751,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		  </div>}
 		</div>
 
-        <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border bg-muted/20">
+        <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] ">
 		  <div className="mr-auto min-w-0 text-xs text-muted-foreground">
 		    {form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
 		  </div>
@@ -830,7 +824,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
         </Label>
         {total > 0 && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
       </div>
-      <div className="rounded-lg border border-border bg-card/50 px-1.5 py-1.5 flex flex-col gap-0.5">
+      <div className="rounded-xl bg-card px-1.5 py-1.5 flex flex-col gap-0.5">
         <AnimatePresence initial={false}>
           {subs?.map((s) => (
             <motion.div
@@ -985,9 +979,7 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
           )}
         </div>
       )}
-      <p className={cn('text-xs', err ? 'text-destructive' : 'text-muted-foreground')}>
-        {err || 'They get an email-only nudge when this task reminds. You’re always notified too.'}
-      </p>
+      {err && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }
@@ -1062,7 +1054,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
   return (
     <div className="flex flex-col gap-2">
       <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
-        <Bell className="size-3" /> Reminders
+        <Bell className="size-3" /> Extra reminders
       </Label>
       <div className="flex flex-col gap-1.5">
         <AnimatePresence initial={false}>
@@ -1093,9 +1085,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
           ))}
         </AnimatePresence>
 
-        {rems && rems.length === 0 && !adding && (
-          <p className="text-xs text-muted-foreground px-1">No extra reminders. Add one for any date and time.</p>
-        )}
+
 
         {adding ? (
           <div className="flex flex-col gap-2 pt-0.5">

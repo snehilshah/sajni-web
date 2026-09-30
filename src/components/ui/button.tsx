@@ -31,9 +31,11 @@ const buttonVariants = cva(
         // Tonal — medium-emphasis container fill.
         tonal:
           "rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent hover:brightness-[0.97]",
-        // Outlined — secondary action with outline.
+        // Neutral — secondary action. Kept the `outline` name for call sites,
+        // but it's a borderless neutral fill now: borders only carry state
+        // (DESIGN.md), and an outline on every Cancel was decoration.
         outline:
-          "rounded-full bg-transparent text-foreground border border-[hsl(var(--outline))] hover:bg-[hsl(var(--on-surface)/0.05)]",
+          "rounded-full bg-[hsl(var(--surface-container-high))] text-foreground border border-transparent hover:bg-[hsl(var(--surface-container-highest))]",
         // Text — lowest emphasis.
         ghost:
           "rounded-full bg-transparent text-foreground border border-transparent hover:bg-[hsl(var(--on-surface)/0.06)]",

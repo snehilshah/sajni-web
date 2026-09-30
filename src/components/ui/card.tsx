@@ -10,8 +10,8 @@ import { cn } from '@/lib/utils';
 // 2xl to 28px and reserves it for dialogs and sheets — a 28px radius on a
 // list-sized card reads as a lozenge, not a card.
 //
-// Identity colour is never a left border. A thick border on a rounded box
-// tapers into a wedge at the corners; `accent` draws an inset pill instead.
+// Identity colour is never a left border or bar; `accent` draws a soft
+// corner wash of the colour behind the content instead.
 
 type Variant = 'outlined' | 'filled' | 'elevated';
 
@@ -38,7 +38,9 @@ export function cardClass({ variant = 'filled', interactive, accent }: CardOptio
   return cn(
     'relative rounded-xl transition-colors',
     SURFACE[variant],
-    accent && 'pl-5',
+    // Accent = soft identity wash behind content (see CardAccent); isolate
+    // keeps the wash's negative z-index inside this card.
+    accent && 'isolate overflow-hidden',
     interactive && [
       'cursor-pointer outline-none tap-highlight-none',
       'hover:bg-[hsl(var(--surface-container-high))]',
@@ -48,14 +50,18 @@ export function cardClass({ variant = 'filled', interactive, accent }: CardOptio
   );
 }
 
-/** The inset identity pill. Rendered by `<Card>`; callers using `cardClass`
- *  place it themselves as the first child. */
+/** Identity accent: the colour washes in from the top-left corner and fades
+ *  out, behind the content. Replaces the inset left bar, which tapered
+ *  awkwardly against rounded corners and duplicated the icon tile's colour.
+ *  Rendered by `<Card>`; callers using `cardClass` place it as a child. */
 export function CardAccent({ color }: { color: string }) {
   return (
     <span
       aria-hidden
-      className="absolute left-2 top-3 bottom-3 w-1 rounded-full"
-      style={{ backgroundColor: color }}
+      className="pointer-events-none absolute inset-0 -z-10"
+      style={{
+        background: `radial-gradient(130% 110% at 0% 0%, color-mix(in srgb, ${color} 22%, transparent), transparent 62%)`,
+      }}
     />
   );
 }

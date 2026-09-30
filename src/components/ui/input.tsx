@@ -21,14 +21,16 @@ function Input({ className, type, id, name, ...props }: React.ComponentProps<"in
       data-slot="input"
       className={cn(
         // base
-        "flex h-11 w-full min-w-0 rounded-md border border-[hsl(var(--outline))]",
-        "bg-transparent px-3.5 py-2.5 text-sm text-foreground",
+        // Filled tonal field (DESIGN.md): one step above its surface, no
+        // outline at rest or on hover; focus is the only ring (a state).
+        "flex h-11 w-full min-w-0 rounded-xl border border-transparent",
+        "bg-[hsl(var(--surface-container-highest))] px-3.5 py-2.5 text-sm text-foreground",
         "placeholder:text-muted-foreground",
         // transitions
         "transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
         "outline-none focus-visible:outline-none",
         // hover (state layer)
-        "hover:border-[hsl(var(--on-surface))]",
+        "hover:border-transparent",
         // focus — single 2px inset ring sits flush against the existing
         // 1px outline border. Keeping the border color stable (not flipping
         // to --primary) prevents the double-line look the previous combo

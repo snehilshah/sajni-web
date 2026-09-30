@@ -25,7 +25,7 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, Calendar, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings } from '@/components/ui/icons';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings } from '@/components/ui/icons';
 // No pixel match for these two — straight lucide (same as the shim's passthroughs).
 import { GalleryHorizontalEnd, Table2 } from 'lucide-react';
 
@@ -543,7 +543,7 @@ function TitleAutocomplete({
         placeholder={placeholder}
         required
         aria-required="true"
-        className="w-full h-14 pl-12 pr-12 sm:pl-14 sm:pr-14 rounded-full bg-[hsl(var(--surface-container-high))] font-serif text-lg font-medium tracking-tight outline-none placeholder:text-muted-foreground/55 border-2 border-transparent focus:border-primary focus:bg-[hsl(var(--surface-container-highest))] focus:shadow-[var(--m3-elev-2)] transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+        className="w-full h-14 pl-12 pr-12 sm:pl-14 sm:pr-14 rounded-full bg-[hsl(var(--surface-container-highest))] font-serif text-lg font-medium tracking-tight outline-none placeholder:text-muted-foreground/55 border-0 focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))] transition-[background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
       />
       {loading && (
         <span className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2"><M3CookieLoader size="sm" tone="primary" /></span>
@@ -1369,7 +1369,7 @@ export default function MediaPage() {
                 bar shows it full-bleed under a gradient scrim that resolves
                 into the sheet surface — image + solid scrim, no blur/glass.
                 No poster → plain header, exactly the old look. */}
-            <div className="relative shrink-0 overflow-hidden border-b border-border">
+            <div className="relative shrink-0 overflow-hidden">
               {form.poster_url && (
                 <>
                   <img
@@ -1395,7 +1395,7 @@ export default function MediaPage() {
               {mediaFormFields}
             </div>
 
-            <div className="shrink-0 flex items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border bg-muted/20">
+            <div className="shrink-0 flex items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               {mediaFormFooter}
             </div>
           </SheetContent>
@@ -1417,7 +1417,7 @@ export default function MediaPage() {
           ariaLabel={typeof mediaFormTitle === 'string' ? mediaFormTitle : 'Edit media'}
           className="left-0 right-0 top-[6vh] mx-auto w-[min(48rem,92vw)] max-h-[88vh]"
         >
-          <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
+          <div className="shrink-0 px-6 pt-6 pb-4">
             <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
               {mediaFormTitle}
             </div>
@@ -1430,7 +1430,7 @@ export default function MediaPage() {
             {mediaFormFields}
           </div>
 
-          <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/20">
+          <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4">
             {mediaFormFooter}
           </div>
         </MorphingDialog>
@@ -1787,7 +1787,7 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
         {/* Status pill — dot + sentence-case short label. Sentence case at
             normal tracking keeps every status ("In progress", "Complete")
             inside a 2-col phone grid tile without truncating to COMPL…. */}
-        <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
+        {item.status !== 'pending' && <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
           <span
             className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-background/95 pl-2 pr-2.5 h-6 text-xs font-medium shadow-sm ring-1 ring-foreground/10"
             title={statusDisplay.label}
@@ -1795,7 +1795,7 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
             <span className="size-1.5 rounded-full shrink-0" style={{ background: statusDisplay.color }} />
             <span className="truncate">{statusDisplay.shortLabel}</span>
           </span>
-        </div>
+        </div>}
 
         {/* Rating */}
         {item.rating ? (
@@ -1828,21 +1828,13 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
         {/* Both meta rows keep a fixed line height even when empty so
             neighbouring tiles in a grid row don't ripple vertically. */}
         <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground mt-0.5 min-h-4">
-          {item.year && (
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="size-2.5" />
-              {item.year}
-            </span>
-          )}
+          {item.year && <span>{item.year}</span>}
           {item.platform && (
             <>
               {item.year && <span className="opacity-50">·</span>}
               <PlatformLogo platform={item.platform} className="truncate" />
             </>
           )}
-        </div>
-        <div className="font-mono text-xs text-muted-foreground mt-0.5 truncate min-h-4">
-          {watchAgeLabel(item)}
         </div>
       </div>
     </button>
@@ -1945,15 +1937,6 @@ function relativeShort(iso: string): string {
   }
 }
 
-function watchAgeLabelShort(item: MediaEntry): string {
-  if (item.last_completed_at) {
-    return 'Done ' + relativeTiny(item.last_completed_at);
-  }
-  if (item.created_at) {
-    return 'Added ' + relativeTiny(item.created_at);
-  }
-  return '';
-}
 
 function relativeTiny(iso: string): string {
   let long: string;
@@ -2023,19 +2006,13 @@ function chipClassFor(status: MediaStatus): string {
 // when data is missing (blank ghost, dim empty stars) so the columns line
 // up row after row — no ragged right edge when TMDB has no year or the
 // entry is unrated.
-function RowRail({ ghost, rating, chip }: {
+function RowRail({ rating, chip }: {
   ghost?: React.ReactNode;
   rating: number;
   chip: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2 shrink-0 self-center">
-      <span
-        aria-hidden="true"
-        className="hidden lg:block w-16 text-right serif text-[30px] font-semibold tracking-tight leading-none text-foreground/[0.08] select-none pointer-events-none"
-      >
-        {ghost ?? ''}
-      </span>
       <span
         className="hidden md:inline-flex w-[84px] justify-center"
         title={rating ? `Rated ${rating}/5` : 'Not rated'}
@@ -2065,7 +2042,6 @@ function MediaListRow({
 }) {
   const pct = listProgressPct(item);
   const hasProgress = pct !== null;
-  const age = watchAgeLabelShort(item);
   const statusDisplay = mediaStatusDisplay(item);
   return (
     <button
@@ -2084,15 +2060,15 @@ function MediaListRow({
       {/* Ambient art: the poster's own colors bleed in from the left and
           dissolve — every row carries its artwork's temperature. */}
       {item.poster_url && (
-        <div aria-hidden="true" className="absolute inset-y-0 left-0 w-72 pointer-events-none">
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
           <img
             src={item.poster_url}
             alt=""
             loading="lazy"
             className="w-full h-full object-cover blur-xl scale-125 opacity-[0.32] dark:opacity-[0.42] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:group-hover:opacity-[0.55]"
             style={{
-              maskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
-              WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
+              maskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
             }}
           />
         </div>
@@ -2119,13 +2095,11 @@ function MediaListRow({
             ) : null}
           </div>
           <div className="flex min-w-0 items-center gap-x-2 mono text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
-            <span className="shrink-0">{TYPE_META[item.type]?.label || item.type}</span>
-            {item.year ? <span className="shrink-0">· {item.year}</span> : null}
+            {item.year ? <span className="shrink-0">{item.year}</span> : null}
             {item.platform ? (
               <PlatformLogo platform={item.platform} className="shrink-0 min-w-0" iconClassName="size-[15px]" />
             ) : null}
             {progressLabel(item) ? <span className="shrink-0 hidden min-[420px]:inline">· {progressLabel(item)}</span> : null}
-            {age ? <span className="min-w-0 truncate hidden sm:inline">· {age}</span> : null}
           </div>
           {hasProgress && (
             <div className="mt-1.5 flex items-center gap-2.5">
@@ -2150,7 +2124,6 @@ function MediaListRow({
           </span>
         ) : (
           <RowRail
-            ghost={item.year || undefined}
             rating={item.rating || 0}
             chip={item.status === 'pending' ? null : (
               <span
@@ -2383,7 +2356,7 @@ function SeriesDialog({
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
-        <DialogHeader className="shrink-0 p-5 border-b border-border flex flex-row items-center gap-4">
+        <DialogHeader className="shrink-0 p-5 flex flex-row items-center gap-4">
           {cover.poster_url ? (
             <img src={cover.poster_url} alt="" className="w-12 h-[68px] rounded object-cover ring-1 ring-border/60 shrink-0" />
           ) : (
@@ -2480,15 +2453,15 @@ function SeriesListRow({
         className="m3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] p-2.5 sm:px-3 text-left transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]"
       >
         {cover?.poster_url && (
-          <div aria-hidden="true" className="absolute inset-y-0 left-0 w-72 pointer-events-none">
+          <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
             <img
               src={cover.poster_url}
               alt=""
               loading="lazy"
               className="w-full h-full object-cover blur-xl scale-125 opacity-[0.32] dark:opacity-[0.42] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:group-hover:opacity-[0.55]"
               style={{
-                maskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
-                WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 95%)',
+                maskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
               }}
             />
           </div>
@@ -2509,9 +2482,7 @@ function SeriesListRow({
               </span>
             </div>
             <div className="flex min-w-0 items-center gap-x-2 mono text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
-              <span className="shrink-0">Series</span>
-              {yearLabel && <span className="shrink-0">· {yearLabel}</span>}
-              <span className="shrink-0">· {row.members.length} movies</span>
+              {yearLabel && <span className="shrink-0">{yearLabel}</span>}
               {upcoming && <span className="min-w-0 truncate hidden sm:inline">· next {upcomingDate}</span>}
             </div>
             <div className="mt-1.5 flex items-center gap-2.5">
@@ -2529,7 +2500,6 @@ function SeriesListRow({
           </div>
 
           <RowRail
-            ghost={`×${row.members.length}`}
             rating={seriesRating}
             chip={
               <span className="chip chip-sage h-6 px-2.5 text-xs leading-none gap-1">

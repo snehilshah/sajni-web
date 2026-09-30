@@ -346,7 +346,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
   return (
     <Dialog open={!!memo} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
-        <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <DialogTitle className="flex items-center gap-2">
@@ -393,7 +393,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
           )}
         </div>
 
-        <DialogFooter className="shrink-0 px-6 py-3 border-t border-border bg-muted/20 gap-1">
+        <DialogFooter className="shrink-0 px-6 py-3 gap-1">
           {editing ? (
             <>
               <Button variant="outline" size="sm" onClick={() => { setEditing(false); setEditContent(memo.content); }}>
