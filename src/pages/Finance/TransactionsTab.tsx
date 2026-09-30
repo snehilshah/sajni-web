@@ -416,14 +416,15 @@ export default function TransactionsTab({
                 exit={{ opacity: 0 }}
                 className="flex flex-col gap-1.5"
               >
-                {/* Totals live outside the table, on one line. Week and month
-                    only appear on the day that closes them, so a closed period
-                    reports once instead of banding every group. */}
-                <div className={cn(TRAIL, 'flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1 pl-1')}>
-                  <Totals label="Day" t={d} />
-                  {d.week && <><Rule /><Totals label="Week" t={d.week} /></>}
-                  {d.month && <><Rule /><Totals label="Month" t={d.month} /></>}
-                </div>
+                {/* Week / month close out as a small stat panel on the day
+                    that closes them (once per period, not banding every
+                    group). The day's own total sits in the group header. */}
+                {(d.week || d.month) && (
+                  <div className="grid grid-cols-1 gap-0.5 md:grid-cols-2 rounded-xl overflow-hidden">
+                    {d.month && <PeriodStats label={format(parseISO(d.key), 'MMMM')} t={d.month} />}
+                    {d.week && <PeriodStats label={`Week of ${format(startOfWeek(parseISO(d.key), { weekStartsOn: 1 }), 'd MMM')}`} t={d.week} />}
+                  </div>
+                )}
 
                 <div className="overflow-hidden rounded-xl bg-card">
                   {/* Scrolls away with its rows. It was sticky once; pinning it
@@ -431,16 +432,11 @@ export default function TransactionsTab({
                       `overflow-hidden`, and the offset then had to be kept in
                       sync with the floating chrome island by hand. Not worth it
                       for a date the group is already sorted by. */}
-                  <div className={cn(
-                    GRID, LEAD, TRAIL,
-                    'border-b border-border bg-[hsl(var(--surface-container))] py-2',
-                  )}>
-                    <span className="text-xs font-semibold md:col-span-2">
-                      {format(parseISO(d.key), 'EEE, d MMM yyyy')}
+                  <div className={cn(GRID, LEAD, TRAIL, 'py-2.5')}>
+                    <span className="text-sm font-semibold md:col-span-2">
+                      {format(parseISO(d.key), 'EEE, d MMM')}
                     </span>
-                    <span className="text-right font-mono text-xs label-kicker text-muted-foreground">
-                      {d.items.length === 1 ? '1 entry' : `${d.items.length} entries`}
-                    </span>
+                    <DayFigures t={d} />
                   </div>
                   {d.items.map((t) => (
                     <LedgerRow
@@ -704,23 +700,46 @@ function LedgerRow({
   );
 }
 
-function Rule() {
-  return <span aria-hidden className="h-3 w-px shrink-0 bg-[hsl(var(--outline-variant))]" />;
+// Day total in the group header: figures, not sentences. Spent is the
+// default reading (plain), income is positive (primary); lent/returned are
+// rarer and keep a one-word tag. Zero sides are dropped.
+function DayFigures({ t }: { t: Tally }) {
+  const { formatMoney } = useFinanceFormatters();
+  return (
+    <span className="flex items-baseline justify-end gap-3 whitespace-nowrap text-sm tabular-nums">
+      {t.earned > 0 && <span className="text-primary" title="Income">+{formatMoney(t.earned)}</span>}
+      {t.spent > 0 && <span className="text-foreground" title="Personal spend">−{formatMoney(t.spent)}</span>}
+      {t.lent > 0 && <span className="text-muted-foreground">−{formatMoney(t.lent)} <span className="text-xs">lent</span></span>}
+      {t.returned > 0 && <span className="text-primary">+{formatMoney(t.returned)} <span className="text-xs">back</span></span>}
+    </span>
+  );
 }
 
-// `+in −out` rather than a single net: a quiet month and a month that earned
-// and spent heavily both net to roughly zero, and only one of them is quiet.
-// Zero sides are dropped so a normal day reads as one figure, not two.
-function Totals({ label, t }: { label: string; t: Tally }) {
+// Period close-out: the period on the left, one labelled figure per non-zero
+// side. `+in −out` rather than a single net — a quiet month and a heavy one
+// can both net to zero, and only one of them is quiet.
+function PeriodStats({ label, t }: { label: string; t: Tally }) {
   const { formatMoney } = useFinanceFormatters();
-  if (t.spent === 0 && t.earned === 0 && t.lent === 0 && t.returned === 0) return null;
+  const figures = [
+    { name: 'Income', v: t.earned, sign: '+', cls: 'text-primary' },
+    { name: 'Spent', v: t.spent, sign: '−', cls: 'text-foreground' },
+    { name: 'Lent', v: t.lent, sign: '−', cls: 'text-muted-foreground' },
+    { name: 'Returned', v: t.returned, sign: '+', cls: 'text-primary' },
+  ].filter((f) => f.v > 0);
+  if (figures.length === 0) return null;
   return (
-    <span className="flex items-baseline gap-1.5 font-mono text-xs tabular-nums">
-      <span className="label-kicker text-muted-foreground">{label}</span>
-      {t.earned > 0 && <span className="text-primary">+{formatMoney(t.earned)} income</span>}
-      {t.spent > 0 && <span className="text-foreground">−{formatMoney(t.spent)} personal</span>}
-      {t.lent > 0 && <span className="text-muted-foreground">−{formatMoney(t.lent)} lent</span>}
-      {t.returned > 0 && <span className="text-primary">+{formatMoney(t.returned)} returned</span>}
-    </span>
+    <div className="flex flex-col gap-2 bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-8">
+      <span className="text-sm font-semibold sm:min-w-28">{label}</span>
+      <div className="grid grid-cols-4 gap-3 sm:flex sm:gap-8">
+      {figures.map((f) => (
+        <span key={f.name} className="flex min-w-0 flex-col">
+          <span className="text-xs text-muted-foreground">{f.name}</span>
+          <span className={cn('font-serif text-lg font-semibold tabular-nums leading-tight', f.cls)}>
+            {f.sign}{formatMoney(f.v)}
+          </span>
+        </span>
+      ))}
+      </div>
+    </div>
   );
 }
