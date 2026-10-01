@@ -400,11 +400,9 @@ export default function TransactionsTab({
       {!loaded && transactions.length === 0 ? (
         <RowsSkeleton rows={6} />
       ) : days.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {transactions.length === 0
-            ? 'No transactions yet. Tap Add to record your first.'
-            : 'No matches for the current filters.'}
-        </div>
+        <p className="py-2 text-sm text-muted-foreground">
+          {transactions.length === 0 ? 'No transactions yet' : 'No matches'}
+        </p>
       ) : (
         <div className="flex flex-col gap-4">
           <AnimatePresence initial={false}>
@@ -420,7 +418,7 @@ export default function TransactionsTab({
                     that closes them (once per period, not banding every
                     group). The day's own total sits in the group header. */}
                 {(d.week || d.month) && (
-                  <div className="grid grid-cols-1 gap-0.5 md:grid-cols-2 rounded-xl overflow-hidden">
+                  <div className="grid gap-0.5 overflow-hidden rounded-xl">
                     {d.month && <PeriodStats label={format(parseISO(d.key), 'MMMM')} t={d.month} />}
                     {d.week && <PeriodStats label={`Week of ${format(startOfWeek(parseISO(d.key), { weekStartsOn: 1 }), 'd MMM')}`} t={d.week} />}
                   </div>
@@ -586,7 +584,16 @@ function LedgerRow({
   const isLend = t.type === 'lend';
   const isLendRepayment = t.type === 'lend_repayment';
   const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
-  const tint = t.category_color || (isLend || isLendRepayment || isTransfer ? '#6B7280' : isExpense ? '#A14B4F' : '#2D5A4F');
+  // The tile carries the *type* (money out / in / moved / lent) in theme
+  // roles; the category gets its own colour as a pill, so the two never
+  // compete for the same signal.
+  const typeTone = isLend || isLendRepayment
+    ? 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
+    : isTransfer
+      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+      : isExpense
+        ? 'bg-[hsl(var(--destructive)/0.14)] text-destructive'
+        : 'bg-[hsl(var(--color-complete)/0.16)] text-[hsl(var(--color-complete))]';
   // Plain is silent: only an outlier earns a spine and a chip. `slate` can be
   // missing while the slates query is still in flight — treat that as silent
   // rather than guessing, so nothing flickers a wrong colour.
@@ -619,10 +626,7 @@ function LedgerRow({
             {/* Cross-fade the category glyph into an empty checkbox on hover:
                 the affordance is discoverable on a pointer, and on touch the
                 44px target simply selects. */}
-            <span
-              className="grid size-8 place-items-center rounded-md transition-opacity group-hover:opacity-0"
-              style={{ backgroundColor: tint + '20', color: tint }}
-            >
+            <span className={cn('grid size-8 place-items-center rounded-md transition-opacity group-hover:opacity-0', typeTone)}>
               <Icon className="size-4" />
             </span>
             <span className="absolute grid size-8 place-items-center rounded-md border border-[hsl(var(--outline))] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
@@ -675,13 +679,14 @@ function LedgerRow({
         <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 font-mono text-xs text-muted-foreground md:col-start-2 md:row-start-1 md:grid md:grid-cols-[3.25rem_minmax(0,1fr)_minmax(0,1fr)] md:gap-x-3 md:gap-1.5 md:border-l md:border-border/60 md:pl-3">
           <span className="shrink-0 tabular-nums">{formatTxnTime(t.txn_at)}</span>
           <span aria-hidden className="md:hidden">·</span>
-          <span className="flex min-w-0 items-center gap-1.5 truncate">
-            {t.category_color && (
-              <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: t.category_color }} />
+          <span className="flex min-w-0 items-center truncate">
+            {!isLend && !isLendRepayment && !isTransfer && t.category_name ? (
+              <CategoryPill name={t.category_name} color={t.category_color} />
+            ) : (
+              <span className="truncate">
+                {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : 'Uncategorized'}
+              </span>
             )}
-            <span className="truncate">
-              {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || 'Uncategorized'}
-            </span>
           </span>
           <span aria-hidden className="md:hidden">·</span>
           <span className="truncate">
@@ -691,7 +696,7 @@ function LedgerRow({
         </div>
 
         <div className={`col-start-2 row-start-1 row-span-2 self-center text-right font-mono text-sm tabular-nums md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
-          isExpense ? 'text-destructive' : isLend || isTransfer ? 'text-muted-foreground' : 'text-primary'
+          isExpense ? 'text-destructive' : isLend || isTransfer ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
         }`}>
           {isExpense || isLend ? '−' : !isTransfer ? '+' : ''}{formatMoney(t.amount)}
         </div>
@@ -707,10 +712,10 @@ function DayFigures({ t }: { t: Tally }) {
   const { formatMoney } = useFinanceFormatters();
   return (
     <span className="flex items-baseline justify-end gap-3 whitespace-nowrap text-sm tabular-nums">
-      {t.earned > 0 && <span className="text-primary" title="Income">+{formatMoney(t.earned)}</span>}
+      {t.earned > 0 && <span className="text-[hsl(var(--color-complete))]" title="Income">+{formatMoney(t.earned)}</span>}
       {t.spent > 0 && <span className="text-foreground" title="Personal spend">−{formatMoney(t.spent)}</span>}
       {t.lent > 0 && <span className="text-muted-foreground">−{formatMoney(t.lent)} <span className="text-xs">lent</span></span>}
-      {t.returned > 0 && <span className="text-primary">+{formatMoney(t.returned)} <span className="text-xs">back</span></span>}
+      {t.returned > 0 && <span className="text-[hsl(var(--color-complete))]">+{formatMoney(t.returned)} <span className="text-xs">back</span></span>}
     </span>
   );
 }
@@ -721,27 +726,53 @@ function DayFigures({ t }: { t: Tally }) {
 function PeriodStats({ label, t }: { label: string; t: Tally }) {
   const { formatMoney } = useFinanceFormatters();
   const figures = [
-    { name: 'Income', v: t.earned, sign: '+', cls: 'text-primary' },
+    { name: 'Income', v: t.earned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
     { name: 'Spent', v: t.spent, sign: '−', cls: 'text-foreground' },
     { name: 'Lent', v: t.lent, sign: '−', cls: 'text-muted-foreground' },
-    { name: 'Returned', v: t.returned, sign: '+', cls: 'text-primary' },
-  ].filter((f) => f.v > 0);
-  if (figures.length === 0) return null;
+    { name: 'Returned', v: t.returned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
+  ];
+  if (figures.every((f) => f.v <= 0)) return null;
+  // Month and week stack as full-width tiles with the same four figure
+  // columns, so Income sits under Income and nothing wraps to a ragged
+  // second line. Empty sides keep their column (blank) from md up; a phone
+  // shows only the non-zero ones, two per row.
   return (
-    <div className="flex flex-col gap-2 bg-card px-4 py-3">
+    <div className="grid gap-x-6 gap-y-2 bg-card px-4 py-3 md:grid-cols-[minmax(0,1fr)_repeat(4,8.5rem)] md:items-center">
       <span className="text-sm font-semibold">{label}</span>
-      {/* A figure never breaks: a 4-up grid on a phone split "−" from
-          "₹1,04,330". Two per row on phones, a wrapping row above that. */}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8">
-        {figures.map((f) => (
-          <span key={f.name} className="flex flex-col">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 md:contents">
+        {figures.map((f) => f.v > 0 ? (
+          <span key={f.name} className="flex flex-col md:items-end">
             <span className="text-xs text-muted-foreground">{f.name}</span>
             <span className={cn('whitespace-nowrap font-serif text-lg font-semibold tabular-nums leading-tight', f.cls)}>
               {f.sign}{formatMoney(f.v)}
             </span>
           </span>
+        ) : (
+          <span key={f.name} aria-hidden className="hidden md:block" />
         ))}
       </div>
     </div>
   );
+}
+
+/** Category as a solid pill in its own colour. Text flips dark/light on
+ *  the fill's luminance so any user-picked colour stays legible. */
+export function CategoryPill({ name, color, className }: { name: string; color?: string | null; className?: string }) {
+  const bg = color || '#6B7280';
+  return (
+    <span
+      className={cn('inline-block max-w-full truncate rounded-full px-2 py-0.5 font-sans text-xs font-medium leading-4', className)}
+      style={{ backgroundColor: bg, color: readableOn(bg) }}
+    >
+      {name}
+    </span>
+  );
+}
+
+function readableOn(hex: string): string {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return '#fff';
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#1f1f1f' : '#ffffff';
 }

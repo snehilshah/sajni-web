@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Landmark, CreditCard, TrendingUp, Coins, Wallet,
-  Plus, Pencil, Trash2, Target, ArrowDownToLine, Gift,
+  Plus, Pencil, Trash2, Target, ArrowDownToLine,
 } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
@@ -20,6 +20,7 @@ import { useFinanceFormatters } from './useFinancePrivacy';
 import { ACCOUNT_TYPES, ACCOUNT_COLORS } from './utils';
 import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
+import { DateBadge } from '@/components/ui/state-chip';
 
 const typeIcon = (type: string) => {
   switch (type) {
@@ -52,6 +53,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
   useEffect(() => { setSavings(parentSavings); }, [parentSavings]);
 
   const [savingsAcct, setSavingsAcct] = useState<FinAccount | null>(null);
+  const [crediting, setCrediting] = useState<FinAccount | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   const visible = useMemo(
@@ -77,14 +79,16 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">Accounts</h2>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-pressed={showArchived}
-            onClick={() => setShowArchived((v) => !v)}
-            className={`chip ${showArchived ? 'chip-selected' : ''}`}
-          >
-            Archived
-          </button>
+          {accounts.some((a) => a.archived) && (
+            <button
+              type="button"
+              aria-pressed={showArchived}
+              onClick={() => setShowArchived((v) => !v)}
+              className={`chip ${showArchived ? 'chip-selected' : ''}`}
+            >
+              Archived
+            </button>
+          )}
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="size-4 mr-1" /> Add account
           </Button>
@@ -129,6 +133,11 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                   </div>
                   {/* Actions end on the card's trailing edge, glyph-aligned. */}
                   <div className="-mr-2 -mt-1 flex shrink-0">
+                    {a.type === 'salary' && (
+                      <Button variant="ghost" size="icon-sm" aria-label={`Credit salary or bonus to ${a.name}`} title="Credit salary / bonus" onClick={() => setCrediting(a)}>
+                        <ArrowDownToLine className="size-4" />
+                      </Button>
+                    )}
                     {!isCC && (
                       <Button variant="ghost" size="icon-sm" aria-label={`Buckets on ${a.name}`} title="Buckets" onClick={() => setSavingsAcct(a)}>
                         <Target className="size-4" />
@@ -140,79 +149,29 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                   </div>
                 </div>
 
-                <div className="mt-3">
-                  {isCC ? (
-                    <>
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-serif text-2xl font-semibold tabular-nums">{formatMoney(owed)}</span>
-                        <span className="text-xs text-muted-foreground">owed</span>
-                      </div>
-                      {/* Utilisation reads as a bar; the figure beside it is
-                          the only text, and it never wraps. */}
-                      {a.credit_limit ? (
-                        <div className="mt-2 flex items-center gap-3">
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: Math.min(utilization, 100) + '%',
-                                backgroundColor: utilization > 80 ? 'hsl(var(--destructive))' : a.color,
-                              }}
-                            />
-                          </div>
-                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                            {formatPercent(utilization)} of {formatMoney(a.credit_limit)}
-                          </span>
-                        </div>
-                      ) : null}
-                    </>
-                  ) : (
-                    <>
-                      <div className={`font-serif text-2xl font-semibold tabular-nums ${a.balance < 0 ? 'text-destructive' : ''}`}>
-                        {formatMoney(a.balance)}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {a.type === 'salary' && (
-                  <SalaryActions account={a} categories={categories} onDone={reload} />
-                )}
-
-                {/* Buckets reserved on this account. Shown only when there are
-                    some; the target button in the header manages them. */}
-                {!isCC && acctSavings.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSavingsAcct(a)}
-                    className="mt-3 flex w-full flex-col gap-1.5 text-left"
-                  >
-                    <span className="flex items-baseline justify-between gap-2 text-xs text-muted-foreground">
-                      <span>Reserved</span>
-                      <span className="tabular-nums">{formatMoney(reservedTotal)}</span>
+                {/* Every account reads the same: one figure and, at most, one
+                    badge beside it (limit used, reserved, monthly salary).
+                    Bars, lists and buttons live behind the header actions so
+                    the grid stays even. */}
+                <div className="mt-3 flex items-baseline justify-between gap-3">
+                  <span className="flex min-w-0 items-baseline gap-2">
+                    <span className={`whitespace-nowrap font-serif text-2xl font-semibold tabular-nums ${!isCC && a.balance < 0 ? 'text-destructive' : ''}`}>
+                      {formatMoney(isCC ? owed : a.balance)}
                     </span>
-                    {acctSavings.slice(0, 3).map((s) => {
-                      const pct = s.target_amount > 0 ? Math.min((s.current_amount / s.target_amount) * 100, 100) : 0;
-                      return (
-                        <span key={s.id} className="flex items-center gap-2">
-                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                          <span className="min-w-0 flex-1 truncate text-xs">{s.name}</span>
-                          {s.target_amount > 0 ? (
-                            <span className="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-                              <span className="block h-full rounded-full" style={{ width: pct + '%', backgroundColor: s.color }} />
-                            </span>
-                          ) : null}
-                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                            {formatMoney(s.current_amount)}
-                          </span>
-                        </span>
-                      );
-                    })}
-                    {acctSavings.length > 3 && (
-                      <span className="text-xs text-muted-foreground">+{acctSavings.length - 3} more</span>
-                    )}
-                  </button>
-                )}
+                    {isCC && <span className="text-xs text-muted-foreground">owed</span>}
+                  </span>
+                  {isCC && a.credit_limit ? (
+                    <DateBadge tone={utilization > 80 ? 'alert' : 'neutral'}>
+                      {formatPercent(utilization)} of {formatMoney(a.credit_limit)}
+                    </DateBadge>
+                  ) : a.type === 'salary' && a.salary_amount > 0 ? (
+                    <DateBadge>{formatMoney(a.salary_amount)}/mo{a.salary_day ? ` · day ${a.salary_day}` : ''}</DateBadge>
+                  ) : acctSavings.length > 0 ? (
+                    <button type="button" onClick={() => setSavingsAcct(a)} className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]">
+                      <DateBadge tone={reservedTotal > a.balance ? 'alert' : 'neutral'}>{formatMoney(reservedTotal)} reserved</DateBadge>
+                    </button>
+                  ) : null}
+                </div>
               </motion.div>
             );
           })}
@@ -225,6 +184,9 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
         onClose={() => { setCreating(false); setEditingAcct(null); }}
         onSaved={() => { reload(); setCreating(false); setEditingAcct(null); }}
       />
+      {crediting && (
+        <SalaryDialog account={crediting} categories={categories} onClose={() => setCrediting(null)} onDone={reload} />
+      )}
       <SavingsDialog
         account={savingsAcct}
         savings={savings.filter((s) => savingsAcct && s.account_id === savingsAcct.id)}
@@ -469,33 +431,35 @@ function Field({ label, className = '', children }: { label: string; className?:
 // salary" posts the stored monthly amount as income (categorized Salary),
 // and "Bonus" posts an ad-hoc amount. Both are plain income transactions —
 // no cron, deterministic, matches the manual-credit decision.
-function SalaryActions({ account, categories, onDone }: {
+function SalaryDialog({ account, categories, onClose, onDone }: {
   account: FinAccount;
   categories: FinCategory[];
+  onClose: () => void;
   onDone: () => void;
 }) {
   const { formatMoneyExact: formatMoney } = useFinanceFormatters();
+  const salary = account.salary_amount || 0;
+  const [kind, setKind] = useState<'Salary' | 'Bonus'>(salary > 0 ? 'Salary' : 'Bonus');
+  const [amount, setAmount] = useState(salary > 0 ? String(salary) : '');
   const [busy, setBusy] = useState(false);
-  const [bonusOpen, setBonusOpen] = useState(false);
-  const [bonusAmt, setBonusAmt] = useState('');
-
   const salaryCat = categories.find((c) => c.kind === 'income' && c.name.toLowerCase() === 'salary');
-  const amt = account.salary_amount || 0;
+  const value = parseFloat(amount);
 
-  const post = async (amount: number, description: string) => {
-    if (amount <= 0 || busy) return;
+  const submit = async () => {
+    if (!(value > 0) || busy) return;
     setBusy(true);
     try {
       await finance.createTransaction({
         account_id: account.id,
         type: 'income',
-        amount,
-        description,
+        amount: value,
+        description: kind,
         txn_at: new Date().toISOString(),
         category_id: salaryCat ? salaryCat.id : null,
       });
-      toast.success(`${description} of ${formatMoney(amount)} credited`);
+      toast.success(`${kind} of ${formatMoney(value)} credited`);
       onDone();
+      onClose();
     } catch (e) {
       toast.error((e as Error).message || 'Could not credit');
     } finally {
@@ -503,53 +467,39 @@ function SalaryActions({ account, categories, onDone }: {
     }
   };
 
-  const submitBonus = () => {
-    const v = parseFloat(bonusAmt);
-    if (v > 0) { setBonusOpen(false); post(v, 'Bonus'); }
-  };
-
   return (
-    <div className="mt-3 flex items-center gap-2 flex-wrap">
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => post(amt, 'Salary')}
-        disabled={busy || amt <= 0}
-        title={amt <= 0 ? 'Set a monthly salary amount on this account first' : `Credit ${formatMoney(amt)}`}
-      >
-        <ArrowDownToLine className="size-3.5 mr-1" /> Credit salary
-      </Button>
-      <Button size="sm" variant="outline" onClick={() => { setBonusAmt(''); setBonusOpen(true); }} disabled={busy}>
-        <Gift className="size-3.5 mr-1" /> Bonus
-      </Button>
-      {amt > 0 && (
-        <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-          {formatMoney(amt)}/mo{account.salary_day ? ` · day ${account.salary_day}` : ''}
-        </span>
-      )}
-
-      <Dialog open={bonusOpen} onOpenChange={(o) => !o && setBonusOpen(false)}>
-        <DialogContent showCloseButton={false} className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Add Bonus to {account.name}</DialogTitle></DialogHeader>
-          <div className="flex flex-col gap-1.5">
-            <Label className="font-mono text-xs label-kicker text-muted-foreground">Bonus amount</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={bonusAmt}
-              onChange={(e) => setBonusAmt(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') submitBonus(); }}
-              placeholder="e.g. 25000"
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBonusOpen(false)}>Cancel</Button>
-            <Button onClick={submitBonus} disabled={!(parseFloat(bonusAmt) > 0)}>Credit bonus</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent showCloseButton={false} className="sm:max-w-sm">
+        <DialogHeader><DialogTitle>Credit {account.name}</DialogTitle></DialogHeader>
+        <div className="flex gap-2">
+          {(['Salary', 'Bonus'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={kind === k}
+              className={`chip ${kind === k ? 'chip-selected' : ''}`}
+              onClick={() => { setKind(k); setAmount(k === 'Salary' && salary > 0 ? String(salary) : ''); }}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+        <Input
+          type="number"
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          placeholder="Amount"
+          aria-label="Amount"
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={busy || !(value > 0)}>Credit {kind.toLowerCase()}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -7,6 +7,7 @@ import { finance, type FinAccount, type FinStatement, type StmtDraft, type StmtP
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { DateBadge } from '@/components/ui/state-chip';
+import { cardClass, CardAccent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
@@ -59,43 +60,42 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             layout
             initial={{ opacity: 0, transform: 'translateY(4px)' }}
             animate={{ opacity: 1, transform: 'translateY(0)' }}
-            className="rounded-xl bg-card overflow-hidden"
+            className={cardClass({ accent: card.color }, 'p-4 md:p-5')}
           >
-            {/* Card header */}
-            <div
-              className="p-4 md:p-5 text-white"
-              style={{ background: `linear-gradient(135deg, ${card.color} 0%, ${card.color}dd 100%)` }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-xs opacity-80">
-                    {card.institution || 'Credit card'}
-                  </div>
-                  <div className="font-medium truncate text-lg mt-0.5">{card.name}</div>
-                </div>
-                <CreditCard className="size-5 opacity-80 shrink-0" />
+            <CardAccent color={card.color} />
+            {/* Same face as the card's tile on Accounts: identity colour as a
+                wash and an icon tile, the figure on the leading edge. */}
+            <div className="flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: card.color + '20', color: card.color }}>
+                <CreditCard className="size-4" />
               </div>
-              <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <div className="text-xs opacity-80">Outstanding</div>
-                  <div className="font-serif text-2xl md:text-3xl font-semibold tabular-nums">
-                    {formatMoney(owed)}
-                  </div>
-                </div>
-                {card.credit_limit ? (
-                  <div className="text-right">
-                    <div className="text-xs opacity-80">Limit</div>
-                    <div className="font-mono text-sm tabular-nums">{formatMoney(card.credit_limit)}</div>
-                    <div className="font-mono text-xs tabular-nums opacity-80">
-                      {formatPercent((owed / card.credit_limit) * 100)} used
-                    </div>
-                  </div>
-                ) : null}
+              <div className="min-w-0">
+                <div className="truncate font-medium">{card.name}</div>
+                <div className="truncate text-xs text-muted-foreground">{card.institution || 'Credit card'}</div>
               </div>
             </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="whitespace-nowrap font-serif text-3xl font-semibold tabular-nums">{formatMoney(owed)}</span>
+              <span className="text-xs text-muted-foreground">owed</span>
+            </div>
+            {card.credit_limit ? (() => {
+              const used = (owed / card.credit_limit) * 100;
+              return (
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: Math.min(used, 100) + '%', backgroundColor: used > 80 ? 'hsl(var(--destructive))' : card.color }}
+                    />
+                  </div>
+                  <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                    {formatPercent(used)} of {formatMoney(card.credit_limit)}
+                  </span>
+                </div>
+              );
+            })() : null}
 
-            {/* Body */}
-            <div className="p-4 md:p-5 flex flex-col gap-3">
+            <div className="mt-4 flex flex-col gap-3">
               {/* Figures start on the card's leading edge, like every
                   other stat; the billing cycle is a badge, not a fraction. */}
               <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
@@ -116,7 +116,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               {cardStmts.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No statements yet</p>
               ) : (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   {cardStmts.slice(0, 6).map((s) => (
                     <StatementRow
                       key={s.id}
@@ -247,46 +247,36 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   const isCredit = statement.amount_due <= 0; // overpaid → nothing to pay
 
   return (
-    <div className={`rounded-md border p-2.5 ${
-      overdue ? 'border-destructive/40 bg-destructive/5' :
-      dueSoon ? 'border-yellow-500/40 bg-yellow-500/5' :
-      'border-border'
-    }`}>
+    <div className="py-1">
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium tabular-nums">
             {isCredit ? formatMoney(-statement.amount_due) + ' credit' : formatMoney(statement.amount_due)}
           </div>
-          <div className="font-mono text-xs text-muted-foreground">
-            {format(parseISO(statement.statement_date), 'MMM d')} · due {format(dueDate, 'MMM d')}
-            {statement.cashback_earned > 0 && ' · ' + formatMoney(statement.cashback_earned) + ' cashback'}
+          <div className="text-xs text-muted-foreground">
+            {format(parseISO(statement.statement_date), 'd MMM')}
+            {statement.cashback_earned > 0 && ' · ' + formatMoney(statement.cashback_earned) + ' back'}
           </div>
         </div>
         {statement.paid ? (
-          <span className="font-mono text-xs text-primary inline-flex items-center gap-1 shrink-0">
-            <Check className="size-3" />
-            Paid
-          </span>
+          <DateBadge tone="positive" icon={<Check className="size-3" />}>Paid</DateBadge>
         ) : isCredit ? (
-          <span className="font-mono text-xs text-primary shrink-0">in credit</span>
+          <DateBadge tone="positive">In credit</DateBadge>
+        ) : overdue ? (
+          <DateBadge tone="alert" icon={<AlertCircle className="size-3" />}>{-daysUntil}d overdue</DateBadge>
         ) : (
-          <span className={`font-mono text-xs inline-flex items-center gap-1 shrink-0 ${
-            overdue ? 'text-destructive' : dueSoon ? 'text-yellow-600' : 'text-muted-foreground'
-          }`}>
-            {(overdue || dueSoon) && <AlertCircle className="size-3" />}
-            {overdue ? `${-daysUntil}d overdue` : daysUntil === 0 ? 'Due today' : `${daysUntil}d`}
-          </span>
+          <DateBadge tone={dueSoon ? 'accent' : 'neutral'}>{daysUntil === 0 ? 'Due today' : `Due ${format(dueDate, 'd MMM')}`}</DateBadge>
         )}
       </div>
 
       {/* Breakdown: previous balance carried in + this cycle's new charges. */}
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-muted-foreground">
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
         <span>Prev {formatMoney(statement.previous_balance)}</span>
         <span>Personal {formatMoney(Math.max(statement.new_charges - statement.lend_charges, 0))}</span>
         {statement.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(statement.lend_charges)}</span>}
       </div>
 
-      <div className="flex items-center justify-end gap-1 mt-1.5">
+      <div className="-mr-2 mt-1 flex items-center justify-end gap-1">
         {statement.paid ? (
           <Button size="sm" variant="ghost" onClick={() => onUpdate({ paid: false })}>
             Undo
