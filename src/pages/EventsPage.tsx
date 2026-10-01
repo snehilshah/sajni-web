@@ -1040,6 +1040,7 @@ function EventEditor({
                   type="button"
                   variant="ghost"
                   size="icon"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => removeVariable(variable, index)}
                   aria-label={`Remove ${variable.name || 'variable'}`}
                 >

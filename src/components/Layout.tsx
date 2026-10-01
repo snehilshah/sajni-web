@@ -253,9 +253,18 @@ function PrimaryBar({
 function SearchIsland({ onOpen }: { onOpen: () => void }) {
   return (
     <div
-      className="fixed z-50 hidden md:block"
+      className="fixed z-50 hidden md:flex items-center gap-2"
       style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 16 }}
     >
+      {/* Talking to Sajni is one click from every page, beside search. */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('chat:open'))}
+        className="h-12 pl-3.5 pr-4 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-[var(--m3-elev-2)] hover:brightness-[0.97] transition-[filter] text-sm font-medium"
+        title="Ask Sajni"
+      >
+        <Sparkles className="size-[18px]" />
+        <span className="hidden lg:inline">Ask Sajni</span>
+      </button>
       <button
         onClick={onOpen}
         className="h-12 px-4 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-2)] text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors text-sm"
@@ -349,6 +358,14 @@ function BottomDock({
           ))}
         </div>
         <span className="w-px h-5 mx-0.5 bg-[hsl(var(--outline-variant))] shrink-0" aria-hidden="true" />
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('chat:open'))}
+          className="size-11 shrink-0 inline-flex items-center justify-center rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] active:scale-[0.96] transition-transform"
+          title="Ask Sajni"
+          aria-label="Ask Sajni"
+        >
+          <Sparkles className="size-[19px]" />
+        </button>
         <button
           onClick={onOpenCommand}
           className="size-11 shrink-0 inline-flex items-center justify-center rounded-full text-muted-foreground active:bg-[hsl(var(--on-surface)/0.08)] transition-colors"

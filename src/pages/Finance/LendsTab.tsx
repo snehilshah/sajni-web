@@ -150,7 +150,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
                   )}
                   <div className="-mr-2 ml-auto flex">
                     <Button variant="ghost" size="icon-sm" onClick={() => setEditing(lend)} aria-label={`Edit lend to ${lend.borrower}`} title="Edit"><Pencil className="size-4" /></Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => remove(lend)} aria-label={`Delete lend to ${lend.borrower}`} title="Delete"><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" size="icon-sm" onClick={() => remove(lend)} aria-label={`Delete lend to ${lend.borrower}`} title="Delete"><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               </article>
