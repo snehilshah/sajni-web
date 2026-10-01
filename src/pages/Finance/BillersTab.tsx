@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Receipt, Plus, Trash2, Zap, CalendarClock, CheckCircle2, Pencil, Archive,
+  Receipt, Plus, Trash2, Zap, CheckCircle2, Pencil, Archive,
 } from '@/components/ui/icons';
 
 import {
@@ -14,6 +14,7 @@ import {
 import { useFinBillers, useBillerPayments } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
+import { DateBadge } from '@/components/ui/state-chip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -87,19 +88,20 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
   return (
     <div className="flex flex-col gap-5">
       <header className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="serif text-lg font-semibold">Billers</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Estimated monthly outflow{' '}
-            <span className="text-foreground font-mono tabular-nums">{formatMoney(monthlyOutflow)}</span>
-          </p>
+        {/* The monthly outflow is the one figure this list adds up to; it
+            sits beside the title as a badge instead of a sentence under it. */}
+        <div className="flex items-baseline gap-2">
+          <h2 className="font-serif text-lg font-semibold">Billers</h2>
+          <DateBadge>{formatMoney(monthlyOutflow)}/mo</DateBadge>
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            aria-pressed={showArchived}
             onClick={() => setShowArchived((v) => !v)}
-            className="text-xs font-mono label-kicker text-muted-foreground hover:text-foreground"
+            className={cn('chip', showArchived && 'chip-selected')}
           >
-            {showArchived ? 'Hide archived' : 'Show archived'}
+            Archived
           </button>
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="size-3.5" /> New
@@ -112,10 +114,7 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
           isLoading ? (
             <div className="text-xs text-muted-foreground text-center py-8">Loading…</div>
           ) : (
-            <div className="rounded-xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
-              Nothing tracked yet. Add subscriptions (Netflix, rent; fixed amount)
-              and bills (electricity; amount varies) to see them here.
-            </div>
+            <p className="py-2 text-sm text-muted-foreground">No subscriptions or bills yet</p>
           )
         ) : (
           <ul className="flex flex-col gap-2">
@@ -208,33 +207,22 @@ function BillerRow({
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium text-sm truncate">{biller.name}</span>
             <KindBadge kind={biller.kind} />
-            {biller.auto_renew ? (
-              <span className="inline-flex items-center gap-0.5 text-xs font-mono label-kicker text-primary">
-                <Zap className="size-3" /> auto
-              </span>
-            ) : null}
+            {biller.auto_renew ? <DateBadge tone="accent" icon={<Zap />}>Auto</DateBadge> : null}
           </div>
-          <div className="text-xs text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
-            <span>{FREQ_LABEL[biller.frequency]}</span>
-            <span>·</span>
-            <span>{acct ? acct.name : 'No account'}</span>
+          <div className="mt-0.5 truncate text-xs text-muted-foreground">
+            {FREQ_LABEL[biller.frequency]}{acct ? ` · ${acct.name}` : ''}
           </div>
         </div>
 
         <div className="text-right shrink-0">
-          <div className="font-mono font-semibold tabular-nums text-sm">
+          <div className="whitespace-nowrap font-semibold tabular-nums text-sm">
             {biller.kind === 'bill' && !(biller.amount > 0)
               ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
               : formatMoney(biller.amount)}
           </div>
-          <div
-            className={`text-xs font-mono tabular-nums mt-0.5 inline-flex items-center gap-1 ${
-              overdue ? 'text-destructive' : soon ? 'text-[hsl(var(--tertiary))]' : 'text-muted-foreground'
-            }`}
-          >
-            <CalendarClock className="size-3" />
+          <DateBadge className="mt-0.5" tone={overdue ? 'alert' : soon ? 'accent' : 'neutral'}>
             {dueLabel} · {format(due, 'd MMM')}
-          </div>
+          </DateBadge>
         </div>
       </button>
 
@@ -244,18 +232,7 @@ function BillerRow({
 }
 
 function KindBadge({ kind }: { kind: BillerKind }) {
-  return (
-    <span
-      className={cn(
-        'shrink-0 rounded-full px-1.5 py-0.5 text-xs font-mono label-kicker',
-        kind === 'subscription'
-          ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-          : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground',
-      )}
-    >
-      {kind === 'subscription' ? 'sub' : 'bill'}
-    </span>
-  );
+  return <DateBadge>{kind === 'subscription' ? 'Sub' : 'Bill'}</DateBadge>;
 }
 
 // ─── Pay popover: record a payment OR attach existing transactions ─────────
@@ -478,14 +455,8 @@ function BillerDetailSheet({
                   <SheetTitle className="truncate text-left">{biller.name}</SheetTitle>
                   <div className="flex items-center gap-2 mt-1">
                     <KindBadge kind={biller.kind} />
-                    {biller.auto_renew && (
-                      <span className="inline-flex items-center gap-0.5 text-xs font-mono label-kicker text-primary">
-                        <Zap className="size-3" /> auto-renews
-                      </span>
-                    )}
-                    {biller.archived && (
-                      <span className="text-xs font-mono label-kicker text-muted-foreground">archived</span>
-                    )}
+                    {biller.auto_renew && <DateBadge tone="accent" icon={<Zap />}>Auto-renews</DateBadge>}
+                    {biller.archived && <DateBadge>Archived</DateBadge>}
                   </div>
                 </div>
               </div>
@@ -493,26 +464,24 @@ function BillerDetailSheet({
 
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
               {/* Amount + next due */}
-              <div className="rounded-xl bg-[hsl(var(--surface-container-low))] p-4">
+              <div>
                 <div className="font-serif text-2xl font-semibold tabular-nums">
                   {biller.kind === 'bill' && !(biller.amount > 0)
                     ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
                     : formatMoney(biller.amount)}
                   {biller.kind === 'bill' && (
-                    <span className="ml-2 align-middle text-xs font-sans font-normal text-muted-foreground">
-                      varies each cycle
-                    </span>
+                    <DateBadge className="ml-2 align-middle font-sans">Varies</DateBadge>
                   )}
                 </div>
-                <div className="font-mono text-xs text-muted-foreground mt-1">
-                  {FREQ_LABEL[biller.frequency]} · next due {format(parseISO(biller.next_due_date), 'd MMM yyyy')}
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {FREQ_LABEL[biller.frequency]} · due {format(parseISO(biller.next_due_date), 'd MMM yyyy')}
                 </div>
               </div>
 
               {/* Details */}
               <section>
-                <h3 className="text-xs font-mono label-kicker text-muted-foreground mb-2">Details</h3>
-                <dl className="rounded-xl border border-border divide-y divide-border text-sm">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Details</h3>
+                <dl className="flex flex-col gap-0.5 overflow-hidden rounded-xl text-sm">
                   <DetailRow label="Paid from" value={acct?.name || '–'} />
                   <DetailRow label="Category" value={cat?.name || '–'} />
                   <DetailRow label="Reminder task" value={biller.remind_task ? 'On' : 'Off'} />
@@ -523,32 +492,24 @@ function BillerDetailSheet({
 
               {/* Payment history */}
               <section>
-                <h3 className="text-xs font-mono label-kicker text-muted-foreground mb-2">
-                  Payment History
-                </h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Payments</h3>
                 {isLoading ? (
                   <div className="text-xs text-muted-foreground py-4 text-center">Loading…</div>
                 ) : payments.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-                    No payments recorded yet.
-                  </div>
+                  <p className="text-sm text-muted-foreground">None yet</p>
                 ) : (
-                  <ul className="rounded-xl border border-border divide-y divide-border">
+                  <ul className="flex flex-col gap-0.5 overflow-hidden rounded-xl">
                     {payments.map((p) => (
-                      <li key={p.id} className="px-3 py-2.5">
+                      <li key={p.id} className="rounded-md bg-card px-3 py-2.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm">
                             {format(parseISO(p.paid_date), 'd MMM yyyy')}
-                            {p.auto && (
-                              <span className="ml-2 inline-flex items-center gap-0.5 text-xs font-mono label-kicker text-primary">
-                                <Zap className="size-3" /> auto
-                              </span>
-                            )}
+                            {p.auto && <DateBadge className="ml-2" tone="accent" icon={<Zap />}>Auto</DateBadge>}
                           </span>
-                          <span className="font-mono text-sm tabular-nums">{formatMoney(p.amount)}</span>
+                          <span className="whitespace-nowrap text-sm tabular-nums">{formatMoney(p.amount)}</span>
                         </div>
-                        <div className="font-mono text-xs text-muted-foreground mt-0.5">
-                          cycle due {format(parseISO(p.due_date), 'd MMM')}
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          For {format(parseISO(p.due_date), 'd MMM')}
                         </div>
                         {p.txns.length > 0 && (
                           <ul className="mt-1.5 flex flex-col gap-1">
@@ -569,7 +530,7 @@ function BillerDetailSheet({
               </section>
             </div>
 
-            <div className="border-t border-border px-5 py-3 flex items-center justify-between gap-2">
+            <div className="px-5 py-3 flex items-center justify-between gap-2">
               <Button variant="ghost" className="text-destructive" onClick={remove}>
                 <Trash2 className="size-4 mr-1" /> Delete
               </Button>
@@ -591,8 +552,8 @@ function BillerDetailSheet({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-      <dt className="text-xs font-mono label-kicker text-muted-foreground shrink-0 pt-0.5">{label}</dt>
+    <div className="flex items-start justify-between gap-3 rounded-md bg-card px-3 py-2.5">
+      <dt className="text-sm text-muted-foreground shrink-0">{label}</dt>
       <dd className="text-sm text-right min-w-0 break-words">{value}</dd>
     </div>
   );

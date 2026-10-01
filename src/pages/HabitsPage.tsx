@@ -49,7 +49,6 @@ import {
   ChevronRight,
   Flame,
   Loader2,
-  Pencil,
   Plus,
 } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
@@ -206,18 +205,11 @@ export default function HabitsPage() {
       {isLoading ? (
         <div className="space-y-4">
           {[1, 2].map((item) => (
-            <Skeleton key={item} className="h-56 w-full rounded-[28px]" />
+            <Skeleton key={item} className="h-56 w-full rounded-xl" />
           ))}
         </div>
       ) : habitsList.length === 0 ? (
-        <div className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-6 py-20 text-center text-muted-foreground">
-          <div aria-hidden className="mb-3 text-5xl opacity-25">◉</div>
-          <p className="text-sm">No habits yet. Build something small.</p>
-          <Button variant="outline" size="sm" className="mt-4 rounded-full" onClick={openCreate}>
-            <Plus className="size-3.5" />
-            Add your first habit
-          </Button>
-        </div>
+        <p className="py-2 text-sm text-muted-foreground">No habits yet</p>
       ) : (
         <div className="space-y-5">
           {FREQUENCIES.map((frequency) => {
@@ -392,9 +384,11 @@ function RhythmLedger({
 }) {
   const reducedMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const minWidth = 188 + periods.length * 52 + 52;
+  // Trailing 8px keeps the last cell off the rounded edge; there is no edit
+  // column any more (the habit name opens the editor).
+  const minWidth = 188 + periods.length * 52 + 8;
   const gridStyle = {
-    gridTemplateColumns: `minmax(188px, 1fr) repeat(${periods.length}, 52px) 52px`,
+    gridTemplateColumns: `minmax(188px, 1fr) repeat(${periods.length}, 52px) 8px`,
     minWidth,
   };
   const groupSpans = useMemo(() => {
@@ -420,18 +414,16 @@ function RhythmLedger({
   return (
     <section
       aria-labelledby={`habit-${frequency}-heading`}
-      className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]"
+      className="overflow-hidden rounded-xl bg-card"
     >
-      <div className="flex flex-wrap items-center gap-3 border-b border-[hsl(var(--outline-variant))] px-4 py-3 sm:px-5">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
           <h2 id={`habit-${frequency}-heading`} className="text-base font-semibold">
             {FREQUENCY_LABEL[frequency]}
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {habits.length} {habits.length === 1 ? 'habit' : 'habits'}
-          </p>
+          <span className="text-sm tabular-nums text-muted-foreground">{habits.length}</span>
         </div>
-        <div className="flex items-center rounded-full bg-[hsl(var(--surface-container))] p-0.5">
+        <div className="-mr-1 flex items-center rounded-full bg-[hsl(var(--surface-container-high))] p-0.5">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -445,7 +437,7 @@ function RhythmLedger({
             type="button"
             onClick={onCurrent}
             disabled={isCurrentWindow}
-            className="h-9 min-w-32 rounded-full px-3 mono text-xs tracking-[0.06em] text-muted-foreground transition-colors enabled:text-primary enabled:hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 min-w-32 rounded-full px-3 text-xs tabular-nums text-muted-foreground transition-colors enabled:text-primary enabled:hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title={isCurrentWindow ? windowTitle : 'Return to current period'}
           >
             {windowTitle}
@@ -465,11 +457,11 @@ function RhythmLedger({
 
       <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain">
         <div className="grid gap-x-1 px-2 pt-3 sm:px-3" style={gridStyle}>
-          <div className="sticky left-0 z-20 bg-[hsl(var(--surface-container-low))]" />
+          <div className="sticky left-0 z-20 bg-card" />
           {groupSpans.map((span) => (
             <div
               key={`${span.group}-${span.start}`}
-              className="pb-2 text-center mono text-xs font-semibold tracking-[0.14em] text-muted-foreground"
+              className="pb-1 text-center text-xs font-medium text-muted-foreground"
               style={{ gridColumn: `${span.start + 2} / span ${span.count}` }}
             >
               {span.group}
@@ -478,23 +470,25 @@ function RhythmLedger({
         </div>
 
         <div className="grid gap-x-1 px-2 sm:px-3" style={gridStyle}>
-          <div className="sticky left-0 z-20 flex items-center bg-[hsl(var(--surface-container-low))] px-2 pb-2 mono text-xs tracking-[0.1em] text-muted-foreground">
-            HABIT
-          </div>
+          <div className="sticky left-0 z-20 bg-card" />
           {periods.map((period) => {
             const isCurrent = period.key === currentPeriodKey;
             return (
               <div
                 key={period.key}
                 data-current-period={isCurrent || undefined}
-                className={`flex h-9 items-center justify-center rounded-t-2xl pb-1 mono text-xs font-semibold ${
-                  isCurrent
-                    ? 'bg-[hsl(var(--secondary-container)/0.72)] text-[hsl(var(--on-secondary-container))]'
-                    : 'text-muted-foreground'
-                }`}
+                className="flex h-9 items-center justify-center pb-1"
                 title={period.accessibleLabel}
               >
-                {period.label}
+                {/* Today is marked once, in the header, with the selection
+                    role; the cells below only get a neutral state ring. */}
+                <span className={`grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-xs font-semibold ${
+                  isCurrent
+                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                    : 'text-muted-foreground'
+                }`}>
+                  {period.label}
+                </span>
               </div>
             );
           })}
@@ -517,7 +511,7 @@ function RhythmLedger({
                 <button
                   type="button"
                   onClick={() => onEdit(habit)}
-                  className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-[hsl(var(--surface-container-low))] px-2 py-3 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-card px-2 py-3 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   title={`Edit ${habit.name}`}
                 >
                   <span
@@ -544,12 +538,7 @@ function RhythmLedger({
                   const isCurrent = period.key === currentPeriodKey;
                   const isFuture = period.key > currentPeriodKey || period.key > todayKey && frequency === 'daily';
                   return (
-                    <div
-                      key={period.key}
-                      className={`flex items-center justify-center py-2 ${
-                        isCurrent ? 'bg-[hsl(var(--secondary-container)/0.72)]' : ''
-                      }`}
-                    >
+                    <div key={period.key} className="flex items-center justify-center py-2">
                       <PeriodToggle
                         period={period}
                         complete={complete}
@@ -564,17 +553,7 @@ function RhythmLedger({
                   );
                 })}
 
-                <div className="flex items-center justify-center py-2">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="size-11 rounded-full md:size-9"
-                    onClick={() => onEdit(habit)}
-                    aria-label={`Edit ${habit.name}`}
-                  >
-                    <Pencil className="size-3.5" />
-                  </Button>
-                </div>
+                <div aria-hidden />
               </motion.div>
             );
           })}
@@ -620,7 +599,7 @@ function PeriodToggle({
       }`}
       style={{
         backgroundColor: 'hsl(var(--surface-container-highest))',
-        boxShadow: current && !complete ? 'inset 0 0 0 2px hsl(var(--primary))' : 'none',
+        boxShadow: current && !complete ? 'inset 0 0 0 2px hsl(var(--outline))' : 'none',
       }}
     >
       <AnimatePresence initial={false}>

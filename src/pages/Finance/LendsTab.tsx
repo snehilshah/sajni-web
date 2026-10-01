@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { Bell, Check, Coins, Pencil, Plus, Trash2 } from '@/components/ui/icons';
+import { Bell, Check, Pencil, Plus, Trash2 } from '@/components/ui/icons';
+import { DateBadge } from '@/components/ui/state-chip';
+import { cn } from '@/lib/utils';
 
 import { finance, type FinAccount, type FinLend } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
@@ -18,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { ListSkeleton } from './Skeletons';
+import { Stat, StatGroup } from './StatGroup';
 import { partsToTxnAt, txnAtToParts } from './utils';
 
 interface Props {
@@ -62,17 +65,14 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Summary label="Money lent" value={totals.outstanding} tone="primary" />
-        <Summary label="Returned" value={totals.repaid} />
-        <Summary label="Lifetime principal" value={totals.principal} className="col-span-2 md:col-span-1" />
-      </div>
+      <StatGroup className="grid-cols-2 md:grid-cols-3">
+        <Stat label="Money lent" value={<AnimatedMoney value={totals.outstanding} />} tone="primary" />
+        <Stat label="Returned" value={<AnimatedMoney value={totals.repaid} />} />
+        <Stat label="Lifetime principal" value={<AnimatedMoney value={totals.principal} />} className="col-span-2 md:col-span-1" />
+      </StatGroup>
 
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="font-serif text-lg font-semibold">Lends</h2>
-          <p className="text-xs text-muted-foreground">Outstanding principal is an asset, separate from money in accounts.</p>
-        </div>
+        <h2 className="font-serif text-lg font-semibold">Lends</h2>
         <Button size="sm" onClick={onNewLend}>
           <Plus className="size-4 mr-1" /> New lend
         </Button>
@@ -81,48 +81,60 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
       {!loaded && lends.length === 0 ? (
         <ListSkeleton rows={4} />
       ) : lends.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No lends yet. Choose Lend when adding a transaction to track money someone owes you.
-        </div>
+        <p className="py-2 text-sm text-muted-foreground">No lends yet</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {lends.map((lend) => {
             const overdue = lend.status === 'open' && !!lend.due_date && lend.due_date < format(new Date(), 'yyyy-MM-dd');
+            const settled = lend.status === 'settled';
+            const pct = lend.principal > 0 ? Math.min((lend.repaid / lend.principal) * 100, 100) : 0;
             return (
-              <article key={lend.id} className="rounded-xl bg-card p-4 flex flex-col gap-3">
+              <article key={lend.id} className={cn('rounded-xl bg-card p-4 flex flex-col gap-3', settled && 'opacity-70')}>
+                {/* Who and how much is still out: the two things you open
+                    this card for. Open is the default and gets no badge. */}
                 <div className="flex items-start gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Coins className="size-4" /></span>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{lend.borrower}</div>
-                    <div className="font-mono text-xs text-muted-foreground truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                       {lend.source_account}{lend.description ? ` · ${lend.description}` : ''}
                     </div>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 font-mono text-xs ${lend.status === 'settled' ? 'bg-primary/10 text-primary' : overdue ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-secondary-foreground'}`}>
-                    {lend.status === 'settled' ? 'settled' : overdue ? 'overdue' : 'open'}
+                  {settled ? (
+                    <DateBadge tone="positive">Settled</DateBadge>
+                  ) : (
+                    <span className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums text-primary">
+                      {formatMoney(lend.outstanding)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Returned so far, as a bar against the principal. */}
+                <div className="flex items-center gap-3">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                    <div className="h-full rounded-full bg-primary" style={{ width: pct + '%' }} />
+                  </div>
+                  <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                    {formatMoney(lend.repaid)} of {formatMoney(lend.principal)}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-3">
-                  <Figure label="Principal" value={formatMoney(lend.principal)} />
-                  <Figure label="Returned" value={formatMoney(lend.repaid)} />
-                  <Figure label="Outstanding" value={formatMoney(lend.outstanding)} strong />
-                </div>
-
-                <div className="flex min-h-5 items-center gap-2 text-xs text-muted-foreground">
-                  <span>Lent {format(parseISO(lend.lent_at), 'd MMM yyyy')}</span>
-                  {lend.due_date && <><span>·</span><span className={overdue ? 'text-destructive' : ''}>Due {format(parseISO(lend.due_date), 'd MMM yyyy')}</span></>}
-                  {lend.remind && <Bell className="size-3" aria-label="Reminder on" />}
+                <div className="flex min-h-5 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <DateBadge>Lent {format(parseISO(lend.lent_at), 'd MMM')}</DateBadge>
+                  {lend.due_date && (
+                    <DateBadge tone={overdue ? 'alert' : 'neutral'} icon={lend.remind ? <Bell aria-label="Reminder on" /> : undefined}>
+                      Due {format(parseISO(lend.due_date), 'd MMM')}
+                    </DateBadge>
+                  )}
                 </div>
 
                 {lend.repayments.length > 0 && (
-                  <div className="border-t border-border pt-2 flex flex-col gap-1">
+                  <div className="flex flex-col gap-1">
                     {lend.repayments.map((repayment) => (
-                      <div key={repayment.id} className="flex items-center gap-2 text-xs">
+                      <div key={repayment.id} className="group flex items-center gap-2 text-xs">
                         <Check className="size-3 text-primary" />
                         <span className="flex-1 truncate">{format(parseISO(repayment.repaid_at), 'd MMM yyyy')} · {repayment.destination_account}</span>
-                        <span className="font-mono tabular-nums">{formatMoney(repayment.amount)}</span>
-                        <button type="button" onClick={() => removeRepayment(lend, repayment.id)} className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-destructive" aria-label="Delete repayment">
+                        <span className="tabular-nums">{formatMoney(repayment.amount)}</span>
+                        <button type="button" onClick={() => removeRepayment(lend, repayment.id)} className="-mr-1.5 grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-destructive" aria-label="Delete repayment">
                           <Trash2 className="size-3" />
                         </button>
                       </div>
@@ -130,10 +142,16 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-1 border-t border-border pt-2">
-                  <Button variant="ghost" size="sm" onClick={() => remove(lend)} aria-label={`Delete lend to ${lend.borrower}`}><Trash2 className="size-3.5" /></Button>
-                  <Button variant="outline" size="sm" onClick={() => setEditing(lend)}><Pencil className="size-3.5 mr-1" /> Edit</Button>
-                  {lend.status === 'open' && <Button size="sm" onClick={() => setRepaying(lend)}>Record repayment</Button>}
+                <div className="flex items-center gap-1">
+                  {!settled && (
+                    <Button variant="outline" size="sm" onClick={() => setRepaying(lend)}>
+                      <Check className="size-3.5 mr-1" /> Record repayment
+                    </Button>
+                  )}
+                  <div className="-mr-2 ml-auto flex">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setEditing(lend)} aria-label={`Edit lend to ${lend.borrower}`} title="Edit"><Pencil className="size-4" /></Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => remove(lend)} aria-label={`Delete lend to ${lend.borrower}`} title="Delete"><Trash2 className="size-4" /></Button>
+                  </div>
                 </div>
               </article>
             );
@@ -145,20 +163,6 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
       <RepaymentDialog lend={repaying} accounts={accounts} onClose={() => setRepaying(null)} onSaved={() => { setRepaying(null); reload(); }} />
     </div>
   );
-}
-
-function Summary({ label, value, tone = 'default', className = '' }: { label: string; value: number; tone?: 'default' | 'primary'; className?: string }) {
-  return <div className={`rounded-xl bg-card p-3 ${className}`}>
-    <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
-    <div className={`font-serif text-lg font-semibold tabular-nums ${tone === 'primary' ? 'text-primary' : ''}`}><AnimatedMoney value={value} /></div>
-  </div>;
-}
-
-function Figure({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return <div className="min-w-0">
-    <div className="font-mono text-xs label-kicker text-muted-foreground truncate">{label}</div>
-    <div className={`font-mono text-xs tabular-nums truncate ${strong ? 'font-semibold text-primary' : ''}`}>{value}</div>
-  </div>;
 }
 
 export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend | null; accounts: FinAccount[]; onClose: () => void; onSaved: () => void }) {

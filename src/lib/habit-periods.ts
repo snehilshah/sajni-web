@@ -128,12 +128,12 @@ export function periodWindowTitle(
   const firstOwner = weekOwner(periods[0].start);
   const lastOwner = weekOwner(periods.at(-1)!.start);
   if (firstOwner.getFullYear() !== lastOwner.getFullYear()) {
-    return `${format(firstOwner, 'MMM yyyy').toUpperCase()}–${format(lastOwner, 'MMM yyyy').toUpperCase()}`;
+    return `${format(firstOwner, 'MMM yyyy')}–${format(lastOwner, 'MMM yyyy')}`;
   }
   if (firstOwner.getMonth() === lastOwner.getMonth()) {
-    return format(firstOwner, 'MMM yyyy').toUpperCase();
+    return format(firstOwner, 'MMM yyyy');
   }
-  return `${format(firstOwner, 'MMM').toUpperCase()}–${format(lastOwner, 'MMM yyyy').toUpperCase()}`;
+  return `${format(firstOwner, 'MMM')}–${format(lastOwner, 'MMM yyyy')}`;
 }
 
 export function periodWindowEnd(frequency: HabitFrequency, anchor: Date, offset: number): Date {
@@ -151,14 +151,14 @@ function makePeriod(start: Date, end: Date, frequency: HabitFrequency): HabitPer
     return {
       key, start, end,
       label: format(start, 'EEEEE'),
-      group: format(start, 'MMM').toUpperCase(),
+      group: format(start, 'MMM'),
       accessibleLabel: format(start, 'EEEE, MMMM d, yyyy'),
     };
   }
   if (frequency === 'monthly') {
     return {
       key, start, end,
-      label: format(start, 'MMM').toUpperCase(),
+      label: format(start, 'MMM'),
       group: format(start, 'yyyy'),
       accessibleLabel: format(start, 'MMMM yyyy'),
     };
@@ -166,7 +166,7 @@ function makePeriod(start: Date, end: Date, frequency: HabitFrequency): HabitPer
 
   const owner = weekOwner(start);
   const weekNumber = Math.ceil(owner.getDate() / 7);
-  const group = format(owner, 'MMM').toUpperCase();
+  const group = format(owner, 'MMM');
   const range = `${format(start, 'MMM d')}–${format(end, 'MMM d, yyyy')}`;
   return {
     key, start, end,

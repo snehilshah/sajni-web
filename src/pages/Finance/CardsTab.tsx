@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { CreditCard, Plus, Check, AlertCircle, Trash2, Gift } from '@/components/ui/icons';
+import { CreditCard, Plus, Check, AlertCircle, Trash2 } from '@/components/ui/icons';
 
 import { finance, type FinAccount, type FinStatement, type StmtDraft, type StmtPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
+import { DateBadge } from '@/components/ui/state-chip';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
@@ -39,9 +40,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
   }
   if (ccAccounts.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        No credit cards yet. Add an account with type "Credit Card" to start tracking statements and cashback.
-      </div>
+      <p className="py-2 text-sm text-muted-foreground">No credit cards yet</p>
     );
   }
 
@@ -69,7 +68,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-mono text-xs label-kicker opacity-80">
+                  <div className="text-xs opacity-80">
                     {card.institution || 'Credit card'}
                   </div>
                   <div className="font-medium truncate text-lg mt-0.5">{card.name}</div>
@@ -78,14 +77,14 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               </div>
               <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <div className="font-mono text-xs label-kicker opacity-80">Outstanding</div>
+                  <div className="text-xs opacity-80">Outstanding</div>
                   <div className="font-serif text-2xl md:text-3xl font-semibold tabular-nums">
                     {formatMoney(owed)}
                   </div>
                 </div>
                 {card.credit_limit ? (
                   <div className="text-right">
-                    <div className="font-mono text-xs label-kicker opacity-80">Limit</div>
+                    <div className="text-xs opacity-80">Limit</div>
                     <div className="font-mono text-sm tabular-nums">{formatMoney(card.credit_limit)}</div>
                     <div className="font-mono text-xs tabular-nums opacity-80">
                       {formatPercent((owed / card.credit_limit) * 100)} used
@@ -97,27 +96,25 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
 
             {/* Body */}
             <div className="p-4 md:p-5 flex flex-col gap-3">
-              <div className="grid grid-cols-3 gap-2 text-center">
+              {/* Figures start on the card's leading edge, like every
+                  other stat; the billing cycle is a badge, not a fraction. */}
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
                 <Stat label="Unpaid" value={formatMoney(totalUnpaid)} tone={totalUnpaid > 0 ? 'destructive' : 'default'} />
-                <Stat label="Cashback" value={formatMoney(totalCashback)} icon={Gift} tone="primary" />
-                <Stat
-                  label="Cycle"
-                  value={card.statement_day && card.due_day ? `${card.statement_day} / ${card.due_day}` : '–'}
-                  small
-                />
+                <Stat label="Cashback" value={formatMoney(totalCashback)} tone="primary" />
+                {card.statement_day && card.due_day ? (
+                  <DateBadge className="mb-1">Bills on {card.statement_day} · due {card.due_day}</DateBadge>
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-sm">Statements</h3>
-                <Button size="sm" variant="outline" onClick={() => setCreating(card)}>
+                <Button size="sm" variant="ghost" className="-mr-2" onClick={() => setCreating(card)}>
                   <Plus className="size-3.5 mr-1" /> Add
                 </Button>
               </div>
 
               {cardStmts.length === 0 ? (
-                <div className="text-xs text-muted-foreground italic py-2">
-                  No statements yet. Generate one when your billing cycle closes.
-                </div>
+                <p className="text-xs text-muted-foreground">No statements yet</p>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {cardStmts.slice(0, 6).map((s) => (
@@ -217,11 +214,9 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
   );
 }
 
-function Stat({ label, value, tone = 'default', icon: Icon, small }: {
+function Stat({ label, value, tone = 'default' }: {
   label: string; value: string;
   tone?: 'primary' | 'destructive' | 'default';
-  icon?: typeof Gift;
-  small?: boolean;
 }) {
   const tones: Record<string, string> = {
     primary: 'text-primary',
@@ -229,12 +224,9 @@ function Stat({ label, value, tone = 'default', icon: Icon, small }: {
     default: 'text-foreground',
   };
   return (
-    <div className="rounded-lg bg-muted/40 p-2.5">
-      <div className="font-mono text-xs label-kicker text-muted-foreground inline-flex items-center gap-1">
-        {Icon && <Icon className="size-2.5" />}
-        {label}
-      </div>
-      <div className={`${small ? 'text-sm' : 'text-base md:text-lg'} font-serif font-semibold tabular-nums ${tones[tone]}`}>
+    <div className="min-w-0">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`whitespace-nowrap font-serif text-lg font-semibold tabular-nums ${tones[tone]}`}>
         {value}
       </div>
     </div>

@@ -19,6 +19,7 @@ import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { ACCOUNT_TYPES, ACCOUNT_COLORS } from './utils';
 import { ListSkeleton } from './Skeletons';
+import { Stat, StatGroup } from './StatGroup';
 
 const typeIcon = (type: string) => {
   switch (type) {
@@ -67,21 +68,22 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Summary strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <SummaryCard label="Assets" value={totalAssets} tone="primary" />
-        <SummaryCard label="Liabilities" value={totalLiab} tone="destructive" />
-        <SummaryCard label="Net" value={totalAssets - totalLiab} tone="default" className="col-span-2 md:col-span-1" />
-      </div>
+      <StatGroup className="grid-cols-2 md:grid-cols-3">
+        <Stat label="Assets" value={<AnimatedMoney value={totalAssets} fractionDigits={2} />} tone="primary" />
+        <Stat label="Liabilities" value={<AnimatedMoney value={totalLiab} fractionDigits={2} />} tone="destructive" />
+        <Stat label="Net" value={<AnimatedMoney value={totalAssets - totalLiab} fractionDigits={2} />} className="col-span-2 md:col-span-1" />
+      </StatGroup>
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">Accounts</h2>
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            aria-pressed={showArchived}
             onClick={() => setShowArchived((v) => !v)}
-            className="font-mono text-xs label-kicker text-muted-foreground hover:text-foreground"
+            className={`chip ${showArchived ? 'chip-selected' : ''}`}
           >
-            {showArchived ? 'Hide archived' : 'Show archived'}
+            Archived
           </button>
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="size-4 mr-1" /> Add account
@@ -92,9 +94,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
       {!loaded && accounts.length === 0 ? (
         <ListSkeleton rows={4} />
       ) : visible.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No accounts yet. Add your first to start tracking.
-        </div>
+        <p className="py-2 text-sm text-muted-foreground">No accounts yet</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {visible.map((a) => {
@@ -121,15 +121,21 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium truncate">{a.name}</div>
-                      <div className="font-mono text-xs label-kicker text-muted-foreground">
+                      <div className="truncate text-xs text-muted-foreground">
                         {ACCOUNT_TYPES.find((t) => t.value === a.type)?.label}
                         {a.institution && ' · ' + a.institution}
                       </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-0.5">
-                    <Button variant="ghost" size="icon-sm" onClick={() => setEditingAcct(a)}>
-                      <Pencil className="size-3.5" />
+                  {/* Actions end on the card's trailing edge, glyph-aligned. */}
+                  <div className="-mr-2 -mt-1 flex shrink-0">
+                    {!isCC && (
+                      <Button variant="ghost" size="icon-sm" aria-label={`Buckets on ${a.name}`} title="Buckets" onClick={() => setSavingsAcct(a)}>
+                        <Target className="size-4" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon-sm" aria-label={`Edit ${a.name}`} title="Edit" onClick={() => setEditingAcct(a)}>
+                      <Pencil className="size-4" />
                     </Button>
                   </div>
                 </div>
@@ -137,26 +143,26 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                 <div className="mt-3">
                   {isCC ? (
                     <>
-                      <div className="font-serif text-2xl font-semibold tabular-nums">
-                        {formatMoney(owed)}
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-serif text-2xl font-semibold tabular-nums">{formatMoney(owed)}</span>
+                        <span className="text-xs text-muted-foreground">owed</span>
                       </div>
-                      <div className="font-mono text-xs label-kicker text-muted-foreground">
-                        Outstanding {a.credit_limit ? '· limit ' + formatMoney(a.credit_limit) : ''}
-                      </div>
+                      {/* Utilisation reads as a bar; the figure beside it is
+                          the only text, and it never wraps. */}
                       {a.credit_limit ? (
-                        <div className="mt-2">
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="mt-2 flex items-center gap-3">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
                             <div
-                              className="h-full"
+                              className="h-full rounded-full"
                               style={{
                                 width: Math.min(utilization, 100) + '%',
                                 backgroundColor: utilization > 80 ? 'hsl(var(--destructive))' : a.color,
                               }}
                             />
                           </div>
-                          <div className="font-mono text-xs text-muted-foreground mt-1">
-                            {formatPercent(utilization)} used
-                          </div>
+                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                            {formatPercent(utilization)} of {formatMoney(a.credit_limit)}
+                          </span>
                         </div>
                       ) : null}
                     </>
@@ -164,9 +170,6 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                     <>
                       <div className={`font-serif text-2xl font-semibold tabular-nums ${a.balance < 0 ? 'text-destructive' : ''}`}>
                         {formatMoney(a.balance)}
-                      </div>
-                      <div className="font-mono text-xs label-kicker text-muted-foreground">
-                        Balance
                       </div>
                     </>
                   )}
@@ -176,52 +179,39 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                   <SalaryActions account={a} categories={categories} onDone={reload} />
                 )}
 
-                {/* Virtual savings on this account */}
-                {!isCC && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-xs label-kicker text-muted-foreground inline-flex items-center gap-1">
-                        <Target className="size-3" />
-                        Reserved
-                        {reservedTotal > 0 && ' · ' + formatMoney(reservedTotal)}
-                      </span>
-                      <button
-                        onClick={() => setSavingsAcct(a)}
-                        className="font-mono text-xs text-primary hover:underline"
-                      >
-                        Manage
-                      </button>
-                    </div>
-                    {acctSavings.length === 0 ? (
-                      <div className="text-xs text-muted-foreground">No buckets. Add savings goals like emergency fund, vacation, etc.</div>
-                    ) : (
-                      <div className="flex flex-col gap-1.5">
-                        {acctSavings.slice(0, 3).map((s) => {
-                          const pct = s.target_amount > 0 ? (s.current_amount / s.target_amount) * 100 : 0;
-                          return (
-                            <div key={s.id} className="flex items-center gap-2">
-                              <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                              <span className="text-xs flex-1 truncate">{s.name}</span>
-                              <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                {formatMoney(s.current_amount)}
-                                {s.target_amount > 0 && ' / ' + formatMoney(s.target_amount)}
-                              </span>
-                              {s.target_amount > 0 && (
-                                <span className="font-mono text-xs tabular-nums text-muted-foreground w-8 text-right">
-                                  {formatPercent(pct)}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {acctSavings.length > 3 && (
-                          <div className="font-mono text-xs text-muted-foreground">
-                            +{acctSavings.length - 3} more
-                          </div>
-                        )}
-                      </div>
+                {/* Buckets reserved on this account. Shown only when there are
+                    some; the target button in the header manages them. */}
+                {!isCC && acctSavings.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSavingsAcct(a)}
+                    className="mt-3 flex w-full flex-col gap-1.5 text-left"
+                  >
+                    <span className="flex items-baseline justify-between gap-2 text-xs text-muted-foreground">
+                      <span>Reserved</span>
+                      <span className="tabular-nums">{formatMoney(reservedTotal)}</span>
+                    </span>
+                    {acctSavings.slice(0, 3).map((s) => {
+                      const pct = s.target_amount > 0 ? Math.min((s.current_amount / s.target_amount) * 100, 100) : 0;
+                      return (
+                        <span key={s.id} className="flex items-center gap-2">
+                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                          <span className="min-w-0 flex-1 truncate text-xs">{s.name}</span>
+                          {s.target_amount > 0 ? (
+                            <span className="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                              <span className="block h-full rounded-full" style={{ width: pct + '%', backgroundColor: s.color }} />
+                            </span>
+                          ) : null}
+                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                            {formatMoney(s.current_amount)}
+                          </span>
+                        </span>
+                      );
+                    })}
+                    {acctSavings.length > 3 && (
+                      <span className="text-xs text-muted-foreground">+{acctSavings.length - 3} more</span>
                     )}
-                  </div>
+                  </button>
                 )}
               </motion.div>
             );
@@ -240,20 +230,6 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
         savings={savings.filter((s) => savingsAcct && s.account_id === savingsAcct.id)}
         onClose={() => { setSavingsAcct(null); finance.listSavings().then(setSavings).catch(() => {}); }}
       />
-    </div>
-  );
-}
-
-function SummaryCard({ label, value, tone, className = '' }: { label: string; value: number; tone: 'primary' | 'destructive' | 'default'; className?: string }) {
-  const tones: Record<string, string> = {
-    primary: 'text-primary',
-    destructive: 'text-destructive',
-    default: 'text-foreground',
-  };
-  return (
-    <div className={`rounded-xl bg-card p-4 ${className}`}>
-      <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
-      <div className={`font-serif text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}><AnimatedMoney value={value} fractionDigits={2} /></div>
     </div>
   );
 }
@@ -533,9 +509,10 @@ function SalaryActions({ account, categories, onDone }: {
   };
 
   return (
-    <div className="mt-3 pt-3 border-t border-border/50 flex items-center gap-2 flex-wrap">
+    <div className="mt-3 flex items-center gap-2 flex-wrap">
       <Button
         size="sm"
+        variant="outline"
         onClick={() => post(amt, 'Salary')}
         disabled={busy || amt <= 0}
         title={amt <= 0 ? 'Set a monthly salary amount on this account first' : `Credit ${formatMoney(amt)}`}
@@ -546,7 +523,7 @@ function SalaryActions({ account, categories, onDone }: {
         <Gift className="size-3.5 mr-1" /> Bonus
       </Button>
       {amt > 0 && (
-        <span className="font-mono text-xs text-muted-foreground ml-auto">
+        <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">
           {formatMoney(amt)}/mo{account.salary_day ? ` · day ${account.salary_day}` : ''}
         </span>
       )}

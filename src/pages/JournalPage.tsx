@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { BacklinkRef, HabitStatus, Task } from '@/types';
 import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
+import { DateBadge } from '@/components/ui/state-chip';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
@@ -322,14 +323,11 @@ export default function JournalPage() {
     <div className="flex flex-col gap-6 p-4">
       {/* Tasks today */}
       <section>
-        <div className="flex items-baseline justify-between mb-2.5">
-          <div className="mono text-xs label-kicker text-muted-foreground">tasks today</div>
-          <button onClick={() => navigate('/tasks')} className="mono text-xs text-muted-foreground hover:text-foreground">OPEN →</button>
-        </div>
+        <PanelHeading title="Tasks" onOpen={() => navigate('/tasks')} />
         {loadingTasks ? (
           <Skeleton className="h-16 w-full" />
         ) : dueTasks.length === 0 && completedTasks.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground mb-2">Clear day. A small mercy.</div>
+          null
         ) : (
           <div className="flex flex-col gap-2">
             {dueTasks.map((t) => (
@@ -346,7 +344,6 @@ export default function JournalPage() {
                   className="flex-1 text-left text-[12.5px] text-foreground/85 leading-snug hover:text-foreground transition-colors"
                   title="Open task"
                 >
-                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
               </div>
@@ -359,7 +356,6 @@ export default function JournalPage() {
                   className="flex-1 text-left text-[12.5px] line-through text-muted-foreground leading-snug hover:text-foreground/70 transition-colors"
                   title="Open task"
                 >
-                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
               </div>
@@ -368,9 +364,9 @@ export default function JournalPage() {
         )}
         <QuickAddTask dueDate={selectedDate} />
         {missedTasks.length > 0 && (
-          <div className="mt-3 pt-2 border-t border-border/60">
-            <div className="mono text-xs label-kicker text-destructive/80 mb-1.5 flex items-center gap-1.5">
-              <AlertCircle className="size-3" /> missed
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <AlertCircle className="size-3" /> Missed
             </div>
             <div className="flex flex-col gap-1.5">
               {missedTasks.slice(0, 5).map((t) => (
@@ -380,7 +376,6 @@ export default function JournalPage() {
                   className="text-[12px] text-foreground/70 truncate text-left hover:text-foreground transition-colors"
                   title="Open task"
                 >
-                  <TaskScopeBadge scope="day" className="mr-2 align-middle" />
                   {t.title}
                 </button>
               ))}
@@ -391,22 +386,19 @@ export default function JournalPage() {
 
       {/* Habit periods containing the selected date */}
       <section>
-        <div className="flex items-baseline justify-between mb-2.5">
-          <div className="mono text-xs label-kicker text-muted-foreground">habits</div>
-          <button onClick={() => navigate('/habits')} className="mono text-xs text-muted-foreground hover:text-foreground">OPEN →</button>
-        </div>
+        <PanelHeading title="Habits" onOpen={() => navigate('/habits')} />
         {loadingHabits ? (
           <Skeleton className="h-16 w-full" />
         ) : habitStatuses.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground">No habits yet.</div>
+          <div className="text-xs text-muted-foreground">None</div>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col">
             {habitStatuses.map((h) => (
               <button
                 key={h.id}
                 onClick={() => toggleHabit(h.id)}
                 disabled={selectedDate > todayKey}
-                className="group flex min-h-11 items-center gap-2.5 rounded-md text-left outline-none disabled:cursor-default disabled:opacity-45 focus-visible:ring-2 focus-visible:ring-ring"
+                className="group -mx-1.5 flex min-h-9 items-center gap-2.5 rounded-lg px-1.5 text-left outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] disabled:cursor-default disabled:opacity-45 focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span
                   className="size-[18px] rounded-[3px] border-2 inline-flex items-center justify-center shrink-0 transition-[background-color,border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
@@ -418,14 +410,12 @@ export default function JournalPage() {
                 >
                   {h.logged && <LucideCheck className="size-3 stroke-[3px]" />}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] text-foreground/85">{h.name}</span>
-                  {h.frequency !== 'daily' && (
-                    <span className="mt-0.5 block mono text-xs label-kicker text-muted-foreground">
-                      {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
-                    </span>
-                  )}
-                </span>
+                {/* One line per habit: cadence rides as a badge, not a
+                    second line, so the list reads as a column of names. */}
+                <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground/85">{h.name}</span>
+                {h.frequency !== 'daily' && (
+                  <DateBadge>{h.frequency === 'fortnightly' ? '2 wk' : h.frequency === 'weekly' ? 'Week' : 'Month'}</DateBadge>
+                )}
               </button>
             ))}
           </div>
@@ -434,19 +424,11 @@ export default function JournalPage() {
 
       {/* Events are historical context: read-only here, editable on the event timeline. */}
       <section>
-        <div className="mb-2.5 flex items-baseline justify-between">
-          <div className="mono text-xs label-kicker text-muted-foreground">events</div>
-          <button
-            onClick={() => navigate('/habits?tab=events')}
-            className="mono text-xs text-muted-foreground hover:text-foreground"
-          >
-            OPEN →
-          </button>
-        </div>
+        <PanelHeading title="Events" onOpen={() => navigate('/habits?tab=events')} />
         {loadingEvents ? (
           <Skeleton className="h-14 w-full" />
         ) : eventDayEntries.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground">Nothing logged this day.</div>
+          <div className="text-xs text-muted-foreground">None</div>
         ) : (
           <div className="flex flex-col gap-1.5">
             {eventDayEntries.map((entry) => (
@@ -465,7 +447,7 @@ export default function JournalPage() {
                   <span className="block truncate text-[12.5px] text-foreground/85">{entry.event_name}</span>
                   {entry.note && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{entry.note}</span>}
                 </span>
-                <span className="mono shrink-0 text-xs text-muted-foreground">
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                   {format(new Date(entry.occurred_at), 'h:mm a')}
                 </span>
               </button>
@@ -474,22 +456,22 @@ export default function JournalPage() {
         )}
       </section>
 
-      {/* Backlinks */}
+      {/* Backlinks: only when something links here. */}
+      {backlinks.length > 0 && (
       <section>
-        <div className="mono text-xs label-kicker text-muted-foreground mb-2.5">backlinks</div>
-        {backlinks.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground">Nothing points here yet.</div>
-        ) : (
+        <PanelHeading title="Backlinks" />
+        {(
           <div className="flex flex-col gap-2">
             {backlinks.map((bl, i) => (
               <div key={i} className="text-[12.5px] text-primary">
                 <div className="underline underline-offset-2 decoration-primary/30 truncate">[[{bl.title || 'Untitled'}]]</div>
-                <div className="mono text-xs text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
               </div>
             ))}
           </div>
         )}
       </section>
+      )}
     </div>
   );
 
@@ -501,11 +483,10 @@ export default function JournalPage() {
   const sidebarContent = (
     <>
       {/* Streak header — small but visible cue at the top of the rail. */}
-      <div className="px-4 py-3.5 border-b border-sidebar-border/60">
-        <div className="mono text-xs label-kicker text-muted-foreground mb-1">journal</div>
+      <div className="px-4 py-3.5" title="Entries in the last 14 days">
         <div className="flex items-baseline gap-2">
           <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
-          <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'} · {Array.from({ length: 14 }).filter((_, i) => entryDates.has(format(subDays(new Date(), 13 - i), 'yyyy-MM-dd'))).length}/14 days</span>
+          <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'}</span>
         </div>
         <div className="flex gap-[3px] mt-2">
           {Array.from({ length: 14 }).map((_, i) => {
@@ -521,7 +502,7 @@ export default function JournalPage() {
           })}
         </div>
       </div>
-      <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
+      <div className="p-2.5 flex flex-col gap-2 shrink-0">
         <div className="flex gap-1">
           <Button onClick={() => { goToday(); closeMobileSidebar(); }} size="xs" variant="ghost" className="flex-1 justify-center gap-1.5 font-normal text-xs">
             <CalendarIcon className="size-3.5" /> Today
@@ -540,13 +521,13 @@ export default function JournalPage() {
               type="button"
               onClick={() => { goMonth(viewMonth.getFullYear(), viewMonth.getMonth() + 1); closeMobileSidebar(); }}
               title="Open monthly entry"
-              className={`rounded px-1.5 py-0.5 font-mono text-xs font-medium tracking-widest uppercase transition-colors hover:bg-sidebar-accent hover:text-foreground ${
+              className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:bg-sidebar-accent hover:text-foreground ${
                 viewMode === 'month' && monthYear === viewMonth.getFullYear() && monthNumber === viewMonth.getMonth() + 1
-                  ? 'bg-primary/15 text-primary'
+                  ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
                   : ''
               }`}
             >
-              {format(viewMonth, 'MMM yyyy')}
+              {format(viewMonth, 'MMMM yyyy')}
             </button>
             <button onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
               <ChevronRight className="size-3.5" />
@@ -576,11 +557,11 @@ export default function JournalPage() {
               <div key={monthKey}>
                 <button
                   onClick={() => toggleMonth(monthKey)}
-                  className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] font-mono label-kicker text-muted-foreground transition-colors"
+                  className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] text-muted-foreground transition-colors"
                 >
                   <ChevronRight className={`size-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                   <span className="flex-1 text-left truncate">{monthLabel}</span>
-                  <span className="text-xs opacity-60">{list.length}</span>
+                  <span className="text-xs tabular-nums opacity-60">{list.length}</span>
                 </button>
                 <AnimatePresence initial={false}>
                   {isExpanded && (
@@ -740,9 +721,10 @@ export default function JournalPage() {
             animate={{ width: 260, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-            className="hidden md:flex border-l border-border bg-sidebar/40 flex-col shrink-0 overflow-hidden order-3"
+            className="hidden md:flex bg-[hsl(var(--surface-container-low))] flex-col shrink-0 overflow-hidden order-3"
           >
-            <div className="overflow-y-auto">
+            {/* pt clears the fixed corner search pill. */}
+            <div className="overflow-y-auto pt-14">
               {contextPanel}
             </div>
           </motion.aside>
@@ -757,7 +739,7 @@ export default function JournalPage() {
         >
           <div className="mx-auto mb-3 h-[3px] w-9 bg-muted-foreground/35" aria-hidden="true" />
           <SheetHeader className="p-0 px-2">
-            <SheetTitle className="serif text-base normal-case tracking-tight">Today's Context</SheetTitle>
+            <SheetTitle className="serif text-base normal-case tracking-tight">This day</SheetTitle>
           </SheetHeader>
           {contextPanel}
         </SheetContent>
@@ -772,7 +754,7 @@ export default function JournalPage() {
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-            className="hidden md:flex border-r border-border bg-sidebar/40 flex-col shrink-0 overflow-hidden order-1"
+            className="hidden md:flex bg-[hsl(var(--surface-container-low))] flex-col shrink-0 overflow-hidden order-1"
           >
             {sidebarContent}
           </motion.aside>
@@ -1605,7 +1587,6 @@ function WeekTasksSection({
                   onClick={() => onOpen(t.id)}
                   className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
                 >
-                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
                 {t.priority === 'high' && !isDone && (
@@ -1909,7 +1890,6 @@ function MonthTasksSection({
                   onClick={() => onOpen(t.id)}
                   className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
                 >
-                  <TaskScopeBadge task={t} className="mr-2 align-middle" />
                   {t.title}
                 </button>
                 {/* Session progress — month goals are broken into dated child
@@ -1997,4 +1977,20 @@ function PriorityDot({ priority }: { priority: string }) {
 
 function CheckIcon() {
   return <svg className="size-2 text-white" viewBox="0 0 12 12"><path d="M10 3L4.5 8.5 2 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+// Side-panel section title. The whole title is the jump to its page; the
+// chevron is the only affordance, and it sits on the panel's trailing edge.
+function PanelHeading({ title, onOpen }: { title: string; onOpen?: () => void }) {
+  if (!onOpen) return <h3 className="mb-2 text-sm font-medium">{title}</h3>;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group mb-2 flex w-full items-center justify-between text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+    >
+      {title}
+      <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+    </button>
+  );
 }

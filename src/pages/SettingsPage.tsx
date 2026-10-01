@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Star, Wand2, Pencil, Mail, Check, X, RefreshCw } from '@/components/ui/icons';
+import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Wand2, Pencil, Mail, Check, X, RefreshCw } from '@/components/ui/icons';
 // No pixel match — straight lucide (same as the icon shim's passthroughs).
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,9 +104,7 @@ function AIThemes() {
       {loading ? (
         <div className="text-xs text-muted-foreground">Loading…</div>
       ) : list.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
-          No themes yet. Describe a vibe above to generate one.
-        </div>
+        <p className="text-sm text-muted-foreground">No themes yet</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {list.map((t) => {
@@ -118,10 +116,10 @@ function AIThemes() {
               <div
                 key={t.id}
                 className={cn(
-                  'flex min-w-0 items-stretch rounded-2xl border transition-[border-color,box-shadow]',
+                  'flex min-w-0 items-stretch rounded-xl transition-colors',
                   isActive
-                    ? 'border-primary ring-1 ring-primary/30'
-                    : 'border-border hover:border-muted-foreground/30',
+                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                    : 'bg-card',
                 )}
               >
                 <button
@@ -130,7 +128,7 @@ function AIThemes() {
                   disabled={busy || isActive}
                   aria-pressed={isActive}
                   aria-label={isActive ? `${t.name}, active theme` : `Activate ${t.name}`}
-                  className="flex min-w-0 flex-1 items-center gap-3 rounded-l-2xl p-3 text-left outline-none transition-colors enabled:hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-l-xl p-3 text-left outline-none transition-colors enabled:hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
                 >
                   <span className="flex shrink-0" aria-hidden="true">
                     {swatches.map((swatch, index) => (
@@ -146,22 +144,21 @@ function AIThemes() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-serif text-sm font-semibold">{t.name}</span>
-                    <span className="block truncate font-mono text-xs text-muted-foreground">
+                    <span className="block truncate text-xs opacity-70">
                       {t.prompt}
                     </span>
                   </span>
-                  <span className="grid size-8 shrink-0 place-items-center text-primary" aria-hidden="true">
-                    {isActivating
-                      ? <M3CookieLoader size="xs" tone="primary" />
-                      : <Star className={cn('size-4', isActive && 'fill-current')} />}
-                  </span>
+                  {isActivating && (
+                    <span className="grid size-8 shrink-0 place-items-center" aria-hidden="true">
+                      <M3CookieLoader size="xs" tone="primary" />
+                    </span>
+                  )}
                 </button>
-                <div className="my-2 w-px bg-border" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={() => remove(t)}
                   disabled={busy}
-                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-2xl text-muted-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-destructive focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
+                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-xl text-muted-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-destructive focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
                   title={`Delete ${t.name}`}
                   aria-label={`Delete ${t.name}`}
                 >
@@ -175,20 +172,16 @@ function AIThemes() {
         </div>
       )}
 
-      <div className="text-xs font-mono text-muted-foreground inline-flex items-center gap-1">
-        <Pencil className="size-3" /> Tip: Sajni mixes seeds for primary, secondary, tertiary, neutral; the rest of the
-        M3 token set is derived per mode.
-      </div>
     </div>
   );
 }
 
-function Section({ id, title, caption, children }: { id?: string; title: string; caption?: string; children: React.ReactNode }) {
+// Settings groups are the one place hairlines stay (DESIGN.md): a plain
+// title, then the controls. No caption — the controls say what they do.
+function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="border-t border-border first:border-t-0 py-6 first:pt-0 scroll-mt-6">
-      <div className="mono text-xs label-kicker text-muted-foreground mb-1">{title}</div>
-      {caption && <div className="serif italic text-sm text-muted-foreground mb-4">{caption}</div>}
-      {!caption && <div className="h-3" />}
+      <h2 className="mb-3 text-sm font-medium text-muted-foreground">{title}</h2>
       {children}
     </section>
   );
@@ -206,10 +199,8 @@ function Choice<T extends string>({
     <button
       onClick={() => onSelect(value)}
       className={cn(
-        'h-10 px-5 inline-flex items-center justify-center gap-2 border text-sm capitalize rounded-full transition-colors',
-        active
-          ? 'bg-primary text-primary-foreground border-primary shadow-[var(--m3-elev-1)]'
-          : 'bg-transparent border-[hsl(var(--outline))] text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.06)]',
+        'h-10 px-5 inline-flex items-center justify-center gap-2 text-sm capitalize rounded-full transition-colors',
+        active ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] font-medium' : 'bg-[hsl(var(--surface-container-high))] text-foreground/80 hover:bg-[hsl(var(--surface-container-highest))]',
       )}
     >
       {Icon && <Icon className="size-3.5" />}
@@ -431,7 +422,7 @@ export default function SettingsPage() {
         {user && (
           <section
             aria-label="Profile"
-            className="mb-8 rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] p-4 sm:p-5 shadow-[var(--m3-elev-1)]"
+            className="mb-8 rounded-xl bg-card p-4 sm:p-5"
           >
             <div className="grid grid-cols-[88px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
               <ProfileAvatar
@@ -454,7 +445,7 @@ export default function SettingsPage() {
                     return (
                       <span
                         key={identity.provider}
-                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-[hsl(var(--outline-variant))]"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
                         style={{ background: meta.bg, color: meta.fg }}
                       >
                         {meta.node}
@@ -466,7 +457,7 @@ export default function SettingsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant="tonal"
+                    variant="outline"
                     size="sm"
                     disabled={rerollingAvatar}
                     onClick={async () => {
@@ -482,7 +473,7 @@ export default function SettingsPage() {
                     {rerollingAvatar ? 'Rerolling…' : 'Reroll avatar'}
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
                     disabled={signingOut}
                     onClick={async () => {
@@ -492,20 +483,17 @@ export default function SettingsPage() {
                     }}
                   >
                     {signingOut
-                      ? <M3CookieLoader size="xs" tone="primary" className="!text-destructive-foreground" />
+                      ? <M3CookieLoader size="xs" tone="primary" />
                       : <LogOut className="size-3.5" />}
                     {signingOut ? 'Signing out…' : 'Sign out'}
                   </Button>
                 </div>
               </div>
             </div>
-            <p className="mt-4 sm:ml-[132px] text-xs text-muted-foreground">
-              Sign in again with Google, GitHub, or email code and Sajni links it to this account when the email matches.
-            </p>
           </section>
         )}
 
-        <Section title="Appearance" caption="Light, dark, or follow the OS.">
+        <Section title="Appearance">
           <div className="flex flex-wrap gap-2">
             <Choice value={'system' as ModePref} current={mode} onSelect={setMode} Icon={Monitor} label="System" />
             <Choice value={'light'  as ModePref} current={mode} onSelect={setMode} Icon={Sun} label="Light" />
@@ -513,7 +501,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Theme" caption="Each theme has light and dark variants. Toggle with Appearance above.">
+        <Section title="Theme">
           <div className="flex flex-wrap gap-2">
             {THEMES.map((t) => {
               const active = !activeUserTheme && preset === t.id;
@@ -536,10 +524,8 @@ export default function SettingsPage() {
                   aria-pressed={active}
                   aria-busy={themeAction?.kind === 'preset' && themeAction.preset === t.id}
                   className={cn(
-                    'h-11 pl-2 pr-5 inline-flex items-center gap-2.5 border text-sm rounded-full transition-colors disabled:opacity-60',
-                    active
-                      ? 'bg-primary text-primary-foreground border-primary shadow-[var(--m3-elev-1)]'
-                      : 'bg-transparent border-[hsl(var(--outline))] text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.06)]',
+                    'h-11 pl-2 pr-5 inline-flex items-center gap-2.5 text-sm rounded-full transition-colors disabled:opacity-60',
+                    active ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] font-medium' : 'bg-[hsl(var(--surface-container-high))] text-foreground/80 hover:bg-[hsl(var(--surface-container-highest))]',
                   )}
                 >
                   <span className="flex -space-x-1" aria-hidden="true">
@@ -558,15 +544,11 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section
-          id="themes"
-          title="AI Themes"
-          caption='Describe a vibe like "moss & bone, calm, dark-leaning" and Sajni will mix you an M3 palette.'
-        >
+        <Section id="themes" title="AI themes">
           <AIThemes />
         </Section>
 
-        <Section title="Density" caption="How much room each thing takes.">
+        <Section title="Density">
           <div className="flex flex-wrap gap-2">
             <Choice value={'compact'      as Density} current={density} onSelect={setDensity} Icon={Type} label="Compact" />
             <Choice value={'comfortable'  as Density} current={density} onSelect={setDensity} Icon={Type} label="Comfortable" />
@@ -574,7 +556,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Your data" caption="Take a copy with you. Or restore from a previous takeout.">
+        <Section title="Your data">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={exporting} onClick={onExport} className="gap-2">
@@ -597,19 +579,19 @@ export default function SettingsPage() {
                 }}
               />
             </div>
+            {/* The one caveat that can cost data stays; the format list goes. */}
             <div className="text-xs text-muted-foreground">
-              Memos, journal and notes export as .md · everything else as .csv. Import merges new rows
-              into your account; IDs are remapped, so re-importing the same archive will create duplicates.
+              Importing the same archive twice creates duplicates.
             </div>
             {importMsg && (
-              <div className="text-xs text-foreground/80 border border-border rounded-md px-3 py-2">
+              <div className="text-xs text-foreground/80 bg-card rounded-lg px-3 py-2">
                 {importMsg}
               </div>
             )}
           </div>
         </Section>
 
-        <Section title="Danger zone" caption="Permanently remove your account and all of its content.">
+        <Section title="Danger zone">
           <AnimatePresence initial={false} mode="wait">
           {delState?.scheduled ? (
             <motion.div
@@ -618,7 +600,7 @@ export default function SettingsPage() {
               animate={{ opacity: 1, transform: 'translateY(0)' }}
               exit={{ opacity: 0, transform: 'translateY(-4px)' }}
               transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-              className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] px-4 py-3.5"
+              className="flex flex-col gap-3 rounded-xl bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] px-4 py-3.5"
             >
               <div className="flex items-start gap-2">
                 <AlertTriangle className="size-4 mt-0.5 shrink-0" />
@@ -681,9 +663,7 @@ export default function SettingsPage() {
           <span className="sajni-logo" aria-hidden="true" />
           <div>
             <div className="serif text-base font-semibold leading-tight">sajni</div>
-            <div className="mono text-xs label-kicker text-muted-foreground mt-0.5">
-              your second brain · v1
-            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">v1</div>
           </div>
         </div>
       </div>

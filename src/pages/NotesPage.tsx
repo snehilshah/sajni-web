@@ -484,17 +484,27 @@ export default function NotesPage() {
 
   const treeBody = (
     <>
-      <header className="px-4 py-3.5 border-b border-sidebar-border/60 shrink-0">
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold label-kicker text-muted-foreground">Notes</p>
-            <p className="mt-0.5 text-2xl font-medium tracking-tight">Library</p>
-          </div>
-          <span className="text-xs tabular-nums text-muted-foreground">{notesList.length} {notesList.length === 1 ? 'note' : 'notes'}</span>
-        </div>
+      {/* Title + create actions on one row; the actions end on the rail's
+          trailing edge (glyph-aligned), so nothing floats in a second row. */}
+      <header className="flex items-center gap-2 pl-4 pr-2 pt-3.5 pb-1 shrink-0">
+        <p className="flex-1 text-2xl font-medium tracking-tight">Notes</p>
+        <Button
+          onClick={() => { handleNew(); setMobileTreeOpen(false); }}
+          size="icon-sm" variant="ghost" className="rounded-full"
+          title="New note" aria-label="New note"
+        >
+          <FilePlus className="size-4" />
+        </Button>
+        <Button
+          onClick={() => { setShowNewFolder(''); setNewFolderName(''); }}
+          size="icon-sm" variant="ghost" className="rounded-full"
+          title="New folder" aria-label="New folder"
+        >
+          <FolderPlus className="size-4" />
+        </Button>
       </header>
 
-      <div className="p-2.5 border-b border-sidebar-border/60 flex flex-col gap-2 shrink-0">
+      <div className="p-2 flex flex-col gap-2 shrink-0">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
           <Input
@@ -514,22 +524,9 @@ export default function NotesPage() {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-1">
-          <Button
-            onClick={() => { handleNew(); setMobileTreeOpen(false); }}
-            size="xs" variant="ghost"
-            className="justify-start gap-1.5 font-normal text-xs"
-          >
-            <FilePlus className="size-3.5" /> New note
-          </Button>
-          <Button onClick={() => { setShowNewFolder(''); setNewFolderName(''); }} size="xs" variant="ghost" className="justify-start gap-1.5 font-normal text-xs">
-            <FolderPlus className="size-3.5" /> New folder
-          </Button>
-        </div>
       </div>
 
-      <section className="p-2 border-b border-sidebar-border/60 shrink-0" aria-label="Quick access">
-        <p className="px-2 pb-1 text-xs font-semibold label-kicker text-muted-foreground">Quick access</p>
+      <section className="px-2 pb-2 shrink-0" aria-label="Quick access">
         <button
           type="button"
           onClick={() => { setActiveFolder(null); setMobileTreeOpen(false); }}
@@ -562,8 +559,8 @@ export default function NotesPage() {
         </button>
       </section>
 
-      <div className="flex-1 min-h-0 overflow-y-auto py-2 px-1 stable-scrollbar">
-        <p className="px-3 pb-1 text-xs font-semibold label-kicker text-muted-foreground">Folders</p>
+      <div className="flex-1 min-h-0 overflow-y-auto pt-2 pb-2 px-2 stable-scrollbar">
+        <p className="px-2.5 pb-1 text-xs font-medium text-muted-foreground">Folders</p>
         {loading ? (
           <div className="px-2 py-2 flex flex-col gap-1.5">
             {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
@@ -994,9 +991,7 @@ function BrowseEmpty({
   return (
     <div className="flex-1 flex items-center justify-center p-8 text-center">
       <div className="max-w-xs text-muted-foreground">
-        <FileText className="size-10 mx-auto mb-3 opacity-25" />
-        <p className="text-sm font-medium text-foreground">Choose a note to start writing</p>
-        <p className="text-sm mt-1">Open one from your library, or begin a new long-form note.</p>
+        <p className="text-sm font-medium text-foreground">No note open</p>
         <div className="mt-4 flex items-center justify-center gap-2">
           {showLibraryButton && (
             <Button variant="outline" size="sm" onClick={onOpenLibrary}>
@@ -1247,8 +1242,8 @@ function FolderRowItem({
       role="treeitem"
       tabIndex={0}
       aria-expanded={expanded}
-      className="group relative my-px flex h-7 cursor-pointer items-center gap-1.5 rounded-[3px] pr-1 text-sm outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))]"
-      style={{ paddingLeft: `${depth * 14 + 8}px` }}
+      className="group relative flex min-h-11 md:min-h-8 cursor-pointer items-center gap-2 rounded-lg pr-2.5 text-sm outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))]"
+      style={{ paddingLeft: `${depth * 14 + 10}px` }}
       onClick={() => { onSelect(); onToggle(); }}
       onKeyDown={(event) => {
         if (event.currentTarget !== event.target) return;
@@ -1260,16 +1255,18 @@ function FolderRowItem({
       }}
     >
       {expanded ? (
-        <FolderOpen className="size-4 text-muted-foreground shrink-0" />
+        <FolderOpen className="size-3.5 text-muted-foreground shrink-0" />
       ) : (
-        <Folder className="size-4 text-muted-foreground shrink-0" />
+        <Folder className="size-3.5 text-muted-foreground shrink-0" />
       )}
-      <span className="flex-1 truncate text-foreground/90 text-[13px]">{node.name}</span>
-      <span className="text-xs tabular-nums text-muted-foreground group-hover:hidden">{count}</span>
-      {node.pinned && <Pin className="size-3 text-primary/70 shrink-0" aria-label="Pinned" />}
-      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity pr-1">
+      <span className="flex-1 truncate text-foreground/90 text-sm">{node.name}</span>
+      {node.pinned && <Pin className="size-3 text-muted-foreground shrink-0" aria-label="Pinned" />}
+      {/* The count owns the trailing edge; on hover the menu button takes
+          its place instead of pushing it inward. */}
+      <span className="text-sm tabular-nums text-muted-foreground group-hover:invisible group-focus-within:invisible">{count}</span>
+      <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden items-center group-hover:flex group-focus-within:flex">
         <button
-          className="size-6 rounded-[3px] hover:bg-[hsl(var(--surface-container-highest))] flex items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+          className="size-7 rounded-md hover:bg-[hsl(var(--surface-container-highest))] flex items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
           onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
           title="More"
           aria-label={`More options for ${node.name}`}
@@ -1281,7 +1278,7 @@ function FolderRowItem({
         <>
           <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
           <div
-            className="absolute right-1 top-7 z-40 min-w-[160px] rounded-md bg-popover shadow-lg p-1 text-foreground"
+            className="absolute right-1 top-full z-40 min-w-[160px] rounded-xl bg-popover shadow-lg p-1 text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -1336,19 +1333,19 @@ function NoteRowItem({
           onSelect();
         }
       }}
-      className={`group my-px flex h-7 cursor-pointer items-center gap-1.5 rounded-[3px] outline-none transition-colors text-[13px] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))] ${
+      className={`group relative flex min-h-11 md:min-h-8 cursor-pointer items-center gap-2 rounded-lg outline-none transition-colors text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))] ${
         selected
           ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
           : 'hover:bg-[hsl(var(--surface-container-high))] text-foreground/85'
       }`}
-      style={{ paddingLeft: `${depth * 14 + 8}px`, paddingRight: '4px' }}
+      style={{ paddingLeft: `${depth * 14 + 10}px`, paddingRight: '4px' }}
     >
       <FileText className="size-3.5 text-muted-foreground shrink-0" />
       <span className="flex-1 truncate">{note.title || 'Untitled'}</span>
-      {note.pinned && <Pin className="size-3 text-primary/70 shrink-0 group-hover:hidden" aria-label="Pinned" />}
+      {note.pinned && <Pin className="size-3 text-muted-foreground shrink-0 group-hover:hidden" aria-label="Pinned" />}
       <button
         onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-        className="opacity-0 group-hover:opacity-100 size-6 rounded-[3px] hover:bg-[hsl(var(--surface-container-highest))] hidden group-hover:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+        className="opacity-0 group-hover:opacity-100 size-7 rounded-md hover:bg-[hsl(var(--surface-container-highest))] hidden group-hover:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
         title={note.pinned ? 'Unpin' : 'Pin'}
         aria-label={`${note.pinned ? 'Unpin' : 'Pin'} ${note.title || 'Untitled'}`}
       >
@@ -1356,7 +1353,7 @@ function NoteRowItem({
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); onMove(); }}
-        className="opacity-0 group-hover:opacity-100 size-6 rounded-[3px] hover:bg-[hsl(var(--surface-container-highest))] flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+        className="opacity-0 group-hover:opacity-100 size-7 rounded-md hover:bg-[hsl(var(--surface-container-highest))] hidden group-hover:flex focus-visible:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
         title="Move"
         aria-label={`Move ${note.title || 'Untitled'}`}
       >
@@ -1389,7 +1386,7 @@ function FolderInput({
         }}
         onBlur={onConfirm}
         placeholder="folder name"
-        className="flex-1 h-6 px-1 text-[13px] bg-background border border-input rounded outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/40"
+        className="flex-1 h-8 px-2 text-sm"
       />
     </div>
   );

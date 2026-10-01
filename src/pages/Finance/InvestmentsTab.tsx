@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Repeat, Calendar } from '@/components/ui/icons';
+import { Plus, Trash2, Repeat } from '@/components/ui/icons';
 
 import { finance, type FinAccount, type FinInvestment, type InvDraft } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
@@ -17,6 +17,9 @@ import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { INVESTMENT_TYPES } from './utils';
 import { ListSkeleton } from './Skeletons';
+import { Stat, StatGroup } from './StatGroup';
+import { cardClass } from '@/components/ui/card';
+import { DateBadge } from '@/components/ui/state-chip';
 
 interface Props {
   accounts: FinAccount[];
@@ -43,18 +46,16 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard label="Invested" value={<AnimatedMoney value={totals.invested} />} />
-        <SummaryCard label="Current value" value={<AnimatedMoney value={totals.current} />} tone="primary" />
-        <SummaryCard
+      <StatGroup className="grid-cols-2 md:grid-cols-4">
+        <Stat label="Invested" value={<AnimatedMoney value={totals.invested} />} />
+        <Stat label="Current value" value={<AnimatedMoney value={totals.current} />} tone="primary" />
+        <Stat
           label={totals.gain >= 0 ? 'Gain' : 'Loss'}
-          value={<>{totals.gain >= 0 ? '+' : ''}<AnimatedMoney value={totals.gain} /> · {formatPercent(totals.gainPct, 1)}</>}
+          value={<>{totals.gain >= 0 ? '+' : ''}<AnimatedMoney value={totals.gain} /> <span className="text-base">{formatPercent(totals.gainPct, 1)}</span></>}
           tone={totals.gain >= 0 ? 'primary' : 'destructive'}
-          className="col-span-2 md:col-span-1"
         />
-        <SummaryCard label="Monthly outflow" value={<AnimatedMoney value={totals.monthly} />} />
-      </div>
+        <Stat label="Monthly outflow" value={<AnimatedMoney value={totals.monthly} />} />
+      </StatGroup>
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">Investments</h2>
@@ -66,9 +67,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
       {!loaded && investments.length === 0 ? (
         <ListSkeleton rows={4} />
       ) : investments.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No investments yet. Track SIPs, recurring deposits, fixed deposits and other investments here.
-        </div>
+        <p className="py-2 text-sm text-muted-foreground">No investments yet</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {investments.map((inv) => {
@@ -87,55 +86,48 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setEditing(inv); }}
-                className="rounded-xl bg-card p-4 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-[border-color,box-shadow] tap-highlight-none"
+                className={cardClass({ interactive: true }, 'p-4')}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{inv.name}</div>
-                    <div className="font-mono text-xs label-kicker text-muted-foreground">
+                    <div className="truncate text-xs text-muted-foreground">
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label ?? inv.type.replace('_', ' ')}
                       {inv.frequency === 'monthly' && inv.monthly_amount > 0 && ' · ' + formatMoney(inv.monthly_amount) + '/mo'}
                     </div>
                   </div>
-                  <Pencil className="size-3.5 text-muted-foreground shrink-0 mt-1" />
                 </div>
 
                 <div className="mt-3 flex items-baseline justify-between gap-2">
                   <div className="font-serif text-2xl font-semibold tabular-nums">
                     {formatMoney(inv.current_value)}
                   </div>
-                  <div className={`font-mono text-xs tabular-nums inline-flex items-center gap-1 ${positive ? 'text-primary' : 'text-destructive'}`}>
-                    {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                    {positive ? '+' : ''}{formatMoney(gain)} ({formatPercent(gainPct, 1)})
+                  <div className={`whitespace-nowrap text-sm font-medium tabular-nums ${positive ? 'text-primary' : 'text-destructive'}`}>
+                    {positive ? '+' : ''}{formatMoney(gain)} · {formatPercent(gainPct, 1)}
                   </div>
                 </div>
-                <div className="font-mono text-xs text-muted-foreground mt-1">
-                  Invested {formatMoney(inv.invested_amount)}
-                  {(inv.type === 'rd' || inv.type === 'fd')
-                    ? ' · estimated today'
-                    : inv.last_updated && ' · updated ' + format(parseISO(inv.last_updated), 'MMM d')}
+                <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+                  of {formatMoney(inv.invested_amount)} invested
+                  {!(inv.type === 'rd' || inv.type === 'fd') && inv.last_updated && ' · ' + format(parseISO(inv.last_updated), 'd MMM')}
                 </div>
 
+                {/* Cadence and dates as badges; auto-debit is the one that
+                    acts on its own, so it carries the accent. */}
                 {(inv.frequency !== 'lumpsum' || inv.maturity_date) && (
-                  <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <div className="mt-3 flex flex-wrap gap-1.5">
                     {inv.frequency !== 'lumpsum' && (
-                      <span className={`inline-flex items-center gap-1 ${inv.auto_debit ? 'text-primary' : ''}`}>
-                        <Repeat className="size-3" />
+                      <DateBadge tone={inv.auto_debit ? 'accent' : 'neutral'} icon={<Repeat />}>
                         {inv.frequency.charAt(0).toUpperCase() + inv.frequency.slice(1)}
                         {inv.auto_debit && ' · auto'}
-                      </span>
+                      </DateBadge>
                     )}
                     {inv.auto_debit && inv.next_debit_date && (
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="size-3" />
-                        Next debit {format(parseISO(inv.next_debit_date), 'd MMM')}
-                      </span>
+                      <DateBadge>Next {format(parseISO(inv.next_debit_date), 'd MMM')}</DateBadge>
                     )}
                     {inv.maturity_date && matDays !== null && (
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="size-3" />
-                        {matDays > 0 ? `${matDays}d to maturity` : matDays === 0 ? 'Matures today' : 'Matured'}
-                      </span>
+                      <DateBadge tone={matDays <= 0 ? 'positive' : 'neutral'}>
+                        {matDays > 0 ? `Matures in ${matDays}d` : matDays === 0 ? 'Matures today' : 'Matured'}
+                      </DateBadge>
                     )}
                   </div>
                 )}
@@ -156,19 +148,6 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
   );
 }
 
-function SummaryCard({ label, value, tone = 'default', className = '' }: { label: string; value: ReactNode; tone?: 'primary' | 'destructive' | 'default'; className?: string }) {
-  const tones: Record<string, string> = {
-    primary: 'text-primary',
-    destructive: 'text-destructive',
-    default: 'text-foreground',
-  };
-  return (
-    <div className={`rounded-xl bg-card p-4 ${className}`}>
-      <div className="font-mono text-xs label-kicker text-muted-foreground">{label}</div>
-      <div className={`font-serif text-xl md:text-2xl font-semibold tabular-nums mt-1 ${tones[tone]}`}>{value}</div>
-    </div>
-  );
-}
 
 function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   open: boolean;

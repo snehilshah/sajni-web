@@ -377,7 +377,7 @@ export default function TransactionsTab({
       {/* Filtering to a slate is how you ask "what did the trip cost" — so
           answer it, instead of leaving a bare filtered list. */}
       {viewing && (
-        <div className={cardClass({ variant: 'filled', accent: viewing.color }, 'flex items-center gap-3 pr-4 py-3')}>
+        <div className={cardClass({ variant: 'filled', accent: viewing.color }, 'flex items-center gap-3 px-4 py-3')}>
           <CardAccent color={viewing.color} />
           <div className="flex-1 min-w-0">
             <div className="truncate text-sm font-medium">{viewing.name}</div>
@@ -728,17 +728,19 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
   ].filter((f) => f.v > 0);
   if (figures.length === 0) return null;
   return (
-    <div className="flex flex-col gap-2 bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-8">
-      <span className="text-sm font-semibold sm:min-w-28">{label}</span>
-      <div className="grid grid-cols-4 gap-3 sm:flex sm:gap-8">
-      {figures.map((f) => (
-        <span key={f.name} className="flex min-w-0 flex-col">
-          <span className="text-xs text-muted-foreground">{f.name}</span>
-          <span className={cn('font-serif text-lg font-semibold tabular-nums leading-tight', f.cls)}>
-            {f.sign}{formatMoney(f.v)}
+    <div className="flex flex-col gap-2 bg-card px-4 py-3">
+      <span className="text-sm font-semibold">{label}</span>
+      {/* A figure never breaks: a 4-up grid on a phone split "−" from
+          "₹1,04,330". Two per row on phones, a wrapping row above that. */}
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8">
+        {figures.map((f) => (
+          <span key={f.name} className="flex flex-col">
+            <span className="text-xs text-muted-foreground">{f.name}</span>
+            <span className={cn('whitespace-nowrap font-serif text-lg font-semibold tabular-nums leading-tight', f.cls)}>
+              {f.sign}{formatMoney(f.v)}
+            </span>
           </span>
-        </span>
-      ))}
+        ))}
       </div>
     </div>
   );

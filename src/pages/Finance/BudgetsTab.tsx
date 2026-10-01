@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Tags, Check, Copy } from '@/components/ui/icons';
+import { Plus, Trash2, Tags, Check, Copy } from '@/components/ui/icons';
 
 import { finance, type BudgetDraft, type FinBudget, type FinCategory, type FinSlate } from '@/api';
 import { useFinBudgets } from '@/queries/finance';
@@ -11,6 +11,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { DateBadge } from '@/components/ui/state-chip';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
@@ -98,16 +99,12 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
       {!isSuccess && budgets.length === 0 ? (
         <CardsSkeleton count={3} />
       ) : budgets.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No budgets yet. A budget is a limit over a set of transactions: this
-          month's food, this week's spending, a trip. Dates are optional, and
-          nothing resets on its own.
-        </div>
+        <p className="py-2 text-sm text-muted-foreground">No budgets yet</p>
       ) : (
         <>
           {current.length > 0 && (
             <section className="flex flex-col gap-2">
-              <span className="text-xs font-mono label-kicker text-muted-foreground">Running</span>
+              <h3 className="text-sm font-medium text-muted-foreground">Running</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {current.map((b) => (
                   <BudgetCard
@@ -121,7 +118,7 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
 
           {past.length > 0 && (
             <section className="flex flex-col gap-2">
-              <span className="text-xs font-mono label-kicker text-muted-foreground">Closed</span>
+              <h3 className="text-sm font-medium text-muted-foreground">Closed</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {past.map((b) => (
                   <BudgetCard
@@ -188,13 +185,13 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-medium truncate">{b.name}</div>
-          <div className="font-mono text-xs label-kicker text-muted-foreground">
-            {b.start_date && b.end_date
-              ? format(new Date(b.start_date), 'MMM d') + ' → ' + format(new Date(b.end_date), 'MMM d, yyyy')
-              : 'no date limit'}
-          </div>
+          {b.start_date && b.end_date ? (
+            <div className="text-xs text-muted-foreground">
+              {format(new Date(b.start_date), 'd MMM') + ' – ' + format(new Date(b.end_date), 'd MMM yyyy')}
+            </div>
+          ) : null}
         </div>
-        <div className="flex shrink-0 items-center">
+        <div className="-mr-2 -mt-2 flex shrink-0 items-center">
           {/* Budgets never reset, so "next month" is an explicit copy. */}
           <button
             type="button"
@@ -205,44 +202,40 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
           >
             <Copy className="size-4" />
           </button>
-          <Pencil aria-hidden className="size-3.5 text-muted-foreground" />
         </div>
       </div>
 
       {filterSlates.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {filterSlates.map((p) => (
-            <span
-              key={p.id}
-              className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--secondary-container)/0.6)] px-1.5 py-0.5 font-mono text-xs text-foreground/80"
-            >
-              <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: p.color }} />
+            <DateBadge key={p.id} icon={<span aria-hidden className="!size-1.5 rounded-full" style={{ backgroundColor: p.color }} />}>
               {p.name}
-            </span>
+            </DateBadge>
           ))}
         </div>
       )}
 
       <div className="mt-3 flex items-baseline justify-between gap-2">
-        <div className={`font-serif text-2xl font-semibold tabular-nums ${overBudget ? 'text-destructive' : ''}`}>
+        <div className={`whitespace-nowrap font-serif text-2xl font-semibold tabular-nums ${overBudget ? 'text-destructive' : ''}`}>
           {formatMoney(b.spent)}
         </div>
-        <div className="font-mono text-xs text-muted-foreground tabular-nums">
-          of {formatMoney(b.total_amount)}
-        </div>
+        {overBudget ? (
+          <DateBadge tone="alert">Over by {formatMoney(b.spent - b.total_amount)}</DateBadge>
+        ) : (
+          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+            {formatPercent(pct)} of {formatMoney(b.total_amount)}
+          </span>
+        )}
       </div>
-      <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
         <div
-          className="h-full"
+          className="h-full rounded-full"
           style={{ width: pct + '%', backgroundColor: barColor }}
         />
       </div>
-      <div className="font-mono text-xs text-muted-foreground mt-1">
-        {formatPercent(pct)} used{overBudget && ' · over by ' + formatMoney(b.spent - b.total_amount)}
-      </div>
 
       {b.items.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border/50 flex flex-col gap-2">
+        <div className="mt-4 flex flex-col gap-2">
           {b.items.map((it) => {
             const cat = categories.find((c) => c.id === it.category_id);
             const ipct = it.amount > 0 ? Math.min((it.spent / it.amount) * 100, 100) : 0;
@@ -254,13 +247,13 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
                     <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat?.color || 'hsl(var(--outline))' }} />
                     <span className="text-xs truncate">{cat?.name || 'Uncategorized'}</span>
                   </div>
-                  <span className={`font-mono text-xs tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <span className={`whitespace-nowrap text-xs tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {formatMoney(it.spent)} / {formatMoney(it.amount)}
                   </span>
                 </div>
-                <div className="mt-1 h-1 bg-muted rounded-full overflow-hidden">
+                <div className="mt-1 h-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
                   <div
-                    className="h-full"
+                    className="h-full rounded-full"
                     style={{
                       width: ipct + '%',
                       backgroundColor: iover ? 'hsl(var(--destructive))' : (cat?.color || 'hsl(var(--primary))'),
@@ -501,9 +494,9 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
             </div>
           )}
 
-          <div className="border-t border-border pt-3">
+          <div>
             <div className="flex items-center justify-between mb-2">
-              <Label className="font-mono text-xs label-kicker text-muted-foreground">
+              <Label className="text-sm font-medium text-muted-foreground">
                 Category caps{capsTotal > 0 ? ` · ${formatMoney(capsTotal)}` : ''}
               </Label>
               <Button variant="outline" size="sm" onClick={addItem}>
@@ -511,10 +504,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
               </Button>
             </div>
             {items.length === 0 ? (
-              <div className="text-xs text-muted-foreground italic py-2">
-                Optional soft caps per category warn without blocking.
-                {slateIds.size > 0 && ' Caps count only the slates selected above.'}
-              </div>
+              <p className="text-xs text-muted-foreground">None</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {items.map((it, idx) => (

@@ -105,7 +105,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
     <div className="flex flex-col gap-6">
       <section aria-labelledby="slates-plain" className="flex flex-col gap-2">
         <h2 id="slates-plain" className="font-mono text-xs label-kicker text-muted-foreground">
-          Normal Life
+          Normal life
         </h2>
         {/* Plain is the baseline everything else is measured against, so it gets
             the width and the month figure rather than a lifetime total. */}
@@ -113,9 +113,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
           slate={plain}
           headline={plain ? formatMoney(plain.month_spend) : '–'}
           headlineLabel="this month"
-          meta={plain
-            ? `${plain.txn_count === 1 ? '1 transaction' : `${plain.txn_count} transactions`} · what your budgets count`
-            : ''}
+          meta={plain ? (plain.txn_count === 1 ? '1 transaction' : `${plain.txn_count} transactions`) : ''}
           onOpen={() => plain && onOpenSlate(plain.id)}
         />
       </section>
@@ -126,15 +124,14 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
             Outliers
           </h2>
           <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
+            <button
+              type="button"
               aria-pressed={showArchived}
               onClick={() => setShowArchived((v) => !v)}
-              className={cn(showArchived && 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}
+              className={cn('chip', showArchived && 'chip-selected')}
             >
-              <Archive className="size-4 md:mr-1" /> <span className="hidden md:inline">Archived</span>
-            </Button>
+              Archived
+            </button>
             <Button size="sm" onClick={() => setCreating(true)}>
               <Plus className="size-4 mr-1" /> New slate
             </Button>
@@ -142,14 +139,10 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
         </div>
 
         {outliers.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-8 text-center">
-            <p className="text-sm font-medium">No slates yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              A slate holds spending that isn't your normal life, a trip, a
-              wedding, a one-off purchase. Anything in one stops counting
-              against your ordinary budgets, so your baseline stays honest.
-            </p>
-          </div>
+          // One line, not a paragraph: what goes here and what it buys you.
+          <p className="py-2 text-sm text-muted-foreground">
+            Trips, weddings, one-off buys. Kept out of your budgets.
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {outliers.map((s) => (
@@ -175,10 +168,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
             Archived
           </h2>
           {archived.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing archived. Archiving keeps a finished trip out of the
-              pickers without touching its transactions or its budgets.
-            </p>
+            <p className="py-2 text-sm text-muted-foreground">Nothing archived</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {archived.map((s) => (
@@ -250,7 +240,8 @@ function SlateTile({
           // Wide and short. A container holding one number doesn't need a tall
           // box — the old ~1.7:1 tile was mostly air, and 28px of radius on it
           // read as a lozenge. Two columns keeps the ratio near 3:1.
-          'group flex items-center gap-3 py-3 pr-2',
+          'group flex items-center gap-3 py-3 pl-4',
+          hasMenu ? 'pr-2' : 'pr-4',
           dimmed && 'opacity-65 hover:opacity-100',
         ),
       )}

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ArrowDown, Pin, PinOff, Pencil, Trash2, Search, Loader2, Sparkles, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
+import { ArrowDown, Pin, PinOff, Pencil, Trash2, Search, Loader2, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
 import PageShell from '@/components/PageShell';
 
 export default function MemosPage() {
@@ -78,6 +78,8 @@ export default function MemosPage() {
   return (
     <PageShell
       title="Memos"
+      // A reading column: the header shares its edges with the feed.
+      columnClassName="max-w-3xl px-4 md:px-8"
       actions={
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -95,15 +97,11 @@ export default function MemosPage() {
         </div>
       }
     >
-      <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
-          {/* Composer — first entry of the timeline. Shares the exact
-              [rail | card] grid of the feed rows so every left edge lines
-              up; the rail says "now" where rows say "15s ago". */}
-          <div className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start">
-            <span className="mono text-xs text-[hsl(var(--primary))] text-right leading-none pt-[15px] select-none">
-              now
-            </span>
-            <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors p-1.5 pl-2.5">
+      <div className="w-full flex flex-col gap-6">
+          {/* Composer — first entry of the timeline, on the same edges as
+              every memo below it. Focus draws the ring; rest is tone only. */}
+          <div>
+            <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container-highest))] focus-within:ring-2 focus-within:ring-inset focus-within:ring-[hsl(var(--primary))] transition-shadow p-1.5 pl-2.5">
               <Textarea
                 ref={draftRef}
                 value={draft}
@@ -140,12 +138,7 @@ export default function MemosPage() {
             <div className="flex flex-col gap-7">
               {grouped.map(({ key, label, items }) => (
                 <section key={key} className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3 pl-1">
-                    <h2 className="serif text-sm font-semibold tracking-tight whitespace-nowrap">
-                      {label}
-                    </h2>
-                    <span className="flex-1 h-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
-                  </div>
+                  <h2 className="serif text-sm font-semibold tracking-tight">{label}</h2>
                   <AnimatePresence initial={false}>
                     {items.map((memo) => (
                       <MemoRow
@@ -191,15 +184,14 @@ function groupByDay(memos: Memo[]) {
 
 function EmptyState({ search, onClear }: { search: string; onClear: () => void }) {
   return (
-    <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
-      <Sparkles className="size-9 mx-auto mb-3 opacity-30" />
+    <div className="py-2 text-sm text-muted-foreground">
       {search ? (
         <>
-          <p className="text-sm">No memos match "{search}".</p>
+          <p>No memos match "{search}"</p>
           <Button variant="link" size="sm" onClick={onClear}>Clear search</Button>
         </>
       ) : (
-        <p className="text-sm">No memos yet. Capture your first thought above.</p>
+        <p>No memos yet</p>
       )}
     </div>
   );
@@ -248,29 +240,17 @@ function MemoRow({ memo, onOpen, onPin }: {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, transition: MEMO_EXIT }}
       transition={MEMO_ENTER}
-      className="grid grid-cols-[64px_minmax(0,1fr)] sm:grid-cols-[76px_minmax(0,1fr)] gap-2.5 sm:gap-3 items-start"
+      onClick={onOpen}
+      whileTap={{ scale: 0.99 }}
+      /* rounded-lg is 16px here, not Tailwind's 8 — index.css remaps the
+         whole scale onto M3's (the "large" card shape). */
+      className={`group relative flex cursor-pointer items-start gap-3 rounded-lg px-3.5 py-2.5 transition-colors ${
+        memo.pinned
+          ? 'bg-[hsl(var(--secondary-container)/0.45)] hover:bg-[hsl(var(--secondary-container)/0.65)]'
+          : 'bg-card hover:bg-[hsl(var(--surface-container-high))]'
+      }`}
     >
-      <span
-        className="mono text-xs text-muted-foreground text-right leading-none pt-[15px] select-none"
-        title={created.toLocaleString()}
-      >
-        {shortAgo(created)}
-      </span>
-
-      <motion.div
-        onClick={onOpen}
-        whileTap={{ scale: 0.99 }}
-        transition={MEMO_EXIT}
-        /* rounded-lg is 16px here, not Tailwind's 8 — index.css remaps the
-           whole scale onto M3's. This is the M3 "large" card shape; the
-           previous rounded-2xl resolved to 28px, which on a ~60px row read
-           as a capsule rather than a card. */
-        className={`group relative cursor-pointer rounded-lg px-3.5 py-2.5 transition-colors ${
-          memo.pinned
-            ? 'bg-[hsl(var(--secondary-container)/0.45)] hover:bg-[hsl(var(--secondary-container)/0.65)]'
-            : 'bg-[hsl(var(--surface-container-low))] hover:bg-[hsl(var(--surface-container))]'
-        }`}
-      >
+      <div className="min-w-0 flex-1">
         {/* Trailing-margin kill: markdown's last block otherwise pads the
             card bottom unevenly vs. the top. */}
         <div className="prose-sajni text-[14.5px] leading-relaxed line-clamp-3 [&>:last-child]:!mb-0 [&>:first-child]:!mt-0">
@@ -282,12 +262,22 @@ function MemoRow({ memo, onOpen, onPin }: {
             {memo.tags.map((t) => <TagPill key={t} tag={t} />)}
           </div>
         )}
+      </div>
 
-        {/* Pin — pinned shows a quiet corner glyph; hover swaps in the toggle. */}
+      {/* Trailing slot: the age on the card's edge (the day header carries
+          the date); hover swaps in the pin toggle in the same place. */}
+      <div className="relative -mr-1 flex h-[25px] shrink-0 items-center">
+        <span
+          className={`text-xs tabular-nums text-muted-foreground select-none group-hover:invisible ${memo.pinned ? 'invisible' : ''}`}
+          title={created.toLocaleString()}
+        >
+          {shortAgo(created)}
+        </span>
         <button
           onClick={(e) => { e.stopPropagation(); onPin(memo); }}
           title={memo.pinned ? 'Unpin' : 'Pin'}
-          className={`absolute top-2 right-2 size-7 rounded-full flex items-center justify-center transition-opacity ${
+          aria-label={memo.pinned ? 'Unpin memo' : 'Pin memo'}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 size-7 rounded-full flex items-center justify-center transition-opacity ${
             memo.pinned
               ? 'text-[hsl(var(--on-secondary-container))] opacity-70 hover:opacity-100'
               : 'text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] opacity-0 group-hover:opacity-100'
@@ -295,7 +285,7 @@ function MemoRow({ memo, onOpen, onPin }: {
         >
           {memo.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
         </button>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
