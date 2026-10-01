@@ -600,7 +600,7 @@ function LedgerRow({
 
   return (
     <div
-      className={`group relative flex items-stretch border-b border-border last:border-0 transition-colors ${
+      className={`group relative flex min-h-12 items-stretch border-b border-border last:border-0 transition-colors ${
         checked ? 'bg-[hsl(var(--secondary-container)/0.5)]' : 'hover:bg-accent/40'
       }`}
     >
@@ -626,7 +626,7 @@ function LedgerRow({
                 44px target simply selects. */}
             <span
               className={cn(
-                'relative grid size-9 place-items-center rounded-xl text-sm font-semibold transition-opacity group-hover:opacity-0',
+                'relative grid size-8 place-items-center rounded-[10px] text-[13px] font-semibold transition-opacity group-hover:opacity-0',
                 !hue && 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground',
               )}
               style={hue ? { backgroundColor: `color-mix(in srgb, ${hue} 20%, transparent)`, color: ink } : undefined}
@@ -638,11 +638,11 @@ function LedgerRow({
                   className={cn(
                     // Filled in the direction's colour, ringed in the row's
                     // surface so it reads as a badge on the tile.
-                    'absolute -bottom-1 -right-1 grid size-[18px] place-items-center rounded-full ring-2 ring-[hsl(var(--card))] text-white',
+                    'absolute -bottom-0.5 -right-1 grid size-4 place-items-center rounded-full ring-2 ring-[hsl(var(--card))] text-white',
                     isExpense ? 'bg-destructive' : 'bg-[hsl(var(--color-complete))]',
                   )}
                 >
-                  {isExpense ? <ArrowUpRight className="size-2.5" strokeWidth={3} /> : <ArrowDownLeft className="size-2.5" strokeWidth={3} />}
+                  {isExpense ? <ArrowUpRight className="size-2.5" strokeWidth={3.25} /> : <ArrowDownLeft className="size-2.5" strokeWidth={3.25} />}
                 </span>
               )}
             </span>
