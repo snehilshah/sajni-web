@@ -636,8 +636,10 @@ function LedgerRow({
                 <span
                   aria-label={isExpense ? 'Expense' : 'Income'}
                   className={cn(
-                    'absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-[hsl(var(--surface-container-highest))]',
-                    isExpense ? 'text-destructive' : 'text-[hsl(var(--color-complete))]',
+                    // Filled in the direction's colour, ringed in the row's
+                    // surface so it reads as a badge on the tile.
+                    'absolute -bottom-1 -right-1 grid size-[18px] place-items-center rounded-full ring-2 ring-[hsl(var(--card))] text-white',
+                    isExpense ? 'bg-destructive' : 'bg-[hsl(var(--color-complete))]',
                   )}
                 >
                   {isExpense ? <ArrowUpRight className="size-2.5" strokeWidth={3} /> : <ArrowDownLeft className="size-2.5" strokeWidth={3} />}
