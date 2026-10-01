@@ -584,16 +584,14 @@ function LedgerRow({
   const isLend = t.type === 'lend';
   const isLendRepayment = t.type === 'lend_repayment';
   const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
-  // The tile carries the *type* (money out / in / moved / lent) in theme
-  // roles; the category gets its own colour as a pill, so the two never
-  // compete for the same signal.
-  const typeTone = isLend || isLendRepayment
-    ? 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]'
-    : isTransfer
-      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-      : isExpense
-        ? 'bg-[hsl(var(--destructive)/0.14)] text-destructive'
-        : 'bg-[hsl(var(--color-complete)/0.16)] text-[hsl(var(--color-complete))]';
+  const isMove = isTransfer || isLend || isLendRepayment;
+  const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'));
+  // Identity tile, like a merchant logo: the payee's initial on a tint of
+  // the category colour; moves get a neutral glyph. The corner arrow is the
+  // type, so nothing on the row needs a badge.
+  const hue = isMove ? null : (t.category_color || '#6B7280');
+  const ink = hue ? `color-mix(in srgb, ${hue} 70%, hsl(var(--foreground)))` : undefined;
+  const initial = (title.match(/[\p{L}\p{N}]/u)?.[0] ?? '•').toUpperCase();
   // Plain is silent: only an outlier earns a spine and a chip. `slate` can be
   // missing while the slates query is still in flight — treat that as silent
   // rather than guessing, so nothing flickers a wrong colour.
@@ -626,8 +624,25 @@ function LedgerRow({
             {/* Cross-fade the category glyph into an empty checkbox on hover:
                 the affordance is discoverable on a pointer, and on touch the
                 44px target simply selects. */}
-            <span className={cn('grid size-8 place-items-center rounded-md transition-opacity group-hover:opacity-0', typeTone)}>
-              <Icon className="size-4" />
+            <span
+              className={cn(
+                'relative grid size-9 place-items-center rounded-xl text-sm font-semibold transition-opacity group-hover:opacity-0',
+                !hue && 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground',
+              )}
+              style={hue ? { backgroundColor: `color-mix(in srgb, ${hue} 20%, transparent)`, color: ink } : undefined}
+            >
+              {isMove ? <Icon className="size-4" /> : initial}
+              {!isMove && (
+                <span
+                  aria-label={isExpense ? 'Expense' : 'Income'}
+                  className={cn(
+                    'absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-[hsl(var(--surface-container-highest))]',
+                    isExpense ? 'text-destructive' : 'text-[hsl(var(--color-complete))]',
+                  )}
+                >
+                  {isExpense ? <ArrowUpRight className="size-2.5" strokeWidth={3} /> : <ArrowDownLeft className="size-2.5" strokeWidth={3} />}
+                </span>
+              )}
             </span>
             <span className="absolute grid size-8 place-items-center rounded-md border border-[hsl(var(--outline))] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
               <Check className="size-4" />
@@ -646,9 +661,7 @@ function LedgerRow({
         className={cn(GRID, TRAIL, 'flex-1 min-w-0 gap-y-0.5 py-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))] active:bg-accent/60 tap-highlight-none')}
       >
         <div className="min-w-0 md:col-start-1">
-          <div className="text-sm font-medium truncate">
-            {t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'))}
-          </div>
+          <div className="text-sm font-medium truncate">{title}</div>
           {(outlier || tags.length > 0) && (
             <div className="flex flex-wrap gap-1 mt-1">
               {outlier && (
@@ -680,8 +693,8 @@ function LedgerRow({
           <span className="shrink-0 tabular-nums">{formatTxnTime(t.txn_at)}</span>
           <span aria-hidden className="md:hidden">·</span>
           <span className="flex min-w-0 items-center truncate">
-            {!isLend && !isLendRepayment && !isTransfer && t.category_name ? (
-              <CategoryPill name={t.category_name} color={t.category_color} />
+            {!isMove && t.category_name ? (
+              <span className="truncate font-sans font-medium" style={{ color: ink }}>{t.category_name}</span>
             ) : (
               <span className="truncate">
                 {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : 'Uncategorized'}
@@ -696,7 +709,7 @@ function LedgerRow({
         </div>
 
         <div className={`col-start-2 row-start-1 row-span-2 self-center text-right font-mono text-sm tabular-nums md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
-          isExpense ? 'text-destructive' : isLend || isTransfer ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
+          isExpense ? 'text-foreground' : isLend || isTransfer ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
         }`}>
           {isExpense || isLend ? '−' : !isTransfer ? '+' : ''}{formatMoney(t.amount)}
         </div>
@@ -753,26 +766,4 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
       </div>
     </div>
   );
-}
-
-/** Category as a solid pill in its own colour. Text flips dark/light on
- *  the fill's luminance so any user-picked colour stays legible. */
-export function CategoryPill({ name, color, className }: { name: string; color?: string | null; className?: string }) {
-  const bg = color || '#6B7280';
-  return (
-    <span
-      className={cn('inline-block max-w-full truncate rounded-full px-2 py-0.5 font-sans text-xs font-medium leading-4', className)}
-      style={{ backgroundColor: bg, color: readableOn(bg) }}
-    >
-      {name}
-    </span>
-  );
-}
-
-function readableOn(hex: string): string {
-  const h = hex.replace('#', '');
-  if (h.length < 6) return '#fff';
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#1f1f1f' : '#ffffff';
 }

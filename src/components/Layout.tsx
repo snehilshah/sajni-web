@@ -272,6 +272,30 @@ function SearchIsland({ onOpen }: { onOpen: () => void }) {
 // ─── Bottom dock (mobile) ────────────────────────────────────────────────
 // Always visible: nav must stay in thumb reach. Icons scroll horizontally
 // when they overflow; search + avatar are pinned at the trailing edge.
+/** Pixels of the layout viewport hidden under browser chrome at the bottom
+ *  (a bottom URL bar that overlays instead of resizing). Zero when the
+ *  browser resizes the viewport, zoomed in, or the keyboard is the cause. */
+function useBottomOcclusion() {
+  const [px, setPx] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const gap = window.innerHeight - (vv.height + vv.offsetTop);
+      // > 160px is the on-screen keyboard (the dock hides for that anyway).
+      setPx(vv.scale > 1.01 || gap < 1 || gap > 160 ? 0 : Math.round(gap));
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return px;
+}
+
 function BottomDock({
   pathname, hidden, onOpenCommand, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
 }: {
@@ -284,6 +308,7 @@ function BottomDock({
   setAccountMenuOpen: (open: boolean) => void;
 }) {
   const pointerX = useMotionValue(Infinity);
+  const occluded = useBottomOcclusion();
   return (
     <motion.div
       initial={false}
@@ -291,8 +316,12 @@ function BottomDock({
       // the whole shortened viewport.
       animate={{ transform: hidden ? 'translateY(96px)' : 'translateY(0)', opacity: hidden ? 0 : 1 }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-      className="fixed inset-x-0 z-40 md:hidden flex justify-center px-3 pointer-events-none"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
+      // Anchored to the 100dvh shell (absolute), not the layout viewport
+      // (fixed): a bottom URL bar shrinks dvh as it slides in, so the dock
+      // rides above it instead of being covered. `occluded` covers browsers
+      // that overlay their bar without resizing the viewport.
+      className="absolute inset-x-0 z-40 md:hidden flex justify-center px-3 pointer-events-none"
+      style={{ bottom: `calc(env(safe-area-inset-bottom, 0px) + ${10 + occluded}px)` }}
     >
       <nav
         className="pointer-events-auto flex items-center gap-0.5 h-14 max-w-full pl-1.5 pr-2 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]"
