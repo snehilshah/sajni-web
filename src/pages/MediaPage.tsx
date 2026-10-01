@@ -25,7 +25,7 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings, Play, Check, Sparkles, Clock, Hourglass, Archive } from '@/components/ui/icons';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings } from '@/components/ui/icons';
 // No pixel match for these two — straight lucide (same as the shim's passthroughs).
 import { GalleryHorizontalEnd, Table2 } from 'lucide-react';
 
@@ -1738,6 +1738,7 @@ function EmptyState({ type, hasFilter, onAdd, onClear }: { type: string; hasFilt
 }
 
 function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; onClick: (source: HTMLElement) => void; morphOpen?: boolean }) {
+  const statusDisplay = mediaStatusDisplay(item);
   const Icon = TYPE_META[item.type]?.icon || Film;
   const showProgress = item.episodes_total > 0;
 
@@ -1783,9 +1784,18 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
           </div>
         )}
 
-        {/* Status as a small filled glyph on the poster corner (the
-            transaction tile's direction-badge pattern); Pending shows none. */}
-        <MediaStatusDot item={item} className="absolute top-2 right-2" />
+        {/* Status pill — dot + sentence-case short label. Sentence case at
+            normal tracking keeps every status ("In progress", "Complete")
+            inside a 2-col phone grid tile without truncating to COMPL…. */}
+        {item.status !== 'pending' && <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
+          <span
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-background/95 pl-2 pr-2.5 h-6 text-xs font-medium shadow-sm ring-1 ring-foreground/10"
+            title={statusDisplay.label}
+          >
+            <span className="size-1.5 rounded-full shrink-0" style={{ background: statusDisplay.color }} />
+            <span className="truncate">{statusDisplay.shortLabel}</span>
+          </span>
+        </div>}
 
         {/* Rating */}
         {item.rating ? (
@@ -1978,32 +1988,6 @@ function progressLabel(item: MediaEntry): string {
   return '';
 }
 
-/** Media status as a small filled glyph, ringed in the surface colour.
- *  Pending is the default state of a library item and shows nothing. */
-function MediaStatusDot({ item, className, ring = 'ring-background' }: { item: MediaEntry; className?: string; ring?: string }) {
-  const upcoming = isUpcomingRelease(item);
-  const status = upcoming ? 'upcoming' : item.status;
-  const spec: Record<string, [string, typeof Play]> = {
-    in_progress: ['bg-primary text-primary-foreground', Play],
-    complete: ['bg-[hsl(var(--color-complete))] text-white', Check],
-    new_season: ['bg-[hsl(var(--tertiary))] text-[hsl(var(--on-tertiary))]', Sparkles],
-    upcoming: ['bg-[hsl(var(--tertiary))] text-[hsl(var(--on-tertiary))]', Clock],
-    waiting: ['bg-[hsl(var(--secondary))] text-[hsl(var(--on-secondary))]', Hourglass],
-    dropped: ['bg-destructive text-white', X],
-    scratched: ['bg-[hsl(var(--outline))] text-background', X],
-    archived: ['bg-[hsl(var(--outline))] text-background', Archive],
-  };
-  const s = spec[status];
-  if (!s) return null;
-  const [tone, Glyph] = s;
-  const label = mediaStatusDisplay(item).label;
-  return (
-    <span role="img" aria-label={label} title={label} className={cn('grid size-6 place-items-center rounded-full ring-2', ring, tone, className)}>
-      <Glyph className="size-3.5" />
-    </span>
-  );
-}
-
 function chipClassFor(status: MediaStatus): string {
   switch (status) {
     case 'in_progress': return 'chip-amber';
@@ -2058,6 +2042,7 @@ function MediaListRow({
 }) {
   const pct = listProgressPct(item);
   const hasProgress = pct !== null;
+  const statusDisplay = mediaStatusDisplay(item);
   return (
     <button
       onClick={(e) => {
@@ -2090,15 +2075,12 @@ function MediaListRow({
       )}
 
       <div className="relative flex items-center gap-3 min-w-0">
-        <span className="relative shrink-0">
-          <MediaThumb
-            item={item}
-            index={index}
-            variant="sm"
-            className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
-          />
-          <MediaStatusDot item={item} className="absolute -right-1 -top-1" ring="ring-[hsl(var(--surface-container-low))]" />
-        </span>
+        <MediaThumb
+          item={item}
+          index={index}
+          variant="sm"
+          className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
+        />
 
         <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
           <div className="flex items-center gap-2 min-w-0">
@@ -2133,7 +2115,26 @@ function MediaListRow({
           )}
         </div>
 
-        {!hasProgress && <RowRail rating={item.rating || 0} chip={null} />}
+        {hasProgress ? (
+          <span
+            className={cn('chip h-6 shrink-0 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
+            title={statusDisplay.label}
+          >
+            <span className="truncate">{statusDisplay.shortLabel}</span>
+          </span>
+        ) : (
+          <RowRail
+            rating={item.rating || 0}
+            chip={item.status === 'pending' ? null : (
+              <span
+                className={cn('chip h-6 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
+                title={statusDisplay.label}
+              >
+                <span className="truncate">{statusDisplay.shortLabel}</span>
+              </span>
+            )}
+          />
+        )}
       </div>
     </button>
   );

@@ -226,14 +226,16 @@ export default function TodayPage() {
 
 					{/* Capture bar */}
 					{/* One tonal surface; the field is the surface (no box inside a box). */}
-					<div className="rounded-xl bg-card px-5 pt-3 pb-4 mt-9 fade-in focus-within:ring-2 focus-within:ring-ring/45">
+					{/* Focus shows once, as a hairline on the card — the textarea's own
+					    inset ring doubled it and cut into the placeholder. */}
+					<div className="rounded-xl bg-card px-5 pt-3 pb-4 mt-9 fade-in transition-shadow focus-within:shadow-[inset_0_0_0_1px_hsl(var(--outline))]">
 						<Textarea
 							value={capture}
 							onChange={(e) => setCapture(e.target.value)}
 							onKeyDown={onCaptureKey}
 							placeholder="A thought, a task, a #tag…"
 							rows={2}
-							className="text-base leading-[1.55] min-h-[72px] border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 focus-visible:border-0"
+							className="text-base leading-[1.55] min-h-[72px] border-0 bg-transparent px-0 shadow-none focus-visible:shadow-none focus-visible:ring-0 focus-visible:border-0"
 						/>
 						<div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
 							<div className="flex gap-1.5">
