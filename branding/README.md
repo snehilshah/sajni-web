@@ -28,8 +28,11 @@ image library or runtime dependency is needed. Review both repositories' diffs.
 - SVG favicons follow browser/system appearance, independently of app mode.
   Both have an opaque backing without an outline. ICO and PNG fallbacks use
   dark artwork on cream so either tab background works.
-- Apple/PWA icons have opaque backgrounds. Maskable icons keep the complete
-  bloom inside the central 80% diameter safe circle.
+- Regular PWA icons (`purpose: any`, `icon-any.svg`) have transparent canvases
+  with a narrow cream edge following the flower for contrast on dark launchers.
+  Apple and Play Store exports continue to use the opaque `icon.svg` tile.
+  Maskable PWA icons remain opaque and keep the complete bloom inside the
+  central 80% diameter safe circle. Do not reuse the regular icon for these.
 
 ## Android
 

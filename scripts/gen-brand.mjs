@@ -43,7 +43,21 @@ execFileSync('magick', [16, 32, 48].map(n => publicFile(`favicon/favicon-${n}.pn
 const tile = (scale) => svg(`<path fill="${cream}" d="M0 0H256V256H0Z"/><g transform="translate(${128*(1-scale)} ${128*(1-scale)}) scale(${scale})">${mark(ink)}</g>`);
 const tileFile = publicFile('favicon/icon.svg');
 save(tileFile, tile(.84));
-for (const size of [192, 512]) raster(tileFile, publicFile(`favicon/icon-${size}.png`), size);
+// Desktop launchers supply their own tile. Keep the regular PWA canvas
+// transparent; a narrow shape-following keyline preserves dark-surface contrast.
+// Apple and Play Store exports below must continue using the opaque tileFile.
+const regularFile = publicFile('favicon/icon-any.svg');
+save(regularFile, svg(`<g transform="translate(20.48 20.48) scale(.84)"><path fill="none" stroke="${cream}" stroke-width="4" stroke-linejoin="round" d="${art.path}"/>${mark(ink)}</g>`));
+for (const size of [192, 512]) {
+  const dest = publicFile(`favicon/icon-${size}.png`);
+  raster(regularFile, dest, size);
+  // Explicit alpha dilation also works with ImageMagick SVG delegates that
+  // omit SVG strokes. Keep the canvas transparent instead of flattening it.
+  execFileSync('magick', [dest, '(', '+clone', '-alpha', 'extract',
+    '-morphology', 'Dilate', `Disk:${Math.max(1, Math.round(size / 128))}`,
+    '-background', cream, '-alpha', 'shape', ')', '+swap',
+    '-compose', 'over', '-composite', '-depth', '8', '-strip', dest]);
+}
 raster(tileFile, publicFile('favicon/apple-touch-icon.png'), 180);
 const maskFile = publicFile('favicon/icon-maskable.svg');
 // Entire mark fits within the PWA maskable icon's central 80% diameter circle.
