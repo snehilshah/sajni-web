@@ -1,12 +1,15 @@
-import { useState } from 'react';
-import { Plus, MoreVertical, Pencil, Trash2 } from '@/components/ui/icons';
+import { useState, type CSSProperties } from 'react';
+import {
+  Plus, MoreVertical, Pencil, Trash2, ListChecks, Sun, Star, CalendarDays, CalendarRange,
+  Calendar, AlarmClock, Ban, CalendarClock, Inbox, List, type LucideIcon,
+} from '@/components/ui/icons';
 
 import type { TaskList, SmartList } from '@/types';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { SMART_LISTS, type Selection } from './helpers';
+import { SMART_LISTS, SMART_LIST_HUES, type Selection } from './helpers';
 import { confirmDialog } from '@/lib/confirm';
 
 
@@ -20,6 +23,22 @@ interface Props {
   /** Live counts for smart pills (only Missed renders one today). */
   smartCounts?: Partial<Record<SmartList, number>>;
 }
+
+const SMART_ICONS: Record<SmartList, LucideIcon> = {
+  all: ListChecks, my_day: Sun, important: Star, planned: CalendarDays, week: CalendarRange,
+  month: Calendar, scheduled: AlarmClock, blocked: Ban, missed: CalendarClock, inbox: Inbox,
+};
+
+// One pill look for smart lists and user lists: the glyph carries the list's
+// hue on a quiet neutral pill; the selected pill fills with a soft wash of
+// that hue, its label goes to full ink and a hairline of the hue marks it.
+// `--hue` is mixed toward on-surface for the glyph so it holds contrast in
+// light and dark alike.
+const pillBase = 'inline-flex items-center gap-1.5 h-9 rounded-full text-[13px] whitespace-nowrap shrink-0 border transition-colors';
+const pillOn = 'font-semibold text-foreground border-[color-mix(in_oklab,var(--hue)_45%,transparent)] bg-[color-mix(in_oklab,var(--hue)_16%,hsl(var(--surface)))]';
+const pillOff = 'font-medium text-muted-foreground border-transparent bg-[hsl(var(--surface-container))] hover:text-foreground hover:bg-[hsl(var(--surface-container-high))]';
+const glyph = 'size-4 shrink-0 text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]';
+const hueVar = (hue: string) => ({ '--hue': hue }) as CSSProperties;
 
 // PillScroller — horizontal swipeable row replacing the old vertical
 // rail. Works identically on mobile and desktop, snaps cleanly, hides
@@ -58,26 +77,22 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       {SMART_LISTS.map((s) => {
         const active = selection.kind === 'smart' && selection.smart === s.smart;
         const count = smartCounts?.[s.smart] ?? 0;
-        // Missed is the one smart pill that flags a count, tinted as an alert
-        // so a pile of overdue tasks reads at a glance.
-        const isMissedAlert = s.smart === 'missed' && count > 0;
+        const Icon = SMART_ICONS[s.smart];
+        const hue = SMART_LIST_HUES[s.smart]
+          ?? (s.smart === 'missed' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))');
         return (
           <button
             key={s.smart}
             onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
-            className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
-              ${active
-                ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
-                : isMissedAlert
-                  ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] border border-transparent'
-                  : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground border border-transparent hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))]'}`}
+            style={hueVar(hue)}
+            className={`${pillBase} pl-3 pr-3.5 ${active ? pillOn : pillOff}`}
             title={s.description}
+            aria-pressed={active}
           >
+            <Icon className={glyph} aria-hidden />
             {s.label}
             {count > 0 && (
-              <span className={`text-xs tabular-nums rounded-full px-1.5 leading-[1.4] ${
-                isMissedAlert && !active ? 'bg-[hsl(var(--error))] text-[hsl(var(--on-error))]' : 'bg-foreground/10'
-              }`}>
+              <span className="text-xs font-semibold tabular-nums text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]">
                 {count}
               </span>
             )}
@@ -93,14 +108,12 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
         return (
           <div
             key={l.id}
-            className={`group inline-flex items-center h-9 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors
-              ${active
-                ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent'
-                : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground border border-transparent hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))]'}`}
+            style={hueVar(l.color || 'hsl(var(--primary))')}
+            className={`group ${pillBase} gap-0 ${active ? pillOn : pillOff}`}
           >
             {isEditing ? (
               <span className="inline-flex items-center gap-1 h-full pl-3.5 pr-1.5">
-                <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
+                <List className={glyph} aria-hidden />
                 <Input
                   name={`rename-list-${l.id}`}
                   autoFocus
@@ -120,9 +133,10 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
               <button
                 type="button"
                 onClick={() => onSelect({ kind: 'list', id: l.id })}
-                className={`inline-flex items-center gap-1 h-full pl-3.5 rounded-full text-left ${onRename || onDelete ? 'pr-0.5' : 'pr-3.5'}`}
+                className={`inline-flex items-center gap-1.5 h-full pl-3 rounded-full text-left ${onRename || onDelete ? 'pr-0.5' : 'pr-3.5'}`}
+                aria-pressed={active}
               >
-                <span className="size-2 rounded-full shrink-0" style={{ background: l.color }} />
+                <List className={glyph} aria-hidden />
                 {l.name}
                 {l.task_count > 0 && (
                   <span className="text-xs tabular-nums opacity-70 ml-1">{l.task_count}</span>

@@ -50,6 +50,22 @@ export type Selection =
   | { kind: 'smart'; smart: SmartList }
   | { kind: 'list'; id: number };
 
+/** Glyph + hue per smart list (mirrors Android `SMART_LOOK`) so a list is
+ *  recognised by colour and shape before its label is read. `null` hue =
+ *  theme primary (All) / error (Missed). */
+export const SMART_LIST_HUES: Record<SmartList, string | null> = {
+  all: null,
+  my_day: '#E3A21A',
+  week: '#2E9E8F',
+  month: '#8B6FD6',
+  important: '#E0567B',
+  planned: '#3F7FE0',
+  scheduled: '#5C6BC0',
+  blocked: '#C7743B',
+  missed: null,
+  inbox: '#7A8794',
+};
+
 export const SMART_LISTS: { smart: SmartList; label: string; description: string }[] = [
   { smart: 'my_day', label: 'My Day', description: 'Tasks due today' },
   { smart: 'important', label: 'Important', description: 'Starred tasks' },
