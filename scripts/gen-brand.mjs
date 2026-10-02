@@ -33,9 +33,9 @@ for (const [name, color] of [['logo-name.svg', cream], ['logo-name-dark.svg', in
   save(publicFile(name), svg(`${mark(color)}<text x="280" y="166" fill="${color}" font-family="Georgia,serif" font-size="104" font-style="italic">sajni</text>`, 'Sajni', '0 0 540 256'));
 }
 for (const [name, color, bg] of [['favicon.svg', ink, cream], ['favicon-dark.svg', cream, ink]]) {
-  // A two-tone perimeter and opaque backing remain visible on browser chrome
-  // regardless of the website's selected theme or browser theme extensions.
-  save(publicFile(`favicon/${name}`), svg(`<circle cx="128" cy="128" r="126" fill="${color}"/><circle cx="128" cy="128" r="119" fill="${bg}"/><g transform="translate(18 18) scale(.859375)">${mark(color)}</g>`, 'Sajni favicon'));
+  // Flat backing only: a contrasting rim becomes a distracting white outline
+  // on dark browser tabs. Fixed brand colours never inherit a browser accent.
+  save(publicFile(`favicon/${name}`), svg(`<circle cx="128" cy="128" r="126" fill="${bg}"/><g transform="translate(10 10) scale(.921875)">${mark(color)}</g>`, 'Sajni favicon'));
 }
 const favicon = publicFile('favicon/favicon.svg');
 for (const size of [16, 32, 48, 96]) raster(favicon, publicFile(`favicon/favicon-${size}.png`), size);

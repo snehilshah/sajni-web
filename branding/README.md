@@ -26,7 +26,7 @@ image library or runtime dependency is needed. Review both repositories' diffs.
 - `logo-name*.svg` are horizontal name lockups. `logo.png` and `logo-light.png`
   are transparent 1024px exports.
 - SVG favicons follow browser/system appearance, independently of app mode.
-  Both have an opaque backing and contrasting rim. ICO and PNG fallbacks use
+  Both have an opaque backing without an outline. ICO and PNG fallbacks use
   dark artwork on cream so either tab background works.
 - Apple/PWA icons have opaque backgrounds. Maskable icons keep the complete
   bloom inside the central 80% diameter safe circle.
