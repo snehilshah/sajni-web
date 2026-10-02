@@ -7,6 +7,7 @@
 		"node": "24.x"
 	},
 	"scripts": {
+		"brand:generate": "node scripts/gen-brand.mjs",
 		"dev": "vite --host",
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",

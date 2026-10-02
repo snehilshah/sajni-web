@@ -8,14 +8,38 @@
   "background_color": "#F4ECDB",
   "theme_color": "#B53A2D",
   "icons": [
-    { "src": "/favicon/icon-192.png",          "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/favicon/icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/favicon/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/favicon/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/favicon/icon-192.png?v=bloom-1",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon/icon-512.png?v=bloom-1",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon/icon-192-maskable.png?v=bloom-1",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon/icon-512-maskable.png?v=bloom-1",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "share_target": {
     "action": "/share-target",
     "method": "GET",
-    "params": { "title": "title", "text": "text", "url": "url" }
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
   }
 }

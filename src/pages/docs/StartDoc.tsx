@@ -43,8 +43,9 @@ export default function StartDoc() {
           </Feature>
           <Feature name="The mark">
             <p>
-              The app icon is a mehendi (henna) motif, dark paisleys on
-              cream. Ornament with intent: hand-drawn, Indian, unhurried.
+              The app icon is a mehendi-inspired flower: eight curved petals
+              growing from a vermilion centre, framed by small henna dots.
+              It follows light, dark, and Android wallpaper themes.
             </p>
           </Feature>
           <Feature name="Type">

@@ -230,19 +230,31 @@ pre, code, samp, .font-code {
 }
 
 /* ============================================================
-   Brand mark — uses dark/light SVG variants directly. No forced tile.
+   Brand mark — transparent artwork follows the actual app theme, including
+   custom palettes. Separate masks keep the vermilion heart in every mode.
    ============================================================ */
 .sajni-logo {
   width: 28px; height: 28px;
-  background-image: url('/logo-dark.svg');
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
+  position: relative;
+  display: inline-block;
   flex-shrink: 0;
 }
 
-[data-mode="dark"] .sajni-logo {
-  background-image: url('/logo.svg');
+.sajni-logo::before,
+.sajni-logo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.sajni-logo::before {
+  background: currentColor;
+  mask: url('/logo-monochrome.svg') center / contain no-repeat;
+}
+
+.sajni-logo::after {
+  background: #B53A2D; /* Fixed brand pigment, not a semantic alert colour. */
+  mask: url('/logo-center.svg') center / contain no-repeat;
 }
 
 /* ============================================================
