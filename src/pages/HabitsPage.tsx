@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { inkOn } from '@/lib/ink';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
@@ -514,16 +515,16 @@ function RhythmLedger({
                   className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-card px-2 py-3 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   title={`Edit ${habit.name}`}
                 >
-                  <span
-                    aria-hidden
-                    className="grid size-9 shrink-0 place-items-center rounded-2xl"
-                    style={{ backgroundColor: `${habit.color}22` }}
-                  >
-                    <span className="size-3 rounded-full" style={{ backgroundColor: habit.color }} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{habit.name}</span>
-                    <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                  {/* The name sits in the habit's colour (no separate dot):
+                      identity and label in one shape, matching Android. */}
+                  <span className="flex min-w-0 flex-col items-start">
+                    <span
+                      className="max-w-full truncate rounded-lg px-2.5 py-1 text-sm font-semibold"
+                      style={{ backgroundColor: habit.color, color: inkOn(habit.color) }}
+                    >
+                      {habit.name}
+                    </span>
+                    <span className="mt-1 flex items-center gap-2 pl-0.5 text-xs text-muted-foreground">
                       <span className="tabular-nums">{habit.total_periods ?? habit.total_logs} total</span>
                       <span className="inline-flex items-center gap-0.5" title={`${habit.current_streak} ${habit.streak_unit} streak`}>
                         <Flame className="size-3" />
