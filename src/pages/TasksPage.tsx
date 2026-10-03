@@ -303,7 +303,7 @@ export default function TasksPage() {
             </div>
 
             {!isMobile && (
-              <div className="flex h-12 items-center gap-3 rounded-xl bg-card px-4 focus-within:ring-2 focus-within:ring-ring/45">
+              <div className="flex h-12 items-center gap-3 rounded-xl bg-card px-4 transition-shadow focus-within:shadow-[inset_0_0_0_1px_hsl(var(--outline))]">
                 <Plus className="size-4 shrink-0 text-muted-foreground" />
                 <Input
                   name="quick-task-title"
@@ -311,7 +311,7 @@ export default function TasksPage() {
                   onChange={(e) => setQuickTitle(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
                   placeholder="Add a task"
-                  className="h-8 border-0 bg-transparent px-2 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0"
+                  className="h-8 border-0 bg-transparent px-2 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:shadow-none"
                 />
                 {quickTitle.trim() && (
                   <Button size="sm" className="h-8 px-3 text-xs" onClick={handleQuickAdd}>Add</Button>

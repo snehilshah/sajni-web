@@ -1,7 +1,7 @@
 import { useCallback, useContext } from 'react';
 
 import { FinancePrivacyContext } from './finance-privacy-context';
-import { formatMoney as formatMoneyValue, formatPercent as formatPercentValue, isPrivacyMode } from './utils';
+import { formatMoney as formatMoneyValue, formatMoneyCompact as formatMoneyCompactValue, formatPercent as formatPercentValue, isPrivacyMode } from './utils';
 
 export function useFinancePrivacy(): boolean {
   const privacy = useContext(FinancePrivacyContext);
@@ -21,9 +21,13 @@ export function useFinanceFormatters() {
     (amount: number, currency = 'INR') => formatMoneyValue(amount, currency, privacy, 2),
     [privacy],
   );
+  const formatMoneyCompact = useCallback(
+    (amount: number, currency = 'INR') => formatMoneyCompactValue(amount, currency, privacy),
+    [privacy],
+  );
   const formatPercent = useCallback(
     (value: number, fractionDigits = 0) => formatPercentValue(value, fractionDigits, privacy),
     [privacy],
   );
-  return { formatMoney, formatMoneyExact, formatPercent };
+  return { formatMoney, formatMoneyExact, formatMoneyCompact, formatPercent };
 }

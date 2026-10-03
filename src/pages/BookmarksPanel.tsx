@@ -8,6 +8,7 @@ import {
 } from '@/queries/bookmarks';
 import type { Bookmark } from '@/types';
 import { cn } from '@/lib/utils';
+import { huePillBase, huePillOn, huePillOff, hueVar } from '@/components/ui/hue-pill';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -187,16 +188,13 @@ export default function BookmarksPanel({ kind, addSignal }: {
             <button
               key={s.value}
               onClick={() => setShelf(s.value)}
-              className={cn(
-                'h-8 px-3 rounded-full text-xs font-medium inline-flex items-center gap-1.5 border transition-colors',
-                shelf === s.value
-                  ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
-                  : 'border-[hsl(var(--outline))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
-              )}
+              aria-pressed={shelf === s.value}
+              style={hueVar()}
+              className={cn(huePillBase, 'px-3.5', shelf === s.value ? huePillOn : huePillOff)}
             >
               {s.label}
               {s.count !== undefined && s.count > 0 && (
-                <span className="font-mono text-xs opacity-70">{s.count}</span>
+                <span className="text-xs tabular-nums opacity-70">{s.count}</span>
               )}
             </button>
           ))}

@@ -27,7 +27,6 @@ import {
   Plus, Repeat, StickyNote, X,
 } from '@/components/ui/icons';
 import { ReminderEditor } from '@/components/reminders/RemindersPanel';
-import TaskScopeBadge from './TaskScopeBadge';
 
 type PlannerViewMode = 'week' | 'month';
 
@@ -456,7 +455,7 @@ function DraggablePlannerTask({ task, compact, timezone, onEdit, onToggle }: { t
   return <PlannerTaskPill task={task} compact={compact} timezone={timezone} onEdit={onEdit} onToggle={onToggle} containerRef={ref} handleRef={handleRef} isDragging={isDragging} />;
 }
 
-function PlannerTaskPill({ task, compact, timezone, onEdit, onToggle, containerRef, handleRef, isDragging = false }: {
+function PlannerTaskPill({ task, compact, onEdit, onToggle, containerRef, handleRef, isDragging = false }: {
   task: Task; compact: boolean; timezone: string; onEdit: (task: Task) => void; onToggle: (task: Task) => void;
   containerRef?: (element: Element | null) => void; handleRef?: (element: Element | null) => void; isDragging?: boolean;
 }) {
@@ -482,8 +481,8 @@ function PlannerTaskPill({ task, compact, timezone, onEdit, onToggle, containerR
         onClick={(event) => { event.stopPropagation(); onEdit(task); }}
       >
         {Boolean(task.description?.trim()) && <StickyNote className={cn('shrink-0', compact ? 'size-3' : 'size-3.5')} aria-label="Has note" />}
-        <TaskScopeBadge task={task} />
-        {task.scheduled_at && <span className="shrink-0 font-medium">{instantTime(task.scheduled_at, timezone)}</span>}
+        {/* Title only: the bucket already says day/week/month, and a time
+            pushed titles into overflow. */}
         <span className={cn('min-w-0 flex-1 truncate', task.status === 'done' && 'line-through')}>{task.title}</span>
       </button>
       {handleRef && !compact && (

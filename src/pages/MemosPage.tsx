@@ -101,7 +101,7 @@ export default function MemosPage() {
           {/* Composer — first entry of the timeline, on the same edges as
               every memo below it. Focus draws the ring; rest is tone only. */}
           <div>
-            <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container-highest))] focus-within:ring-2 focus-within:ring-inset focus-within:ring-[hsl(var(--primary))] transition-shadow p-1.5 pl-2.5">
+            <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container-highest))] focus-within:shadow-[inset_0_0_0_1px_hsl(var(--outline))] transition-shadow p-1.5 pl-2.5">
               <Textarea
                 ref={draftRef}
                 value={draft}
@@ -109,7 +109,7 @@ export default function MemosPage() {
                 onKeyDown={handleKeyDown}
                 placeholder="What's on your mind?"
                 title="⌘ + Enter to save"
-                className="min-h-[36px] max-h-48 text-[14.5px] leading-relaxed resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-1 py-2"
+                className="min-h-[36px] max-h-48 text-[14.5px] leading-relaxed resize-none border-0 focus-visible:ring-0 focus-visible:shadow-none bg-transparent shadow-none px-1 py-2"
               />
               <Button
                 onClick={handleCreate}

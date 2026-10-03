@@ -22,6 +22,7 @@ import { CardsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import { cardClass } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
 
 // A budget is a lens, not a container: many budgets can read the same
 // transaction. There is no period and nothing resets — a budget owns the window
@@ -427,13 +428,8 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                     type="button"
                     aria-pressed={on}
                     onClick={() => { setStartDate(s); setEndDate(e); }}
-                    className={cn(
-                      'h-9 rounded-full border text-sm font-medium outline-none transition-colors',
-                      'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
-                      on
-                        ? 'border-transparent bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                        : 'border-[hsl(var(--outline-variant))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
-                    )}
+                    style={hueVar()}
+                    className={cn(huePillBase, 'justify-center px-3', on ? huePillOn : huePillOff)}
                   >
                     {w.label}
                   </button>
@@ -469,16 +465,11 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                       type="button"
                       aria-pressed={on}
                       onClick={() => toggleSlate(p.id)}
-                      className={cn(
-                        'inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium outline-none transition-colors',
-                        'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
-                        on
-                          ? 'border-transparent bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                          : 'border-[hsl(var(--outline-variant))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
-                      )}
+                      style={hueVar(p.color)}
+                      className={cn(huePillBase, 'pl-3 pr-3.5', on ? huePillOn : huePillOff)}
                     >
                       {on
-                        ? <Check className="size-3.5" />
+                        ? <Check className={huePillGlyph} />
                         : <span aria-hidden className="size-2 rounded-full" style={{ backgroundColor: p.color }} />}
                       {p.name}
                     </button>

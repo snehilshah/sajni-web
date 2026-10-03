@@ -739,31 +739,41 @@ function DayFigures({ t }: { t: Tally }) {
 // side. `+in −out` rather than a single net — a quiet month and a heavy one
 // can both net to zero, and only one of them is quiet.
 function PeriodStats({ label, t }: { label: string; t: Tally }) {
-  const { formatMoney } = useFinanceFormatters();
+  const { formatMoney, formatMoneyCompact } = useFinanceFormatters();
   const figures = [
-    { name: 'Income', v: t.earned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
-    { name: 'Spent', v: t.spent, sign: '−', cls: 'text-foreground' },
-    { name: 'Lent', v: t.lent, sign: '−', cls: 'text-muted-foreground' },
-    { name: 'Returned', v: t.returned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
+    { name: 'Income', tag: 'in', v: t.earned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
+    { name: 'Spent', tag: 'spent', v: t.spent, sign: '−', cls: 'text-foreground' },
+    { name: 'Lent', tag: 'lent', v: t.lent, sign: '−', cls: 'text-muted-foreground' },
+    { name: 'Returned', tag: 'back', v: t.returned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
   ];
   if (figures.every((f) => f.v <= 0)) return null;
-  // Month and week stack as full-width tiles with the same four figure
-  // columns, so Income sits under Income and nothing wraps to a ragged
-  // second line. Empty sides keep their column (blank) from md up; a phone
-  // shows only the non-zero ones, two per row.
   return (
-    <div className="grid gap-x-6 gap-y-2 bg-card px-4 py-3 md:grid-cols-[minmax(0,1fr)_repeat(4,8.5rem)] md:items-center">
-      <span className="text-sm font-semibold">{label}</span>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 md:contents">
+    <div className="bg-card px-4 py-3">
+      {/* Phone: one line, like the day header — compact figures with a
+          one-word tag, so a period never wraps into a wall of numbers. */}
+      <div className="flex items-baseline gap-3 md:hidden">
+        <span className="shrink-0 text-sm font-semibold">{label}</span>
+        <span className="ml-auto flex min-w-0 items-baseline justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums">
+          {figures.filter((f) => f.v > 0).map((f) => (
+            <span key={f.name} className={f.cls} title={`${f.name} ${f.sign}${formatMoney(f.v)}`}>
+              {f.sign}{formatMoneyCompact(f.v)} <span className="text-xs text-muted-foreground">{f.tag}</span>
+            </span>
+          ))}
+        </span>
+      </div>
+      {/* Desktop: month and week share four aligned figure columns, so
+          Income sits under Income; empty sides keep their (blank) column. */}
+      <div className="hidden gap-x-6 md:grid md:grid-cols-[minmax(0,1fr)_repeat(4,8.5rem)] md:items-center">
+        <span className="text-sm font-semibold">{label}</span>
         {figures.map((f) => f.v > 0 ? (
-          <span key={f.name} className="flex flex-col md:items-end">
+          <span key={f.name} className="flex flex-col items-end">
             <span className="text-xs text-muted-foreground">{f.name}</span>
             <span className={cn('whitespace-nowrap font-serif text-lg font-semibold tabular-nums leading-tight', f.cls)}>
               {f.sign}{formatMoney(f.v)}
             </span>
           </span>
         ) : (
-          <span key={f.name} aria-hidden className="hidden md:block" />
+          <span key={f.name} aria-hidden />
         ))}
       </div>
     </div>

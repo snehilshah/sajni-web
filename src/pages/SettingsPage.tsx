@@ -8,6 +8,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { useAuth } from '@/auth/AuthContext';
 import { useMode, useDensity, type ModePref, type Density } from '@/hooks/useThemePrefs';
 import { cn } from '@/lib/utils';
+import { huePillBase, huePillOn, huePillOff, hueVar } from '@/components/ui/hue-pill';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { account, type UserTheme } from '@/api';
@@ -199,9 +200,11 @@ function Choice<T extends string>({
     <button
       onClick={() => onSelect(value)}
       className={cn(
-        'h-10 px-5 inline-flex items-center justify-center gap-2 text-sm capitalize rounded-full transition-colors',
-        active ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] font-medium' : 'bg-[hsl(var(--surface-container-high))] text-foreground/80 hover:bg-[hsl(var(--surface-container-highest))]',
+        huePillBase, 'h-10 px-5 justify-center capitalize text-sm',
+        active ? huePillOn : huePillOff,
       )}
+      style={hueVar()}
+      aria-pressed={active}
     >
       {Icon && <Icon className="size-3.5" />}
       {label}
@@ -524,9 +527,10 @@ export default function SettingsPage() {
                   aria-pressed={active}
                   aria-busy={themeAction?.kind === 'preset' && themeAction.preset === t.id}
                   className={cn(
-                    'h-11 pl-2 pr-5 inline-flex items-center gap-2.5 text-sm rounded-full transition-colors disabled:opacity-60',
-                    active ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] font-medium' : 'bg-[hsl(var(--surface-container-high))] text-foreground/80 hover:bg-[hsl(var(--surface-container-highest))]',
+                    huePillBase, 'h-11 pl-2 pr-5 gap-2.5 text-sm disabled:opacity-60',
+                    active ? huePillOn : huePillOff,
                   )}
+                  style={hueVar()}
                 >
                   <span className="flex -space-x-1" aria-hidden="true">
                     {swatches.slice(0, 3).map((c, i) => (

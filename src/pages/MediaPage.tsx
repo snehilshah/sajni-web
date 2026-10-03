@@ -25,7 +25,8 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings } from '@/components/ui/icons';
+import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings, Play, Sparkles, CalendarClock, Hourglass, Clock, CheckCircle2, Archive, Ban, type LucideIcon } from '@/components/ui/icons';
+import { HuePill } from '@/components/ui/hue-pill';
 // No pixel match for these two — straight lucide (same as the shim's passthroughs).
 import { GalleryHorizontalEnd, Table2 } from 'lucide-react';
 
@@ -112,6 +113,18 @@ const STATUS_OPTIONS: { value: MediaStatus; label: string; dot: string }[] = [
   { value: 'dropped', label: 'Dropped', dot: 'bg-red-500' },
   { value: 'scratched', label: 'Scratched', dot: 'bg-rose-500' },
 ];
+// Filter chips: status glyph + hue (theme tokens where the status has one).
+const STATUS_LOOK: Record<MediaStatus, { icon: LucideIcon; hue: string }> = {
+  in_progress: { icon: Play, hue: '#3F7FE0' },
+  new_season: { icon: Sparkles, hue: 'hsl(var(--secondary))' },
+  upcoming: { icon: CalendarClock, hue: 'hsl(var(--tertiary))' },
+  pending: { icon: Hourglass, hue: '#7A8794' },
+  waiting: { icon: Clock, hue: '#8B6FD6' },
+  complete: { icon: CheckCircle2, hue: '#4C9A5B' },
+  archived: { icon: Archive, hue: '#8A7F72' },
+  dropped: { icon: X, hue: '#D9534F' },
+  scratched: { icon: Ban, hue: '#E0567B' },
+};
 const EDITABLE_STATUS_OPTIONS = STATUS_OPTIONS.filter(
   (status) => status.value !== 'upcoming' && status.value !== 'new_season',
 );
@@ -1318,7 +1331,7 @@ export default function MediaPage() {
               />
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               <FilterChip
                 active={statusFilters.size === 0}
                 onClick={() => setStatusFilters(new Set())}
@@ -1335,7 +1348,7 @@ export default function MediaPage() {
                     active={statusFilters.has(s.value)}
                     onClick={() => toggleStatusFilter(s.value)}
                     count={c}
-                    dot={s.dot}
+                    status={s.value}
                   >
                     {s.label}
                   </FilterChip>
@@ -1630,26 +1643,12 @@ function MediaControlCluster({
   );
 }
 
-function FilterChip({ active, onClick, children, count }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; dot?: string }) {
+function FilterChip({ active, onClick, children, count, status }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; status?: MediaStatus }) {
+  const look = status ? STATUS_LOOK[status] : null;
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium transition-[background-color,color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] border',
-        active
-          ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border-transparent'
-          : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground border-transparent hover:text-foreground hover:bg-[hsl(var(--surface-container-highest))]',
-      )}
-    >
-      {active && (
-        <span>
-          <CheckIconCircle />
-        </span>
-      )}
-      {/* Colour is earned: inactive filters stay neutral (no status dot). */}
+    <HuePill selected={active} onClick={onClick} count={count} icon={look?.icon ?? ListChecks} hue={look?.hue}>
       {children}
-      <span className={`font-mono text-xs tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
-    </button>
+    </HuePill>
   );
 }
 

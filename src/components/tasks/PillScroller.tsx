@@ -1,4 +1,5 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
+import { HuePill, huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
 import {
   Plus, MoreVertical, Pencil, Trash2, ListChecks, Sun, Star, CalendarDays, CalendarRange,
   Calendar, AlarmClock, Ban, CalendarClock, Inbox, List, type LucideIcon,
@@ -29,16 +30,10 @@ const SMART_ICONS: Record<SmartList, LucideIcon> = {
   month: Calendar, scheduled: AlarmClock, blocked: Ban, missed: CalendarClock, inbox: Inbox,
 };
 
-// One pill look for smart lists and user lists: the glyph carries the list's
-// hue on a quiet neutral pill; the selected pill fills with a soft wash of
-// that hue, its label goes to full ink and a hairline of the hue marks it.
-// `--hue` is mixed toward on-surface for the glyph so it holds contrast in
-// light and dark alike.
-const pillBase = 'inline-flex items-center gap-1.5 h-9 rounded-full text-[13px] whitespace-nowrap shrink-0 border transition-colors';
-const pillOn = 'font-semibold text-foreground border-[color-mix(in_oklab,var(--hue)_45%,transparent)] bg-[color-mix(in_oklab,var(--hue)_16%,hsl(var(--surface)))]';
-const pillOff = 'font-medium text-muted-foreground border-transparent bg-[hsl(var(--surface-container))] hover:text-foreground hover:bg-[hsl(var(--surface-container-high))]';
-const glyph = 'size-4 shrink-0 text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]';
-const hueVar = (hue: string) => ({ '--hue': hue }) as CSSProperties;
+const pillBase = huePillBase;
+const pillOn = huePillOn;
+const pillOff = huePillOff;
+const glyph = huePillGlyph;
 
 // PillScroller — horizontal swipeable row replacing the old vertical
 // rail. Works identically on mobile and desktop, snaps cleanly, hides
@@ -81,22 +76,17 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
         const hue = SMART_LIST_HUES[s.smart]
           ?? (s.smart === 'missed' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))');
         return (
-          <button
+          <HuePill
             key={s.smart}
-            onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
-            style={hueVar(hue)}
-            className={`${pillBase} pl-3 pr-3.5 ${active ? pillOn : pillOff}`}
+            icon={Icon}
+            hue={hue}
+            selected={active}
+            count={count}
             title={s.description}
-            aria-pressed={active}
+            onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
           >
-            <Icon className={glyph} aria-hidden />
             {s.label}
-            {count > 0 && (
-              <span className="text-xs font-semibold tabular-nums text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]">
-                {count}
-              </span>
-            )}
-          </button>
+          </HuePill>
         );
       })}
 

@@ -80,6 +80,16 @@ export function formatMoney(amount: number, currency = 'INR', privacy = privacyO
   }
 }
 
+/** Three significant figures with K/L/Cr (₹34.3K, ₹1.04L) for tight rows. */
+export function formatMoneyCompact(amount: number, currency = 'INR', privacy = privacyOn): string {
+  if (privacy) return '***';
+  try {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency, notation: 'compact', maximumSignificantDigits: 3 }).format(amount);
+  } catch {
+    return formatMoney(amount, currency, privacy);
+  }
+}
+
 export function formatPercent(value: number, fractionDigits = 0, privacy = privacyOn): string {
   return privacy ? '%%%' : `${value.toFixed(fractionDigits)}%`;
 }

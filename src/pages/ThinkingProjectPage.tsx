@@ -8,7 +8,10 @@ import {
   ArrowLeft, Plus, Sparkles, Trash2, RefreshCw, ChevronRight, ChevronDown, X,
   Check, MessageSquare,
   Edit3, Save, Link2,
+  FileText, Hash, CircleHelp, Lightbulb, NotebookPen, CheckCircle2, Zap, Quote, AlertTriangle, Target, CheckSquare,
+  type LucideIcon,
 } from '@/components/ui/icons';
+import { HuePill, hueVar } from '@/components/ui/hue-pill';
 
 import PageShell from '@/components/PageShell';
 import { Button } from '@/components/ui/button';
@@ -41,22 +44,22 @@ const RELATIONS: ThinkingRelation[] = [
   'exemplifies', 'generalizes', 'related',
 ];
 
-// Tonal background per kind — exclusively M3 container tokens so the
-// palette tracks the active theme. No raw hex.
-const KIND_TONE: Record<ThinkingKind, string> = {
-  note:          'bg-[hsl(var(--surface-container-high))] text-foreground/80',
-  entity:        'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
-  question:      'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]',
-  idea:          'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
-  reflection:    'bg-[hsl(var(--surface-container-highest))] text-foreground/80',
-  claim:         'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
-  fact:          'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]',
-  hypothesis:    'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
-  evidence:      'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]',
-  contradiction: 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]',
-  decision:      'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
-  todo:          'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
+// Kind glyph + hue (mirrors Android `kindIcon`/`kindHue`): the filter chips
+// and the card's kind badge are recognised by shape and colour. null = a
+// neutral kind (note, todo) that takes the theme's quiet tone.
+const KIND_ICON: Record<ThinkingKind, LucideIcon> = {
+  note: FileText, entity: Hash, question: CircleHelp, idea: Lightbulb, reflection: NotebookPen,
+  claim: MessageSquare, fact: CheckCircle2, hypothesis: Zap, evidence: Quote,
+  contradiction: AlertTriangle, decision: Target, todo: CheckSquare,
 };
+const KIND_HUE: Record<ThinkingKind, string | null> = {
+  note: null, entity: '#7A8794', question: '#3F7FE0', idea: '#E3A21A', reflection: '#E0567B',
+  claim: '#C7743B', fact: '#4C9A5B', hypothesis: '#8B6FD6', evidence: '#4C9A5B',
+  contradiction: '#D9534F', decision: '#2E9E8F', todo: null,
+};
+// Soft tinted badge for a kind: wash of its hue, ink mixed toward on-surface.
+const kindBadge = 'bg-[color-mix(in_oklab,var(--hue)_16%,transparent)] text-[color-mix(in_oklab,var(--hue)_75%,hsl(var(--on-surface)))]';
+const kindStyle = (k: ThinkingKind) => hueVar(KIND_HUE[k] ?? 'hsl(var(--on-surface-variant))');
 
 const CARD_SURFACE =
   'rounded-2xl bg-[hsl(var(--surface-container-low))]';
@@ -387,7 +390,7 @@ export default function ThinkingProjectPage() {
               {KINDS.map((k) => (
                 <SelectItem key={k} value={k}>
                   <span className="flex items-center gap-2">
-                    <span className={`size-2 rounded-full ${KIND_TONE[k].split(' ')[0]}`} />
+                    {(() => { const I = KIND_ICON[k]; return <I className="size-3.5 text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]" style={kindStyle(k)} />; })()}
                     {k}
                   </span>
                 </SelectItem>
@@ -419,24 +422,20 @@ export default function ThinkingProjectPage() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
-            {KINDS.filter((k) => (kindCounts[k] ?? 0) > 0).map((k) => {
-              const on = activeKinds.has(k);
-              return (
-                <button
-                  key={k}
-                  onClick={() => toggleKind(k)}
-                  className={`h-8 px-2 rounded-full border text-xs mono label-kicker flex items-center justify-center gap-1.5 transition-colors ${
-                    on
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground hover:border-[hsl(var(--on-surface))]'
-                  }`}
-                >
-                  <span className="truncate">{k}</span>
-                  <span className="opacity-70">{kindCounts[k]}</span>
-                </button>
-              );
-            })}
+          <div className="flex flex-wrap gap-2">
+            {KINDS.filter((k) => (kindCounts[k] ?? 0) > 0).map((k) => (
+              <HuePill
+                key={k}
+                icon={KIND_ICON[k]}
+                hue={KIND_HUE[k]}
+                selected={activeKinds.has(k)}
+                count={kindCounts[k]}
+                onClick={() => toggleKind(k)}
+                className="capitalize"
+              >
+                {k}
+              </HuePill>
+            ))}
           </div>
         </div>
       )}
@@ -463,7 +462,8 @@ export default function ThinkingProjectPage() {
                     className="flex min-w-0 items-start p-3 text-left outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]"
                   >
                     <div className="grid w-full grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
-                      <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs mono label-kicker ${KIND_TONE[c.kind]}`}>
+                      <span style={kindStyle(c.kind)} className={`inline-flex items-center justify-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${kindBadge}`}>
+                        {(() => { const I = KIND_ICON[c.kind]; return <I className="size-3 shrink-0" aria-hidden />; })()}
                         {c.kind}
                       </span>
                       <div className={`grid min-w-0 gap-2 ${c.ai_enrichment?.summary ? '@min-[50rem]:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @min-[50rem]:gap-5' : ''}`}>
@@ -994,7 +994,7 @@ function CardDetail({
                               {c.relation.replace('_', ' ')}
                             </span>
                             {target && (
-                              <span className={`shrink-0 text-xs mono label-kicker px-1.5 py-0.5 rounded-full ${KIND_TONE[target.kind]}`}>
+                              <span style={kindStyle(target.kind)} className={`shrink-0 text-xs font-medium capitalize px-1.5 py-0.5 rounded-full ${kindBadge}`}>
                                 {target.kind}
                               </span>
                             )}
