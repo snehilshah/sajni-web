@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { inkOn } from '@/lib/ink';
+import { cn } from '@/lib/utils';
+
+/** Habit names stay short enough to sit in one pill (API enforces too). */
+const HABIT_NAME_MAX = 20;
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
@@ -258,7 +262,8 @@ export default function HabitsPage() {
               <Input
                 id="habit-name"
                 value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                onChange={(event) => setForm({ ...form, name: event.target.value.slice(0, HABIT_NAME_MAX) })}
+                maxLength={HABIT_NAME_MAX}
                 autoFocus
                 placeholder="e.g. Morning walk"
               />
@@ -388,6 +393,9 @@ function RhythmLedger({
   // Trailing 8px keeps the last cell off the rounded edge; there is no edit
   // column any more (the habit name opens the editor).
   const minWidth = 188 + periods.length * 52 + 8;
+  // Every name pill in a section is as wide as its longest name (ch ≈ one
+  // character), so pills and the figures after them align.
+  const pillWidth = `calc(${Math.max(...habits.map((h) => h.name.length), 4)}ch + 1.5rem)`;
   const gridStyle = {
     gridTemplateColumns: `minmax(188px, 1fr) repeat(${periods.length}, 52px) 8px`,
     minWidth,
@@ -515,20 +523,21 @@ function RhythmLedger({
                   className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-card px-2 py-3 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   title={`Edit ${habit.name}`}
                 >
-                  {/* The name sits in the habit's colour (no separate dot):
-                      identity and label in one shape, matching Android. */}
-                  <span className="flex min-w-0 flex-col items-start">
+                  {/* One line: name in the habit's colour (pills share the
+                      section's longest width so the figures line up), then
+                      total and streak. Phones stack the figures below. */}
+                  <span className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-4">
                     <span
-                      className="max-w-full truncate rounded-lg px-2.5 py-1 text-sm font-semibold"
-                      style={{ backgroundColor: habit.color, color: inkOn(habit.color) }}
+                      className="max-w-full shrink-0 truncate rounded-lg px-2.5 py-1 text-sm font-semibold"
+                      style={{ backgroundColor: habit.color, color: inkOn(habit.color), width: pillWidth }}
                     >
                       {habit.name}
                     </span>
-                    <span className="mt-1 flex items-center gap-2 pl-0.5 text-xs text-muted-foreground">
-                      <span className="tabular-nums">{habit.total_periods ?? habit.total_logs} total</span>
-                      <span className="inline-flex items-center gap-0.5" title={`${habit.current_streak} ${habit.streak_unit} streak`}>
-                        <Flame className="size-3" />
-                        <span className="tabular-nums">{habit.current_streak}</span>
+                    <span className="flex items-center gap-4 pl-0.5 text-xs text-muted-foreground sm:pl-0">
+                      <span className="w-14 tabular-nums">{habit.total_periods ?? habit.total_logs} total</span>
+                      <span className="inline-flex items-center gap-1" title={`${habit.current_streak} ${habit.streak_unit} streak`}>
+                        <Flame className={cn('size-3.5', habit.current_streak > 0 && 'text-[hsl(var(--tertiary))]')} />
+                        <span className="tabular-nums">{habit.current_streak} streak</span>
                       </span>
                     </span>
                   </span>
