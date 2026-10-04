@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { Bell, ChevronDown, Pencil, Plus, Search, Trash2 } from '@/components/ui/icons';
+import { Bell, ChevronDown, Plus, Search, Trash2 } from '@/components/ui/icons';
 import { DateBadge, StateChip } from '@/components/ui/state-chip';
 import { cn } from '@/lib/utils';
 
@@ -91,7 +91,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-semibold">People</h2>
-        <div className="-mr-1 flex items-center gap-1">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={onNewLend}>Lend money</Button>
           <Button size="sm" onClick={() => setPaidFor({ borrower: '' })}>
             <Plus className="size-4 mr-1" /> Paid for
@@ -178,8 +178,12 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
   );
 }
 
-// What a person owes and has paid, newest first: each paid-for item with
-// what is left on it, and each settlement credit.
+// What a person owes and has paid, newest first. Rows share the header's
+// grid: text from the name column, the amount ending where the header amount
+// ends, and the one row action (delete / unmark) in the chevron's column.
+// Tapping a lend opens its editor.
+const ROW = 'grid grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-3';
+
 function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend, onRemoveSettlement, onRemoveRepayment }: {
   person: FinLendPerson;
   lends: FinLend[];
@@ -197,68 +201,69 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
   ].sort((a, b) => b.at.localeCompare(a.at)), [lends, person.settlements]);
 
   return (
-    <div className="flex flex-col gap-1 px-4 pb-3">
-      <div className="flex items-center gap-2 pb-1">
-        {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}>Settle</Button>}
-        <Button variant="ghost" size="sm" onClick={onPaidFor}><Plus className="size-4 mr-1" /> Paid for</Button>
-      </div>
+    <div className="flex flex-col pb-3 pl-16 pr-4">
       {rows.map((row) => row.kind === 'lend' ? (
-        <div key={'l' + row.lend.id} className="flex flex-col">
-          <div className="flex min-h-11 items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm">{row.lend.description || 'Lent'}</div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                <DateBadge>{format(parseISO(row.lend.lent_at), 'd MMM')}</DateBadge>
-                <span className="truncate text-xs text-muted-foreground">{row.lend.source_account}</span>
-                {row.lend.status === 'open' && row.lend.due_date && (
-                  <DateBadge tone={row.lend.due_date < today() ? 'alert' : 'neutral'} icon={row.lend.remind ? <Bell aria-label="Reminder on" /> : undefined}>
-                    Due {format(parseISO(row.lend.due_date), 'd MMM')}
-                  </DateBadge>
-                )}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="whitespace-nowrap text-sm tabular-nums">{formatMoney(row.lend.principal)}</div>
-              {row.lend.status === 'settled' ? (
-                <div className="text-xs text-[hsl(var(--color-complete))]">Settled</div>
-              ) : row.lend.repaid > 0 ? (
-                <div className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{formatMoney(row.lend.outstanding)} left</div>
-              ) : null}
-            </div>
-            <div className="-mr-2 flex">
-              <Button variant="ghost" size="icon-sm" onClick={() => onEdit(row.lend)} aria-label="Edit"><Pencil className="size-4" /></Button>
-              <Button variant="destructive-ghost" size="icon-sm" onClick={() => onRemoveLend(row.lend)} aria-label={row.lend.origin === 'paid_for' ? 'Unmark' : 'Delete'}>
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
+        <div key={'l' + row.lend.id}>
+          <div className={cn(ROW, 'min-h-14')}>
+            <button type="button" onClick={() => onEdit(row.lend)} className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{row.lend.description || 'Lent'}</span>
+                <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="truncate">{format(parseISO(row.lend.lent_at), 'd MMM')} · {row.lend.source_account}</span>
+                  {row.lend.status === 'open' && row.lend.due_date && (
+                    <DateBadge tone={row.lend.due_date < today() ? 'alert' : 'neutral'} icon={row.lend.remind ? <Bell aria-label="Reminder on" /> : undefined}>
+                      Due {format(parseISO(row.lend.due_date), 'd MMM')}
+                    </DateBadge>
+                  )}
+                </span>
+              </span>
+              <span className="text-right tabular-nums">
+                <span className="block whitespace-nowrap text-sm">{formatMoney(row.lend.principal)}</span>
+                {row.lend.status === 'settled' ? (
+                  <span className="block text-xs text-[hsl(var(--color-complete))]">Settled</span>
+                ) : row.lend.repaid > 0 ? (
+                  <span className="block whitespace-nowrap text-xs text-muted-foreground">{formatMoney(row.lend.outstanding)} left</span>
+                ) : null}
+              </span>
+            </button>
+            <RowAction label={row.lend.origin === 'paid_for' ? 'Unmark' : 'Delete'} onClick={() => onRemoveLend(row.lend)} />
           </div>
           {/* Repayments recorded straight against this lend (older flow). */}
           {row.lend.repayments.filter((r) => !r.settled).map((repayment) => (
-            <div key={repayment.id} className="flex min-h-9 items-center gap-2 pl-3 text-xs text-muted-foreground">
-              <span className="flex-1 truncate">Returned {format(parseISO(repayment.repaid_at), 'd MMM')} · {repayment.destination_account}</span>
-              <span className="tabular-nums text-[hsl(var(--color-complete))]">+{formatMoney(repayment.amount)}</span>
-              <Button variant="destructive-ghost" size="icon-xs" className="-mr-1.5" onClick={() => onRemoveRepayment(row.lend, repayment.id)} aria-label="Delete repayment">
-                <Trash2 />
-              </Button>
+            <div key={repayment.id} className={cn(ROW, 'min-h-9 text-xs text-muted-foreground')}>
+              <span className="truncate">Returned {format(parseISO(repayment.repaid_at), 'd MMM')} · {repayment.destination_account}</span>
+              <span className="whitespace-nowrap tabular-nums text-[hsl(var(--color-complete))]">+{formatMoney(repayment.amount)}</span>
+              <RowAction label="Delete repayment" onClick={() => onRemoveRepayment(row.lend, repayment.id)} />
             </div>
           ))}
         </div>
       ) : (
-        <div key={'s' + row.settlement.id} className="flex min-h-11 items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm">{row.settlement.description || 'Received'}</div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-1">
-              <DateBadge>{format(parseISO(row.settlement.txn_at), 'd MMM')}</DateBadge>
-              <span className="truncate text-xs text-muted-foreground">{row.settlement.account}</span>
-            </div>
-          </div>
-          <span className="whitespace-nowrap text-sm tabular-nums text-[hsl(var(--color-complete))]">+{formatMoney(row.settlement.amount)}</span>
-          <Button variant="destructive-ghost" size="icon-sm" className="-mr-2" onClick={() => onRemoveSettlement(row.settlement.id)} aria-label="Unmark settlement">
-            <Trash2 className="size-4" />
-          </Button>
+        <div key={'s' + row.settlement.id} className={cn(ROW, 'min-h-14')}>
+          <span className="min-w-0 py-2">
+            <span className="block truncate text-sm font-medium">{row.settlement.description || 'Received'}</span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {format(parseISO(row.settlement.txn_at), 'd MMM')} · {row.settlement.account}
+            </span>
+          </span>
+          <span className="whitespace-nowrap text-right text-sm tabular-nums text-[hsl(var(--color-complete))]">+{formatMoney(row.settlement.amount)}</span>
+          <RowAction label="Unmark settlement" onClick={() => onRemoveSettlement(row.settlement.id)} />
         </div>
       ))}
+      <div className="flex items-center gap-2 pt-2">
+        {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}>Settle</Button>}
+        <Button variant="outline" size="sm" onClick={onPaidFor}><Plus className="size-4 mr-1" /> Paid for</Button>
+      </div>
     </div>
+  );
+}
+
+// Delete glyph centred in the 1rem chevron column; the 32px hit area
+// overhangs the column evenly so the glyph, not the box, sits on the edge.
+function RowAction({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button variant="destructive-ghost" size="icon-xs" className="-mx-1.5 size-7" onClick={onClick} aria-label={label} title={label}>
+      <Trash2 />
+    </Button>
   );
 }
 
@@ -284,18 +289,18 @@ function CandidatePicker({ kind, accounts, selected, onToggle, highlight }: {
   const accountItems = [{ value: '0', label: 'All accounts' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))];
 
   return (
-    <div className="flex min-h-0 flex-col gap-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="h-9 pl-8" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="pl-10" />
         </div>
         <Select value={accountId} onValueChange={(value) => setAccountId(value ?? '0')} items={accountItems}>
-          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>{accountItems.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
         </Select>
       </div>
-      <div className="max-h-[45vh] min-h-32 overflow-y-auto rounded-lg">
+      <div className="-mx-2 min-h-40 flex-1 overflow-y-auto overscroll-contain pb-4 [mask-image:linear-gradient(to_bottom,black_calc(100%-24px),transparent)]">
         {query.isLoading ? (
           <ListSkeleton rows={4} />
         ) : items.length === 0 ? (
@@ -305,7 +310,7 @@ function CandidatePicker({ kind, accounts, selected, onToggle, highlight }: {
             {items.map((c) => {
               const checked = selected.has(c.id);
               return (
-                <label key={c.id} className={cn('flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent/40', checked && 'bg-[hsl(var(--secondary-container)/0.5)]')}>
+                <label key={c.id} className={cn('flex min-h-14 cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-[hsl(var(--on-surface)/0.06)]', checked && 'bg-[hsl(var(--secondary-container)/0.6)] hover:bg-[hsl(var(--secondary-container)/0.75)]')}>
                   <Checkbox checked={checked} onCheckedChange={() => onToggle(c)} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{c.description || c.category_name || 'Untitled'}</span>
@@ -316,7 +321,7 @@ function CandidatePicker({ kind, accounts, selected, onToggle, highlight }: {
                       {highlight !== undefined && Math.abs(c.amount - highlight) < 0.005 && <DateBadge tone="accent">Matches</DateBadge>}
                     </span>
                   </span>
-                  <span className="whitespace-nowrap text-sm tabular-nums">{formatMoney(c.amount)}</span>
+                  <span className="whitespace-nowrap pr-1 text-sm tabular-nums">{formatMoney(c.amount)}</span>
                 </label>
               );
             })}
@@ -331,6 +336,9 @@ function CandidatePicker({ kind, accounts, selected, onToggle, highlight }: {
     </div>
   );
 }
+
+// Header, body and footer stay inside the viewport; only the list scrolls.
+const PICKER_DIALOG = 'sm:max-w-lg max-h-[min(90dvh,820px)] grid-rows-[auto_minmax(0,1fr)_auto]';
 
 function useSelection() {
   const [selected, setSelected] = useState<Map<number, FinLendCandidate>>(new Map());
@@ -369,16 +377,22 @@ function PaidForDialog({ request, people, accounts, onClose, onDone }: {
     } catch (error) { toast.error(msg(error)); } finally { setSaving(false); }
   };
   return <Dialog open={!!request} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent className="sm:max-w-lg">
+    <DialogContent className={PICKER_DIALOG}>
       <DialogHeader><DialogTitle>Paid for</DialogTitle></DialogHeader>
-      <div className="grid gap-3">
+      <div className="flex min-h-0 flex-col gap-3">
         <Field label="Person">
           <Input value={borrower} onChange={(e) => setBorrower(e.target.value)} placeholder="Dad" />
         </Field>
         {people.length > 0 && !request?.borrower && (
           <div className="-mt-1 flex flex-wrap gap-1.5">
             {people.slice(0, 8).map((p) => (
-              <StateChip key={p.borrower} selected={personKey(p.borrower) === personKey(borrower)} onClick={() => setBorrower(p.borrower)}>
+              <StateChip
+                key={p.borrower}
+                selected={personKey(p.borrower) === personKey(borrower)}
+                onClick={() => setBorrower(p.borrower)}
+                // Neutral chips are surface-container-high, the dialog's own tone.
+                className={personKey(p.borrower) === personKey(borrower) ? undefined : 'bg-[hsl(var(--surface-container-highest))]'}
+              >
                 {p.borrower}
               </StateChip>
             ))}
@@ -436,9 +450,9 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
   };
   const receiving = accounts.filter((a) => a.type !== 'credit_card');
   return <Dialog open={!!person} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent className="sm:max-w-lg">
+    <DialogContent className={PICKER_DIALOG}>
       <DialogHeader><DialogTitle>Settle with {person?.borrower}</DialogTitle></DialogHeader>
-      <div className="grid gap-3">
+      <div className="flex min-h-0 flex-col gap-3">
         <SegmentedButton
           stretch
           value={mode}
