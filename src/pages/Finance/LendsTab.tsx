@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { Bell, ChevronDown, Plus, Search, Trash2 } from '@/components/ui/icons';
+import { ArrowDownLeft, ArrowUpRight, Bell, Check, ChevronDown, MoreVertical, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from '@/components/ui/icons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DateBadge, StateChip } from '@/components/ui/state-chip';
 import { cn } from '@/lib/utils';
 
-import { finance, type FinAccount, type FinLend, type FinLendCandidate, type FinLendPerson } from '@/api';
+import { finance, type FinAccount, type FinLend, type FinLendCandidate, type FinLendPerson, type FinLendRepayment, type FinLendSettlement } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -91,11 +92,11 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-semibold">People</h2>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onNewLend}>Lend money</Button>
-          <Button size="sm" onClick={() => setPaidFor({ borrower: '' })}>
-            <Plus className="size-4 mr-1" /> Paid for
-          </Button>
+        {/* Same height and shape, so the pair reads as one group whose
+            last edge sits on the content edge. */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onNewLend}><ArrowUpRight className="size-4" /> Lend</Button>
+          <Button size="sm" onClick={() => setPaidFor({ borrower: '' })}><Plus className="size-4" /> Paid for</Button>
         </div>
       </div>
 
@@ -178,11 +179,17 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
   );
 }
 
-// What a person owes and has paid, newest first. Rows share the header's
-// grid: text from the name column, the amount ending where the header amount
-// ends, and the one row action (delete / unmark) in the chevron's column.
-// Tapping a lend opens its editor.
-const ROW = 'grid grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-3';
+// A person's history as a timeline, oldest first, so it reads down to where
+// things stand now. Rows share the header's grid: the node sits under the
+// avatar, text in the name column, the amount ends where the header amount
+// ends, and the row menu (edit / unmark / delete) sits in the chevron's
+// column. Tapping a lend opens its editor.
+const ROW = 'grid grid-cols-[2.25rem_minmax(0,1fr)_auto_1rem] items-center gap-x-3';
+
+type Event =
+  | { kind: 'lend'; at: string; lend: FinLend }
+  | { kind: 'repayment'; at: string; lend: FinLend; repayment: FinLendRepayment }
+  | { kind: 'settlement'; at: string; settlement: FinLendSettlement };
 
 function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend, onRemoveSettlement, onRemoveRepayment }: {
   person: FinLendPerson;
@@ -195,75 +202,123 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
   onRemoveRepayment: (lend: FinLend, repaymentId: number) => void;
 }) {
   const { formatMoney } = useFinanceFormatters();
-  const rows = useMemo(() => [
+  const events = useMemo<Event[]>(() => [
     ...lends.map((lend) => ({ kind: 'lend' as const, at: lend.lent_at, lend })),
+    // Repayments recorded straight against a lend (older flow).
+    ...lends.flatMap((lend) => lend.repayments.filter((r) => !r.settled)
+      .map((repayment) => ({ kind: 'repayment' as const, at: repayment.repaid_at, lend, repayment }))),
     ...person.settlements.map((settlement) => ({ kind: 'settlement' as const, at: settlement.txn_at, settlement })),
-  ].sort((a, b) => b.at.localeCompare(a.at)), [lends, person.settlements]);
+  ].sort((a, b) => a.at.localeCompare(b.at)), [lends, person.settlements]);
 
   return (
-    <div className="flex flex-col pb-3 pl-16 pr-4">
-      {rows.map((row) => row.kind === 'lend' ? (
-        <div key={'l' + row.lend.id}>
-          <div className={cn(ROW, 'min-h-14')}>
-            <button type="button" onClick={() => onEdit(row.lend)} className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{row.lend.description || 'Lent'}</span>
-                <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="truncate">{format(parseISO(row.lend.lent_at), 'd MMM')} · {row.lend.source_account}</span>
-                  {row.lend.status === 'open' && row.lend.due_date && (
-                    <DateBadge tone={row.lend.due_date < today() ? 'alert' : 'neutral'} icon={row.lend.remind ? <Bell aria-label="Reminder on" /> : undefined}>
-                      Due {format(parseISO(row.lend.due_date), 'd MMM')}
-                    </DateBadge>
+    <div className="flex flex-col px-4 pb-3">
+      {events.map((event, i) => {
+        const rail = { first: i === 0, last: i === events.length - 1 };
+        if (event.kind === 'lend') {
+          const { lend } = event;
+          const overdue = lend.status === 'open' && !!lend.due_date && lend.due_date < today();
+          return (
+            <div key={'l' + lend.id} className={cn(ROW, 'min-h-14')}>
+              <TimelineNode {...rail} tone={lend.status === 'settled' ? 'positive' : overdue ? 'alert' : 'neutral'}>
+                {lend.status === 'settled' ? <Check /> : lend.origin === 'paid_for' ? <Receipt /> : <ArrowUpRight />}
+              </TimelineNode>
+              <button type="button" onClick={() => onEdit(lend)} className="col-span-2 grid grid-cols-subgrid items-center rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">{lend.description || 'Lent'}</span>
+                  <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="truncate">{format(parseISO(lend.lent_at), 'd MMM')} · {lend.source_account}</span>
+                    {lend.status === 'open' && lend.due_date && (
+                      <DateBadge tone={overdue ? 'alert' : 'neutral'} icon={lend.remind ? <Bell aria-label="Reminder on" /> : undefined}>
+                        Due {format(parseISO(lend.due_date), 'd MMM')}
+                      </DateBadge>
+                    )}
+                  </span>
+                </span>
+                <span className="text-right tabular-nums">
+                  <span className="block whitespace-nowrap text-sm">{formatMoney(lend.principal)}</span>
+                  {lend.status === 'open' && lend.repaid > 0 && (
+                    <span className="block whitespace-nowrap text-xs text-muted-foreground">{formatMoney(lend.outstanding)} left</span>
                   )}
                 </span>
-              </span>
-              <span className="text-right tabular-nums">
-                <span className="block whitespace-nowrap text-sm">{formatMoney(row.lend.principal)}</span>
-                {row.lend.status === 'settled' ? (
-                  <span className="block text-xs text-[hsl(var(--color-complete))]">Settled</span>
-                ) : row.lend.repaid > 0 ? (
-                  <span className="block whitespace-nowrap text-xs text-muted-foreground">{formatMoney(row.lend.outstanding)} left</span>
-                ) : null}
-              </span>
-            </button>
-            <RowAction label={row.lend.origin === 'paid_for' ? 'Unmark' : 'Delete'} onClick={() => onRemoveLend(row.lend)} />
-          </div>
-          {/* Repayments recorded straight against this lend (older flow). */}
-          {row.lend.repayments.filter((r) => !r.settled).map((repayment) => (
-            <div key={repayment.id} className={cn(ROW, 'min-h-9 text-xs text-muted-foreground')}>
-              <span className="truncate">Returned {format(parseISO(repayment.repaid_at), 'd MMM')} · {repayment.destination_account}</span>
-              <span className="whitespace-nowrap tabular-nums text-[hsl(var(--color-complete))]">+{formatMoney(repayment.amount)}</span>
-              <RowAction label="Delete repayment" onClick={() => onRemoveRepayment(row.lend, repayment.id)} />
+              </button>
+              <RowMenu label={lend.description || 'lend'}>
+                <DropdownMenuItem onClick={() => onEdit(lend)}><Pencil /> Edit</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={() => onRemoveLend(lend)}>
+                  {lend.origin === 'paid_for' ? <><RotateCcw /> Unmark paid for</> : <><Trash2 /> Delete lend</>}
+                </DropdownMenuItem>
+              </RowMenu>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div key={'s' + row.settlement.id} className={cn(ROW, 'min-h-14')}>
-          <span className="min-w-0 py-2">
-            <span className="block truncate text-sm font-medium">{row.settlement.description || 'Received'}</span>
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {format(parseISO(row.settlement.txn_at), 'd MMM')} · {row.settlement.account}
+          );
+        }
+        const received = event.kind === 'settlement'
+          ? { id: 's' + event.settlement.id, title: event.settlement.description || 'Received', account: event.settlement.account, amount: event.settlement.amount, held: event.settlement.amount - event.settlement.applied }
+          : { id: 'r' + event.repayment.id, title: 'Returned', account: event.repayment.destination_account, amount: event.repayment.amount, held: 0 };
+        return (
+          <div key={received.id} className={cn(ROW, 'min-h-14')}>
+            <TimelineNode {...rail} tone="positive"><ArrowDownLeft /></TimelineNode>
+            <span className="min-w-0 py-2">
+              <span className="block truncate text-sm font-medium">{received.title}</span>
+              <span className="mt-0.5 block truncate text-xs text-muted-foreground">{format(parseISO(event.at), 'd MMM')} · {received.account}</span>
             </span>
-          </span>
-          <span className="whitespace-nowrap text-right text-sm tabular-nums text-[hsl(var(--color-complete))]">+{formatMoney(row.settlement.amount)}</span>
-          <RowAction label="Unmark settlement" onClick={() => onRemoveSettlement(row.settlement.id)} />
+            <span className="text-right tabular-nums">
+              <span className="block whitespace-nowrap text-sm text-[hsl(var(--color-complete))]">+{formatMoney(received.amount)}</span>
+              {received.held > 0.005 && <span className="block whitespace-nowrap text-xs text-muted-foreground">{formatMoney(received.held)} held</span>}
+            </span>
+            <RowMenu label={received.title}>
+              {event.kind === 'settlement' ? (
+                <DropdownMenuItem variant="destructive" onClick={() => onRemoveSettlement(event.settlement.id)}><RotateCcw /> Unmark settlement</DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem variant="destructive" onClick={() => onRemoveRepayment(event.lend, event.repayment.id)}><Trash2 /> Delete repayment</DropdownMenuItem>
+              )}
+            </RowMenu>
+          </div>
+        );
+      })}
+      <div className={cn(ROW, 'pt-2')}>
+        <div className="col-start-2 col-span-3 flex items-center gap-2">
+          {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}><ArrowDownLeft className="size-4" /> Settle</Button>}
+          <Button variant="outline" size="sm" onClick={onPaidFor}><Plus className="size-4" /> Paid for</Button>
         </div>
-      ))}
-      <div className="flex items-center gap-2 pt-2">
-        {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}>Settle</Button>}
-        <Button variant="outline" size="sm" onClick={onPaidFor}><Plus className="size-4 mr-1" /> Paid for</Button>
       </div>
     </div>
   );
 }
 
-// Delete glyph centred in the 1rem chevron column; the 32px hit area
-// overhangs the column evenly so the glyph, not the box, sits on the edge.
-function RowAction({ label, onClick }: { label: string; onClick: () => void }) {
+const NODE_TONE = {
+  neutral: 'bg-[hsl(var(--surface-container-high))] text-[hsl(var(--on-surface-variant))]',
+  positive: 'bg-[hsl(var(--color-complete)/0.16)] text-[hsl(var(--color-complete))]',
+  alert: 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]',
+};
+
+// The rail runs through every node; it starts at the first node's centre
+// and stops at the last one's, so a single item is just a node.
+function TimelineNode({ first, last, tone, children }: { first: boolean; last: boolean; tone: keyof typeof NODE_TONE; children: React.ReactNode }) {
   return (
-    <Button variant="destructive-ghost" size="icon-xs" className="-mx-1.5 size-7" onClick={onClick} aria-label={label} title={label}>
-      <Trash2 />
-    </Button>
+    <span className="relative grid self-stretch place-items-center">
+      {!(first && last) && (
+        <span aria-hidden className={cn('absolute left-1/2 w-0.5 -translate-x-1/2 rounded-full bg-[hsl(var(--outline-variant))]', first ? 'top-1/2' : 'top-0', last ? 'bottom-1/2' : 'bottom-0')} />
+      )}
+      <span className={cn('relative grid size-7 place-items-center rounded-full ring-4 ring-[hsl(var(--card))] [&>svg]:size-3.5', NODE_TONE[tone])}>
+        {children}
+      </span>
+    </span>
+  );
+}
+
+// One quiet menu per row, its glyph centred in the chevron column; the
+// destructive choice lives inside it, labelled, instead of a red icon per row.
+function RowMenu({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`Options for ${label}`}
+        className="-mx-2 grid size-8 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+      >
+        <MoreVertical className="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">{children}</DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
