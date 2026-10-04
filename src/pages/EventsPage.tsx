@@ -1206,10 +1206,10 @@ function EntryEditor({
             />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className={cn(entry && 'flex-row items-center')}>
           {entry && (
-            <Button variant="destructive" onClick={remove} className="sm:mr-auto">
-              Delete
+            <Button variant="destructive-quiet" onClick={remove} className="mr-auto">
+              <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

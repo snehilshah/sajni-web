@@ -1271,7 +1271,7 @@ export default function MediaPage() {
   const mediaFormFooter = (
     <>
       {editItem && (
-        <Button variant="destructive" onClick={() => handleDelete(editItem.id)} className="mr-auto gap-1.5">
+        <Button variant="destructive-quiet" onClick={() => handleDelete(editItem.id)} className="mr-auto gap-1.5">
           <Trash2 className="size-3.5" /> Delete
         </Button>
       )}

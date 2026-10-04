@@ -45,14 +45,20 @@ const buttonVariants = cva(
         // Secondary alias — kept for backwards compat; renders tonal.
         secondary:
           "rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] border border-transparent hover:brightness-[0.97]",
-        // Destructive — error container fill.
+        // Red is rationed: only the final "yes, delete" carries a fill.
+        // Destructive — error container fill: confirm dialogs only.
         destructive:
           "rounded-full bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] border border-transparent hover:brightness-[0.97]",
-        // Destructive ghost — icon-only delete in a row: error glyph, the
-        // error container fills in on hover/press. Labelled deletes use
-        // `destructive`; menus use DropdownMenuItem variant="destructive".
+        // Destructive quiet — Delete in an editor's footer / action bar:
+        // dressed like the Cancel beside it (neutral fill), red label only.
+        "destructive-quiet":
+          "rounded-full bg-[hsl(var(--surface-container-high))] text-[hsl(var(--error))] border border-transparent hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]",
+        // Destructive ghost — icon-only delete on a row: a muted glyph like
+        // any other row icon, turning red only on hover/press, so a list of
+        // rows never shows a column of red. Menus use DropdownMenuItem
+        // variant="destructive".
         "destructive-ghost":
-          "rounded-full bg-transparent text-[hsl(var(--error))] border border-transparent hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] active:bg-[hsl(var(--error-container))]",
+          "rounded-full bg-transparent text-muted-foreground border border-transparent hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] active:bg-[hsl(var(--error-container))] focus-visible:text-[hsl(var(--error))]",
         // Link — text + underline.
         link:
           "rounded-none border-0 text-primary underline underline-offset-4 hover:no-underline px-0 active:scale-100",

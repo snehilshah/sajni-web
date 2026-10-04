@@ -396,7 +396,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
             </>
           ) : (
             <>
-              <Button variant="destructive" size="sm" onClick={() => onDelete(memo.id)} className="mr-auto gap-1.5">
+              <Button variant="destructive-quiet" size="sm" onClick={() => onDelete(memo.id)} className="mr-auto gap-1.5">
                 <Trash2 className="size-3.5" /> Delete
               </Button>
               <Button variant="ghost" size="sm" onClick={() => onPin(memo)} className="gap-1.5">

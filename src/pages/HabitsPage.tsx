@@ -55,6 +55,7 @@ import {
   Flame,
   Loader2,
   Plus,
+  Trash2,
 } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 
@@ -333,14 +334,14 @@ export default function HabitsPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className={cn(editing && 'flex-row items-center')}>
             {editing && (
               <Button
-                variant="destructive"
+                variant="destructive-quiet"
                 onClick={() => removeHabit(editing)}
-                className="sm:mr-auto"
+                className="mr-auto"
               >
-                Delete
+                <Trash2 className="size-4 mr-1" /> Delete
               </Button>
             )}
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>

@@ -1019,7 +1019,7 @@ function CardDetail({
           <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
         </Button>
         <div className="flex-1" />
-        <Button size="sm" variant="destructive" onClick={onDelete}>
+        <Button size="sm" variant="destructive-quiet" onClick={onDelete}>
           <Trash2 className="size-3.5 mr-1.5" /> Delete
         </Button>
       </div>

@@ -530,9 +530,9 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="flex-row items-center justify-between">
           {budget ? (
-            <Button variant="destructive" onClick={remove}>
+            <Button variant="destructive-quiet" onClick={remove}>
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           ) : <span />}

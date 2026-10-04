@@ -402,9 +402,9 @@ function AccountDialog({ open, account, onClose, onSaved }: {
             </div>
           )}
         </div>
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="flex-row items-center justify-between">
           {account ? (
-            <Button variant="destructive" onClick={remove}>
+            <Button variant="destructive-quiet" onClick={remove}>
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           ) : <span />}
