@@ -873,7 +873,7 @@ function CardDetail({
                       <Button variant="ghost" size="icon-xs" className="size-11 lg:size-7" disabled={busy} onClick={() => startCommentEdit(event.id, event.body)} aria-label="Edit comment">
                         <Edit3 className="size-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon-xs" disabled={busy} onClick={() => deleteComment(event.id)} className="size-11 text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] lg:size-7" aria-label="Delete comment">
+                      <Button variant="destructive-ghost" size="icon-xs" disabled={busy} onClick={() => deleteComment(event.id)} className="size-11 lg:size-7" aria-label="Delete comment">
                         <Trash2 className="size-3.5" />
                       </Button>
                     </div>
@@ -1019,7 +1019,7 @@ function CardDetail({
           <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
         </Button>
         <div className="flex-1" />
-        <Button size="sm" variant="ghost" onClick={onDelete} className="text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]">
+        <Button size="sm" variant="destructive" onClick={onDelete}>
           <Trash2 className="size-3.5 mr-1.5" /> Delete
         </Button>
       </div>

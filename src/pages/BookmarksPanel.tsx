@@ -376,7 +376,7 @@ function RowMenu({ b, shelf, onEdit, onToggleRead, onArchive, onDelete }: {
             <Archive className="size-3.5" /> Archive
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+        <DropdownMenuItem variant="destructive" onClick={onDelete}>
           <Trash2 className="size-3.5" /> Delete
         </DropdownMenuItem>
       </DropdownMenuContent>

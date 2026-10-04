@@ -531,7 +531,7 @@ function BillerDetailSheet({
             </div>
 
             <div className="px-5 py-3 flex items-center justify-between gap-2">
-              <Button variant="ghost" className="text-destructive" onClick={remove}>
+              <Button variant="destructive" onClick={remove}>
                 <Trash2 className="size-4 mr-1" /> Delete
               </Button>
               <div className="flex gap-2">

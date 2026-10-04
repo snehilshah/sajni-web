@@ -167,13 +167,16 @@ export default function ThinkingPage() {
                     <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{p.description}</div>
                   )}
                 </div>
-                <button
+                <Button
+                  variant="destructive-ghost"
+                  size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); remove(p.id); }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   title="Delete"
+                  aria-label="Delete project"
                 >
-                  <Trash2 className="size-3.5" />
-                </button>
+                  <Trash2 />
+                </Button>
               </div>
               {p.thesis && (
                 <div className="mt-3 text-sm text-muted-foreground line-clamp-2">

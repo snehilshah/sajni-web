@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { finance } from '@/api';
 import { qk } from './keys';
 
@@ -29,6 +29,22 @@ export function useFinTransactions(
 
 export function useFinLends(enabled = true) {
   return useQuery({ queryKey: qk.finance.lends(), queryFn: () => finance.listLends(), enabled });
+}
+
+export function useFinLendPeople(enabled = true) {
+  return useQuery({ queryKey: qk.finance.lendPeople(), queryFn: () => finance.listLendPeople(), enabled });
+}
+
+// Picker pages for "Paid for" / "Settle": 30 rows at a time, keyset-paged on
+// the server, so the ledger size never matters.
+export function useLendCandidates(kind: 'paid_for' | 'settle', q: string, accountId: number, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: qk.finance.lendCandidates(kind, q, accountId),
+    queryFn: ({ pageParam }) => finance.lendCandidates(kind, { q, account_id: accountId || undefined, cursor: pageParam || undefined }),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.next ?? undefined,
+    enabled,
+  });
 }
 
 // Budgets are discrete and never reset, so there is no history view to page

@@ -1038,9 +1038,8 @@ function EventEditor({
                 />
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="destructive-ghost"
                   size="icon"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => removeVariable(variable, index)}
                   aria-label={`Remove ${variable.name || 'variable'}`}
                 >
@@ -1057,8 +1056,8 @@ function EventEditor({
                 {editing.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
                 {editing.archived ? 'Restore' : 'Archive'}
               </Button>
-              <Button type="button" variant="ghost" size="icon-sm" onClick={removeEvent} aria-label="Delete event">
-                <Trash2 className="size-4 text-destructive" />
+              <Button type="button" variant="destructive-ghost" size="icon-sm" onClick={removeEvent} aria-label="Delete event">
+                <Trash2 className="size-4" />
               </Button>
             </div>
           )}

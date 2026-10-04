@@ -786,8 +786,8 @@ export default function NotesPage() {
                                 <FolderMoveIcon className="size-4" />
                               </Button>
                               <Button
-                                variant="ghost" size="icon-sm" onClick={handleDelete}
-                                className="rounded-full max-md:size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                variant="destructive-ghost" size="icon-sm" onClick={handleDelete}
+                                className="max-md:size-11"
                                 title="Delete note" aria-label="Delete note"
                               >
                                 <Trash2 className="size-4" />
@@ -1303,7 +1303,7 @@ function FolderRowItem({
             <div className="my-1 h-px bg-border" />
             <button
               onClick={() => { onDelete(); setMenuOpen(false); }}
-              className="w-full text-left px-2.5 py-1.5 rounded text-sm hover:bg-destructive/10 text-destructive flex items-center gap-2"
+              className="w-full text-left px-2.5 py-1.5 rounded text-sm text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] flex items-center gap-2"
             >
               <Trash2 className="size-3.5" /> Delete folder
             </button>

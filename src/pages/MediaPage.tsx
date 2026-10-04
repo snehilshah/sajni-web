@@ -858,6 +858,18 @@ export default function MediaPage() {
     setShowForm(true);
   }, [blankForm]);
 
+  // `?id=` (from a tag reference) opens that entry once its shelf loads.
+  const deepLinkId = Number(searchParams.get('id')) || null;
+  useEffect(() => {
+    if (!deepLinkId || loading) return;
+    const item = items.find((m) => m.id === deepLinkId);
+    if (item) openForm(item);
+    const next = new URLSearchParams(searchParams);
+    next.delete('id');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkId, loading, items]);
+
   const mediaAddLabel = `Add ${(TYPE_META[activeType]?.label || 'entry').toLowerCase()}`;
   const handleAdd = useCallback((sourceEl?: Element | null) => {
     if (isBookmarkTab) {
@@ -1259,7 +1271,7 @@ export default function MediaPage() {
   const mediaFormFooter = (
     <>
       {editItem && (
-        <Button variant="ghost" onClick={() => handleDelete(editItem.id)} className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5">
+        <Button variant="destructive" onClick={() => handleDelete(editItem.id)} className="mr-auto gap-1.5">
           <Trash2 className="size-3.5" /> Delete
         </Button>
       )}

@@ -801,6 +801,8 @@ export interface FinTransaction {
   slate_id: number;
   slate_name: string;
   lend_id: number | null;
+  /** Person on a lend / settlement row. */
+  lend_borrower: string | null;
   created_at: string;
 }
 
@@ -872,6 +874,9 @@ export interface FinLendRepayment {
   amount: number;
   repaid_at: string;
   note: string;
+  transaction_id: number;
+  /** Derived from a settlement credit (undo it from the person). */
+  settled: boolean;
 }
 
 export interface FinLend {
@@ -889,7 +894,42 @@ export interface FinLend {
   due_date: string | null;
   remind: boolean;
   status: 'open' | 'settled';
+  /** 'paid_for' = an existing expense marked for someone; removing it hands the expense back. */
+  origin: 'lend' | 'paid_for';
   repayments: FinLendRepayment[];
+}
+
+export interface FinLendSettlement {
+  id: number;
+  transaction_id: number;
+  account_id: number;
+  account: string;
+  amount: number;
+  applied: number;
+  description: string;
+  txn_at: string;
+}
+
+/** A person's running balance across their lends. credit = settled beyond what they owe. */
+export interface FinLendPerson {
+  borrower: string;
+  outstanding: number;
+  credit: number;
+  open: number;
+  last_at: string;
+  settlements: FinLendSettlement[];
+}
+
+export interface FinLendCandidate {
+  id: number;
+  account_id: number;
+  account: string;
+  account_type: FinAccount['type'];
+  category_name: string | null;
+  category_color: string | null;
+  amount: number;
+  description: string;
+  txn_at: string;
 }
 
 export interface LendDraft {
@@ -1131,6 +1171,22 @@ export const finance = {
     request<{ id: number; transaction_id: number }>('/finance/lends/' + id + '/repayments', { method: 'POST', body: JSON.stringify(data) }),
   deleteLendRepayment: (lendId: number, repaymentId: number) =>
     request('/finance/lends/' + lendId + '/repayments/' + repaymentId, { method: 'DELETE' }),
+  listLendPeople: () => request<FinLendPerson[]>('/finance/lends/people'),
+  /** Keyset-paged pickers: paid_for = plain expenses, settle = plain credits. */
+  lendCandidates: (kind: 'paid_for' | 'settle', p: { q?: string; account_id?: number; cursor?: string }) => {
+    const qs = new URLSearchParams({ kind });
+    if (p.q) qs.set('q', p.q);
+    if (p.account_id) qs.set('account_id', String(p.account_id));
+    if (p.cursor) qs.set('cursor', p.cursor);
+    return request<{ items: FinLendCandidate[]; next: string | null }>('/finance/lends/candidates?' + qs);
+  },
+  /** due_date omitted → card-cycle due date (cards only). */
+  markPaidFor: (data: { borrower: string; transaction_ids: number[]; due_date?: string; remind?: boolean }) =>
+    request<{ lend_ids: number[] }>('/finance/lends/paid-for', { method: 'POST', body: JSON.stringify(data) }),
+  settleLends: (data: { borrower: string; transaction_ids?: number[]; account_id?: number; amount?: number; received_at?: string; note?: string }) =>
+    request('/finance/lends/settle', { method: 'POST', body: JSON.stringify(data) }),
+  deleteLendSettlement: (id: number) =>
+    request('/finance/lends/settlements/' + id, { method: 'DELETE' }),
   // AI category inference. Returns { category_id, category_name } where
   // category_id is null when no existing category matched (falls back
   // to "Others"). 429 means the user has exhausted their AI quota.

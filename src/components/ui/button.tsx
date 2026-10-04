@@ -48,6 +48,11 @@ const buttonVariants = cva(
         // Destructive — error container fill.
         destructive:
           "rounded-full bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] border border-transparent hover:brightness-[0.97]",
+        // Destructive ghost — icon-only delete in a row: error glyph, the
+        // error container fills in on hover/press. Labelled deletes use
+        // `destructive`; menus use DropdownMenuItem variant="destructive".
+        "destructive-ghost":
+          "rounded-full bg-transparent text-[hsl(var(--error))] border border-transparent hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] active:bg-[hsl(var(--error-container))]",
         // Link — text + underline.
         link:
           "rounded-none border-0 text-primary underline underline-offset-4 hover:no-underline px-0 active:scale-100",

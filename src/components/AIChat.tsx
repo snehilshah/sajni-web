@@ -370,13 +370,16 @@ export function ChatPanel({
               <div className="text-sm truncate">{s.title || 'New chat'}</div>
               <div className="font-mono text-xs text-muted-foreground">{s.updated_at?.slice(0, 10)}</div>
             </div>
-            <button
+            <Button
+              variant="destructive-ghost"
+              size="icon-xs"
               onClick={(e) => removeSession(s.id, e)}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
               title="Delete"
+              aria-label="Delete chat"
             >
-              <Trash2 className="size-3.5" />
-            </button>
+              <Trash2 />
+            </Button>
           </div>
         ))
       )}

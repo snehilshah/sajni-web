@@ -696,7 +696,18 @@ function LedgerRow({
           <span aria-hidden className="md:hidden">·</span>
           <span className="flex min-w-0 items-center truncate">
             {!isMove && t.category_name ? (
-              <span className="truncate font-sans font-medium" style={{ color: ink }}>{t.category_name}</span>
+              // Soft pill in the category's hue: the colour carries the
+              // category, the darkened ink keeps the label readable.
+              <span
+                className="truncate rounded-full px-2 py-0.5 font-sans font-medium"
+                style={{ backgroundColor: `color-mix(in srgb, ${hue} 16%, transparent)`, color: ink }}
+              >
+                {t.category_name}
+              </span>
+            ) : (isLend || isLendRepayment) && t.lend_borrower ? (
+              <span className="truncate rounded-full bg-[hsl(var(--surface-container-high))] px-2 py-0.5 font-sans font-medium text-[hsl(var(--on-surface-variant))]">
+                {isLend ? 'For ' : 'From '}{t.lend_borrower}
+              </span>
             ) : (
               <span className="truncate">
                 {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : 'Uncategorized'}

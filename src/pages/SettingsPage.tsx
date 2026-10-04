@@ -159,7 +159,7 @@ function AIThemes() {
                   type="button"
                   onClick={() => remove(t)}
                   disabled={busy}
-                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-xl text-muted-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-destructive focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
+                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-xl text-[hsl(var(--error))] outline-none transition-colors enabled:hover:bg-[hsl(var(--error-container))] enabled:hover:text-[hsl(var(--on-error-container))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
                   title={`Delete ${t.name}`}
                   aria-label={`Delete ${t.name}`}
                 >

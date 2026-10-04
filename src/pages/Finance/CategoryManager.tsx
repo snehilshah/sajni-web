@@ -129,7 +129,7 @@ export default function CategoryManager({
                   <Button size="icon-sm" variant="ghost" onClick={() => startEdit(c)} className="text-muted-foreground">
                     <Pencil className="size-3.5" />
                   </Button>
-                  <Button size="icon-sm" variant="ghost" onClick={() => remove(c)} className="text-muted-foreground hover:text-destructive">
+                  <Button size="icon-sm" variant="destructive-ghost" onClick={() => remove(c)} aria-label="Delete category">
                     <Trash2 className="size-3.5" />
                   </Button>
                 </>

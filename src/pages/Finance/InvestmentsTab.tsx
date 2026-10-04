@@ -367,7 +367,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
         </div>
         <DialogFooter className="sm:justify-between">
           {investment ? (
-            <Button variant="ghost" className="text-destructive" onClick={remove}>
+            <Button variant="destructive" onClick={remove}>
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           ) : <span />}

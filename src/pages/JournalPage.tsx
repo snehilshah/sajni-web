@@ -609,7 +609,7 @@ export default function JournalPage() {
       <span className="w-px h-4 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
       <SaveStatus state={savingState} onSave={() => performSave()} />
       {entryDates.has(selectedDate) && (
-        <Button variant="ghost" size="icon-sm" onClick={deleteEntry} className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive" title="Delete entry">
+        <Button variant="destructive-ghost" size="icon-sm" onClick={deleteEntry} title="Delete entry">
           <Trash2 className="size-4" />
         </Button>
       )}

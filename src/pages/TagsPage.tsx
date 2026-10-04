@@ -6,16 +6,18 @@ import { formatDistanceToNow } from 'date-fns';
 import { useTags, useTagEntities } from '@/queries/tags';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt } from '@/components/ui/icons';
+import { Hash, Search, X, FileText, BookOpen, NotebookPen, CheckSquare, ArrowUpRight, Receipt, Bookmark, Film } from '@/components/ui/icons';
 
-interface TagEntity { type: string; id: number; title: string; subtitle?: string; }
+interface TagEntity { type: string; id: number; title: string; subtitle?: string; kind?: string; }
 
-const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (id: number) => string }> = {
+const TYPE_META: Record<string, { label: string; icon: typeof FileText; route: (id: number, e: TagEntity) => string }> = {
   memo: { label: 'Memo', icon: FileText, route: () => '/memos' },
   note: { label: 'Note', icon: NotebookPen, route: (id) => `/notes?id=${id}` },
   journal: { label: 'Journal', icon: BookOpen, route: (id) => `/journal?id=${id}` },
   task: { label: 'Task', icon: CheckSquare, route: (id) => `/tasks?focus=${id}` },
   transaction: { label: 'Transaction', icon: Receipt, route: () => '/finance/transactions' },
+  media: { label: 'Media', icon: Film, route: (id, e) => `/media?tab=${({ show: 'shows', book: 'books' } as Record<string, string>)[e.kind ?? ''] ?? 'movies'}&id=${id}` },
+  bookmark: { label: 'Bookmark', icon: Bookmark, route: (_, e) => `/media?tab=${e.kind === 'video' ? 'videos' : 'sites'}` },
 };
 
 // TagsPanel — lives inside Analytics (?tab=tags). The active tag rides
@@ -96,7 +98,7 @@ export default function TagsPanel() {
               <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
                 <Hash className="size-8 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">
-                  {search ? 'No tags match your search.' : 'No tags yet. Use #tag in any memo, note, journal, task, or transaction note.'}
+                  {search ? 'No tags match your search.' : 'No tags yet. Use #tag in any memo, note, journal, task, media, bookmark, or transaction note.'}
                 </p>
               </div>
             ) : (
@@ -199,7 +201,7 @@ export default function TagsPanel() {
                             {list.map((e) => (
                               <button
                                 key={`${e.type}-${e.id}`}
-                                onClick={() => navigate(meta?.route(e.id) || '/')}
+                                onClick={() => navigate(meta?.route(e.id, e) || '/')}
                                 className="text-left rounded-lg bg-card hover:bg-accent/30 transition-colors px-4 py-2.5 group flex items-center gap-3"
                               >
                                 <Icon className="size-3.5 text-muted-foreground shrink-0" />

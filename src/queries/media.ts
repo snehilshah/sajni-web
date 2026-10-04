@@ -23,7 +23,10 @@ export function useCreateMedia() {
     mutationFn: (data: MediaPatch) => mediaApi.create(data),
     onError: (err) =>
       toast.error(err instanceof Error && err.message ? err.message : 'Could not add'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.media.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.media.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
+    },
   });
 }
 
@@ -33,7 +36,10 @@ export function useUpdateMedia() {
     mutationFn: ({ id, data }: { id: number; data: MediaPatch }) =>
       mediaApi.update(id, data),
     onError: () => toast.error('Could not update'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.media.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.media.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
+    },
   });
 }
 
@@ -42,6 +48,9 @@ export function useDeleteMedia() {
   return useMutation({
     mutationFn: (id: number) => mediaApi.delete(id),
     onError: () => toast.error('Could not delete'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.media.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.media.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
+    },
   });
 }

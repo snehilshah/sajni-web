@@ -522,7 +522,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                       onChange={(e) => updateItem(idx, { amount: e.target.value })}
                       placeholder="Amount"
                     />
-                    <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" size="icon-sm" onClick={() => removeItem(idx)} aria-label="Remove cap">
+                    <Button variant="destructive-ghost" size="icon-sm" onClick={() => removeItem(idx)} aria-label="Remove cap">
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>
@@ -534,7 +534,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 
         <DialogFooter className="sm:justify-between">
           {budget ? (
-            <Button variant="ghost" className="text-destructive" onClick={remove}>
+            <Button variant="destructive" onClick={remove}>
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           ) : <span />}

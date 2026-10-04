@@ -399,7 +399,7 @@ export interface TagInfo {
 
 export interface TagEntities {
   tag: string;
-  entities: { type: string; id: number; title: string }[];
+  entities: { type: string; id: number; title: string; subtitle?: string; kind?: string }[];
 }
 
 export interface Analytics {

@@ -286,7 +286,7 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
             Mark paid
           </Button>
         ) : null}
-        <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" size="icon-sm" onClick={onDelete}>
+        <Button variant="destructive-ghost" size="icon-sm" onClick={onDelete}>
           <Trash2 className="size-3.5" />
         </Button>
       </div>

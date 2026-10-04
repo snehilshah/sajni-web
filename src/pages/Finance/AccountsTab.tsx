@@ -404,7 +404,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
         </div>
         <DialogFooter className="sm:justify-between">
           {account ? (
-            <Button variant="ghost" className="text-destructive" onClick={remove}>
+            <Button variant="destructive" onClick={remove}>
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           ) : <span />}
@@ -587,7 +587,7 @@ function SavingsDialog({ account, savings, onClose }: {
                   </div>
                   <div className="flex gap-0.5">
                     <Button variant="ghost" size="icon-sm" onClick={() => startEdit(s)}><Pencil className="size-3.5" /></Button>
-                    <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" size="icon-sm" onClick={() => remove(s.id)}><Trash2 className="size-3.5" /></Button>
+                    <Button variant="destructive-ghost" size="icon-sm" onClick={() => remove(s.id)} aria-label="Delete"><Trash2 className="size-3.5" /></Button>
                   </div>
                 </div>
                 <div className="font-mono text-xs tabular-nums text-muted-foreground mt-1">

@@ -18,7 +18,10 @@ export function useCreateBookmark() {
   return useMutation({
     mutationFn: (data: { url: string; title?: string; note?: string }) => bookmarksApi.create(data),
     onError: () => toast.error('Could not save bookmark'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.bookmarks.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.bookmarks.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
+    },
   });
 }
 
@@ -41,7 +44,10 @@ export function useUpdateBookmark() {
       ctx?.prev?.forEach(([key, val]) => qc.setQueryData(key, val));
       toast.error('Could not update bookmark');
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.bookmarks.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.bookmarks.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
+    },
   });
 }
 
@@ -50,6 +56,9 @@ export function useDeleteBookmark() {
   return useMutation({
     mutationFn: (id: number) => bookmarksApi.delete(id),
     onError: () => toast.error('Could not delete bookmark'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.bookmarks.all }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.bookmarks.all });
+      qc.invalidateQueries({ queryKey: qk.tags.all });
+    },
   });
 }
