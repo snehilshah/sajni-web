@@ -14,6 +14,7 @@ import {
 import { HuePill, hueVar } from '@/components/ui/hue-pill';
 
 import PageShell from '@/components/PageShell';
+import { M3CookieLoader } from '@/components/ui/shapes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -91,6 +92,11 @@ export default function ThinkingProjectPage() {
   // Latest AI suggestion + a deferred promise. addCard awaits this
   // (up to 3s) if it hasn't resolved by the time the user hits Add.
   const pendingClassify = useRef<Promise<ThinkingKind | null> | null>(null);
+  // Visible AI work: the kind classifier while typing, and server-side
+  // enrichment for cards just added / re-enriched (cleared once it lands).
+  const [classifying, setClassifying] = useState(false);
+  const classifySeq = useRef(0);
+  const [enrichingIds, setEnrichingIds] = useState<Set<number>>(new Set());
   const [activeKinds, setActiveKinds] = useState<Set<ThinkingKind>>(new Set());
   const [adding, setAdding] = useState(false);
   const [openCardId, setOpenCardId] = useState<number | null>(null);
@@ -107,6 +113,24 @@ export default function ThinkingProjectPage() {
     return qc.invalidateQueries({ queryKey: qk.thinking.project(pid) });
   }, [qc, pid]);
 
+  // Enrichment runs server-side after a write: mark the card as being read
+  // and poll a few times until its enrichment lands (or give up quietly).
+  const watchEnrichment = (cid: number) => {
+    const before = qc.getQueryData<{ cards?: { id: number; ai_enrichment?: unknown; updated_at?: string }[] }>(qk.thinking.project(pid))
+      ?.cards?.find((c) => c.id === cid)?.ai_enrichment;
+    setEnrichingIds((prev) => new Set(prev).add(cid));
+    const done = () => setEnrichingIds((prev) => { const next = new Set(prev); next.delete(cid); return next; });
+    let tries = 0;
+    const tick = async () => {
+      tries++;
+      await load();
+      const card = qc.getQueryData<{ cards?: { id: number; ai_enrichment?: unknown }[] }>(qk.thinking.project(pid))?.cards?.find((c) => c.id === cid);
+      const landed = !card || (card.ai_enrichment && JSON.stringify(card.ai_enrichment) !== JSON.stringify(before));
+      if (landed || tries >= 6) done(); else setTimeout(tick, 2500);
+    };
+    setTimeout(tick, 2500);
+  };
+
   const staleDismissed = useMemo(() => {
     if (!project?.context_updated_at) return false;
     if (dismissedAt === project.context_updated_at) return true;
@@ -121,10 +145,13 @@ export default function ThinkingProjectPage() {
     if (userPickedKind.current) return;
     if (draft.trim().length < 12) return;
     const t = setTimeout(() => {
+      const seq = ++classifySeq.current;
+      setClassifying(true);
       const p = thinking.classify(draft).then((r) => r.kind).catch(() => null);
       pendingClassify.current = p;
       p.then((k) => {
         if (k && !userPickedKind.current) setKind(k);
+        if (seq === classifySeq.current) setClassifying(false);
       });
     }, 600);
     return () => clearTimeout(t);
@@ -160,7 +187,10 @@ export default function ThinkingProjectPage() {
       if (guess && !userPickedKind.current) finalKind = guess;
     }
     try {
-      await thinking.addCard(pid, { kind: finalKind, content: text });
+      const created = await thinking.addCard(pid, { kind: finalKind, content: text });
+      if (created?.id) watchEnrichment(created.id);
+      classifySeq.current++;
+      setClassifying(false);
       setDraft('');
       setKind('note');
       userPickedKind.current = false;
@@ -169,8 +199,6 @@ export default function ThinkingProjectPage() {
       await load();
     } finally {
       setAdding(false);
-      // Async enrichment runs server-side; poll once for the result.
-      setTimeout(load, 4000);
     }
   };
 
@@ -183,7 +211,7 @@ export default function ThinkingProjectPage() {
 
   const reEnrich = async (cid: number) => {
     await thinking.enrichCard(cid);
-    load();
+    watchEnrichment(cid);
   };
 
   const saveEnrichment = async (cid: number, next: ThinkingEnrichment) => {
@@ -397,13 +425,19 @@ export default function ThinkingProjectPage() {
               ))}
             </SelectContent>
           </Select>
-          {!userPickedKindState && draft.trim().length >= 12 && (
-            <span className="mono text-xs label-kicker text-muted-foreground">auto</span>
-          )}
+          {classifying ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+              <M3CookieLoader size="xs" tone="primary" /> Sajni is picking a kind…
+            </span>
+          ) : !userPickedKindState && draft.trim().length >= 12 ? (
+            <span className="inline-flex items-center gap-1 text-xs text-primary">
+              <Sparkles className="size-3" /> Auto · change anytime
+            </span>
+          ) : null}
           <span className="mono text-xs label-kicker text-muted-foreground">⌘+Enter to add</span>
           <div className="flex-1" />
           <Button size="sm" onClick={addCard} disabled={!draft.trim() || adding}>
-            <Plus className="size-4 mr-1" /> {adding ? 'Adding…' : 'Add'}
+            <Plus className="size-4 mr-1" /> {adding ? (classifying ? 'Picking kind…' : 'Adding…') : 'Add'}
           </Button>
         </div>
       </div>
@@ -470,7 +504,11 @@ export default function ThinkingProjectPage() {
                         <div className="prose prose-sm dark:prose-invert min-w-0 max-w-none break-words">
                           <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
                         </div>
-                        {c.ai_enrichment?.summary && (
+                        {enrichingIds.has(c.id) ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+                            <M3CookieLoader size="xs" tone="primary" /> Sajni is reading this card…
+                          </span>
+                        ) : c.ai_enrichment?.summary && (
                           <div className="min-w-0 border-t-2 border-primary/40 pt-2 text-xs italic text-foreground/60 @min-[50rem]:border-l-2 @min-[50rem]:border-t-0 @min-[50rem]:pl-3 @min-[50rem]:pt-0">
                             <span className="line-clamp-3">{c.ai_enrichment.summary}</span>
                           </div>

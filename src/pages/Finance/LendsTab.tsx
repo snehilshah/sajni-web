@@ -47,6 +47,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
   const peopleQ = useFinLendPeople();
   const people = useMemo(() => peopleQ.data ?? [], [peopleQ.data]);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [showSettled, setShowSettled] = useState(false);
   const [paidFor, setPaidFor] = useState<{ borrower: string } | null>(null);
   const [settling, setSettling] = useState<FinLendPerson | null>(null);
   const [editing, setEditing] = useState<FinLend | null>(null);
@@ -82,6 +83,63 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
     try { await finance.deleteLendRepayment(lend.id, repaymentId); done(); } catch (error) { toast.error(msg(error)); }
   };
 
+  // Anyone with nothing outstanding is settled (a held surplus included).
+  const active = people.filter((p) => p.outstanding > 0.005);
+  const settled = people.filter((p) => p.outstanding <= 0.005);
+
+  const renderPerson = (person: FinLendPerson) => {
+    const key = personKey(person.borrower);
+    const items = lendsByPerson.get(key) ?? [];
+    const open = openKey === key;
+    const nextDue = items
+      .filter((l) => l.status === 'open' && l.due_date)
+      .map((l) => l.due_date as string)
+      .sort()[0];
+    const overdue = !!nextDue && nextDue < today();
+    return (
+      <div key={key} className="rounded-md bg-card">
+        <button
+          type="button"
+          onClick={() => setOpenKey(open ? null : key)}
+          aria-expanded={open}
+          className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-left outline-none hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[hsl(var(--surface-container-high))] text-sm font-semibold text-muted-foreground">
+            {person.borrower.trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{person.borrower}</span>
+            <span className="mt-0.5 flex flex-wrap gap-1">
+              {nextDue && (
+                <DateBadge tone={overdue ? 'alert' : 'neutral'}>Due {format(parseISO(nextDue), 'd MMM')}</DateBadge>
+              )}
+              {person.credit > 0 && <DateBadge tone="positive">{formatMoney(person.credit)} held</DateBadge>}
+            </span>
+          </span>
+          {person.outstanding > 0 ? (
+            <span className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums text-primary">{formatMoney(person.outstanding)}</span>
+          ) : (
+            <DateBadge tone="positive">Settled</DateBadge>
+          )}
+          <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        </button>
+
+        {open && (
+          <PersonDetail
+            person={person}
+            lends={items}
+            onPaidFor={() => setPaidFor({ borrower: person.borrower })}
+            onSettle={() => setSettling(person)}
+            onEdit={setEditing}
+            onRemoveLend={removeLend}
+            onRemoveSettlement={removeSettlement}
+            onRemoveRepayment={removeRepayment}
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <StatGroup className={totals.held > 0 ? 'grid-cols-3' : 'grid-cols-2'}>
@@ -105,60 +163,30 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
       ) : people.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">Nobody owes you anything</p>
       ) : (
-        <div className="flex flex-col gap-0.5 overflow-hidden rounded-xl">
-          {people.map((person) => {
-            const key = personKey(person.borrower);
-            const items = lendsByPerson.get(key) ?? [];
-            const open = openKey === key;
-            const nextDue = items
-              .filter((l) => l.status === 'open' && l.due_date)
-              .map((l) => l.due_date as string)
-              .sort()[0];
-            const overdue = !!nextDue && nextDue < today();
-            return (
-              <div key={key} className="rounded-md bg-card">
-                <button
-                  type="button"
-                  onClick={() => setOpenKey(open ? null : key)}
-                  aria-expanded={open}
-                  className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-left outline-none hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[hsl(var(--surface-container-high))] text-sm font-semibold text-muted-foreground">
-                    {person.borrower.trim().charAt(0).toUpperCase()}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{person.borrower}</span>
-                    <span className="mt-0.5 flex flex-wrap gap-1">
-                      {nextDue && (
-                        <DateBadge tone={overdue ? 'alert' : 'neutral'}>Due {format(parseISO(nextDue), 'd MMM')}</DateBadge>
-                      )}
-                      {person.credit > 0 && <DateBadge tone="positive">{formatMoney(person.credit)} held</DateBadge>}
-                    </span>
-                  </span>
-                  {person.outstanding > 0 ? (
-                    <span className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums text-primary">{formatMoney(person.outstanding)}</span>
-                  ) : (
-                    <DateBadge tone="positive">Settled</DateBadge>
-                  )}
-                  <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
-                </button>
-
-                {open && (
-                  <PersonDetail
-                    person={person}
-                    lends={items}
-                    onPaidFor={() => setPaidFor({ borrower: person.borrower })}
-                    onSettle={() => setSettling(person)}
-                    onEdit={setEditing}
-                    onRemoveLend={removeLend}
-                    onRemoveSettlement={removeSettlement}
-                    onRemoveRepayment={removeRepayment}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <>
+          {active.length > 0 ? (
+            <div className="flex flex-col gap-0.5 overflow-hidden rounded-xl">{active.map(renderPerson)}</div>
+          ) : (
+            <p className="py-2 text-sm text-muted-foreground">Nobody owes you anything</p>
+          )}
+          {/* Fully settled people fold away, like completed tasks. */}
+          {settled.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowSettled((v) => !v)}
+                aria-expanded={showSettled}
+                className="-ml-2 inline-flex h-9 items-center gap-1.5 rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
+              >
+                <ChevronDown className={cn('size-3.5 transition-transform', !showSettled && '-rotate-90')} />
+                Settled ({settled.length})
+              </button>
+              {showSettled && (
+                <div className="mt-2 flex flex-col gap-0.5 overflow-hidden rounded-xl">{settled.map(renderPerson)}</div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       <PaidForDialog
