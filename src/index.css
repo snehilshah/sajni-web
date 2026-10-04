@@ -399,6 +399,16 @@ em, .italic { font-style: italic; }
   background-clip: padding-box;
 }
 
+/* Rounded surfaces that scroll (dialogs 28px, sheets, menus): inset the
+   track by the corner radius so the thumb runs only along the straight
+   edge instead of overshooting the curve. */
+:is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"])::-webkit-scrollbar-track {
+  margin-block: 28px;
+}
+:is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="popover-content"], [data-slot="select-content"])::-webkit-scrollbar-track {
+  margin-block: 14px;
+}
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

@@ -6,6 +6,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { ACCOUNT_COLORS } from './utils';
@@ -89,27 +90,20 @@ export default function CategoryManager({
           <DialogTitle>Categories</DialogTitle>
         </DialogHeader>
 
-        {/* Kind toggle */}
-        <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
-          {(['expense', 'income'] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => { setKind(k); cancelEdit(); }}
-              className={`py-1.5 text-xs font-medium rounded transition-colors capitalize ${
-                kind === k ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {k}
-            </button>
-          ))}
-        </div>
+        <SegmentedButton
+          stretch
+          value={kind}
+          onChange={(k) => { setKind(k); cancelEdit(); }}
+          options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]}
+        />
 
-        {/* List */}
-        <div className="flex flex-col gap-1.5">
+        {/* List: plain rows on the dialog surface (no card per row); the
+            row padding is pulled into the margin so pills start on the edge. */}
+        <div className="-mx-2 flex flex-col">
           {shown.length === 0 ? (
             <div className="text-xs text-muted-foreground italic py-2">No {kind} categories yet.</div>
           ) : shown.map((c) => (
-            <div key={c.id} className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
+            <div key={c.id} className="flex min-h-12 items-center gap-2 rounded-xl px-2 py-1 hover:bg-[hsl(var(--on-surface)/0.05)]">
               {editId === c.id ? (
                 <>
                   <SwatchRow color={editColor} onPick={setEditColor} />
@@ -139,8 +133,8 @@ export default function CategoryManager({
         </div>
 
         {/* Add */}
-        <div className="border-t border-border pt-3 flex flex-col gap-2">
-          <Label className="font-mono text-xs label-kicker text-muted-foreground">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground">
             New {kind} category
           </Label>
           <div className="flex items-center gap-2">
