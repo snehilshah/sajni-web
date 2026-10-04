@@ -89,13 +89,13 @@ export default function ThinkingProjectPage() {
   // the React Compiler forbids reading a ref during render). The ref stays the
   // source of truth for the async classify guards which need the live value.
   const [userPickedKindState, setUserPickedKindState] = useState(false);
-  // Latest AI suggestion + a deferred promise. addCard awaits this
-  // (up to 3s) if it hasn't resolved by the time the user hits Add.
-  const pendingClassify = useRef<Promise<ThinkingKind | null> | null>(null);
   // Visible AI work: the kind classifier while typing, and server-side
   // enrichment for cards just added / re-enriched (cleared once it lands).
   const [classifying, setClassifying] = useState(false);
   const classifySeq = useRef(0);
+  // The draft text the current kind was classified from.
+  const classifiedFor = useRef<string | null>(null);
+  const [autoPicked, setAutoPicked] = useState(false);
   const [enrichingIds, setEnrichingIds] = useState<Set<number>>(new Set());
   const [activeKinds, setActiveKinds] = useState<Set<ThinkingKind>>(new Set());
   const [adding, setAdding] = useState(false);
@@ -148,9 +148,8 @@ export default function ThinkingProjectPage() {
       const seq = ++classifySeq.current;
       setClassifying(true);
       const p = thinking.classify(draft).then((r) => r.kind).catch(() => null);
-      pendingClassify.current = p;
       p.then((k) => {
-        if (k && !userPickedKind.current) setKind(k);
+        if (k && !userPickedKind.current) { setKind(k); setAutoPicked(true); classifiedFor.current = draft.trim(); }
         if (seq === classifySeq.current) setClassifying(false);
       });
     }, 600);
@@ -178,11 +177,14 @@ export default function ThinkingProjectPage() {
     setAdding(true);
     // If the classifier is still in flight, wait up to 3s for it; if
     // it returns in time AND user hasn't manually picked, use it.
+    // Not picked by hand and not yet classified for this exact text (Add
+    // beat the typing pause, or a stale guess): ask Sajni now, briefly.
     let finalKind = kind;
-    if (!userPickedKind.current && pendingClassify.current) {
+    if (!userPickedKind.current && classifiedFor.current !== text) {
+      setClassifying(true);
       const guess = await Promise.race<ThinkingKind | null>([
-        pendingClassify.current,
-        new Promise<null>((res) => setTimeout(() => res(null), 3000)),
+        thinking.classify(text).then((r) => r.kind).catch(() => null),
+        new Promise<null>((res) => setTimeout(() => res(null), 4000)),
       ]);
       if (guess && !userPickedKind.current) finalKind = guess;
     }
@@ -192,10 +194,11 @@ export default function ThinkingProjectPage() {
       classifySeq.current++;
       setClassifying(false);
       setDraft('');
+      classifiedFor.current = null;
+      setAutoPicked(false);
       setKind('note');
       userPickedKind.current = false;
       setUserPickedKindState(false);
-      pendingClassify.current = null;
       await load();
     } finally {
       setAdding(false);
@@ -409,7 +412,7 @@ export default function ThinkingProjectPage() {
           rows={3}
           className="min-h-[88px]"
         />
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <Select value={kind} onValueChange={(v) => onUserPickKind(v as ThinkingKind)}>
             <SelectTrigger className="h-9 w-40 text-xs">
               <SelectValue />
@@ -425,17 +428,17 @@ export default function ThinkingProjectPage() {
               ))}
             </SelectContent>
           </Select>
-          {classifying ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-              <M3CookieLoader size="xs" tone="primary" /> Sajni is picking a kind…
-            </span>
-          ) : !userPickedKindState && draft.trim().length >= 12 ? (
-            <span className="inline-flex items-center gap-1 text-xs text-primary">
-              <Sparkles className="size-3" /> Auto · change anytime
-            </span>
-          ) : null}
-          <span className="mono text-xs label-kicker text-muted-foreground">⌘+Enter to add</span>
-          <div className="flex-1" />
+          {/* One status slot that takes the free width: its text changes,
+              the row never reflows. */}
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs" aria-live="polite">
+            {classifying ? (
+              <><M3CookieLoader size="xs" tone="primary" /><span className="truncate text-muted-foreground">Sajni is picking a kind…</span></>
+            ) : autoPicked && !userPickedKindState && draft.trim() ? (
+              <><Sparkles className="size-3 shrink-0 text-primary" /><span className="truncate text-primary">Auto · change anytime</span></>
+            ) : (
+              <span className="hidden truncate text-muted-foreground sm:inline">⌘+Enter to add</span>
+            )}
+          </span>
           <Button size="sm" onClick={addCard} disabled={!draft.trim() || adding}>
             <Plus className="size-4 mr-1" /> {adding ? (classifying ? 'Picking kind…' : 'Adding…') : 'Add'}
           </Button>
