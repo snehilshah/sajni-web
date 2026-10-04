@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { ArrowDownLeft, ArrowUpRight, Bell, Check, ChevronDown, MoreVertical, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from '@/components/ui/icons';
+import { ArrowUpRight, Bell, Check, ChevronDown, MoreVertical, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from '@/components/ui/icons';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DateBadge, StateChip } from '@/components/ui/state-chip';
 import { cn } from '@/lib/utils';
@@ -220,7 +220,7 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
           return (
             <div key={'l' + lend.id} className={cn(ROW, 'min-h-14')}>
               <TimelineNode {...rail} tone={lend.status === 'settled' ? 'positive' : overdue ? 'alert' : 'neutral'}>
-                {lend.status === 'settled' ? <Check /> : lend.origin === 'paid_for' ? <Receipt /> : <ArrowUpRight />}
+                {lend.status === 'settled' ? <Check className="!size-3" /> : lend.origin === 'paid_for' ? <Receipt /> : <ArrowUpRight />}
               </TimelineNode>
               <button type="button" onClick={() => onEdit(lend)} className="col-span-2 grid grid-cols-subgrid items-center rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <span className="min-w-0">
@@ -256,7 +256,7 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
           : { id: 'r' + event.repayment.id, title: 'Returned', account: event.repayment.destination_account, amount: event.repayment.amount, held: 0 };
         return (
           <div key={received.id} className={cn(ROW, 'min-h-14')}>
-            <TimelineNode {...rail} tone="positive"><ArrowDownLeft /></TimelineNode>
+            <TimelineNode {...rail} tone="positive"><ArrowUpRight className="rotate-180" /></TimelineNode>
             <span className="min-w-0 py-2">
               <span className="block truncate text-sm font-medium">{received.title}</span>
               <span className="mt-0.5 block truncate text-xs text-muted-foreground">{format(parseISO(event.at), 'd MMM')} · {received.account}</span>
@@ -277,7 +277,7 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
       })}
       <div className={cn(ROW, 'pt-2')}>
         <div className="col-start-2 col-span-3 flex items-center gap-2">
-          {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}><ArrowDownLeft className="size-4" /> Settle</Button>}
+          {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}><ArrowUpRight className="size-4 rotate-180" /> Settle</Button>}
           <Button variant="outline" size="sm" onClick={onPaidFor}><Plus className="size-4" /> Paid for</Button>
         </div>
       </div>
@@ -285,9 +285,11 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
   );
 }
 
+// Opaque fills (tints mixed into the card, not alpha) so the rail never
+// shows through a node.
 const NODE_TONE = {
-  neutral: 'bg-[hsl(var(--surface-container-high))] text-[hsl(var(--on-surface-variant))]',
-  positive: 'bg-[hsl(var(--color-complete)/0.16)] text-[hsl(var(--color-complete))]',
+  neutral: 'bg-[hsl(var(--surface-container-highest))] text-foreground',
+  positive: 'bg-[color-mix(in_oklab,hsl(var(--color-complete))_32%,hsl(var(--card)))] text-[color-mix(in_oklab,hsl(var(--color-complete))_70%,hsl(var(--on-surface)))]',
   alert: 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]',
 };
 
@@ -297,9 +299,9 @@ function TimelineNode({ first, last, tone, children }: { first: boolean; last: b
   return (
     <span className="relative grid self-stretch place-items-center">
       {!(first && last) && (
-        <span aria-hidden className={cn('absolute left-1/2 w-0.5 -translate-x-1/2 rounded-full bg-[hsl(var(--outline-variant))]', first ? 'top-1/2' : 'top-0', last ? 'bottom-1/2' : 'bottom-0')} />
+        <span aria-hidden className={cn('absolute left-1/2 w-0.5 -translate-x-1/2 rounded-full bg-[hsl(var(--outline))]', first ? 'top-1/2' : 'top-0', last ? 'bottom-1/2' : 'bottom-0')} />
       )}
-      <span className={cn('relative grid size-7 place-items-center rounded-full ring-4 ring-[hsl(var(--card))] [&>svg]:size-3.5', NODE_TONE[tone])}>
+      <span className={cn('relative grid size-8 place-items-center rounded-full ring-[3px] ring-[hsl(var(--card))] [&>svg]:size-4', NODE_TONE[tone])}>
         {children}
       </span>
     </span>

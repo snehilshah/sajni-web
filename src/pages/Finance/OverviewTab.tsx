@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
+import { CategoryPill } from './CategoryChips';
 
 type OverviewData = Awaited<ReturnType<typeof finance.overview>>;
 type Snapshot = Awaited<ReturnType<typeof finance.networthHistory>>[number];
@@ -96,8 +97,7 @@ export default function OverviewTab({ enabled }: Props) {
                 const pct = (c.amount / max) * 100;
                 return (
                   <div key={String(c.id)} className="flex items-center gap-2">
-                    <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                    <span className="text-xs flex-1 truncate">{c.name}</span>
+                    <span className="flex min-w-0 flex-1"><CategoryPill name={c.name} color={c.color} /></span>
                     <div className="flex-1 max-w-[100px] h-1.5 bg-muted rounded-full overflow-hidden">
                       <motion.div
                         initial={{ transform: 'scaleX(0)' }}

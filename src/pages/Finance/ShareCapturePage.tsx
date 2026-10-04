@@ -17,6 +17,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { CategoryChips } from './CategoryChips';
 import { formatMoney, txnAtToParts, partsToTxnAt } from './utils';
 
 const SHARE_KEY = 'sajni:shareText';
@@ -368,19 +369,7 @@ function Capture({ text }: { text: string }) {
           </Field>
 
           <Field label="Category" className="col-span-2">
-            <Select
-              value={categoryId || 'none'}
-              onValueChange={(v) => setCategoryId(!v || v === 'none' ? '' : v)}
-              items={[{ value: 'none', label: 'Choose category' }, ...filteredCats.map((c) => ({ value: String(c.id), label: c.name }))]}
-            >
-              <SelectTrigger><SelectValue placeholder="Choose category" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Choose category</SelectItem>
-                {filteredCats.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CategoryChips categories={filteredCats} value={categoryId} onChange={(v) => setCategoryId(v === categoryId ? '' : v)} />
           </Field>
 
           {slates.length > 0 && (

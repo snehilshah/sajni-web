@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { CategoryChips } from './CategoryChips';
 import { txnAtToParts, partsToTxnAt } from './utils';
 
 // The add/edit form for personal-ledger transactions. Extracted from
@@ -356,24 +357,15 @@ export default function TransactionDialog({
                 </span>
               ) : undefined}
             >
-              <Select
-                value={categoryId || (othersCategory ? String(othersCategory.id) : undefined)}
-                onValueChange={(v) => {
+              <CategoryChips
+                categories={filteredCats}
+                value={categoryId || (othersCategory ? String(othersCategory.id) : '')}
+                onChange={(v) => {
                   userPickedCategoryRef.current = true;
                   setUserPickedCategory(true);
-                  setCategoryId(v || '');
+                  setCategoryId(v);
                 }}
-                items={filteredCats.map((c) => ({ value: String(c.id), label: c.name }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Others" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCats.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </Field>
           )}
           {type !== 'transfer' && type !== 'lend' && (

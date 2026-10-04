@@ -23,6 +23,7 @@ import CategoryManager from './CategoryManager';
 import { cardClass } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
+import { CategoryPill } from './CategoryChips';
 
 // A budget is a lens, not a container: many budgets can read the same
 // transaction. There is no period and nothing resets — a budget owns the window
@@ -244,10 +245,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
             return (
               <div key={it.id}>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat?.color || 'hsl(var(--outline))' }} />
-                    <span className="text-xs truncate">{cat?.name || 'Uncategorized'}</span>
-                  </div>
+                  <CategoryPill name={cat?.name || 'Uncategorized'} color={cat?.color} />
                   <span className={`whitespace-nowrap text-xs tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {formatMoney(it.spent)} / {formatMoney(it.amount)}
                   </span>

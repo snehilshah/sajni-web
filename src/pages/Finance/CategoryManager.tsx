@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { ACCOUNT_COLORS } from './utils';
+import { CategoryPill } from './CategoryChips';
 
 /**
  * Shared add / rename / recolor / delete UI for transaction & budget
@@ -124,8 +125,7 @@ export default function CategoryManager({
                 </>
               ) : (
                 <>
-                  <span className="size-3 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                  <span className="text-sm flex-1 truncate">{c.name}</span>
+                  <span className="flex min-w-0 flex-1"><CategoryPill name={c.name} color={c.color} className="py-1 text-sm" /></span>
                   <Button size="icon-sm" variant="ghost" onClick={() => startEdit(c)} className="text-muted-foreground">
                     <Pencil className="size-3.5" />
                   </Button>
