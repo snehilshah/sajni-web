@@ -13,23 +13,23 @@ help:
 	@echo "  clean      remove ./dist + .vite caches"
 
 dev:
-	npm run dev
+	pnpm run dev
 
 build:
-	npm run build
+	pnpm run build
 
 preview: build
-	npm run preview
+	pnpm run preview
 
 fmt:
-	npx eslint . --fix
+	pnpm exec eslint . --fix
 
 lint:
-	npx eslint .
+	pnpm exec eslint .
 
 check: lint
-	npx tsc --noEmit -p tsconfig.app.json
-	npm run build
+	pnpm exec tsc --noEmit -p tsconfig.app.json
+	pnpm run build
 
 clean:
 	rm -rf dist .vite *.tsbuildinfo

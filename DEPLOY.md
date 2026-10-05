@@ -26,7 +26,7 @@ all comfortably cover a hobby app. The repo doesn't ship anything
 that would push you to Pro.
 
 If you hit the limit later, the migration off Vercel is mechanically
-small: build the static bundle in CI (`npm run build`), upload `dist/`
+small: build the static bundle in CI (`pnpm run build`), upload `dist/`
 to a GCS bucket fronted by Cloud CDN. The frontend code never has to
 change.
 
@@ -39,6 +39,10 @@ change.
 1. Sign in at [vercel.com](https://vercel.com) and **Add New →
    Project → Import Git Repository**. Pick `ohmysajni/sajni-web`.
 2. Vercel auto-detects Vite from `vercel.json`. Leave defaults.
+   Enable `ENABLE_EXPERIMENTAL_COREPACK=1` for Preview and Production in the
+   project's environment settings so Vercel uses the pnpm version pinned in
+   `package.json`, rather than its bundled older pnpm. Installs use
+   `pnpm install --frozen-lockfile`.
 3. Do not set `VITE_API_URL` in Production unless you intentionally
    want to bypass the Vercel rewrite. Leaving it unset makes the app
    use `/api`.
@@ -60,7 +64,7 @@ The deploy workflow uses the Vercel CLI. It needs three values:
 2. **Org ID and Project ID.** Either grab them from your Vercel
    project's settings, or run this once locally:
    ```sh
-   npm i -g vercel
+   pnpm add -g --allow-build=esbuild vercel
    vercel link              # follow prompts; pick the project you just made
    cat .vercel/project.json # contains orgId + projectId
    rm -rf .vercel           # don't commit it (already in .gitignore)
@@ -120,6 +124,7 @@ Vercel keeps every deploy as a unique URL. To roll back:
 ## Local dev
 
 ```sh
+pnpm install --frozen-lockfile
 make dev      # Vite dev server on :5173, proxies /api to localhost:8080
 make check    # what CI runs (eslint + tsc + build)
 ```

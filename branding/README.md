@@ -8,11 +8,11 @@ paper background and shading are deliberately absent from production artwork.
 Regenerate from `sajni-web` with Node and ImageMagick 7 installed:
 
 ```sh
-npm run brand:generate
-npm run brand:generate -- --android ../sajni-android
+pnpm run brand:generate
+pnpm run brand:generate --android ../sajni-android
 ```
 
-The second command explicitly updates the sibling Android repository. No npm
+The second command explicitly updates the sibling Android repository. No Node
 image library or runtime dependency is needed. Review both repositories' diffs.
 
 ## Web

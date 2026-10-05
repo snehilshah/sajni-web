@@ -1,4 +1,4 @@
-// Shared artwork: npm run brand:generate -- --android ../sajni-android
+// Shared artwork: pnpm run brand:generate --android ../sajni-android
 // Requires ImageMagick 7 (`magick`) for PNG/ICO export; SVG/XML use only Node.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';

@@ -1,0 +1,10 @@
+# Use the shared store; auto links files on this filesystem instead of copying.
+packageImportMethod: auto
+
+# Reuse package metadata and cached native builds between installs.
+preferOffline: true
+sideEffectsCache: true
+
+# Optional macOS watcher from the imported npm lockfile.
+allowBuilds:
+  fsevents@2.3.3: true
