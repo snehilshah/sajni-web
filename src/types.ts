@@ -102,6 +102,8 @@ export interface ReminderHistoryItem extends ReminderOccurrence {
   reminder_id: number;
   message: string;
   notes: string;
+  /** The reminder is still running; deleting this entry keeps it. */
+  active: boolean;
 }
 
 export interface ReminderInput {

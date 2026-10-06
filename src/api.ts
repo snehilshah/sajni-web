@@ -238,6 +238,7 @@ export const reminders = {
   update: (id: number, data: ReminderInput) =>
     request<Reminder>(`/reminders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request(`/reminders/${id}`, { method: 'DELETE' }),
+  deleteRecent: (occurrenceId: number) => request(`/reminders/recent/${occurrenceId}`, { method: 'DELETE' }),
   snooze: (id: number, data: { occurrence_id?: number; minutes?: number; fire_at?: string }) =>
     request<Reminder>(`/reminders/${id}/snooze`, { method: 'POST', body: JSON.stringify(data) }),
   skip: (id: number, occurrence_id?: number) =>

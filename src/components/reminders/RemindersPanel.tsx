@@ -3,7 +3,7 @@ import { addDays, format, isSameDay, startOfDay } from 'date-fns';
 
 import type { Reminder, ReminderHistoryItem, ReminderInput, ReminderRecurrence } from '@/types';
 import {
-  useCreateReminder, useDeleteReminder, useReminderHistory, useReminders,
+  useCreateReminder, useDeleteReminder, useDeleteReminderHistory, useReminderHistory, useReminders,
   useSkipReminder, useSnoozeReminder, useUpdateReminder,
 } from '@/queries/reminders';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -153,12 +153,14 @@ export default function RemindersPanel({ createSignal = 0, focusId }: { createSi
   const [creating, setCreating] = useState(false);
   const [recentOpen, setRecentOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Reminder | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<ReminderHistoryItem | null>(null);
   const [customSnooze, setCustomSnooze] = useState<Reminder | null>(null);
   const [customWhen, setCustomWhen] = useState(nextHourInput());
 
   const snooze = useSnoozeReminder();
   const skip = useSkipReminder();
   const remove = useDeleteReminder();
+  const removeHistory = useDeleteReminderHistory();
   const handledFocus = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -246,7 +248,7 @@ export default function RemindersPanel({ createSignal = 0, focusId }: { createSi
             <ChevronDown className={cn('size-4 transition-transform', !recentOpen && '-rotate-90')} />
             Recent <span className="mono text-xs tabular-nums">{recent.length}</span>
           </button>
-          {recentOpen && <RecentLedger items={recent} />}
+          {recentOpen && <RecentLedger items={recent} onDelete={setHistoryTarget} />}
         </section>
       )}
 
@@ -297,6 +299,27 @@ export default function RemindersPanel({ createSignal = 0, focusId }: { createSi
               variant="destructive"
               disabled={remove.isPending}
               onClick={() => deleteTarget && remove.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) })}
+            >Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={historyTarget !== null} onOpenChange={(open) => { if (!open) setHistoryTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete From History?</DialogTitle>
+            <DialogDescription>
+              {historyTarget?.active
+                ? 'Only this past entry is removed. The reminder keeps running.'
+                : 'This finished reminder will be removed.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryTarget(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={removeHistory.isPending}
+              onClick={() => historyTarget && removeHistory.mutate(historyTarget.id, { onSuccess: () => setHistoryTarget(null) })}
             >Delete</Button>
           </DialogFooter>
         </DialogContent>
@@ -408,7 +431,7 @@ function ReminderRow({ item, separated, onEdit, onSnooze, onCustomSnooze, onSkip
   );
 }
 
-function RecentLedger({ items }: { items: ReminderHistoryItem[] }) {
+function RecentLedger({ items, onDelete }: { items: ReminderHistoryItem[]; onDelete: (item: ReminderHistoryItem) => void }) {
   return (
     <div className="mt-2 overflow-hidden rounded-[22px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
       {items.map((item, index) => (
@@ -423,6 +446,15 @@ function RecentLedger({ items }: { items: ReminderHistoryItem[] }) {
               <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.notes}</p>
             )}
           </div>
+          <Button
+            variant="destructive-ghost"
+            size="icon-sm"
+            className="size-11 shrink-0"
+            aria-label={`Delete ${item.message} from history`}
+            onClick={() => onDelete(item)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
         </div>
       ))}
     </div>
