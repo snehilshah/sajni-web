@@ -9,13 +9,17 @@ is not available in the backend region.
 ```
 push branch / PR       ─►  CI: eslint · tsc · vite build
                             Vercel: preview deploy (auto, per branch)
+push main              ─►  CI only (no Vercel deployment)
 
 push tag srf/release/v*─►  CI gate → vercel build --prod → vercel deploy --prod
                             (explicit promotion to ohmysajni.com)
 ```
 
 Branch pushes get preview URLs from Vercel automatically. Production
-URL is only updated when you push a `srf/release/v*` tag.
+URL is only updated when you push a `srf/release/v*` tag. `vercel.json`
+sets `git.deploymentEnabled.main: false`, so a push to `main` deploys
+nothing; without it, Vercel's git integration would push `main` straight
+to production and the tag would be decorative.
 
 ---
 
@@ -46,10 +50,9 @@ change.
 3. Do not set `VITE_API_URL` in Production unless you intentionally
    want to bypass the Vercel rewrite. Leaving it unset makes the app
    use `/api`.
-4. **Settings → Git → Production Branch**: leave as `main`. *Or*
-   change to a stub like `production-disabled` if you want **only**
-   the tag workflow to promote (recommended — keeps tag = prod and
-   main = preview, same model as the backend).
+4. **Settings → Git → Production Branch**: leave as `main`.
+   `vercel.json` already disables git deployments for `main`, so only
+   the tag workflow reaches production.
 5. **Settings → Domains**: add `ohmysajni.com` (and `www.ohmysajni.com`
    if you want www → apex redirect). Vercel will print the DNS records
    to add at your registrar.
