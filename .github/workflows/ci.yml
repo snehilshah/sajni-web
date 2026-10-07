@@ -31,5 +31,8 @@ jobs:
       - name: TypeScript type-check
         run: pnpm exec tsc --noEmit -p tsconfig.app.json
 
+      - name: Chunk recovery regression checks
+        run: pnpm run test:chunk-reload
+
       - name: Vite build
         run: pnpm run build

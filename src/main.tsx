@@ -11,8 +11,11 @@ import { queryClient } from './queries/queryClient'
 import { InvalidateBridge } from './queries/InvalidateBridge'
 import log from './lib/logger'
 import { API_BASE } from './auth/client'
+import { installChunkReload } from './lib/chunkReload'
 
 log.info({ api: API_BASE, env: import.meta.env.MODE }, 'sajni init')
+
+installChunkReload()
 
 // Register the minimal service worker so Android Chrome installs Sajni as a
 // WebAPK — required for the manifest's `share_target` (share a UPI SMS → Sajni)

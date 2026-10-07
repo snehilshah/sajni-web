@@ -52,6 +52,7 @@ jobs:
       # that wouldn't pass CI on the same commit.
       - run: pnpm run lint:ci
       - run: pnpm exec tsc --noEmit -p tsconfig.app.json
+      - run: pnpm run test:chunk-reload
 
       - name: Install Vercel CLI
         run: pnpm add --global --allow-build=esbuild vercel@latest

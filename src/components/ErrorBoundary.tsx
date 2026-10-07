@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, AlertTriangle } from '@/components/ui/icons';
+import { isChunkLoadError, isReloadPending, reloadForNewBuild } from '@/lib/chunkReload';
 
 interface Props {
   children: ReactNode;
@@ -10,24 +11,30 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  // A lazy chunk from an older deploy 404'd and a reload is under way.
+  reloading: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, reloading: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, reloading: isReloadPending() || isChunkLoadError(error) };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // reloadForNewBuild refuses a second reload for the same build, so a chunk
+    // that is genuinely missing falls through to the error card.
+    if (isReloadPending() || (isChunkLoadError(error) && reloadForNewBuild())) return;
+    if (this.state.reloading) this.setState({ reloading: false });
     console.error('Unhandled render error caught by ErrorBoundary:', error, errorInfo);
   }
 
   resetError = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, reloading: false });
   };
 
   reloadPage = () => {
@@ -36,6 +43,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.state.reloading) {
+        return (
+          <div role="status" className="flex min-h-[50vh] w-full items-center justify-center p-6 text-sm text-muted-foreground">
+            Updating Sajni…
+          </div>
+        );
+      }
+
       if (this.props.fallback) {
         return this.props.fallback;
       }

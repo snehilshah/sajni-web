@@ -114,6 +114,13 @@ The workflow:
 3. `vercel build --prod` produces a static deployment artifact.
 4. `vercel deploy --prebuilt --prod` ships it to `ohmysajni.com`.
 
+CI and the release workflow run `pnpm run test:chunk-reload` to check
+recovery from missing lazy chunks. Live tabs automatically reload once
+per entry bundle after a chunk load failure, keeping their current URL.
+Offline tabs, blocked session storage, and repeated failures show the
+error card with a manual reload action. HTML is revalidated on each
+navigation; hashed assets can be cached for a year.
+
 ### Rollback
 
 Vercel keeps every deploy as a unique URL. To roll back:
