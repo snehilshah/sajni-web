@@ -47,9 +47,9 @@ change.
    project's environment settings so Vercel uses the pnpm version pinned in
    `package.json`, rather than its bundled older pnpm. Installs use
    `pnpm install --frozen-lockfile`.
-3. Do not set `VITE_API_URL` in Production unless you intentionally
-   want to bypass the Vercel rewrite. Leaving it unset makes the app
-   use `/api`.
+3. No API URL environment variable is needed. The client always uses
+   same-origin `/api`. Remove any old `VITE_API_URL` setting; it is ignored.
+   This also keeps redacted values from `vercel pull` out of request URLs.
 4. **Settings → Git → Production Branch**: leave as `main`.
    `vercel.json` already disables git deployments for `main`, so only
    the tag workflow reaches production.
@@ -109,8 +109,8 @@ git push origin srf/release/v0.1.0
 The workflow:
 
 1. Re-runs eslint + tsc.
-2. `vercel pull` syncs the production env config. Keep `VITE_API_URL`
-   unset so the built app calls same-origin `/api`.
+2. `vercel pull` syncs the production env config. The built app always
+   calls same-origin `/api`, independently of downloaded environment values.
 3. `vercel build --prod` produces a static deployment artifact.
 4. `vercel deploy --prebuilt --prod` ships it to `ohmysajni.com`.
 
@@ -146,6 +146,6 @@ can run sajni-api locally and the frontend talks to it without CORS.
 | Frontend → backend | Vite proxy (`/api/*`)  | Vercel rewrite (`/api/*`)       |
 | CORS_ORIGIN (api)  | not needed (proxy)     | not needed for same-origin API  |
 
-If a request works locally but fails in prod, check that `VITE_API_URL`
-is unset in Vercel and that `vercel.json` points `/api/:path*` at the
-current Cloud Run service URL.
+If a request works locally but fails in prod, check that `vercel.json`
+points `/api/:path*` at the current Cloud Run service URL. The client
+does not support overriding this prefix with `VITE_API_URL`.

@@ -1,10 +1,10 @@
 import log from '../lib/logger';
 
-// API_BASE is the prefix for backend calls. In dev, the Vite proxy at
-// /api forwards to localhost:8080; in prod, set VITE_API_URL to the full
-// backend URL (e.g. https://api.sajni.app/api).
-export const API_BASE: string =
-  (import.meta.env.VITE_API_URL as string | undefined) || '/api';
+// Both the Vite dev proxy and Vercel rewrite serve the backend at /api.
+// Keep auth same-origin so OAuth callbacks and refresh cookies share a host.
+// Environment overrides can contain Vercel's literal [SENSITIVE] placeholder
+// when production builds run locally after `vercel pull`.
+export const API_BASE: string = '/api';
 
 let accessToken: string | null = null;
 
