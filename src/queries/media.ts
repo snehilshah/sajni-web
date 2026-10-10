@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { failureText } from '@/lib/errors';
 import { media as mediaApi } from '@/api';
 import type { MediaPatch } from '@/types';
 import { qk } from './keys';
@@ -22,7 +23,7 @@ export function useCreateMedia() {
   return useMutation({
     mutationFn: (data: MediaPatch) => mediaApi.create(data),
     onError: (err) =>
-      toast.error(err instanceof Error && err.message ? err.message : 'Could not add'),
+      toast.error(failureText(err, 'Could not add')),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.media.all });
       qc.invalidateQueries({ queryKey: qk.tags.all });

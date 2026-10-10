@@ -315,6 +315,25 @@ pre, code, samp, .font-code {
 }
 .mono { font-family: var(--font-sans); }
 
+/* Money figures (Finance `Money`, `AnimatedMoney`). Chubbo's digits share one
+   width, so amounts line up down a column; the bundled Supreme has no tabular
+   figures. Chubbo has no ₹, so the symbol is Supreme: smaller and muted so the
+   figure leads. Paise sit a touch lighter. Weight comes from the caller. */
+.money {
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  white-space: nowrap;
+  font-synthesis: none;
+}
+.money-symbol {
+  font-family: var(--font-sans);
+  font-size: 0.86em;
+  opacity: 0.62;
+  margin-right: 0.08em;
+}
+.money-fraction { opacity: 0.68; }
+
 /* M3 type roles */
 .m3-display, .m3-headline, .m3-title, .m3-title-sm { font-family: var(--font-heading); }
 .m3-body, .m3-label, .m3-label-sm { font-family: var(--font-sans); }

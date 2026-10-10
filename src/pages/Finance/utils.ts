@@ -51,44 +51,73 @@ export function revealExpiry(): number | null {
   } catch { return null; }
 }
 
+// The one money formatter. Money is never rounded for display: every figure
+// shows exactly two decimals (₹1,200.00), so columns line up and a total is
+// always the sum of what's listed. No compact (₹34.3K) variant on purpose.
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
-function moneyFormatter(currency: string, maximumFractionDigits: number): Intl.NumberFormat {
-  const key = `${currency}:${maximumFractionDigits}`;
-  const cached = moneyFormatters.get(key);
-  if (cached) return cached;
-
-  const formatter = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: maximumFractionDigits,
-    maximumFractionDigits,
-  });
-  moneyFormatters.set(key, formatter);
+function moneyFormatter(currency: string): Intl.NumberFormat {
+  let formatter = moneyFormatters.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    moneyFormatters.set(currency, formatter);
+  }
   return formatter;
 }
 
-export function formatMoney(amount: number, currency = 'INR', privacy = privacyOn, fractionDigits = 0): string {
-  if (privacy) return '***';
+export const MONEY_MASK = '***';
+
+export function formatMoney(amount: number, currency = 'INR', privacy = privacyOn): string {
+  if (privacy) return MONEY_MASK;
   try {
-    return moneyFormatter(currency, fractionDigits).format(amount);
+    return moneyFormatter(currency).format(amount);
   } catch {
-    return currency + ' ' + amount.toLocaleString('en-IN', {
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
-    });
+    // Unknown currency code: keep the figure exact, prefix the code.
+    return currency + ' ' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 }
 
-/** Three significant figures with K/L/Cr (₹34.3K, ₹1.04L) for tight rows. */
-export function formatMoneyCompact(amount: number, currency = 'INR', privacy = privacyOn): string {
-  if (privacy) return '***';
+/** formatMoney split for typesetting (web `Money`): sign, currency symbol,
+ *  whole part with grouping, and ".50". Null when privacy masks the figure. */
+export interface MoneyParts { sign: string; symbol: string; whole: string; fraction: string }
+
+export function moneyParts(amount: number, currency = 'INR', privacy = privacyOn): MoneyParts | null {
+  if (privacy) return null;
   try {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency, notation: 'compact', maximumSignificantDigits: 3 }).format(amount);
+    const parts: MoneyParts = { sign: '', symbol: '', whole: '', fraction: '' };
+    for (const part of moneyFormatter(currency).formatToParts(amount)) {
+      if (part.type === 'minusSign') parts.sign = '−';
+      else if (part.type === 'plusSign') parts.sign = '+';
+      else if (part.type === 'currency') parts.symbol = part.value;
+      else if (part.type === 'integer' || part.type === 'group') parts.whole += part.value;
+      else if (part.type === 'decimal' || part.type === 'fraction') parts.fraction += part.value;
+    }
+    return parts;
   } catch {
-    return formatMoney(amount, currency, privacy);
+    return null;
   }
 }
+
+// Money arithmetic in whole paise. Amounts arrive as JSON floats, and adding
+// floats drifts (0.1 + 0.2 = 0.30000000000000004); adding integers doesn't.
+// Sum and subtract through these whenever a figure is computed in the browser.
+export const toPaise = (rupees: number): number => Math.round(rupees * 100);
+export const fromPaise = (paise: number): number => paise / 100;
+
+/** Exact sum of `pick(item)` over `items`, to the paisa. */
+export function sumMoney<T>(items: readonly T[], pick: (item: T) => number): number {
+  let paise = 0;
+  for (const item of items) paise += toPaise(pick(item));
+  return fromPaise(paise);
+}
+
+/** Exact `a - b`, to the paisa. */
+export const subMoney = (a: number, b: number): number => fromPaise(toPaise(a) - toPaise(b));
 
 export function formatPercent(value: number, fractionDigits = 0, privacy = privacyOn): string {
   return privacy ? '%%%' : `${value.toFixed(fractionDigits)}%`;

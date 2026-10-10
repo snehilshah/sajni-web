@@ -27,9 +27,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import { useFinanceFormatters } from './useFinancePrivacy';
-import { formatTxnDate } from './utils';
+import { formatTxnDate, sumMoney } from './utils';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -72,17 +72,15 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
   const detail = billers.find((b) => b.id === detailId) || null;
 
   const monthlyOutflow = useMemo(() => {
-    return billers.reduce((sum, b) => {
-      if (b.archived) return sum;
+    // Each biller's monthly share rounds to the paisa, then sums exactly.
+    return sumMoney(billers.filter((b) => !b.archived), (b) => {
       const amt = effectiveAmount(b);
       const f = b.frequency;
-      const monthly =
-        f === 'weekly' ? amt * 4.33 :
+      return f === 'weekly' ? amt * 4.33 :
         f === 'fortnightly' ? amt * 2.17 :
         f === 'bimonthly' ? amt / 2 :
         amt;
-      return sum + monthly;
-    }, 0);
+    });
   }, [billers]);
 
   return (
@@ -279,7 +277,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
         paid_date: paidDate,
         ...(amt > 0 ? { amount: amt } : {}),
       }));
-    } catch (e) { toast.error(msg(e)); } finally { setBusy(false); }
+    } catch (e) { toast.error(failureText(e)); } finally { setBusy(false); }
   };
 
   const attach = async () => {
@@ -290,11 +288,11 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
         paid_date: paidDate,
         attach_txn_ids: Array.from(picked),
       }));
-    } catch (e) { toast.error(msg(e)); } finally { setBusy(false); }
+    } catch (e) { toast.error(failureText(e)); } finally { setBusy(false); }
   };
 
   const pickedSum = recent
-    ? recent.filter((t) => picked.has(t.id)).reduce((s, t) => s + t.amount, 0)
+    ? sumMoney(recent.filter((t) => picked.has(t.id)), (t) => t.amount)
     : 0;
 
   return (
@@ -425,7 +423,7 @@ function BillerDetailSheet({
     try {
       await finance.updateBiller(biller.id, { archived: !biller.archived });
       onChanged();
-    } catch (e) { toast.error(msg(e)); }
+    } catch (e) { toast.error(failureText(e)); }
   };
 
   const remove = async () => {
@@ -434,7 +432,7 @@ function BillerDetailSheet({
     try {
       await finance.deleteBiller(biller.id);
       onGone();
-    } catch (e) { toast.error(msg(e)); }
+    } catch (e) { toast.error(failureText(e)); }
   };
 
   return (
@@ -639,7 +637,7 @@ function BillerDialog({
       onSaved();
     } catch (e) {
       console.error(e);
-      toast.error(msg(e) || 'Save failed');
+      toast.error(failureText(e, 'Save failed'));
     } finally {
       setSaving(false);
     }

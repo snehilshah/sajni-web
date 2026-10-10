@@ -5,7 +5,8 @@ import { Trash2, Sparkles } from '@/components/ui/icons';
 import { toast } from 'sonner';
 import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
+import { useAutosave } from '@/hooks/use-autosave';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +25,27 @@ import { txnAtToParts, partsToTxnAt } from './utils';
 
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
+// The editable fields of an existing transaction, as the form holds them.
+// Autosave diffs this shape, so the loader and the form must build it alike.
+interface EditValues {
+  accountId: string; categoryId: string; amount: string; description: string;
+  note: string; slateId: string; date: string; time: string;
+}
+
+function editValues(txn: FinTransaction): EditValues {
+  const p = txnAtToParts(txn.txn_at);
+  return {
+    accountId: String(txn.account_id),
+    categoryId: txn.category_id ? String(txn.category_id) : '',
+    amount: String(txn.amount),
+    description: txn.description,
+    note: txn.note || '',
+    slateId: String(txn.slate_id ?? 0),
+    date: p.date,
+    time: p.time,
+  };
+}
+
 function editKind(kind: FinTransaction['type']): TxnKind {
   if (kind === 'income') return 'income';
   if (kind === 'transfer_in' || kind === 'transfer_out') return 'transfer';
@@ -31,7 +53,7 @@ function editKind(kind: FinTransaction['type']): TxnKind {
 }
 
 export default function TransactionDialog({
-  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', onClose, onSaved,
+  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', onClose, onSaved, onAutosaved,
 }: {
   open: boolean;
   txn: FinTransaction | null;
@@ -43,6 +65,8 @@ export default function TransactionDialog({
   initialType?: TxnKind;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
+  /** An edit autosaved while the dialog stays open: patch the row, keep editing. */
+  onAutosaved?: (patch: { id: number } & Partial<FinTransaction>) => void;
 }) {
   const [type, setType] = useState<TxnKind>('expense');
   const [accountId, setAccountId] = useState('');
@@ -73,21 +97,101 @@ export default function TransactionDialog({
   const [userPickedCategory, setUserPickedCategory] = useState(false);
   const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const values: EditValues = { accountId, categoryId, amount, description, note, slateId, date, time };
+  const applyValues = (v: EditValues) => {
+    setAccountId(v.accountId); setCategoryId(v.categoryId); setAmount(v.amount);
+    setDescription(v.description); setNote(v.note); setSlateId(v.slateId);
+    setDate(v.date); setTime(v.time);
+  };
+  // The transaction as opened; "Undo changes" restores it.
+  const [initial, setInitial] = useState<EditValues | null>(null);
+  const editErrors = (v: EditValues): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (!v.accountId) e.account = 'Select an account.';
+    const amt = parseFloat(v.amount);
+    if (!v.amount.trim()) e.amount = 'Enter an amount.';
+    else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
+    return e;
+  };
+  // Edits save themselves 3s after the last change and on close. Create
+  // stays an explicit Add.
+  const autosave = useAutosave({
+    key: open && txn ? txn.id : null,
+    value: values,
+    valid: Object.keys(editErrors(values)).length === 0,
+    save: async (v) => {
+      if (!txn) return;
+      const patch = await persistEdit(txn, v);
+      onAutosaved?.(patch);
+    },
+  });
+  const resetAutosave = autosave.reset;
+  const changed = !!txn && !!initial && JSON.stringify(values) !== JSON.stringify(initial);
+
+  // Edit → PUT; returns the optimistic row patch for the list.
+  const persistEdit = async (t: FinTransaction, v: EditValues) => {
+    const others = categories.find((c) => c.kind === (editKind(t.type) === 'income' ? 'income' : 'expense')
+      && ['other', 'others'].includes(c.name.trim().toLowerCase()));
+    const selectedCategoryId = v.categoryId || (others ? String(others.id) : '');
+    const acctId = parseInt(v.accountId);
+    const catId = selectedCategoryId ? parseInt(selectedCategoryId) : null;
+    const amt = parseFloat(v.amount);
+    const txnAt = partsToTxnAt(v.date, v.time);
+    const sid = parseInt(v.slateId) || 0;
+    // Type stays locked, account is editable: balances are computed from
+    // account_id server-side, so a move rebalances both accounts (the backend
+    // also syncs a transfer pair, and both legs share the slate).
+    const patch: TxnPatch = {
+      account_id: acctId, amount: amt, description: v.description, note: v.note,
+      txn_at: txnAt, category_id: catId, slate_id: sid,
+    };
+    await finance.updateTransaction(t.id, patch);
+    // Optimistic row patch so the list reflects it instantly (no raw ids).
+    const cat = categories.find((c) => c.id === catId);
+    return {
+      id: t.id,
+      account_id: acctId,
+      account_name: accounts.find((a) => a.id === acctId)?.name || '',
+      note: v.note,
+      category_id: catId,
+      category_name: cat?.name ?? null,
+      category_color: cat?.color ?? null,
+      amount: amt,
+      description: v.description,
+      txn_at: txnAt,
+      ...(sid ? { slate_id: sid, slate_name: slates.find((p) => p.id === sid)?.name ?? '' } : {}),
+    };
+  };
+
+  // Every close path (Esc, backdrop, Done) for an edit: flush, then close.
+  const requestClose = () => {
+    if (txn) {
+      const e = editErrors(values);
+      if (autosave.dirty && Object.keys(e).length) toast.error('Not saved: ' + Object.values(e)[0].toLowerCase());
+      void autosave.flush();
+    }
+    onClose();
+  };
+
+  const handleUndo = () => {
+    if (!initial) return;
+    applyValues(initial);
+    setErrors({});
+    void autosave.commit(initial);
+  };
+
   useEffect(() => {
     setErrors({});
     if (txn) {
+      const v = editValues(txn);
       setType(editKind(txn.type));
-      setAccountId(String(txn.account_id));
       setLinkedId(txn.linked_account ? String(txn.linked_account) : '');
-      setCategoryId(txn.category_id ? String(txn.category_id) : '');
-      setAmount(String(txn.amount));
-      setDescription(txn.description);
-      setNote(txn.note || '');
+      applyValues(v);
+      setInitial(v);
+      resetAutosave(v);
       setBorrower('');
       setDueDate('');
       setRemind(false);
-      setSlateId(String(txn.slate_id ?? 0));
-      { const p = txnAtToParts(txn.txn_at); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = true; // editing — treat existing pick as user's
       setUserPickedCategory(true);
     } else {
@@ -112,7 +216,7 @@ export default function TransactionDialog({
     // re-runs and wipes whatever the user has typed into an open dialog. The
     // reset belongs to "the dialog opened", not "the data changed".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txn, open, defaultSlateId, initialType]);
+  }, [txn, open, defaultSlateId, initialType, resetAutosave]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
   const othersCategory = filteredCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
@@ -181,6 +285,7 @@ export default function TransactionDialog({
   };
 
   const save = async () => {
+    if (txn) { requestClose(); return; }
     if (saving) return;
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
@@ -191,45 +296,7 @@ export default function TransactionDialog({
 
     setSaving(true);
     try {
-      if (txn) {
-        // Edit — type stays locked, but account is now editable. Balances are
-        // computed from account_id server-side, so moving the txn rebalances
-        // both accounts automatically (the backend also syncs a transfer pair).
-        const acctId = parseInt(accountId);
-        const catId = selectedCategoryId ? parseInt(selectedCategoryId) : null;
-        const patch: TxnPatch = {
-          account_id: acctId,
-          amount: amt,
-          description,
-          note,
-          txn_at: txnAt,
-          category_id: catId,
-          // Both legs of a transfer move together, so the slate is set here too.
-          slate_id: parseInt(slateId) || 0,
-        };
-        await finance.updateTransaction(txn.id, patch);
-        // Hand the parent an optimistic patch so the row reflects the new
-        // account/category/amount instantly (no reload flash, no raw id).
-        const cat = categories.find((c) => c.id === catId);
-        const sid = parseInt(slateId) || 0;
-        onSaved({
-          id: txn.id,
-          account_id: acctId,
-          account_name: accounts.find((a) => a.id === acctId)?.name || '',
-          note,
-          category_id: catId,
-          category_name: cat?.name ?? null,
-          category_color: cat?.color ?? null,
-          amount: amt,
-          description,
-          txn_at: txnAt,
-          ...(sid ? {
-            slate_id: sid,
-            slate_name: slates.find((p) => p.id === sid)?.name ?? '',
-          } : {}),
-        });
-        return;
-      } else if (type === 'transfer') {
+      if (type === 'transfer') {
         await finance.createTransaction({
           account_id: parseInt(accountId),
           type: 'transfer',
@@ -265,7 +332,7 @@ export default function TransactionDialog({
       onSaved();
     } catch (e) {
       // Surface the failure instead of silently leaving the dialog open.
-      toast.error('Could not save transaction: ' + msg(e));
+      toast.error(failureText(e, 'Could not save transaction'));
     } finally {
       setSaving(false);
     }
@@ -274,19 +341,29 @@ export default function TransactionDialog({
   const remove = async () => {
     if (!txn) return;
     if (!(await confirmDialog('Delete this transaction?'))) return;
+    autosave.cancel();
     try {
       await finance.deleteTransaction(txn.id);
       onSaved();
     } catch (e) {
-      toast.error(msg(e));
+      toast.error(failureText(e));
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{txn ? 'Edit Transaction' : 'New Transaction'}</DialogTitle>
+          <div className="flex items-baseline justify-between gap-3">
+            <DialogTitle>{txn ? 'Edit transaction' : 'New transaction'}</DialogTitle>
+            {txn && (
+              <span className="text-xs text-muted-foreground" aria-live="polite">
+                {autosave.status === 'saving' ? 'Saving…'
+                  : autosave.status === 'saved' ? 'Saved'
+                    : autosave.status === 'error' ? <span className="text-destructive">Not saved</span> : null}
+              </span>
+            )}
+          </div>
         </DialogHeader>
         {!txn && (
           <div className="grid grid-cols-4 gap-1 rounded-md bg-muted p-1">
@@ -449,13 +526,20 @@ export default function TransactionDialog({
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           ) : <span />}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-            <Button onClick={save} disabled={saving} className="gap-1.5">
-              {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
-              {txn ? 'Save' : 'Add'}
-            </Button>
-          </div>
+          {txn ? (
+            <div className="flex gap-2">
+              {changed && <Button variant="ghost" onClick={handleUndo}>Undo changes</Button>}
+              <Button onClick={requestClose}>Done</Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+              <Button onClick={save} disabled={saving} className="gap-1.5">
+                {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
+                Add
+              </Button>
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

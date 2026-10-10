@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { CategoryPill } from './CategoryChips';
+import { sumMoney } from './utils';
 
 type OverviewData = Awaited<ReturnType<typeof finance.overview>>;
 type Snapshot = Awaited<ReturnType<typeof finance.networthHistory>>[number];
@@ -359,7 +360,7 @@ function Distribution({ accounts, investments, lends }: {
     return list.sort((a, b) => b.amount - a.amount);
   }, [accounts, investments, lends]);
 
-  const total = items.reduce((s, i) => s + i.amount, 0);
+  const total = sumMoney(items, (i) => i.amount);
 
   if (total === 0) {
     return <div className="text-sm text-muted-foreground py-4 text-center">No assets yet.</div>;

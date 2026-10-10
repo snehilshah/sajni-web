@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, usePresence } from 'framer-motion';
 
 import { X } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import { submitOnEnter } from '@/lib/enter-submit';
 
 // MorphingDialog — modal surface that GROWS out of a source element when
 // `layoutId` matches an always-mounted motion element (poster card, "New"
@@ -12,6 +13,11 @@ import { cn } from '@/lib/utils';
 // Deliberately lean: no portal (fixed positioning is enough here), no
 // focus trap. Backdrop + panel share z-50 so body-portaled Selects
 // (appended later in the DOM) still paint above the panel.
+// Open dialogs, oldest first. Esc closes only the topmost one, so a dialog
+// opened from another (a subtask from its task) peels off and leaves the one
+// underneath open.
+const openStack: string[] = [];
+
 export interface MorphSourceRect {
   left: number;
   top: number;
@@ -36,12 +42,31 @@ export function MorphingDialog({
   /** Pass false when the dialog has its own footer Cancel — one close CTA only. */
   showClose?: boolean;
 }) {
+  const id = useId();
+  // Callers pass inline closures; reading the latest through a ref keeps the
+  // stack entry stable, so a re-render never moves a dialog to the top.
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => { onCloseRef.current = onClose; });
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    openStack.push(id);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || openStack.at(-1) !== id) return;
+      // A popover, select or confirm opened from this dialog holds focus
+      // outside the panel; its own Esc closes it, not the dialog too.
+      const active = document.activeElement;
+      const panel = document.querySelector(`[data-morph-dialog="${CSS.escape(id)}"]`);
+      if (active && active !== document.body && panel && !panel.contains(active)) return;
+      e.preventDefault();
+      onCloseRef.current();
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      const at = openStack.lastIndexOf(id);
+      if (at >= 0) openStack.splice(at, 1);
+    };
+  }, [id, open]);
 
   return (
     <AnimatePresence onExitComplete={onCloseComplete}>
@@ -62,6 +87,8 @@ export function MorphingDialog({
             sourceRect={sourceRect}
             role="dialog"
             aria-modal="true"
+            data-morph-dialog={id}
+            onKeyDown={submitOnEnter}
             aria-label={ariaLabel}
             className={cn(
               'fixed z-50 flex flex-col gap-0 overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-2xl',

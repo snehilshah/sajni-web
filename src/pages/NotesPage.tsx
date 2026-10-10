@@ -25,7 +25,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X, ArrowLeft, Calendar, Edit3, Eye, LayoutGrid, StickyNote,
   ChevronRight, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
@@ -361,7 +361,7 @@ export default function NotesPage() {
       loadAll();
     } catch (err) {
       console.error('[notes] save failed', err);
-      toast.error(`Couldn't save note: ${msg(err, 'unknown error')}`);
+      toast.error(failureText(err, "Couldn't save note"));
       setSavingState('idle');
     }
   }, [title, content, description, folder, selectedId, params, setParams, loadAll]);
@@ -446,7 +446,7 @@ export default function NotesPage() {
       if (selectedId && (folder === path || folder.startsWith(`${path}/`))) handleNew();
       loadAll();
     } catch (e) {
-      toast.error(msg(e, 'Cannot delete folder'));
+      toast.error(failureText(e, "Couldn't delete folder"));
     }
   };
 
@@ -1381,8 +1381,8 @@ function FolderInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') onConfirm();
-          if (e.key === 'Escape') onCancel();
+          if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
+          if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
         }}
         onBlur={onConfirm}
         placeholder="folder name"

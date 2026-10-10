@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { formatMoney as formatMoneyValue } from '@/pages/Finance/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -885,11 +886,8 @@ function WeekView({
   const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
 
   const today = format(new Date(), 'yyyy-MM-dd');
-  const formatMoney = (n: number) => {
-    const code = summary?.expense_currency || 'INR';
-    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n); }
-    catch { return `${code} ${n.toFixed(0)}`; }
-  };
+  // Journal figures are never privacy-masked; same exact formatter as Finance.
+  const formatMoney = (n: number) => formatMoneyValue(n, summary?.expense_currency || 'INR', false);
 
   const totalDone = summary?.days.reduce((acc, d) => acc + d.tasks_done, 0) ?? 0;
   const totalDue = summary?.days.reduce((acc, d) => acc + d.tasks_due + d.tasks_done, 0) ?? 0;
@@ -1713,11 +1711,8 @@ function MonthView({
 
   const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
 
-  const formatMoney = (n: number) => {
-    const code = summary?.expense_currency || 'INR';
-    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n); }
-    catch { return `${code} ${n.toFixed(0)}`; }
-  };
+  // Journal figures are never privacy-masked; same exact formatter as Finance.
+  const formatMoney = (n: number) => formatMoneyValue(n, summary?.expense_currency || 'INR', false);
 
   const totalDone = summary?.total_done ?? 0;
   const totalDue = summary?.total_due ?? 0;

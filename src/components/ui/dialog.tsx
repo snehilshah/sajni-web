@@ -2,6 +2,7 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
+import { submitOnEnter } from "@/lib/enter-submit"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "@/components/ui/icons"
 
@@ -42,10 +43,14 @@ function DialogContent({
   children,
   showCloseButton = true,
   showOverlay = true,
+  enterSubmits = true,
+  onKeyDown,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
   showOverlay?: boolean
+  /** Enter in a field presses the primary action (lib/enter-submit). */
+  enterSubmits?: boolean
 }) {
   return (
     <DialogPortal>
@@ -56,6 +61,10 @@ function DialogContent({
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 scale-100 gap-5 rounded-[28px] bg-[hsl(var(--surface-container-high))] p-6 text-sm text-popover-foreground opacity-100 shadow-[var(--m3-elev-3)] outline-none transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.96] data-ending-style:opacity-0 motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100 motion-reduce:duration-150 sm:max-w-md",
           className
         )}
+        onKeyDown={(e) => {
+          onKeyDown?.(e)
+          if (enterSubmits) submitOnEnter(e)
+        }}
         {...props}
       >
         {children}

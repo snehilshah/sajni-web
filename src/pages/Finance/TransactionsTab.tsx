@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/icons';
 
 import { finance, type FinAccount, type FinCategory, type FinLend, type FinSlate, type FinTransaction, type TxnKind } from '@/api';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,7 +19,8 @@ import {
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useFinanceFormatters } from './useFinancePrivacy';
-import { txnAtToParts, formatTxnTime } from './utils';
+import { Money } from './Money';
+import { txnAtToParts, formatTxnTime, toPaise, fromPaise } from './utils';
 import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import TransactionDialog from './TransactionDialog';
@@ -82,12 +83,23 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
     if (!d) { d = { key: day, spent: 0, earned: 0, lent: 0, returned: 0, items: [] }; w.days.push(d); }
 
     d.items.push(t);
+    // Tallies accumulate in paise (exact) and convert back below.
+    const paise = toPaise(t.amount);
     for (const b of [m, w, d] as Tally[]) {
-      if (t.type === 'expense') b.spent += t.amount;
-      if (t.type === 'income') b.earned += t.amount;
-      if (t.type === 'lend') b.lent += t.amount;
-      if (t.type === 'lend_repayment') b.returned += t.amount;
+      if (t.type === 'expense') b.spent += paise;
+      if (t.type === 'income') b.earned += paise;
+      if (t.type === 'lend') b.lent += paise;
+      if (t.type === 'lend_repayment') b.returned += paise;
     }
+  }
+
+  const toRupees = (b: Tally) => {
+    b.spent = fromPaise(b.spent); b.earned = fromPaise(b.earned);
+    b.lent = fromPaise(b.lent); b.returned = fromPaise(b.returned);
+  };
+  for (const m of months.values()) {
+    toRupees(m);
+    for (const w of m.weeks) { toRupees(w); w.days.forEach(toRupees); }
   }
 
   const out: DayBucket[] = [];
@@ -262,9 +274,10 @@ export default function TransactionsTab({
   };
 
   const selectedTotal = useMemo(
-    () => filtered
+    () => fromPaise(filtered
       .filter((t) => selected.has(t.id))
-      .reduce((s, t) => s + (t.type === 'expense' ? t.amount : 0), 0),
+      .filter((t) => t.type === 'expense')
+      .reduce((s, t) => s + toPaise(t.amount), 0)),
     [filtered, selected],
   );
 
@@ -284,7 +297,7 @@ export default function TransactionsTab({
       toast.success(`${res.moved === 1 ? '1 transaction' : `${res.moved} transactions`} moved to ${label}`);
       reload();
     } catch (e) {
-      toast.error(msg(e));
+      toast.error(failureText(e));
     } finally {
       setSweeping(false);
     }
@@ -388,7 +401,7 @@ export default function TransactionsTab({
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="font-serif text-lg font-semibold tabular-nums">{formatMoney(viewing.total_spend)}</div>
+            <Money value={viewing.total_spend} className="block text-lg font-semibold" />
             <div className="font-mono text-xs text-muted-foreground">
               {viewing.txn_count === 1 ? '1 txn' : `${viewing.txn_count} txns`} · lifetime
             </div>
@@ -447,7 +460,6 @@ export default function TransactionsTab({
                       onOpen={() => openTransaction(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
                       linkedName={linkedAccountName(t.linked_account)}
-                      formatMoney={formatMoney}
                       onTag={(tag) => navigate(`/tags/${encodeURIComponent(tag)}`)}
                     />
                   ))}
@@ -535,6 +547,10 @@ export default function TransactionsTab({
           if (patch) setOverrides((prev) => ({ ...prev, [patch.id]: { ...prev[patch.id], ...patch } }));
           reload();
         }}
+        onAutosaved={(patch) => {
+          setOverrides((prev) => ({ ...prev, [patch.id]: { ...prev[patch.id], ...patch } }));
+          reload();
+        }}
       />
       <EditLendDialog
         lend={editingLend}
@@ -566,7 +582,7 @@ export default function TransactionsTab({
 
 function LedgerRow({
   txn: t, slate, selecting, checked, onToggle, onOpen,
-  accountName, linkedName, formatMoney, onTag,
+  accountName, linkedName, onTag,
 }: {
   txn: FinTransaction;
   slate?: FinSlate;
@@ -576,7 +592,6 @@ function LedgerRow({
   onOpen: () => void;
   accountName: string;
   linkedName: string;
-  formatMoney: (n: number) => string;
   onTag: (tag: string) => void;
 }) {
   const isTransfer = t.type === 'transfer_out';
@@ -694,7 +709,7 @@ function LedgerRow({
         <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 font-mono text-xs text-muted-foreground md:col-start-2 md:row-start-1 md:grid md:grid-cols-[3.25rem_minmax(0,1fr)_minmax(0,1fr)] md:gap-x-3 md:gap-1.5 md:border-l md:border-border/60 md:pl-3">
           <span className="shrink-0 tabular-nums">{formatTxnTime(t.txn_at)}</span>
           <span aria-hidden className="md:hidden">·</span>
-          <span className="flex min-w-0 items-center truncate">
+          <span className="flex min-w-0 items-center truncate md:justify-center">
             {!isMove && t.category_name ? (
               // Soft pill in the category's hue: the colour carries the
               // category, the darkened ink keeps the label readable.
@@ -721,10 +736,10 @@ function LedgerRow({
           </span>
         </div>
 
-        <div className={`col-start-2 row-start-1 row-span-2 self-center text-right font-mono text-sm tabular-nums md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
+        <div className={`col-start-2 row-start-1 row-span-2 self-center text-right text-sm font-medium md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
           isExpense ? 'text-foreground' : isLend || isTransfer ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
         }`}>
-          {isExpense || isLend ? '−' : !isTransfer ? '+' : ''}{formatMoney(t.amount)}
+          <Money value={t.amount} sign={isExpense || isLend ? '−' : !isTransfer ? '+' : ''} />
         </div>
       </button>
     </div>
@@ -735,13 +750,12 @@ function LedgerRow({
 // default reading (plain), income is positive (primary); lent/returned are
 // rarer and keep a one-word tag. Zero sides are dropped.
 function DayFigures({ t }: { t: Tally }) {
-  const { formatMoney } = useFinanceFormatters();
   return (
     <span className="flex items-baseline justify-end gap-3 whitespace-nowrap text-sm tabular-nums">
-      {t.earned > 0 && <span className="text-[hsl(var(--color-complete))]" title="Income">+{formatMoney(t.earned)}</span>}
-      {t.spent > 0 && <span className="text-foreground" title="Personal spend">−{formatMoney(t.spent)}</span>}
-      {t.lent > 0 && <span className="text-muted-foreground">−{formatMoney(t.lent)} <span className="text-xs">lent</span></span>}
-      {t.returned > 0 && <span className="text-[hsl(var(--color-complete))]">+{formatMoney(t.returned)} <span className="text-xs">back</span></span>}
+      {t.earned > 0 && <Money value={t.earned} sign="+" className="text-[hsl(var(--color-complete))]" />}
+      {t.spent > 0 && <Money value={t.spent} sign="−" className="text-foreground" />}
+      {t.lent > 0 && <span className="text-muted-foreground"><Money value={t.lent} sign="−" /> <span className="text-xs">lent</span></span>}
+      {t.returned > 0 && <span className="text-[hsl(var(--color-complete))]"><Money value={t.returned} sign="+" /> <span className="text-xs">back</span></span>}
     </span>
   );
 }
@@ -750,7 +764,6 @@ function DayFigures({ t }: { t: Tally }) {
 // side. `+in −out` rather than a single net — a quiet month and a heavy one
 // can both net to zero, and only one of them is quiet.
 function PeriodStats({ label, t }: { label: string; t: Tally }) {
-  const { formatMoney, formatMoneyCompact } = useFinanceFormatters();
   const figures = [
     { name: 'Income', tag: 'in', v: t.earned, sign: '+', cls: 'text-[hsl(var(--color-complete))]' },
     { name: 'Spent', tag: 'spent', v: t.spent, sign: '−', cls: 'text-foreground' },
@@ -760,14 +773,14 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
   if (figures.every((f) => f.v <= 0)) return null;
   return (
     <div className="bg-card px-4 py-3">
-      {/* Phone: one line, like the day header — compact figures with a
-          one-word tag, so a period never wraps into a wall of numbers. */}
+      {/* Phone: exact figures with a one-word tag. Figures are never
+          compacted, so a busy period wraps onto a second line instead. */}
       <div className="flex items-baseline gap-3 md:hidden">
         <span className="shrink-0 text-sm font-semibold">{label}</span>
-        <span className="ml-auto flex min-w-0 items-baseline justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums">
+        <span className="ml-auto flex min-w-0 flex-wrap items-baseline justify-end gap-x-2.5 gap-y-0.5 text-sm tabular-nums">
           {figures.filter((f) => f.v > 0).map((f) => (
-            <span key={f.name} className={f.cls} title={`${f.name} ${f.sign}${formatMoney(f.v)}`}>
-              {f.sign}{formatMoneyCompact(f.v)} <span className="text-xs text-muted-foreground">{f.tag}</span>
+            <span key={f.name} className={cn('whitespace-nowrap', f.cls)}>
+              <Money value={f.v} sign={f.sign} /> <span className="text-xs text-muted-foreground">{f.tag}</span>
             </span>
           ))}
         </span>
@@ -779,9 +792,7 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
         {figures.map((f) => f.v > 0 ? (
           <span key={f.name} className="flex flex-col items-end">
             <span className="text-xs text-muted-foreground">{f.name}</span>
-            <span className={cn('whitespace-nowrap font-serif text-lg font-semibold tabular-nums leading-tight', f.cls)}>
-              {f.sign}{formatMoney(f.v)}
-            </span>
+            <Money value={f.v} sign={f.sign} className={cn('text-lg font-semibold leading-tight', f.cls)} />
           </span>
         ) : (
           <span key={f.name} aria-hidden />

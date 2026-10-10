@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 import { finance, type FinAccount, type FinLend, type FinLendCandidate, type FinLendPerson, type FinLendRepayment, type FinLendSettlement } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
-import { partsToTxnAt, txnAtToParts } from './utils';
+import { partsToTxnAt, txnAtToParts, sumMoney, subMoney } from './utils';
 
 interface Props {
   accounts: FinAccount[];
@@ -61,9 +61,9 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
     return map;
   }, [lends]);
   const totals = useMemo(() => ({
-    owed: people.reduce((sum, p) => sum + p.outstanding, 0),
-    held: people.reduce((sum, p) => sum + p.credit, 0),
-    returned: lends.reduce((sum, l) => sum + l.repaid, 0),
+    owed: sumMoney(people, (p) => p.outstanding),
+    held: sumMoney(people, (p) => p.credit),
+    returned: sumMoney(lends, (l) => l.repaid),
   }), [people, lends]);
 
   const done = () => { reload(); peopleQ.refetch(); };
@@ -72,15 +72,15 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
       ? `Unmark "${lend.description}"? It goes back to being your expense.`
       : `Delete the lend to ${lend.borrower}? Its transaction is removed too.`;
     if (!(await confirmDialog(ask))) return;
-    try { await finance.deleteLend(lend.id); done(); } catch (error) { toast.error(msg(error)); }
+    try { await finance.deleteLend(lend.id); done(); } catch (error) { toast.error(failureText(error)); }
   };
   const removeSettlement = async (id: number) => {
     if (!(await confirmDialog('Unmark this settlement? The credit goes back to plain income.'))) return;
-    try { await finance.deleteLendSettlement(id); done(); } catch (error) { toast.error(msg(error)); }
+    try { await finance.deleteLendSettlement(id); done(); } catch (error) { toast.error(failureText(error)); }
   };
   const removeRepayment = async (lend: FinLend, repaymentId: number) => {
     if (!(await confirmDialog('Delete this repayment? Its transaction is removed too.'))) return;
-    try { await finance.deleteLendRepayment(lend.id, repaymentId); done(); } catch (error) { toast.error(msg(error)); }
+    try { await finance.deleteLendRepayment(lend.id, repaymentId); done(); } catch (error) { toast.error(failureText(error)); }
   };
 
   // Anyone with nothing outstanding is settled (a held surplus included).
@@ -432,7 +432,7 @@ function useSelection() {
     if (next.has(c.id)) next.delete(c.id); else next.set(c.id, c);
     return next;
   });
-  const total = [...selected.values()].reduce((sum, c) => sum + c.amount, 0);
+  const total = sumMoney([...selected.values()], (c) => c.amount);
   return { selected, toggle, total, reset: () => setSelected(new Map()) };
 }
 
@@ -459,7 +459,7 @@ function PaidForDialog({ request, people, accounts, onClose, onDone }: {
     try {
       await finance.markPaidFor({ borrower: borrower.trim(), transaction_ids: [...selected.keys()], ...(dueDate ? { due_date: dueDate } : {}) });
       onDone();
-    } catch (error) { toast.error(msg(error)); } finally { setSaving(false); }
+    } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
   };
   return <Dialog open={!!request} onOpenChange={(next) => { if (!next) onClose(); }}>
     <DialogContent className={PICKER_DIALOG}>
@@ -521,6 +521,8 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
   }, [person]);
   const paying = mode === 'pick' ? total : Number(amount) || 0;
   const owed = person?.outstanding ?? 0;
+  // Exact to the paisa, so paying the full amount reads Settled, not "₹0.00 left".
+  const remaining = subMoney(owed, paying);
   const save = async () => {
     if (!person || saving) return;
     if (mode === 'pick' && selected.size === 0) return;
@@ -531,7 +533,7 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
         ? { borrower: person.borrower, transaction_ids: [...selected.keys()] }
         : { borrower: person.borrower, account_id: Number(accountId), amount: paying, received_at: date, note });
       onDone();
-    } catch (error) { toast.error(msg(error)); } finally { setSaving(false); }
+    } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
   };
   const receiving = accounts.filter((a) => a.type !== 'credit_card');
   return <Dialog open={!!person} onOpenChange={(next) => { if (!next) onClose(); }}>
@@ -547,10 +549,10 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
         {/* Owes → paying → what remains, as figures. */}
         <div className="flex flex-wrap items-center gap-1.5">
           <DateBadge>Owes {formatMoney(owed)}</DateBadge>
-          {paying > 0 && (paying < owed
-            ? <DateBadge>{formatMoney(owed - paying)} left</DateBadge>
-            : paying > owed
-              ? <DateBadge tone="positive">{formatMoney(paying - owed)} held</DateBadge>
+          {paying > 0 && (remaining > 0
+            ? <DateBadge>{formatMoney(remaining)} left</DateBadge>
+            : remaining < 0
+              ? <DateBadge tone="positive">{formatMoney(-remaining)} held</DateBadge>
               : <DateBadge tone="positive">Settled</DateBadge>)}
         </div>
         {person && mode === 'pick' && (
@@ -577,6 +579,7 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
 }
 
 export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend | null; accounts: FinAccount[]; onClose: () => void; onSaved: () => void }) {
+  const { formatMoney } = useFinanceFormatters();
   const [saving, setSaving] = useState(false);
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [amount, setAmount] = useState('');
@@ -605,7 +608,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
       return;
     }
     if (parsedAmount < lend.repaid) {
-      toast.error(`Principal cannot be below the amount already returned (${lend.repaid.toFixed(2)}).`);
+      toast.error(`Principal cannot be below the amount already returned (${formatMoney(lend.repaid)}).`);
       return;
     }
     setSaving(true);
@@ -617,7 +620,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
         due_date: dueDate, remind: remind && !!dueDate,
       });
       onSaved();
-    } catch (error) { toast.error(msg(error)); } finally { setSaving(false); }
+    } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
   };
   return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
     <DialogContent className="sm:max-w-md">
@@ -630,7 +633,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
           </Select>
         </Field>
         <Field label="Principal"><Input type="number" inputMode="decimal" min={lend?.repaid || 0} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
-        {!!lend?.repaid && <p className="-mt-2 text-xs text-muted-foreground">{lend.repaid.toFixed(2)} has already been returned, so principal cannot be lower than that.</p>}
+        {!!lend?.repaid && <p className="-mt-2 text-xs text-muted-foreground">{formatMoney(lend.repaid)} has already been returned, so principal cannot be lower than that.</p>}
         <Field label="Borrower"><Input value={borrower} onChange={(e) => setBorrower(e.target.value)} /></Field>
         <Field label="Description"><Input value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">

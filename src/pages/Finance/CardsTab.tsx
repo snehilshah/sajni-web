@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { CardsSkeleton } from './Skeletons';
+import { sumMoney, subMoney } from './utils';
 
 interface Props {
   accounts: FinAccount[];
@@ -50,8 +51,8 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
       {ccAccounts.map((card) => {
         const cardStmts = statements.filter((s) => s.account_id === card.id);
         const unpaid = cardStmts.filter((s) => !s.paid);
-        const totalUnpaid = unpaid.reduce((s, st) => s + st.amount_due, 0);
-        const totalCashback = cardStmts.reduce((s, st) => s + st.cashback_earned, 0);
+        const totalUnpaid = sumMoney(unpaid, (st) => st.amount_due);
+        const totalCashback = sumMoney(cardStmts, (st) => st.cashback_earned);
         const owed = card.balance < 0 ? -card.balance : 0;
 
         return (
@@ -272,7 +273,7 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
       {/* Breakdown: previous balance carried in + this cycle's new charges. */}
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
         <span>Prev {formatMoney(statement.previous_balance)}</span>
-        <span>Personal {formatMoney(Math.max(statement.new_charges - statement.lend_charges, 0))}</span>
+        <span>Personal {formatMoney(Math.max(subMoney(statement.new_charges, statement.lend_charges), 0))}</span>
         {statement.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(statement.lend_charges)}</span>}
       </div>
 
@@ -407,7 +408,7 @@ function StatementDialog({ card, onClose, onSaved }: {
           ) : preview ? (
             <>
               <span>Prev {formatMoney(preview.previous_balance)}</span>
-              <span>Personal {formatMoney(Math.max(preview.new_charges - preview.lend_charges, 0))}</span>
+              <span>Personal {formatMoney(Math.max(subMoney(preview.new_charges, preview.lend_charges), 0))}</span>
               {preview.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(preview.lend_charges)}</span>}
               <span>Payments {formatMoney(preview.payments)}</span>
             </>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { finance, type FinSlate } from '@/api';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +43,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
         onSaved(created.id);
       }
     } catch (e) {
-      toast.error(msg(e));
+      toast.error(failureText(e));
     } finally {
       setSaving(false);
     }
@@ -64,7 +64,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
               placeholder="e.g. Goa Trip"
               maxLength={60}
               autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') save(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
             />
           </div>
           <div className="flex flex-col gap-1.5">

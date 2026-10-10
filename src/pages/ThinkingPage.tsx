@@ -123,7 +123,7 @@ export default function ThinkingPage() {
               placeholder="Title: what are you thinking about?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); create(); } }}
             />
             <Input
               placeholder="Optional one-line description"

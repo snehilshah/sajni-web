@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList } from '@/types';
 import { qk } from '@/queries/keys';
+import { failureText } from '@/lib/errors';
+import { toast } from 'sonner';
 // Lazy: TaskFormDialog drags the whole tiptap editor along; this provider
 // wraps every page, so an eager import would put tiptap in the boot bundle.
 const TaskFormDialog = lazy(() => import('./TaskFormDialog'));
@@ -49,6 +51,14 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   // Tracks the most recent openTask invocation so an in-flight fetch
   // for an earlier task can't overwrite the state set by a newer one.
   const openSeqRef = useRef(0);
+  // Back stack: opening a task from inside the dialog (a subtask, its
+  // parent) stacks the one on screen, and closing walks back to it instead
+  // of dismissing everything. Cleared whenever the dialog really closes.
+  const shownIdRef = useRef<number | null>(null);
+  const backRef = useRef<number[]>([]);
+  useEffect(() => {
+    shownIdRef.current = open ? editingTask?.id ?? null : null;
+  }, [open, editingTask]);
   // Lazy-load lists so unauthenticated routes don't make a wasted call. The
   // shared query key lets a Tasks-page read satisfy the dialog too.
   const ensureLists = useCallback(async () => {
@@ -63,6 +73,13 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
 
   const openTask = useCallback(async (id: number) => {
     const seq = ++openSeqRef.current;
+    const shown = shownIdRef.current;
+    let pushed = false;
+    if (shown !== null && shown !== id) {
+      // Jumping back to the task underneath pops it rather than stacking a loop.
+      if (backRef.current.at(-1) === id) backRef.current.pop();
+      else { backRef.current.push(shown); pushed = true; }
+    }
     // Don't pop the dialog yet — wait until we actually have task data.
     // Otherwise the dialog briefly mounts with stale or null `editing`,
     // which is what users see as a "blank page" flicker.
@@ -91,8 +108,13 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
       setEditingTask(t);
       setDefaults({});
       setOpen(true);
-    } catch {
+    } catch (e) {
       if (seq !== openSeqRef.current) return;
+      toast.error(failureText(e, "Couldn't open that task"));
+      // Stay on the task already on screen; otherwise there's nothing to show.
+      if (pushed) { backRef.current.pop(); return; }
+      if (shown !== null && shown !== id) return;
+      backRef.current = [];
       setEditingTask(null);
       setOpen(false);
     }
@@ -100,6 +122,7 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
 
   const openNew = useCallback((d: Record<string, unknown> = {}) => {
     ++openSeqRef.current;
+    backRef.current = [];
     ensureLists();
     setEditingTask(null);
     setDefaults(d);
@@ -107,12 +130,23 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   }, [ensureLists]);
 
   const close = useCallback(() => {
+    backRef.current = [];
     setOpen(false);
   }, []);
 
+  // Closing (Esc, ×, Cancel, after Save/Delete) returns to the task this one
+  // was opened from, if any; only the last close dismisses the dialog.
   const handleOpenChange = useCallback((o: boolean) => {
+    if (!o) {
+      const back = backRef.current.pop();
+      if (back !== undefined) {
+        shownIdRef.current = null; // returning is not a new jump
+        void openTask(back);
+        return;
+      }
+    }
     setOpen(o);
-  }, []);
+  }, [openTask]);
 
   const handleCloseComplete = useCallback(() => {
     if (!open) {

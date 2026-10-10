@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
-import { INVESTMENT_TYPES } from './utils';
+import { INVESTMENT_TYPES, sumMoney, subMoney } from './utils';
 import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
 import { cardClass } from '@/components/ui/card';
@@ -35,13 +35,10 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
   useEffect(() => {}, []);
 
   const totals = useMemo(() => {
-    let invested = 0, current = 0, monthly = 0;
-    for (const i of investments) {
-      invested += i.invested_amount;
-      current += i.current_value;
-      if (i.frequency === 'monthly') monthly += i.monthly_amount;
-    }
-    return { invested, current, monthly, gain: current - invested, gainPct: invested > 0 ? ((current - invested) / invested) * 100 : 0 };
+    const invested = sumMoney(investments, (i) => i.invested_amount);
+    const current = sumMoney(investments, (i) => i.current_value);
+    const monthly = sumMoney(investments.filter((i) => i.frequency === 'monthly'), (i) => i.monthly_amount);
+    return { invested, current, monthly, gain: subMoney(current, invested), gainPct: invested > 0 ? ((current - invested) / invested) * 100 : 0 };
   }, [investments]);
 
   return (
@@ -71,7 +68,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {investments.map((inv) => {
-            const gain = inv.current_value - inv.invested_amount;
+            const gain = subMoney(inv.current_value, inv.invested_amount);
             const gainPct = inv.invested_amount > 0 ? (gain / inv.invested_amount) * 100 : 0;
             const positive = gain >= 0;
             const matDays = inv.maturity_date ? differenceInDays(parseISO(inv.maturity_date), new Date()) : null;

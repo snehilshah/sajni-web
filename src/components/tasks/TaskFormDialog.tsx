@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
-import type { Task, TaskColor, TaskList, TaskStep } from '@/types';
+import type { Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
+import { useAutosave } from '@/hooks/use-autosave';
 import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -132,6 +133,53 @@ interface Props {
   onCreated?: (saved: { id: number; title: string }) => void;
 }
 
+// The PUT body for an edit: every field, so the server always ends up with
+// exactly what the editor shows. Shared by autosave, Done and undo.
+function buildUpdate(form: FormState, editing: Task, parent: { id: number } | null): TaskPatch {
+  const isWeek = form.due_type === 'week';
+  const isMonth = form.due_type === 'month';
+  const noDay = isWeek || isMonth;
+  const scheduledISO = noDay ? null : toScheduledISO(form.due_date, form.scheduled_time);
+  const remind = scheduledISO ? form.remind : false;
+  const notify_emails = form.notify_emails;
+  const listChanged = form.list_id !== (editing.list_id ?? null);
+  return {
+    title: form.title,
+    description: form.description,
+    priority: form.priority,
+    color: form.color ?? undefined,
+    clear_color: form.color === null,
+    status: form.status,
+    blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
+    clear_blocked_by: form.status !== 'blocked',
+    // Day / week / month are exclusive — set one column, clear the others
+    // so a switch never leaves a stale due_date / week_of / month_of behind.
+    ...(isMonth
+      ? { month_of: form.month_of, clear_due: true, clear_week: true, clear_scheduled: true, remind: false }
+      : isWeek
+      ? { week_of: form.week_of, clear_due: true, clear_month: true, clear_scheduled: true, remind: false }
+      : {
+          due_date: form.due_date || null,
+          week_of: null, clear_week: true,
+          month_of: null, clear_month: true,
+          scheduled_at: scheduledISO,
+          clear_scheduled: scheduledISO === null,
+          remind,
+        }),
+    notify_emails,
+    list_id: form.list_id,
+    // list_id:null alone is ignored by the API ("leave alone"); clear_list
+    // is what actually moves a task to Inbox.
+    clear_list: form.list_id === null,
+    // A subtask only ever renders under its parent, so assigning it a
+    // different list does nothing visible unless we also detach it.
+    // Promote it to a real top-level task in the chosen list.
+    ...(parent && listChanged ? { clear_parent: true } : {}),
+    important: form.important,
+    steps: form.steps,
+  };
+}
+
 export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, layoutId, onCreated }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(blank);
@@ -142,14 +190,32 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   // The parent task when editing a subtask — drives the "Subtask of …" banner
   // so a child never reads as a standalone task, and so the user can promote it.
   const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
+  // The task as it was when opened; "Undo changes" restores it.
+  const [initial, setInitial] = useState<FormState | null>(null);
   const [moreDetails, setMoreDetails] = useState(() => {
     try { return localStorage.getItem(MORE_DETAILS_KEY) === 'true'; } catch { return false; }
   });
 
+  const formValid = !!form.title.trim() && !(form.status === 'blocked' && !form.blocked_by_task_id);
+  // Edits save themselves (3s after the last change, on close, on switching
+  // to a subtask, when the app is hidden). Create stays an explicit action.
+  const autosave = useAutosave({
+    key: open && editing ? editing.id : null,
+    value: form,
+    valid: formValid,
+    save: async (f) => {
+      if (!editing) return;
+      await tasksApi.update(editing.id, buildUpdate(f, editing, parent));
+      onSaved();
+    },
+  });
+  const resetAutosave = autosave.reset;
+  const changed = !!editing && !!initial && JSON.stringify(form) !== JSON.stringify(initial);
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
-      setForm({
+      const loaded: FormState = {
         title: editing.title,
         description: editing.description || '',
         priority: editing.priority,
@@ -167,7 +233,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         important: editing.important,
         steps: editing.steps || [],
         reminders: [],
-      });
+      };
+      setForm(loaded);
+      setInitial(loaded);
+      resetAutosave(loaded);
       setHistory([]);
       setEvents([]);
       setParent(null);
@@ -189,6 +258,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       }
     } else {
       setForm({ ...blank, ...defaults });
+      setInitial(null);
       setHistory([]);
       setEvents([]);
       setParent(null);
@@ -197,7 +267,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       queryKey: qk.tasks.list({ smart: 'all' }),
       queryFn: () => tasksApi.list({ smart: 'all' }),
     }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
-  }, [open, editing, defaults, qc]);
+  }, [open, editing, defaults, qc, resetAutosave]);
 
   const blockerCandidates = blockerTasks.filter((candidate) => {
     if (candidate.id === editing?.id || candidate.status === 'done' || candidate.status === 'scratched') return false;
@@ -213,91 +283,65 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     return true;
   });
 
+  // Every close path (Esc, backdrop, ×, Done) lands here: flush, then close.
+  const requestClose = () => {
+    if (editing) {
+      if (autosave.dirty && !formValid) {
+        toast.error(form.title.trim() ? 'Not saved: pick the task that blocks this one.' : 'Not saved: a task needs a title.');
+      }
+      void autosave.flush();
+    }
+    onOpenChange(false);
+  };
+
+  const handleUndo = () => {
+    if (!initial) return;
+    setForm(initial);
+    void autosave.commit(initial);
+  };
+
   const handleSave = async () => {
+    if (editing) { requestClose(); return; }
     if (!form.title.trim()) return;
     setSaving(true);
-    // A week task or month goal has no specific day → no time/reminder.
-    // Otherwise a time only makes sense with a day, and remind only with a time.
     const isWeek = form.due_type === 'week';
     const isMonth = form.due_type === 'month';
     const noDay = isWeek || isMonth;
     const scheduledISO = noDay ? null : toScheduledISO(form.due_date, form.scheduled_time);
     const remind = scheduledISO ? form.remind : false;
-    // Custom recipients only matter when something actually fires.
     const notify_emails = form.notify_emails;
     try {
-      if (editing) {
-        const listChanged = form.list_id !== (editing.list_id ?? null);
-        await tasksApi.update(editing.id, {
-          title: form.title,
-          description: form.description,
-          priority: form.priority,
-          color: form.color ?? undefined,
-          clear_color: form.color === null,
-          status: form.status,
-          blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
-          clear_blocked_by: form.status !== 'blocked',
-          // Day / week / month are exclusive — set one column, clear the others
-          // so a switch never leaves a stale due_date / week_of / month_of behind.
-          ...(isMonth
-            ? { month_of: form.month_of, clear_due: true, clear_week: true, clear_scheduled: true, remind: false }
-            : isWeek
-            ? { week_of: form.week_of, clear_due: true, clear_month: true, clear_scheduled: true, remind: false }
-            : {
-                due_date: form.due_date || null,
-                week_of: null, clear_week: true,
-                month_of: null, clear_month: true,
-                scheduled_at: scheduledISO,
-                clear_scheduled: scheduledISO === null,
-                remind,
-              }),
-          notify_emails,
-          list_id: form.list_id,
-          // list_id:null alone is ignored by the API ("leave alone"); clear_list
-          // is what actually moves a task to Inbox.
-          clear_list: form.list_id === null,
-          // A subtask only ever renders under its parent, so assigning it a
-          // different list does nothing visible unless we also detach it.
-          // Promote it to a real top-level task in the chosen list.
-          ...(parent && listChanged ? { clear_parent: true } : {}),
-          important: form.important,
-          steps: form.steps,
-        });
-        onOpenChange(false);
-        onSaved();
-      } else {
-        const res = await tasksApi.create({
-          title: form.title,
-          description: form.description,
-          priority: form.priority,
-          color: form.color ?? undefined,
-          status: form.status,
-          blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
-          due_date: noDay ? undefined : (form.due_date || undefined),
-          week_of: isWeek ? form.week_of : undefined,
-          month_of: isMonth ? form.month_of : undefined,
-          scheduled_at: scheduledISO ?? undefined,
-          remind,
-          notify_emails,
-          list_id: form.list_id ?? null,
-          important: form.important,
-          steps: form.steps,
-        });
-        // Flush buffered extra reminders to the new task (parity with edit,
-        // where RemindersSection talks to the API directly). The task is
-        // already saved — a failed reminder shouldn't lose it, so surface a
-        // soft toast and carry on.
-        if (form.reminders.length > 0) {
-          const results = await Promise.allSettled(
-            form.reminders.map((iso) => tasksApi.addReminder(res.id, iso)),
-          );
-          const failed = results.filter((r) => r.status === 'rejected').length;
-          if (failed > 0) toast.error(`Task saved, but ${failed} reminder${failed > 1 ? 's' : ''} failed to add.`);
-        }
-        onOpenChange(false);
-        onSaved();
-        onCreated?.({ id: res.id, title: form.title.trim() });
+      const res = await tasksApi.create({
+        title: form.title,
+        description: form.description,
+        priority: form.priority,
+        color: form.color ?? undefined,
+        status: form.status,
+        blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
+        due_date: noDay ? undefined : (form.due_date || undefined),
+        week_of: isWeek ? form.week_of : undefined,
+        month_of: isMonth ? form.month_of : undefined,
+        scheduled_at: scheduledISO ?? undefined,
+        remind,
+        notify_emails,
+        list_id: form.list_id ?? null,
+        important: form.important,
+        steps: form.steps,
+      });
+      // Flush buffered extra reminders to the new task (parity with edit,
+      // where RemindersSection talks to the API directly). The task is
+      // already saved — a failed reminder shouldn't lose it, so surface a
+      // soft toast and carry on.
+      if (form.reminders.length > 0) {
+        const results = await Promise.allSettled(
+          form.reminders.map((iso) => tasksApi.addReminder(res.id, iso)),
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) toast.error(`Task saved, but ${failed} reminder${failed > 1 ? 's' : ''} failed to add.`);
       }
+      onOpenChange(false);
+      onSaved();
+      onCreated?.({ id: res.id, title: form.title.trim() });
     } catch (e) {
       toast.error(clientMsg(e, 'Could not save task'));
     } finally {
@@ -308,6 +352,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const handleDelete = async () => {
     if (!editing) return;
     if (!(await confirmDialog(`Delete "${editing.title}"? Subtasks will be removed too.`))) return;
+    autosave.cancel();
     await tasksApi.delete(editing.id);
     onOpenChange(false);
     onSaved();
@@ -325,10 +370,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   // Scratch = abandon-but-keep (reversible). Toggles between scratched/todo.
   const handleScratch = async () => {
     if (!editing) return;
-    const next = form.status === 'scratched' ? 'todo' : 'scratched';
-    await tasksApi.update(editing.id, { status: next });
+    const next: FormState = { ...form, status: form.status === 'scratched' ? 'todo' : 'scratched' };
+    setForm(next);
+    await autosave.commit(next);
     onOpenChange(false);
-    onSaved();
   };
 
   const isMobile = useIsMobile();
@@ -336,7 +381,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     <MorphingDialog
       open={open}
       showClose={false}
-      onClose={() => onOpenChange(false)}
+      onClose={requestClose}
       onCloseComplete={onCloseComplete}
       // New-task opens can morph from a page-owned source. Flows without one
       // (task rows, RichEditor /task) keep the scale/fade fallback.
@@ -398,7 +443,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		          </DropdownMenuContent>
 		        </DropdownMenu>
 		      )}
-		      <Button variant="ghost" size="icon-sm" aria-label="Close task editor" onClick={() => onOpenChange(false)}><X /></Button>
+		      <Button variant="ghost" size="icon-sm" aria-label="Close task editor" onClick={requestClose}><X /></Button>
 		    </div>
 		  </div>
 		</div>
@@ -752,14 +797,28 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		</div>
 
         <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] ">
-		  <div className="mr-auto min-w-0 text-xs text-muted-foreground">
-		    {form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
+		  <div className="mr-auto min-w-0 text-xs text-muted-foreground" aria-live="polite">
+		    {editing ? (
+		      autosave.status === 'saving' ? 'Saving…'
+		        : autosave.status === 'saved' ? 'Saved'
+		          : autosave.status === 'error' ? <span className="text-destructive">Not saved</span>
+		            : null
+		    ) : form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
 		  </div>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || !form.title.trim() || (form.status === 'blocked' && !form.blocked_by_task_id)} className="gap-1.5">
-            {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
-            {editing ? 'Save' : 'Create task'}
-          </Button>
+          {editing ? (
+            <>
+              {changed && <Button variant="ghost" onClick={handleUndo}>Undo changes</Button>}
+              <Button onClick={requestClose}>Done</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={saving || !formValid} className="gap-1.5">
+                {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
+                Create task
+              </Button>
+            </>
+          )}
         </div>
     </MorphingDialog>
   );
@@ -878,7 +937,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); add(); }
-              if (e.key === 'Escape') setDraft('');
+              if (e.key === 'Escape' && draft) { e.preventDefault(); setDraft(''); }
             }}
             placeholder={isGoal ? (total === 0 ? 'Add a session…' : 'Add a session') : (total === 0 ? 'Break this into smaller tasks…' : 'Add a subtask')}
             className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"

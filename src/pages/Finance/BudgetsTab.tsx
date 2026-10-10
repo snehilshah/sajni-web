@@ -8,7 +8,7 @@ import { finance, type BudgetDraft, type FinBudget, type FinCategory, type FinSl
 import { useFinBudgets } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DateBadge } from '@/components/ui/state-chip';
@@ -24,6 +24,7 @@ import { cardClass } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
 import { CategoryPill } from './CategoryChips';
+import { sumMoney, subMoney } from './utils';
 
 // A budget is a lens, not a container: many budgets can read the same
 // transaction. There is no period and nothing resets — a budget owns the window
@@ -222,7 +223,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
           {formatMoney(b.spent)}
         </div>
         {overBudget ? (
-          <DateBadge tone="alert">Over by {formatMoney(b.spent - b.total_amount)}</DateBadge>
+          <DateBadge tone="alert">Over by {formatMoney(subMoney(b.spent, b.total_amount))}</DateBadge>
         ) : (
           <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
             {formatPercent(pct)} of {formatMoney(b.total_amount)}
@@ -324,7 +325,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
     setItems(src.items);
   }, [budget, prefill, open]);
 
-  const capsTotal = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+  const capsTotal = sumMoney(items, (i) => parseFloat(i.amount) || 0);
 
   const addItem = () => setItems([...items, { category_id: null, amount: '' }]);
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -363,7 +364,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
       else await finance.createBudget(data);
       onSaved();
     } catch (e) {
-      toast.error(msg(e));
+      toast.error(failureText(e));
     } finally {
       setSaving(false);
     }

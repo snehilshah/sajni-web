@@ -9,7 +9,7 @@ import {
 import { finance, type FinSlate } from '@/api';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
-import { msg } from '@/lib/errors';
+import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -70,7 +70,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
         ? `"${s.name}" archived, its transactions stay where they are`
         : `"${s.name}" is back`);
       refreshSlates();
-    } catch (e) { toast.error(msg(e)); }
+    } catch (e) { toast.error(failureText(e)); }
   };
 
   const remove = async (s: FinSlate) => {
@@ -92,7 +92,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
     try {
       await finance.deleteSlate(s.id, n > 0);
       refreshAfterDelete();
-    } catch (e) { toast.error(msg(e)); }
+    } catch (e) { toast.error(failureText(e)); }
   };
 
   if (!loaded) return <CardsSkeleton count={4} />;

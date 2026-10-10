@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
-import { ACCOUNT_TYPES, ACCOUNT_COLORS } from './utils';
+import { ACCOUNT_TYPES, ACCOUNT_COLORS, sumMoney, subMoney } from './utils';
 import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
 import { DateBadge } from '@/components/ui/state-chip';
@@ -45,7 +45,7 @@ interface Props {
 }
 
 export default function AccountsTab({ accounts, categories, savings: parentSavings, loaded, reload }: Props) {
-  const { formatMoneyExact: formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatMoney, formatPercent } = useFinanceFormatters();
   const [editingAcct, setEditingAcct] = useState<FinAccount | null>(null);
   const [creating, setCreating] = useState(false);
   // Local copy so the bucket dialog can mutate without round-tripping every keystroke.
@@ -61,19 +61,18 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
     [accounts, showArchived],
   );
 
-  const totalAssets = visible
-    .filter((a) => a.type !== 'credit_card' || a.balance >= 0)
-    .reduce((s, a) => s + Math.max(a.balance, 0), 0);
-  const totalLiab = visible
-    .filter((a) => a.balance < 0)
-    .reduce((s, a) => s + -a.balance, 0);
+  const totalAssets = sumMoney(
+    visible.filter((a) => a.type !== 'credit_card' || a.balance >= 0),
+    (a) => Math.max(a.balance, 0),
+  );
+  const totalLiab = sumMoney(visible.filter((a) => a.balance < 0), (a) => -a.balance);
 
   return (
     <div className="flex flex-col gap-4">
       <StatGroup className="grid-cols-2 md:grid-cols-3">
-        <Stat label="Assets" value={<AnimatedMoney value={totalAssets} fractionDigits={2} />} tone="primary" />
-        <Stat label="Liabilities" value={<AnimatedMoney value={totalLiab} fractionDigits={2} />} tone="destructive" />
-        <Stat label="Net" value={<AnimatedMoney value={totalAssets - totalLiab} fractionDigits={2} />} className="col-span-2 md:col-span-1" />
+        <Stat label="Assets" value={<AnimatedMoney value={totalAssets} />} tone="primary" />
+        <Stat label="Liabilities" value={<AnimatedMoney value={totalLiab} />} tone="destructive" />
+        <Stat label="Net" value={<AnimatedMoney value={subMoney(totalAssets, totalLiab)} />} className="col-span-2 md:col-span-1" />
       </StatGroup>
 
       <div className="flex items-center justify-between gap-2">
@@ -104,7 +103,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
           {visible.map((a) => {
             const Icon = typeIcon(a.type);
             const acctSavings = savings.filter((s) => s.account_id === a.id);
-            const reservedTotal = acctSavings.reduce((s, b) => s + b.current_amount, 0);
+            const reservedTotal = sumMoney(acctSavings, (b) => b.current_amount);
             const isCC = a.type === 'credit_card';
             const owed = isCC && a.balance < 0 ? -a.balance : 0;
             const utilization = isCC && a.credit_limit ? (owed / a.credit_limit) * 100 : 0;
@@ -437,7 +436,7 @@ function SalaryDialog({ account, categories, onClose, onDone }: {
   onClose: () => void;
   onDone: () => void;
 }) {
-  const { formatMoneyExact: formatMoney } = useFinanceFormatters();
+  const { formatMoney } = useFinanceFormatters();
   const salary = account.salary_amount || 0;
   const [kind, setKind] = useState<'Salary' | 'Bonus'>(salary > 0 ? 'Salary' : 'Bonus');
   const [amount, setAmount] = useState(salary > 0 ? String(salary) : '');
@@ -489,7 +488,7 @@ function SalaryDialog({ account, categories, onClose, onDone }: {
           inputMode="decimal"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
           placeholder="Amount"
           aria-label="Amount"
           autoFocus
@@ -508,7 +507,7 @@ function SavingsDialog({ account, savings, onClose }: {
   savings: FinSaving[];
   onClose: () => void;
 }) {
-  const { formatMoneyExact: formatMoney } = useFinanceFormatters();
+  const { formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
@@ -555,7 +554,7 @@ function SavingsDialog({ account, savings, onClose }: {
     setColor(s.color);
   };
 
-  const reservedTotal = list.reduce((s, b) => s + b.current_amount, 0);
+  const reservedTotal = sumMoney(list, (b) => b.current_amount);
   const overReserved = reservedTotal > account.balance;
 
   return (
