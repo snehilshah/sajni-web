@@ -19,7 +19,7 @@ import {
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Money } from './Money';
-import { txnAtToParts, formatTxnTime, toPaise, fromPaise } from './utils';
+import { txnAtToParts, formatTxnTime, toPaise, fromPaise, sumMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import TransactionDialog from './TransactionDialog';
@@ -84,11 +84,16 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
     d.items.push(t);
     // Tallies accumulate in paise (exact) and convert back below.
     const paise = toPaise(t.amount);
+    // A split bill's own amount is the user's part; the other person's
+    // share is lent. A refund nets off spending; a forgiven lend is spending.
+    const share = t.split ? toPaise(t.split.share) : 0;
     for (const b of [m, w, d] as Tally[]) {
-      if (t.type === 'expense') b.spent += paise;
+      if (t.type === 'expense' || t.type === 'writeoff') b.spent += paise;
+      if (t.type === 'refund') b.spent -= paise;
       if (t.type === 'income') b.earned += paise;
       if (t.type === 'lend') b.lent += paise;
       if (t.type === 'lend_repayment') b.returned += paise;
+      b.lent += share;
     }
   }
 
@@ -163,7 +168,7 @@ export default function TransactionsTab({
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [editingLend, setEditingLend] = useState<FinLend | null>(null);
   const [creating, setCreating] = useState(false);
-  const [createKind, setCreateKind] = useState<TxnKind>('expense');
+  const [createKind, setCreateKind] = useState<TxnKind | 'lend'>('expense');
   const [manageCats, setManageCats] = useState(false);
   const [search, setSearch] = useState('');
   const [accountFilter, setAccountFilter] = useState<string>('');
@@ -259,6 +264,10 @@ export default function TransactionsTab({
   });
 
   const openTransaction = (txn: FinTransaction) => {
+    if (txn.type === 'writeoff') {
+      toast.info(`Forgiven for ${txn.lend_borrower ?? 'them'}. Undo it from Lends.`);
+      return;
+    }
     if (txn.type !== 'lend' && txn.type !== 'lend_repayment') {
       setEditing(txn);
       return;
@@ -350,7 +359,7 @@ export default function TransactionsTab({
             </SelectContent>
           </Select>
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
-            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }]}>
+            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'refund', label: 'Refund' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }, { value: 'writeoff', label: 'Forgiven' }]}>
             <SelectTrigger size="sm" className="w-[130px] shrink-0">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
@@ -358,9 +367,11 @@ export default function TransactionsTab({
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="expense">Expense</SelectItem>
               <SelectItem value="income">Income</SelectItem>
+              <SelectItem value="refund">Refund</SelectItem>
               <SelectItem value="transfer_out">Transfer</SelectItem>
               <SelectItem value="lend">Lend</SelectItem>
               <SelectItem value="lend_repayment">Lend repayment</SelectItem>
+              <SelectItem value="writeoff">Forgiven</SelectItem>
             </SelectContent>
           </Select>
           {/* Server-side slate filter (params-keyed query in FinancePage). */}
@@ -454,7 +465,7 @@ export default function TransactionsTab({
                       slate={slateById(t.slate_id)}
                       selecting={selecting}
                       checked={selected.has(t.id)}
-                      onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment') ? openTransaction(t) : toggle(t.id)}
+                      onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment' || t.type === 'writeoff') ? openTransaction(t) : toggle(t.id)}
                       onOpen={() => openTransaction(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
                       linkedName={linkedAccountName(t.linked_account)}
@@ -593,9 +604,15 @@ function LedgerRow({
   onTag: (tag: string) => void;
 }) {
   const isTransfer = t.type === 'transfer_out';
-  const isExpense = t.type === 'expense';
+  // A forgiven lend reads as spending; a refund as money in.
+  const isExpense = t.type === 'expense' || t.type === 'writeoff';
   const isLend = t.type === 'lend';
   const isLendRepayment = t.type === 'lend_repayment';
+  const isRefund = t.type === 'refund';
+  // A split bill shows the charge as it hit the account; the user's part
+  // sits under it.
+  const shown = t.split ? sumMoney([t.amount, t.split.share], (v) => v) : t.amount;
+  const marker = t.split ? `Split · ${t.split.borrower}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Forgiven' : null;
   const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
   const isMove = isTransfer || isLend || isLendRepayment;
   const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'));
@@ -677,8 +694,13 @@ function LedgerRow({
       >
         <div className="min-w-0 md:col-start-1">
           <div className="text-sm font-medium truncate">{title}</div>
-          {(outlier || tags.length > 0) && (
+          {(outlier || tags.length > 0 || marker) && (
             <div className="flex flex-wrap gap-1 mt-1">
+              {marker && (
+                <span className="inline-flex items-center rounded-full bg-[hsl(var(--secondary-container))] px-1.5 py-0.5 text-xs font-medium text-[hsl(var(--on-secondary-container))]">
+                  {marker}
+                </span>
+              )}
               {outlier && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-xs"
@@ -737,7 +759,10 @@ function LedgerRow({
         <div className={`col-start-2 row-start-1 row-span-2 self-center text-right text-sm font-medium md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
           isExpense ? 'text-foreground' : isLend || isTransfer ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
         }`}>
-          <Money value={t.amount} sign={isExpense || isLend ? '−' : !isTransfer ? '+' : ''} />
+          <span className="flex flex-col items-end">
+            <Money value={shown} sign={isExpense || isLend ? '−' : !isTransfer ? '+' : ''} />
+            {t.split && <span className="text-xs font-normal text-muted-foreground">yours <Money value={t.amount} /></span>}
+          </span>
         </div>
       </button>
     </div>

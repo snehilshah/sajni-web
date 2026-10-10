@@ -30,6 +30,7 @@ const ACTION_ICONS: Record<string, typeof CheckSquare> = {
   transaction_created: Wallet,
   lend_created: Wallet,
   lend_repayment_created: Wallet,
+  lend_updated: Wallet,
   theme_created: Sparkles,
   theme_activated: Sparkles,
 };
@@ -46,6 +47,7 @@ const ACTION_LABELS: Record<string, string> = {
   transaction_created: 'Recorded transaction',
   lend_created: 'Recorded lend',
   lend_repayment_created: 'Recorded repayment',
+  lend_updated: 'Updated lend',
   theme_created: 'Created theme',
   theme_activated: 'Activated theme',
 };

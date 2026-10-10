@@ -791,7 +791,10 @@ export interface FinTransaction {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
-  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'lend' | 'lend_repayment';
+  /** refund = money back on a purchase (nets off spending, never income);
+   *  writeoff = a forgiven lend (spending, but no money moved). */
+  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'lend' | 'lend_repayment' | 'refund' | 'writeoff';
+  /** On a split bill, the user's own part; the charge is amount + split.share. */
   amount: number;
   description: string;
   note: string;
@@ -804,7 +807,17 @@ export interface FinTransaction {
   lend_id: number | null;
   /** Person on a lend / settlement row. */
   lend_borrower: string | null;
+  /** A bill shared with someone: their part, owed as a lend. */
+  split: FinTxnSplit | null;
+  /** Refund: the purchase it came back for. */
+  refund_of: number | null;
   created_at: string;
+}
+
+export interface FinTxnSplit {
+  lend_id: number;
+  borrower: string;
+  share: number;
 }
 
 /** Slate = is this normal life, or not? Every transaction carries exactly
@@ -878,6 +891,8 @@ export interface FinLendRepayment {
   transaction_id: number;
   /** Derived from a settlement credit (undo it from the person). */
   settled: boolean;
+  /** Derived from a forgive (writeoff), not money received. */
+  forgiven: boolean;
 }
 
 export interface FinLend {
@@ -909,6 +924,8 @@ export interface FinLendSettlement {
   applied: number;
   description: string;
   txn_at: string;
+  /** A forgive (writeoff), not money received. */
+  forgiven: boolean;
 }
 
 /** A person's running balance across their lends. credit = settled beyond what they owe. */
@@ -1050,12 +1067,14 @@ export type AccountDraft = Partial<Pick<
   | 'archived'
 >>;
 
-export type TxnKind = 'expense' | 'income' | 'transfer' | 'lend';
+/** The three kinds the transaction sheet toggles between. A lend is an
+ *  expense split with someone for all of it; a refund is income marked so. */
+export type TxnKind = 'expense' | 'income' | 'transfer';
 
 export interface TxnDraft {
   account_id: number;
   category_id?: number | null;
-  type: TxnKind;
+  type: TxnKind | 'refund';
   amount: number;
   description?: string;
   note?: string;
@@ -1063,6 +1082,13 @@ export interface TxnDraft {
   linked_account?: number;
   /** Omit or 0 → Plain (normal life); N → that slate. */
   slate_id?: number;
+  /** Refund only: the purchase it came back for. */
+  refund_of?: number;
+  /** Expense only: someone owes `share` of this bill. due_date omitted →
+   *  card-cycle due date; '' → none. */
+  split?: { borrower: string; share: number; due_date?: string; remind?: boolean };
+  /** Income only: this is that person paying the user back. */
+  settle_with?: string;
 }
 
 export type TxnPatch = Partial<Pick<
@@ -1071,6 +1097,10 @@ export type TxnPatch = Partial<Pick<
 >> & {
   /** 0 → Plain; N → that slate; omitted → untouched. */
   slate_id?: number;
+  /** Refund only: 0 clears. */
+  refund_of?: number;
+  /** A credit can switch between income and refund; nothing else retypes. */
+  type?: 'income' | 'refund';
 };
 
 export interface BudgetItemDraft {
@@ -1182,12 +1212,19 @@ export const finance = {
     return request<{ items: FinLendCandidate[]; next: string | null }>('/finance/lends/candidates?' + qs);
   },
   /** due_date omitted → card-cycle due date (cards only). */
-  markPaidFor: (data: { borrower: string; transaction_ids: number[]; due_date?: string; remind?: boolean }) =>
+  /** share (one transaction): their part of the bill; the rest stays the user's. */
+  markPaidFor: (data: { borrower: string; transaction_ids: number[]; due_date?: string; remind?: boolean; share?: number }) =>
     request<{ lend_ids: number[] }>('/finance/lends/paid-for', { method: 'POST', body: JSON.stringify(data) }),
   settleLends: (data: { borrower: string; transaction_ids?: number[]; account_id?: number; amount?: number; received_at?: string; note?: string }) =>
     request('/finance/lends/settle', { method: 'POST', body: JSON.stringify(data) }),
   deleteLendSettlement: (id: number) =>
     request('/finance/lends/settlements/' + id, { method: 'DELETE' }),
+  /** Paid-for bill: move the line between their share and the user's part. */
+  setLendShare: (id: number, share: number) =>
+    request('/finance/lends/' + id + '/share', { method: 'PUT', body: JSON.stringify({ share }) }),
+  /** Write off up to what a person owes: spending on that day, no money moves. */
+  forgiveLends: (data: { borrower: string; amount: number; category_id?: number | null; forgiven_at?: string; note?: string }) =>
+    request<{ transaction_id: number }>('/finance/lends/forgive', { method: 'POST', body: JSON.stringify(data) }),
   // AI category inference. Returns { category_id, category_name } where
   // category_id is null when no existing category matched (falls back
   // to "Others"). 429 means the user has exhausted their AI quota.

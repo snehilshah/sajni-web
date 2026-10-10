@@ -1,21 +1,34 @@
 import { Section, Callout, Code, RefTable, Feature, FeatureList } from './primitives';
 
+// The finance chapter of the field guide, written for someone new to Sajni:
+// what each part does, how to use it, and a worked example for every money
+// flow. Keep it in step with the app (AGENTS.md "User guide").
+
 export const financeMeta = {
   id: 'finance',
   label: 'Finance',
   title: 'Finance',
-  blurb: 'A calm personal ledger, accounts, transactions, slates, budgets, billers, investments, cards.',
+  blurb: 'Your money in one calm ledger: accounts, spending, people who owe you, cards, bills, budgets and investments.',
   sections: [
     { id: 'privacy', label: 'Privacy mode' },
-    { id: 'overview', label: 'Overview' },
     { id: 'accounts', label: 'Accounts' },
-    { id: 'transactions', label: 'Transactions' },
+    { id: 'transactions', label: 'Adding a transaction' },
+    { id: 'split', label: 'Splitting a bill' },
+    { id: 'lending', label: 'Lending money' },
+    { id: 'paid-back', label: 'Getting paid back' },
+    { id: 'forgive', label: 'Forgiving' },
+    { id: 'refunds', label: 'Refunds' },
+    { id: 'categories', label: 'Categories' },
     { id: 'slates', label: 'Slates' },
     { id: 'budgets', label: 'Budgets' },
+    { id: 'cards', label: 'Cards' },
     { id: 'billers', label: 'Billers' },
     { id: 'investments', label: 'Investments' },
-    { id: 'cards', label: 'Cards' },
+    { id: 'overview', label: 'Overview' },
+    { id: 'capture', label: 'Automatic capture' },
+    { id: 'ask', label: 'Asking Sajni' },
     { id: 'exports', label: 'Exports' },
+    { id: 'faq', label: 'Quick answers' },
   ],
 };
 
@@ -24,291 +37,509 @@ export default function FinanceDoc() {
     <>
       <Section id="privacy" title="Privacy Mode" chip="header toggle">
         <p>
-          Figures are <strong>hidden by default</strong>. Every amount renders
-          as stable decoy digits, same sign, same digit count, deterministic
-          per value, so layouts don't jump and nothing flickers, but a
-          shoulder-surfer learns nothing.
+          Amounts are <strong>hidden by default</strong>, so you can open
+          Finance in public. Hidden amounts show as stand-in digits of the same
+          length, so nothing jumps around when you reveal them.
         </p>
         <ul>
           <li>
-            Tap <em>Privacy</em> in the header to reveal. A reveal lasts{' '}
-            <strong>30 minutes</strong>, then re-hides itself, including
-            across reloads and laptop sleeps (the expiry is checked on load
-            and when the tab becomes visible again).
+            Tap <em>Privacy</em> at the top of Finance to show the real
+            figures. They hide again by themselves after{' '}
+            <strong>30 minutes</strong>, even if the laptop slept in between.
           </li>
-          <li>Re-hide manually any time; hiding clears the timer.</li>
-          <li>
-            Charts stay drawn (shapes aren't figures); every textual amount
-            is decoyed. Slate <em>names</em> stay visible, privacy hides
-            numbers, not structure.
-          </li>
-        </ul>
-      </Section>
-
-      <Section id="overview" title="Overview" chip="tab">
-        <p>The money dashboard, read-only:</p>
-        <ul>
-          <li>Net worth, total assets, total liabilities, investments total.</li>
-          <li>This month's income, expense, savings, and recurring investing.</li>
-          <li>Account balances, top expense categories, a daily income/expense trend.</li>
-          <li>Upcoming card dues.</li>
+          <li>Tap it again to hide them straight away.</li>
+          <li>Charts and names stay visible; only the numbers are hidden.</li>
         </ul>
         <p>
-          Net worth is also snapshotted over time, the history exports as
-          CSV (see Exports). Snapshots are never rewritten retroactively;
-          history keeps its steps.
+          When shown, every amount is exact to the paisa, for example
+          ₹1,200.00. Sajni never rounds money.
         </p>
       </Section>
 
       <Section id="accounts" title="Accounts" chip="tab">
+        <p>An account is anywhere your money lives. Pick the type that fits:</p>
+        <RefTable
+          head={['type', 'use it for']}
+          rows={[
+            ['Savings', 'a regular bank account'],
+            ['Salary', 'the account your pay lands in; it remembers your monthly salary and payday'],
+            ['Credit card', 'a card; add its statement day and due day so Sajni can work out each bill'],
+            ['Cash', 'the money in your wallet'],
+            ['Investment', 'a brokerage or similar account'],
+          ]}
+        />
         <p>
-          Types: savings, salary, credit card, investment, cash.
-          Balances are <strong>computed from the ledger</strong> (opening
-          balance + transactions), never edited directly.
+          When you add an account, enter its <strong>opening balance</strong>:
+          what it held on the day you started. From then on Sajni works the
+          balance out from your transactions; you never edit a balance by hand.
+          A card's balance is negative, because it is money you owe.
         </p>
         <FeatureList>
-          <Feature name="Salary accounts">
+          <Feature name="Crediting salary">
             <p>
-              Carry an expected monthly inflow and the day it lands, income
-              entries default to the salary account, and crediting the salary
-              is one tap.
+              On a salary account, the credit button adds your salary (or a
+              bonus) with the amount and date already filled in. New income
+              also defaults to your salary account.
             </p>
           </Feature>
-          <Feature name="Match hints">
+          <Feature name="Matching hints">
             <p>
-              Comma-separated SMS identifiers (card last-4, bank names). The
-              share-to-add flow uses them server-side to pre-select the right
-              account from a bank message.
+              Add the card's or account's last four digits and the bank's name.
+              When a bank message is captured or shared, Sajni uses them to file
+              it under the right account without asking.
             </p>
           </Feature>
-          <Feature name="Credit cards">
+          <Feature name="Buckets">
             <p>
-              Carry a credit limit, statement day, due day and a cashback
-              scheme (percentage or fixed), these drive the Cards tab.
-            </p>
-          </Feature>
-          <Feature name="Savings buckets">
-            <p>
-              Virtual sub-goals <em>inside</em> an account (“Emergency fund ·
-              3L of 5L”). Buckets don't move money, they earmark it, so one
-              savings account can carry several intentions without opening
-              more bank accounts.
+              Set money aside inside an account without moving it, such as
+              “Emergency fund: ₹3,00,000 of ₹5,00,000” inside savings. Open an
+              account's buckets with its bucket button. The account shows how
+              much of its balance is spoken for.
             </p>
           </Feature>
           <Feature name="Archive">
             <p>
-              Archived accounts leave the pickers and totals but keep their
-              history. “Show archived” brings them back into view.
+              An archived account leaves the pickers and totals but keeps its
+              history. “Show archived” brings it back into view.
             </p>
           </Feature>
         </FeatureList>
       </Section>
 
-      <Section id="transactions" title="Transactions" chip="tab">
+      <Section id="transactions" title="Adding a transaction" chip="tab">
         <p>
-          The ledger. Three kinds, expense, income, transfer (a transfer is
-          a linked pair; edits keep both sides in sync). Grouped by IST day
-          with per-day net totals.
+          Press <em>Add</em> in Transactions. The sheet always asks for the
+          same few things: whether it's an <strong>Expense</strong>,{' '}
+          <strong>Income</strong> or <strong>Transfer</strong>; the amount; a
+          title (“Lunch at Cafe X”); the account, date and time; and a
+          category. Sajni suggests a category as you type the title (marked{' '}
+          <em>auto</em>); pick one yourself and it stops guessing.
         </p>
+        <p>
+          Everything else is optional and sits under the form as small{' '}
+          <strong>+ chips</strong>. Tap one to open it. Once it's filled in it
+          folds into a pill that says what it holds, for example{' '}
+          <em>Split · Rahul ₹377.48</em>. Tap the pill to change it, or its ×
+          to remove it.
+        </p>
+        <RefTable
+          head={['kind', 'optional extras']}
+          rows={[
+            ['Expense', 'Split, Slate, Note'],
+            ['Income', 'From a person, Refund, Slate, Note'],
+            ['Transfer', 'Note'],
+          ]}
+        />
         <FeatureList>
-          <Feature name="Add / edit dialog">
+          <Feature name="Transfers">
             <p>
-              Title, account, category, slate, amount, date + time, note.
-              Validation is per-field and explicit, the Add button never
-              silently no-ops.
+              Moving money between your own accounts: savings to cash at an
+              ATM, or salary to pay a card. A transfer is neither spending nor
+              income, so it never changes your totals. Both sides stay in step
+              when you edit it.
             </p>
           </Feature>
-          <Feature name="AI category suggestion">
+          <Feature name="Editing">
             <p>
-              Typing a title on a new entry infers the category (debounced,
-              marked “auto · change anytime”). The moment you pick one by
-              hand it stops overriding you, including mid-flight requests.
+              Tap any transaction to edit it. Changes save on their own a few
+              seconds after you stop typing, and when you close the sheet.{' '}
+              <em>Undo changes</em> puts it back the way it was when you opened
+              it.
             </p>
           </Feature>
-          <Feature name="Add from a shared message">
+          <Feature name="Notes and tags">
             <p>
-              Share a bank/UPI SMS to Sajni (Android share sheet → the PWA):
-              it parses amount, direction, description, date/time, matches
-              the account via your match hints, you review one screen and
-              save. Text that
-              doesn't look like a transaction becomes a bookmark instead.
+              Add a note for context (“with Priya, birthday”). Any{' '}
+              <Code>#tag</Code> in a note files the transaction under that tag,
+              alongside your notes and journal.
             </p>
           </Feature>
-          <Feature name="Filters & search">
+          <Feature name="Finding things">
             <p>
-              Search by description/category, filter by account and type
-              instantly (client-side over the loaded ledger); the slate
-              picker adds a server-side slate filter with a
-              visible, one-tap-clear banner.
-            </p>
-          </Feature>
-          <Feature name="Categories">
-            <p>
-              Income and expense categories with color and icon, managed
-              in-place (also from Budgets). Deleting or merging duplicates
-              re-points history safely.
+              Search by title or category, and filter by account, type
+              (Expense, Income, Refund, Transfer, Lend, Repayment, Forgiven) or
+              slate. Days are grouped with their totals; split bills count only
+              your part as spent.
             </p>
           </Feature>
         </FeatureList>
+      </Section>
+
+      <Section id="split" title="Splitting a bill" chip="split">
+        <p>
+          Use Split when you paid the whole bill but part of it belongs to
+          someone else.
+        </p>
+        <Callout>
+          <strong>Example.</strong> On 1 October you pay ₹754.96 for dinner on
+          your RuPay card. Rahul will pay you back half.
+          <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
+            <li>Add the expense: ₹754.96, “Dinner”, RuPay card, Food.</li>
+            <li>
+              Tap <em>+ Split</em>, type Rahul (or tap his name if he's owed you
+              before) and pick <strong>½</strong>.
+            </li>
+            <li>
+              Sajni shows <em>You ₹377.48 · Rahul owes ₹377.48</em>. Press Add.
+            </li>
+          </ul>
+        </Callout>
+        <p>What happens:</p>
+        <ul>
+          <li>
+            Your card still shows the full <strong>₹754.96</strong>, so it
+            matches the bank's message and your card statement.
+          </li>
+          <li>Your Food spending goes up by only <strong>₹377.48</strong>, your half.</li>
+          <li>Rahul owes you ₹377.48, listed under Finance → Lends.</li>
+          <li>
+            The transaction row reads ₹754.96 with <em>yours ₹377.48</em>{' '}
+            under it and a <em>Split · Rahul</em> tag.
+          </li>
+        </ul>
+        <FeatureList>
+          <Feature name="Other shares">
+            <p>
+              Pick <strong>Custom</strong> to type any amount (Rahul had the
+              expensive dish and owes ₹500), or <strong>All</strong> if the
+              whole bill is his.
+            </p>
+          </Feature>
+          <Feature name="When it's due">
+            <p>
+              For a card, the due date defaults to that card bill's due date,
+              so you know when you need the money back. Pick another date if
+              you like, and turn on a reminder.
+            </p>
+          </Feature>
+          <Feature name="A bill that's already in Sajni">
+            <p>
+              Open it, tap <em>+ Split</em>, fill it in and press{' '}
+              <em>Split this bill</em>. This is how you split card charges that
+              were captured automatically.
+            </p>
+          </Feature>
+          <Feature name="Changing it later">
+            <p>
+              Open the bill and change <em>Their share</em>: only the line
+              between your part and theirs moves, and the bill stays ₹754.96.
+              Change the bill amount and your part changes while theirs stays
+              put. Tap × on the split to remove it; the whole bill becomes
+              yours again.
+            </p>
+          </Feature>
+        </FeatureList>
+        <Callout tone="why">
+          The card was charged the full amount, so the card has to show the
+          full amount, or it will never match the statement. But only your
+          half is your spending. A split keeps the bill whole and moves the
+          other half out of your spending into what Rahul owes.
+        </Callout>
+      </Section>
+
+      <Section id="lending" title="Lending money" chip="tab: Lends">
+        <p>
+          Lending is an expense where <strong>all</strong> of it belongs to
+          someone else.
+        </p>
+        <Callout>
+          <strong>Example.</strong> You give Aman ₹500 in cash. Add an Expense
+          of ₹500 from Cash, tap <em>+ Split</em>, type Aman and pick{' '}
+          <strong>All</strong>. No category is needed, because it isn't your
+          spending. Your cash goes down by ₹500 and Aman owes you ₹500.
+        </Callout>
+        <FeatureList>
+          <Feature name="Paid for someone">
+            <p>
+              Already recorded something that was really for someone else, like
+              Dad's electricity bill on your card? Go to{' '}
+              <em>Lends → Paid for</em>, pick the person and tick the
+              transactions, several at once if you like. Tick just one and you
+              can also say how much of it is theirs (All, ½ or Custom).
+            </p>
+          </Feature>
+          <Feature name="The Lends tab">
+            <p>
+              Everyone who owes you, with the total at the top. Tap a person to
+              see their history as a timeline, oldest first: what you lent (↗),
+              what came back (↙) and anything forgiven (✓). People who have paid
+              everything fold away under <em>Settled</em>.
+            </p>
+          </Feature>
+        </FeatureList>
+        <p>
+          Lent money isn't spending. It stays in your net worth, as money owed
+          to you, until it comes back.
+        </p>
+      </Section>
+
+      <Section id="paid-back" title="Getting paid back" chip="from a person">
+        <p>When someone pays you back, mark the money you received as theirs.</p>
+        <Callout>
+          <strong>Example.</strong> Rahul owes you for chai (₹10), a cab (₹40)
+          and a movie (₹50). He sends ₹100 to your salary account in one go.
+          Add an Income of ₹100 to the salary account, tap{' '}
+          <em>+ From a person</em> and pick Rahul. Before you save, Sajni shows{' '}
+          <em>Owes ₹100.00 · Settled</em>.
+        </Callout>
+        <ul>
+          <li>
+            One payment can cover <strong>several</strong> lends. Sajni pays
+            off the oldest first: chai, then cab, then movie.
+          </li>
+          <li>
+            The money can land in <strong>any</strong> account. It doesn't
+            have to be the one you lent from.
+          </li>
+          <li>
+            Paying less (₹70) clears the chai and the cab and puts ₹20 toward
+            the movie, so ₹30 is still owed.
+          </li>
+          <li>
+            Paying more (₹120) clears all three and keeps the extra ₹20{' '}
+            <em>held</em> for Rahul's next lend.
+          </li>
+        </ul>
+        <FeatureList>
+          <Feature name="Money that's already in Sajni">
+            <p>
+              The repayment was usually captured from a UPI message. Open it,
+              tap <em>+ From a person</em>, pick the person and press{' '}
+              <em>Mark as paid back</em>. Or use <em>Lends → Settle</em> on the
+              person to tick several credits at once, or to record cash that
+              isn't in Sajni yet.
+            </p>
+          </Feature>
+          <Feature name="Undo">
+            <p>
+              In the person's timeline, open ⋮ on the payment and choose{' '}
+              <em>Unmark settlement</em>. It goes back to being ordinary
+              income.
+            </p>
+          </Feature>
+        </FeatureList>
+      </Section>
+
+      <Section id="forgive" title="Forgiving what someone owes" chip="forgive">
+        <Callout>
+          <strong>Example.</strong> Rahul still owes ₹317.48 and you tell him
+          to forget it. Open Rahul in Lends and press <em>Forgive</em>. The
+          amount starts at everything he owes; lower it to forgive only part.
+          Choose what it counts as (say, Gifts) and the date.
+        </Callout>
+        <ul>
+          <li>Rahul then owes ₹0.00, or whatever you didn't forgive.</li>
+          <li>
+            The forgiven amount <strong>counts as your spending</strong> on
+            that date, in the category you chose. You did give that money
+            away.
+          </li>
+          <li>
+            No money moves: balances and card bills don't change, because the
+            money already left when you lent it.
+          </li>
+        </ul>
+        <p>
+          To undo it, open ⋮ on the <em>Forgiven</em> line in the timeline and
+          choose <em>Undo forgive</em>.
+        </p>
+      </Section>
+
+      <Section id="refunds" title="Refunds" chip="refund">
+        <p>
+          A refund is money back on something you bought. It isn't income, so
+          Sajni treats it differently.
+        </p>
+        <Callout>
+          <strong>Example.</strong> You returned a ₹1,299 order and Amazon
+          refunded it to your card. Add an Income of ₹1,299 to the card, tap{' '}
+          <em>+ Refund</em> and, if you like, pick the original purchase. Sajni
+          fills in its category, Shopping.
+        </Callout>
+        <ul>
+          <li>Your card balance goes up by ₹1,299, like any money coming in.</li>
+          <li>
+            Your <strong>Shopping spending goes down</strong> by ₹1,299, and so
+            do budgets that count it.
+          </li>
+          <li>
+            It is <strong>not</strong> income, so a month of returns won't look
+            like a pay rise.
+          </li>
+        </ul>
+        <p>
+          A refund that arrived as income (automatic capture records them that
+          way): open it and tap <em>+ Refund</em>. Tap × on the Refund pill to
+          turn it back into income.
+        </p>
+      </Section>
+
+      <Section id="categories" title="Categories" chip="tab: Transactions">
+        <p>
+          Categories group what you spend (Food, Transport, Bills) and what you
+          earn (Salary, Interest). Manage them with the{' '}
+          <em>Categories</em> button in Transactions, or from Budgets. Expense
+          and income categories are separate lists, and <em>Others</em> is
+          always there as the fallback. Deleting or merging duplicates moves
+          their history safely.
+        </p>
+        <p>
+          Sajni learns from you: once you file “Swiggy” under Food, the next
+          Swiggy transaction is filed there too.
+        </p>
       </Section>
 
       <Section id="slates" title="Slates" chip="tab">
         <p>
           A slate answers one question: <strong>is this normal life, or
-          not?</strong> Every transaction carries exactly one.{' '}
-          <strong>Plain</strong> is normal life and is where everything lands
-          by default; every other slate is an outlier you named, “Goa Trip”,
-          “Wedding”, “Fridge”.
+          not?</strong> Every transaction is on exactly one.{' '}
+          <strong>Plain</strong> is normal life and where everything lands by
+          default; every other slate is something unusual you named: “Goa
+          Trip”, “Wedding”, “Fridge”.
         </p>
         <RefTable
-          head={['rule', 'behavior']}
+          head={['rule', 'behaviour']}
           rows={[
-            ['One slate per transaction', 'never two, never none, unfiled means Plain'],
-            ['Plain', 'system slate; cannot be renamed, archived or deleted'],
-            ['Budgets', 'ignore every slate they do not explicitly name'],
-            ['Filing', 'pick a slate on the transaction form, or select rows in the ledger and move them in bulk'],
-            ['Automatic transactions', 'biller auto-pay and investment auto-debit land in Plain'],
-            ['Opening one', 'tap a slate tile, it opens the ledger filtered to that slate, with its total in the header'],
-            ['Archive', 'hides a finished slate from the pickers; its transactions and its budgets are untouched'],
-            ['Delete', 'empty slates go quietly; otherwise everything moves back to Plain and the confirm says how many'],
+            ['One slate per transaction', 'never two, never none; unfiled means Plain'],
+            ['Plain', 'built in; cannot be renamed, archived or deleted'],
+            ['Budgets', 'ignore every slate they do not name'],
+            ['Filing one', 'tap + Slate in the transaction sheet'],
+            ['Filing many', 'select rows in Transactions (long-press on Android), then Move to slate'],
+            ['Automatic transactions', 'bill auto-pay and investment auto-debit land in Plain'],
+            ['Opening one', 'tap a slate to see its transactions and total: “what did Goa cost?”'],
+            ['Archive', 'hides a finished slate from pickers; its transactions and budgets stay'],
+            ['Delete', 'everything on it moves back to Plain; the confirm says how many'],
           ]}
         />
         <Callout tone="why">
-          One trip inflates a month and you can no longer tell regular
-          spending from irregular. Categories can't fix that, dinner in Goa is
-          Food whether you're on a trip or at home. So the split is a separate
-          axis: a slate decides what counts as normal, and budgets on Plain
-          simply never see the trip. There is no mode to switch on and no
-          window to predict, because you usually only notice an outlier
-          afterwards, which is why filing works retroactively.
+          One trip inflates a month and you can no longer tell normal spending
+          from unusual spending. Categories can't fix that: dinner in Goa is
+          Food whether you're on holiday or at home. A slate is a separate
+          label, so a budget on Plain simply never sees the trip. You usually
+          notice something was unusual only afterwards, which is why you can
+          file it later.
         </Callout>
       </Section>
 
       <Section id="budgets" title="Budgets" chip="tab">
         <p>
-          A budget = an overall amount + optional soft <strong>category
-          caps</strong> that warn but never block, plus a{' '}
-          <strong>slate lens</strong> deciding what it counts. Budgets are
-          discrete, they never reset, so July and August are separate and
-          editing one can't rewrite the other's history.
+          A budget is an overall spending limit, with optional{' '}
+          <strong>caps per category</strong> that warn but never block, and a
+          choice of <strong>which slates it counts</strong>. Each budget is
+          separate: July and August are two budgets, and editing one never
+          rewrites the other.
         </p>
         <FeatureList>
-          <Feature name="Window (optional)">
+          <Feature name="Dates (optional)">
             <p>
-              Start and end dates bound what the budget counts. Leave them off
-              and there is no date limit at all, a slate-scoped budget is
-              defined by its slate, not by dates. Presets fill this week, this
-              month or this year; they only fill the dates, there is no stored
-              period. Once the end date passes, the budget moves to a Closed
-              section rather than disappearing.
+              Start and end dates limit what the budget counts; leave them off
+              for no limit, as with a budget for a slate. Presets fill this
+              week, this month or this year. When the end date passes, the
+              budget moves to <em>Closed</em>.
             </p>
           </Feature>
-          <Feature name="Slate lens">
+          <Feature name="Which slates it counts">
             <p>
-              Pick which slates the budget counts. Leave it empty and it counts{' '}
-              <strong>Plain only</strong>: your normal life, with every
-              outlier structurally absent. Name a slate and it counts that
-              instead, so “Goa Trip · ₹40,000” is a budget scoped to the Goa
-              slate. Name several and they share one pool.
+              Leave it empty and the budget counts <strong>Plain only</strong>,
+              your normal life. Name a slate and it counts that instead, so
+              “Goa Trip · ₹40,000” tracks just the trip. Name several and they
+              share one limit.
+            </p>
+          </Feature>
+          <Feature name="What counts as spent">
+            <p>
+              Expenses and forgiven lends count; refunds take away; your share
+              of a split bill counts, not the whole bill. Category caps follow
+              the budget's slates.
+            </p>
+          </Feature>
+          <Feature name="Next month">
+            <p>
+              Nothing resets on its own. Duplicate a budget to get the next one
+              with the same limit, caps and slates, and its dates moved forward.
             </p>
           </Feature>
         </FeatureList>
+        <Callout>
+          <strong>Example.</strong> “August” ₹10,000 with a Food cap of ₹3,000,
+          and “Goa Trip” ₹5,000 on the Goa slate. A ₹400 beach dinner filed on
+          the Goa slate counts only toward the trip; a ₹600 grocery order at
+          home counts only toward August. Bars go from calm to attention (above
+          80%) to over.
+        </Callout>
+      </Section>
+
+      <Section id="cards" title="Credit cards and statements" chip="tab">
         <p>
-          <strong>The one-ledger lens model.</strong> Budgets are read-time
-          lenses over the single ledger, nothing is allocated or moved, so
-          the same rupee can count in several budgets without double-counting
-          money. You never assign a budget to a transaction.
+          Add a card as a <em>Credit card</em> account with its statement day
+          (when the bill is made) and due day (when it must be paid), and
+          optionally its limit and cashback (a percentage or a fixed amount).
+          The Cards tab keeps one statement per billing cycle. Sajni works out:
         </p>
         <ul>
-          <li>No slate named → counts Plain only. Outliers cannot leak in.</li>
-          <li>Slates named → counts exactly those, and nothing else.</li>
+          <li><strong>Previous balance</strong>: the last statement, less payments since.</li>
           <li>
-            <strong>Category caps inherit their budget's lens</strong>: a
-            trip budget's Food cap counts only Food on the trip's slate; an
-            ordinary budget's Food cap counts only Food in normal life.
+            <strong>New charges</strong>: what the card was charged in the
+            cycle, including bills you split or paid for others, less refunds
+            and other credits.
           </li>
+          <li><strong>Amount due</strong> and <strong>cashback earned</strong>.</li>
         </ul>
-        <Callout>
-          Worked example: “August” ₹10,000 with no slate named (Food cap
-          ₹3,000), and “Goa Trip” ₹5,000 scoped to the Goa slate (Food cap
-          ₹1,000). A ₹400 beach dinner swept onto the Goa slate lands in the
-          trip pair only; the ₹600 grocery delivery at home the same week
-          lands in the August pair only. Neither budget can distort the
-          other, which is the point, the trip stops moving your baseline.
-          Progress bars escalate calm → attention (&gt;80%) → over.
-        </Callout>
         <p>
-          When the window closes, nothing happens automatically. Duplicate the
-          budget to get the next one, with the same limit, caps and slates and
-          the window shifted forward by its own length.
+          Preview it, and overwrite any figure with the one on the real
+          statement. Unpaid statements appear in Overview's upcoming dues.
+          Press <em>Mark paid</em> and choose the account it's paid from: Sajni
+          records the transfer to the card and closes the cycle.
         </p>
       </Section>
 
       <Section id="billers" title="Billers" chip="tab">
-        <p>Recurring charges come in two honest kinds:</p>
+        <p>Payments that repeat come in two kinds:</p>
         <RefTable
-          head={['kind', 'behavior']}
+          head={['kind', 'behaviour']}
           rows={[
-            [
-              'subscription',
-              'fixed amount (Netflix, rent, EMI), may auto-pay from the linked account each cycle',
-            ],
-            [
-              'bill',
-              'amount varies (electricity), stored amount is an optional estimate; you enter the actual when paying; never auto-pays',
-            ],
+            ['Subscription', 'fixed amount (Netflix, rent, EMI); can auto-pay from the linked account each cycle'],
+            ['Bill', 'amount varies (electricity); store an estimate if you like and enter the actual when paying; never auto-pays'],
           ]}
         />
         <FeatureList>
-          <Feature name="Marking a cycle paid">
-            <p>The ✓ on a row opens a small popover with two paths:</p>
+          <Feature name="Paying a cycle">
+            <p>The ✓ on a biller gives two choices:</p>
             <ul>
               <li>
-                <strong>Record payment</strong>: posts an expense from the
-                linked account. Bills ask the actual amount (prefilled from
-                the last payment, else the estimate); subscriptions prefill
-                the fixed amount.
+                <strong>Record payment</strong> adds the expense from the
+                linked account. Bills ask for the actual amount, prefilled from
+                last time.
               </li>
               <li>
-                <strong>Attach existing</strong>: link expenses you already
-                logged (multi-select from recent expenses, “Attach 2 ·
-                ₹3,400”); nothing new is posted.
+                <strong>Attach existing</strong> links expenses already in
+                Sajni (say, captured from an SMS), so nothing is added twice.
               </li>
             </ul>
             <p>
-              Either way the due date rolls forward. A cycle can't be
-              recorded twice, the payment is keyed on the due date, so a
-              manual pay racing the auto-pay resolves to exactly one record
-              (“already recorded” toast).
+              Either way the due date moves on. A cycle can only be paid once,
+              even if you and auto-pay get there at the same moment.
             </p>
           </Feature>
-          <Feature name="Auto-pay (subscriptions)">
+          <Feature name="Auto-pay">
             <p>
-              Posts the expense automatically each cycle and notifies on both
-              channels. Auto-paid cycles can also be checked off manually,
-              whoever gets there first wins, idempotently.
+              Subscriptions can add their expense on each due date by
+              themselves, and tell you when they do.
             </p>
           </Feature>
-          <Feature name="Payment history">
+          <Feature name="Reminders">
             <p>
-              Tap a biller row for its detail sheet: full details plus every
-              recorded cycle, date, amount, auto/manual, and the attached
-              transactions under each.
+              <em>Remind me</em> adds a “Pay …” task near each due date (not
+              needed with auto-pay, so it's off there). Alert days set how
+              early the due-soon notification comes.
             </p>
           </Feature>
-          <Feature name="Remind me / alerts">
+          <Feature name="History and monthly estimate">
             <p>
-              “Remind me” spawns a <em>Pay …</em> task near each due date
-              (moot under auto-pay, so it's disabled there, with the reason
-              shown inline). Alert-days control the due-soon notification
-              lead.
-            </p>
-          </Feature>
-          <Feature name="Estimated monthly outflow">
-            <p>
-              The header estimate normalizes every frequency to a month and
-              uses a bill's last actual payment as its baseline once one
-              exists.
+              Tap a biller for every paid cycle and the transactions under
+              each. The header estimates your monthly outflow across all
+              frequencies, using a bill's last actual payment once there is
+              one.
             </p>
           </Feature>
         </FeatureList>
@@ -316,70 +547,151 @@ export default function FinanceDoc() {
 
       <Section id="investments" title="Investments" chip="tab">
         <p>
-          Track SIPs, recurring deposits, fixed deposits and other
-          investments. RD and cumulative FD values are estimated to today
-          from the deposited amount, dates and annual rate using quarterly
-          compounding. SIP and other market-linked values remain yours to
-          update from the latest statement.
+          Track SIPs, mutual funds, recurring and fixed deposits, and anything
+          else. Each has an invested amount and a current value, so you see
+          your gain or loss. RD and FD values are estimated to today from the
+          amount, dates and annual rate (quarterly compounding); for SIPs and
+          other market-linked ones, update the value from your statement.
         </p>
         <FeatureList>
           <Feature name="Auto-debit">
             <p>
-              Recurring instruments (monthly / quarterly / yearly with a
-              per-cycle amount and a linked account) can auto-debit: each
-              cycle Sajni posts the contribution as an expense, grows the
-              invested amount and current value, advances the next-debit
-              date, and notifies on both channels.
+              For something paid every month, quarter or year, set the amount
+              per cycle and link the paying account. Each cycle Sajni records
+              the payment from that account, adds it to the invested amount,
+              and tells you. If cycles were missed, each one is caught up
+              exactly once.
             </p>
-            <ul>
-              <li>
-                Catch-up: if the clock was missed (server asleep, long gap),
-                each missed cycle posts exactly once, idempotent per due
-                date.
-              </li>
-              <li>
-                The checkbox explains itself when disabled (“link an account
-                first”, “set the per-cycle amount”).
-              </li>
-              <li>Auto-debited contributions land on Plain, never on an outlier slate.</li>
-            </ul>
           </Feature>
           <Feature name="Maturity">
             <p>
-              FDs/RDs carry a maturity date; cards count down (“45d to
-              maturity”). Their pre-tax estimate stops growing at maturity,
-              and the bank's final rounding may differ.
+              FDs and RDs carry a maturity date and count down to it (“45d to
+              maturity”). The estimate stops growing at maturity; the bank's
+              final figure may round differently.
             </p>
           </Feature>
         </FeatureList>
       </Section>
 
-      <Section id="cards" title="Cards" chip="tab">
-        <p>Credit-card statements, generated per cycle:</p>
+      <Section id="overview" title="Overview" chip="tab">
         <ul>
           <li>
-            A statement = previous balance + new charges − payments, with
-            cashback computed from the account's scheme. Preview before
-            committing.
+            <strong>Net worth</strong>: what you have (accounts, investments,
+            money owed to you) minus what you owe (cards).
           </li>
           <li>
-            Each statement carries its due date; unpaid ones surface in
-            Overview's upcoming dues.
+            <strong>This month</strong>: income, spending (after refunds,
+            including forgiven lends), savings and recurring investing.
           </li>
-          <li>
-            Mark paid from any account, that posts the payment transfer and
-            closes the cycle.
-          </li>
+          <li>Account balances, top spending categories and a 30-day trend.</li>
+          <li>Upcoming card dues and bills.</li>
         </ul>
+        <p>
+          Press <em>Snapshot</em> to save today's net worth. Snapshots build the
+          history chart, and are never rewritten afterwards.
+        </p>
+      </Section>
+
+      <Section id="capture" title="Capturing transactions automatically" chip="android · share">
+        <FeatureList>
+          <Feature name="On Android">
+            <p>
+              Sajni can read bank SMS and payment-app notifications (GPay,
+              PhonePe, bank apps) and add the transaction for you. Turn it on
+              in Settings and allow what it asks for.
+            </p>
+            <ul>
+              <li>
+                If the account is matched (see matching hints), it's added
+                straight away, with an <em>Undo</em> in the notification.
+              </li>
+              <li>If Sajni can't tell which account, the notification asks you.</li>
+              <li>
+                The same payment often arrives twice, as an SMS and a UPI
+                notification. Sajni recognises the bank reference number and
+                asks <em>Add anyway?</em> rather than adding it twice. Two
+                payments are never merged just because the amounts match.
+              </li>
+            </ul>
+          </Feature>
+          <Feature name="From the share menu">
+            <p>
+              Share a bank or UPI message to Sajni from your phone. It reads
+              the amount, direction, title and time, picks the account from
+              your matching hints, and opens one screen to check and save. A
+              shared link that isn't a payment is saved as a bookmark instead.
+            </p>
+          </Feature>
+        </FeatureList>
+        <p>Afterwards, open the transaction to split it, mark it paid back, or mark it as a refund.</p>
+      </Section>
+
+      <Section id="ask" title="Asking Sajni" chip="@sajni">
+        <p>
+          In the command palette, type <Code>@sajni</Code> and say what you
+          want. It makes the change and shows you what it did.
+        </p>
+        <RefTable
+          head={['you type', 'it does']}
+          rows={[
+            ['spent 450 on lunch, card', 'adds the expense'],
+            ['the 754.96 dinner on Oct 1 was half Rahul\'s', 'splits that bill ½ with Rahul'],
+            ['Rahul sent me 100, mark it paid back', 'settles his oldest lends'],
+            ['the Amazon credit yesterday was a refund', 'turns that income into a refund'],
+            ['forgive what Aman owes', 'forgives it'],
+            ['what did the Goa trip cost?', 'totals the Goa slate'],
+          ]}
+        />
       </Section>
 
       <Section id="exports" title="Exports" chip="header">
         <p>
-          The Export menu downloads CSV, transactions, budgets (windows,
-          slate filters and caps included), and net-worth history. Files
-          open directly in Sheets/Excel. <Code>Takeout</Code> in Settings
-          covers everything else.
+          The export button downloads CSV files of transactions, budgets (with
+          their dates, slates and caps) and net-worth history. They open in
+          Sheets or Excel. <Code>Takeout</Code> in Settings covers everything
+          else.
         </p>
+      </Section>
+
+      <Section id="faq" title="Quick answers">
+        <FeatureList>
+          <Feature name="I paid a group dinner and three friends owe me">
+            <p>
+              A split has one person, so spread the bill over rows on the same
+              card and date. For ₹1,000 shared by four: add ₹500 split ½ with
+              Rahul (your ₹250 and his), then ₹250 split All with Priya and ₹250
+              split All with Aman. The card shows ₹1,000, your spending is ₹250,
+              and each friend owes ₹250.
+            </p>
+          </Feature>
+          <Feature name="A friend paid for me">
+            <p>
+              Sajni tracks money owed <em>to</em> you. Record your expense when
+              you pay them back.
+            </p>
+          </Feature>
+          <Feature name="Is a split bill counted twice?">
+            <p>
+              No. The card counts the whole bill once, your spending counts
+              your part, and their part is money owed to you.
+            </p>
+          </Feature>
+          <Feature name="My card doesn't match the statement">
+            <p>
+              Look for a charge captured twice, or a refund still recorded as
+              income. You can also type the real statement figures over
+              Sajni's.
+            </p>
+          </Feature>
+          <Feature name="Can I delete a lend?">
+            <p>
+              A cash lend (Split → All) can be deleted, along with its
+              transaction. A paid-for bill or a split is <em>unmarked</em>
+              instead, which hands the whole bill back to you as an expense.
+              To delete a split bill itself, remove its split first.
+            </p>
+          </Feature>
+        </FeatureList>
       </Section>
     </>
   );

@@ -20,7 +20,8 @@ import { Label } from '@/components/ui/label';
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFinLendPeople, useLendCandidates } from '@/queries/finance';
+import { useFinCategories, useFinLendPeople, useLendCandidates } from '@/queries/finance';
+import { CategoryChips } from './CategoryChips';
 import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { ListSkeleton } from './Skeletons';
@@ -41,10 +42,11 @@ interface Props {
 const personKey = (name: string) => name.trim().toLowerCase();
 const today = () => format(new Date(), 'yyyy-MM-dd');
 
-// Lends grouped by person. Money moves as whole transactions picked from the
-// ledger: "Paid for" turns expenses into what someone owes, "Settle" turns
-// credits into them paying it back (oldest first; any extra is held for
-// their next item). Transaction rows themselves carry no lend controls.
+// Lends grouped by person. "Paid for" turns expenses (or a share of one) into
+// what someone owes, "Settle" turns credits into them paying it back (oldest
+// first; any extra is held for their next item), and "Forgive" writes off what
+// is left as the user's spending. The transaction sheet does the same for one
+// transaction at a time (Split, From a person).
 export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }: Props) {
   const peopleQ = useFinLendPeople();
   const people = useMemo(() => peopleQ.data ?? [], [peopleQ.data]);
@@ -52,6 +54,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
   const [showSettled, setShowSettled] = useState(false);
   const [paidFor, setPaidFor] = useState<{ borrower: string } | null>(null);
   const [settling, setSettling] = useState<FinLendPerson | null>(null);
+  const [forgiving, setForgiving] = useState<FinLendPerson | null>(null);
   const [editing, setEditing] = useState<FinLend | null>(null);
 
   const lendsByPerson = useMemo(() => {
@@ -76,8 +79,10 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
     if (!(await confirmDialog(ask))) return;
     try { await finance.deleteLend(lend.id); done(); } catch (error) { toast.error(failureText(error)); }
   };
-  const removeSettlement = async (id: number) => {
-    if (!(await confirmDialog('Unmark this settlement? The credit goes back to plain income.'))) return;
+  const removeSettlement = async (id: number, forgiven: boolean) => {
+    if (!(await confirmDialog(forgiven
+      ? 'Undo this forgive? They owe that amount again, and it leaves your spending.'
+      : 'Unmark this settlement? The credit goes back to plain income.'))) return;
     try { await finance.deleteLendSettlement(id); done(); } catch (error) { toast.error(failureText(error)); }
   };
   const removeRepayment = async (lend: FinLend, repaymentId: number) => {
@@ -132,6 +137,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
             lends={items}
             onPaidFor={() => setPaidFor({ borrower: person.borrower })}
             onSettle={() => setSettling(person)}
+            onForgive={() => setForgiving(person)}
             onEdit={setEditing}
             onRemoveLend={removeLend}
             onRemoveSettlement={removeSettlement}
@@ -204,6 +210,11 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
         onClose={() => setSettling(null)}
         onDone={() => { setSettling(null); done(); }}
       />
+      <ForgiveDialog
+        person={forgiving}
+        onClose={() => setForgiving(null)}
+        onDone={() => { setForgiving(null); done(); }}
+      />
       <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onAutosaved={done} />
     </div>
   );
@@ -221,14 +232,15 @@ type Event =
   | { kind: 'repayment'; at: string; lend: FinLend; repayment: FinLendRepayment }
   | { kind: 'settlement'; at: string; settlement: FinLendSettlement };
 
-function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend, onRemoveSettlement, onRemoveRepayment }: {
+function PersonDetail({ person, lends, onPaidFor, onSettle, onForgive, onEdit, onRemoveLend, onRemoveSettlement, onRemoveRepayment }: {
   person: FinLendPerson;
   lends: FinLend[];
   onPaidFor: () => void;
   onSettle: () => void;
+  onForgive: () => void;
   onEdit: (lend: FinLend) => void;
   onRemoveLend: (lend: FinLend) => void;
-  onRemoveSettlement: (id: number) => void;
+  onRemoveSettlement: (id: number, forgiven: boolean) => void;
   onRemoveRepayment: (lend: FinLend, repaymentId: number) => void;
 }) {
   const events = useMemo<Event[]>(() => [
@@ -280,23 +292,28 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
             </div>
           );
         }
+        // A forgive closes debt like a payment but brings no money in: a
+        // neutral ✓ node, no green, no account.
+        const forgiven = event.kind === 'settlement' && event.settlement.forgiven;
         const received = event.kind === 'settlement'
-          ? { id: 's' + event.settlement.id, title: event.settlement.description || 'Received', account: event.settlement.account, amount: event.settlement.amount, held: event.settlement.amount - event.settlement.applied }
+          ? { id: 's' + event.settlement.id, title: forgiven ? 'Forgiven' : event.settlement.description || 'Received', account: event.settlement.account, amount: event.settlement.amount, held: event.settlement.amount - event.settlement.applied }
           : { id: 'r' + event.repayment.id, title: 'Returned', account: event.repayment.destination_account, amount: event.repayment.amount, held: 0 };
         return (
           <div key={received.id} className={cn(ROW, 'min-h-14')}>
-            <TimelineNode {...rail} tone="positive"><ArrowUpRight className="rotate-180" /></TimelineNode>
+            <TimelineNode {...rail} tone={forgiven ? 'neutral' : 'positive'}>{forgiven ? <Check className="!size-3" /> : <ArrowUpRight className="rotate-180" />}</TimelineNode>
             <span className="min-w-0 py-2">
               <span className="block truncate text-sm font-medium">{received.title}</span>
-              <span className="mt-0.5 block truncate text-xs text-muted-foreground">{format(parseISO(event.at), 'd MMM')} · {received.account}</span>
+              <span className="mt-0.5 block truncate text-xs text-muted-foreground">{format(parseISO(event.at), 'd MMM')}{forgiven ? '' : ' · ' + received.account}</span>
             </span>
             <span className="text-right tabular-nums">
-              <span className="block whitespace-nowrap text-sm text-[hsl(var(--color-complete))]">+<Money value={received.amount} /></span>
+              {forgiven
+                ? <span className="block whitespace-nowrap text-sm"><Money value={received.amount} /></span>
+                : <span className="block whitespace-nowrap text-sm text-[hsl(var(--color-complete))]">+<Money value={received.amount} /></span>}
               {received.held > 0.005 && <span className="block whitespace-nowrap text-xs text-muted-foreground"><Money value={received.held} /> held</span>}
             </span>
             <RowMenu label={received.title}>
               {event.kind === 'settlement' ? (
-                <DropdownMenuItem variant="destructive" onClick={() => onRemoveSettlement(event.settlement.id)}><RotateCcw /> Unmark settlement</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => onRemoveSettlement(event.settlement.id, forgiven)}><RotateCcw /> {forgiven ? 'Undo forgive' : 'Unmark settlement'}</DropdownMenuItem>
               ) : (
                 <DropdownMenuItem variant="destructive" onClick={() => onRemoveRepayment(event.lend, event.repayment.id)}><Trash2 /> Delete repayment</DropdownMenuItem>
               )}
@@ -308,6 +325,7 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
         <div className="col-start-2 col-span-3 flex items-center gap-2">
           {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}><ArrowUpRight className="size-4 rotate-180" /> Settle</Button>}
           <Button variant="outline" size="sm" onClick={onPaidFor}><Plus className="size-4" /> Paid for</Button>
+          {person.outstanding > 0 && <Button variant="outline" size="sm" onClick={onForgive}>Forgive</Button>}
         </div>
       </div>
     </div>
@@ -446,18 +464,30 @@ function PaidForDialog({ request, people, accounts, onClose, onDone }: {
   const { formatMoney } = useFinanceFormatters();
   const [borrower, setBorrower] = useState('');
   const [dueDate, setDueDate] = useState('');
+  // One bill can be shared: their part only; the rest stays yours.
+  const [shareMode, setShareMode] = useState<'all' | 'half' | 'custom'>('all');
+  const [customShare, setCustomShare] = useState('');
   const [saving, setSaving] = useState(false);
   const { selected, toggle, total, reset } = useSelection();
   useEffect(() => {
     if (!request) return;
-    setBorrower(request.borrower); setDueDate(''); reset();
+    setBorrower(request.borrower); setDueDate(''); setShareMode('all'); setCustomShare(''); reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request]);
+  const single = selected.size === 1;
+  const share = !single || shareMode === 'all' ? total
+    : shareMode === 'half' ? Math.round(total * 50) / 100
+      : Math.round((parseFloat(customShare) || 0) * 100) / 100;
+  const shareBad = single && (share <= 0 || share > total);
   const save = async () => {
-    if (!borrower.trim() || selected.size === 0 || saving) return;
+    if (!borrower.trim() || selected.size === 0 || saving || shareBad) return;
     setSaving(true);
     try {
-      await finance.markPaidFor({ borrower: borrower.trim(), transaction_ids: [...selected.keys()], ...(dueDate ? { due_date: dueDate } : {}) });
+      await finance.markPaidFor({
+        borrower: borrower.trim(), transaction_ids: [...selected.keys()],
+        ...(single && share < total ? { share } : {}),
+        ...(dueDate ? { due_date: dueDate } : {}),
+      });
       onDone();
     } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
   };
@@ -484,14 +514,30 @@ function PaidForDialog({ request, people, accounts, onClose, onDone }: {
           </div>
         )}
         {request && <CandidatePicker kind="paid_for" accounts={accounts} selected={selected} onToggle={toggle} />}
+        {single && (
+          <Field label="Their share">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(['all', 'half', 'custom'] as const).map((m) => (
+                <StateChip key={m} selected={shareMode === m} onClick={() => setShareMode(m)}
+                  className={shareMode === m ? undefined : 'bg-[hsl(var(--surface-container-highest))]'}>
+                  {m === 'all' ? 'All' : m === 'half' ? '½' : 'Custom'}
+                </StateChip>
+              ))}
+              {shareMode === 'custom' && (
+                <Input type="number" inputMode="decimal" value={customShare} onChange={(e) => setCustomShare(e.target.value)} placeholder="Their share" className="h-8 w-32" aria-invalid={shareBad} />
+              )}
+              {share > 0 && share < total && <DateBadge>You <Money value={subMoney(total, share)} /></DateBadge>}
+            </div>
+          </Field>
+        )}
         <Field label="Due date">
           <DatePicker value={dueDate} onChange={setDueDate} placeholder="Card bill due date" />
         </Field>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={save} disabled={saving || !borrower.trim() || selected.size === 0}>
-          {saving ? 'Saving…' : selected.size ? `Mark ${selected.size} · ${formatMoney(total)}` : 'Mark'}
+        <Button onClick={save} disabled={saving || !borrower.trim() || selected.size === 0 || shareBad}>
+          {saving ? 'Saving…' : selected.size ? `Mark ${selected.size} · ${formatMoney(share)}` : 'Mark'}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -572,6 +618,66 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={save} disabled={saving || paying <= 0}>{saving ? 'Saving…' : 'Settle'}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>;
+}
+
+// Write off what a person still owes (all by default, or part). It counts as
+// your spending in the chosen category on that day; no money moves.
+function ForgiveDialog({ person, onClose, onDone }: {
+  person: FinLendPerson | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const categoriesQ = useFinCategories(!!person);
+  const expenseCats = (categoriesQ.data ?? []).filter((c) => c.kind === 'expense');
+  const fallback = expenseCats.find((c) => /^gifts?\b/i.test(c.name.trim()))
+    ?? expenseCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
+  const [amount, setAmount] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [date, setDate] = useState(today());
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!person) return;
+    setAmount(String(person.outstanding)); setCategoryId(''); setDate(today()); setNote('');
+  }, [person]);
+  const value = Number(amount) || 0;
+  const owed = person?.outstanding ?? 0;
+  const bad = value <= 0 || value > owed;
+  const picked = categoryId || (fallback ? String(fallback.id) : '');
+  const save = async () => {
+    if (!person || saving || bad) return;
+    setSaving(true);
+    try {
+      await finance.forgiveLends({
+        borrower: person.borrower, amount: value, category_id: picked ? Number(picked) : null,
+        forgiven_at: partsToTxnAt(date, '12:00'), note,
+      });
+      onDone();
+    } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
+  };
+  return <Dialog open={!!person} onOpenChange={(next) => { if (!next) onClose(); }}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader><DialogTitle>Forgive {person?.borrower}</DialogTitle></DialogHeader>
+      <div className="grid gap-3">
+        <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={bad} /></Field>
+        <div className="-mt-1 flex flex-wrap gap-1.5">
+          <DateBadge>Owes <Money value={owed} /></DateBadge>
+          {value > 0 && value <= owed && (subMoney(owed, value) > 0
+            ? <DateBadge><Money value={subMoney(owed, value)} /> still owed</DateBadge>
+            : <DateBadge tone="positive">Settled</DateBadge>)}
+        </div>
+        <Field label="Counts as">
+          <CategoryChips categories={expenseCats} value={picked} onChange={setCategoryId} />
+        </Field>
+        <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
+        <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} /></Field>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={save} disabled={saving || bad}>{saving ? 'Saving…' : 'Forgive'}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -664,7 +770,8 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved }: {
             <SelectContent>{accounts.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Principal"><Input type="number" inputMode="decimal" min={lend?.repaid || 0} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+        <Field label={lend?.origin === 'paid_for' ? 'Their share of the bill' : 'Principal'}><Input type="number" inputMode="decimal" min={lend?.repaid || 0} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+        {lend?.origin === 'paid_for' && <p className="-mt-2 text-xs text-muted-foreground">The bill itself stays the same; the rest is your spending.</p>}
         {!!lend?.repaid && <p className="-mt-2 text-xs text-muted-foreground"><Money value={lend.repaid} /> has already been returned, so principal cannot be lower than that.</p>}
         <Field label="Borrower"><Input value={borrower} onChange={(e) => setBorrower(e.target.value)} /></Field>
         <Field label="Description"><Input value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
