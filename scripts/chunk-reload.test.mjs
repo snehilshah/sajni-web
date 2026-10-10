@@ -9,14 +9,25 @@ const source = stripTypeScriptTypes(
 ).replace(/^export /gm, '');
 
 // Fresh realms model full page reloads while sharing tab-scoped storage.
-function page({ storage = new Map(), blocked, online = true, build = '/assets/index-old.js' } = {}) {
+// `deployed` is what /version.json answers (null = unreachable); this tab
+// runs build `build-a`. Timers are manual so backoffs can be observed.
+function page({ storage = new Map(), blocked, online = true, deployed = 'build-a', now = () => 1_000_000 } = {}) {
   let reloads = 0;
+  const timers = [];
   const window = new EventTarget();
   window.location = { reload: () => { reloads++; } };
+  window.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
   const context = createContext({
     window,
+    __BUILD_ID__: 'build-a',
+    Date: { now },
+    JSON,
+    Array,
     navigator: { onLine: online },
-    document: { querySelector: () => build ? { src: build } : null },
+    fetch: async () => {
+      if (deployed === null) throw new TypeError('Failed to fetch');
+      return { ok: true, json: async () => ({ build: deployed }) };
+    },
     sessionStorage: {
       getItem(key) {
         if (blocked === 'read') throw new Error('Storage blocked');
@@ -28,10 +39,16 @@ function page({ storage = new Map(), blocked, online = true, build = '/assets/in
       },
     },
   });
-  runInContext(`${source}\nglobalThis.api = { isChunkLoadError, isReloadPending, reloadForNewBuild, installChunkReload };`, context);
+  runInContext(`${source}\nglobalThis.api = { isChunkLoadError, isReloadPending, startRecovery, installChunkReload };`, context);
   return {
     ...context.api,
     reloads: () => reloads,
+    // Let the version check settle, then report the scheduled backoffs.
+    async settle() {
+      for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+      return timers.map((t) => t.ms);
+    },
+    fireTimers() { timers.splice(0).forEach((t) => t.fn()); },
     preload(message) {
       const event = new Event('vite:preloadError', { cancelable: true });
       event.payload = runInContext(`new TypeError(${JSON.stringify(message)})`, context);
@@ -56,65 +73,91 @@ test('recognizes browser import and CSS failures without matching application er
   }
 });
 
-test('concurrent recovery calls trigger only one page reload', () => {
-  const app = page();
-  assert.equal(app.reloadForNewBuild(), true);
-  assert.equal(app.isReloadPending(), true);
-  assert.equal(app.reloadForNewBuild(), true);
+test('a newer deployed build reloads straight away', async () => {
+  const app = page({ deployed: 'build-b' });
+  assert.equal(app.startRecovery(), true);
+  assert.deepEqual(await app.settle(), [0]);
+  app.fireTimers();
   assert.equal(app.reloads(), 1);
 });
 
-test('a second failure in the same build survives a full page reload without looping', () => {
-  const storage = new Map();
-  assert.equal(page({ storage }).reloadForNewBuild(), true);
-  const reloaded = page({ storage });
-  assert.equal(reloaded.reloadForNewBuild(), false);
-  assert.equal(reloaded.isReloadPending(), false);
-  assert.equal(reloaded.reloads(), 0);
+test('the same build (network failure) reloads after a backoff', async () => {
+  const app = page({ deployed: 'build-a' });
+  assert.equal(app.startRecovery(), true);
+  assert.deepEqual(await app.settle(), [1000]);
+  assert.equal(app.reloads(), 0);
+  app.fireTimers();
+  assert.equal(app.reloads(), 1);
 });
 
-test('a different entry bundle can recover after a subsequent deployment', () => {
+test('an unreachable version file is treated as a network failure', async () => {
+  const app = page({ deployed: null });
+  assert.equal(app.startRecovery(), true);
+  assert.deepEqual(await app.settle(), [1000]);
+});
+
+test('concurrent recovery calls schedule only one reload', async () => {
+  const app = page({ deployed: 'build-b' });
+  assert.equal(app.startRecovery(), true);
+  assert.equal(app.isReloadPending(), true);
+  assert.equal(app.startRecovery(), true);
+  assert.equal((await app.settle()).length, 1);
+});
+
+test('reloads are budgeted across page loads, and the budget recovers', async () => {
   const storage = new Map();
-  assert.equal(page({ storage }).reloadForNewBuild(), true);
-  assert.equal(page({ storage, build: '/assets/index-new.js' }).reloadForNewBuild(), true);
+  let clock = 1_000_000;
+  const now = () => clock;
+  const backoffs = [];
+  for (let i = 0; i < 3; i++) {
+    const app = page({ storage, now });
+    assert.equal(app.startRecovery(), true, `reload ${i + 1}`);
+    backoffs.push(...await app.settle());
+    clock += 1000;
+  }
+  assert.deepEqual(backoffs, [1000, 2000, 3000]);
+  const spent = page({ storage, now });
+  assert.equal(spent.startRecovery(), false);
+  assert.equal(spent.isReloadPending(), false);
+  clock += 2 * 60_000;
+  assert.equal(page({ storage, now }).startRecovery(), true);
 });
 
 for (const blocked of ['read', 'write']) {
-  test(`blocked storage ${blocked} leaves the original failure visible`, () => {
+  test(`blocked storage ${blocked} leaves the original failure visible`, async () => {
     const app = page({ blocked });
     app.installChunkReload();
     assert.equal(app.preload('Failed to fetch dynamically imported module'), false);
-    assert.equal(app.reloads(), 0);
+    assert.deepEqual(await app.settle(), []);
     assert.equal(app.isReloadPending(), false);
   });
 }
 
-test('offline and unidentified builds do not reload', () => {
-  for (const options of [{ online: false }, { build: null }]) {
-    const app = page(options);
-    assert.equal(app.reloadForNewBuild(), false);
-    assert.equal(app.reloads(), 0);
-  }
+test('offline tabs do not reload', async () => {
+  const app = page({ online: false });
+  assert.equal(app.startRecovery(), false);
+  assert.deepEqual(await app.settle(), []);
 });
 
-test('Vite application errors remain visible and do not consume a recovery attempt', () => {
-  const app = page();
+test('Vite application errors remain visible and do not consume a recovery attempt', async () => {
+  const app = page({ deployed: 'build-b' });
   app.installChunkReload();
   assert.equal(app.preload('Module initialization failed'), false);
-  assert.equal(app.reloads(), 0);
+  assert.deepEqual(await app.settle(), []);
   assert.equal(app.preload('Unable to preload CSS for /assets/old.css'), true);
-  assert.equal(app.reloads(), 1);
+  assert.deepEqual(await app.settle(), [0]);
 });
 
-test('installing twice does not swallow an error after the recovery limit', () => {
+test('installing twice does not double-handle, and a spent budget stops swallowing', async () => {
   const storage = new Map();
-  const app = page({ storage });
-  app.installChunkReload();
-  app.installChunkReload();
-  assert.equal(app.preload('Importing a module script failed'), true);
-  assert.equal(app.reloads(), 1);
-  const reloaded = page({ storage });
-  reloaded.installChunkReload();
-  assert.equal(reloaded.preload('Importing a module script failed'), false);
-  assert.equal(reloaded.reloads(), 0);
+  for (let i = 0; i < 3; i++) {
+    const app = page({ storage });
+    app.installChunkReload();
+    app.installChunkReload();
+    assert.equal(app.preload('Importing a module script failed'), true);
+    assert.equal((await app.settle()).length, 1);
+  }
+  const spent = page({ storage });
+  spent.installChunkReload();
+  assert.equal(spent.preload('Importing a module script failed'), false);
 });

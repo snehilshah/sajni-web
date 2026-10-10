@@ -34,6 +34,22 @@ function themePresets(): Plugin {
   }
 }
 
+// One id per build, compiled in as __BUILD_ID__ and published as
+// /version.json. A tab compares the two to tell "a deploy replaced my build"
+// from "the network dropped a chunk" (src/lib/chunkReload.ts) and to notice a
+// new deploy while idle (src/lib/buildWatch.ts). The commit sha keeps a
+// re-deploy of the same commit from looking like a new build.
+function buildVersion(): Plugin {
+  const id = process.env.GITHUB_SHA?.slice(0, 12) || Date.now().toString(36)
+  return {
+    name: 'sajni-build-version',
+    config: () => ({ define: { __BUILD_ID__: JSON.stringify(id) } }),
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: id }) })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -41,6 +57,7 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
     themePresets(),
+    buildVersion(),
   ],
   resolve: {
     alias: {

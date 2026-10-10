@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,13 +19,14 @@ import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sh
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const RichEditor = lazy(() => import('@/components/editor/RichEditor'));
+const RichEditor = lazyPage(() => import('@/components/editor/RichEditor'));
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
+import { lazyPage } from '@/lib/lazyPage';
 import {
   Trash2, Search, Save, Link as LinkIcon, FileText, X, ArrowLeft, Calendar, Edit3, Eye, LayoutGrid, StickyNote,
   ChevronRight, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,

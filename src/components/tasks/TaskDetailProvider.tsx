@@ -1,16 +1,18 @@
 import {
-  createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList } from '@/types';
 import { qk } from '@/queries/keys';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { lazyPage } from '@/lib/lazyPage';
 import { failureText } from '@/lib/errors';
 import { toast } from 'sonner';
 // Lazy: TaskFormDialog drags the whole tiptap editor along; this provider
 // wraps every page, so an eager import would put tiptap in the boot bundle.
-const TaskFormDialog = lazy(() => import('./TaskFormDialog'));
+const TaskFormDialog = lazyPage(() => import('./TaskFormDialog'));
 
 /**
  * Global task-detail surface. Any component anywhere in the app can call
@@ -178,6 +180,9 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={value}>
       {children}
+      {/* Outside the route boundary: a failed chunk must hide the dialog, not
+          unmount the whole app (the old blank-page failure). */}
+      <ErrorBoundary fallback={null}>
       <Suspense fallback={null}>
         <TaskFormDialog
           open={open}
@@ -189,6 +194,7 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
           onSaved={handleSaved}
         />
       </Suspense>
+      </ErrorBoundary>
     </Ctx.Provider>
   );
 }

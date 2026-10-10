@@ -1,5 +1,7 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { lazyPage, prefetchPages } from '@/lib/lazyPage';
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import {
   LogOut, Search, Settings, Sparkles, Loader2, BookOpen, History,
@@ -19,8 +21,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const CommandPalette = lazy(() => import('@/components/CommandPalette'));
-const AIChat = lazy(() => import('@/components/AIChat'));
+const CommandPalette = lazyPage(() => import('@/components/CommandPalette'));
+const AIChat = lazyPage(() => import('@/components/AIChat'));
 
 function MenuRow({
   icon: Icon, label, hint, onClick, danger, disabled, spinning,
@@ -398,6 +400,8 @@ function BottomDock({
 // pill — pages report scroll through NavChromeContext.
 export default function Layout() {
   const location = useLocation();
+  // Signed in: fetch every screen's chunk once idle (lib/lazyPage).
+  useEffect(() => { prefetchPages(); }, []);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
@@ -505,7 +509,10 @@ export default function Layout() {
 
         <NavChromeContext.Provider value={chromeCtx}>
           <main className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
-            <Outlet />
+            {/* Per page: a page that fails keeps the nav usable; navigating resets it. */}
+            <ErrorBoundary key={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </main>
         </NavChromeContext.Provider>
 
@@ -522,14 +529,18 @@ export default function Layout() {
         )}
 
         {commandPaletteOpen && (
-          <Suspense fallback={null}>
-            <CommandPalette onOpenChange={setCommandPaletteOpen} />
-          </Suspense>
+          <ErrorBoundary fallback={null}>
+            <Suspense fallback={null}>
+              <CommandPalette onOpenChange={setCommandPaletteOpen} />
+            </Suspense>
+          </ErrorBoundary>
         )}
         {aiChatOpen && (
-          <Suspense fallback={null}>
-            <AIChat open onOpenChange={setAIChatOpen} openRequest={chatOpenRequest} />
-          </Suspense>
+          <ErrorBoundary fallback={null}>
+            <Suspense fallback={null}>
+              <AIChat open onOpenChange={setAIChatOpen} openRequest={chatOpenRequest} />
+            </Suspense>
+          </ErrorBoundary>
         )}
       </div>
     </>

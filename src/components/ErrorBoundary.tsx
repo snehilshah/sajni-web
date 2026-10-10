@@ -1,17 +1,60 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, AlertTriangle } from '@/components/ui/icons';
-import { isChunkLoadError, isReloadPending, reloadForNewBuild } from '@/lib/chunkReload';
+import { isChunkLoadError, isReloadPending, startRecovery } from '@/lib/chunkReload';
 
 interface Props {
   children: ReactNode;
+  /** Shown instead of the error card (and the recovery status). Optional
+   *  surfaces pass `null`, so a failed chunk hides them without blanking the
+   *  app; the page-level boundary still drives recovery. */
   fallback?: ReactNode;
+}
+
+// Recovery status. A reload is scheduled; if the page is still here after a
+// while (slow or dead connection), offer the reload by hand instead of
+// leaving "Updating…" on screen forever.
+function Recovering() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSlow(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <div role="status" className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground">
+      <span>{slow ? 'Still loading. The connection looks slow.' : 'Loading Sajni…'}</span>
+      {slow && (
+        <Button size="sm" onClick={() => window.location.reload()} className="gap-1.5">
+          <RotateCcw className="size-3.5" /> Reload
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// A chunk that wouldn't load after the automatic retries: almost always the
+// connection. Comes back by itself when the browser reports it's online.
+function ChunkFailed() {
+  useEffect(() => {
+    const onOnline = () => window.location.reload();
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, []);
+  return (
+    <div className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3 p-6 text-center text-sm">
+      <p className="font-medium text-foreground">Couldn't load this page</p>
+      <p className="text-muted-foreground">Check your connection, then retry.</p>
+      <Button size="sm" onClick={() => window.location.reload()} className="gap-1.5">
+        <RotateCcw className="size-3.5" /> Retry
+      </Button>
+    </div>
+  );
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
-  // A lazy chunk from an older deploy 404'd and a reload is under way.
+  // A lazy chunk failed (stale deploy or network) and a reload is scheduled.
   reloading: boolean;
 }
 
@@ -26,9 +69,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // reloadForNewBuild refuses a second reload for the same build, so a chunk
-    // that is genuinely missing falls through to the error card.
-    if (isReloadPending() || (isChunkLoadError(error) && reloadForNewBuild())) return;
+    // startRecovery's reload budget runs out for a chunk that is genuinely
+    // missing, which then falls through to the error card.
+    if (isReloadPending() || (isChunkLoadError(error) && startRecovery())) return;
     if (this.state.reloading) this.setState({ reloading: false });
     console.error('Unhandled render error caught by ErrorBoundary:', error, errorInfo);
   }
@@ -43,17 +86,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      if (this.state.reloading) {
-        return (
-          <div role="status" className="flex min-h-[50vh] w-full items-center justify-center p-6 text-sm text-muted-foreground">
-            Updating Sajni…
-          </div>
-        );
-      }
-
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
+      if (this.props.fallback !== undefined) return this.props.fallback;
+      if (this.state.reloading) return <Recovering />;
+      if (isChunkLoadError(this.state.error)) return <ChunkFailed />;
 
       return (
         <div className="flex min-h-[50vh] w-full flex-col items-center justify-center p-6 text-center">

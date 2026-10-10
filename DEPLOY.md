@@ -114,12 +114,31 @@ The workflow:
 3. `vercel build --prod` produces a static deployment artifact.
 4. `vercel deploy --prebuilt --prod` ships it to `ohmysajni.com`.
 
-CI and the release workflow run `pnpm run test:chunk-reload` to check
-recovery from missing lazy chunks. Live tabs automatically reload once
-per entry bundle after a chunk load failure, keeping their current URL.
-Offline tabs, blocked session storage, and repeated failures show the
-error card with a manual reload action. HTML is revalidated on each
-navigation; hashed assets can be cached for a year.
+### Deploys and open tabs
+
+A deploy deletes the previous build's chunks, and a lazy chunk can also
+fail to load on a bad connection. Both look the same in the browser
+("Failed to fetch dynamically imported module"). How the app copes:
+
+- **Prefetch.** Once signed in and idle, the shell fetches every screen's
+  chunk (`src/lib/lazyPage.ts`; skipped in data-saver mode). A running tab then
+  never needs the network to switch screens, so a deploy can't break it.
+- **Version check.** Each build compiles in `__BUILD_ID__` (commit sha) and
+  publishes `/version.json` (`buildVersion` in `vite.config.ts`). On returning
+  to the app and on page changes (at most once a minute), the tab compares
+  them; once a newer build is out, the next page change is a full load of
+  that page (`src/lib/buildWatch.ts`).
+- **Recovery.** A failed chunk asks `/version.json` which case it is: a newer
+  build reloads at once, the same build (network) reloads after a 1s/2s/3s
+  backoff. At most 3 automatic reloads per 2 minutes (sessionStorage), then
+  "Couldn't load this page · Retry", which also retries by itself when the
+  browser comes back online. "Loading Sajni…" offers a manual Reload after
+  8s (`src/lib/chunkReload.ts`, `ErrorBoundary`).
+- **Containment.** Page content, the task dialog, the palette and chat each
+  sit in their own error boundary, so one failed chunk never blanks the app.
+
+`pnpm run test:chunk-reload` (CI and release) covers the recovery rules.
+HTML is revalidated on each navigation; hashed assets are cached for a year.
 
 ### Rollback
 

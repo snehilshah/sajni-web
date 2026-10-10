@@ -28,7 +28,7 @@ import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
-const PlannerView = lazy(() => import('@/components/tasks/PlannerView'));
+const PlannerView = lazyPage(() => import('@/components/tasks/PlannerView'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import RemindersPanel from '@/components/reminders/RemindersPanel';
 import {
@@ -37,6 +37,7 @@ import {
 import { useNavChrome } from '@/components/nav-chrome';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
+import { lazyPage } from '@/lib/lazyPage';
 
 type ViewMode = 'list' | 'board';
 

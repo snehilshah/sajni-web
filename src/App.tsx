@@ -1,22 +1,23 @@
 import { lazy, Suspense } from 'react';
+import { lazyPage } from '@/lib/lazyPage';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import Layout from './components/Layout';
 // Pages are lazy route-level chunks so heavy per-page deps (recharts,
 // tiptap, markdown) stay out of the boot bundle.
-const TodayPage = lazy(() => import('./pages/TodayPage'));
-const MemosPage = lazy(() => import('./pages/MemosPage'));
-const ThinkingPage = lazy(() => import('./pages/ThinkingPage'));
-const ThinkingProjectPage = lazy(() => import('./pages/ThinkingProjectPage'));
-const JournalPage = lazy(() => import('./pages/JournalPage'));
-const TasksPage = lazy(() => import('./pages/TasksPage'));
-const HabitsPage = lazy(() => import('./pages/HabitsPage'));
-const EventsPage = lazy(() => import('./pages/EventsPage'));
-const MediaPage = lazy(() => import('./pages/MediaPage'));
-const NotesPage = lazy(() => import('./pages/NotesPage'));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
-const FinancePage = lazy(() => import('./pages/Finance/FinancePage'));
+const TodayPage = lazyPage(() => import('./pages/TodayPage'));
+const MemosPage = lazyPage(() => import('./pages/MemosPage'));
+const ThinkingPage = lazyPage(() => import('./pages/ThinkingPage'));
+const ThinkingProjectPage = lazyPage(() => import('./pages/ThinkingProjectPage'));
+const JournalPage = lazyPage(() => import('./pages/JournalPage'));
+const TasksPage = lazyPage(() => import('./pages/TasksPage'));
+const HabitsPage = lazyPage(() => import('./pages/HabitsPage'));
+const EventsPage = lazyPage(() => import('./pages/EventsPage'));
+const MediaPage = lazyPage(() => import('./pages/MediaPage'));
+const NotesPage = lazyPage(() => import('./pages/NotesPage'));
+const AnalyticsPage = lazyPage(() => import('./pages/AnalyticsPage'));
+const FinancePage = lazyPage(() => import('./pages/Finance/FinancePage'));
 const ShareCapturePage = lazy(() => import('./pages/Finance/ShareCapturePage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const SettingsPage = lazyPage(() => import('./pages/SettingsPage'));
 const DocsPage = lazy(() => import('./pages/docs/DocsPage'));
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));

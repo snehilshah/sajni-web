@@ -13,6 +13,7 @@ import log from './lib/logger'
 import { API_BASE } from './auth/client'
 import { installChunkReload } from './lib/chunkReload'
 import { installErrorNet } from './lib/errorNet'
+import { BuildWatcher } from './lib/buildWatch'
 
 log.info({ api: API_BASE, env: import.meta.env.MODE }, 'sajni init')
 
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <InvalidateBridge />
       <BrowserRouter>
+        <BuildWatcher />
         <MotionConfig reducedMotion="user">
           <App />
         </MotionConfig>
