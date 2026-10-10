@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import {
   differenceInMinutes,
   format,
@@ -60,8 +60,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
 import { confirmDialog } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useQueryClient } from '@tanstack/react-query';
+import { events as eventsApi } from '@/api';
+import { qk } from '@/queries/keys';
 import {
-  useAddEventVariable,
   useCreateEvent,
   useCreateEventEntry,
   useDeleteEvent,
@@ -72,8 +76,6 @@ import {
   useEvents,
   useEventTrends,
   useUpdateEvent,
-  useUpdateEventEntry,
-  useUpdateEventVariable,
 } from '@/queries/events';
 import type {
   TrackedEvent,
@@ -818,17 +820,63 @@ function EventEditor({
   const editing = value !== null && value !== 'new' ? value : null;
   const [draft, setDraft] = useState<EventDraft>(EMPTY_EVENT);
   const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
-  const addVariable = useAddEventVariable();
-  const updateVariable = useUpdateEventVariable();
   const deleteVariable = useDeleteEventVariable();
+  // Variables as the server has them (id → name/unit), so autosave renames
+  // only what changed and never touches a variable deleted meanwhile.
+  const savedVariables = useRef(new Map<number, { name: string; unit: string }>());
+
+  // Edits save themselves. Fields and variable names are diffed; a new
+  // variable is created once it has a name, and its id is written back.
+  // Deleting a variable stays an explicit, confirmed action.
+  const autosave = useEditorAutosave({
+    key: editing ? editing.id : null,
+    value: draft,
+    // Undo restores fields and names; it never resurrects or drops variables.
+    apply: (back) => setDraft((current) => ({
+      ...back,
+      variables: current.variables.map((variable) => {
+        const original = back.variables.find((item) => item.id !== undefined && item.id === variable.id);
+        return original ? { ...variable, name: original.name, unit: original.unit } : variable;
+      }),
+    })),
+    invalid: draft.name.trim() ? null : 'an event needs a name.',
+    save: async (v) => {
+      if (!editing) return;
+      await eventsApi.update(editing.id, {
+        name: v.name.trim(), description: v.description.trim(), color: v.color, icon: v.icon,
+      });
+      for (const variable of cleanVariables(v.variables)) {
+        if (variable.id === undefined) {
+          const created = await eventsApi.addVariable(editing.id, { name: variable.name, unit: variable.unit });
+          savedVariables.current.set(created.id, { name: created.name, unit: created.unit });
+          setDraft((current) => {
+            const at = current.variables.findIndex((item) => item.id === undefined && item.name.trim() === variable.name);
+            if (at < 0) return current;
+            const variables = [...current.variables];
+            variables[at] = { ...variables[at], id: created.id };
+            return { ...current, variables };
+          });
+          continue;
+        }
+        const saved = savedVariables.current.get(variable.id);
+        if (!saved || (saved.name === variable.name && saved.unit === variable.unit)) continue;
+        await eventsApi.updateVariable(editing.id, variable.id, { name: variable.name, unit: variable.unit });
+        savedVariables.current.set(variable.id, { name: variable.name, unit: variable.unit });
+      }
+      void queryClient.invalidateQueries({ queryKey: qk.events.all });
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(() => onOpenChange(false));
 
   useEffect(() => {
     if (value === 'new') setDraft({ ...EMPTY_EVENT, variables: [] });
     else if (value) {
-      setDraft({
+      const loaded: EventDraft = {
         name: value.name,
         description: value.description,
         color: value.color,
@@ -838,53 +886,25 @@ function EventEditor({
           name: variable.name,
           unit: variable.unit,
         })),
-      });
+      };
+      savedVariables.current = new Map(value.variables.map((variable) => [variable.id, { name: variable.name, unit: variable.unit }]));
+      setDraft(loaded);
+      loadAutosave(loaded);
     }
-  }, [value]);
+  }, [value, loadAutosave]);
 
   async function save() {
+    if (editing) { requestClose(); return; }
     if (!draft.name.trim()) return;
-    const cleanVariables = draft.variables
-      .map((variable) => ({ ...variable, name: variable.name.trim(), unit: variable.unit.trim() }))
-      .filter((variable) => variable.name);
     setSaving(true);
     try {
-      if (!editing) {
-        await createEvent.mutateAsync({
-          name: draft.name.trim(),
-          description: draft.description.trim(),
-          color: draft.color,
-          icon: draft.icon,
-          variables: cleanVariables.map(({ name, unit }) => ({ name, unit })),
-        });
-      } else {
-        await updateEvent.mutateAsync({
-          id: editing.id,
-          data: {
-            name: draft.name.trim(),
-            description: draft.description.trim(),
-            color: draft.color,
-            icon: draft.icon,
-          },
-        });
-        for (const variable of cleanVariables) {
-          if (variable.id) {
-            const original = editing.variables.find((item) => item.id === variable.id);
-            if (original && (original.name !== variable.name || original.unit !== variable.unit)) {
-              await updateVariable.mutateAsync({
-                eventId: editing.id,
-                variableId: variable.id,
-                data: { name: variable.name, unit: variable.unit },
-              });
-            }
-          } else {
-            await addVariable.mutateAsync({
-              eventId: editing.id,
-              data: { name: variable.name, unit: variable.unit },
-            });
-          }
-        }
-      }
+      await createEvent.mutateAsync({
+        name: draft.name.trim(),
+        description: draft.description.trim(),
+        color: draft.color,
+        icon: draft.icon,
+        variables: cleanVariables(draft.variables).map(({ name, unit }) => ({ name, unit })),
+      });
       onOpenChange(false);
     } finally {
       setSaving(false);
@@ -900,6 +920,7 @@ function EventEditor({
       });
       if (!confirmed) return;
       await deleteVariable.mutateAsync({ eventId: editing.id, variableId: variable.id });
+      savedVariables.current.delete(variable.id);
     }
     setDraft((current) => ({
       ...current,
@@ -922,16 +943,18 @@ function EventEditor({
       confirmText: 'Delete event',
     });
     if (!confirmed) return;
+    autosave.cancel();
     await deleteEvent.mutateAsync(editing.id);
     onOpenChange(false);
     onDeleted?.();
   }
 
   return (
-    <Dialog open={value !== null} onOpenChange={onOpenChange}>
+    <Dialog open={value !== null} onOpenChange={(open) => (open ? onOpenChange(true) : requestClose())}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>{editing ? 'Edit Event' : 'New Event'}</DialogTitle>
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{editing ? 'Edit event' : 'New event'}</DialogTitle>
+          {editing && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="flex flex-col gap-5">
           <div className="space-y-1.5">
@@ -1061,15 +1084,28 @@ function EventEditor({
               </Button>
             </div>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={!draft.name.trim() || saving}>
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            {editing ? 'Save' : 'Create'}
-          </Button>
+          {editing ? (
+            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={save} disabled={!draft.name.trim() || saving}>
+                {saving && <Loader2 className="size-4 animate-spin" />}
+                Create
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+}
+
+// Trimmed, named variables (blank rows are drafts, not variables).
+function cleanVariables(variables: VariableDraft[]) {
+  return variables
+    .map((variable) => ({ ...variable, name: variable.name.trim(), unit: variable.unit.trim() }))
+    .filter((variable) => variable.name);
 }
 
 function localDateTimeParts(value?: string) {
@@ -1100,38 +1136,59 @@ function EntryEditor({
   const [note, setNote] = useState('');
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const createEntry = useCreateEventEntry();
-  const updateEntry = useUpdateEventEntry();
   const deleteEntry = useDeleteEventEntry();
+
+  // The entry's fields as one value for autosave and Undo.
+  const form = { date, time, note, values };
+  const entryData = (v: typeof form) => ({
+    occurred_at: combineLocalDateTime(v.date, v.time),
+    note: v.note.trim(),
+    values: (event?.variables ?? []).flatMap((variable) => {
+      const raw = v.values[String(variable.id)]?.trim();
+      if (!raw) return [];
+      const number = Number(raw);
+      return Number.isFinite(number) ? [{ variable_id: variable.id, value: number }] : [];
+    }),
+  });
+  // Editing an entry saves itself; logging a new one is explicit.
+  const autosave = useEditorAutosave({
+    key: entry ? entry.id : null,
+    value: form,
+    apply: (v) => { setDate(v.date); setTime(v.time); setNote(v.note); setValues(v.values); },
+    invalid: date && time ? null : 'pick a date and time.',
+    save: async (v) => {
+      if (!event || !entry) return;
+      await eventsApi.updateEntry(event.id, entry.id, entryData(v));
+      void queryClient.invalidateQueries({ queryKey: qk.events.all });
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(() => onOpenChange(false));
 
   useEffect(() => {
     if (!value) return;
     const parts = localDateTimeParts(entry?.occurred_at);
-    setDate(parts.date);
-    setTime(parts.time);
-    setNote(entry?.note ?? '');
-    setValues(Object.fromEntries((entry?.values ?? []).map((item) => [String(item.variable_id), String(item.value)])));
-  }, [entry, value]);
+    const loaded = {
+      date: parts.date,
+      time: parts.time,
+      note: entry?.note ?? '',
+      values: Object.fromEntries((entry?.values ?? []).map((item) => [String(item.variable_id), String(item.value)])),
+    };
+    setDate(loaded.date);
+    setTime(loaded.time);
+    setNote(loaded.note);
+    setValues(loaded.values);
+    if (entry) loadAutosave(loaded);
+  }, [entry, value, loadAutosave]);
 
   async function save() {
+    if (entry) { requestClose(); return; }
     if (!event || !date || !time) return;
-    const data = {
-      occurred_at: combineLocalDateTime(date, time),
-      note: note.trim(),
-      values: event.variables.flatMap((variable) => {
-        const raw = values[String(variable.id)]?.trim();
-        if (!raw) return [];
-        const number = Number(raw);
-        return Number.isFinite(number) ? [{ variable_id: variable.id, value: number }] : [];
-      }),
-    };
     setSaving(true);
     try {
-      if (entry) {
-        await updateEntry.mutateAsync({ eventId: event.id, entryId: entry.id, data });
-      } else {
-        await createEntry.mutateAsync({ eventId: event.id, data });
-      }
+      await createEntry.mutateAsync({ eventId: event.id, data: entryData(form) });
       onOpenChange(false);
     } finally {
       setSaving(false);
@@ -1145,15 +1202,17 @@ function EntryEditor({
       description: `${exactTime(entry.occurred_at)} will be removed from the timeline.`,
       confirmText: 'Delete entry',
     }))) return;
+    autosave.cancel();
     await deleteEntry.mutateAsync({ eventId: event.id, entryId: entry.id });
     onOpenChange(false);
   }
 
   return (
-    <Dialog open={value !== null} onOpenChange={onOpenChange}>
+    <Dialog open={value !== null} onOpenChange={(open) => (open ? onOpenChange(true) : requestClose())}>
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
-        <DialogHeader>
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{entry ? `Edit ${event?.name ?? 'entry'}` : `Log ${event?.name ?? 'event'}`}</DialogTitle>
+          {entry && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
@@ -1212,11 +1271,17 @@ function EntryEditor({
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !date || !time}>
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            {entry ? 'Save' : 'Log event'}
-          </Button>
+          {entry ? (
+            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={save} disabled={saving || !date || !time}>
+                {saving && <Loader2 className="size-4 animate-spin" />}
+                Log event
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

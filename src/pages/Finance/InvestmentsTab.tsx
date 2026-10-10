@@ -20,6 +20,9 @@ import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
 import { cardClass } from '@/components/ui/card';
 import { DateBadge } from '@/components/ui/state-chip';
+import { Money } from './Money';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 interface Props {
   accounts: FinAccount[];
@@ -29,7 +32,7 @@ interface Props {
 }
 
 export default function InvestmentsTab({ accounts, investments, loaded, reload }: Props) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatPercent } = useFinanceFormatters();
   const [editing, setEditing] = useState<FinInvestment | null>(null);
   const [creating, setCreating] = useState(false);
   useEffect(() => {}, []);
@@ -90,21 +93,21 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                     <div className="font-medium truncate">{inv.name}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label ?? inv.type.replace('_', ' ')}
-                      {inv.frequency === 'monthly' && inv.monthly_amount > 0 && ' · ' + formatMoney(inv.monthly_amount) + '/mo'}
+                      {inv.frequency === 'monthly' && inv.monthly_amount > 0 && <> · <Money value={inv.monthly_amount} />/mo</>}
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-3 flex items-baseline justify-between gap-2">
                   <div className="font-serif text-2xl font-semibold tabular-nums">
-                    {formatMoney(inv.current_value)}
+                    <Money value={inv.current_value} />
                   </div>
                   <div className={`whitespace-nowrap text-sm font-medium tabular-nums ${positive ? 'text-primary' : 'text-destructive'}`}>
-                    {positive ? '+' : ''}{formatMoney(gain)} · {formatPercent(gainPct, 1)}
+                    {positive ? '+' : ''}<Money value={gain} /> · {formatPercent(gainPct, 1)}
                   </div>
                 </div>
                 <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-                  of {formatMoney(inv.invested_amount)} invested
+                  of <Money value={inv.invested_amount} /> invested
                   {!(inv.type === 'rd' || inv.type === 'fd') && inv.last_updated && ' · ' + format(parseISO(inv.last_updated), 'd MMM')}
                 </div>
 
@@ -140,18 +143,79 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         accounts={accounts}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); reload(); }}
+        onAutosaved={reload}
       />
     </div>
   );
 }
 
 
-function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
+// The investment editor's fields as one value: autosave diffs it, Undo restores it.
+interface InvestmentValues {
+  name: string; type: FinInvestment['type']; accountId: string; invested: string; current: string;
+  monthly: string; frequency: string; startDate: string; maturityDate: string; expectedReturn: string;
+  notes: string; autoDebit: boolean; nextDebitDate: string;
+}
+
+function investmentValues(inv: FinInvestment): InvestmentValues {
+  return {
+    name: inv.name,
+    type: inv.type,
+    accountId: inv.account_id ? String(inv.account_id) : '',
+    invested: String(inv.invested_amount),
+    current: String(inv.current_value),
+    monthly: String(inv.monthly_amount),
+    frequency: inv.frequency,
+    startDate: inv.start_date || '',
+    maturityDate: inv.maturity_date || '',
+    expectedReturn: String(inv.expected_return),
+    notes: inv.notes,
+    autoDebit: inv.auto_debit,
+    nextDebitDate: inv.next_debit_date || '',
+  };
+}
+
+// The PUT/POST body. RD/FD value is estimated from the rate; auto-debit is
+// only kept when it can run (same rules the server enforces).
+function investmentDraft(v: InvestmentValues): InvDraft {
+  const fixedDeposit = v.type === 'rd' || v.type === 'fd';
+  const recurring = v.type === 'rd' || v.type === 'sip';
+  const cycleAmt = parseFloat(v.monthly) || 0;
+  const autoDebitOn = v.autoDebit && recurring && !!v.accountId && cycleAmt > 0;
+  const estimated = estimateFixedInvestmentValue({
+    type: v.type,
+    investedAmount: parseFloat(v.invested) || 0,
+    cycleAmount: cycleAmt,
+    frequency: v.frequency,
+    startDate: v.startDate,
+    maturityDate: v.maturityDate,
+    annualRate: parseFloat(v.expectedReturn) || 0,
+  });
+  return {
+    name: v.name.trim(),
+    type: v.type,
+    account_id: v.accountId ? parseInt(v.accountId) : null,
+    invested_amount: parseFloat(v.invested) || 0,
+    current_value: fixedDeposit ? estimated : parseFloat(v.current) || parseFloat(v.invested) || 0,
+    monthly_amount: recurring ? cycleAmt : 0,
+    frequency: recurring ? v.frequency : 'lumpsum',
+    start_date: v.startDate || null,
+    maturity_date: v.maturityDate || null,
+    expected_return: v.type === 'other' || v.type === 'mutual_fund' ? 0 : parseFloat(v.expectedReturn) || 0,
+    notes: v.notes,
+    auto_debit: autoDebitOn,
+    next_debit_date: autoDebitOn && v.nextDebitDate ? v.nextDebitDate : null,
+  };
+}
+
+function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAutosaved }: {
   open: boolean;
   investment: FinInvestment | null;
   accounts: FinAccount[];
   onClose: () => void;
   onSaved: () => void;
+  /** An edit saved while the dialog stays open: refresh, keep editing. */
+  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<FinInvestment['type']>('fd');
@@ -167,27 +231,44 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   const [autoDebit, setAutoDebit] = useState(false);
   const [nextDebitDate, setNextDebitDate] = useState('');
 
+  const values: InvestmentValues = {
+    name, type, accountId, invested, current, monthly, frequency, startDate, maturityDate,
+    expectedReturn, notes, autoDebit, nextDebitDate,
+  };
+  const apply = (v: InvestmentValues) => {
+    setName(v.name); setType(v.type); setAccountId(v.accountId); setInvested(v.invested);
+    setCurrent(v.current); setMonthly(v.monthly); setFrequency(v.frequency); setStartDate(v.startDate);
+    setMaturityDate(v.maturityDate); setExpectedReturn(v.expectedReturn); setNotes(v.notes);
+    setAutoDebit(v.autoDebit); setNextDebitDate(v.nextDebitDate);
+  };
+  // Edits save themselves; a new investment is created explicitly.
+  const autosave = useEditorAutosave({
+    key: open && investment ? investment.id : null,
+    value: values,
+    apply,
+    invalid: name.trim() ? null : 'an investment needs a name.',
+    save: async (v) => {
+      if (!investment) return;
+      await finance.updateInvestment(investment.id, investmentDraft(v));
+      onAutosaved?.();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
+
   useEffect(() => {
     if (investment) {
-      setName(investment.name);
-      setType(investment.type);
-      setAccountId(investment.account_id ? String(investment.account_id) : '');
-      setInvested(String(investment.invested_amount));
-      setCurrent(String(investment.current_value));
-      setMonthly(String(investment.monthly_amount));
-      setFrequency(investment.frequency);
-      setStartDate(investment.start_date || '');
-      setMaturityDate(investment.maturity_date || '');
-      setExpectedReturn(String(investment.expected_return));
-      setNotes(investment.notes);
-      setAutoDebit(investment.auto_debit);
-      setNextDebitDate(investment.next_debit_date || '');
+      const v = investmentValues(investment);
+      apply(v);
+      loadAutosave(v);
     } else {
       setName(''); setType('sip'); setAccountId(''); setInvested(''); setCurrent('');
       setMonthly(''); setFrequency('monthly'); setStartDate(''); setMaturityDate('');
       setExpectedReturn(''); setNotes('');
       setAutoDebit(false); setNextDebitDate('');
     }
+    // Keyed on the dialog opening; the setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [investment, open]);
 
   const fixedDeposit = type === 'rd' || type === 'fd';
@@ -209,42 +290,26 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   });
 
   const save = async () => {
+    if (investment) { requestClose(); return; }
     if (!name.trim()) return;
-    const data: InvDraft = {
-      name: name.trim(),
-      type,
-      account_id: accountId ? parseInt(accountId) : null,
-      invested_amount: parseFloat(invested) || 0,
-      current_value: fixedDeposit ? estimatedValue : parseFloat(current) || parseFloat(invested) || 0,
-      monthly_amount: recurring ? cycleAmt : 0,
-      frequency: recurring ? frequency : 'lumpsum',
-      start_date: startDate || null,
-      maturity_date: maturityDate || null,
-      expected_return: type === 'other' || type === 'mutual_fund' ? 0 : parseFloat(expectedReturn) || 0,
-      notes,
-      auto_debit: autoDebitOn,
-      next_debit_date: autoDebitOn && nextDebitDate ? nextDebitDate : null,
-    };
-    if (investment) {
-      await finance.updateInvestment(investment.id, data);
-    } else {
-      await finance.createInvestment(data);
-    }
+    await finance.createInvestment(investmentDraft(values));
     onSaved();
   };
 
   const remove = async () => {
     if (!investment) return;
     if (!(await confirmDialog('Delete this investment?'))) return;
+    autosave.cancel();
     await finance.deleteInvestment(investment.id);
     onSaved();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{investment ? 'Edit Investment' : 'New Investment'}</DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
+      <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{investment ? 'Edit investment' : 'New investment'}</DialogTitle>
+          {investment && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Name" className="col-span-2">
@@ -369,8 +434,14 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={save}>{investment ? 'Save' : 'Create'}</Button>
+            {investment ? (
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+            ) : (
+              <>
+                <Button variant="outline" onClick={onClose}>Cancel</Button>
+                <Button onClick={save}>Create</Button>
+              </>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

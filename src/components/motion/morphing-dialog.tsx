@@ -50,19 +50,27 @@ export function MorphingDialog({
   useEffect(() => {
     if (!open) return;
     openStack.push(id);
+    // Capture phase: Base UI handles Escape at the document and stops it
+    // there (even with no popup open), so a bubbling listener never hears it.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented || openStack.at(-1) !== id) return;
+      if (e.key !== 'Escape' || openStack.at(-1) !== id) return;
+      // A field that uses Escape itself (clear a draft, close its own
+      // suggestions) carries data-own-escape while it does.
+      if (e.target instanceof Element && e.target.closest('[data-own-escape]')) return;
       // A popover, select or confirm opened from this dialog holds focus
-      // outside the panel; its own Esc closes it, not the dialog too.
+      // outside every dialog; its own Esc closes it, not the dialog too.
       const active = document.activeElement;
-      const panel = document.querySelector(`[data-morph-dialog="${CSS.escape(id)}"]`);
-      if (active && active !== document.body && panel && !panel.contains(active)) return;
+      if (active && active !== document.body && !active.closest('[data-morph-dialog]')) return;
       e.preventDefault();
       onCloseRef.current();
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    // Take focus unless a field inside already did (autoFocus), so keys land
+    // here and not in the dialog underneath.
+    const panel = document.querySelector<HTMLElement>(`[data-morph-dialog="${CSS.escape(id)}"]`);
+    if (panel && !panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
       const at = openStack.lastIndexOf(id);
       if (at >= 0) openStack.splice(at, 1);
     };
@@ -88,10 +96,11 @@ export function MorphingDialog({
             role="dialog"
             aria-modal="true"
             data-morph-dialog={id}
+            tabIndex={-1}
             onKeyDown={submitOnEnter}
             aria-label={ariaLabel}
             className={cn(
-              'fixed z-50 flex flex-col gap-0 overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-2xl',
+              'fixed z-50 flex flex-col gap-0 overflow-hidden rounded-[28px] outline-none border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-2xl',
               className,
             )}
           >

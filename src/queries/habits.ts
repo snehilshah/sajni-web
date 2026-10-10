@@ -90,16 +90,6 @@ export function useCreateHabit() {
   });
 }
 
-export function useUpdateHabit() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: HabitPatch }) =>
-      habitsApi.update(id, data),
-    onError: () => toast.error('Could not update habit'),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.habits.all }),
-  });
-}
-
 export function useDeleteHabit() {
   const qc = useQueryClient();
   return useMutation({
@@ -107,4 +97,14 @@ export function useDeleteHabit() {
     onError: () => toast.error('Could not delete habit'),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.habits.all }),
   });
+}
+
+/** Autosave's write: no toast of its own (the editor's autosave reports
+ *  failures), then refresh every habit view. */
+export function useAutosaveHabit() {
+  const qc = useQueryClient();
+  return async (id: number, data: HabitPatch) => {
+    await habitsApi.update(id, data);
+    void qc.invalidateQueries({ queryKey: qk.habits.all });
+  };
 }

@@ -31,19 +31,6 @@ export function useCreateMedia() {
   });
 }
 
-export function useUpdateMedia() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: MediaPatch }) =>
-      mediaApi.update(id, data),
-    onError: () => toast.error('Could not update'),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: qk.media.all });
-      qc.invalidateQueries({ queryKey: qk.tags.all });
-    },
-  });
-}
-
 export function useDeleteMedia() {
   const qc = useQueryClient();
   return useMutation({
@@ -54,4 +41,15 @@ export function useDeleteMedia() {
       qc.invalidateQueries({ queryKey: qk.tags.all });
     },
   });
+}
+
+/** Autosave's write: no toast of its own (the editor's autosave reports
+ *  failures), then refresh library and tag views. */
+export function useAutosaveMedia() {
+  const qc = useQueryClient();
+  return async (id: number, data: MediaPatch) => {
+    await mediaApi.update(id, data);
+    void qc.invalidateQueries({ queryKey: qk.media.all });
+    void qc.invalidateQueries({ queryKey: qk.tags.all });
+  };
 }

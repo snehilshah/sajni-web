@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useFinanceFormatters } from './useFinancePrivacy';
 import { Money } from './Money';
 import { txnAtToParts, formatTxnTime, toPaise, fromPaise } from './utils';
 import { RowsSkeleton } from './Skeletons';
@@ -160,7 +159,6 @@ export default function TransactionsTab({
   truncated, canLoadEarlier, onLoadEarlier,
   newLendRequest,
 }: Props) {
-  const { formatMoney } = useFinanceFormatters();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [editingLend, setEditingLend] = useState<FinLend | null>(null);
@@ -498,7 +496,7 @@ export default function TransactionsTab({
             <div className="flex-1 min-w-0 leading-tight">
               <div className="text-sm font-medium">{selected.size} selected</div>
               {selectedTotal > 0 && (
-                <div className="font-mono text-xs text-muted-foreground tabular-nums">{formatMoney(selectedTotal)} spent</div>
+                <div className="font-mono text-xs text-muted-foreground tabular-nums"><Money value={selectedTotal} /> spent</div>
               )}
             </div>
             <DropdownMenu>
@@ -556,7 +554,7 @@ export default function TransactionsTab({
         lend={editingLend}
         accounts={accounts}
         onClose={() => setEditingLend(null)}
-        onSaved={() => { setEditingLend(null); reload(); }}
+        onAutosaved={reload}
       />
       {/* Create-then-sweep in one motion: back from a trip, select the rows,
           name the slate, done. */}

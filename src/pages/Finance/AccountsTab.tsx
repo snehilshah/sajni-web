@@ -21,6 +21,9 @@ import { ACCOUNT_TYPES, ACCOUNT_COLORS, sumMoney, subMoney } from './utils';
 import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
 import { DateBadge } from '@/components/ui/state-chip';
+import { Money } from './Money';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 const typeIcon = (type: string) => {
   switch (type) {
@@ -45,7 +48,7 @@ interface Props {
 }
 
 export default function AccountsTab({ accounts, categories, savings: parentSavings, loaded, reload }: Props) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatPercent } = useFinanceFormatters();
   const [editingAcct, setEditingAcct] = useState<FinAccount | null>(null);
   const [creating, setCreating] = useState(false);
   // Local copy so the bucket dialog can mutate without round-tripping every keystroke.
@@ -155,19 +158,19 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <span className="flex min-w-0 items-baseline gap-2">
                     <span className={`whitespace-nowrap font-serif text-2xl font-semibold tabular-nums ${!isCC && a.balance < 0 ? 'text-destructive' : ''}`}>
-                      {formatMoney(isCC ? owed : a.balance)}
+                      <Money value={isCC ? owed : a.balance} />
                     </span>
                     {isCC && <span className="text-xs text-muted-foreground">owed</span>}
                   </span>
                   {isCC && a.credit_limit ? (
                     <DateBadge tone={utilization > 80 ? 'alert' : 'neutral'}>
-                      {formatPercent(utilization)} of {formatMoney(a.credit_limit)}
+                      {formatPercent(utilization)} of <Money value={a.credit_limit} />
                     </DateBadge>
                   ) : a.type === 'salary' && a.salary_amount > 0 ? (
-                    <DateBadge>{formatMoney(a.salary_amount)}/mo{a.salary_day ? ` · day ${a.salary_day}` : ''}</DateBadge>
+                    <DateBadge><span><Money value={a.salary_amount} />/mo{a.salary_day ? ` · day ${a.salary_day}` : ''}</span></DateBadge>
                   ) : acctSavings.length > 0 ? (
                     <button type="button" onClick={() => setSavingsAcct(a)} className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]">
-                      <DateBadge tone={reservedTotal > a.balance ? 'alert' : 'neutral'}>{formatMoney(reservedTotal)} reserved</DateBadge>
+                      <DateBadge tone={reservedTotal > a.balance ? 'alert' : 'neutral'}><Money value={reservedTotal} /> reserved</DateBadge>
                     </button>
                   ) : null}
                 </div>
@@ -182,6 +185,7 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
         account={editingAcct}
         onClose={() => { setCreating(false); setEditingAcct(null); }}
         onSaved={() => { reload(); setCreating(false); setEditingAcct(null); }}
+        onAutosaved={reload}
       />
       {crediting && (
         <SalaryDialog account={crediting} categories={categories} onClose={() => setCrediting(null)} onDone={reload} />
@@ -195,11 +199,63 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
   );
 }
 
-function AccountDialog({ open, account, onClose, onSaved }: {
+// The account editor's fields as one value: autosave diffs it, Undo restores it.
+interface AccountValues {
+  name: string; type: AcctType; institution: string; openingBalance: string;
+  creditLimit: string; statementDay: string; dueDay: string;
+  cashbackType: CashType; cashbackValue: string; salaryAmount: string; salaryDay: string;
+  matchHints: string; color: string; archived: boolean;
+}
+
+function accountValues(account: FinAccount): AccountValues {
+  return {
+    name: account.name,
+    type: account.type,
+    institution: account.institution,
+    openingBalance: String(account.opening_balance),
+    creditLimit: account.credit_limit != null ? String(account.credit_limit) : '',
+    statementDay: account.statement_day != null ? String(account.statement_day) : '',
+    dueDay: account.due_day != null ? String(account.due_day) : '',
+    cashbackType: account.cashback_type,
+    cashbackValue: String(account.cashback_value),
+    salaryAmount: String(account.salary_amount ?? 0),
+    salaryDay: account.salary_day != null ? String(account.salary_day) : '',
+    matchHints: account.match_hints || '',
+    color: account.color,
+    archived: account.archived,
+  };
+}
+
+function accountDraft(v: AccountValues): AccountDraft {
+  const data: AccountDraft = {
+    name: v.name.trim(),
+    type: v.type,
+    institution: v.institution.trim(),
+    opening_balance: parseFloat(v.openingBalance) || 0,
+    cashback_type: v.type === 'credit_card' ? v.cashbackType : 'none',
+    cashback_value: parseFloat(v.cashbackValue) || 0,
+    match_hints: v.matchHints.trim(),
+    color: v.color,
+  };
+  if (v.type === 'credit_card') {
+    data.credit_limit = v.creditLimit ? parseFloat(v.creditLimit) : 0;
+    data.statement_day = v.statementDay ? parseInt(v.statementDay) : null;
+    data.due_day = v.dueDay ? parseInt(v.dueDay) : null;
+  }
+  if (v.type === 'salary') {
+    data.salary_amount = parseFloat(v.salaryAmount) || 0;
+    if (v.salaryDay) data.salary_day = parseInt(v.salaryDay);
+  }
+  return data;
+}
+
+function AccountDialog({ open, account, onClose, onSaved, onAutosaved }: {
   open: boolean;
   account: FinAccount | null;
   onClose: () => void;
   onSaved: () => void;
+  /** An edit saved while the dialog stays open: refresh, keep editing. */
+  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<AcctType>('savings');
@@ -216,22 +272,37 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   const [color, setColor] = useState(ACCOUNT_COLORS[0]);
   const [archived, setArchived] = useState(false);
 
+  const values: AccountValues = {
+    name, type, institution, openingBalance, creditLimit, statementDay, dueDay,
+    cashbackType, cashbackValue, salaryAmount, salaryDay, matchHints, color, archived,
+  };
+  const apply = (v: AccountValues) => {
+    setName(v.name); setType(v.type); setInstitution(v.institution); setOpeningBalance(v.openingBalance);
+    setCreditLimit(v.creditLimit); setStatementDay(v.statementDay); setDueDay(v.dueDay);
+    setCashbackType(v.cashbackType); setCashbackValue(v.cashbackValue);
+    setSalaryAmount(v.salaryAmount); setSalaryDay(v.salaryDay); setMatchHints(v.matchHints);
+    setColor(v.color); setArchived(v.archived);
+  };
+  // Edits save themselves; a new account is created explicitly.
+  const autosave = useEditorAutosave({
+    key: open && account ? account.id : null,
+    value: values,
+    apply,
+    invalid: name.trim() ? null : 'an account needs a name.',
+    save: async (v) => {
+      if (!account) return;
+      await finance.updateAccount(account.id, { ...accountDraft(v), archived: v.archived });
+      onAutosaved?.();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
+
   useEffect(() => {
     if (account) {
-      setName(account.name);
-      setType(account.type);
-      setInstitution(account.institution);
-      setOpeningBalance(String(account.opening_balance));
-      setCreditLimit(account.credit_limit != null ? String(account.credit_limit) : '');
-      setStatementDay(account.statement_day != null ? String(account.statement_day) : '');
-      setDueDay(account.due_day != null ? String(account.due_day) : '');
-      setCashbackType(account.cashback_type);
-      setCashbackValue(String(account.cashback_value));
-      setSalaryAmount(String(account.salary_amount ?? 0));
-      setSalaryDay(account.salary_day != null ? String(account.salary_day) : '');
-      setMatchHints(account.match_hints || '');
-      setColor(account.color);
-      setArchived(account.archived);
+      const v = accountValues(account);
+      apply(v);
+      loadAutosave(v);
     } else {
       setName(''); setType('savings'); setInstitution(''); setOpeningBalance('0');
       setCreditLimit(''); setStatementDay(''); setDueDay('');
@@ -239,50 +310,31 @@ function AccountDialog({ open, account, onClose, onSaved }: {
       setSalaryAmount('0'); setSalaryDay(''); setMatchHints('');
       setColor(ACCOUNT_COLORS[0]); setArchived(false);
     }
+    // Keyed on the dialog opening, not on the setters (stable) or loadAutosave.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, open]);
 
   const save = async () => {
+    if (account) { requestClose(); return; }
     if (!name.trim()) return;
-    const data: AccountDraft = {
-      name: name.trim(),
-      type,
-      institution: institution.trim(),
-      opening_balance: parseFloat(openingBalance) || 0,
-      cashback_type: type === 'credit_card' ? cashbackType : 'none',
-      cashback_value: parseFloat(cashbackValue) || 0,
-      match_hints: matchHints.trim(),
-      color,
-    };
-    if (type === 'credit_card') {
-      data.credit_limit = creditLimit ? parseFloat(creditLimit) : 0;
-      data.statement_day = statementDay ? parseInt(statementDay) : null;
-      data.due_day = dueDay ? parseInt(dueDay) : null;
-    }
-    if (type === 'salary') {
-      data.salary_amount = parseFloat(salaryAmount) || 0;
-      if (salaryDay) data.salary_day = parseInt(salaryDay);
-    }
-    if (account) {
-      data.archived = archived;
-      await finance.updateAccount(account.id, data);
-    } else {
-      await finance.createAccount(data);
-    }
+    await finance.createAccount(accountDraft(values));
     onSaved();
   };
 
   const remove = async () => {
     if (!account) return;
     if (!(await confirmDialog('Delete this account? Transactions on it will also be removed.'))) return;
+    autosave.cancel();
     await finance.deleteAccount(account.id);
     onSaved();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{account ? 'Edit Account' : 'New Account'}</DialogTitle>
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{account ? 'Edit account' : 'New account'}</DialogTitle>
+          {account && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Name" className="sm:col-span-2">
@@ -408,8 +460,14 @@ function AccountDialog({ open, account, onClose, onSaved }: {
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={save}>{account ? 'Save' : 'Create'}</Button>
+            {account ? (
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+            ) : (
+              <>
+                <Button variant="outline" onClick={onClose}>Cancel</Button>
+                <Button onClick={save}>Create</Button>
+              </>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>
@@ -507,7 +565,6 @@ function SavingsDialog({ account, savings, onClose }: {
   savings: FinSaving[];
   onClose: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
@@ -564,7 +621,7 @@ function SavingsDialog({ account, savings, onClose }: {
           <DialogTitle>Reserved on {account.name}</DialogTitle>
         </DialogHeader>
         <div className="text-xs text-muted-foreground -mt-2">
-          Buckets are virtual. Money stays in the account. Reserved {formatMoney(reservedTotal)} of {formatMoney(account.balance)} balance.
+          Buckets are virtual. Money stays in the account. Reserved <Money value={reservedTotal} /> of <Money value={account.balance} /> balance.
         </div>
         {overReserved && (
           <div className="text-xs rounded-md bg-destructive/10 text-destructive px-3 py-2">
@@ -590,7 +647,7 @@ function SavingsDialog({ account, savings, onClose }: {
                   </div>
                 </div>
                 <div className="font-mono text-xs tabular-nums text-muted-foreground mt-1">
-                  {formatMoney(s.current_amount)}{s.target_amount > 0 && ' / ' + formatMoney(s.target_amount)}
+                  <Money value={s.current_amount} />{s.target_amount > 0 && <> / <Money value={s.target_amount} /></>}
                 </div>
                 {s.target_amount > 0 && (
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">

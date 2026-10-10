@@ -35,11 +35,15 @@ export function useCreateReminder() {
   return useReminderMutation((input: ReminderInput) => remindersApi.create(input), 'Could not create reminder');
 }
 
-export function useUpdateReminder() {
-  return useReminderMutation(
-    ({ id, input }: { id: number; input: ReminderInput }) => remindersApi.update(id, input),
-    'Could not save reminder',
-  );
+/** Autosave's write: no toast of its own (the editor's autosave reports
+ *  failures), then refresh reminders and the planner. */
+export function useAutosaveReminder() {
+  const qc = useQueryClient();
+  return async (id: number, input: ReminderInput) => {
+    await remindersApi.update(id, input);
+    void qc.invalidateQueries({ queryKey: qk.reminders.all });
+    void qc.invalidateQueries({ queryKey: qk.planner.all });
+  };
 }
 
 export function useDeleteReminder() {

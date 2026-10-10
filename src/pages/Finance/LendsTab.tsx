@@ -26,6 +26,9 @@ import { useFinanceFormatters } from './useFinancePrivacy';
 import { ListSkeleton } from './Skeletons';
 import { Stat, StatGroup } from './StatGroup';
 import { partsToTxnAt, txnAtToParts, sumMoney, subMoney } from './utils';
+import { Money } from './Money';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 interface Props {
   accounts: FinAccount[];
@@ -43,7 +46,6 @@ const today = () => format(new Date(), 'yyyy-MM-dd');
 // credits into them paying it back (oldest first; any extra is held for
 // their next item). Transaction rows themselves carry no lend controls.
 export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }: Props) {
-  const { formatMoney } = useFinanceFormatters();
   const peopleQ = useFinLendPeople();
   const people = useMemo(() => peopleQ.data ?? [], [peopleQ.data]);
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -113,11 +115,11 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
               {nextDue && (
                 <DateBadge tone={overdue ? 'alert' : 'neutral'}>Due {format(parseISO(nextDue), 'd MMM')}</DateBadge>
               )}
-              {person.credit > 0 && <DateBadge tone="positive">{formatMoney(person.credit)} held</DateBadge>}
+              {person.credit > 0 && <DateBadge tone="positive"><Money value={person.credit} /> held</DateBadge>}
             </span>
           </span>
           {person.outstanding > 0 ? (
-            <span className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums text-primary">{formatMoney(person.outstanding)}</span>
+            <span className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums text-primary"><Money value={person.outstanding} /></span>
           ) : (
             <DateBadge tone="positive">Settled</DateBadge>
           )}
@@ -202,7 +204,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }:
         onClose={() => setSettling(null)}
         onDone={() => { setSettling(null); done(); }}
       />
-      <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); done(); }} />
+      <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onAutosaved={done} />
     </div>
   );
 }
@@ -229,7 +231,6 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
   onRemoveSettlement: (id: number) => void;
   onRemoveRepayment: (lend: FinLend, repaymentId: number) => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const events = useMemo<Event[]>(() => [
     ...lends.map((lend) => ({ kind: 'lend' as const, at: lend.lent_at, lend })),
     // Repayments recorded straight against a lend (older flow).
@@ -263,9 +264,9 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
                   </span>
                 </span>
                 <span className="text-right tabular-nums">
-                  <span className="block whitespace-nowrap text-sm">{formatMoney(lend.principal)}</span>
+                  <span className="block whitespace-nowrap text-sm"><Money value={lend.principal} /></span>
                   {lend.status === 'open' && lend.repaid > 0 && (
-                    <span className="block whitespace-nowrap text-xs text-muted-foreground">{formatMoney(lend.outstanding)} left</span>
+                    <span className="block whitespace-nowrap text-xs text-muted-foreground"><Money value={lend.outstanding} /> left</span>
                   )}
                 </span>
               </button>
@@ -290,8 +291,8 @@ function PersonDetail({ person, lends, onPaidFor, onSettle, onEdit, onRemoveLend
               <span className="mt-0.5 block truncate text-xs text-muted-foreground">{format(parseISO(event.at), 'd MMM')} · {received.account}</span>
             </span>
             <span className="text-right tabular-nums">
-              <span className="block whitespace-nowrap text-sm text-[hsl(var(--color-complete))]">+{formatMoney(received.amount)}</span>
-              {received.held > 0.005 && <span className="block whitespace-nowrap text-xs text-muted-foreground">{formatMoney(received.held)} held</span>}
+              <span className="block whitespace-nowrap text-sm text-[hsl(var(--color-complete))]">+<Money value={received.amount} /></span>
+              {received.held > 0.005 && <span className="block whitespace-nowrap text-xs text-muted-foreground"><Money value={received.held} /> held</span>}
             </span>
             <RowMenu label={received.title}>
               {event.kind === 'settlement' ? (
@@ -361,7 +362,6 @@ function CandidatePicker({ kind, accounts, selected, onToggle, highlight }: {
   onToggle: (c: FinLendCandidate) => void;
   highlight?: number;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const [accountId, setAccountId] = useState('0');
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -406,7 +406,7 @@ function CandidatePicker({ kind, accounts, selected, onToggle, highlight }: {
                       {highlight !== undefined && Math.abs(c.amount - highlight) < 0.005 && <DateBadge tone="accent">Matches</DateBadge>}
                     </span>
                   </span>
-                  <span className="whitespace-nowrap pr-1 text-sm tabular-nums">{formatMoney(c.amount)}</span>
+                  <span className="whitespace-nowrap pr-1 text-sm tabular-nums"><Money value={c.amount} /></span>
                 </label>
               );
             })}
@@ -504,7 +504,6 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
   onClose: () => void;
   onDone: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const [mode, setMode] = useState<'pick' | 'record'>('pick');
   const [accountId, setAccountId] = useState('');
   const [amount, setAmount] = useState('');
@@ -548,11 +547,11 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
         />
         {/* Owes → paying → what remains, as figures. */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <DateBadge>Owes {formatMoney(owed)}</DateBadge>
+          <DateBadge>Owes <Money value={owed} /></DateBadge>
           {paying > 0 && (remaining > 0
-            ? <DateBadge>{formatMoney(remaining)} left</DateBadge>
+            ? <DateBadge><Money value={remaining} /> left</DateBadge>
             : remaining < 0
-              ? <DateBadge tone="positive">{formatMoney(-remaining)} held</DateBadge>
+              ? <DateBadge tone="positive"><Money value={-remaining} /> held</DateBadge>
               : <DateBadge tone="positive">Settled</DateBadge>)}
         </div>
         {person && mode === 'pick' && (
@@ -578,9 +577,30 @@ function SettleDialog({ person, accounts, onClose, onDone }: {
   </Dialog>;
 }
 
-export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: FinLend | null; accounts: FinAccount[]; onClose: () => void; onSaved: () => void }) {
+interface LendValues {
+  sourceAccountId: string; amount: string; borrower: string; description: string; note: string;
+  lentDate: string; lentTime: string; dueDate: string; remind: boolean;
+}
+
+function lendValues(lend: FinLend): LendValues {
+  const lentAt = txnAtToParts(lend.lent_at);
+  return {
+    sourceAccountId: String(lend.source_account_id), amount: String(lend.principal), borrower: lend.borrower,
+    description: lend.description, note: lend.note, lentDate: lentAt.date, lentTime: lentAt.time,
+    dueDate: lend.due_date ?? '', remind: lend.remind,
+  };
+}
+
+// Edit-only: lends are created from Paid for / Lend. Edits save themselves
+// (the server rebalances the person's settlements after each one).
+export function EditLendDialog({ lend, accounts, onClose, onAutosaved }: {
+  lend: FinLend | null;
+  accounts: FinAccount[];
+  onClose: () => void;
+  /** An edit saved while the dialog stays open: refresh, keep editing. */
+  onAutosaved: () => void;
+}) {
   const { formatMoney } = useFinanceFormatters();
-  const [saving, setSaving] = useState(false);
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [amount, setAmount] = useState('');
   const [borrower, setBorrower] = useState('');
@@ -592,39 +612,51 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
   const [remind, setRemind] = useState(false);
 
   const open = !!lend;
+  const values: LendValues = { sourceAccountId, amount, borrower, description, note, lentDate, lentTime, dueDate, remind };
+  const apply = (v: LendValues) => {
+    setSourceAccountId(v.sourceAccountId); setAmount(v.amount); setBorrower(v.borrower);
+    setDescription(v.description); setNote(v.note); setLentDate(v.lentDate); setLentTime(v.lentTime);
+    setDueDate(v.dueDate); setRemind(v.remind);
+  };
+  const principal = Number(amount);
+  const invalid = !sourceAccountId ? 'pick the account it came from.'
+    : !borrower.trim() ? "enter who it's for."
+      : !lentDate || !lentTime ? 'pick when it was lent.'
+        : !Number.isFinite(principal) || principal <= 0 ? 'enter a principal above zero.'
+          : lend && principal < lend.repaid ? `principal can't be below the ${formatMoney(lend.repaid)} already returned.`
+            : null;
+  const autosave = useEditorAutosave({
+    key: lend?.id ?? null,
+    value: values,
+    apply,
+    invalid,
+    save: async (v) => {
+      if (!lend) return;
+      await finance.updateLend(lend.id, {
+        source_account_id: Number(v.sourceAccountId), amount: Number(v.amount),
+        borrower: v.borrower.trim(), description: v.description, note: v.note,
+        lent_at: partsToTxnAt(v.lentDate, v.lentTime),
+        due_date: v.dueDate, remind: v.remind && !!v.dueDate,
+      });
+      onAutosaved();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
   useEffect(() => {
     if (!lend) return;
-    const lentAt = txnAtToParts(lend.lent_at);
-    setSourceAccountId(String(lend.source_account_id)); setAmount(String(lend.principal));
-    setBorrower(lend.borrower); setDescription(lend.description); setNote(lend.note);
-    setLentDate(lentAt.date); setLentTime(lentAt.time);
-    setDueDate(lend.due_date ?? ''); setRemind(lend.remind);
+    const v = lendValues(lend);
+    apply(v);
+    loadAutosave(v);
+    // Keyed on the lend being opened; the setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lend]);
-  const save = async () => {
-    const parsedAmount = Number(amount);
-    if (!lend || !sourceAccountId || !borrower.trim() || !lentDate || !lentTime || saving) return;
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      toast.error('Enter a valid principal amount.');
-      return;
-    }
-    if (parsedAmount < lend.repaid) {
-      toast.error(`Principal cannot be below the amount already returned (${formatMoney(lend.repaid)}).`);
-      return;
-    }
-    setSaving(true);
-    try {
-      await finance.updateLend(lend.id, {
-        source_account_id: Number(sourceAccountId), amount: parsedAmount,
-        borrower: borrower.trim(), description, note,
-        lent_at: partsToTxnAt(lentDate, lentTime),
-        due_date: dueDate, remind: remind && !!dueDate,
-      });
-      onSaved();
-    } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
-  };
-  return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader><DialogTitle>Edit Lend</DialogTitle></DialogHeader>
+  return <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
+    <DialogContent showCloseButton={false} className="sm:max-w-md">
+      <DialogHeader className="flex-row items-baseline justify-between gap-3">
+        <DialogTitle>Edit lend</DialogTitle>
+        <AutosaveStatus status={autosave.status} />
+      </DialogHeader>
       <div className="grid gap-3">
         <Field label="From account">
           <Select value={sourceAccountId} onValueChange={(value) => setSourceAccountId(value ?? '')} items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
@@ -633,7 +665,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
           </Select>
         </Field>
         <Field label="Principal"><Input type="number" inputMode="decimal" min={lend?.repaid || 0} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
-        {!!lend?.repaid && <p className="-mt-2 text-xs text-muted-foreground">{formatMoney(lend.repaid)} has already been returned, so principal cannot be lower than that.</p>}
+        {!!lend?.repaid && <p className="-mt-2 text-xs text-muted-foreground"><Money value={lend.repaid} /> has already been returned, so principal cannot be lower than that.</p>}
         <Field label="Borrower"><Input value={borrower} onChange={(e) => setBorrower(e.target.value)} /></Field>
         <Field label="Description"><Input value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
@@ -647,7 +679,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved }: { lend: Fin
         </div>
         <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} /></Field>
       </div>
-      <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={saving || !sourceAccountId || !borrower.trim() || !amount || !lentDate || !lentTime}>{saving ? 'Saving…' : 'Save'}</Button></DialogFooter>
+      <DialogFooter><EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} /></DialogFooter>
     </DialogContent>
   </Dialog>;
 }

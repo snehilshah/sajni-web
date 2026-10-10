@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnKind, type TxnPatch } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
-import { useAutosave } from '@/hooks/use-autosave';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -103,8 +104,6 @@ export default function TransactionDialog({
     setDescription(v.description); setNote(v.note); setSlateId(v.slateId);
     setDate(v.date); setTime(v.time);
   };
-  // The transaction as opened; "Undo changes" restores it.
-  const [initial, setInitial] = useState<EditValues | null>(null);
   const editErrors = (v: EditValues): Record<string, string> => {
     const e: Record<string, string> = {};
     if (!v.accountId) e.account = 'Select an account.';
@@ -115,18 +114,18 @@ export default function TransactionDialog({
   };
   // Edits save themselves 3s after the last change and on close. Create
   // stays an explicit Add.
-  const autosave = useAutosave({
+  const autosave = useEditorAutosave({
     key: open && txn ? txn.id : null,
     value: values,
-    valid: Object.keys(editErrors(values)).length === 0,
+    apply: (v) => { applyValues(v); setErrors({}); },
+    invalid: Object.values(editErrors(values))[0]?.toLowerCase() ?? null,
     save: async (v) => {
       if (!txn) return;
       const patch = await persistEdit(txn, v);
       onAutosaved?.(patch);
     },
   });
-  const resetAutosave = autosave.reset;
-  const changed = !!txn && !!initial && JSON.stringify(values) !== JSON.stringify(initial);
+  const loadAutosave = autosave.load;
 
   // Edit → PUT; returns the optimistic row patch for the list.
   const persistEdit = async (t: FinTransaction, v: EditValues) => {
@@ -164,21 +163,7 @@ export default function TransactionDialog({
   };
 
   // Every close path (Esc, backdrop, Done) for an edit: flush, then close.
-  const requestClose = () => {
-    if (txn) {
-      const e = editErrors(values);
-      if (autosave.dirty && Object.keys(e).length) toast.error('Not saved: ' + Object.values(e)[0].toLowerCase());
-      void autosave.flush();
-    }
-    onClose();
-  };
-
-  const handleUndo = () => {
-    if (!initial) return;
-    applyValues(initial);
-    setErrors({});
-    void autosave.commit(initial);
-  };
+  const requestClose = () => autosave.close(onClose);
 
   useEffect(() => {
     setErrors({});
@@ -187,8 +172,7 @@ export default function TransactionDialog({
       setType(editKind(txn.type));
       setLinkedId(txn.linked_account ? String(txn.linked_account) : '');
       applyValues(v);
-      setInitial(v);
-      resetAutosave(v);
+      loadAutosave(v);
       setBorrower('');
       setDueDate('');
       setRemind(false);
@@ -216,7 +200,7 @@ export default function TransactionDialog({
     // re-runs and wipes whatever the user has typed into an open dialog. The
     // reset belongs to "the dialog opened", not "the data changed".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txn, open, defaultSlateId, initialType, resetAutosave]);
+  }, [txn, open, defaultSlateId, initialType, loadAutosave]);
 
   const filteredCats = categories.filter((c) => c.kind === (type === 'income' ? 'income' : 'expense'));
   const othersCategory = filteredCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
@@ -356,13 +340,7 @@ export default function TransactionDialog({
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{txn ? 'Edit transaction' : 'New transaction'}</DialogTitle>
-            {txn && (
-              <span className="text-xs text-muted-foreground" aria-live="polite">
-                {autosave.status === 'saving' ? 'Saving…'
-                  : autosave.status === 'saved' ? 'Saved'
-                    : autosave.status === 'error' ? <span className="text-destructive">Not saved</span> : null}
-              </span>
-            )}
+            {txn && <AutosaveStatus status={autosave.status} />}
           </div>
         </DialogHeader>
         {!txn && (
@@ -528,8 +506,7 @@ export default function TransactionDialog({
           ) : <span />}
           {txn ? (
             <div className="flex gap-2">
-              {changed && <Button variant="ghost" onClick={handleUndo}>Undo changes</Button>}
-              <Button onClick={requestClose}>Done</Button>
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
             </div>
           ) : (
             <div className="flex gap-2">

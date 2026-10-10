@@ -31,6 +31,9 @@ import { failureText } from '@/lib/errors';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { formatTxnDate, sumMoney } from './utils';
 import { cn } from '@/lib/utils';
+import { Money } from './Money';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 interface Props {
   accounts: FinAccount[];
@@ -51,7 +54,6 @@ const effectiveAmount = (b: FinBiller) =>
   b.kind === 'bill' ? (b.last_paid_amount ?? 0) || b.amount : b.amount;
 
 export default function BillersTab({ accounts, categories, enabled }: Props) {
-  const { formatMoney } = useFinanceFormatters();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FinBiller | null>(null);
   const [creating, setCreating] = useState(false);
@@ -90,7 +92,7 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
             sits beside the title as a badge instead of a sentence under it. */}
         <div className="flex items-baseline gap-2">
           <h2 className="font-serif text-lg font-semibold">Billers</h2>
-          <DateBadge>{formatMoney(monthlyOutflow)}/mo</DateBadge>
+          <DateBadge><span><Money value={monthlyOutflow} />/mo</span></DateBadge>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -138,6 +140,7 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
         categories={categories}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); refreshBillers(); }}
+        onAutosaved={refreshBillers}
       />
 
       <BillerDetailSheet
@@ -163,7 +166,6 @@ function BillerRow({
   onOpen: () => void;
   onPaid: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const due = parseISO(biller.next_due_date);
   const daysAway = differenceInDays(due, new Date());
   const overdue = daysAway < 0;
@@ -215,8 +217,8 @@ function BillerRow({
         <div className="text-right shrink-0">
           <div className="whitespace-nowrap font-semibold tabular-nums text-sm">
             {biller.kind === 'bill' && !(biller.amount > 0)
-              ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
-              : formatMoney(biller.amount)}
+              ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
+              : <Money value={biller.amount} />}
           </div>
           <DateBadge className="mt-0.5" tone={overdue ? 'alert' : soon ? 'accent' : 'neutral'}>
             {dueLabel} · {format(due, 'd MMM')}
@@ -380,7 +382,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
                         {formatTxnDate(t.txn_at)} · {t.account_name}
                       </span>
                     </span>
-                    <span className="font-mono text-xs tabular-nums shrink-0">{formatMoney(t.amount)}</span>
+                    <span className="font-mono text-xs tabular-nums shrink-0"><Money value={t.amount} /></span>
                   </label>
                 ))}
               </div>
@@ -411,7 +413,6 @@ function BillerDetailSheet({
   onChanged: () => void;
   onGone: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const open = biller !== null;
   const { data: payments = [], isLoading } = useBillerPayments(biller?.id ?? 0, open);
 
@@ -465,8 +466,8 @@ function BillerDetailSheet({
               <div>
                 <div className="font-serif text-2xl font-semibold tabular-nums">
                   {biller.kind === 'bill' && !(biller.amount > 0)
-                    ? (biller.last_paid_amount != null ? `~${formatMoney(biller.last_paid_amount)}` : '–')
-                    : formatMoney(biller.amount)}
+                    ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
+                    : <Money value={biller.amount} />}
                   {biller.kind === 'bill' && (
                     <DateBadge className="ml-2 align-middle font-sans">Varies</DateBadge>
                   )}
@@ -504,7 +505,7 @@ function BillerDetailSheet({
                             {format(parseISO(p.paid_date), 'd MMM yyyy')}
                             {p.auto && <DateBadge className="ml-2" tone="accent" icon={<Zap />}>Auto</DateBadge>}
                           </span>
-                          <span className="whitespace-nowrap text-sm tabular-nums">{formatMoney(p.amount)}</span>
+                          <span className="whitespace-nowrap text-sm tabular-nums"><Money value={p.amount} /></span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           For {format(parseISO(p.due_date), 'd MMM')}
@@ -516,7 +517,7 @@ function BillerDetailSheet({
                                 <span className="truncate">
                                   ↳ {t.description || 'Transaction'}{t.account_name ? ` · ${t.account_name}` : ''}
                                 </span>
-                                <span className="font-mono tabular-nums shrink-0">{formatMoney(t.amount)}</span>
+                                <span className="font-mono tabular-nums shrink-0"><Money value={t.amount} /></span>
                               </li>
                             ))}
                           </ul>
@@ -559,8 +560,41 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 // ─── Create / edit dialog ───────────────────────────────────────────────────
 
+// The biller editor's fields as one value: autosave diffs it, Undo restores it.
+interface BillerValues {
+  name: string; kind: BillerKind; amount: string; frequency: BillerFrequency; nextDueDate: string;
+  accountID: number | null; categoryID: number | null; autoRenew: boolean; remindTask: boolean;
+  alertDays: number; notes: string;
+}
+
+function billerValues(b: FinBiller): BillerValues {
+  return {
+    name: b.name, kind: b.kind, amount: b.amount > 0 ? String(b.amount) : '', frequency: b.frequency,
+    nextDueDate: b.next_due_date, accountID: b.account_id, categoryID: b.category_id,
+    autoRenew: b.auto_renew, remindTask: b.remind_task, alertDays: b.alert_days, notes: b.notes,
+  };
+}
+
+function billerPayload(v: BillerValues): Partial<FinBiller> {
+  return {
+    name: v.name.trim(),
+    kind: v.kind,
+    amount: parseFloat(v.amount) || 0,
+    frequency: v.frequency,
+    next_due_date: v.nextDueDate,
+    account_id: v.accountID,
+    category_id: v.categoryID,
+    // Bills never auto-renew (amount is unknown until paid).
+    auto_renew: v.kind === 'subscription' && v.autoRenew,
+    // Auto-renew self-pays, so a manual bill-pay reminder is moot there.
+    remind_task: v.remindTask && !(v.kind === 'subscription' && v.autoRenew),
+    alert_days: v.alertDays,
+    notes: v.notes,
+  };
+}
+
 function BillerDialog({
-  open, biller, accounts, categories, onClose, onSaved,
+  open, biller, accounts, categories, onClose, onSaved, onAutosaved,
 }: {
   open: boolean;
   biller: FinBiller | null;
@@ -568,6 +602,8 @@ function BillerDialog({
   categories: FinCategory[];
   onClose: () => void;
   onSaved: () => void;
+  /** An edit saved while the dialog stays open: refresh, keep editing. */
+  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState<BillerKind>('subscription');
@@ -582,20 +618,37 @@ function BillerDialog({
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const values: BillerValues = {
+    name, kind, amount, frequency, nextDueDate, accountID, categoryID, autoRenew, remindTask, alertDays, notes,
+  };
+  const apply = (v: BillerValues) => {
+    setName(v.name); setKind(v.kind); setAmount(v.amount); setFrequency(v.frequency);
+    setNextDueDate(v.nextDueDate); setAccountID(v.accountID); setCategoryID(v.categoryID);
+    setAutoRenew(v.autoRenew); setRemindTask(v.remindTask); setAlertDays(v.alertDays); setNotes(v.notes);
+  };
+  const invalid = !name.trim() ? 'a biller needs a name.'
+    : kind === 'subscription' && !(parseFloat(amount) > 0) ? 'a subscription needs a fixed amount.' : null;
+  // Edits save themselves; a new biller is created explicitly.
+  const autosave = useEditorAutosave({
+    key: open && biller ? biller.id : null,
+    value: values,
+    apply,
+    invalid,
+    save: async (v) => {
+      if (!biller) return;
+      await finance.updateBiller(biller.id, billerPayload(v));
+      onAutosaved?.();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
+
   useEffect(() => {
     if (!open) return;
     if (biller) {
-      setName(biller.name);
-      setKind(biller.kind);
-      setAmount(biller.amount > 0 ? String(biller.amount) : '');
-      setFrequency(biller.frequency);
-      setNextDueDate(biller.next_due_date);
-      setAccountID(biller.account_id);
-      setCategoryID(biller.category_id);
-      setAutoRenew(biller.auto_renew);
-      setRemindTask(biller.remind_task);
-      setAlertDays(biller.alert_days);
-      setNotes(biller.notes);
+      const v = billerValues(biller);
+      apply(v);
+      loadAutosave(v);
     } else {
       setName('');
       setKind('subscription');
@@ -609,31 +662,18 @@ function BillerDialog({
       setAlertDays(3);
       setNotes('');
     }
+    // Keyed on the dialog opening; the setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, biller]);
 
-  const canSubmit = name.trim() !== '' && (kind === 'bill' || parseFloat(amount) > 0);
+  const canSubmit = !invalid;
 
   const submit = async () => {
+    if (biller) { requestClose(); return; }
     if (!canSubmit) return;
     setSaving(true);
     try {
-      const payload: Partial<FinBiller> = {
-        name: name.trim(),
-        kind,
-        amount: parseFloat(amount) || 0,
-        frequency,
-        next_due_date: nextDueDate,
-        account_id: accountID,
-        category_id: categoryID,
-        // Bills never auto-renew (amount is unknown until paid).
-        auto_renew: kind === 'subscription' && autoRenew,
-        // Auto-renew self-pays, so a manual bill-pay reminder is moot there.
-        remind_task: remindTask && !(kind === 'subscription' && autoRenew),
-        alert_days: alertDays,
-        notes,
-      };
-      if (biller) await finance.updateBiller(biller.id, payload);
-      else await finance.createBiller(payload);
+      await finance.createBiller(billerPayload(values));
       onSaved();
     } catch (e) {
       console.error(e);
@@ -644,10 +684,11 @@ function BillerDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent showCloseButton={false} className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{biller ? 'Edit Biller' : 'New Biller'}</DialogTitle>
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{biller ? 'Edit biller' : 'New biller'}</DialogTitle>
+          {biller && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
 
         {/* Tall form — cap height and scroll the fields so the modal never
@@ -793,10 +834,14 @@ function BillerDialog({
         </div>
 
         <DialogFooter className="mt-3">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !canSubmit}>
-            {saving ? 'Saving…' : biller ? 'Save changes' : 'Create biller'}
-          </Button>
+          {biller ? (
+            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button onClick={submit} disabled={saving || !canSubmit}>{saving ? 'Saving…' : 'Create biller'}</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

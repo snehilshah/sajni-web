@@ -14,6 +14,7 @@ import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { CategoryPill } from './CategoryChips';
 import { sumMoney } from './utils';
+import { Money } from './Money';
 
 type OverviewData = Awaited<ReturnType<typeof finance.overview>>;
 type Snapshot = Awaited<ReturnType<typeof finance.networthHistory>>[number];
@@ -108,7 +109,7 @@ export default function OverviewTab({ enabled }: Props) {
                         style={{ backgroundColor: c.color, transformOrigin: 'left center' }}
                       />
                     </div>
-                    <span className="font-mono text-xs tabular-nums w-16 text-right">{formatMoney(c.amount)}</span>
+                    <span className="font-mono text-xs tabular-nums w-16 text-right"><Money value={c.amount} /></span>
                   </div>
                 );
               })}
@@ -142,7 +143,7 @@ export default function OverviewTab({ enabled }: Props) {
                       </div>
                     </div>
                     <div className={`font-mono text-sm tabular-nums ${days < 0 ? 'text-destructive' : 'text-foreground'}`}>
-                      {formatMoney(b.amount)}
+                      <Money value={b.amount} />
                     </div>
                   </div>
                 );
@@ -167,7 +168,7 @@ export default function OverviewTab({ enabled }: Props) {
                       </div>
                     </div>
                     <div className={`font-mono text-sm tabular-nums ${days < 0 ? 'text-destructive' : 'text-foreground'}`}>
-                      {formatMoney(d.amount_due)}
+                      <Money value={d.amount_due} />
                     </div>
                   </div>
                 );
@@ -199,7 +200,7 @@ export default function OverviewTab({ enabled }: Props) {
                         style={{ transformOrigin: 'left center' }}
                       />
                     </div>
-                    <span className="font-mono text-xs tabular-nums w-16 text-right">{formatMoney(i.amount)}</span>
+                    <span className="font-mono text-xs tabular-nums w-16 text-right"><Money value={i.amount} /></span>
                   </div>
                 );
               })}
@@ -217,7 +218,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
   onSnapshot: () => void;
   snapping: boolean;
 }) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatPercent } = useFinanceFormatters();
   const previous = history.length > 1 ? history[history.length - 2] : null;
   const change = previous ? data.net_worth - previous.net_worth : 0;
   const changePct = previous && previous.net_worth !== 0 ? (change / Math.abs(previous.net_worth)) * 100 : 0;
@@ -242,7 +243,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
           {previous ? (
             <div className="font-mono text-xs mt-2 inline-flex items-center gap-1 opacity-90">
               {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-              {positive ? '+' : ''}{formatMoney(change)} ({formatPercent(changePct, 1)}) since last snapshot
+              {positive ? '+' : ''}<Money value={change} /> ({formatPercent(changePct, 1)}) since last snapshot
             </div>
           ) : (
             <div className="font-mono text-xs mt-2 opacity-75">
@@ -332,7 +333,7 @@ function Distribution({ accounts, investments, lends }: {
   investments: NonNullable<OverviewData['investment_assets']>;
   lends: NonNullable<OverviewData['lends_breakdown']>;
 }) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatPercent } = useFinanceFormatters();
   const items = useMemo(() => {
     const pos = accounts.filter((a) => a.balance > 0);
     const list = pos.map((a) => ({ key: 'a' + a.account_id, name: a.name, color: a.color, amount: a.balance }));
@@ -390,7 +391,7 @@ function Distribution({ accounts, investments, lends }: {
             <span className="font-mono text-xs tabular-nums text-muted-foreground">
               {formatPercent((i.amount / total) * 100)}
             </span>
-            <span className="font-mono text-xs tabular-nums w-20 text-right">{formatMoney(i.amount)}</span>
+            <span className="font-mono text-xs tabular-nums w-20 text-right"><Money value={i.amount} /></span>
           </div>
         ))}
       </div>

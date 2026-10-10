@@ -40,3 +40,13 @@ export function useDeleteMemo() {
     onSettled: () => qc.invalidateQueries({ queryKey: qk.memos.all }),
   });
 }
+
+/** Autosave's write: no toast of its own (the editor's autosave reports
+ *  failures), then refresh memo views. */
+export function useAutosaveMemo() {
+  const qc = useQueryClient();
+  return async (id: number, content: string) => {
+    await memosApi.update(id, { content });
+    void qc.invalidateQueries({ queryKey: qk.memos.all });
+  };
+}

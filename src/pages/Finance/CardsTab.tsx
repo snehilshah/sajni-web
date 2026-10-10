@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { CardsSkeleton } from './Skeletons';
 import { sumMoney, subMoney } from './utils';
+import { Money } from './Money';
 
 interface Props {
   accounts: FinAccount[];
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export default function CardsTab({ accounts, statements, loaded, reload }: Props) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatPercent } = useFinanceFormatters();
   const [creating, setCreating] = useState<FinAccount | null>(null);
   const [paying, setPaying] = useState<FinStatement | null>(null);
   const ccAccounts = useMemo(() => accounts.filter((a) => a.type === 'credit_card'), [accounts]);
@@ -76,7 +77,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="whitespace-nowrap font-serif text-3xl font-semibold tabular-nums">{formatMoney(owed)}</span>
+              <span className="whitespace-nowrap font-serif text-3xl font-semibold tabular-nums"><Money value={owed} /></span>
               <span className="text-xs text-muted-foreground">owed</span>
             </div>
             {card.credit_limit ? (() => {
@@ -90,7 +91,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
                     />
                   </div>
                   <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                    {formatPercent(used)} of {formatMoney(card.credit_limit)}
+                    {formatPercent(used)} of <Money value={card.credit_limit} />
                   </span>
                 </div>
               );
@@ -100,8 +101,8 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               {/* Figures start on the card's leading edge, like every
                   other stat; the billing cycle is a badge, not a fraction. */}
               <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
-                <Stat label="Unpaid" value={formatMoney(totalUnpaid)} tone={totalUnpaid > 0 ? 'destructive' : 'default'} />
-                <Stat label="Cashback" value={formatMoney(totalCashback)} tone="primary" />
+                <Stat label="Unpaid" value={<Money value={totalUnpaid} />} tone={totalUnpaid > 0 ? 'destructive' : 'default'} />
+                <Stat label="Cashback" value={<Money value={totalCashback} />} tone="primary" />
                 {card.statement_day && card.due_day ? (
                   <DateBadge className="mb-1">Bills on {card.statement_day} · due {card.due_day}</DateBadge>
                 ) : null}
@@ -162,7 +163,6 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
   onClose: () => void;
   onPaid: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const [accountId, setAccountId] = useState('');
   useEffect(() => {
     if (statement) setAccountId(accounts[0] ? String(accounts[0].id) : '');
@@ -182,7 +182,7 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
     <Dialog open={!!statement} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Pay {formatMoney(statement.amount_due)}</DialogTitle>
+          <DialogTitle>Pay <Money value={statement.amount_due} /></DialogTitle>
         </DialogHeader>
         <div className="text-xs text-muted-foreground -mt-2">
           We'll post a transfer from the selected account to the card and mark this statement paid.
@@ -216,7 +216,7 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
 }
 
 function Stat({ label, value, tone = 'default' }: {
-  label: string; value: string;
+  label: string; value: React.ReactNode;
   tone?: 'primary' | 'destructive' | 'default';
 }) {
   const tones: Record<string, string> = {
@@ -240,7 +240,6 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   onPay: () => void;
   onDelete: () => Promise<void>;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const dueDate = parseISO(statement.due_date);
   const daysUntil = differenceInDays(dueDate, new Date());
   const overdue = !statement.paid && daysUntil < 0;
@@ -252,11 +251,11 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium tabular-nums">
-            {isCredit ? formatMoney(-statement.amount_due) + ' credit' : formatMoney(statement.amount_due)}
+            {isCredit ? <><Money value={-statement.amount_due} /> credit</> : <Money value={statement.amount_due} />}
           </div>
           <div className="text-xs text-muted-foreground">
             {format(parseISO(statement.statement_date), 'd MMM')}
-            {statement.cashback_earned > 0 && ' · ' + formatMoney(statement.cashback_earned) + ' back'}
+            {statement.cashback_earned > 0 && <> · <Money value={statement.cashback_earned} /> back</>}
           </div>
         </div>
         {statement.paid ? (
@@ -272,9 +271,9 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
 
       {/* Breakdown: previous balance carried in + this cycle's new charges. */}
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
-        <span>Prev {formatMoney(statement.previous_balance)}</span>
-        <span>Personal {formatMoney(Math.max(subMoney(statement.new_charges, statement.lend_charges), 0))}</span>
-        {statement.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(statement.lend_charges)}</span>}
+        <span>Prev <Money value={statement.previous_balance} /></span>
+        <span>Personal <Money value={Math.max(subMoney(statement.new_charges, statement.lend_charges), 0)} /></span>
+        {statement.lend_charges > 0 && <span className="text-foreground">Lent <Money value={statement.lend_charges} /></span>}
       </div>
 
       <div className="-mr-2 mt-1 flex items-center justify-end gap-1">
@@ -300,7 +299,6 @@ function StatementDialog({ card, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const [stmtDate, setStmtDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dueDate, setDueDate] = useState('');
   const [amountOverride, setAmountOverride] = useState('');
@@ -407,10 +405,10 @@ function StatementDialog({ card, onClose, onSaved }: {
             <span>Calculating…</span>
           ) : preview ? (
             <>
-              <span>Prev {formatMoney(preview.previous_balance)}</span>
-              <span>Personal {formatMoney(Math.max(subMoney(preview.new_charges, preview.lend_charges), 0))}</span>
-              {preview.lend_charges > 0 && <span className="text-foreground">Lent {formatMoney(preview.lend_charges)}</span>}
-              <span>Payments {formatMoney(preview.payments)}</span>
+              <span>Prev <Money value={preview.previous_balance} /></span>
+              <span>Personal <Money value={Math.max(subMoney(preview.new_charges, preview.lend_charges), 0)} /></span>
+              {preview.lend_charges > 0 && <span className="text-foreground">Lent <Money value={preview.lend_charges} /></span>}
+              <span>Payments <Money value={preview.payments} /></span>
             </>
           ) : (
             <span>Preview unavailable. Generate will still calculate from server records.</span>

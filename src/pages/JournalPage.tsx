@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { formatMoney as formatMoneyValue } from '@/pages/Finance/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -41,6 +40,7 @@ import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import type { BacklinkRef, HabitStatus, Task } from '@/types';
 import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import { DateBadge } from '@/components/ui/state-chip';
+import { Money } from '@/pages/Finance/Money';
 import {
   ChevronLeft, ChevronRight, Save, Target, CheckSquare,
   Trash2, AlertCircle, ArrowRight,
@@ -886,8 +886,6 @@ function WeekView({
   const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
 
   const today = format(new Date(), 'yyyy-MM-dd');
-  // Journal figures are never privacy-masked; same exact formatter as Finance.
-  const formatMoney = (n: number) => formatMoneyValue(n, summary?.expense_currency || 'INR', false);
 
   const totalDone = summary?.days.reduce((acc, d) => acc + d.tasks_done, 0) ?? 0;
   const totalDue = summary?.days.reduce((acc, d) => acc + d.tasks_due + d.tasks_done, 0) ?? 0;
@@ -939,7 +937,7 @@ function WeekView({
         <StatTile label="Entries" value={`${entriesWritten}/7`} tone="tertiary" />
         <StatTile
           label="Expenses"
-          value={summary ? formatMoney(summary.expense_total) : '–'}
+          value={summary ? <Money value={summary.expense_total} currency={summary.expense_currency || 'INR'} privacy={false} /> : '–'}
           tone="secondary"
         />
       </div>
@@ -1186,7 +1184,7 @@ function WeekView({
 
 function StatTile({ label, value, tone }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   tone: 'primary' | 'secondary' | 'tertiary' | 'destructive' | 'muted';
 }) {
   const toneClasses: Record<typeof tone, string> = {
@@ -1711,8 +1709,6 @@ function MonthView({
 
   const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
 
-  // Journal figures are never privacy-masked; same exact formatter as Finance.
-  const formatMoney = (n: number) => formatMoneyValue(n, summary?.expense_currency || 'INR', false);
 
   const totalDone = summary?.total_done ?? 0;
   const totalDue = summary?.total_due ?? 0;
@@ -1753,7 +1749,7 @@ function MonthView({
         <StatTile label="Tasks done" value={`${totalDone}/${totalDue}`} tone="primary" />
         <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
         <StatTile label="Entries" value={`${entriesWritten}/${daysInMonth}`} tone="tertiary" />
-        <StatTile label="Expenses" value={summary ? formatMoney(summary.expense_total) : '–'} tone="secondary" />
+        <StatTile label="Expenses" value={summary ? <Money value={summary.expense_total} currency={summary.expense_currency || 'INR'} privacy={false} /> : '–'} tone="secondary" />
       </div>
 
       {/* Editor — full-width, matches the daily/weekly layout. */}

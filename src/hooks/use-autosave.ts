@@ -35,6 +35,7 @@ export function useAutosave<T>({ key, value, valid, save, delay = 3000 }: {
   const latest = useRef<Latest<T>>({ key, value, valid, save });
   const timer = useRef<number | undefined>(undefined);
   const chain = useRef<Promise<void>>(Promise.resolve());
+  const loadedSinceSwitch = useRef(false);
   const snapshot = JSON.stringify(value);
 
   const setBase = useCallback((next: string | null) => {
@@ -72,7 +73,10 @@ export function useAutosave<T>({ key, value, valid, save, delay = 3000 }: {
     const prev = latest.current;
     if (prev.key !== key) {
       void run(prev, false);
-      baselineRef.current = null;
+      // The old item's baseline must not leak onto the new one, unless the
+      // new one was already loaded (editors that load, then open).
+      if (!loadedSinceSwitch.current) baselineRef.current = null;
+      loadedSinceSwitch.current = false;
     }
     latest.current = { key, value, valid, save };
   });
@@ -82,6 +86,7 @@ export function useAutosave<T>({ key, value, valid, save, delay = 3000 }: {
   /** Adopt `next` as saved (just loaded, or just written elsewhere). */
   const reset = useCallback((next: T) => {
     window.clearTimeout(timer.current);
+    loadedSinceSwitch.current = true;
     setBase(JSON.stringify(next));
     setStatus('idle');
   }, [setBase]);
@@ -111,4 +116,53 @@ export function useAutosave<T>({ key, value, valid, save, delay = 3000 }: {
 
   const dirty = key !== null && baseline !== null && snapshot !== baseline;
   return { status: dirty ? 'idle' as const : status, dirty, flush, reset, cancel, commit };
+}
+
+/**
+ * An edit dialog's autosave contract, on top of `useAutosave`: the item as it
+ * was opened (for Undo changes), and one close path that flushes the last
+ * change, or says what wasn't saved. Dialogs keep their own field state;
+ * they hand over `value` (the fields as one object) and `apply` (set them all).
+ *
+ *   load(v)      once the item is in the fields (baseline + undo point)
+ *   close(then)  every close path: Esc, backdrop, ×, Done
+ *   undo()       back to the item as opened, saved at once
+ */
+export function useEditorAutosave<T>({ key, value, apply, invalid = null, save }: {
+  /** The item's id while editing it; null when creating or closed. */
+  key: string | number | null;
+  value: T;
+  apply: (value: T) => void;
+  /** Why `value` can't be saved right now ("a name is required"), if it can't. */
+  invalid?: string | null;
+  save: (value: T) => Promise<void>;
+}) {
+  const autosave = useAutosave({ key, value, valid: !invalid, save });
+  const [initial, setInitial] = useState<string | null>(null);
+  const initialValue = useRef<T | null>(null);
+  const { reset, flush, commit } = autosave;
+
+  const load = useCallback((loaded: T) => {
+    initialValue.current = loaded;
+    setInitial(JSON.stringify(loaded));
+    reset(loaded);
+  }, [reset]);
+
+  const close = (then: () => void) => {
+    if (key !== null) {
+      if (autosave.dirty && invalid) toast.error(`Not saved: ${invalid}`);
+      void flush();
+    }
+    then();
+  };
+
+  const undo = () => {
+    const back = initialValue.current;
+    if (back === null) return;
+    apply(back);
+    void commit(back);
+  };
+
+  const changed = key !== null && initial !== null && JSON.stringify(value) !== initial;
+  return { status: autosave.status, changed, load, close, undo, cancel: autosave.cancel, commit };
 }

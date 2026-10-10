@@ -9,39 +9,56 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ACCOUNT_COLORS } from './utils';
 import { cn } from '@/lib/utils';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 // Create/edit form for a slate (name + color). Plain never reaches here —
 // it can't be renamed, so SlatesTab offers no edit action for it.
 
-export default function SlateDialog({ open, slate, onClose, onSaved }: {
+export default function SlateDialog({ open, slate, onClose, onSaved, onAutosaved }: {
   open: boolean;
   slate: FinSlate | null;
   onClose: () => void;
   /** Receives the new slate's id on create, so a caller mid-sweep can move the
    *  selected transactions into it without waiting for a slates refetch. */
   onSaved: (createdId?: number) => void;
+  /** An edit saved while the dialog stays open: refresh, keep editing. */
+  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState(ACCOUNT_COLORS[0]);
   const [saving, setSaving] = useState(false);
 
+  // Edits save themselves; a new slate is created explicitly.
+  const autosave = useEditorAutosave({
+    key: open && slate ? slate.id : null,
+    value: { name, color },
+    apply: (v) => { setName(v.name); setColor(v.color); },
+    invalid: name.trim() ? null : 'a slate needs a name.',
+    save: async (v) => {
+      if (!slate) return;
+      await finance.updateSlate(slate.id, { name: v.name.trim(), color: v.color });
+      onAutosaved?.();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
+
   useEffect(() => {
     if (!open) return;
-    setName(slate?.name ?? '');
-    setColor(slate?.color || ACCOUNT_COLORS[0]);
-  }, [open, slate]);
+    const v = { name: slate?.name ?? '', color: slate?.color || ACCOUNT_COLORS[0] };
+    setName(v.name);
+    setColor(v.color);
+    if (slate) loadAutosave(v);
+  }, [open, slate, loadAutosave]);
 
   const save = async () => {
+    if (slate) { requestClose(); return; }
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      if (slate) {
-        await finance.updateSlate(slate.id, { name: name.trim(), color });
-        onSaved();
-      } else {
-        const created = await finance.createSlate({ name: name.trim(), color });
-        onSaved(created.id);
-      }
+      const created = await finance.createSlate({ name: name.trim(), color });
+      onSaved(created.id);
     } catch (e) {
       toast.error(failureText(e));
     } finally {
@@ -50,10 +67,11 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{slate ? 'Edit Slate' : 'New Slate'}</DialogTitle>
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{slate ? 'Edit slate' : 'New slate'}</DialogTitle>
+          {slate && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
@@ -96,10 +114,14 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !name.trim()}>
-            {saving ? 'Saving…' : slate ? 'Save' : 'Create'}
-          </Button>
+          {slate ? (
+            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+              <Button onClick={save} disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Create'}</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

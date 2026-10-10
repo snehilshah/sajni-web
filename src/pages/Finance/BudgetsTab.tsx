@@ -25,6 +25,9 @@ import { cn } from '@/lib/utils';
 import { huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
 import { CategoryPill } from './CategoryChips';
 import { sumMoney, subMoney } from './utils';
+import { Money } from './Money';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 // A budget is a lens, not a container: many budgets can read the same
 // transaction. There is no period and nothing resets — a budget owns the window
@@ -143,6 +146,7 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
         slates={slates}
         onClose={() => { setCreating(null); setEditing(null); }}
         onSaved={() => { setCreating(null); setEditing(null); reload(); }}
+        onAutosaved={reload}
       />
       <CategoryManager
         open={manageCats}
@@ -161,7 +165,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
   onOpen: () => void;
   onDuplicate: () => void;
 }) {
-  const { formatMoney, formatPercent } = useFinanceFormatters();
+  const { formatPercent } = useFinanceFormatters();
   const pct = b.total_amount > 0 ? Math.min((b.spent / b.total_amount) * 100, 100) : 0;
   const overBudget = b.spent > b.total_amount;
   // Progress tone escalates on tokens only: calm → attention (>80%) → over.
@@ -220,13 +224,13 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
 
       <div className="mt-3 flex items-baseline justify-between gap-2">
         <div className={`whitespace-nowrap font-serif text-2xl font-semibold tabular-nums ${overBudget ? 'text-destructive' : ''}`}>
-          {formatMoney(b.spent)}
+          <Money value={b.spent} />
         </div>
         {overBudget ? (
-          <DateBadge tone="alert">Over by {formatMoney(subMoney(b.spent, b.total_amount))}</DateBadge>
+          <DateBadge tone="alert">Over by <Money value={subMoney(b.spent, b.total_amount)} /></DateBadge>
         ) : (
           <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-            {formatPercent(pct)} of {formatMoney(b.total_amount)}
+            {formatPercent(pct)} of <Money value={b.total_amount} />
           </span>
         )}
       </div>
@@ -248,7 +252,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
                 <div className="flex items-center justify-between gap-2">
                   <CategoryPill name={cat?.name || 'Uncategorized'} color={cat?.color} />
                   <span className={`whitespace-nowrap text-xs tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    {formatMoney(it.spent)} / {formatMoney(it.amount)}
+                    <Money value={it.spent} /> / <Money value={it.amount} />
                   </span>
                 </div>
                 <div className="mt-1 h-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
@@ -286,7 +290,46 @@ const WINDOWS: { label: string; range: () => [string, string] }[] = [
   ] },
 ];
 
-function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSaved }: {
+// The budget editor's fields as one value: autosave diffs it, Undo restores
+// it. Slates are a sorted id list (a Set doesn't serialise).
+interface BudgetValues {
+  name: string; overall: string; startDate: string; endDate: string;
+  slateIds: number[]; items: { category_id: number | null; amount: string }[];
+}
+
+function budgetValues(src: Prefill): BudgetValues {
+  return {
+    name: src.name,
+    overall: src.total_amount > 0 ? String(src.total_amount) : '',
+    startDate: src.start_date,
+    endDate: src.end_date,
+    slateIds: [...src.slate_ids].sort((a, b) => a - b),
+    items: src.items,
+  };
+}
+
+// Overall amount is the budget; caps are soft sub-targets. Without an
+// overall figure the caps sum stands in (old behaviour).
+function budgetTotal(v: BudgetValues): number {
+  return parseFloat(v.overall) || sumMoney(v.items, (i) => parseFloat(i.amount) || 0);
+}
+
+// The stored window is the real one, and it is optional: a slate-scoped
+// budget is defined by its slate, not by dates.
+function budgetDraft(v: BudgetValues): BudgetDraft {
+  return {
+    name: v.name.trim(),
+    start_date: v.startDate,
+    end_date: v.endDate,
+    total_amount: budgetTotal(v),
+    slate_ids: v.slateIds,
+    items: v.items
+      .filter((i) => parseFloat(i.amount) > 0)
+      .map((i) => ({ category_id: i.category_id, amount: parseFloat(i.amount) })),
+  };
+}
+
+function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSaved, onAutosaved }: {
   open: boolean;
   budget: FinBudget | null;
   /** Values for a new budget — blank, or a duplicate of an existing one. */
@@ -295,8 +338,9 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   slates: FinSlate[];
   onClose: () => void;
   onSaved: () => void;
+  /** An edit saved while the dialog stays open: refresh, keep editing. */
+  onAutosaved?: () => void;
 }) {
-  const { formatMoney } = useFinanceFormatters();
   const [name, setName] = useState('');
   const [overall, setOverall] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -305,9 +349,33 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const [items, setItems] = useState<{ category_id: number | null; amount: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const values: BudgetValues = {
+    name, overall, startDate, endDate, slateIds: [...slateIds].sort((a, b) => a - b), items,
+  };
+  const apply = (v: BudgetValues) => {
+    setName(v.name); setOverall(v.overall); setStartDate(v.startDate); setEndDate(v.endDate);
+    setSlateIds(new Set(v.slateIds)); setItems(v.items);
+  };
+  const total = budgetTotal(values);
+  const invalid = !name.trim() ? 'a budget needs a name.' : total > 0 ? null : 'set an amount.';
+  // Edits save themselves; a new budget is created explicitly.
+  const autosave = useEditorAutosave({
+    key: open && budget ? budget.id : null,
+    value: values,
+    apply,
+    invalid,
+    save: async (v) => {
+      if (!budget) return;
+      await finance.updateBudget(budget.id, budgetDraft(v));
+      onAutosaved?.();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
+
   useEffect(() => {
     if (!open) return;
-    const src = budget
+    const v = budgetValues(budget
       ? {
           name: budget.name,
           start_date: budget.start_date,
@@ -316,13 +384,11 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
           slate_ids: budget.slate_ids ?? [],
           items: budget.items.map((i) => ({ category_id: i.category_id, amount: String(i.amount) })),
         }
-      : prefill ?? { name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [] };
-    setName(src.name);
-    setOverall(src.total_amount > 0 ? String(src.total_amount) : '');
-    setStartDate(src.start_date);
-    setEndDate(src.end_date);
-    setSlateIds(new Set(src.slate_ids));
-    setItems(src.items);
+      : prefill ?? { name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [] });
+    apply(v);
+    if (budget) loadAutosave(v);
+    // Keyed on the dialog opening; the setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [budget, prefill, open]);
 
   const capsTotal = sumMoney(items, (i) => parseFloat(i.amount) || 0);
@@ -339,29 +405,14 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
       return next;
     });
 
-  // Overall amount is the budget; caps are soft sub-targets. When the user
-  // skips the overall field, fall back to the caps sum (old behaviour).
-  const total = parseFloat(overall) || capsTotal;
-  const canSave = name.trim() !== '' && total > 0;
+  const canSave = !invalid;
 
   const save = async () => {
+    if (budget) { requestClose(); return; }
     if (!canSave || saving) return;
     setSaving(true);
     try {
-      // The stored window is the real one, and it is optional — a slate-scoped
-      // budget is defined by its slate, not by dates.
-      const data: BudgetDraft = {
-        name: name.trim(),
-        start_date: startDate,
-        end_date: endDate,
-        total_amount: total,
-        slate_ids: Array.from(slateIds),
-        items: items
-          .filter((i) => parseFloat(i.amount) > 0)
-          .map((i) => ({ category_id: i.category_id, amount: parseFloat(i.amount) })),
-      };
-      if (budget) await finance.updateBudget(budget.id, data);
-      else await finance.createBudget(data);
+      await finance.createBudget(budgetDraft(values));
       onSaved();
     } catch (e) {
       toast.error(failureText(e));
@@ -373,15 +424,17 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const remove = async () => {
     if (!budget) return;
     if (!(await confirmDialog('Delete this budget?'))) return;
+    autosave.cancel();
     await finance.deleteBudget(budget.id);
     onSaved();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{budget ? 'Edit Budget' : 'New Budget'}</DialogTitle>
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{budget ? 'Edit budget' : 'New budget'}</DialogTitle>
+          {budget && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
@@ -487,7 +540,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="text-sm font-medium text-muted-foreground">
-                Category caps{capsTotal > 0 ? ` · ${formatMoney(capsTotal)}` : ''}
+                Category caps{capsTotal > 0 && <> · <Money value={capsTotal} /></>}
               </Label>
               <Button variant="outline" size="sm" onClick={addItem}>
                 <Plus className="size-3.5 mr-1" /> Add cap
@@ -538,10 +591,14 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-            <Button onClick={save} disabled={saving || !canSave}>
-              {saving ? 'Saving…' : budget ? 'Save' : 'Create'}
-            </Button>
+            {budget ? (
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+            ) : (
+              <>
+                <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+                <Button onClick={save} disabled={saving || !canSave}>{saving ? 'Saving…' : 'Create'}</Button>
+              </>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

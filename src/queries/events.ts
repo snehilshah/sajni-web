@@ -77,25 +77,6 @@ export function useDeleteEvent() {
   return useEventMutation((id: number) => eventsApi.delete(id), 'Could not delete event');
 }
 
-export function useAddEventVariable() {
-  return useEventMutation(
-    ({ eventId, data }: { eventId: number; data: { name: string; unit: string } }) =>
-      eventsApi.addVariable(eventId, data),
-    'Could not add variable',
-  );
-}
-
-export function useUpdateEventVariable() {
-  return useEventMutation(
-    ({ eventId, variableId, data }: {
-      eventId: number;
-      variableId: number;
-      data: { name?: string; unit?: string; sort_order?: number };
-    }) => eventsApi.updateVariable(eventId, variableId, data),
-    'Could not update variable',
-  );
-}
-
 export function useDeleteEventVariable() {
   return useEventMutation(
     ({ eventId, variableId }: { eventId: number; variableId: number }) =>
@@ -109,17 +90,6 @@ export function useCreateEventEntry() {
     ({ eventId, data }: { eventId: number; data: EventEntryInput }) =>
       eventsApi.createEntry(eventId, data),
     'Could not log event',
-  );
-}
-
-export function useUpdateEventEntry() {
-  return useEventMutation(
-    ({ eventId, entryId, data }: {
-      eventId: number;
-      entryId: number;
-      data: Partial<EventEntryInput>;
-    }) => eventsApi.updateEntry(eventId, entryId, data),
-    'Could not update entry',
   );
 }
 

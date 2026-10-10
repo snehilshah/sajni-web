@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { inkOn } from '@/lib/ink';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +13,7 @@ import {
   useHabitLogRange,
   useHabits,
   useToggleHabitPeriod,
-  useUpdateHabit,
+  useAutosaveHabit,
 } from '@/queries/habits';
 import {
   dailyPeriods,
@@ -58,6 +58,8 @@ import {
   Trash2,
 } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 const FREQUENCIES: HabitFrequency[] = ['daily', 'weekly', 'fortnightly', 'monthly'];
@@ -108,7 +110,7 @@ export default function HabitsPage() {
 
   const togglePeriod = useToggleHabitPeriod();
   const createHabit = useCreateHabit();
-  const updateHabit = useUpdateHabit();
+  const autosaveHabit = useAutosaveHabit();
   const deleteHabit = useDeleteHabit();
 
   const [showForm, setShowForm] = useState(false);
@@ -119,6 +121,25 @@ export default function HabitsPage() {
     color: SWATCHES[0],
   });
   const [saving, setSaving] = useState(false);
+  // Edits save themselves; a new habit is created explicitly.
+  const autosave = useEditorAutosave({
+    key: showForm && editing ? editing.id : null,
+    value: form,
+    apply: setForm,
+    invalid: form.name.trim() ? null : 'a habit needs a name.',
+    save: async (v) => {
+      if (editing) await autosaveHabit(editing.id, { ...v, name: v.name.trim() });
+    },
+  });
+  const closeForm = () => autosave.close(() => setShowForm(false));
+  const loadAutosave = autosave.load;
+  const openEdit = useCallback((habit: Habit) => {
+    const v: HabitForm = { name: habit.name, frequency: habit.frequency, color: habit.color };
+    setEditing(habit);
+    setForm(v);
+    loadAutosave(v);
+    setShowForm(true);
+  }, [loadAutosave]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get('focus');
@@ -133,13 +154,8 @@ export default function HabitsPage() {
     const next = new URLSearchParams(searchParams);
     next.delete('focus');
     setSearchParams(next, { replace: true });
-  }, [focusId, habitsList, searchParams, setSearchParams]);
+  }, [focusId, habitsList, openEdit, searchParams, setSearchParams]);
 
-  function openEdit(habit: Habit) {
-    setEditing(habit);
-    setForm({ name: habit.name, frequency: habit.frequency, color: habit.color });
-    setShowForm(true);
-  }
 
   const openCreate = () => {
     setEditing(null);
@@ -148,15 +164,11 @@ export default function HabitsPage() {
   };
 
   const saveHabit = async () => {
+    if (editing) { closeForm(); return; }
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const value = { ...form, name: form.name.trim() };
-      if (editing) {
-        await updateHabit.mutateAsync({ id: editing.id, data: value });
-      } else {
-        await createHabit.mutateAsync(value);
-      }
+      await createHabit.mutateAsync({ ...form, name: form.name.trim() });
       setShowForm(false);
     } finally {
       setSaving(false);
@@ -165,6 +177,7 @@ export default function HabitsPage() {
 
   const removeHabit = async (habit: Habit) => {
     if (!(await confirmDialog(`Delete "${habit.name}" and all its logs?`))) return;
+    autosave.cancel();
     await deleteHabit.mutateAsync(habit.id);
     setShowForm(false);
   };
@@ -251,10 +264,11 @@ export default function HabitsPage() {
         </div>
       )}
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(o) => (o ? setShowForm(true) : closeForm())}>
         <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Habit' : 'New Habit'}</DialogTitle>
+          <DialogHeader className="flex-row items-baseline justify-between gap-3">
+            <DialogTitle>{editing ? 'Edit habit' : 'New habit'}</DialogTitle>
+            {editing && <AutosaveStatus status={autosave.status} />}
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
@@ -344,11 +358,17 @@ export default function HabitsPage() {
                 <Trash2 className="size-4 mr-1" /> Delete
               </Button>
             )}
-            <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button onClick={saveHabit} disabled={saving || !form.name.trim()} className="gap-1.5">
-              {saving && <Loader2 className="size-3.5 animate-spin" />}
-              {editing ? 'Save' : 'Create'}
-            </Button>
+            {editing ? (
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={closeForm} />
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button onClick={saveHabit} disabled={saving || !form.name.trim()} className="gap-1.5">
+                  {saving && <Loader2 className="size-3.5 animate-spin" />}
+                  Create
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

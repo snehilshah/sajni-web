@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 
-import { useMemos, useCreateMemo, useUpdateMemo, useDeleteMemo } from '@/queries/memos';
+import { useMemos, useCreateMemo, useUpdateMemo, useDeleteMemo, useAutosaveMemo } from '@/queries/memos';
 import { confirmDialog } from '@/lib/confirm';
 import type { Memo } from '@/types';
 import TagPill from '@/components/TagPill';
@@ -15,6 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ArrowDown, Pin, PinOff, Pencil, Trash2, Search, Loader2, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
 import PageShell from '@/components/PageShell';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 
 export default function MemosPage() {
   const [draft, setDraft] = useState('');
@@ -68,9 +70,6 @@ export default function MemosPage() {
   };
   const handlePin = async (m: Memo) => {
     await updateMemo.mutateAsync({ id: m.id, data: { pinned: !m.pinned } });
-  };
-  const handleSaveEdit = async (id: number, content: string) => {
-    await updateMemo.mutateAsync({ id, data: { content } });
   };
 
   const grouped = useMemo(() => groupByDay(memosList), [memosList]);
@@ -160,7 +159,6 @@ export default function MemosPage() {
         onClose={() => setActiveId(null)}
         onPin={handlePin}
         onDelete={handleDelete}
-        onSave={handleSaveEdit}
       />
     </PageShell>
   );
@@ -290,24 +288,34 @@ function MemoRow({ memo, onOpen, onPin }: {
   );
 }
 
-function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
+function MemoDetailDialog({ memo, onClose, onPin, onDelete }: {
   memo: Memo | null;
   onClose: () => void;
   onPin: (m: Memo) => void;
   onDelete: (id: number) => void;
-  onSave: (id: number, content: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
-  const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const autosaveMemo = useAutosaveMemo();
 
-  // Reset internal state when memo changes (and on close)
+  // Editing saves itself; Done (or closing) flushes the last change.
+  const autosave = useEditorAutosave({
+    key: editing && memo ? memo.id : null,
+    value: editContent,
+    apply: setEditContent,
+    invalid: editContent.trim() ? null : 'a memo needs some text.',
+    save: async (content) => {
+      if (memo) await autosaveMemo(memo.id, content);
+    },
+  });
+
+  // A different memo starts in reading mode. Keyed on the id only: an
+  // autosave refreshes `memo.content`, which must not end the edit.
   useEffect(() => {
     setEditing(false);
-    setEditContent(memo?.content || '');
     setCopied(false);
-  }, [memo?.id, memo?.content]);
+  }, [memo?.id]);
 
   if (!memo) return null;
 
@@ -323,18 +331,15 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
     } catch {}
   };
 
-  const handleSaveClick = async () => {
-    setSaving(true);
-    try {
-      await onSave(memo.id, editContent);
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
+  const startEditing = () => {
+    setEditContent(memo.content);
+    autosave.load(memo.content);
+    setEditing(true);
   };
+  const finishEditing = () => autosave.close(() => setEditing(false));
 
   return (
-    <Dialog open={!!memo} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={!!memo} onOpenChange={(o) => { if (!o) autosave.close(onClose); }}>
       <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
           <div className="flex items-start justify-between gap-3">
@@ -342,6 +347,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
               <DialogTitle className="flex items-center gap-2">
                 {memo.pinned && <Pin className="size-4 text-secondary shrink-0" />}
                 Memo
+                {editing && <AutosaveStatus status={autosave.status} />}
               </DialogTitle>
               <div className="flex items-center gap-3 mt-1 font-mono text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
@@ -385,15 +391,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
 
         <DialogFooter className="shrink-0 px-6 py-3 gap-1">
           {editing ? (
-            <>
-              <Button variant="outline" size="sm" onClick={() => { setEditing(false); setEditContent(memo.content); }}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleSaveClick} disabled={saving || !editContent.trim()} className="gap-1.5">
-                {saving && <Loader2 className="size-3.5 animate-spin" />}
-                Save
-              </Button>
-            </>
+            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={finishEditing} />
           ) : (
             <>
               <Button variant="destructive-quiet" size="sm" onClick={() => onDelete(memo.id)} className="mr-auto gap-1.5">
@@ -405,7 +403,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete, onSave }: {
               <Button variant="ghost" size="sm" onClick={handleCopy} className="gap-1.5">
                 {copied ? <><Check className="size-3.5" /> Copied</> : <><Copy className="size-3.5" /> Copy</>}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={startEditing} className="gap-1.5">
                 <Pencil className="size-3.5" /> Edit
               </Button>
             </>

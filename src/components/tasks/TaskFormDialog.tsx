@@ -10,7 +10,8 @@ import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X,
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
-import { useAutosave } from '@/hooks/use-autosave';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
 import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -190,27 +191,26 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   // The parent task when editing a subtask — drives the "Subtask of …" banner
   // so a child never reads as a standalone task, and so the user can promote it.
   const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
-  // The task as it was when opened; "Undo changes" restores it.
-  const [initial, setInitial] = useState<FormState | null>(null);
   const [moreDetails, setMoreDetails] = useState(() => {
     try { return localStorage.getItem(MORE_DETAILS_KEY) === 'true'; } catch { return false; }
   });
 
-  const formValid = !!form.title.trim() && !(form.status === 'blocked' && !form.blocked_by_task_id);
+  const invalid = !form.title.trim() ? 'a task needs a title.'
+    : form.status === 'blocked' && !form.blocked_by_task_id ? 'pick the task that blocks this one.' : null;
   // Edits save themselves (3s after the last change, on close, on switching
   // to a subtask, when the app is hidden). Create stays an explicit action.
-  const autosave = useAutosave({
+  const autosave = useEditorAutosave({
     key: open && editing ? editing.id : null,
     value: form,
-    valid: formValid,
+    apply: setForm,
+    invalid,
     save: async (f) => {
       if (!editing) return;
       await tasksApi.update(editing.id, buildUpdate(f, editing, parent));
       onSaved();
     },
   });
-  const resetAutosave = autosave.reset;
-  const changed = !!editing && !!initial && JSON.stringify(form) !== JSON.stringify(initial);
+  const loadAutosave = autosave.load;
 
   useEffect(() => {
     if (!open) return;
@@ -235,8 +235,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         reminders: [],
       };
       setForm(loaded);
-      setInitial(loaded);
-      resetAutosave(loaded);
+      loadAutosave(loaded);
       setHistory([]);
       setEvents([]);
       setParent(null);
@@ -258,7 +257,6 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       }
     } else {
       setForm({ ...blank, ...defaults });
-      setInitial(null);
       setHistory([]);
       setEvents([]);
       setParent(null);
@@ -267,7 +265,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       queryKey: qk.tasks.list({ smart: 'all' }),
       queryFn: () => tasksApi.list({ smart: 'all' }),
     }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
-  }, [open, editing, defaults, qc, resetAutosave]);
+  }, [open, editing, defaults, qc, loadAutosave]);
 
   const blockerCandidates = blockerTasks.filter((candidate) => {
     if (candidate.id === editing?.id || candidate.status === 'done' || candidate.status === 'scratched') return false;
@@ -284,21 +282,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   });
 
   // Every close path (Esc, backdrop, ×, Done) lands here: flush, then close.
-  const requestClose = () => {
-    if (editing) {
-      if (autosave.dirty && !formValid) {
-        toast.error(form.title.trim() ? 'Not saved: pick the task that blocks this one.' : 'Not saved: a task needs a title.');
-      }
-      void autosave.flush();
-    }
-    onOpenChange(false);
-  };
-
-  const handleUndo = () => {
-    if (!initial) return;
-    setForm(initial);
-    void autosave.commit(initial);
-  };
+  const requestClose = () => autosave.close(() => onOpenChange(false));
 
   const handleSave = async () => {
     if (editing) { requestClose(); return; }
@@ -798,22 +782,14 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
         <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] ">
 		  <div className="mr-auto min-w-0 text-xs text-muted-foreground" aria-live="polite">
-		    {editing ? (
-		      autosave.status === 'saving' ? 'Saving…'
-		        : autosave.status === 'saved' ? 'Saved'
-		          : autosave.status === 'error' ? <span className="text-destructive">Not saved</span>
-		            : null
-		    ) : form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
+		    {editing ? <AutosaveStatus status={autosave.status} /> : form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
 		  </div>
           {editing ? (
-            <>
-              {changed && <Button variant="ghost" onClick={handleUndo}>Undo changes</Button>}
-              <Button onClick={requestClose}>Done</Button>
-            </>
+            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
           ) : (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving || !formValid} className="gap-1.5">
+              <Button onClick={handleSave} disabled={saving || !!invalid} className="gap-1.5">
                 {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
                 Create task
               </Button>
@@ -933,11 +909,13 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
           </span>
           <Input
             name={`new-subtask-${taskId}`}
+            // While there's a draft, Escape clears it instead of closing the dialog.
+            data-own-escape={draft ? '' : undefined}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); add(); }
-              if (e.key === 'Escape' && draft) { e.preventDefault(); setDraft(''); }
+              if (e.key === 'Escape') setDraft('');
             }}
             placeholder={isGoal ? (total === 0 ? 'Add a session…' : 'Add a session') : (total === 0 ? 'Break this into smaller tasks…' : 'Add a subtask')}
             className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"

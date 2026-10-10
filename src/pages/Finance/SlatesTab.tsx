@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -16,10 +16,10 @@ import {
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cardClass, CardAccent } from '@/components/ui/card';
-import { useFinanceFormatters } from './useFinancePrivacy';
 import { CardsSkeleton } from './Skeletons';
 import SlateDialog from './SlateDialog';
 import { cn } from '@/lib/utils';
+import { Money } from './Money';
 
 // A slate answers one question: is this normal life, or not? Plain is normal
 // life and can't be touched; every other slate is an outlier the user named.
@@ -41,7 +41,6 @@ interface Props {
 
 export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
   const qc = useQueryClient();
-  const { formatMoney } = useFinanceFormatters();
   const [editing, setEditing] = useState<FinSlate | null>(null);
   const [creating, setCreating] = useState(false);
   // Purely a view preference over a list we already hold, so it stays here.
@@ -111,7 +110,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
             the width and the month figure rather than a lifetime total. */}
         <SlateTile
           slate={plain}
-          headline={plain ? formatMoney(plain.month_spend) : '–'}
+          headline={plain ? <Money value={plain.month_spend} /> : '–'}
           headlineLabel="this month"
           meta={plain ? (plain.txn_count === 1 ? '1 transaction' : `${plain.txn_count} transactions`) : ''}
           onOpen={() => plain && onOpenSlate(plain.id)}
@@ -149,7 +148,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
               <SlateTile
                 key={s.id}
                 slate={s}
-                headline={formatMoney(s.total_spend)}
+                headline={<Money value={s.total_spend} />}
                 headlineLabel="total"
                 meta={s.txn_count === 1 ? '1 transaction' : `${s.txn_count} transactions`}
                 onOpen={() => onOpenSlate(s.id)}
@@ -176,7 +175,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
                   key={s.id}
                   slate={s}
                   dimmed
-                  headline={formatMoney(s.total_spend)}
+                  headline={<Money value={s.total_spend} />}
                   headlineLabel="total"
                   meta={s.txn_count === 1 ? '1 transaction' : `${s.txn_count} transactions`}
                   onOpen={() => onOpenSlate(s.id)}
@@ -195,6 +194,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
         slate={editing}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); refreshSlates(); }}
+        onAutosaved={refreshSlates}
       />
     </div>
   );
@@ -206,7 +206,7 @@ function SlateTile({
 }: {
   slate?: FinSlate;
   dimmed?: boolean;
-  headline: string;
+  headline: ReactNode;
   headlineLabel: string;
   meta: string;
   onOpen: () => void;

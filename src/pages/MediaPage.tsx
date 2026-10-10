@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
-import { useMedia, useCreateMedia, useUpdateMedia, useDeleteMedia } from '@/queries/media';
+import { useMedia, useCreateMedia, useAutosaveMedia, useDeleteMedia } from '@/queries/media';
 import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult, MediaPatch } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
@@ -45,6 +45,9 @@ import pxPlay from 'pixelarticons/svg/play.svg?raw';
 import pxBuilding from 'pixelarticons/svg/building.svg?raw';
 import pxDownload from 'pixelarticons/svg/download.svg?raw';
 import pxImage from 'pixelarticons/svg/image.svg?raw';
+import { useEditorAutosave } from '@/hooks/use-autosave';
+import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { failureText } from '@/lib/errors';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
 const MEDIA_SORT_KEY = 'sajni:media:sort';
@@ -545,6 +548,8 @@ function TitleAutocomplete({
         onChange={(e) => handleChange(e.target.value)}
         onBlur={flush}
         onFocus={() => { if (results.length > 0) setOpen(true); }}
+        // With suggestions showing, Escape closes them, not the editor.
+        data-own-escape={open && results.length > 0 ? '' : undefined}
         onKeyDown={(e) => {
           if (!open || results.length === 0) return;
           if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => Math.min(h + 1, results.length - 1)); }
@@ -657,6 +662,43 @@ interface FormState {
   collection_name: string;
 }
 
+function mediaFormOf(item: MediaEntry): FormState {
+  return {
+    title: item.title, type: item.type, status: item.status,
+    rating: item.rating || 0, notes: item.notes, platform: item.platform,
+    poster_url: item.poster_url, year: item.year || null, release_date: item.release_date || '', genre: item.genre,
+    external_id: item.external_id,
+    episodes_watched: item.episodes_watched, episodes_total: item.episodes_total,
+    seasons_watched: item.seasons_watched, seasons_total: item.seasons_total,
+    season_episodes: item.season_episodes || [],
+    collection_id: item.collection_id || '',
+    collection_name: item.collection_name || '',
+  };
+}
+
+// The PUT/POST body. Upcoming follows the release date; marking complete
+// snaps progress to the end (last season, last episode) so the S?E? label
+// and bar read 100% instead of wherever the user stopped.
+function mediaPayload(form: FormState): MediaPatch {
+  const upcoming = hasFutureRelease(form.type, form.release_date);
+  const payload: MediaPatch = {
+    ...form,
+    status: upcoming ? 'upcoming' : form.status === 'upcoming' ? 'pending' : form.status,
+    rating: form.rating || null,
+  };
+  if (form.status === 'complete') {
+    const totalEps = form.season_episodes.length > 0
+      ? form.season_episodes.reduce((s, n) => s + n, 0)
+      : form.episodes_total;
+    if (totalEps > 0) payload.episodes_watched = totalEps;
+    if (form.type === 'show') {
+      const totalSeasons = form.season_episodes.length > 0 ? form.season_episodes.length : form.seasons_total;
+      if (totalSeasons > 0) payload.seasons_watched = totalSeasons;
+    }
+  }
+  return payload;
+}
+
 export default function MediaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeType, setActiveType] = useState(
@@ -739,7 +781,7 @@ export default function MediaPage() {
     data: MediaEntry[]; isLoading: boolean;
   };
   const createMedia = useCreateMedia();
-  const updateMedia = useUpdateMedia();
+  const autosaveMedia = useAutosaveMedia();
   const deleteMedia = useDeleteMedia();
 
   // Deep-links (`/media?tab=videos` from the share flow) can land while
@@ -834,29 +876,47 @@ export default function MediaPage() {
     return byStatus;
   }, [items]);
 
+  // Throws the user-facing reason when `candidate` would duplicate a library
+  // entry. `items` is the full (status-unfiltered) shelf for the active type,
+  // so it doubles as the duplicate pool whenever types match.
+  const assertNotDuplicate = async (candidate: FormState, selfId?: number) => {
+    const pool = candidate.type === activeType ? items : await mediaApi.list({ type: candidate.type });
+    const duplicate = findDuplicateMedia(pool, candidate, selfId);
+    if (duplicate) {
+      throw new Error(`${TYPE_META[candidate.type]?.label || 'Item'} already in library: ${duplicateMediaDescription(duplicate)}`);
+    }
+  };
+
+  // Edits save themselves; adding to the library is explicit.
+  const autosave = useEditorAutosave({
+    key: showForm && editItem ? editItem.id : null,
+    value: form,
+    apply: setForm,
+    invalid: form.title.trim() ? null : 'an entry needs a title.',
+    save: async (v) => {
+      if (!editItem) return;
+      await assertNotDuplicate(v, editItem.id);
+      await autosaveMedia(editItem.id, mediaPayload(v));
+    },
+  });
+  const loadAutosave = autosave.load;
+  const closeForm = () => autosave.close(() => setShowForm(false));
+
   const openForm = useCallback((item?: MediaEntry, morph?: 'card' | 'add', sourceEl?: Element | null) => {
     const rect = sourceEl?.getBoundingClientRect();
     setMorphSource(morph ?? null);
     setMorphRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : undefined);
     if (item) {
+      const loaded = mediaFormOf(item);
       setEditItem(item);
-      setForm({
-        title: item.title, type: item.type, status: item.status,
-        rating: item.rating || 0, notes: item.notes, platform: item.platform,
-        poster_url: item.poster_url, year: item.year || null, release_date: item.release_date || '', genre: item.genre,
-        external_id: item.external_id,
-        episodes_watched: item.episodes_watched, episodes_total: item.episodes_total,
-        seasons_watched: item.seasons_watched, seasons_total: item.seasons_total,
-        season_episodes: item.season_episodes || [],
-        collection_id: item.collection_id || '',
-        collection_name: item.collection_name || '',
-      });
+      setForm(loaded);
+      loadAutosave(loaded);
     } else {
       setEditItem(null);
       setForm(blankForm());
     }
     setShowForm(true);
-  }, [blankForm]);
+  }, [blankForm, loadAutosave]);
 
   // `?id=` (from a tag reference) opens that entry once its shelf loads.
   const deepLinkId = Number(searchParams.get('id')) || null;
@@ -935,54 +995,23 @@ export default function MediaPage() {
   };
 
   const handleSave = async () => {
+    if (editItem) { closeForm(); return; }
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      let duplicatePool: MediaEntry[];
       try {
-        // `items` is the full (status-unfiltered) shelf for the active type,
-        // so it doubles as the duplicate pool whenever types match.
-        duplicatePool = form.type === activeType
-          ? items
-          : await mediaApi.list({ type: form.type });
-      } catch {
-        toast.error('Could not check for duplicates', {
-          description: 'Try saving again in a moment.',
-        });
+        await assertNotDuplicate(form);
+      } catch (err) {
+        toast.error(failureText(err, 'Could not check for duplicates. Try again in a moment.'));
         return;
       }
-      const duplicate = findDuplicateMedia(duplicatePool, form, editItem?.id);
-      if (duplicate) {
-        toast.error(`${TYPE_META[form.type]?.label || 'Item'} already in library`, {
-          description: duplicateMediaDescription(duplicate),
-        });
-        return;
-      }
-
-      const payload: MediaPatch = {
-        ...form,
-        status: formIsUpcoming ? 'upcoming' : form.status === 'upcoming' ? 'pending' : form.status,
-        rating: form.rating || null,
-      };
-      // Marking complete snaps progress to the end — last season, last episode —
-      // so the S?E? label and bar read 100% instead of wherever the user stopped.
-      if (form.status === 'complete') {
-        const totalEps = form.season_episodes.length > 0
-          ? form.season_episodes.reduce((s, n) => s + n, 0)
-          : form.episodes_total;
-        if (totalEps > 0) payload.episodes_watched = totalEps;
-        if (form.type === 'show') {
-          const totalSeasons = form.season_episodes.length > 0 ? form.season_episodes.length : form.seasons_total;
-          if (totalSeasons > 0) payload.seasons_watched = totalSeasons;
-        }
-      }
-      if (editItem) await updateMedia.mutateAsync({ id: editItem.id, data: payload });
-      else await createMedia.mutateAsync(payload);
+      await createMedia.mutateAsync(mediaPayload(form));
       setShowForm(false);
     } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
+    autosave.cancel();
     await deleteMedia.mutateAsync(id);
     setShowForm(false);
   };
@@ -1128,7 +1157,7 @@ export default function MediaPage() {
       {editItem ? 'Edit' : 'Add'} {TYPE_META[form.type]?.label || 'Entry'}
     </>
   );
-  const mediaFormSubtitle = editItem ? 'Update details below' : 'Search a database or fill it in manually';
+  const mediaFormSubtitle = editItem ? <AutosaveStatus status={autosave.status} /> : 'Search a database or fill it in manually';
 
   // Grids collapse to one column on narrow screens so nothing shrinks
   // below a usable size; the poster shrinks 120→96px on phones.
@@ -1275,11 +1304,17 @@ export default function MediaPage() {
           <Trash2 className="size-3.5" /> Delete
         </Button>
       )}
-      <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-      <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
-        {saving && <M3CookieLoader size="xs" tone="primary" />}
-        {editItem ? 'Save' : 'Add to library'}
-      </Button>
+      {editItem ? (
+        <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={closeForm} />
+      ) : (
+        <>
+          <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
+            {saving && <M3CookieLoader size="xs" tone="primary" />}
+            Add to library
+          </Button>
+        </>
+      )}
     </>
   );
 
@@ -1379,7 +1414,7 @@ export default function MediaPage() {
            the focused field + sticky footer stay above the keyboard. */
         <Sheet
           open={showForm}
-          onOpenChange={setShowForm}
+          onOpenChange={(open) => (open ? setShowForm(true) : closeForm())}
           onOpenChangeComplete={(open) => {
             if (!open) setEditItem(null);
           }}
@@ -1432,7 +1467,7 @@ export default function MediaPage() {
         <MorphingDialog
           open={showForm}
           showClose={false}
-          onClose={() => setShowForm(false)}
+          onClose={closeForm}
           onCloseComplete={() => {
             setEditItem(null);
             setMorphSource(null);
