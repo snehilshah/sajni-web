@@ -914,7 +914,7 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
             >
               <motion.button
                 type="button"
-                whileTap={{ transform: 'scale(0.97)' }}
+                whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 onClick={() => toggle(s)}
                 disabled={isDraft}

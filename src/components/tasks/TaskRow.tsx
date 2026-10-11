@@ -111,7 +111,7 @@ export default function TaskRow({
           {/* Completion checkbox — 24px visual, padded to a comfortable target */}
           <motion.button
             onClick={handleToggleStatus}
-            whileTap={{ transform: 'scale(0.97)' }}
+            whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 500, damping: 24 }}
             className="shrink-0 -m-2 p-2 flex items-center justify-center"
             title={task.status === 'done' ? 'Mark incomplete' : 'Complete'}
@@ -411,7 +411,7 @@ export function StepsEditor({
           >
             <motion.button
               type="button"
-              whileTap={{ transform: 'scale(0.97)' }}
+              whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 500, damping: 24 }}
               onClick={() => update(s.id, { done: !s.done })}
               className={`size-[18px] rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
