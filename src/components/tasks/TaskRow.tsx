@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronRight, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch, StickyNote,
+  Star, ChevronDown, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch, StickyNote,
 } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -217,10 +217,19 @@ export default function TaskRow({
                   aria-expanded={expanded}
                   aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
                   title={expanded ? 'Hide subtasks' : 'View subtasks'}
-                  className={cn(chip, 'relative bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97] before:absolute before:-inset-2 before:content-[""]')}
+                  // Taller than the info chips because it's the row's one
+                  // control; the hit area grows to the row's full height.
+                  className={cn(
+                    'relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-1.5 text-xs font-medium leading-none transition-colors',
+                    'before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[""]',
+                    expanded
+                      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                      : 'bg-[hsl(var(--on-surface)/0.06)] text-foreground/80 hover:bg-[hsl(var(--secondary-container))] hover:text-[hsl(var(--on-secondary-container))]',
+                  )}
                 >
+                  <SubtaskRing done={task.subtasks_done ?? 0} total={task.subtask_count ?? 0} />
                   <span className="tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
-                  <ChevronRight className={cn('size-3.5 transition-transform', expanded && 'rotate-90')} strokeWidth={2.5} />
+                  <ChevronDown className={cn('size-4 transition-transform duration-200', expanded && 'rotate-180')} />
                 </button>
               )}
               {task.status === 'blocked' && (
@@ -464,5 +473,22 @@ export function StepsEditor({
         )}
       </div>
     </div>
+  );
+}
+
+// Small progress ring for the subtask chip: a track plus an arc for the
+// share done, so progress reads before the numbers do.
+function SubtaskRing({ done, total }: { done: number; total: number }) {
+  const r = 5.5;
+  const c = 2 * Math.PI * r;
+  const frac = total > 0 ? Math.min(done / total, 1) : 0;
+  return (
+    <svg viewBox="0 0 16 16" className="size-4 shrink-0 -rotate-90" aria-hidden>
+      <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity={0.22} strokeWidth="2.5" />
+      {frac > 0 && (
+        <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+          strokeDasharray={`${c * frac} ${c}`} />
+      )}
+    </svg>
   );
 }

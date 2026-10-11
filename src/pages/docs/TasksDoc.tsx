@@ -106,9 +106,13 @@ export default function TasksDoc() {
           <Feature name="Subtasks">
             <p>
               Full child tasks with their own status, dates and reminders.
-              The parent row shows completion (“2/5”) and expands inline.
-              Use subtasks when the child is real work; steps when it's just
-              a checklist line. Month-goal sessions are subtasks.
+              The parent row shows a progress ring and the count (“2/5”);
+              tap it to expand them inline. You can add subtasks while
+              creating a task: “Paint the room” with “Buy paint” and “Sand
+              the walls” typed under More details are all created together
+              when you press Create. Use subtasks when the child is real
+              work; steps when it's just a checklist line. Month-goal
+              sessions are subtasks.
             </p>
           </Feature>
           <Feature name="Priority & Important">

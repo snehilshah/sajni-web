@@ -63,14 +63,19 @@ export interface FormState {
   /** Extra reminders (ISO instants) buffered while creating — flushed to the
    *  task after it's created. Unused when editing (those load from the API). */
   reminders: string[];
+  /** Subtasks typed while creating, created under the new task once it
+   *  exists. Unused when editing (those talk to the API directly). */
+  subtasks: DraftSubtask[];
 }
+
+export interface DraftSubtask { title: string; due_date?: string }
 
 export type TaskDefaults = Partial<FormState>;
 
 const blank: FormState = {
   title: '', description: '', priority: 'medium', color: null, status: 'todo', blocked_by_task_id: null,
   due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
-  notify_emails: [], list_id: null, important: false, steps: [], reminders: [],
+  notify_emails: [], list_id: null, important: false, steps: [], reminders: [], subtasks: [],
 };
 
 const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
@@ -233,6 +238,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         important: editing.important,
         steps: editing.steps || [],
         reminders: [],
+        subtasks: [],
       };
       setForm(loaded);
       loadAutosave(loaded);
@@ -322,6 +328,17 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         );
         const failed = results.filter((r) => r.status === 'rejected').length;
         if (failed > 0) toast.error(`Task saved, but ${failed} reminder${failed > 1 ? 's' : ''} failed to add.`);
+      }
+      // Draft subtasks go in one at a time: the list orders by created_at,
+      // so this keeps the order they were typed in.
+      if (form.subtasks.length > 0) {
+        let failed = 0;
+        for (const sub of form.subtasks) {
+          try {
+            await tasksApi.create({ title: sub.title, parent_task_id: res.id, list_id: form.list_id ?? null, due_date: sub.due_date || undefined });
+          } catch { failed++; }
+        }
+        if (failed > 0) toast.error(`Task saved, but ${failed} subtask${failed > 1 ? 's' : ''} failed to add.`);
       }
       onOpenChange(false);
       onSaved();
@@ -493,6 +510,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		    <span className="flex-1">More details</span>
 		    {!moreDetails && form.status === 'blocked' && <span className="rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-error-container))]">Blocked</span>}
 		    {!moreDetails && form.priority === 'high' && <span className="rounded-full bg-[hsl(var(--tertiary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-tertiary-container))]">High priority</span>}
+		    {!moreDetails && form.subtasks.length > 0 && <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">{form.subtasks.length} subtask{form.subtasks.length > 1 ? 's' : ''}</span>}
 		    {!moreDetails && form.reminders.length > 0 && <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">{form.reminders.length} extra reminder{form.reminders.length > 1 ? 's' : ''}</span>}
 		    <ChevronDown className={cn('size-4 transition-transform', moreDetails && 'rotate-180')} />
 		  </button>
@@ -727,10 +745,16 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             </div>
           </div>
 
-		  {/* Subtasks — real child tasks (own status/due). Only on an existing
-              task; a new task has no id to parent them to yet. */}
-          {editing && (
+		  {/* Subtasks — real child tasks (own status/due). A new task has no
+              id to parent them to yet, so they're buffered and created on save. */}
+          {editing ? (
             <SubtasksSection taskId={editing.id} listId={editing.list_id ?? null} isGoal={!!editing.month_of} onChanged={onSaved} />
+          ) : (
+            <SubtasksSection
+              isGoal={form.due_type === 'month'}
+              draft={form.subtasks}
+              onDraftChange={(next) => setForm((f) => ({ ...f, subtasks: next }))}
+            />
           )}
 
           {editing && history.length > 0 && (
@@ -804,15 +828,29 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 // status/due; toggling completes it, the title opens it in this same dialog,
 // and the inline row adds a new one. This is the explicit "add subtask" CTA
 // that previously only existed (hidden) behind the list-row expander.
-function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId: number; listId: number | null; isGoal?: boolean; onChanged: () => void }) {
+//  • API mode (taskId)                — reads/writes child tasks directly.
+//  • draft mode (draft/onDraftChange) — for a not-yet-created task; titles
+//    are buffered and handleSave creates them under the new task.
+type SubtasksProps =
+  | { taskId: number; listId: number | null; isGoal?: boolean; onChanged: () => void; draft?: never; onDraftChange?: never }
+  | { taskId?: never; listId?: never; isGoal?: boolean; onChanged?: never; draft: DraftSubtask[]; onDraftChange: (next: DraftSubtask[]) => void };
+
+function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, draft: drafts, onDraftChange }: SubtasksProps) {
   const qc = useQueryClient();
-  const [subs, setSubs] = useState<Task[] | null>(null);
+  const isDraft = taskId === undefined;
+  const [fetched, setSubs] = useState<Task[] | null>(null);
+  // Draft rows wear Task's shape so one list renders both modes; negative
+  // ids never reach the API.
+  const subs: Task[] | null = isDraft
+    ? drafts!.map((d, i) => ({ id: -(i + 1), title: d.title, status: 'todo', due_date: d.due_date ?? null }) as Task)
+    : fetched;
   const [draft, setDraft] = useState('');
   // Month-goal sessions can carry a date as they're added (the "+ add session"
   // flow); a plain subtask stays dateless and gets a date via its own dialog.
   const [dateDraft, setDateDraft] = useState('');
 
   const load = useCallback(() => {
+    if (taskId === undefined) return;
     qc.fetchQuery({
       queryKey: qk.tasks.subtasks(taskId),
       queryFn: () => tasksApi.subtasks(taskId),
@@ -825,27 +863,30 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
     if (!title) return;
     setDraft('');
     setDateDraft('');
+    if (isDraft) { onDraftChange!([...drafts!, { title, due_date: dateDraft || undefined }]); return; }
     await tasksApi.create({ title, parent_task_id: taskId, list_id: listId, due_date: dateDraft || undefined });
-    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
+    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId!) });
     load();
-    onChanged();
+    onChanged!();
   };
   const toggle = async (s: Task) => {
+    if (isDraft) return;
     try {
       await tasksApi.update(s.id, { status: s.status === 'done' ? 'todo' : 'done' });
     } catch (e) {
       toast.error(clientMsg(e, 'Could not update task'));
       return;
     }
-    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
+    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId!) });
     load();
-    onChanged();
+    onChanged!();
   };
   const remove = async (s: Task) => {
+    if (isDraft) { onDraftChange!(drafts!.filter((_, i) => i !== -s.id - 1)); return; }
     await tasksApi.delete(s.id);
-    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId) });
+    await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId!) });
     load();
-    onChanged();
+    onChanged!();
   };
 
   const done = subs?.filter((s) => s.status === 'done').length ?? 0;
@@ -857,7 +898,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
         <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
           <GitBranch className="size-3" /> {isGoal ? 'Sessions' : 'Subtasks'}
         </Label>
-        {total > 0 && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
+        {total > 0 && !isDraft && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
       </div>
       <div className="rounded-xl bg-card px-1.5 py-1.5 flex flex-col gap-0.5">
         <AnimatePresence initial={false}>
@@ -876,6 +917,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
                 whileTap={{ transform: 'scale(0.97)' }}
                 transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 onClick={() => toggle(s)}
+                disabled={isDraft}
                 className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
                   ${s.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
                 aria-pressed={s.status === 'done'}
@@ -884,8 +926,9 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
               </motion.button>
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: s.id } }))}
-                className={`flex-1 text-left text-sm truncate hover:text-primary transition-colors ${s.status === 'done' ? 'line-through text-muted-foreground' : ''}`}
+                onClick={isDraft ? undefined : () => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: s.id } }))}
+                disabled={isDraft}
+                className={`flex-1 text-left text-sm truncate enabled:hover:text-primary transition-colors ${s.status === 'done' ? 'line-through text-muted-foreground' : ''}`}
               >
                 {s.title}
               </button>
@@ -895,7 +938,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
               <button
                 type="button"
                 onClick={() => remove(s)}
-                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
+                className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
                 title="Delete subtask"
               >
                 <X className="size-3.5" />
@@ -908,7 +951,7 @@ function SubtasksSection({ taskId, listId, isGoal = false, onChanged }: { taskId
             <Plus className="size-3" strokeWidth={2.5} />
           </span>
           <Input
-            name={`new-subtask-${taskId}`}
+            name={`new-subtask-${taskId ?? 'new'}`}
             // While there's a draft, Escape clears it instead of closing the dialog.
             data-own-escape={draft ? '' : undefined}
             value={draft}
@@ -1113,7 +1156,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
               <button
                 type="button"
                 onClick={() => remove(r.id)}
-                className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
+                className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
                 title="Remove reminder"
               >
                 <X className="size-3.5" />
