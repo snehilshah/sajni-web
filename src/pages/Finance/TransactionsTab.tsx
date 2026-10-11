@@ -340,7 +340,7 @@ export default function TransactionsTab({
           <Button variant="outline" onClick={() => setManageCats(true)} title="Add / edit categories">
             <Tags className="size-4 md:mr-1" /> <span className="hidden md:inline">Categories</span>
           </Button>
-          <Button onClick={() => { setCreateKind('expense'); setCreating(true); }}>
+          <Button aria-label="Add transaction" onClick={() => { setCreateKind('expense'); setCreating(true); }}>
             <Plus className="size-4 md:mr-1" /> <span className="hidden md:inline">Add</span>
           </Button>
         </div>

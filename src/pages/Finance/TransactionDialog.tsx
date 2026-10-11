@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { format } from 'date-fns';
-import { Trash2, Sparkles, Plus, X } from '@/components/ui/icons';
+import { Bell, Trash2, Sparkles, Plus, X } from '@/components/ui/icons';
 
 import { toast } from 'sonner';
 import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnDraft, type TxnKind, type TxnPatch } from '@/api';
@@ -15,7 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
-import { DateBadge, StateChip } from '@/components/ui/state-chip';
+import { DateBadge } from '@/components/ui/state-chip';
+import { HuePill } from '@/components/ui/hue-pill';
+import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -26,8 +28,8 @@ import { txnAtToParts, partsToTxnAt, subMoney } from './utils';
 
 // The add/edit sheet for personal-ledger transactions. Five things are always
 // there (kind, amount, title, account + date, category); everything optional
-// is an add-on chip under them that opens in place and folds back into a
-// summary pill:
+// is a "+" chip under them that, once tapped, becomes one more section of the
+// form (its label on the leading edge, a × on the trailing edge):
 //   expense → Split (someone owes part or all of it), Slate, Note
 //   income  → From a person (they're paying you back), Refund, Slate, Note
 // "Lend" is not a kind: lending cash is an expense split with someone for
@@ -39,6 +41,11 @@ type Addon = 'split' | 'settle' | 'refund' | 'slate' | 'note';
 type ShareMode = 'half' | 'custom' | 'all';
 
 const personKey = (name: string) => name.trim().toLowerCase();
+// Money typed or pasted ("₹1,200.50") down to a plain decimal string.
+const decimalOnly = (v: string) => {
+  const [int, ...rest] = v.replace(/[^\d.]/g, '').split('.');
+  return rest.length ? `${int}.${rest.join('').slice(0, 2)}` : int;
+};
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function shareOf(total: number, mode: ShareMode, custom: string) {
@@ -114,9 +121,9 @@ export default function TransactionDialog({
   const [slateId, setSlateId] = useState('0');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState('');
-  // Add-ons: which are on, and which one is open for editing.
+  // Add-ons that are on; the one just added takes focus.
   const [addons, setAddons] = useState<Set<Addon>>(new Set());
-  const [expanded, setExpanded] = useState<Addon | null>(null);
+  const [justAdded, setJustAdded] = useState<Addon | null>(null);
   const [person, setPerson] = useState('');
   const [shareMode, setShareMode] = useState<ShareMode>('half');
   const [customShare, setCustomShare] = useState('');
@@ -147,6 +154,9 @@ export default function TransactionDialog({
   const theirShare = existingSplit ? (parseFloat(share) || 0) : splitOn ? shareOf(total, shareMode, customShare) : 0;
   const allTheirs = splitOn && !existingSplit && shareMode === 'all';
   const account = accounts.find((a) => String(a.id) === accountId);
+  // Slates worth offering: the live ones, plus whatever this txn already sits
+  // in. Plain is not a choice; removing the add-on is.
+  const pickableSlates = slates.filter((p) => !p.is_plain && (!p.archived || String(p.id) === slateId));
 
   const values: EditValues = { accountId, categoryId, amount, description, note, slateId, date, time, share, refundOf, refund: isRefund };
   const applyValues = (v: EditValues) => {
@@ -247,7 +257,7 @@ export default function TransactionDialog({
 
   useEffect(() => {
     setErrors({});
-    setExpanded(null);
+    setJustAdded(null);
     setPerson('');
     setShareMode('half');
     setCustomShare('');
@@ -284,7 +294,7 @@ export default function TransactionDialog({
         ...(lend ? ['split' as const] : []),
         ...(slates.find((p) => p.id === slate && !p.is_plain) ? ['slate' as const] : []),
       ]));
-      if (lend) { setShareMode('all'); setExpanded('split'); }
+      if (lend) { setShareMode('all'); setJustAdded('split'); }
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
@@ -350,7 +360,6 @@ export default function TransactionDialog({
   const switchType = (t: TxnKind) => {
     setType(t);
     setCategoryId('');
-    setExpanded(null);
     setAddons((prev) => new Set([...prev].filter((a) => a === 'slate' || a === 'note')));
   };
   const addAddon = (a: Addon) => {
@@ -364,7 +373,9 @@ export default function TransactionDialog({
     });
     if (a === 'refund' || (a === 'settle' && addons.has('refund'))) setCategoryId('');
     if (a === 'split' || a === 'settle') setPerson('');
-    setExpanded(a);
+    // A slate add-on with one slate to offer picks it.
+    if (a === 'slate' && pickableSlates.length === 1) setSlateId(String(pickableSlates[0].id));
+    setJustAdded(a);
   };
   const removeAddon = async (a: Addon) => {
     if (a === 'split' && txn && existingSplit) {
@@ -374,7 +385,6 @@ export default function TransactionDialog({
       return;
     }
     setAddons((prev) => { const next = new Set(prev); next.delete(a); return next; });
-    if (expanded === a) setExpanded(null);
     if (a === 'slate') setSlateId(String(slates.find((p) => p.is_plain)?.id ?? 0));
     if (a === 'note') setNote('');
     if (a === 'refund') { setRefundOf(''); setCategoryId(''); }
@@ -406,7 +416,6 @@ export default function TransactionDialog({
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
-      if (e.person || e.share) setExpanded(splitOn ? 'split' : 'settle');
       return;
     }
     setErrors({});
@@ -489,50 +498,53 @@ export default function TransactionDialog({
     }
   };
 
-  // Add-ons on offer for this kind, in a fixed order so the row never shuffles.
-  const offered: Addon[] = type === 'expense' ? ['split', 'slate', 'note']
-    : type === 'income' ? ['settle', 'refund', 'slate', 'note']
-      : ['note'];
-  const plainSlate = slates.find((p) => p.is_plain);
-  const slateName = slates.find((p) => String(p.id) === slateId)?.name;
+  // Add-ons on offer for this kind, in a fixed order so the form never
+  // shuffles. Slate only when there is a slate to pick.
+  const offered: Addon[] = (type === 'expense' ? ['split', 'slate', 'note'] as Addon[]
+    : type === 'income' ? ['settle', 'refund', 'slate', 'note'] as Addon[]
+      : ['note'] as Addon[]).filter((a) => a !== 'slate' || pickableSlates.length > 0 || addons.has('slate'));
   const owed = people.find((p) => personKey(p.borrower) === personKey(person));
-  const pillText: Record<Addon, ReactNode> = {
-    split: <>Split · {person.trim() || 'someone'} {theirShare > 0 && <Money value={theirShare} />}</>,
-    settle: <>From {person.trim() || 'someone'}</>,
-    refund: <>Refund</>,
-    slate: <>Slate · {slateName ?? plainSlate?.name ?? 'Plain'}</>,
-    note: <>Note</>,
-  };
   const addLabel: Record<Addon, string> = {
     split: 'Split', settle: 'From a person', refund: 'Refund', slate: 'Slate', note: 'Note',
   };
 
-  const panel = (a: Addon) => {
+  // Their share: one field plus ½ / All. Typing makes it custom; ½ and All
+  // fill it in, so the row never changes shape.
+  const half = round2(total / 2);
+  const quickShare: ShareMode = existingSplit
+    ? (total > 0 && parseFloat(share) === half ? 'half' : total > 0 && parseFloat(share) === round2(total) ? 'all' : 'custom')
+    : shareMode;
+  const shareText = existingSplit ? share : shareMode === 'custom' ? customShare : theirShare > 0 ? String(theirShare) : '';
+  const setShareText = (v: string) => {
+    clearError('share');
+    if (existingSplit) { setShare(decimalOnly(v)); return; }
+    setShareMode('custom');
+    setCustomShare(decimalOnly(v));
+  };
+  const pickQuickShare = (m: ShareMode) => {
+    clearError('share');
+    if (existingSplit) { if (total > 0) setShare(String(m === 'all' ? round2(total) : half)); return; }
+    setShareMode(m);
+  };
+
+  const section = (a: Addon) => {
     if (a === 'split') return (
-      <AddonPanel label="Split with" onDone={() => setExpanded(null)} onRemove={() => removeAddon('split')}>
-        {existingSplit ? (
-          <p className="text-sm font-medium">{existingSplit.borrower}</p>
-        ) : (
+      <AddonSection key={a} label={existingSplit ? `Split with ${existingSplit.borrower}` : 'Split with'} onRemove={() => removeAddon('split')}>
+        {!existingSplit && (
           <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
-            suggestions={people.map((p) => p.borrower)} placeholder="Who owes this?" />
+            suggestions={people.map((p) => p.borrower)} placeholder="Who owes this?" autoFocus={justAdded === 'split'} />
         )}
-        {existingSplit ? (
-          <Field label="Their share" error={errors.share}>
-            <Input type="number" inputMode="decimal" value={share} onChange={(e) => { setShare(e.target.value); clearError('share'); }} />
-          </Field>
-        ) : (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {(['half', 'custom', 'all'] as const).map((m) => (
-              <StateChip key={m} selected={shareMode === m} onClick={() => { setShareMode(m); clearError('share'); }} className={shareMode === m ? undefined : PANEL_CHIP}>
-                {m === 'half' ? '½' : m === 'custom' ? 'Custom' : 'All'}
-              </StateChip>
-            ))}
-            {shareMode === 'custom' && (
-              <Input type="number" inputMode="decimal" value={customShare} onChange={(e) => { setCustomShare(e.target.value); clearError('share'); }}
-                placeholder="Their share" className="h-8 w-32" aria-invalid={!!errors.share} />
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <PrefixedInput prefix="Their share ₹" value={shareText} onChange={setShareText} invalid={!!errors.share} />
+          <SegmentedButton<ShareMode>
+            aria-label="Quick share"
+            value={quickShare}
+            onChange={pickQuickShare}
+            options={[{ value: 'half', label: '½' }, { value: 'all', label: 'All' }]}
+            showCheck={false}
+            className="h-11 bg-[hsl(var(--surface-container-highest))] p-1"
+          />
+        </div>
         {errors.share && <p className="text-xs text-destructive">{errors.share}</p>}
         {total > 0 && theirShare > 0 && theirShare <= total && (
           <div className="flex flex-wrap gap-1.5">
@@ -541,22 +553,32 @@ export default function TransactionDialog({
           </div>
         )}
         {!existingSplit && (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-            <Field label="Due">
-              <DatePicker value={dueDate} onChange={setDueDate} placeholder={account?.type === 'credit_card' ? 'With the card bill' : 'No due date'} />
-            </Field>
-            <StateChip selected={remind} onClick={() => setRemind((r) => !r)} className={cn('h-10', remind ? undefined : PANEL_CHIP)}>Remind me</StateChip>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <DatePicker value={dueDate} onChange={setDueDate} prefix="Due" placeholder={account?.type === 'credit_card' ? 'With the card bill' : 'Anytime'} />
+            <button
+              type="button"
+              aria-pressed={remind}
+              onClick={() => setRemind((r) => !r)}
+              className={cn(
+                'inline-flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm outline-none transition-colors focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+                remind
+                  ? 'bg-[hsl(var(--secondary-container))] font-semibold text-[hsl(var(--on-secondary-container))]'
+                  : 'bg-[hsl(var(--surface-container-highest))] font-semibold text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Bell className="size-4" /> Remind
+            </button>
           </div>
         )}
         {txn && !existingSplit && (
-          <Button size="sm" className="self-end" onClick={applyToExisting} disabled={saving}>Split this bill</Button>
+          <Button variant="tonal" className="self-end" onClick={applyToExisting} disabled={saving}>Split this bill</Button>
         )}
-      </AddonPanel>
+      </AddonSection>
     );
     if (a === 'settle') return (
-      <AddonPanel label="From a person" onDone={() => setExpanded(null)} onRemove={() => removeAddon('settle')}>
+      <AddonSection key={a} label="From a person" onRemove={() => removeAddon('settle')}>
         <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
-          suggestions={people.filter((p) => p.outstanding > 0).map((p) => p.borrower)} placeholder="Who is paying you back?" />
+          suggestions={people.filter((p) => p.outstanding > 0).map((p) => p.borrower)} placeholder="Who is paying you back?" autoFocus={justAdded === 'settle'} />
         {owed && (
           <div className="flex flex-wrap gap-1.5">
             <DateBadge>Owes <Money value={owed.outstanding} /></DateBadge>
@@ -568,45 +590,46 @@ export default function TransactionDialog({
             })()}
           </div>
         )}
-        {txn && <Button size="sm" className="self-end" onClick={applyToExisting} disabled={saving}>Mark as paid back</Button>}
-      </AddonPanel>
+        {txn && <Button variant="tonal" className="self-end" onClick={applyToExisting} disabled={saving}>Mark as paid back</Button>}
+      </AddonSection>
     );
     if (a === 'refund') return (
-      <AddonPanel label="Refund of" onDone={() => setExpanded(null)} onRemove={() => removeAddon('refund')}>
+      <AddonSection key={a} label="Refund of" onRemove={() => removeAddon('refund')}>
         <RefundPicker accountId={Number(accountId)} value={refundOf} onChange={(id, categoryName) => {
           setRefundOf(id);
           // Follow the purchase's category unless one was picked by hand.
           const cat = categories.find((c) => c.kind === 'expense' && c.name === categoryName);
           if (cat && !userPickedCategoryRef.current) setCategoryId(String(cat.id));
         }} />
-      </AddonPanel>
+      </AddonSection>
     );
     if (a === 'slate') return (
-      <AddonPanel label="Slate" onDone={() => setExpanded(null)} onRemove={() => removeAddon('slate')}>
-        <div className="flex flex-wrap gap-1.5">
-          {slates.filter((p) => !p.archived || String(p.id) === slateId).map((p) => (
-            <StateChip key={p.id} selected={String(p.id) === slateId} onClick={() => setSlateId(String(p.id))}
-              className={String(p.id) === slateId ? undefined : PANEL_CHIP}>{p.name}</StateChip>
+      <AddonSection key={a} label="Slate" onRemove={() => removeAddon('slate')}>
+        <div role="radiogroup" className="flex flex-wrap gap-1.5">
+          {pickableSlates.map((p) => (
+            <HuePill key={p.id} selected={String(p.id) === slateId} onClick={() => setSlateId(String(p.id))} className="h-8">{p.name}</HuePill>
           ))}
         </div>
-        {slates.find((p) => String(p.id) === slateId && !p.is_plain) && (
+        {pickableSlates.some((p) => String(p.id) === slateId) && (
           <p className="text-xs text-muted-foreground">Kept out of your ordinary budgets.</p>
         )}
-      </AddonPanel>
+      </AddonSection>
     );
     return (
-      <Textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Context, who it was with. Use #tags to file it."
-        rows={3}
-        maxLength={1000}
-        autoFocus={expanded === 'note'}
-        // Fixed height (field-sizing:fixed) — auto-growing inside the
-        // modal's scroll container caused a layout-thrash freeze.
-        className="resize-none overflow-y-auto !min-h-0 h-[76px]"
-        style={fixedField}
-      />
+      <AddonSection key={a} label="Note" onRemove={() => removeAddon('note')}>
+        <Textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Context, who it was with. Use #tags to file it."
+          rows={3}
+          maxLength={1000}
+          autoFocus={justAdded === 'note'}
+          // Fixed height (field-sizing:fixed) — auto-growing inside the
+          // modal's scroll container caused a layout-thrash freeze.
+          className="resize-none overflow-y-auto !min-h-0 h-[76px]"
+          style={fixedField}
+        />
+      </AddonSection>
     );
   };
 
@@ -640,11 +663,10 @@ export default function TransactionDialog({
         <div className="flex flex-col gap-3">
           <Field label={existingSplit || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
             <Input
-              type="number"
               inputMode="decimal"
               value={amount}
               aria-invalid={!!errors.amount}
-              onChange={(e) => { setAmount(e.target.value); clearError('amount'); }}
+              onChange={(e) => { setAmount(decimalOnly(e.target.value)); clearError('amount'); }}
               placeholder="0.00"
               className="h-12 text-2xl font-semibold tabular-nums"
               autoFocus={!txn}
@@ -716,32 +738,23 @@ export default function TransactionDialog({
             </Field>
           )}
 
-          {/* Add-ons: configured ones read as pills, the rest as quiet "+"
-              chips. One opens at a time, in place, under the row. */}
-          <div className="flex flex-wrap gap-1.5">
-            {offered.map((a) => addons.has(a) ? (
-              expanded === a ? null : (
-                <span key={a} className="inline-flex h-8 items-center rounded-full bg-[hsl(var(--secondary-container))] text-sm font-semibold text-[hsl(var(--on-secondary-container))]">
-                  <button type="button" onClick={() => setExpanded(a)} className="inline-flex h-full items-center gap-1 rounded-l-full pl-3 pr-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/45">
-                    {pillText[a]}
-                  </button>
-                  <button type="button" aria-label={`Remove ${addLabel[a]}`} onClick={() => removeAddon(a)} className="grid size-8 place-items-center rounded-r-full opacity-70 outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/45">
-                    <X className="size-3.5" />
-                  </button>
-                </span>
-              )
-            ) : (
-              <button
-                key={a}
-                type="button"
-                onClick={() => addAddon(a)}
-                className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
-              >
-                <Plus className="size-3.5" /> {addLabel[a]}
-              </button>
-            ))}
-          </div>
-          {expanded && addons.has(expanded) && panel(expanded)}
+          {/* Add-ons that are on are sections of the form; the rest wait
+              as quiet "+" chips under them. */}
+          {offered.filter((a) => addons.has(a)).map(section)}
+          {offered.some((a) => !addons.has(a)) && (
+            <div className="flex flex-wrap gap-1.5">
+              {offered.filter((a) => !addons.has(a)).map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => addAddon(a)}
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
+                >
+                  <Plus className="size-3.5" /> {addLabel[a]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <DialogFooter className="flex-row items-center justify-between">
           {txn ? (
@@ -768,39 +781,59 @@ export default function TransactionDialog({
   );
 }
 
-// Neutral chips are surface-container-high, the panel's own tone.
-const PANEL_CHIP = 'bg-[hsl(var(--surface-container-highest))]';
-
-function AddonPanel({ label, onDone, onRemove, children }: { label: string; onDone: () => void; onRemove?: () => void; children: ReactNode }) {
+// An add-on as a form section: label on the leading edge, a neutral ×
+// whose glyph ends on the trailing edge.
+function AddonSection({ label, onRemove, children }: { label: string; onRemove: () => void; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2.5 rounded-xl bg-[hsl(var(--surface-container-high))] p-3">
-      <div className="flex items-center justify-between gap-2">
+    <section className="flex flex-col gap-2 pt-1">
+      <div className="flex min-h-[14px] items-center justify-between gap-2">
         <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
-        <div className="-mr-1.5 flex items-center">
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onDone}>Done</Button>
-          {onRemove && (
-            <button type="button" aria-label={`Remove ${label.toLowerCase()}`} onClick={onRemove} className="grid size-7 place-items-center rounded-full text-muted-foreground outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45">
-              <X className="size-3.5" />
-            </button>
-          )}
-        </div>
+        <button type="button" aria-label={`Remove ${label.toLowerCase()}`} onClick={onRemove}
+          className="-my-2 -mr-[7px] grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45">
+          <X className="size-3.5" />
+        </button>
       </div>
       {children}
-    </div>
+    </section>
   );
 }
 
-function PersonField({ value, onChange, suggestions, placeholder, error }: {
-  value: string; onChange: (v: string) => void; suggestions: string[]; placeholder: string; error?: string;
+// A money field with its meaning written in front, so it still reads once
+// the placeholder is gone.
+function PrefixedInput({ prefix, value, onChange, invalid }: { prefix: string; value: string; onChange: (v: string) => void; invalid?: boolean }) {
+  return (
+    <label className={cn(
+      'flex h-11 min-w-0 cursor-text items-center gap-1.5 rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] pl-3.5 text-sm',
+      'transition-[box-shadow,border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)] focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+      invalid && 'border-destructive focus-within:border-transparent focus-within:shadow-[inset_0_0_0_2px_hsl(var(--destructive))]',
+    )}>
+      <span className="shrink-0 text-muted-foreground">{prefix}</span>
+      <Input
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        // ½ / All fill it in; typing over that should replace, not append.
+        onFocus={(e) => e.currentTarget.select()}
+        placeholder="0.00"
+        aria-invalid={invalid}
+        aria-label={prefix}
+        className="h-full min-w-0 rounded-none bg-transparent pl-0 tabular-nums focus-visible:shadow-none aria-invalid:border-transparent aria-invalid:focus-visible:shadow-none"
+      />
+    </label>
+  );
+}
+
+function PersonField({ value, onChange, suggestions, placeholder, error, autoFocus }: {
+  value: string; onChange: (v: string) => void; suggestions: string[]; placeholder: string; error?: string; autoFocus?: boolean;
 }) {
   const picked = suggestions.find((s) => personKey(s) === personKey(value));
   return (
-    <div className="flex flex-col gap-1.5">
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-invalid={!!error} autoFocus />
+    <div className="flex flex-col gap-2">
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-invalid={!!error} autoFocus={autoFocus} />
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {suggestions.slice(0, 6).map((s) => (
-            <StateChip key={s} selected={s === picked} onClick={() => onChange(s)} className={s === picked ? undefined : PANEL_CHIP}>{s}</StateChip>
+            <HuePill key={s} selected={s === picked} onClick={() => onChange(s)} className="h-8">{s}</HuePill>
           ))}
         </div>
       )}

@@ -117,10 +117,9 @@ export default function FinanceDoc() {
         </p>
         <p>
           Everything else is optional and sits under the form as small{' '}
-          <strong>+ chips</strong>. Tap one to open it. Once it's filled in it
-          folds into a pill that says what it holds, for example{' '}
-          <em>Split · Rahul ₹377.48</em>. Tap the pill to change it, or its ×
-          to remove it.
+          <strong>+ chips</strong>. Tap one and it becomes part of the form,
+          with its name on the left and a × on the right to take it off again.
+          Slate only shows up once you have a slate to pick.
         </p>
         <RefTable
           head={['kind', 'optional extras']}
@@ -177,7 +176,8 @@ export default function FinanceDoc() {
             <li>Add the expense: ₹754.96, “Dinner”, RuPay card, Food.</li>
             <li>
               Tap <em>+ Split</em>, type Rahul (or tap his name if he's owed you
-              before) and pick <strong>½</strong>.
+              before). <strong>½</strong> is already picked, so{' '}
+              <em>Their share</em> reads ₹377.48.
             </li>
             <li>
               Sajni shows <em>You ₹377.48 · Rahul owes ₹377.48</em>. Press Add.
@@ -200,16 +200,16 @@ export default function FinanceDoc() {
         <FeatureList>
           <Feature name="Other shares">
             <p>
-              Pick <strong>Custom</strong> to type any amount (Rahul had the
-              expensive dish and owes ₹500), or <strong>All</strong> if the
-              whole bill is his.
+              Type any amount into <em>Their share</em> (Rahul had the
+              expensive dish and owes ₹500), or tap <strong>All</strong> if
+              the whole bill is his.
             </p>
           </Feature>
           <Feature name="When it's due">
             <p>
               For a card, the due date defaults to that card bill's due date,
               so you know when you need the money back. Pick another date if
-              you like, and turn on a reminder.
+              you like, and turn on <em>Remind</em> to get a nudge.
             </p>
           </Feature>
           <Feature name="A bill that's already in Sajni">

@@ -20,6 +20,8 @@ export interface DatePickerProps {
   id?: string
   name?: string
   showWeekday?: boolean
+  /** Muted lead-in inside the field ("Due"), so it reads without a label. */
+  prefix?: React.ReactNode
 }
 
 function isoToDate(iso?: string): Date | undefined {
@@ -48,6 +50,7 @@ export function DatePicker({
   id,
   name,
   showWeekday = true,
+  prefix,
 }: DatePickerProps) {
   const generatedId = React.useId()
   const fieldId = id ?? generatedId
@@ -72,7 +75,10 @@ export function DatePicker({
           className
         )}
       >
-        <span className="min-w-0 flex-1 truncate text-left">{display}</span>
+        <span className="min-w-0 flex-1 truncate text-left">
+          {prefix && <span className="mr-1.5 text-muted-foreground">{prefix}</span>}
+          {display}
+        </span>
         <CalendarIcon className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-2">

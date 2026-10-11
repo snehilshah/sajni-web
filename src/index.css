@@ -188,6 +188,11 @@
    border-destructive…), so state borders all rendered as the grey outline. */
 @layer base {
   * { @apply border-border; }
+  /* No browser spin arrows on number fields: they clash with the tonal
+     fields and nobody steps money by 1. */
+  input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 }
 
 html {
