@@ -31,9 +31,9 @@ export default function JournalDoc() {
           </Feature>
           <Feature name="Location">
             <p>
-              The location pill attaches a place (label + coordinates) to the
-              day, a quiet map of where your days happened, searchable
-              later.
+              The location pill notes where you wrote the day. Type a short
+              place, like “Cinepolis, Vashi”, and press Enter. It stays with
+              the entry and you can search for it later.
             </p>
           </Feature>
           <Feature name="Day navigation">

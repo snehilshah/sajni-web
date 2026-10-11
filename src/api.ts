@@ -631,23 +631,6 @@ export const journal = {
   },
 };
 
-// --- Places (Google Places (New) proxy used by the journal location pill) ---
-export interface PlacePrediction { place_id: string; primary: string; secondary: string }
-export interface PlaceDetails { place_id: string; label: string; lat: number; lon: number }
-
-export const places = {
-  autocomplete: (q: string, session: string, coords?: { lat: number; lon: number }) => {
-    const params = new URLSearchParams({ q, session });
-    if (coords) {
-      params.set('lat', String(coords.lat));
-      params.set('lon', String(coords.lon));
-    }
-    return request<{ predictions: PlacePrediction[] }>('/places/autocomplete?' + params.toString());
-  },
-  details: (place_id: string, session: string) =>
-    request<PlaceDetails>('/places/details?place_id=' + encodeURIComponent(place_id) + '&session=' + encodeURIComponent(session)),
-};
-
 // --- Notes ---
 export const notes = {
   list: (params?: { search?: string; tag?: string; folder?: string }) => {
