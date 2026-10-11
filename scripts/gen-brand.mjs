@@ -72,12 +72,14 @@ if (androidIndex !== -1) {
   const android = resolve(process.argv[androidIndex+1]);
   const res = resolve(android, 'app/src/main/res');
   const circlePath = `M${cx-r},${cy}a${r},${r} 0,1 0,${r*2},0a${r},${r} 0,1 0,-${r*2},0`;
-  function vector(color, red, scale) {
-    return `<?xml version="1.0" encoding="utf-8"?>\n<!-- Generated from sajni-web/branding/bloom.json by gen-brand.mjs. -->\n<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="256" android:viewportHeight="256">\n  <group android:pivotX="128" android:pivotY="128" android:scaleX="${scale}" android:scaleY="${scale}">\n    <path android:fillColor="${color}" android:fillType="evenOdd" android:pathData="${art.path}"/>\n${red ? `    <path android:fillColor="${red}" android:pathData="${circlePath}"/>\n` : ''}  </group>\n</vector>\n`;
+  function vector(color, red, scale, size = 108) {
+    return `<?xml version="1.0" encoding="utf-8"?>\n<!-- Generated from sajni-web/branding/bloom.json by gen-brand.mjs. -->\n<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="${size}dp" android:height="${size}dp" android:viewportWidth="256" android:viewportHeight="256">\n  <group android:pivotX="128" android:pivotY="128" android:scaleX="${scale}" android:scaleY="${scale}">\n    <path android:fillColor="${color}" android:fillType="evenOdd" android:pathData="${art.path}"/>\n${red ? `    <path android:fillColor="${red}" android:pathData="${circlePath}"/>\n` : ''}  </group>\n</vector>\n`;
   }
   // 108dp adaptive canvas; every painted pixel stays in the 66dp safe circle.
   save(resolve(res, 'drawable/ic_launcher_foreground.xml'), vector(ink, vermilion, .66));
   save(resolve(res, 'drawable/ic_launcher_monochrome.xml'), vector('#000000', null, .66));
+  // Notification alpha mask: full-size bloom, without adaptive-launcher padding.
+  save(resolve(res, 'drawable/ic_stat_sajni.xml'), vector('#FFFFFF', null, 1, 24));
   save(resolve(res, 'drawable/ic_splash_logo.xml'), vector(ink, vermilion, .66));
   save(resolve(res, 'drawable/ic_splash_logo_dark.xml'), vector(cream, vermilion, .66));
   // Full-size layers for Compose tinting with MaterialTheme.onSurface.

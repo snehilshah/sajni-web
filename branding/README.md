@@ -41,6 +41,8 @@ image library or runtime dependency is needed. Review both repositories' diffs.
 - `ic_launcher_monochrome` is a single alpha silhouette with transparent veins;
   the launcher supplies the entire colour palette, including the heart. This
   requires a launcher supporting themed icons with that setting enabled.
+- `ic_stat_sajni` uses the same silhouette in white on a transparent 24dp
+  canvas, without adaptive-icon padding, for local and FCM notifications.
 - Day/night splash vectors retain the red heart. The Compose sign-in mark
   tints its petal layer with `MaterialTheme.colorScheme.onSurface`, supporting
   light, dark, dynamic wallpaper, and synced palettes.
