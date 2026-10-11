@@ -546,12 +546,6 @@ export default function TransactionDialog({
           />
         </div>
         {errors.share && <p className="text-xs text-destructive">{errors.share}</p>}
-        {total > 0 && theirShare > 0 && theirShare <= total && (
-          <div className="flex flex-wrap gap-1.5">
-            {theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
-            <DateBadge tone="accent">{person.trim() || 'They'} owe{person.trim() ? 's' : ''} <Money value={theirShare} /></DateBadge>
-          </div>
-        )}
         {!existingSplit && (
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
             <DatePicker value={dueDate} onChange={setDueDate} prefix="Due" placeholder={account?.type === 'credit_card' ? 'With the card bill' : 'Anytime'} />
@@ -570,17 +564,22 @@ export default function TransactionDialog({
             </button>
           </div>
         )}
-        {txn && !existingSplit && (
-          <Button variant="tonal" className="self-end" onClick={applyToExisting} disabled={saving}>Split this bill</Button>
-        )}
+        <SummaryRow action={txn && !existingSplit && (
+          <Button variant="tonal" onClick={applyToExisting} disabled={saving}>Split this bill</Button>
+        )}>
+          {total > 0 && theirShare > 0 && theirShare <= total && (<>
+            {theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
+            <DateBadge tone="accent">{person.trim() || 'They'} owe{person.trim() ? 's' : ''} <Money value={theirShare} /></DateBadge>
+          </>)}
+        </SummaryRow>
       </AddonSection>
     );
     if (a === 'settle') return (
       <AddonSection key={a} label="From a person" onRemove={() => removeAddon('settle')}>
         <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
           suggestions={people.filter((p) => p.outstanding > 0).map((p) => p.borrower)} placeholder="Who is paying you back?" autoFocus={justAdded === 'settle'} />
-        {owed && (
-          <div className="flex flex-wrap gap-1.5">
+        <SummaryRow action={txn && <Button variant="tonal" onClick={applyToExisting} disabled={saving}>Mark as paid back</Button>}>
+          {owed && (<>
             <DateBadge>Owes <Money value={owed.outstanding} /></DateBadge>
             {total > 0 && (() => {
               const left = subMoney(owed.outstanding, total);
@@ -588,9 +587,8 @@ export default function TransactionDialog({
                 : left < 0 ? <DateBadge tone="positive"><Money value={-left} /> held</DateBadge>
                   : <DateBadge tone="positive">Settled</DateBadge>;
             })()}
-          </div>
-        )}
-        {txn && <Button variant="tonal" className="self-end" onClick={applyToExisting} disabled={saving}>Mark as paid back</Button>}
+          </>)}
+        </SummaryRow>
       </AddonSection>
     );
     if (a === 'refund') return (
@@ -638,123 +636,128 @@ export default function TransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      {/* Sized in rem so density (Compact/Cozy) scales the sheet with its
+          type; the title and footer stay put while the form scrolls. */}
+      <DialogContent showCloseButton={false} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-xl">
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{txn ? (isRefund ? 'Edit refund' : 'Edit transaction') : 'New transaction'}</DialogTitle>
             {txn && <AutosaveStatus status={autosave.status} />}
           </div>
         </DialogHeader>
-        {!txn && (
-          <div className="grid grid-cols-3 gap-1 rounded-full bg-muted p-1">
-            {(['expense', 'income', 'transfer'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => switchType(t)}
-                className={cn('rounded-full py-1.5 text-xs font-medium capitalize transition-colors',
-                  type === t ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'text-muted-foreground hover:text-foreground')}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex flex-col gap-3">
-          <Field label={existingSplit || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
-            <Input
-              inputMode="decimal"
-              value={amount}
-              aria-invalid={!!errors.amount}
-              onChange={(e) => { setAmount(decimalOnly(e.target.value)); clearError('amount'); }}
-              placeholder="0.00"
-              className="h-12 text-2xl font-semibold tabular-nums"
-              autoFocus={!txn}
-            />
-          </Field>
-          <Field label="Title">
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={type === 'transfer' ? 'e.g. Move to savings' : isRefund ? 'e.g. Amazon refund' : type === 'income' ? 'e.g. October salary' : allTheirs ? 'e.g. Cash for Aman' : 'e.g. Lunch at Cafe X'}
-              maxLength={120}
-            />
-          </Field>
-          <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-            <Field label={type === 'transfer' ? 'From' : 'Account'} error={errors.account} className="col-span-2 sm:col-span-1">
-              <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }}
-                items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
-                <SelectTrigger aria-invalid={!!errors.account}>
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
-            <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
-          </div>
-          {type === 'transfer' && !txn && (
-            <Field label="To" error={errors.linked}>
-              <Select value={linkedId || undefined} onValueChange={(v) => { setLinkedId(v ?? ''); clearError('linked'); }}
-                items={accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name }))}>
-                <SelectTrigger aria-invalid={!!errors.linked}>
-                  <SelectValue placeholder="Select destination" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.filter((a) => String(a.id) !== accountId).map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-          {showCategory && (
-            <Field
-              label="Category"
-              hint={inferring ? (
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground normal-case tracking-normal">
-                  <M3CookieLoader size="xs" tone="primary" />
-                  Sajni is picking…
-                </span>
-              ) : categoryId && !userPickedCategory && !txn ? (
-                <span className="inline-flex items-center gap-1 text-xs text-primary normal-case tracking-normal">
-                  <Sparkles className="size-3" /> auto · change anytime
-                </span>
-              ) : undefined}
-            >
-              <CategoryChips
-                categories={filteredCats}
-                value={categoryId || (othersCategory ? String(othersCategory.id) : '')}
-                onChange={(v) => {
-                  userPickedCategoryRef.current = true;
-                  setUserPickedCategory(true);
-                  setCategoryId(v);
-                }}
-              />
-            </Field>
-          )}
-
-          {/* Add-ons that are on are sections of the form; the rest wait
-              as quiet "+" chips under them. */}
-          {offered.filter((a) => addons.has(a)).map(section)}
-          {offered.some((a) => !addons.has(a)) && (
-            <div className="flex flex-wrap gap-1.5">
-              {offered.filter((a) => !addons.has(a)).map((a) => (
+        {/* The fade sits inside the 8px padding, so at rest it touches no content. */}
+        <div className="-mx-6 -my-2 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-2 [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%-8px),transparent)]">
+          {!txn && (
+            <div className="grid grid-cols-3 gap-1 rounded-full bg-muted p-1">
+              {(['expense', 'income', 'transfer'] as const).map((t) => (
                 <button
-                  key={a}
+                  key={t}
                   type="button"
-                  onClick={() => addAddon(a)}
-                  className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
+                  onClick={() => switchType(t)}
+                  className={cn('rounded-full py-1.5 text-xs font-medium capitalize transition-colors',
+                    type === t ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'text-muted-foreground hover:text-foreground')}
                 >
-                  <Plus className="size-3.5" /> {addLabel[a]}
+                  {t}
                 </button>
               ))}
             </div>
           )}
+          <div className="flex flex-col gap-3">
+            <Field label={existingSplit || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
+              <Input
+                inputMode="decimal"
+                value={amount}
+                aria-invalid={!!errors.amount}
+                onChange={(e) => { setAmount(decimalOnly(e.target.value)); clearError('amount'); }}
+                placeholder="0.00"
+                className="h-12 text-2xl font-semibold tabular-nums"
+                autoFocus={!txn}
+              />
+            </Field>
+            <Field label="Title">
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={type === 'transfer' ? 'e.g. Move to savings' : isRefund ? 'e.g. Amazon refund' : type === 'income' ? 'e.g. October salary' : allTheirs ? 'e.g. Cash for Aman' : 'e.g. Lunch at Cafe X'}
+                maxLength={120}
+              />
+            </Field>
+            <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <Field label={type === 'transfer' ? 'From' : 'Account'} error={errors.account} className="col-span-2 sm:col-span-1">
+                <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }}
+                  items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
+                  <SelectTrigger aria-invalid={!!errors.account}>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
+              <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
+            </div>
+            {type === 'transfer' && !txn && (
+              <Field label="To" error={errors.linked}>
+                <Select value={linkedId || undefined} onValueChange={(v) => { setLinkedId(v ?? ''); clearError('linked'); }}
+                  items={accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name }))}>
+                  <SelectTrigger aria-invalid={!!errors.linked}>
+                    <SelectValue placeholder="Select destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.filter((a) => String(a.id) !== accountId).map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+            {showCategory && (
+              <Field
+                label="Category"
+                hint={inferring ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground normal-case tracking-normal">
+                    <M3CookieLoader size="xs" tone="primary" />
+                    Sajni is picking…
+                  </span>
+                ) : categoryId && !userPickedCategory && !txn ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-primary normal-case tracking-normal">
+                    <Sparkles className="size-3" /> auto · change anytime
+                  </span>
+                ) : undefined}
+              >
+                <CategoryChips
+                  categories={filteredCats}
+                  value={categoryId || (othersCategory ? String(othersCategory.id) : '')}
+                  onChange={(v) => {
+                    userPickedCategoryRef.current = true;
+                    setUserPickedCategory(true);
+                    setCategoryId(v);
+                  }}
+                />
+              </Field>
+            )}
+
+            {/* Add-ons that are on are sections of the form; the rest wait
+                as quiet "+" chips under them. */}
+            {offered.filter((a) => addons.has(a)).map(section)}
+            {offered.some((a) => !addons.has(a)) && (
+              <div className="flex flex-wrap gap-1.5">
+                {offered.filter((a) => !addons.has(a)).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => addAddon(a)}
+                    className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
+                  >
+                    <Plus className="size-3.5" /> {addLabel[a]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter className="flex-row items-center justify-between">
           {txn ? (
@@ -795,6 +798,19 @@ function AddonSection({ label, onRemove, children }: { label: string; onRemove: 
       </div>
       {children}
     </section>
+  );
+}
+
+// An add-on's last line: what it adds up to (badges) on the leading edge and,
+// on a saved transaction, the button that commits it on the trailing edge,
+// both on one centre line.
+function SummaryRow({ action, children }: { action?: ReactNode; children?: ReactNode }) {
+  if (!action && !children) return null;
+  return (
+    <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+      {action}
+    </div>
   );
 }
 
