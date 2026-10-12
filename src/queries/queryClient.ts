@@ -18,3 +18,14 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// A task list invalidated while off screen would otherwise paint its old rows
+// and counts for a beat when its pill is picked again, then jump to the fresh
+// set. Drop it instead, so a switch goes skeleton → current list.
+queryClient.getQueryCache().subscribe((event) => {
+  if (event.type !== 'updated' || event.action.type !== 'invalidate') return;
+  const { query } = event;
+  if (query.queryKey[0] === 'tasks' && query.queryKey[1] === 'list' && !query.isActive()) {
+    queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
+  }
+});

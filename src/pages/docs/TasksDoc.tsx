@@ -21,9 +21,10 @@ export default function TasksDoc() {
     <>
       <Section id="views" title="Smart Views & Lists" chip="pill row">
         <p>
-          One swipeable pill row holds the smart views and your own lists.
-          Smart views are queries, not containers, a task appears in every
-          view it matches:
+          The <strong>Lists</strong> chip at the start of the row holds your
+          own lists; the swipeable pills after it are the smart views. Smart
+          views are queries, not containers, a task appears in every view it
+          matches:
         </p>
         <RefTable
           head={['view', 'what it shows']}
@@ -41,9 +42,14 @@ export default function TasksDoc() {
         <FeatureList>
           <Feature name="Your lists">
             <p>
-              Create, rename, delete from the same pill row. Deleting a list
-              doesn't delete its tasks, they fall back to the Inbox. New
-              tasks default into whichever list you're viewing.
+              Tap <strong>Lists</strong> (it never scrolls away) and start
+              typing: “gro” finds Groceries, and Enter opens the first match.
+              With more than six lists, the last few you opened sit on top
+              under Recent. The chip then shows the open list's name and
+              count. Create, rename and delete live in the same menu (on the
+              phone, hold a list to rename, reorder or delete it). Deleting
+              a list doesn't delete its tasks, they fall back to the Inbox.
+              New tasks default into whichever list you're viewing.
             </p>
           </Feature>
           <Feature name="Context-aware quick-add">
@@ -107,12 +113,15 @@ export default function TasksDoc() {
             <p>
               Full child tasks with their own status, dates and reminders.
               The parent row shows a progress ring and the count (“2/5”);
-              tap it to expand them inline. You can add subtasks while
-              creating a task: “Paint the room” with “Buy paint” and “Sand
-              the walls” typed under More details are all created together
-              when you press Create. Use subtasks when the child is real
-              work; steps when it's just a checklist line. Month-goal
-              sessions are subtasks.
+              tap it and the subtasks drop down one by one under the parent.
+              You can add subtasks while creating a task: “Paint the room”
+              with “Buy paint” and “Sand the walls” typed under More details
+              are all created together when you press Create. When a subtask
+              shows up on its own in a smart view (My Day, Missed, All), a
+              small “↳ Paint the room” line above its title names the parent;
+              tap that line to open the parent. Use subtasks when the child
+              is real work; steps when it's just a checklist line.
+              Month-goal sessions are subtasks.
             </p>
           </Feature>
           <Feature name="Priority & Important">

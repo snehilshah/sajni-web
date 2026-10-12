@@ -48,6 +48,8 @@ export interface Task {
   reminded_at?: string | null;
   list_id?: number | null;
   parent_task_id?: number | null;
+  /** Parent's title, so a subtask listed flat can name its parent. */
+  parent_task_title?: string | null;
   blocked_by_task_id?: number | null;
   blocked_by_task_title?: string | null;
   blocked_by_task_status?: Task['status'] | null;

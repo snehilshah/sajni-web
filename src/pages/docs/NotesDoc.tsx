@@ -109,6 +109,28 @@ export default function NotesDoc() {
               and are tappable.
             </p>
           </Feature>
+          <Feature name="On the phone: read first, write when you mean to">
+            <p>
+              In the Android app a note opens as a page to read: headings,
+              lists, quotes and tables are formatted, and checklist boxes
+              tick with a tap (the note saves itself). Tap{' '}
+              <strong>Edit</strong> or double-tap the page to write. New
+              notes open straight to writing.
+            </p>
+            <p>
+              While you write, the Markdown is styled as you type:{' '}
+              <Code>## Plan</Code> shows as a heading,{' '}
+              <Code>**done**</Code> as bold, and the symbols fade back.
+              The formatting bar sits on the keyboard.
+            </p>
+            <p>
+              The app steps back while you focus. Scroll down to read and the
+              top bar and the nav dock fade out; scroll up or tap the page to
+              bring them back. Start typing and the bar thins to back and{' '}
+              <strong>Done</strong>. Word count and backlinks sit at the end
+              of the page.
+            </p>
+          </Feature>
         </FeatureList>
         <Callout tone="why">
           <Code>/task</Code> exists because meeting notes breed commitments.

@@ -1,17 +1,12 @@
-import { useState } from 'react';
-import { HuePill, huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
+import { HuePill } from '@/components/ui/hue-pill';
 import {
-  Plus, MoreVertical, Pencil, Trash2, ListChecks, Sun, Star, CalendarDays, CalendarRange,
-  Calendar, AlarmClock, Ban, CalendarClock, Inbox, List, type LucideIcon,
+  ListChecks, Sun, Star, CalendarDays, CalendarRange,
+  Calendar, AlarmClock, Ban, CalendarClock, Inbox, type LucideIcon,
 } from '@/components/ui/icons';
 
 import type { TaskList, SmartList } from '@/types';
-import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
 import { SMART_LISTS, SMART_LIST_HUES, type Selection } from './helpers';
-import { confirmDialog } from '@/lib/confirm';
+import ListPicker from './ListPicker';
 
 
 interface Props {
@@ -30,169 +25,50 @@ const SMART_ICONS: Record<SmartList, LucideIcon> = {
   month: Calendar, scheduled: AlarmClock, blocked: Ban, missed: CalendarClock, inbox: Inbox,
 };
 
-const pillBase = huePillBase;
-const pillOn = huePillOn;
-const pillOff = huePillOff;
-const glyph = huePillGlyph;
-
-// PillScroller — horizontal swipeable row replacing the old vertical
-// rail. Works identically on mobile and desktop, snaps cleanly, hides
-// its scrollbar, and forwards vertical wheel scroll to horizontal so
-// trackpad/mouse users can still pan with two fingers.
+// PillScroller — the list picker chip pinned on the leading edge (every user
+// list, searchable, never scrolled out of reach), then the smart lists as a
+// horizontal swipeable row that hides its scrollbar and forwards vertical
+// wheel scroll to horizontal so trackpad/mouse users can still pan.
 export default function PillScroller({ lists, selection, onSelect, onCreate, onRename, onDelete, smartCounts }: Props) {
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editDraft, setEditDraft] = useState('');
-
-  const submitRename = async (id: number) => {
-    const name = editDraft.trim();
-    if (name && onRename) await onRename(id, name);
-    setEditingId(null);
-    setEditDraft('');
-  };
-
-  const submitNew = async () => {
-    const name = draft.trim();
-    if (!name) { setAdding(false); setDraft(''); return; }
-    await onCreate(name);
-    setDraft('');
-    setAdding(false);
-  };
-
   return (
-    <div
-      className="flex items-center gap-2 overflow-x-auto overflow-y-hidden py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      onWheel={(e) => {
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          (e.currentTarget as HTMLElement).scrollLeft += e.deltaY;
-        }
-      }}
-    >
-      {SMART_LISTS.map((s) => {
-        const active = selection.kind === 'smart' && selection.smart === s.smart;
-        const count = smartCounts?.[s.smart] ?? 0;
-        const Icon = SMART_ICONS[s.smart];
-        const hue = SMART_LIST_HUES[s.smart]
-          ?? (s.smart === 'missed' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))');
-        return (
-          <HuePill
-            key={s.smart}
-            icon={Icon}
-            hue={hue}
-            selected={active}
-            count={count}
-            title={s.description}
-            onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
-          >
-            {s.label}
-          </HuePill>
-        );
-      })}
-
-      <span className="self-stretch w-px my-1.5 mx-1 bg-border/60 shrink-0" aria-hidden />
-
-      {lists.map((l) => {
-        const active = selection.kind === 'list' && selection.id === l.id;
-        const isEditing = editingId === l.id;
-        return (
-          <div
-            key={l.id}
-            style={hueVar(l.color || 'hsl(var(--primary))')}
-            className={`group ${pillBase} gap-0 ${active ? pillOn : pillOff}`}
-          >
-            {isEditing ? (
-              <span className="inline-flex items-center gap-1 h-full pl-3.5 pr-1.5">
-                <List className={glyph} aria-hidden />
-                <Input
-                  name={`rename-list-${l.id}`}
-                  autoFocus
-                  value={editDraft}
-                  onChange={(e) => setEditDraft(e.target.value)}
-                  onBlur={() => submitRename(l.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') submitRename(l.id);
-                    if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
-                  }}
-                  className="h-6 w-24 border-0 border-b border-current bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-current focus-visible:shadow-none text-[12.5px]"
-                />
-              </span>
-            ) : (
-              // The select target fills the whole pill (dot, name, count and
-              // padding) — only the kebab carves out its own hit area.
-              <button
-                type="button"
-                onClick={() => onSelect({ kind: 'list', id: l.id })}
-                className={`inline-flex items-center gap-1.5 h-full pl-3 rounded-full text-left ${onRename || onDelete ? 'pr-0.5' : 'pr-3.5'}`}
-                aria-pressed={active}
-              >
-                <List className={glyph} aria-hidden />
-                {l.name}
-                {l.task_count > 0 && (
-                  <span className="text-xs tabular-nums opacity-70 ml-1">{l.task_count}</span>
-                )}
-              </button>
-            )}
-            {!isEditing && (onRename || onDelete) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <button
-                      onClick={(e) => e.stopPropagation()}
-                      className="mr-1 size-7 inline-flex items-center justify-center rounded-full opacity-60 hover:opacity-100 hover:bg-foreground/10"
-                      title="List options"
-                    >
-                      <MoreVertical className="size-3.5" />
-                    </button>
-                  }
-                />
-                <DropdownMenuContent align="end" className="text-sm">
-                  {onRename && (
-                    <DropdownMenuItem onClick={() => { setEditingId(l.id); setEditDraft(l.name); }}>
-                      <Pencil className="size-3.5 mr-2" /> Rename
-                    </DropdownMenuItem>
-                  )}
-                  {onDelete && (
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={async () => {
-                        if (await confirmDialog(`Delete list "${l.name}"? Tasks inside move to Inbox.`)) onDelete(l.id);
-                      }}
-                    >
-                      <Trash2 className="size-3.5 mr-2" /> Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        );
-      })}
-
-      {adding ? (
-        <div className="inline-flex items-center h-9 px-2 rounded-full border border-dashed border-border bg-background shrink-0">
-          <Input
-            name="new-list-name"
-            autoFocus
-            value={draft}
-            placeholder="List name"
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={submitNew}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitNew();
-              if (e.key === 'Escape') { setAdding(false); setDraft(''); }
-            }}
-            className="h-6 w-28 text-[12px] bg-transparent border-0 shadow-none focus-visible:ring-0 px-1"
-          />
-        </div>
-      ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium whitespace-nowrap shrink-0 border border-dashed border-border text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
-        >
-          <Plus className="size-3.5" /> New list
-        </button>
-      )}
+    <div className="flex min-w-0 items-center gap-2">
+      <ListPicker
+        lists={lists}
+        selectedId={selection.kind === 'list' ? selection.id : null}
+        onSelect={(id) => onSelect({ kind: 'list', id })}
+        onCreate={onCreate}
+        onRename={onRename}
+        onDelete={onDelete}
+      />
+      <div
+        className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overflow-y-hidden py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        onWheel={(e) => {
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            (e.currentTarget as HTMLElement).scrollLeft += e.deltaY;
+          }
+        }}
+      >
+        {SMART_LISTS.map((s) => {
+          const active = selection.kind === 'smart' && selection.smart === s.smart;
+          const count = smartCounts?.[s.smart] ?? 0;
+          const Icon = SMART_ICONS[s.smart];
+          const hue = SMART_LIST_HUES[s.smart]
+            ?? (s.smart === 'missed' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))');
+          return (
+            <HuePill
+              key={s.smart}
+              icon={Icon}
+              hue={hue}
+              selected={active}
+              count={count}
+              title={s.description}
+              onClick={() => onSelect({ kind: 'smart', smart: s.smart })}
+            >
+              {s.label}
+            </HuePill>
+          );
+        })}
+      </div>
     </div>
   );
 }

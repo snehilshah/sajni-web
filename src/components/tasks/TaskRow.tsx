@@ -42,9 +42,14 @@ export default function TaskRow({
   const createTask = useCreateTask();
   const prefetchSubtasks = usePrefetchSubtasks();
 
-  // Children: seeded by the list-embedded prefetch (instant expand), refetched
-  // fresh once the row is opened. Mutations invalidate the cache automatically.
-  const { data: subs, isLoading: loadingSubs } = useSubtasks(task.id, expanded, task.subtasks);
+  // Children come embedded in the list response, which every task mutation
+  // refetches, so expanding shows the current set at once. A separately cached
+  // /subtasks copy could be older and flash the previous items first; it is
+  // only fetched for rows that arrive without embedded children.
+  const embedded = task.subtasks;
+  const { data: fetched, isLoading: loadingFetched } = useSubtasks(task.id, expanded && !embedded);
+  const subs = embedded ?? fetched;
+  const loadingSubs = !embedded && loadingFetched;
 
   const overdue = task.due_date && task.status !== 'done' && (() => {
     const d = parseISO(task.due_date);
@@ -55,6 +60,7 @@ export default function TaskRow({
   const totalSteps = task.steps?.length ?? 0;
   const hasSubtasks = (task.subtask_count ?? 0) > 0;
   const dimmed = task.status === 'done' || task.status === 'scratched';
+  const showParent = depth === 0 && !attached && task.parent_task_id != null;
 
   const handleToggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -151,9 +157,31 @@ export default function TaskRow({
 
           <div className="flex flex-1 min-w-0 items-center gap-2.5">
             <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-            <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
-              {task.title}
-            </span>
+            {/* A subtask listed flat (smart lists, Missed, All) names its
+                parent above its title; tapping it opens the parent. */}
+            {showParent ? (
+              <span className="flex flex-1 min-w-0 flex-col justify-center">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.parent_task_id } }));
+                  }}
+                  title={`Subtask of ${task.parent_task_title || 'another task'}`}
+                  className="flex max-w-full min-w-0 items-center gap-1 self-start text-xs leading-4 text-muted-foreground hover:text-foreground"
+                >
+                  <CornerDownRight className="size-3 shrink-0" aria-hidden />
+                  <span className="truncate">{task.parent_task_title || 'Subtask'}</span>
+                </button>
+                <span className={cn('min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
+                  {task.title}
+                </span>
+              </span>
+            ) : (
+              <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
+                {task.title}
+              </span>
+            )}
 
             <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
               {task.tags && task.tags.length > 0 && (
@@ -164,13 +192,6 @@ export default function TaskRow({
               )}
               {Boolean(task.description?.trim()) && (
                 <StickyNote className="hidden @md:block size-3.5 shrink-0" aria-label="Has note" />
-              )}
-              {/* Subtask hint — only when shown as a flat row (smart/missed/all
-                  views), so a child task doesn't read as a top-level one. */}
-              {depth === 0 && task.parent_task_id != null && !attached && (
-                <span className={cn(chip, neutral, 'hidden @sm:inline-flex')} title="This is a subtask">
-                  <CornerDownRight className="size-3" /><span className="hidden @xl:inline">subtask</span>
-                </span>
               )}
               {task.status === 'scratched' && <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.08)]')}>scratched</span>}
               {task.due_date ? (
@@ -212,8 +233,8 @@ export default function TaskRow({
                 <button
                   type="button"
                   onClick={toggleExpand}
-                  onPointerEnter={() => { void prefetchSubtasks(task.id); }}
-                  onFocus={() => { void prefetchSubtasks(task.id); }}
+                  onPointerEnter={() => { if (!embedded) void prefetchSubtasks(task.id); }}
+                  onFocus={() => { if (!embedded) void prefetchSubtasks(task.id); }}
                   aria-expanded={expanded}
                   aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
                   title={expanded ? 'Hide subtasks' : 'View subtasks'}

@@ -39,16 +39,12 @@ export function useTaskLists() {
   });
 }
 
-// Subtasks of a row. Seeded with the list-embedded prefetch so expand is
-// instant, but marked stale (updatedAt 0) so it still refetches fresh once the
-// row is actually opened.
-export function useSubtasks(id: number, enabled: boolean, prefetch?: Task[]) {
+// Subtasks of a row that arrived without list-embedded children.
+export function useSubtasks(id: number, enabled: boolean) {
   return useQuery({
     queryKey: qk.tasks.subtasks(id),
     queryFn: () => tasksApi.subtasks(id),
     enabled,
-    initialData: prefetch,
-    initialDataUpdatedAt: 0,
     staleTime: 30_000,
   });
 }

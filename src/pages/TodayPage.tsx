@@ -2,7 +2,7 @@ import { DateBadge } from '@/components/ui/state-chip';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, isPast, isToday, parseISO } from 'date-fns';
-import { CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell } from '@/components/ui/icons';
+import { CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell, CornerDownRight } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -333,6 +333,12 @@ export default function TodayPage() {
 														{t.title}
 													</div>
 													<div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+														{t.parent_task_id != null && (
+															<span className="inline-flex min-w-0 max-w-[12rem] items-center gap-1" title={`Subtask of ${t.parent_task_title || 'another task'}`}>
+																<CornerDownRight className="size-3 shrink-0" aria-hidden />
+																<span className="truncate">{t.parent_task_title || 'Subtask'}</span>
+															</span>
+														)}
 														{t.scheduled_at ? (
 															<span
 																className={`mono inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 leading-none ${
