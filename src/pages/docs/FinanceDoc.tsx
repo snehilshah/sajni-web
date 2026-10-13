@@ -611,6 +611,9 @@ export default function FinanceDoc() {
                 notification. Sajni recognises the bank reference number and
                 asks <em>Add anyway?</em> rather than adding it twice. Two
                 payments are never merged just because the amounts match.
+                One bank text seen twice (as the SMS itself and as your
+                messages app's notification of it) is the same message, so
+                it's read only once.
               </li>
             </ul>
           </Feature>

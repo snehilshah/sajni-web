@@ -59,6 +59,12 @@ export default function TaskRow({
   const completedSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
   const hasSubtasks = (task.subtask_count ?? 0) > 0;
+  // Deleting the last subtask takes the toggle with it; fold the group too,
+  // or its "Add subtask" row is left open with nothing to close it.
+  if (expanded && !hasSubtasks) {
+    setExpanded(false);
+    setAddingSub(false);
+  }
   const dimmed = task.status === 'done' || task.status === 'scratched';
   const showParent = depth === 0 && !attached && task.parent_task_id != null;
 
@@ -157,10 +163,15 @@ export default function TaskRow({
 
           <div className="flex flex-1 min-w-0 items-center gap-2.5">
             <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-            {/* A subtask listed flat (smart lists, Missed, All) names its
-                parent above its title; tapping it opens the parent. */}
-            {showParent ? (
-              <span className="flex flex-1 min-w-0 flex-col justify-center">
+            <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
+              {task.title}
+            </span>
+
+            <div className="flex min-w-0 shrink items-center gap-1.5 text-muted-foreground">
+              {/* A subtask listed flat (smart lists, Missed, All) names its
+                  parent in the first chip, so the title keeps its line;
+                  tapping it opens the parent. */}
+              {showParent && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -168,22 +179,12 @@ export default function TaskRow({
                     window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.parent_task_id } }));
                   }}
                   title={`Subtask of ${task.parent_task_title || 'another task'}`}
-                  className="flex max-w-full min-w-0 items-center gap-1 self-start text-xs leading-4 text-muted-foreground hover:text-foreground"
+                  className={cn(chip, neutral, 'min-w-0 shrink max-w-40 hover:text-foreground')}
                 >
                   <CornerDownRight className="size-3 shrink-0" aria-hidden />
                   <span className="truncate">{task.parent_task_title || 'Subtask'}</span>
                 </button>
-                <span className={cn('min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
-                  {task.title}
-                </span>
-              </span>
-            ) : (
-              <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
-                {task.title}
-              </span>
-            )}
-
-            <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+              )}
               {task.tags && task.tags.length > 0 && (
                 <span className="hidden @2xl:inline-flex items-center gap-1">
                   {task.tags.slice(0, 2).map((tag) => <TagPill key={tag} tag={tag} />)}

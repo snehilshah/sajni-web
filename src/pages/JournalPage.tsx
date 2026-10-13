@@ -247,6 +247,10 @@ export default function JournalPage() {
     toggleTaskStatus.mutate({ id: taskId, status: 'done' });
   };
 
+  const reopenTask = (taskId: number) => {
+    toggleTaskStatus.mutate({ id: taskId, status: 'todo' });
+  };
+
   const deleteEntry = async () => {
     if (!(await confirmDialog(`Delete journal entry for ${selectedDate}?`))) return;
     await journalApi.delete(selectedDate);
@@ -350,8 +354,14 @@ export default function JournalPage() {
               </div>
             ))}
             {completedTasks.map((t) => (
-              <div key={t.id} className="flex items-start gap-2.5">
-                <Checkbox checked={true} className="mt-0.5 shrink-0 pointer-events-none" tabIndex={-1} />
+              <div key={t.id} className="group flex items-start gap-2.5">
+                <button
+                  onClick={() => reopenTask(t.id)}
+                  title="Mark not done"
+                  className="shrink-0 mt-0.5"
+                >
+                  <Checkbox checked={true} className="pointer-events-none" tabIndex={-1} />
+                </button>
                 <button
                   onClick={() => openTask(t.id)}
                   className="flex-1 text-left text-[12.5px] line-through text-muted-foreground leading-snug hover:text-foreground/70 transition-colors"

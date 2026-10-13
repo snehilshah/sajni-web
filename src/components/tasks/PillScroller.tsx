@@ -25,8 +25,8 @@ const SMART_ICONS: Record<SmartList, LucideIcon> = {
   month: Calendar, scheduled: AlarmClock, blocked: Ban, missed: CalendarClock, inbox: Inbox,
 };
 
-// PillScroller — the list picker chip pinned on the leading edge (every user
-// list, searchable, never scrolled out of reach), then the smart lists as a
+// PillScroller — the list picker chip pinned on the leading edge (Inbox and
+// every user list, searchable, never scrolled out of reach), then the smart lists as a
 // horizontal swipeable row that hides its scrollbar and forwards vertical
 // wheel scroll to horizontal so trackpad/mouse users can still pan.
 export default function PillScroller({ lists, selection, onSelect, onCreate, onRename, onDelete, smartCounts }: Props) {
@@ -35,7 +35,9 @@ export default function PillScroller({ lists, selection, onSelect, onCreate, onR
       <ListPicker
         lists={lists}
         selectedId={selection.kind === 'list' ? selection.id : null}
+        inboxSelected={selection.kind === 'smart' && selection.smart === 'inbox'}
         onSelect={(id) => onSelect({ kind: 'list', id })}
+        onSelectInbox={() => onSelect({ kind: 'smart', smart: 'inbox' })}
         onCreate={onCreate}
         onRename={onRename}
         onDelete={onDelete}

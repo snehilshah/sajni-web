@@ -35,7 +35,6 @@ export default function TasksDoc() {
             ['Important', 'starred tasks, any date'],
             ['Blocked', 'tasks waiting on another task (badge shows count)'],
             ['Missed', 'tasks whose date passed while still open'],
-            ['Inbox', 'tasks in no list'],
             ['All', 'everything'],
           ]}
         />
@@ -44,6 +43,8 @@ export default function TasksDoc() {
             <p>
               Tap <strong>Lists</strong> (it never scrolls away) and start
               typing: “gro” finds Groceries, and Enter opens the first match.
+              <strong>Inbox</strong> always leads the menu: it holds every
+              task you never filed in a list.
               With more than six lists, the last few you opened sit on top
               under Recent. The chip then shows the open list's name and
               count. Create, rename and delete live in the same menu (on the
@@ -106,7 +107,8 @@ export default function TasksDoc() {
             <p>
               A lightweight checklist <em>inside</em> the task, “pack
               charger, pack kindle”. Steps have no dates, no reminders, no
-              identity of their own; they're for shape, not scheduling.
+              identity of their own; they're for shape, not scheduling. Tap
+              a step's text to reword it.
             </p>
           </Feature>
           <Feature name="Subtasks">
@@ -116,10 +118,12 @@ export default function TasksDoc() {
               tap it and the subtasks drop down one by one under the parent.
               You can add subtasks while creating a task: “Paint the room”
               with “Buy paint” and “Sand the walls” typed under More details
-              are all created together when you press Create. When a subtask
-              shows up on its own in a smart view (My Day, Missed, All), a
-              small “↳ Paint the room” line above its title names the parent;
-              tap that line to open the parent. Use subtasks when the child
+              are all created together when you press Create (on the phone,
+              just close the sheet: a new task with a title saves itself).
+              When a subtask shows up on its own in a smart view (My Day, Missed, All), a
+              small “↳ Paint the room” chip beside its title names the parent;
+              tap the chip to open the parent. Delete the last subtask and the
+              group folds away with it. Use subtasks when the child
               is real work; steps when it's just a checklist line.
               Month-goal sessions are subtasks.
             </p>

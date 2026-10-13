@@ -75,6 +75,5 @@ export const SMART_LISTS: { smart: SmartList; label: string; description: string
   { smart: 'scheduled', label: 'Scheduled', description: 'Tasks with a time / reminder' },
   { smart: 'blocked', label: 'Blocked', description: 'Tasks waiting on another task' },
   { smart: 'missed', label: 'Missed', description: 'Overdue & still open' },
-  { smart: 'inbox', label: 'Inbox', description: 'Unfiled tasks' },
   { smart: 'all', label: 'All', description: 'Every open task' },
 ];

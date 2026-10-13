@@ -61,9 +61,9 @@ export default function JournalDoc() {
         <FeatureList>
           <Feature name="That day's habits & tasks">
             <p>
-              Two columns show what you ticked and what was due that day,
-              read-only checkmarks with jump-throughs. The journal never
-              edits tasks; it shows the shape of the day.
+              Two columns show what you ticked and what was due that day.
+              Tick a task to finish it, or tick a done one again to reopen it
+              if you checked it by mistake; tap a title to open the task.
             </p>
           </Feature>
           <Feature name="Backlinks">

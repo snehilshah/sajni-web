@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/components/ui/hue-pill';
 import {
-  Check, ChevronDown, List, MoreVertical, Pencil, Plus, Trash2,
+  Check, ChevronDown, Inbox, List, MoreVertical, Pencil, Plus, Trash2,
 } from '@/components/ui/icons';
 
 import type { TaskList } from '@/types';
@@ -33,16 +33,22 @@ interface Props {
   lists: TaskList[];
   /** The list currently shown, if a user list (not a smart list) is selected. */
   selectedId: number | null;
+  /** Inbox (unfiled tasks, the default home) is showing. */
+  inboxSelected: boolean;
   onSelect: (id: number) => void;
+  onSelectInbox: () => void;
   onCreate: (name: string) => Promise<void>;
   onRename?: (id: number, name: string) => Promise<void>;
   onDelete?: (id: number) => Promise<void>;
 }
 
-// ListPicker — every user list behind one chip that never scrolls away. The
-// chip names the open list; the menu searches by name, keeps the last few
-// used on top, and holds New / Rename / Delete. Enter picks the first match.
-export default function ListPicker({ lists, selectedId, onSelect, onCreate, onRename, onDelete }: Props) {
+// ListPicker — Inbox and every user list behind one chip that never scrolls
+// away. The chip names the open list; the menu leads with Inbox, searches by
+// name, keeps the last few used on top, and holds New / Rename / Delete.
+// Enter picks the first match.
+export default function ListPicker({
+  lists, selectedId, inboxSelected, onSelect, onSelectInbox, onCreate, onRename, onDelete,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<number[]>(readRecent);
@@ -58,6 +64,7 @@ export default function ListPicker({ lists, selectedId, onSelect, onCreate, onRe
     [lists, q],
   );
   // Recents only earn a section when the full list is long enough to scroll.
+  const showInbox = !q || 'inbox'.includes(q);
   const recentLists = useMemo(
     () => (q || lists.length <= 6 ? [] : recent.map((id) => lists.find((l) => l.id === id)).filter((l): l is TaskList => !!l)),
     [lists, recent, q],
@@ -66,6 +73,11 @@ export default function ListPicker({ lists, selectedId, onSelect, onCreate, onRe
   const pick = (id: number) => {
     setRecent(pushRecent(id));
     onSelect(id);
+    setOpen(false);
+  };
+
+  const pickInbox = () => {
+    onSelectInbox();
     setOpen(false);
   };
 
@@ -173,11 +185,13 @@ export default function ListPicker({ lists, selectedId, onSelect, onCreate, onRe
           <button
             type="button"
             style={hueVar(selected?.color)}
-            className={cn(huePillBase, 'max-w-48 pl-3 pr-2.5', selected ? huePillOn : huePillOff)}
+            className={cn(huePillBase, 'max-w-48 pl-3 pr-2.5', selected || inboxSelected ? huePillOn : huePillOff)}
             title="Your lists"
           >
-            <List className={cn(huePillGlyph, !selected && 'text-current')} aria-hidden />
-            <span className="truncate">{selected ? selected.name : 'Lists'}</span>
+            {inboxSelected
+              ? <Inbox className={huePillGlyph} aria-hidden />
+              : <List className={cn(huePillGlyph, !selected && 'text-current')} aria-hidden />}
+            <span className="truncate">{selected ? selected.name : inboxSelected ? 'Inbox' : 'Lists'}</span>
             {selected && selected.task_count > 0 && (
               <span className="text-xs font-semibold tabular-nums text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]">
                 {selected.task_count}
@@ -195,11 +209,29 @@ export default function ListPicker({ lists, selectedId, onSelect, onCreate, onRe
           placeholder="Find a list"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && matches[0]) { e.preventDefault(); pick(matches[0].id); }
+            if (e.key !== 'Enter') return;
+            if (matches[0]) { e.preventDefault(); pick(matches[0].id); } else if (showInbox) { e.preventDefault(); pickInbox(); }
           }}
           className="h-9"
         />
         <div className="mt-1 max-h-[min(22rem,60vh)] overflow-y-auto">
+          {showInbox && (
+            <button
+              type="button"
+              onClick={pickInbox}
+              aria-pressed={inboxSelected}
+              className={cn(
+                'flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors',
+                inboxSelected ? 'bg-[hsl(var(--primary)/0.12)]' : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
+              )}
+              title="Tasks not filed in any list"
+            >
+              <Inbox className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className={cn('min-w-0 flex-1 truncate', inboxSelected && 'font-semibold')}>Inbox</span>
+              <span className="w-4 shrink-0">{inboxSelected && <Check className="size-4" aria-label="Showing" />}</span>
+              {(onRename || onDelete) && <span className="mx-1 size-8 shrink-0" aria-hidden />}
+            </button>
+          )}
           {recentLists.length > 0 && (
             <>
               <div className="label-kicker px-2.5 pb-1 pt-1.5 text-muted-foreground">Recent</div>
@@ -208,7 +240,7 @@ export default function ListPicker({ lists, selectedId, onSelect, onCreate, onRe
             </>
           )}
           {matches.map(row)}
-          {q && matches.length === 0 && (
+          {q && matches.length === 0 && !showInbox && (
             <div className="px-2.5 py-3 text-sm text-muted-foreground">No list called “{query.trim()}”</div>
           )}
         </div>
