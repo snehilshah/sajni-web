@@ -194,6 +194,14 @@ export default function TasksDoc() {
           ]}
         />
         <FeatureList>
+          <Feature name="A task's reminder fires once">
+            <p>
+              Once a task's reminder has gone off, editing the task (its
+              title, a step, a subtask) never sends it again. Change the
+              reminder's time, or switch it off and on, and it fires again
+              at the new time.
+            </p>
+          </Feature>
           <Feature name="The reminder ledger">
             <p>
               Reminders group chronologically into Today, Tomorrow, Later and
