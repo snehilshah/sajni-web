@@ -22,6 +22,9 @@ import { useJournalEntry, useJournalList } from '@/queries/journal';
 import { useHabitPeriodStatus } from '@/queries/habits';
 import { useMissedTasksForDate, useTasks, useToggleTaskStatus } from '@/queries/tasks';
 import { useEventDayEntries } from '@/queries/events';
+import { useDayRoutines } from '@/queries/routines';
+import { RoutinesManager } from '@/components/routines/RoutinesManager';
+import { RoutinesPanel } from '@/components/routines/RoutinesPanel';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
@@ -178,9 +181,15 @@ export default function JournalPage() {
   const loading = loadingEntry;
   const { data: habitStatusData = [], isLoading: loadingHabits } = useHabitPeriodStatus(selectedDate);
   const { data: dueTaskData = [], isLoading: loadingDueTasks } = useTasks({ due_date: selectedDate });
-  const { data: completedTasks = [], isLoading: loadingCompletedTasks } = useTasks({ completed_date: selectedDate });
+  const { data: completedTaskData = [], isLoading: loadingCompletedTasks } = useTasks({ completed_date: selectedDate });
   const { data: missedTasks = [], isLoading: loadingMissedTasks } = useMissedTasksForDate(selectedDate);
-  const dueTasks = dueTaskData.filter((t) => t.status !== 'done' && t.status !== 'scratched');
+  const { data: dayRoutines = [], isLoading: loadingRoutines } = useDayRoutines(selectedDate);
+  const [routinesEditor, setRoutinesEditor] = useState<{ open: boolean; id: number | 'new' | null }>({ open: false, id: null });
+  // A routine's agenda shows under the routine, not again in Tasks.
+  const routineIds = useMemo(() => new Set(dayRoutines.map((r) => r.id)), [dayRoutines]);
+  const inRoutine = (t: Task) => t.routine_id != null && routineIds.has(t.routine_id) && t.due_date === selectedDate;
+  const dueTasks = dueTaskData.filter((t) => t.status !== 'done' && t.status !== 'scratched' && !inRoutine(t));
+  const completedTasks = completedTaskData.filter((t) => !inRoutine(t));
   const loadingTasks = loadingDueTasks || loadingCompletedTasks || loadingMissedTasks;
   const toggleTaskStatus = useToggleTaskStatus();
   // Editor writes go through journalApi (day-scoped); refresh the cached list
@@ -326,6 +335,14 @@ export default function JournalPage() {
 
   const contextPanel = (
     <div className="flex flex-col gap-6 p-4">
+      <RoutinesPanel
+        date={selectedDate}
+        today={todayKey}
+        routines={dayRoutines}
+        loading={loadingRoutines}
+        onEdit={(id) => setRoutinesEditor({ open: true, id })}
+      />
+
       {/* Tasks today */}
       <section>
         <PanelHeading title="Tasks" onOpen={() => navigate('/tasks')} />
@@ -741,6 +758,12 @@ export default function JournalPage() {
           </motion.aside>
         )}
       </AnimatePresence>
+
+      <RoutinesManager
+        open={routinesEditor.open}
+        initialId={routinesEditor.id}
+        onOpenChange={(open) => setRoutinesEditor((v) => ({ ...v, open }))}
+      />
 
       {/* Mobile right margin — bottom sheet */}
       <Sheet open={mobileMarginOpen} onOpenChange={setMobileMarginOpen}>

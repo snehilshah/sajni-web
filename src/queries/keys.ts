@@ -21,6 +21,13 @@ export const qk = {
     events: (id: number) => ['tasks', 'events', id] as const,
     reminders: (id: number) => ['tasks', 'reminders', id] as const,
   },
+  // Under 'tasks' on purpose: a day's routines embed its agenda tasks, so
+  // every task invalidation refreshes them too.
+  routines: {
+    all: ['tasks', 'routines'] as const,
+    list: () => ['tasks', 'routines', 'list'] as const,
+    day: (date: string) => ['tasks', 'routines', 'day', date] as const,
+  },
   reminders: {
     all: ['reminders'] as const,
     list: (params?: unknown) => ['reminders', 'list', params ?? {}] as const,

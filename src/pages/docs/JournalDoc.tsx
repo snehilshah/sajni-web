@@ -8,6 +8,7 @@ export const journalMeta = {
   sections: [
     { id: 'daily', label: 'Daily editor' },
     { id: 'margin', label: 'The margin' },
+    { id: 'routines', label: 'Routines' },
     { id: 'weekly', label: 'Weekly view' },
     { id: 'monthly', label: 'Monthly view' },
   ],
@@ -80,6 +81,72 @@ export default function JournalDoc() {
           habits ticked, tasks done or missed, next to what you{' '}
           <em>wrote</em> about it is the whole point of a journal in a system
           that already knows your day.
+        </Callout>
+      </Section>
+
+      <Section id="routines" title="Routines" chip="day view">
+        <p>
+          A routine is a time slot that repeats: “Office start” every workday
+          at 9:00, “Closing” at 6:00, “Weekend reset” on Saturdays. Each has
+          a short checklist that starts fresh every day it runs, and room for
+          one-off things you want to handle in that slot. The day's routines
+          sit at the top of the margin, in time order, folded to one line
+          each (“Office start · 9:00 AM · 1/5”). Tap one to unfold it.
+        </p>
+        <FeatureList>
+          <Feature name="Setting one up">
+            <p>
+              Tap <em>Edit</em> beside Routines (or <em>Set up a routine</em>{' '}
+              when you have none). Give it a name, pick its days (Workdays,
+              Weekends, Every day, or single days), a start time, and type its
+              checklist. Edits to a routine save themselves.
+            </p>
+          </Feature>
+          <Feature name="The checklist">
+            <p>
+              Tick items as you go. Ticks belong to that day only, so tomorrow
+              starts clean, and past days keep what you ticked. Future days
+              can't be ticked yet.
+            </p>
+          </Feature>
+          <Feature name="Adding to a routine">
+            <p>
+              <em>Add to Office start</em> under an unfolded routine creates a
+              task for that day, timed at the routine's start. It is a normal
+              task: it shows in Tasks with a small “Office start” chip, and if
+              you don't finish it that day it becomes Missed like any other
+              task. It doesn't roll over to the next run.
+            </p>
+          </Feature>
+          <Feature name="The alert">
+            <p>
+              Each routine sends one notification at its start time, naming
+              the first few things on it. Switch <em>Alert</em> off in its
+              editor if you don't want it.
+            </p>
+          </Feature>
+        </FeatureList>
+        <Callout>
+          <strong>Example.</strong> You want a calm start to work.
+          <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
+            <li>
+              Make “Office start”: Workdays, 9:00 AM, with “Check calendar”,
+              “Clear inbox” and “Plan the day”.
+            </li>
+            <li>
+              On Monday evening, open Tuesday in Journal, unfold Office start
+              and add “Ask Rahul about the invoice”.
+            </li>
+            <li>
+              At 9:00 on Tuesday the alert reads “Office start · 9:00 AM:
+              Check calendar · Clear inbox · Plan the day +1 more”. Tapping it
+              opens Tuesday in Journal.
+            </li>
+            <li>
+              Tick the three items and the task: the row reads 4/4. Skip the
+              task instead and it shows as Missed on Wednesday.
+            </li>
+          </ul>
         </Callout>
       </Section>
 

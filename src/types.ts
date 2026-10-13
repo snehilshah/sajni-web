@@ -50,6 +50,9 @@ export interface Task {
   parent_task_id?: number | null;
   /** Parent's title, so a subtask listed flat can name its parent. */
   parent_task_title?: string | null;
+  /** Agenda item of this Journal routine's occurrence on due_date. */
+  routine_id?: number | null;
+  routine_name?: string | null;
   blocked_by_task_id?: number | null;
   blocked_by_task_title?: string | null;
   blocked_by_task_status?: Task['status'] | null;
@@ -134,7 +137,9 @@ export type TaskPatch = Partial<Pick<
   | 'blocked_by_task_id'
   | 'important'
   | 'steps'
+  | 'routine_id'
 >> & {
+  clear_routine?: boolean;
   clear_due?: boolean;
   clear_week?: boolean;
   clear_month?: boolean;
@@ -144,6 +149,39 @@ export type TaskPatch = Partial<Pick<
   clear_blocked_by?: boolean;
   clear_color?: boolean;
 };
+
+/** One line of a routine's standing checklist, ticked fresh each day. */
+export interface RoutineItem {
+  id: string;
+  text: string;
+}
+
+/** A Journal routine: a named slot that repeats on weekdays at a local
+ *  start time ("Office start", Mon–Fri 09:00). */
+export interface Routine {
+  id: number;
+  name: string;
+  color: string;
+  /** 0=Sunday … 6=Saturday. */
+  weekdays: number[];
+  /** Local "HH:MM". */
+  start_time: string;
+  /** One alert at the start time. */
+  notify: boolean;
+  items: RoutineItem[];
+  next_alert_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type RoutineInput = Pick<Routine, 'name' | 'color' | 'weekdays' | 'start_time' | 'notify' | 'items'>;
+
+/** A routine as it stands on one date: ticked item ids and agenda tasks. */
+export interface DayRoutine extends Routine {
+  date: string;
+  done: string[];
+  agenda: { id: number; title: string; status: Task['status']; priority: Task['priority'] }[];
+}
 
 export type TaskColor = '#2D5A4F' | '#7C9A92' | '#C49A6C' | '#A14B4F' | '#4F6FA1' | '#8B6FA1' | '#7A7A7A';
 

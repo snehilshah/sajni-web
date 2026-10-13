@@ -17,6 +17,9 @@ import type {
   ReminderHistoryItem,
   ReminderInput,
   PlannerResponse,
+  DayRoutine,
+  Routine,
+  RoutineInput,
   SmartList,
   TagEntities,
   Task,
@@ -186,6 +189,8 @@ export const tasks = {
     parent_task_id?: number | null;
     important?: boolean;
     steps?: TaskStep[];
+    /** Adds it to a routine's agenda on due_date (or its next occurrence). */
+    routine_id?: number;
   }) => request<{ id: number }>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   get: (id: number) => request<Task>('/tasks/' + id),
   update: (id: number, data: TaskPatch) =>
@@ -243,6 +248,16 @@ export const reminders = {
     request<Reminder>(`/reminders/${id}/snooze`, { method: 'POST', body: JSON.stringify(data) }),
   skip: (id: number, occurrence_id?: number) =>
     request<Reminder>(`/reminders/${id}/skip`, { method: 'POST', body: JSON.stringify({ occurrence_id }) }),
+};
+
+export const routines = {
+  list: () => request<Routine[]>('/routines'),
+  day: (date: string) => request<DayRoutine[]>(`/routines/day?date=${encodeURIComponent(date)}`),
+  create: (data: RoutineInput) => request<Routine>('/routines', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: RoutineInput) => request<Routine>(`/routines/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request(`/routines/${id}`, { method: 'DELETE' }),
+  check: (id: number, data: { date: string; item_id: string; done: boolean }) =>
+    request(`/routines/${id}/check`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export interface TaskEvent {

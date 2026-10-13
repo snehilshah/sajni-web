@@ -122,7 +122,9 @@ export default function TasksDoc() {
               just close the sheet: a new task with a title saves itself).
               When a subtask shows up on its own in a smart view (My Day, Missed, All), a
               small “↳ Paint the room” chip beside its title names the parent;
-              tap the chip to open the parent. Delete the last subtask and the
+              tap the chip to open the parent. A task added to a Journal
+              routine carries that routine's name as a chip too (“Office
+              start”); tap it to open that day in Journal. Delete the last subtask and the
               group folds away with it. Use subtasks when the child
               is real work; steps when it's just a checklist line.
               Month-goal sessions are subtasks.
