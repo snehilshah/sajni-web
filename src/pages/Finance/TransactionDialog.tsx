@@ -253,14 +253,17 @@ export default function TransactionDialog({
   };
 
   // A split or a settlement filled in on a saved transaction but not yet
-  // applied. Done applies it; any other close says it wasn't saved.
+  // applied. The footer's Done becomes this action; any other close says it
+  // wasn't saved. (Never autosaved: a half-typed name would settle someone.)
+  const pendingTotal = parseFloat(amount) || 0;
+  const pendingShare = shareOf(pendingTotal, shareMode, customShare);
   const pendingLabel = !txn ? null
-    : type === 'expense' && addons.has('split') && !txn.split && person.trim() ? 'Split this bill'
+    : type === 'expense' && addons.has('split') && !txn.split && person.trim() && pendingShare > 0 && pendingShare <= pendingTotal ? 'Split this bill'
       : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
         : null;
   // Every close path (Esc, backdrop, Done) for an edit: flush, then close.
   const requestClose = () => {
-    if (pendingLabel) toast.info(`Not saved: press ${pendingLabel} to apply it.`);
+    if (pendingLabel) toast.info(`Not saved: ${pendingLabel.toLowerCase()} wasn't applied.`);
     autosave.close(onClose);
   };
 
@@ -573,9 +576,7 @@ export default function TransactionDialog({
             </button>
           </div>
         )}
-        <SummaryRow action={txn && !existingSplit && (
-          <Button variant="tonal" onClick={applyToExisting} disabled={saving}>Split this bill</Button>
-        )}>
+        <SummaryRow>
           {total > 0 && theirShare > 0 && theirShare <= total && (<>
             {theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
             <DateBadge tone="accent">{person.trim() || 'They'} owe{person.trim() ? 's' : ''} <Money value={theirShare} /></DateBadge>
@@ -587,7 +588,7 @@ export default function TransactionDialog({
       <AddonSection key={a} label="From a person" onRemove={() => removeAddon('settle')}>
         <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
           suggestions={people.filter((p) => p.outstanding > 0).map((p) => p.borrower)} placeholder="Who is paying you back?" autoFocus={justAdded === 'settle'} />
-        <SummaryRow action={txn && <Button variant="tonal" onClick={applyToExisting} disabled={saving}>Mark as paid back</Button>}>
+        <SummaryRow>
           {owed && (<>
             <DateBadge>Owes <Money value={owed.outstanding} /></DateBadge>
             {total > 0 && (() => {
@@ -776,7 +777,8 @@ export default function TransactionDialog({
           ) : <span />}
           {txn ? (
             <div className="flex gap-2">
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={() => (pendingLabel ? applyToExisting() : requestClose())} />
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={() => (pendingLabel ? applyToExisting() : requestClose())}
+                doneLabel={pendingLabel ?? 'Done'} disabled={saving} />
             </div>
           ) : (
             <div className="flex gap-2">

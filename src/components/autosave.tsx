@@ -13,11 +13,16 @@ export function AutosaveStatus({ status }: { status: Status }) {
 }
 
 /** Footer actions for editing an existing item: Undo changes · Done. */
-export function EditActions({ changed, onUndo, onDone }: { changed: boolean; onUndo: () => void; onDone: () => void }) {
+export function EditActions({ changed, onUndo, onDone, doneLabel = 'Done', disabled = false }: {
+  changed: boolean; onUndo: () => void; onDone: () => void;
+  /** Says what Done will do when it applies more than the autosaved fields. */
+  doneLabel?: string;
+  disabled?: boolean;
+}) {
   return (
     <>
       {changed && <Button variant="ghost" onClick={onUndo}>Undo changes</Button>}
-      <Button onClick={onDone}>Done</Button>
+      <Button onClick={onDone} disabled={disabled}>{doneLabel}</Button>
     </>
   );
 }

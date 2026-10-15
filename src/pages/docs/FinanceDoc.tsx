@@ -219,8 +219,8 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="A bill that's already in Sajni">
             <p>
-              Open it, tap <em>+ Split</em>, fill it in and press{' '}
-              <em>Split this bill</em>. This is how you split card charges that
+              Open it, tap <em>+ Split</em> and fill it in; the sheet's Done
+              button becomes <em>Split this bill</em>. Press it. This is how you split card charges that
               were captured automatically.
             </p>
           </Feature>
@@ -320,7 +320,7 @@ export default function FinanceDoc() {
             <p>
               The repayment was usually captured from a UPI message. Open it,
               tap <em>+ From a person</em>, pick the person and press{' '}
-              <em>Mark as paid back</em> (or <em>Done</em>). Or use <em>Lends → Settle</em> on the
+              <em>Mark as paid back</em> (the sheet's Done button takes that name once a person is picked). Or use <em>Lends → Settle</em> on the
               person to tick several credits at once, or to record cash that
               isn't in Sajni yet.
             </p>
