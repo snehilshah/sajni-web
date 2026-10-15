@@ -348,6 +348,14 @@ export default function FinanceDoc() {
             Paying more than they owe keeps the extra <em>held</em> for them;
             it nets off their next lend.
           </li>
+          <li>
+            A payment can't be dated before what it pays back: the lend it's
+            Toward, or for Overall, their first lend. Paid back on 3 October
+            for a coffee on the 15th? Sajni says so and saves nothing, so fix
+            whichever date is wrong. The same day at an earlier time is fine.
+            Moving a lend or a split bill after its payments is refused the
+            same way.
+          </li>
         </ul>
         <FeatureList>
           <Feature name="Money that's already in Sajni">
