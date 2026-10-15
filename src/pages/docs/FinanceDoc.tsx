@@ -127,7 +127,7 @@ export default function FinanceDoc() {
           head={['kind', 'optional extras']}
           rows={[
             ['Expense', 'Split, Slate, Note'],
-            ['Income', 'From a person, Refund, Slate, Note'],
+            ['Income', 'Settles a lend, Refund, Slate, Note'],
             ['Transfer', 'Note'],
           ]}
         />
@@ -294,7 +294,7 @@ export default function FinanceDoc() {
           <strong>Example.</strong> Rahul owes you for chai (₹10), a cab (₹40)
           and a movie (₹50). He sends ₹100 to your salary account in one go.
           Add an Income of ₹100 to the salary account, tap{' '}
-          <em>+ From a person</em> and pick Rahul. Before you save, Sajni shows{' '}
+          <em>+ Settles a lend</em> and pick Rahul. Before you save, Sajni shows{' '}
           <em>Owes ₹100.00 · Settled</em>.
         </Callout>
         <ul>
@@ -319,7 +319,7 @@ export default function FinanceDoc() {
           <Feature name="Money that's already in Sajni">
             <p>
               The repayment was usually captured from a UPI message. Open it,
-              tap <em>+ From a person</em>, pick the person and press{' '}
+              tap <em>+ Settles a lend</em>, pick the person and press{' '}
               <em>Mark as paid back</em> (the sheet's Done button takes that name once a person is picked). Or use <em>Lends → Settle</em> on the
               person to tick several credits at once, or to record cash that
               isn't in Sajni yet.
@@ -440,12 +440,12 @@ export default function FinanceDoc() {
             </li>
             <li>
               <strong>The ₹200 lands in Amazon Pay balance.</strong> It's hers:
-              Income ₹200 on that account → <em>+ From a person</em> → Priya.
+              Income ₹200 on that account → <em>+ Settles a lend</em> → Priya.
               No category. She owes ₹1,299.
             </li>
             <li>
               <strong>She sends ₹1,299.</strong> Income →{' '}
-              <em>+ From a person</em> → Priya. She owes ₹0.00 and the lend is
+              <em>+ Settles a lend</em> → Priya. She owes ₹0.00 and the lend is
               settled.
             </li>
             <li>
@@ -493,7 +493,7 @@ export default function FinanceDoc() {
           <Feature name="Which credit is whose">
             <p>
               A credit that is <strong>all hers</strong>, like the order's ₹200
-              offer, is <em>From a person</em>. A credit that mixes hers with
+              offer, <em>settles a lend</em>. A credit that mixes hers with
               yours, like the card's monthly cashback, is yours: record it as
               Cashback income and pay her share out separately. One credit
               can't be part repayment and part income.
@@ -522,7 +522,7 @@ export default function FinanceDoc() {
           </li>
           <li>
             Cashback that belongs to someone else (their order's instant
-            offer) is them paying you back: <em>+ From a person</em>. See{' '}
+            offer) goes toward what they owe: <em>+ Settles a lend</em>, with an honest title like “Amazon instant cashback”. See{' '}
             <a href="#card-offers">A friend uses your card</a>.
           </li>
           <li>

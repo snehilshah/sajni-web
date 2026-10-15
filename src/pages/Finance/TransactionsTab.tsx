@@ -755,7 +755,7 @@ function LedgerRow({
               </span>
             ) : (isLend || isLendRepayment) && t.lend_borrower ? (
               <span className="truncate rounded-full bg-[hsl(var(--surface-container-high))] px-2 py-0.5 font-sans font-medium text-[hsl(var(--on-surface-variant))]">
-                {isLend ? 'For ' : 'From '}{t.lend_borrower}
+                {isLend ? 'For ' : 'Settles · '}{t.lend_borrower}
               </span>
             ) : (
               <span className="truncate">

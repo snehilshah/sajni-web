@@ -46,7 +46,7 @@ const today = () => format(new Date(), 'yyyy-MM-dd');
 // what someone owes, "Settle" turns credits into them paying it back (oldest
 // first; any extra is held for their next item), and "Forgive" writes off what
 // is left as the user's spending. The transaction sheet does the same for one
-// transaction at a time (Split, From a person).
+// transaction at a time (Split, Settles a lend).
 export default function LendsTab({ accounts, lends, loaded, reload, onNewLend }: Props) {
   const peopleQ = useFinLendPeople();
   const people = useMemo(() => peopleQ.data ?? [], [peopleQ.data]);
@@ -835,7 +835,7 @@ export function EditRepaymentDialog({ txn, onOpenLend, onClose, onAutosaved }: {
       </DialogHeader>
       {txn && (
         <div className="flex flex-wrap gap-1.5">
-          <DateBadge tone="positive">From {txn.lend_borrower || 'them'} <Money value={txn.amount} /></DateBadge>
+          <DateBadge tone="positive">Settles · {txn.lend_borrower || 'them'} <Money value={txn.amount} /></DateBadge>
           <DateBadge>{txn.account_name} · {format(parseISO(txn.txn_at), 'd MMM')}</DateBadge>
         </div>
       )}

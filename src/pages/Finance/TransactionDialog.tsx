@@ -31,7 +31,7 @@ import { txnAtToParts, partsToTxnAt, subMoney } from './utils';
 // is a "+" chip under them that, once tapped, becomes one more section of the
 // form (its label on the leading edge, a × on the trailing edge):
 //   expense → Split (someone owes part or all of it), Slate, Note
-//   income  → From a person (they're paying you back), Refund, Slate, Note
+//   income  → Settles a lend (it pays someone's lends back), Refund, Slate, Note
 // "Lend" is not a kind: lending cash is an expense split with someone for
 // all of it.
 
@@ -517,7 +517,7 @@ export default function TransactionDialog({
       : ['note'] as Addon[]).filter((a) => a !== 'slate' || pickableSlates.length > 0 || addons.has('slate'));
   const owed = people.find((p) => personKey(p.borrower) === personKey(person));
   const addLabel: Record<Addon, string> = {
-    split: 'Split', settle: 'From a person', refund: 'Refund', slate: 'Slate', note: 'Note',
+    split: 'Split', settle: 'Settles a lend', refund: 'Refund', slate: 'Slate', note: 'Note',
   };
 
   // Their share: one field plus ½ / All. Typing makes it custom; ½ and All
@@ -585,7 +585,7 @@ export default function TransactionDialog({
       </AddonSection>
     );
     if (a === 'settle') return (
-      <AddonSection key={a} label="From a person" onRemove={() => removeAddon('settle')}>
+      <AddonSection key={a} label="Settles a lend" onRemove={() => removeAddon('settle')}>
         <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
           suggestions={people.filter((p) => p.outstanding > 0).map((p) => p.borrower)} placeholder="Who is paying you back?" autoFocus={justAdded === 'settle'} />
         <SummaryRow>
