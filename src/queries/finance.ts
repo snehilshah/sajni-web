@@ -35,7 +35,7 @@ export function useFinLendPeople(enabled = true) {
   return useQuery({ queryKey: qk.finance.lendPeople(), queryFn: () => finance.listLendPeople(), enabled });
 }
 
-// Picker pages for "Paid for" / "Settle": 30 rows at a time, keyset-paged on
+// Candidate pages (the refund picker's recent expenses): 30 rows at a time, keyset-paged on
 // the server, so the ledger size never matters.
 export function useLendCandidates(kind: 'paid_for' | 'settle', q: string, accountId: number, enabled: boolean) {
   return useInfiniteQuery({

@@ -118,6 +118,12 @@ export default function FinanceDoc() {
           <em>auto</em>); pick one yourself and it stops guessing.
         </p>
         <p>
+          Every transaction needs a <strong>title</strong>; the sheet won't
+          save without one. Something captured from an SMS that Sajni couldn't
+          name is titled after its category (or “Expense” / “Income”) so you
+          can rename it.
+        </p>
+        <p>
           Everything else is optional and sits under the form as small{' '}
           <strong>+ chips</strong>. Tap one and it becomes part of the form,
           with its name on the left and a × on the right to take it off again.
@@ -159,7 +165,8 @@ export default function FinanceDoc() {
             <p>
               Search by title or category, and filter by account, type
               (Expense, Income, Refund, Transfer, Lend, Repayment, Forgiven) or
-              slate. Days are grouped with their totals; split bills count only
+              slate. Tick <strong>several accounts</strong> in the account
+              filter to see them together, say your two cards. Days are grouped with their totals; split bills count only
               your part as spent.
             </p>
           </Feature>
@@ -226,11 +233,14 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Changing it later">
             <p>
-              Open the bill and change <em>Their share</em>: only the line
-              between your part and theirs moves, and the bill stays ₹754.96.
-              Change the bill amount and your part changes while theirs stays
-              put. Tap × on the split to remove it; the whole bill becomes
-              yours again.
+              Open the bill: it shows <em>Split with Rahul</em> and what each
+              of you owes. Change the bill amount there and your part changes
+              while his stays put. Everything about Rahul's part (who, his
+              share, when it's due, the reminder) lives in one place:{' '}
+              <em>Edit lend</em>, from the bill's <em>Edit lend</em> button or
+              by tapping the lend in Lends. Changing his share only moves the
+              line between your part and his; the bill stays ₹754.96.{' '}
+              <em>Remove split</em> there makes the whole bill yours again.
             </p>
           </Feature>
         </FeatureList>
@@ -264,21 +274,36 @@ export default function FinanceDoc() {
               <a href="#card-offers">A friend uses your card</a>.
             </p>
           </Feature>
-          <Feature name="Paid for someone">
+          <Feature name="Already recorded it">
             <p>
-              Already recorded something that was really for someone else, like
-              Dad's electricity bill on your card? Go to{' '}
-              <em>Lends → Paid for</em>, pick the person and tick the
-              transactions, several at once if you like. Tick just one and you
-              can also say how much of it is theirs (All, ½ or Custom).
+              Something already in Sajni that was really for someone else, like
+              Dad's electricity bill on your card: open it, tap{' '}
+              <em>+ Split</em>, pick Dad and <strong>All</strong> (or his part),
+              then press <em>Split this bill</em>. One transaction at a time.
             </p>
           </Feature>
           <Feature name="The Lends tab">
             <p>
               Everyone who owes you, with the total at the top. Tap a person to
               see their history as a timeline, oldest first: what you lent (↗),
-              what came back (↙) and anything forgiven (✓). People who have paid
-              everything fold away under <em>Settled</em>.
+              what came back (↙) and anything forgiven (✓). Tap any line to
+              edit it. People who have paid everything fold away under{' '}
+              <em>Settled</em>.
+            </p>
+            <p>
+              <em>Lend</em>, and a person's <em>Settle</em>, open the same
+              transaction sheet already filled in (Expense → Split → All, or
+              Income → Settles a lend → them). There is one way to record a
+              lend and one way to record a payment back: the sheet.
+            </p>
+          </Feature>
+          <Feature name="Editing or deleting a lend">
+            <p>
+              Tap the lend (in Lends, or its row in Transactions) to open{' '}
+              <em>Edit lend</em>: who, the amount or their share, when it's
+              due, the reminder. <em>Delete</em> (a cash lend) or{' '}
+              <em>Unmark</em> (a bill you marked) is at the bottom of the same
+              sheet.
             </p>
           </Feature>
         </FeatureList>
@@ -289,55 +314,64 @@ export default function FinanceDoc() {
       </Section>
 
       <Section id="paid-back" title="Getting paid back" chip="from a person">
-        <p>When someone pays you back, mark the money you received as theirs.</p>
+        <p>
+          When someone pays you back, mark the money you received as theirs,
+          and say which lend it was for if it was for one.
+        </p>
         <Callout>
-          <strong>Example.</strong> Rahul owes you for chai (₹10), a cab (₹40)
-          and a movie (₹50). He sends ₹100 to your salary account in one go.
-          Add an Income of ₹100 to the salary account, tap{' '}
-          <em>+ Settles a lend</em> and pick Rahul. Before you save, Sajni shows{' '}
-          <em>Owes ₹100.00 · Settled</em>.
+          <strong>Example.</strong> Alefiya owes you for an order on 3 October
+          (₹398) and one on 11 October (₹1,836). The 11 October order's ₹200
+          instant cashback lands in your Amazon Pay balance. Add an Income of
+          ₹200 on that account, tap <em>+ Settles a lend</em>, pick Alefiya,
+          and set <strong>Toward</strong> to the 11 October order. That order
+          now shows <em>₹1,636 left</em>, and she owes ₹2,034 in total.
         </Callout>
         <ul>
           <li>
-            One payment can cover <strong>several</strong> lends. Sajni pays
-            off the oldest first: chai, then cab, then movie.
+            <strong>Toward a lend</strong>: the payment pays that lend off. If
+            it's more than the lend, the extra still lowers their total.
+          </li>
+          <li>
+            <strong>Overall</strong> (the default): the payment lowers their
+            total, and no single lend shows it. Use it for a lump sum (“₹3,000
+            for everything”) or when you don't know what it was for.
+          </li>
+          <li>
+            When their total reaches ₹0, every lend of theirs is settled. A lend
+            never shows more left than their total.
           </li>
           <li>
             The money can land in <strong>any</strong> account. It doesn't
             have to be the one you lent from.
           </li>
           <li>
-            Paying less (₹70) clears the chai and the cab and puts ₹20 toward
-            the movie, so ₹30 is still owed.
-          </li>
-          <li>
-            Paying more (₹120) clears all three and keeps the extra ₹20{' '}
-            <em>held</em> for Rahul's next lend.
+            Paying more than they owe keeps the extra <em>held</em> for them;
+            it nets off their next lend.
           </li>
         </ul>
         <FeatureList>
           <Feature name="Money that's already in Sajni">
             <p>
               The repayment was usually captured from a UPI message. Open it,
-              tap <em>+ Settles a lend</em>, pick the person and press{' '}
-              <em>Mark as paid back</em> (the sheet's Done button takes that name once a person is picked). Or use <em>Lends → Settle</em> on the
-              person to tick several credits at once, or to record cash that
-              isn't in Sajni yet.
+              tap <em>+ Settles a lend</em>, pick the person (and Toward), then
+              press <em>Mark as paid back</em> (the sheet's Done button takes
+              that name once a person is picked).
             </p>
           </Feature>
-          <Feature name="Undo">
+          <Feature name="Money that isn't in Sajni yet">
             <p>
-              In the person's timeline, open ⋮ on the payment and choose{' '}
-              <em>Unmark settlement</em>. It goes back to being ordinary
-              income.
+              Cash, or a transfer that was never captured: add it as an Income
+              with its real date and time and <em>+ Settles a lend</em>. In
+              Lends, the person's <em>Settle</em> button opens exactly that.
+              Don't add it again if the SMS already did; settle that one.
             </p>
           </Feature>
-          <Feature name="Fixing its title">
+          <Feature name="Changing it later">
             <p>
-              Tap the payment in Transactions to open <em>Edit repayment</em>{' '}
-              and change its title or note. Its amount, account and date belong
-              to the lends it paid off, so they stay put; <em>Open lend</em>{' '}
-              takes you to the lend.
+              Tap the payment (in Transactions, or in the person's timeline) to
+              open <em>Edit repayment</em>. Change its title, its note, or{' '}
+              <em>Toward</em>. Its amount, account and date stay put.{' '}
+              <em>Unmark</em> at the bottom turns it back into ordinary income.
             </p>
           </Feature>
         </FeatureList>
@@ -363,8 +397,9 @@ export default function FinanceDoc() {
           </li>
         </ul>
         <p>
-          To undo it, open ⋮ on the <em>Forgiven</em> line in the timeline and
-          choose <em>Undo forgive</em>.
+          Like a payment, a forgive can go <em>Toward</em> one lend or their
+          overall total. To undo it, tap the <em>Forgiven</em> line in the
+          timeline and press <em>Undo forgive</em>.
         </p>
       </Section>
 
@@ -440,8 +475,8 @@ export default function FinanceDoc() {
             </li>
             <li>
               <strong>The ₹200 lands in Amazon Pay balance.</strong> It's hers:
-              Income ₹200 on that account → <em>+ Settles a lend</em> → Priya.
-              No category. She owes ₹1,299.
+              Income ₹200 on that account → <em>+ Settles a lend</em> → Priya,
+              Toward the jacket. No category. She owes ₹1,299.
             </li>
             <li>
               <strong>She sends ₹1,299.</strong> Income →{' '}
@@ -485,9 +520,10 @@ export default function FinanceDoc() {
           <Feature name="Two orders, one payment">
             <p>
               Priya owes ₹1,499 and ₹2,000 and sends ₹3,499 in one go. Mark it
-              paid back once. Sajni clears the older lend first, then the
-              newer; you never split her payment by hand. Whatever is still
-              short (her 5% on both, if she kept it) is one forgive.
+              paid back once, Toward <em>Overall</em>: her total reaches ₹0,
+              so both lends are settled, and you never split her payment by
+              hand. Whatever is still short (her 5% on both, if she kept it) is
+              one forgive.
             </p>
           </Feature>
           <Feature name="Which credit is whose">
@@ -804,7 +840,7 @@ export default function FinanceDoc() {
           rows={[
             ['spent 450 on lunch, card', 'adds the expense'],
             ['the 754.96 dinner on Oct 1 was half Rahul\'s', 'splits that bill ½ with Rahul'],
-            ['Rahul sent me 100, mark it paid back', 'settles his oldest lends'],
+            ['Rahul sent me 100 for the cab, mark it paid back', 'settles it toward the cab lend'],
             ['the Amazon credit yesterday was a refund', 'turns that income into a refund'],
             ['forgive what Aman owes', 'forgives it'],
             ['what did the Goa trip cost?', 'totals the Goa slate'],
@@ -853,10 +889,12 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Can I delete a lend?">
             <p>
-              A cash lend (Split → All) can be deleted, along with its
-              transaction. A paid-for bill or a split is <em>unmarked</em>
-              instead, which hands the whole bill back to you as an expense.
-              To delete a split bill itself, remove its split first.
+              Yes, from <em>Edit lend</em>. A cash lend (Split → All) is
+              deleted along with its transaction. A bill you marked, or a
+              split, is <em>unmarked</em> instead, which hands the whole bill
+              back to you as an expense. To delete a split bill itself, remove
+              its split first. Payments that were toward it go back to the
+              person's overall total.
             </p>
           </Feature>
         </FeatureList>

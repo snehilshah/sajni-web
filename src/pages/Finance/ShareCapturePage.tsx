@@ -291,6 +291,7 @@ function Capture({ text }: { text: string }) {
     const amt = parseFloat(amount);
     if (!accountId) { toast.error('Pick an account'); return; }
     if (!(amt > 0)) { toast.error('Enter a valid amount'); return; }
+    if (!description.trim()) { toast.error('Add a title'); return; }
     if (splitting) {
       if (!person.trim()) { setSplitError('Enter who owes this.'); return; }
       if (!(theirShare > 0) || theirShare > round2(amt)) { setSplitError('Their share has to be above zero and at most the bill.'); return; }
@@ -423,8 +424,8 @@ function Capture({ text }: { text: string }) {
             </Field>
           )}
 
-          <Field label="Name" className="col-span-2">
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Merchant / who it was with" maxLength={120} />
+          <Field label="Title" className="col-span-2">
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} aria-invalid={!description.trim()} placeholder="Merchant / who it was with" maxLength={120} />
           </Field>
 
           <Field label="Note" className="col-span-2">

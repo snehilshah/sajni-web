@@ -802,14 +802,26 @@ export interface FinTransaction {
   /** Slate. Never null — Plain when the txn is part of normal life. */
   slate_id: number;
   slate_name: string;
+  /** The lend this row is, or the lend a payment is pinned to. */
   lend_id: number | null;
   /** Person on a lend / settlement row. */
   lend_borrower: string | null;
+  /** A payment back (or a forgive): who from, and the lend it counts toward. */
+  settlement: FinTxnSettlement | null;
   /** A bill shared with someone: their part, owed as a lend. */
   split: FinTxnSplit | null;
   /** Refund: the purchase it came back for. */
   refund_of: number | null;
   created_at: string;
+}
+
+export interface FinTxnSettlement {
+  id: number;
+  borrower: string;
+  /** Pinned lend; null = toward the person's overall total. */
+  lend_id: number | null;
+  /** The pinned lend's title. */
+  toward: string | null;
 }
 
 export interface FinTxnSplit {
@@ -879,6 +891,7 @@ export interface FinInvestment {
   next_debit_date: string | null;
 }
 
+/** How much of a lend one pinned payment covers. */
 export interface FinLendRepayment {
   id: number;
   destination_account_id: number;
@@ -887,7 +900,6 @@ export interface FinLendRepayment {
   repaid_at: string;
   note: string;
   transaction_id: number;
-  /** Derived from a settlement credit (undo it from the person). */
   settled: boolean;
   /** Derived from a forgive (writeoff), not money received. */
   forgiven: boolean;
@@ -900,8 +912,11 @@ export interface FinLend {
   source_account_type: FinAccount['type'];
   borrower: string;
   principal: number;
+  /** What payments pinned to this lend cover. */
   repaid: number;
+  /** What's left of it, never more than the person's overall total. */
   outstanding: number;
+  /** The transaction's title (a split share's is its bill's). */
   description: string;
   note: string;
   lent_at: string;
@@ -910,6 +925,8 @@ export interface FinLend {
   status: 'open' | 'settled';
   /** 'paid_for' = an existing expense marked for someone; removing it hands the expense back. */
   origin: 'lend' | 'paid_for';
+  /** A share cut from a bill: title, account, date and note are the bill's. */
+  split: boolean;
   repayments: FinLendRepayment[];
 }
 
@@ -921,12 +938,17 @@ export interface FinLendSettlement {
   amount: number;
   applied: number;
   description: string;
+  note: string;
   txn_at: string;
   /** A forgive (writeoff), not money received. */
   forgiven: boolean;
+  /** Pinned lend; null = toward the person's overall total. */
+  lend_id: number | null;
+  toward: string | null;
 }
 
-/** A person's running balance across their lends. credit = settled beyond what they owe. */
+/** A person's balance: outstanding = every lend minus every payment;
+ *  credit = paid beyond what they owe. */
 export interface FinLendPerson {
   borrower: string;
   outstanding: number;
@@ -1085,8 +1107,10 @@ export interface TxnDraft {
   /** Expense only: someone owes `share` of this bill. due_date omitted →
    *  card-cycle due date; '' → none. */
   split?: { borrower: string; share: number; due_date?: string; remind?: boolean };
-  /** Income only: this is that person paying the user back. */
+  /** Income only: this is that person paying the user back, toward one
+   *  of their lends (settle_lend_id) or their overall total. */
   settle_with?: string;
+  settle_lend_id?: number;
 }
 
 export type TxnPatch = Partial<Pick<
@@ -1196,10 +1220,6 @@ export const finance = {
     request('/finance/lends/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteLend: (id: number) =>
     request('/finance/lends/' + id, { method: 'DELETE' }),
-  recordLendRepayment: (id: number, data: { destination_account_id?: number; amount: number; repaid_at: string; note?: string }) =>
-    request<{ id: number; transaction_id: number }>('/finance/lends/' + id + '/repayments', { method: 'POST', body: JSON.stringify(data) }),
-  deleteLendRepayment: (lendId: number, repaymentId: number) =>
-    request('/finance/lends/' + lendId + '/repayments/' + repaymentId, { method: 'DELETE' }),
   listLendPeople: () => request<FinLendPerson[]>('/finance/lends/people'),
   /** Keyset-paged pickers: paid_for = plain expenses, settle = plain credits. */
   lendCandidates: (kind: 'paid_for' | 'settle', p: { q?: string; account_id?: number; cursor?: string }) => {
@@ -1213,15 +1233,16 @@ export const finance = {
   /** share (one transaction): their part of the bill; the rest stays the user's. */
   markPaidFor: (data: { borrower: string; transaction_ids: number[]; due_date?: string; remind?: boolean; share?: number }) =>
     request<{ lend_ids: number[] }>('/finance/lends/paid-for', { method: 'POST', body: JSON.stringify(data) }),
-  settleLends: (data: { borrower: string; transaction_ids?: number[]; account_id?: number; amount?: number; received_at?: string; note?: string }) =>
+  /** lend_id: the lend these were for; omitted = the person's overall total. */
+  settleLends: (data: { borrower: string; transaction_ids: number[]; lend_id?: number }) =>
     request('/finance/lends/settle', { method: 'POST', body: JSON.stringify(data) }),
+  /** Re-point a payment: toward a lend, or null for the overall total. */
+  setSettlementLend: (id: number, lendId: number | null) =>
+    request('/finance/lends/settlements/' + id, { method: 'PUT', body: JSON.stringify({ lend_id: lendId }) }),
   deleteLendSettlement: (id: number) =>
     request('/finance/lends/settlements/' + id, { method: 'DELETE' }),
-  /** Paid-for bill: move the line between their share and the user's part. */
-  setLendShare: (id: number, share: number) =>
-    request('/finance/lends/' + id + '/share', { method: 'PUT', body: JSON.stringify({ share }) }),
   /** Write off up to what a person owes: spending on that day, no money moves. */
-  forgiveLends: (data: { borrower: string; amount: number; category_id?: number | null; forgiven_at?: string; note?: string }) =>
+  forgiveLends: (data: { borrower: string; amount: number; category_id?: number | null; forgiven_at?: string; note?: string; lend_id?: number }) =>
     request<{ transaction_id: number }>('/finance/lends/forgive', { method: 'POST', body: JSON.stringify(data) }),
   // AI category inference. Returns { category_id, category_name } where
   // category_id is null when no existing category matched (falls back

@@ -24,7 +24,7 @@ import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import TransactionDialog from './TransactionDialog';
 import SlateDialog from './SlateDialog';
-import { EditLendDialog, EditRepaymentDialog } from './LendsTab';
+import { EditLendDialog, EditRepaymentDialog, paymentFromTxn, type Payment } from './LendsTab';
 
 // The ledger is one surface, and its job beyond "what did I spend" is to show
 // which spending was NOT normal life. So: rows on a slate other than Plain
@@ -155,34 +155,40 @@ interface Props {
   truncated: boolean;
   canLoadEarlier: boolean;
   onLoadEarlier: () => void;
-  newLendRequest: number;
+  /** Open the sheet pre-filled (from Lends): a new lend, or a payment back. */
+  sheetRequest: SheetRequest | null;
 }
+
+export interface SheetRequest { kind: 'lend' | 'settle'; person: string; n: number }
 
 export default function TransactionsTab({
   accounts, categories, slates, transactions, lends, loaded,
   slateFilter, onSlateFilter, reload, reloadCategories,
   truncated, canLoadEarlier, onLoadEarlier,
-  newLendRequest,
+  sheetRequest,
 }: Props) {
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [editingLend, setEditingLend] = useState<FinLend | null>(null);
-  const [editingRepayment, setEditingRepayment] = useState<FinTransaction | null>(null);
+  const [editingRepayment, setEditingRepayment] = useState<Payment | null>(null);
   const [creating, setCreating] = useState(false);
-  const [createKind, setCreateKind] = useState<TxnKind | 'lend'>('expense');
+  const [createKind, setCreateKind] = useState<TxnKind | 'lend' | 'settle'>('expense');
+  const [createPerson, setCreatePerson] = useState('');
   const [manageCats, setManageCats] = useState(false);
   const [search, setSearch] = useState('');
-  const [accountFilter, setAccountFilter] = useState<string>('');
+  // Any of these accounts; empty = all.
+  const [accountFilter, setAccountFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [newSlate, setNewSlate] = useState(false);
   const [sweeping, setSweeping] = useState(false);
 
   useEffect(() => {
-    if (newLendRequest <= 0) return;
-    setCreateKind('lend');
+    if (!sheetRequest) return;
+    setCreateKind(sheetRequest.kind);
+    setCreatePerson(sheetRequest.person);
     setCreating(true);
-  }, [newLendRequest]);
+  }, [sheetRequest]);
 
   // Optimistic edits (esp. account switches). Keyed by txn id, layered over the
   // parent's list so a row updates the instant you save — no wait for reload,
@@ -222,7 +228,7 @@ export default function TransactionsTab({
     return merged.filter((t) => {
       if (search && !t.description.toLowerCase().includes(search.toLowerCase()) &&
           !(t.category_name || '').toLowerCase().includes(search.toLowerCase())) return false;
-      if (accountFilter && String(t.account_id) !== accountFilter) return false;
+      if (accountFilter.length && !accountFilter.includes(String(t.account_id))) return false;
       if (typeFilter) {
         if (typeFilter === 'transfer_out' && t.type !== 'transfer_out') return false;
         if (typeFilter !== 'transfer_out' && t.type !== typeFilter) return false;
@@ -265,16 +271,14 @@ export default function TransactionsTab({
   });
 
   const openTransaction = (txn: FinTransaction) => {
-    if (txn.type === 'writeoff') {
-      toast.info(`Forgiven for ${txn.lend_borrower ?? 'them'}. Undo it from Lends.`);
+    if (txn.type === 'lend_repayment' || txn.type === 'writeoff') {
+      const payment = paymentFromTxn(txn);
+      if (payment) setEditingRepayment(payment);
+      else toast.error('Payment details are unavailable. Refresh and try again.');
       return;
     }
-    if (txn.type !== 'lend' && txn.type !== 'lend_repayment') {
+    if (txn.type !== 'lend') {
       setEditing(txn);
-      return;
-    }
-    if (txn.type === 'lend_repayment') {
-      setEditingRepayment(txn);
       return;
     }
     const lend = lends.find((item) => item.id === txn.lend_id);
@@ -345,19 +349,22 @@ export default function TransactionsTab({
           <Button variant="outline" onClick={() => setManageCats(true)} title="Add / edit categories">
             <Tags className="size-4 md:mr-1" /> <span className="hidden md:inline">Categories</span>
           </Button>
-          <Button aria-label="Add transaction" onClick={() => { setCreateKind('expense'); setCreating(true); }}>
+          <Button aria-label="Add transaction" onClick={() => { setCreateKind('expense'); setCreatePerson(''); setCreating(true); }}>
             <Plus className="size-4 md:mr-1" /> <span className="hidden md:inline">Add</span>
           </Button>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
-          <Select value={accountFilter || 'all'} onValueChange={(v) => setAccountFilter(!v || v === 'all' ? '' : v)}
-            items={[{ value: 'all', label: 'All accounts' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}>
+          {/* Several accounts at once: tick each; none ticked = all. */}
+          <Select multiple value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? [])}
+            items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
             <SelectTrigger size="sm" className="w-[150px] shrink-0">
-              <SelectValue placeholder="All accounts" />
+              <SelectValue>
+                {(ids: string[]) => !ids.length ? 'All accounts'
+                  : ids.length === 1 ? accountNameById(Number(ids[0])) : `${ids.length} accounts`}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All accounts</SelectItem>
               {accounts.map((a) => (
                 <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
               ))}
@@ -553,6 +560,13 @@ export default function TransactionsTab({
         categories={categories}
         slates={slates}
         initialType={createKind}
+        initialPerson={createPerson}
+        onEditLend={(lendId) => {
+          const lend = lends.find((item) => item.id === lendId);
+          setEditing(null);
+          if (lend) setEditingLend(lend);
+          else toast.error('Lend details are unavailable. Refresh and try again.');
+        }}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={(patch) => {
           setCreating(false);
@@ -571,15 +585,13 @@ export default function TransactionsTab({
         accounts={accounts}
         onClose={() => setEditingLend(null)}
         onAutosaved={reload}
+        onRemoved={() => { setEditingLend(null); reload(); }}
       />
       <EditRepaymentDialog
-        txn={editingRepayment}
-        onOpenLend={(() => {
-          const lend = lends.find((item) => item.id === editingRepayment?.lend_id);
-          return lend ? () => { setEditingRepayment(null); setEditingLend(lend); } : undefined;
-        })()}
+        payment={editingRepayment}
         onClose={() => setEditingRepayment(null)}
-        onAutosaved={reload}
+        onChanged={reload}
+        onRemoved={() => { setEditingRepayment(null); reload(); }}
       />
       {/* Create-then-sweep in one motion: back from a trip, select the rows,
           name the slate, done. */}

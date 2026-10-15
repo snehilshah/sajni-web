@@ -25,6 +25,7 @@ import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
 import InvestmentsTab from './InvestmentsTab';
 import LendsTab from './LendsTab';
+import type { SheetRequest } from './TransactionsTab';
 import CardsTab from './CardsTab';
 import BillersTab from './BillersTab';
 import SlatesTab from './SlatesTab';
@@ -155,7 +156,9 @@ export default function FinancePage() {
   const loadSlates = () => qc.invalidateQueries({ queryKey: qk.finance.slates() });
 
   const [exportOpen, setExportOpen] = useState(false);
-  const [newLendRequest, setNewLendRequest] = useState(0);
+  // Lends' buttons open the transaction sheet pre-filled, over the Lends tab
+  // (the panels stay mounted), so a lend or a payment has one form.
+  const [sheetRequest, setSheetRequest] = useState<SheetRequest | null>(null);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag
   // (read by every formatMoney across all tabs) + localStorage; setPrivacy() then
   // forces this component — and its always-mounted tab children — to re-render,
@@ -251,7 +254,7 @@ export default function FinancePage() {
             truncated={data.transactions.length >= TXN_LIMIT}
             canLoadEarlier={data.loaded.transactions}
             onLoadEarlier={() => setMonthsBack((n) => n + 3)}
-            newLendRequest={newLendRequest}
+            sheetRequest={sheetRequest}
             reload={() => { loadTransactions(); loadAccounts(); loadLends(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); loadSlates(); }}
             reloadCategories={loadCategories}
           />
@@ -262,7 +265,8 @@ export default function FinancePage() {
             lends={data.lends}
             loaded={data.loaded.lends}
             reload={() => { loadLends(); loadAccounts(); loadTransactions(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); }}
-            onNewLend={() => { setActive('transactions'); setNewLendRequest((value) => value + 1); }}
+            onNewLend={() => setSheetRequest((r) => ({ kind: 'lend', person: '', n: (r?.n ?? 0) + 1 }))}
+            onSettle={(borrower) => setSheetRequest((r) => ({ kind: 'settle', person: borrower, n: (r?.n ?? 0) + 1 }))}
           />
         </TabPanel>
         <TabPanel active={active === 'slates'}>

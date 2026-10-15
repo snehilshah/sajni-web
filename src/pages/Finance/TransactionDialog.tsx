@@ -21,7 +21,7 @@ import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import { useFinLendPeople, useLendCandidates } from '@/queries/finance';
+import { useFinLendPeople, useFinLends, useLendCandidates } from '@/queries/finance';
 import { CategoryChips } from './CategoryChips';
 import { Money } from './Money';
 import { txnAtToParts, partsToTxnAt, subMoney } from './utils';
@@ -33,7 +33,8 @@ import { txnAtToParts, partsToTxnAt, subMoney } from './utils';
 //   expense → Split (someone owes part or all of it), Slate, Note
 //   income  → Settles a lend (it pays someone's lends back), Refund, Slate, Note
 // "Lend" is not a kind: lending cash is an expense split with someone for
-// all of it.
+// all of it. This sheet is the one place a lend or a payment back is made;
+// the Lends tab's buttons open it pre-filled.
 
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
@@ -63,7 +64,7 @@ export function shareOf(total: number, mode: ShareMode, custom: string) {
 interface EditValues {
   accountId: string; categoryId: string; amount: string; description: string;
   note: string; slateId: string; date: string; time: string;
-  share: string; refundOf: string;
+  refundOf: string;
   /** A credit read as money back on a purchase (income ↔ refund). */
   refund: boolean;
 }
@@ -80,7 +81,6 @@ function editValues(txn: FinTransaction): EditValues {
     slateId: String(txn.slate_id ?? 0),
     date: p.date,
     time: p.time,
-    share: txn.split ? String(share) : '',
     refundOf: txn.refund_of ? String(txn.refund_of) : '',
     refund: txn.type === 'refund',
   };
@@ -93,7 +93,7 @@ function editKind(kind: FinTransaction['type']): TxnKind {
 }
 
 export default function TransactionDialog({
-  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', onClose, onSaved, onAutosaved,
+  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', initialPerson = '', onClose, onSaved, onAutosaved, onEditLend,
 }: {
   open: boolean;
   txn: FinTransaction | null;
@@ -102,8 +102,13 @@ export default function TransactionDialog({
   slates: FinSlate[];
   /** Preselect this slate for new txns. */
   defaultSlateId?: number;
-  /** 'lend' opens an expense already split with someone for all of it. */
-  initialType?: TxnKind | 'lend';
+  /** 'lend' opens an expense already split with someone for all of it;
+   *  'settle' an income that settles a lend. */
+  initialType?: TxnKind | 'lend' | 'settle';
+  /** With 'lend' / 'settle': who it's with. */
+  initialPerson?: string;
+  /** A split bill's lend (who, their share, due) is edited in Edit lend. */
+  onEditLend?: (lendId: number) => void;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
   /** An edit autosaved while the dialog stays open: patch the row, keep editing. */
@@ -127,7 +132,8 @@ export default function TransactionDialog({
   const [person, setPerson] = useState('');
   const [shareMode, setShareMode] = useState<ShareMode>('half');
   const [customShare, setCustomShare] = useState('');
-  const [share, setShare] = useState('');
+  // Settles a lend: toward one of their lends ('' = their overall total).
+  const [towardLendId, setTowardLendId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [remind, setRemind] = useState(false);
   const [refundOf, setRefundOf] = useState('');
@@ -151,18 +157,18 @@ export default function TransactionDialog({
   const splitOn = type === 'expense' && addons.has('split');
   const existingSplit = txn?.split ?? null;
   const total = parseFloat(amount) || 0;
-  const theirShare = existingSplit ? (parseFloat(share) || 0) : splitOn ? shareOf(total, shareMode, customShare) : 0;
+  const theirShare = existingSplit ? existingSplit.share : splitOn ? shareOf(total, shareMode, customShare) : 0;
   const allTheirs = splitOn && !existingSplit && shareMode === 'all';
   const account = accounts.find((a) => String(a.id) === accountId);
   // Slates worth offering: the live ones, plus whatever this txn already sits
   // in. Plain is not a choice; removing the add-on is.
   const pickableSlates = slates.filter((p) => !p.is_plain && (!p.archived || String(p.id) === slateId));
 
-  const values: EditValues = { accountId, categoryId, amount, description, note, slateId, date, time, share, refundOf, refund: isRefund };
+  const values: EditValues = { accountId, categoryId, amount, description, note, slateId, date, time, refundOf, refund: isRefund };
   const applyValues = (v: EditValues) => {
     setAccountId(v.accountId); setCategoryId(v.categoryId); setAmount(v.amount);
     setDescription(v.description); setNote(v.note); setSlateId(v.slateId);
-    setDate(v.date); setTime(v.time); setShare(v.share); setRefundOf(v.refundOf);
+    setDate(v.date); setTime(v.time); setRefundOf(v.refundOf);
     setAddons((prev) => {
       const next = new Set(prev);
       if (v.refund) next.add('refund'); else next.delete('refund');
@@ -175,10 +181,8 @@ export default function TransactionDialog({
     const amt = parseFloat(v.amount);
     if (!v.amount.trim()) e.amount = 'Enter an amount.';
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
-    if (txn?.split) {
-      const s = parseFloat(v.share);
-      if (!(s > 0) || s > amt) e.share = 'Their share has to be above zero and at most the bill.';
-    }
+    else if (txn?.split && round2(amt) <= txn.split.share) e.amount = 'The bill has to be more than their share. Change their share in Edit lend.';
+    if (!v.description.trim()) e.description = 'Add a title.';
     return e;
   };
   // Edits save themselves 3s after the last change and on close. Create
@@ -191,7 +195,7 @@ export default function TransactionDialog({
     save: async (v) => {
       if (!txn) return;
       const patch = await persistEdit(txn, v);
-      if ('type' in patch && patch.type === 'lend') onSaved(); else onAutosaved?.(patch);
+      onAutosaved?.(patch);
     },
   });
   const loadAutosave = autosave.load;
@@ -207,37 +211,21 @@ export default function TransactionDialog({
     const billTotal = round2(parseFloat(v.amount));
     const txnAt = partsToTxnAt(v.date, v.time);
     const sid = parseInt(v.slateId) || 0;
-    // On a split bill the server holds the user's part; the bill total and
-    // the share move separately, and the order keeps every step valid.
-    const oldShare = t.split?.share ?? 0;
-    const newShare = t.split ? round2(parseFloat(v.share)) : 0;
-    let mine = round2(billTotal - newShare);
-    let becameLend = false;
+    // On a split bill the server holds the user's part; their share stays
+    // as it is (Edit lend moves it), so the bill total moves the user's part.
+    const mine = round2(billTotal - (t.split?.share ?? 0));
     const patch: TxnPatch = {
-      account_id: acctId, amount: mine, description: v.description, note: v.note,
+      account_id: acctId, amount: mine, description: v.description.trim(), note: v.note,
       txn_at: txnAt, category_id: catId, slate_id: sid,
       ...(credit ? { type: v.refund ? 'refund' as const : 'income' as const } : {}),
       ...(credit && v.refund ? { refund_of: v.refundOf ? parseInt(v.refundOf) : 0 } : {}),
     };
-    if (t.split && newShare !== oldShare) {
-      if (billTotal - oldShare > 0) {
-        // Bill first (the old share still fits), then move the line.
-        await finance.updateTransaction(t.id, { ...patch, amount: round2(billTotal - oldShare) });
-        await finance.setLendShare(t.split.lend_id, newShare);
-      } else {
-        await finance.setLendShare(t.split.lend_id, newShare);
-        await finance.updateTransaction(t.id, patch);
-      }
-      becameLend = newShare >= billTotal;
-    } else {
-      await finance.updateTransaction(t.id, patch);
-    }
-    if (becameLend) mine = billTotal;
+    await finance.updateTransaction(t.id, patch);
     // Optimistic row patch so the list reflects it instantly (no raw ids).
     const cat = categories.find((c) => c.id === catId);
     return {
       id: t.id,
-      ...(becameLend ? { type: 'lend' as const } : credit ? { type: v.refund ? 'refund' as const : 'income' as const } : {}),
+      ...(credit ? { type: v.refund ? 'refund' as const : 'income' as const } : {}),
       account_id: acctId,
       account_name: accounts.find((a) => a.id === acctId)?.name || '',
       note: v.note,
@@ -245,8 +233,7 @@ export default function TransactionDialog({
       category_name: cat?.name ?? null,
       category_color: cat?.color ?? null,
       amount: mine,
-      ...(t.split ? { split: { ...t.split, share: newShare } } : {}),
-      description: v.description,
+      description: v.description.trim(),
       txn_at: txnAt,
       ...(sid ? { slate_id: sid, slate_name: slates.find((p) => p.id === sid)?.name ?? '' } : {}),
     };
@@ -275,6 +262,7 @@ export default function TransactionDialog({
     setCustomShare('');
     setDueDate('');
     setRemind(false);
+    setTowardLendId('');
     if (txn) {
       const v = editValues(txn);
       setType(editKind(txn.type));
@@ -291,22 +279,25 @@ export default function TransactionDialog({
       setUserPickedCategory(true);
     } else {
       const lend = initialType === 'lend';
-      setType(lend ? 'expense' : initialType);
+      const settle = initialType === 'settle';
+      setType(lend ? 'expense' : settle ? 'income' : initialType);
       setAccountId(accounts[0] ? String(accounts[0].id) : '');
       setLinkedId('');
       setCategoryId('');
       setAmount('');
       setDescription('');
       setNote('');
-      setShare('');
       setRefundOf('');
       const slate = defaultSlateId ?? slates.find((p) => p.is_plain)?.id ?? 0;
       setSlateId(String(slate));
       setAddons(new Set<Addon>([
         ...(lend ? ['split' as const] : []),
+        ...(settle ? ['settle' as const] : []),
         ...(slates.find((p) => p.id === slate && !p.is_plain) ? ['slate' as const] : []),
       ]));
-      if (lend) { setShareMode('all'); setJustAdded('split'); }
+      if (lend) { setShareMode('all'); setJustAdded(initialPerson ? null : 'split'); }
+      if (settle) setJustAdded(initialPerson ? null : 'settle');
+      if (lend || settle) setPerson(initialPerson);
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
@@ -317,7 +308,7 @@ export default function TransactionDialog({
     // re-runs and wipes whatever the user has typed into an open dialog. The
     // reset belongs to "the dialog opened", not "the data changed".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txn, open, defaultSlateId, initialType, loadAutosave]);
+  }, [txn, open, defaultSlateId, initialType, initialPerson, loadAutosave]);
 
   // A refund files under an expense category: it nets off that spending.
   const categoryKind = type === 'income' && !isRefund ? 'income' : 'expense';
@@ -384,18 +375,12 @@ export default function TransactionDialog({
       return next;
     });
     if (a === 'refund' || (a === 'settle' && addons.has('refund'))) setCategoryId('');
-    if (a === 'split' || a === 'settle') setPerson('');
+    if (a === 'split' || a === 'settle') { setPerson(''); setTowardLendId(''); }
     // A slate add-on with one slate to offer picks it.
     if (a === 'slate' && pickableSlates.length === 1) setSlateId(String(pickableSlates[0].id));
     setJustAdded(a);
   };
-  const removeAddon = async (a: Addon) => {
-    if (a === 'split' && txn && existingSplit) {
-      if (!(await confirmDialog(`Remove the split with ${existingSplit.borrower}? The whole bill becomes your expense again.`))) return;
-      autosave.cancel();
-      try { await finance.deleteLend(existingSplit.lend_id); onSaved(); } catch (e) { toast.error(failureText(e)); }
-      return;
-    }
+  const removeAddon = (a: Addon) => {
     setAddons((prev) => { const next = new Set(prev); next.delete(a); return next; });
     if (a === 'slate') setSlateId(String(slates.find((p) => p.is_plain)?.id ?? 0));
     if (a === 'note') setNote('');
@@ -410,6 +395,7 @@ export default function TransactionDialog({
     const amt = parseFloat(amount);
     if (!amount.trim()) e.amount = 'Enter an amount.';
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
+    if (!description.trim()) e.description = 'Add a title.';
     if (type === 'transfer' && !txn) {
       if (!linkedId) e.linked = 'Choose a destination account.';
       else if (linkedId === accountId) e.linked = 'Destination must differ from the source.';
@@ -440,26 +426,26 @@ export default function TransactionDialog({
     try {
       if (type === 'transfer') {
         await finance.createTransaction({
-          account_id: parseInt(accountId), type: 'transfer', amount: amt, description, note,
+          account_id: parseInt(accountId), type: 'transfer', amount: amt, description: description.trim(), note,
           txn_at: txnAt, linked_account: parseInt(linkedId),
         });
       } else if (allTheirs) {
         // All of it is theirs: money lent, not spent.
         await finance.createLend({
           source_account_id: parseInt(accountId), borrower: person.trim(), amount: amt,
-          description, note, lent_at: txnAt, due_date: dueDate || null, remind: remind && !!dueDate,
+          description: description.trim(), note, lent_at: txnAt, due_date: dueDate || null, remind: remind && !!dueDate,
         });
       } else {
         const draft: TxnDraft = {
           account_id: parseInt(accountId),
           type: isRefund ? 'refund' : type,
-          amount: amt, description, note, txn_at: txnAt,
+          amount: amt, description: description.trim(), note, txn_at: txnAt,
           // A linked refund with no category picked takes the purchase's.
           category_id: isRefund && refundOf && !categoryId ? null : selectedCategoryId ? parseInt(selectedCategoryId) : null,
           slate_id: parseInt(slateId) || 0,
           ...(isRefund && refundOf ? { refund_of: parseInt(refundOf) } : {}),
           ...(splitOn ? { split: { borrower: person.trim(), share: theirShare, remind, ...due } } : {}),
-          ...(type === 'income' && addons.has('settle') ? { settle_with: person.trim() } : {}),
+          ...(type === 'income' && addons.has('settle') ? { settle_with: person.trim(), ...(towardLendId ? { settle_lend_id: Number(towardLendId) } : {}) } : {}),
         };
         await finance.createTransaction(draft);
       }
@@ -477,6 +463,7 @@ export default function TransactionDialog({
   const applyToExisting = async () => {
     if (!txn || saving) return;
     if (!person.trim()) { setErrors({ person: type === 'expense' ? 'Enter who owes this.' : 'Enter who is paying you back.' }); return; }
+    if (!description.trim()) { setErrors({ description: 'Add a title.' }); return; }
     if (type === 'expense' && (!(theirShare > 0) || theirShare > total)) { setErrors({ share: 'Their share has to be above zero and at most the bill.' }); return; }
     setSaving(true);
     try {
@@ -488,7 +475,7 @@ export default function TransactionDialog({
           ...(dueDate ? { due_date: dueDate } : {}),
         });
       } else {
-        await finance.settleLends({ borrower: person.trim(), transaction_ids: [txn.id] });
+        await finance.settleLends({ borrower: person.trim(), transaction_ids: [txn.id], ...(towardLendId ? { lend_id: Number(towardLendId) } : {}) });
       }
       onSaved();
     } catch (e) {
@@ -522,35 +509,37 @@ export default function TransactionDialog({
 
   // Their share: one field plus ½ / All. Typing makes it custom; ½ and All
   // fill it in, so the row never changes shape.
-  const half = round2(total / 2);
-  const quickShare: ShareMode = existingSplit
-    ? (total > 0 && parseFloat(share) === half ? 'half' : total > 0 && parseFloat(share) === round2(total) ? 'all' : 'custom')
-    : shareMode;
-  const shareText = existingSplit ? share : shareMode === 'custom' ? customShare : theirShare > 0 ? String(theirShare) : '';
+  const shareText = shareMode === 'custom' ? customShare : theirShare > 0 ? String(theirShare) : '';
   const setShareText = (v: string) => {
     clearError('share');
-    if (existingSplit) { setShare(decimalOnly(v)); return; }
     setShareMode('custom');
     setCustomShare(decimalOnly(v));
   };
   const pickQuickShare = (m: ShareMode) => {
     clearError('share');
-    if (existingSplit) { if (total > 0) setShare(String(m === 'all' ? round2(total) : half)); return; }
     setShareMode(m);
   };
 
   const section = (a: Addon) => {
+    // A saved split's lend has one editor: Edit lend (who, share, due, undo).
+    if (a === 'split' && existingSplit) return (
+      <section key={a} className="flex flex-col gap-2 pt-1">
+        <Label className="font-mono text-xs label-kicker text-muted-foreground">Split with {existingSplit.borrower}</Label>
+        <SummaryRow action={onEditLend && <Button variant="tonal" size="sm" onClick={() => autosave.close(() => onEditLend(existingSplit.lend_id))}>Edit lend</Button>}>
+          {total > 0 && theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
+          <DateBadge tone="accent">{existingSplit.borrower} owes <Money value={theirShare} /></DateBadge>
+        </SummaryRow>
+      </section>
+    );
     if (a === 'split') return (
-      <AddonSection key={a} label={existingSplit ? `Split with ${existingSplit.borrower}` : 'Split with'} onRemove={() => removeAddon('split')}>
-        {!existingSplit && (
-          <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
-            suggestions={people.map((p) => p.borrower)} placeholder="Who owes this?" autoFocus={justAdded === 'split'} />
-        )}
+      <AddonSection key={a} label="Split with" onRemove={() => removeAddon('split')}>
+        <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
+          suggestions={people.map((p) => p.borrower)} placeholder="Who owes this?" autoFocus={justAdded === 'split'} />
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
           <PrefixedInput prefix="Their share ₹" value={shareText} onChange={setShareText} invalid={!!errors.share} />
           <SegmentedButton<ShareMode>
             aria-label="Quick share"
-            value={quickShare}
+            value={shareMode}
             onChange={pickQuickShare}
             options={[{ value: 'half', label: '½' }, { value: 'all', label: 'All' }]}
             showCheck={false}
@@ -558,24 +547,22 @@ export default function TransactionDialog({
           />
         </div>
         {errors.share && <p className="text-xs text-destructive">{errors.share}</p>}
-        {!existingSplit && (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-            <DatePicker value={dueDate} onChange={setDueDate} prefix="Due" placeholder={account?.type === 'credit_card' ? 'With the card bill' : 'Anytime'} />
-            <button
-              type="button"
-              aria-pressed={remind}
-              onClick={() => setRemind((r) => !r)}
-              className={cn(
-                'inline-flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm outline-none transition-colors focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
-                remind
-                  ? 'bg-[hsl(var(--secondary-container))] font-semibold text-[hsl(var(--on-secondary-container))]'
-                  : 'bg-[hsl(var(--surface-container-highest))] font-semibold text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Bell className="size-4" /> Remind
-            </button>
-          </div>
-        )}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <DatePicker value={dueDate} onChange={setDueDate} prefix="Due" placeholder={account?.type === 'credit_card' ? 'With the card bill' : 'Anytime'} />
+          <button
+            type="button"
+            aria-pressed={remind}
+            onClick={() => setRemind((r) => !r)}
+            className={cn(
+              'inline-flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm outline-none transition-colors focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+              remind
+                ? 'bg-[hsl(var(--secondary-container))] font-semibold text-[hsl(var(--on-secondary-container))]'
+                : 'bg-[hsl(var(--surface-container-highest))] font-semibold text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Bell className="size-4" /> Remind
+          </button>
+        </div>
         <SummaryRow>
           {total > 0 && theirShare > 0 && theirShare <= total && (<>
             {theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
@@ -586,8 +573,9 @@ export default function TransactionDialog({
     );
     if (a === 'settle') return (
       <AddonSection key={a} label="Settles a lend" onRemove={() => removeAddon('settle')}>
-        <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
+        <PersonField value={person} onChange={(v) => { setPerson(v); setTowardLendId(''); clearError('person'); }} error={errors.person}
           suggestions={people.filter((p) => p.outstanding > 0).map((p) => p.borrower)} placeholder="Who is paying you back?" autoFocus={justAdded === 'settle'} />
+        {owed && <TowardPicker person={owed.borrower} value={towardLendId} onChange={setTowardLendId} />}
         <SummaryRow>
           {owed && (<>
             <DateBadge>Owes <Money value={owed.outstanding} /></DateBadge>
@@ -684,10 +672,11 @@ export default function TransactionDialog({
                 autoFocus={!txn}
               />
             </Field>
-            <Field label="Title">
+            <Field label="Title" error={errors.description}>
               <Input
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                aria-invalid={!!errors.description}
+                onChange={(e) => { setDescription(e.target.value); clearError('description'); }}
                 placeholder={type === 'transfer' ? 'e.g. Move to savings' : isRefund ? 'e.g. Amazon refund' : type === 'income' ? 'e.g. October salary' : allTheirs ? 'e.g. Cash for Aman' : 'e.g. Lunch at Cafe X'}
                 maxLength={120}
               />
@@ -887,6 +876,28 @@ function RefundPicker({ accountId, value, onChange }: { accountId: number; value
       <SelectTrigger><SelectValue placeholder="Original purchase (optional)" /></SelectTrigger>
       <SelectContent>{options.map((o) => <SelectItem key={o.value || 'none'} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
     </Select>
+  );
+}
+
+// Which of a person's lends a payment counts toward. "Overall" lowers their
+// total without marking any one lend as paid.
+export function TowardPicker({ person, value, onChange }: { person: string; value: string; onChange: (lendId: string) => void }) {
+  const lendsQ = useFinLends(!!person);
+  const theirs = (lendsQ.data ?? []).filter((l) => personKey(l.borrower) === personKey(person)
+    && (l.outstanding > 0 || String(l.id) === value));
+  const options = [{ value: '', label: 'Overall' }, ...theirs.map((l) => ({
+    value: String(l.id),
+    label: `${l.description} · ${format(new Date(l.lent_at), 'd MMM')}`,
+  }))];
+  return (
+    <Field label="Toward">
+      <Select value={value} onValueChange={(v) => onChange(v ?? '')} items={options}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {options.map((o) => <SelectItem key={o.value || 'overall'} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </Field>
   );
 }
 
