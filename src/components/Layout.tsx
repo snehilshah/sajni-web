@@ -94,8 +94,11 @@ function UserMenuBody({
 
 // ─── Dock icon — macOS-style proximity magnification ─────────────────────
 // `pointerX` carries the pointer's clientX while it's over the dock
-// (Infinity when it leaves); each icon springs its size by distance.
-// Subtle by design: +8px at dead centre, felt more than seen.
+// (Infinity when it leaves); each icon springs its slot WIDTH by distance
+// and scales its glyph to match. Subtle by design: +8px at dead centre,
+// felt more than seen. Height and the active/hover circles stay at `base`:
+// growing them swelled the circles into the pill's edges, so the bar
+// seemed to bob up and down under the pointer.
 function DockNavIcon({
   pointerX, path, label, icon, isActive, base, max, activeLayoutId,
   hovered = false, hoverLayoutId, onHover,
@@ -124,6 +127,8 @@ function DockNavIcon({
     { mass: 0.1, stiffness: 220, damping: 16 },
   );
   const iconScale = useTransform(size, (s) => s / base);
+  // A fixed base-sized circle centred in the (wider) slot.
+  const circle = { width: base, left: '50%', marginLeft: -base / 2 };
 
   return (
     <NavLink
@@ -137,7 +142,7 @@ function DockNavIcon({
       className="shrink-0 flex items-center justify-center"
     >
       <motion.span
-        style={{ width: size, height: size }}
+        style={{ width: size, height: base }}
         className={cn(
           'relative inline-flex items-center justify-center rounded-full transition-colors',
           isActive
@@ -148,17 +153,19 @@ function DockNavIcon({
         {isActive && (
           <motion.span
             layoutId={activeLayoutId}
-            className="absolute inset-0 rounded-full bg-[hsl(var(--secondary-container))]"
+            style={circle}
+            className="absolute inset-y-0 rounded-full bg-[hsl(var(--secondary-container))]"
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
           />
         )}
-        {/* Shared-element hover circle: inset-0 auto-centres it on the
-            magnified icon, and the shared layoutId makes framer slide it
-            here from whichever icon had it last. */}
+        {/* Shared-element hover circle, centred on the icon; the shared
+            layoutId makes framer slide it here from whichever icon had it
+            last. */}
         {!isActive && hovered && hoverLayoutId && (
           <motion.span
             layoutId={hoverLayoutId}
-            className="absolute inset-0 z-0 rounded-full bg-[hsl(var(--on-surface)/0.08)]"
+            style={circle}
+            className="absolute inset-y-0 z-0 rounded-full bg-[hsl(var(--on-surface)/0.08)]"
             transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.6 }}
           />
         )}

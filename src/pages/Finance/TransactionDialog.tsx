@@ -38,17 +38,17 @@ import { txnAtToParts, partsToTxnAt, subMoney } from './utils';
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
 type Addon = 'split' | 'settle' | 'refund' | 'slate' | 'note';
-type ShareMode = 'half' | 'custom' | 'all';
+export type ShareMode = 'half' | 'custom' | 'all';
 
-const personKey = (name: string) => name.trim().toLowerCase();
+export const personKey = (name: string) => name.trim().toLowerCase();
 // Money typed or pasted ("₹1,200.50") down to a plain decimal string.
-const decimalOnly = (v: string) => {
+export const decimalOnly = (v: string) => {
   const [int, ...rest] = v.replace(/[^\d.]/g, '').split('.');
   return rest.length ? `${int}.${rest.join('').slice(0, 2)}` : int;
 };
-const round2 = (n: number) => Math.round(n * 100) / 100;
+export const round2 = (n: number) => Math.round(n * 100) / 100;
 
-function shareOf(total: number, mode: ShareMode, custom: string) {
+export function shareOf(total: number, mode: ShareMode, custom: string) {
   if (!(total > 0)) return 0;
   if (mode === 'all') return round2(total);
   if (mode === 'half') return round2(total / 2);
@@ -716,7 +716,7 @@ export default function TransactionDialog({
             )}
             {showCategory && (
               <Field
-                label="Category"
+                label={splitOn || existingSplit ? 'Category of your part' : 'Category'}
                 hint={inferring ? (
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground normal-case tracking-normal">
                     <M3CookieLoader size="xs" tone="primary" />
@@ -786,7 +786,7 @@ export default function TransactionDialog({
 
 // An add-on as a form section: label on the leading edge, a neutral ×
 // whose glyph ends on the trailing edge.
-function AddonSection({ label, onRemove, children }: { label: string; onRemove: () => void; children: ReactNode }) {
+export function AddonSection({ label, onRemove, children }: { label: string; onRemove: () => void; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2 pt-1">
       <div className="flex min-h-[14px] items-center justify-between gap-2">
@@ -804,7 +804,7 @@ function AddonSection({ label, onRemove, children }: { label: string; onRemove: 
 // An add-on's last line: what it adds up to (badges) on the leading edge and,
 // on a saved transaction, the button that commits it on the trailing edge,
 // both on one centre line.
-function SummaryRow({ action, children }: { action?: ReactNode; children?: ReactNode }) {
+export function SummaryRow({ action, children }: { action?: ReactNode; children?: ReactNode }) {
   if (!action && !children) return null;
   return (
     <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
@@ -816,7 +816,7 @@ function SummaryRow({ action, children }: { action?: ReactNode; children?: React
 
 // A money field with its meaning written in front, so it still reads once
 // the placeholder is gone.
-function PrefixedInput({ prefix, value, onChange, invalid }: { prefix: string; value: string; onChange: (v: string) => void; invalid?: boolean }) {
+export function PrefixedInput({ prefix, value, onChange, invalid }: { prefix: string; value: string; onChange: (v: string) => void; invalid?: boolean }) {
   return (
     <label className={cn(
       'flex h-11 min-w-0 cursor-text items-center gap-1.5 rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] pl-3.5 text-sm',
@@ -839,7 +839,7 @@ function PrefixedInput({ prefix, value, onChange, invalid }: { prefix: string; v
   );
 }
 
-function PersonField({ value, onChange, suggestions, placeholder, error, autoFocus }: {
+export function PersonField({ value, onChange, suggestions, placeholder, error, autoFocus }: {
   value: string; onChange: (v: string) => void; suggestions: string[]; placeholder: string; error?: string; autoFocus?: boolean;
 }) {
   const picked = suggestions.find((s) => personKey(s) === personKey(value));

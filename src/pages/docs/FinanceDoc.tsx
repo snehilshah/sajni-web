@@ -18,6 +18,8 @@ export const financeMeta = {
     { id: 'paid-back', label: 'Getting paid back' },
     { id: 'forgive', label: 'Forgiving' },
     { id: 'refunds', label: 'Refunds' },
+    { id: 'card-offers', label: 'A friend uses your card' },
+    { id: 'cashback', label: 'Cashback' },
     { id: 'categories', label: 'Categories' },
     { id: 'slates', label: 'Slates' },
     { id: 'budgets', label: 'Budgets' },
@@ -173,7 +175,10 @@ export default function FinanceDoc() {
           <strong>Example.</strong> On 1 October you pay ₹754.96 for dinner on
           your RuPay card. Rahul will pay you back half.
           <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
-            <li>Add the expense: ₹754.96, “Dinner”, RuPay card, Food.</li>
+            <li>
+              Add the expense: ₹754.96, “Dinner”, RuPay card, Food. The
+              category is for <em>your</em> part, so pick what your half was.
+            </li>
             <li>
               Tap <em>+ Split</em>, type Rahul (or tap his name if he's owed you
               before). <strong>½</strong> is already picked, so{' '}
@@ -249,6 +254,16 @@ export default function FinanceDoc() {
           spending. Your cash goes down by ₹500 and Aman owes you ₹500.
         </Callout>
         <FeatureList>
+          <Feature name="A friend's purchase on your card">
+            <p>
+              Priya buys a ₹1,499 jacket on your card for its offers. None of
+              it is yours: Expense on the card → <em>+ Split</em> → Priya →{' '}
+              <strong>All</strong>. Category disappears, because none of it is
+              your spending, and it's due with that card bill. The whole
+              story, offers and cashback included, is in{' '}
+              <a href="#card-offers">A friend uses your card</a>.
+            </p>
+          </Feature>
           <Feature name="Paid for someone">
             <p>
               Already recorded something that was really for someone else, like
@@ -317,6 +332,14 @@ export default function FinanceDoc() {
               income.
             </p>
           </Feature>
+          <Feature name="Fixing its title">
+            <p>
+              Tap the payment in Transactions to open <em>Edit repayment</em>{' '}
+              and change its title or note. Its amount, account and date belong
+              to the lends it paid off, so they stay put; <em>Open lend</em>{' '}
+              takes you to the lend.
+            </p>
+          </Feature>
         </FeatureList>
       </Section>
 
@@ -372,6 +395,141 @@ export default function FinanceDoc() {
           way): open it and tap <em>+ Refund</em>. Tap × on the Refund pill to
           turn it back into income.
         </p>
+        <FeatureList>
+          <Feature name="Why it says “Not linked”">
+            <p>
+              Linking a refund to its purchase is optional. “Not linked” just
+              means it isn't tied to one; the refund still lowers spending in
+              the category you pick. Linking only copies the purchase's
+              category and slate for you.
+            </p>
+            <p>
+              The list offers your 30 newest ordinary expenses{' '}
+              <strong>on the account the refund lands in</strong>. So it's
+              empty when that account has no purchases (Income switches to your
+              salary account; switch it to the card you bought on), and it
+              never shows lends or bills that are already split.
+            </p>
+          </Feature>
+          <Feature name="Cashback isn't a refund">
+            <p>
+              Cashback is a reward, not money back on one purchase. File it as
+              income; see <a href="#cashback">Cashback</a>.
+            </p>
+          </Feature>
+        </FeatureList>
+      </Section>
+
+      <Section id="card-offers" title="A friend uses your card for its offers" chip="worked example">
+        <p>
+          A friend buys something on your card because your card gets a
+          better deal. None of it is your spending: it's a lend, and every
+          offer that comes back is settled between you.
+        </p>
+        <Callout>
+          <strong>Example.</strong> Priya orders a ₹1,499 jacket on your
+          Amazon Pay card. Amazon gives ₹200 instant cashback into your Amazon
+          Pay balance, and the card pays 5% cashback at month end. You ask
+          Priya for the full amount minus the ₹200, and pass the 5% on to her
+          once it arrives.
+          <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
+            <li>
+              <strong>Order day.</strong> Expense ₹1,499 on the card →{' '}
+              <em>+ Split</em> → Priya → <strong>All</strong>. No category.
+              Priya owes ₹1,499.
+            </li>
+            <li>
+              <strong>The ₹200 lands in Amazon Pay balance.</strong> It's hers:
+              Income ₹200 on that account → <em>+ From a person</em> → Priya.
+              No category. She owes ₹1,299.
+            </li>
+            <li>
+              <strong>She sends ₹1,299.</strong> Income →{' '}
+              <em>+ From a person</em> → Priya. She owes ₹0.00 and the lend is
+              settled.
+            </li>
+            <li>
+              <strong>Month end, the card pays ₹500 cashback</strong> for all
+              your spending, hers included. Income ₹500 on the card, category{' '}
+              <em>Cashback</em>.
+            </li>
+            <li>
+              <strong>You send her ₹74.95</strong> (5% of ₹1,499). Expense in a
+              category like <em>Cashback passed on</em>. Not a split: she
+              doesn't owe it back.
+            </li>
+          </ul>
+        </Callout>
+        <p>What happens:</p>
+        <ul>
+          <li>
+            The card shows the ₹1,499 charge and the ₹500 cashback, so it
+            matches the statement. Amazon Pay balance is up ₹200.
+          </li>
+          <li>Your spending never counts the jacket.</li>
+          <li>Priya's lend is settled; nobody owes anybody.</li>
+          <li>
+            Cashback income reads ₹500 and Cashback passed on ₹74.95: you kept
+            ₹425.05. Both really happened, so your savings come out exact.
+          </li>
+        </ul>
+        <FeatureList>
+          <Feature name="She pays you less instead">
+            <p>
+              If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 −
+              ₹200 − ₹74.95), mark it paid back as above. She still owes
+              ₹74.95; open her in Lends and <em>Forgive</em> it in{' '}
+              <em>Cashback passed on</em>. Record the card's cashback as usual.
+            </p>
+          </Feature>
+          <Feature name="Two orders, one payment">
+            <p>
+              Priya owes ₹1,499 and ₹2,000 and sends ₹3,499 in one go. Mark it
+              paid back once. Sajni clears the older lend first, then the
+              newer; you never split her payment by hand. Whatever is still
+              short (her 5% on both, if she kept it) is one forgive.
+            </p>
+          </Feature>
+          <Feature name="Which credit is whose">
+            <p>
+              A credit that is <strong>all hers</strong>, like the order's ₹200
+              offer, is <em>From a person</em>. A credit that mixes hers with
+              yours, like the card's monthly cashback, is yours: record it as
+              Cashback income and pay her share out separately. One credit
+              can't be part repayment and part income.
+            </p>
+          </Feature>
+        </FeatureList>
+      </Section>
+
+      <Section id="cashback" title="Cashback" chip="income">
+        <p>
+          Cashback is a reward for spending, so it's <strong>income</strong>.
+          Make an income category called <em>Cashback</em> (Categories in
+          Transactions) and file every cashback credit there. Your spending
+          stays what you actually paid, and Analytics shows cashback as its
+          own line of income.
+        </p>
+        <Callout>
+          <strong>Example.</strong> Your card credits ₹500 cashback on the 30th.
+          Add an Income of ₹500 on the card, category Cashback. The card
+          balance goes up ₹500 and Cashback income for the month reads ₹500.
+        </Callout>
+        <ul>
+          <li>
+            Don't file it as a <em>Refund</em>: that would lower one expense
+            category for rewards earned across many.
+          </li>
+          <li>
+            Cashback that belongs to someone else (their order's instant
+            offer) is them paying you back: <em>+ From a person</em>. See{' '}
+            <a href="#card-offers">A friend uses your card</a>.
+          </li>
+          <li>
+            The Cards tab estimates the cashback a cycle should earn from the
+            card's rate; the credit you record is the real figure.
+          </li>
+        </ul>
       </Section>
 
       <Section id="categories" title="Categories" chip="tab: Transactions">
@@ -623,6 +781,13 @@ export default function FinanceDoc() {
               the amount, direction, title and time, picks the account from
               your matching hints, and opens one screen to check and save. A
               shared link that isn't a payment is saved as a bookmark instead.
+            </p>
+          </Feature>
+          <Feature name="Someone else's charge">
+            <p>
+              The check screen (shared, or when Sajni asks which account) has
+              the same <em>+ Split</em> as a new expense: pick the person and ½,
+              All or their share, and it's filed split or lent in one go.
             </p>
           </Feature>
         </FeatureList>

@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { DateBadge, StateChip } from '@/components/ui/state-chip';
 import { cn } from '@/lib/utils';
 
-import { finance, type FinAccount, type FinLend, type FinLendCandidate, type FinLendPerson, type FinLendRepayment, type FinLendSettlement } from '@/api';
+import { finance, type FinAccount, type FinTransaction, type FinLend, type FinLendCandidate, type FinLendPerson, type FinLendRepayment, type FinLendSettlement } from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -787,6 +787,66 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved }: {
         <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} /></Field>
       </div>
       <DialogFooter><EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} /></DialogFooter>
+    </DialogContent>
+  </Dialog>;
+}
+
+interface RepaymentValues { description: string; note: string }
+
+// Money someone paid back. Its amount, account and date belong to the lends it
+// settles (change them from Lends); its title and note are the user's words.
+export function EditRepaymentDialog({ txn, onOpenLend, onClose, onAutosaved }: {
+  txn: FinTransaction | null;
+  /** Opens the lend this repayment paid off, when there is one. */
+  onOpenLend?: () => void;
+  onClose: () => void;
+  onAutosaved: () => void;
+}) {
+  const [description, setDescription] = useState('');
+  const [note, setNote] = useState('');
+  const values: RepaymentValues = { description, note };
+  const apply = (v: RepaymentValues) => { setDescription(v.description); setNote(v.note); };
+  const autosave = useEditorAutosave({
+    key: txn?.id ?? null,
+    value: values,
+    apply,
+    invalid: null,
+    save: async (v) => {
+      if (!txn) return;
+      await finance.updateTransaction(txn.id, { description: v.description.trim(), note: v.note });
+      onAutosaved();
+    },
+  });
+  const loadAutosave = autosave.load;
+  const requestClose = () => autosave.close(onClose);
+  useEffect(() => {
+    if (!txn) return;
+    const v = { description: txn.description, note: txn.note || '' };
+    apply(v);
+    loadAutosave(v);
+    // Keyed on the repayment being opened; the setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txn]);
+  return <Dialog open={!!txn} onOpenChange={(next) => { if (!next) requestClose(); }}>
+    <DialogContent showCloseButton={false} className="sm:max-w-md">
+      <DialogHeader className="flex-row items-baseline justify-between gap-3">
+        <DialogTitle>Edit repayment</DialogTitle>
+        <AutosaveStatus status={autosave.status} />
+      </DialogHeader>
+      {txn && (
+        <div className="flex flex-wrap gap-1.5">
+          <DateBadge tone="positive">From {txn.lend_borrower || 'them'} <Money value={txn.amount} /></DateBadge>
+          <DateBadge>{txn.account_name} · {format(parseISO(txn.txn_at), 'd MMM')}</DateBadge>
+        </div>
+      )}
+      <div className="grid gap-3">
+        <Field label="Title"><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. UPI from Monica" maxLength={120} autoFocus /></Field>
+        <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={1000} /></Field>
+      </div>
+      <DialogFooter className="flex-row items-center justify-between">
+        {onOpenLend ? <Button variant="ghost" onClick={() => autosave.close(onOpenLend)}>Open lend</Button> : <span />}
+        <div className="flex gap-2"><EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} /></div>
+      </DialogFooter>
     </DialogContent>
   </Dialog>;
 }

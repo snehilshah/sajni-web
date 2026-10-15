@@ -24,7 +24,7 @@ import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
 import TransactionDialog from './TransactionDialog';
 import SlateDialog from './SlateDialog';
-import { EditLendDialog } from './LendsTab';
+import { EditLendDialog, EditRepaymentDialog } from './LendsTab';
 
 // The ledger is one surface, and its job beyond "what did I spend" is to show
 // which spending was NOT normal life. So: rows on a slate other than Plain
@@ -167,6 +167,7 @@ export default function TransactionsTab({
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [editingLend, setEditingLend] = useState<FinLend | null>(null);
+  const [editingRepayment, setEditingRepayment] = useState<FinTransaction | null>(null);
   const [creating, setCreating] = useState(false);
   const [createKind, setCreateKind] = useState<TxnKind | 'lend'>('expense');
   const [manageCats, setManageCats] = useState(false);
@@ -270,6 +271,10 @@ export default function TransactionsTab({
     }
     if (txn.type !== 'lend' && txn.type !== 'lend_repayment') {
       setEditing(txn);
+      return;
+    }
+    if (txn.type === 'lend_repayment') {
+      setEditingRepayment(txn);
       return;
     }
     const lend = lends.find((item) => item.id === txn.lend_id);
@@ -565,6 +570,15 @@ export default function TransactionsTab({
         lend={editingLend}
         accounts={accounts}
         onClose={() => setEditingLend(null)}
+        onAutosaved={reload}
+      />
+      <EditRepaymentDialog
+        txn={editingRepayment}
+        onOpenLend={(() => {
+          const lend = lends.find((item) => item.id === editingRepayment?.lend_id);
+          return lend ? () => { setEditingRepayment(null); setEditingLend(lend); } : undefined;
+        })()}
+        onClose={() => setEditingRepayment(null)}
         onAutosaved={reload}
       />
       {/* Create-then-sweep in one motion: back from a trip, select the rows,
