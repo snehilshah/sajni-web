@@ -320,7 +320,7 @@ export default function FinanceDoc() {
             <p>
               The repayment was usually captured from a UPI message. Open it,
               tap <em>+ From a person</em>, pick the person and press{' '}
-              <em>Mark as paid back</em>. Or use <em>Lends → Settle</em> on the
+              <em>Mark as paid back</em> (or <em>Done</em>). Or use <em>Lends → Settle</em> on the
               person to tick several credits at once, or to record cash that
               isn't in Sajni yet.
             </p>

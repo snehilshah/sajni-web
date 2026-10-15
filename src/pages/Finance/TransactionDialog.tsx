@@ -252,8 +252,17 @@ export default function TransactionDialog({
     };
   };
 
+  // A split or a settlement filled in on a saved transaction but not yet
+  // applied. Done applies it; any other close says it wasn't saved.
+  const pendingLabel = !txn ? null
+    : type === 'expense' && addons.has('split') && !txn.split && person.trim() ? 'Split this bill'
+      : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
+        : null;
   // Every close path (Esc, backdrop, Done) for an edit: flush, then close.
-  const requestClose = () => autosave.close(onClose);
+  const requestClose = () => {
+    if (pendingLabel) toast.info(`Not saved: press ${pendingLabel} to apply it.`);
+    autosave.close(onClose);
+  };
 
   useEffect(() => {
     setErrors({});
@@ -411,7 +420,7 @@ export default function TransactionDialog({
   };
 
   const save = async () => {
-    if (txn) { requestClose(); return; }
+    if (txn) { if (pendingLabel) void applyToExisting(); else requestClose(); return; }
     if (saving) return;
     const e = validate();
     if (Object.keys(e).length) {
@@ -767,7 +776,7 @@ export default function TransactionDialog({
           ) : <span />}
           {txn ? (
             <div className="flex gap-2">
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
+              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={() => (pendingLabel ? applyToExisting() : requestClose())} />
             </div>
           ) : (
             <div className="flex gap-2">
