@@ -24,7 +24,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { useFinLendPeople, useFinLends, useLendCandidates } from '@/queries/finance';
 import { CategoryChips } from './CategoryChips';
 import { Money } from './Money';
-import { txnAtToParts, partsToTxnAt, subMoney } from './utils';
+import { formatMoney, txnAtToParts, partsToTxnAt, subMoney } from './utils';
 
 // The add/edit sheet for personal-ledger transactions. Five things are always
 // there (kind, amount, title, account + date, category); everything optional
@@ -887,7 +887,8 @@ export function TowardPicker({ person, value, onChange }: { person: string; valu
     && (l.outstanding > 0 || String(l.id) === value));
   const options = [{ value: '', label: 'Overall' }, ...theirs.map((l) => ({
     value: String(l.id),
-    label: `${l.description} · ${format(new Date(l.lent_at), 'd MMM')}`,
+    // Amounts are what people remember a lend by: "₹398 · Order 1 · 3 Oct".
+    label: `${formatMoney(l.principal)} · ${l.description} · ${format(new Date(l.lent_at), 'd MMM')}`,
   }))];
   return (
     <Field label="Toward">

@@ -313,11 +313,13 @@ function ForgiveDialog({ person, onClose, onDone }: {
   const [categoryId, setCategoryId] = useState('');
   const [toward, setToward] = useState('');
   const [date, setDate] = useState(today());
+  const [time, setTime] = useState('12:00');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (!person) return;
-    setAmount(String(person.outstanding)); setCategoryId(''); setToward(''); setDate(today()); setNote('');
+    const now = txnAtToParts(new Date().toISOString());
+    setAmount(String(person.outstanding)); setCategoryId(''); setToward(''); setDate(now.date); setTime(now.time); setNote('');
   }, [person]);
   const value = Number(amount) || 0;
   const owed = person?.outstanding ?? 0;
@@ -329,7 +331,7 @@ function ForgiveDialog({ person, onClose, onDone }: {
     try {
       await finance.forgiveLends({
         borrower: person.borrower, amount: value, category_id: picked ? Number(picked) : null,
-        forgiven_at: partsToTxnAt(date, '12:00'), note, ...(toward ? { lend_id: Number(toward) } : {}),
+        forgiven_at: partsToTxnAt(date, time), note, ...(toward ? { lend_id: Number(toward) } : {}),
       });
       onDone();
     } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
@@ -349,7 +351,10 @@ function ForgiveDialog({ person, onClose, onDone }: {
         <Field label="Counts as">
           <CategoryChips categories={expenseCats} value={picked} onChange={setCategoryId} />
         </Field>
-        <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+          <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
+          <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
+        </div>
         <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} /></Field>
       </div>
       <DialogFooter>

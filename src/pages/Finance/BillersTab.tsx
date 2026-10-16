@@ -16,6 +16,7 @@ import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
 import { DateBadge } from '@/components/ui/state-chip';
 import { Input } from '@/components/ui/input';
+import { IntInput } from '@/components/ui/int-input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -814,13 +815,7 @@ function BillerDialog({
           </div>
 
           <Field label="Alert days · days before due to notify" className="max-w-[260px]">
-            <Input
-              type="number"
-              min={0}
-              max={30}
-              value={alertDays}
-              onChange={(e) => setAlertDays(Number(e.target.value) || 0)}
-            />
+            <IntInput min={0} max={30} value={alertDays} onChange={setAlertDays} />
           </Field>
 
           <Field label="Notes">

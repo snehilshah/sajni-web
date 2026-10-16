@@ -390,7 +390,7 @@ export default function FinanceDoc() {
           <strong>Example.</strong> Rahul still owes ₹317.48 and you tell him
           to forget it. Open Rahul in Lends and press <em>Forgive</em>. The
           amount starts at everything he owes; lower it to forgive only part.
-          Choose what it counts as (say, Gifts) and the date.
+          Choose what it counts as (say, Gifts) and the date and time.
         </Callout>
         <ul>
           <li>Rahul then owes ₹0.00, or whatever you didn't forgive.</li>
@@ -409,6 +409,18 @@ export default function FinanceDoc() {
           overall total. To undo it, tap the <em>Forgiven</em> line in the
           timeline and press <em>Undo forgive</em>.
         </p>
+        <FeatureList>
+          <Feature name="Forgiving their share of a cashback">
+            <p>
+              Alefiya paid ₹378 for a ₹398 order, keeping the ₹20 your card
+              will give back at month end. Forgive the ₹20 in your{' '}
+              <em>Cashback</em> category. It adds ₹20 to your spending for now;
+              when the month's cashback arrives as a refund in the same
+              category (see <a href="#cashback">Cashback</a>), it takes the ₹20
+              back off. You never split the month's cashback by order.
+            </p>
+          </Feature>
+        </FeatureList>
       </Section>
 
       <Section id="refunds" title="Refunds" chip="refund">
@@ -454,10 +466,11 @@ export default function FinanceDoc() {
               never shows lends or bills that are already split.
             </p>
           </Feature>
-          <Feature name="Cashback isn't a refund">
+          <Feature name="Cashback is a refund too">
             <p>
-              Cashback is a reward, not money back on one purchase. File it as
-              income; see <a href="#cashback">Cashback</a>.
+              Cashback is money back on what you spent, so file it as an
+              unlinked refund in a <em>Cashback</em> category; see{' '}
+              <a href="#cashback">Cashback</a>.
             </p>
           </Feature>
         </FeatureList>
@@ -493,13 +506,12 @@ export default function FinanceDoc() {
             </li>
             <li>
               <strong>Month end, the card pays ₹500 cashback</strong> for all
-              your spending, hers included. Income ₹500 on the card, category{' '}
-              <em>Cashback</em>.
+              your spending, hers included. Income ₹500 on the card →{' '}
+              <em>+ Refund</em>, not linked, category <em>Cashback</em>.
             </li>
             <li>
-              <strong>You send her ₹74.95</strong> (5% of ₹1,499). Expense in a
-              category like <em>Cashback passed on</em>. Not a split: she
-              doesn't owe it back.
+              <strong>You send her ₹74.95</strong> (5% of ₹1,499). Expense in{' '}
+              <em>Cashback</em>. Not a split: she doesn't owe it back.
             </li>
           </ul>
         </Callout>
@@ -512,8 +524,8 @@ export default function FinanceDoc() {
           <li>Your spending never counts the jacket.</li>
           <li>Priya's lend is settled; nobody owes anybody.</li>
           <li>
-            Cashback income reads ₹500 and Cashback passed on ₹74.95: you kept
-            ₹425.05. Both really happened, so your savings come out exact.
+            Cashback nets to −₹425.05 (₹74.95 passed on, ₹500 back): your
+            spending is ₹425.05 lower, exactly what you kept.
           </li>
         </ul>
         <FeatureList>
@@ -522,7 +534,8 @@ export default function FinanceDoc() {
               If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 −
               ₹200 − ₹74.95), mark it paid back as above. She still owes
               ₹74.95; open her in Lends and <em>Forgive</em> it in{' '}
-              <em>Cashback passed on</em>. Record the card's cashback as usual.
+              <em>Cashback</em>. Record the card's cashback as usual: the
+              forgive and the refund cancel out in that category.
             </p>
           </Feature>
           <Feature name="Two orders, one payment">
@@ -539,35 +552,48 @@ export default function FinanceDoc() {
               A credit that is <strong>all hers</strong>, like the order's ₹200
               offer, <em>settles a lend</em>. A credit that mixes hers with
               yours, like the card's monthly cashback, is yours: record it as
-              Cashback income and pay her share out separately. One credit
-              can't be part repayment and part income.
+              a Cashback refund, and pass her share on (or forgive it) in
+              Cashback. One credit can't be part repayment and part refund.
             </p>
           </Feature>
         </FeatureList>
       </Section>
 
-      <Section id="cashback" title="Cashback" chip="income">
+      <Section id="cashback" title="Cashback" chip="refund">
         <p>
-          Cashback is a reward for spending, so it's <strong>income</strong>.
-          Make an income category called <em>Cashback</em> (Categories in
-          Transactions) and file every cashback credit there. Your spending
-          stays what you actually paid, and Analytics shows cashback as its
-          own line of income.
+          Cashback is money back on what you spent, so record it as a{' '}
+          <strong>refund</strong>: Income → <em>+ Refund</em>, not linked to a
+          purchase, in an expense category called <em>Cashback</em> (make it in
+          Categories in Transactions). Your spending then shows what things
+          really cost you, and nothing about cashback looks like a pay rise.
         </p>
         <Callout>
-          <strong>Example.</strong> Your card credits ₹500 cashback on the 30th.
-          Add an Income of ₹500 on the card, category Cashback. The card
-          balance goes up ₹500 and Cashback income for the month reads ₹500.
+          <strong>Example.</strong> Your card credits ₹500 cashback on the
+          30th. Add an Income of ₹500 on the card, tap <em>+ Refund</em>, leave
+          it <em>Not linked</em>, category Cashback. The card balance goes up
+          ₹500 and this month's spending goes down ₹500.
         </Callout>
         <ul>
           <li>
-            Don't file it as a <em>Refund</em>: that would lower one expense
-            category for rewards earned across many.
+            One refund for the month's total: you never break it down by
+            order.
           </li>
           <li>
-            Cashback that belongs to someone else (their order's instant
-            offer) goes toward what they owe: <em>+ Settles a lend</em>, with an honest title like “Amazon instant cashback”. See{' '}
-            <a href="#card-offers">A friend uses your card</a>.
+            Part of it belongs to a friend whose orders earned it? Forgive (or
+            pay out) their share in <em>Cashback</em> too. Those add to
+            spending and the refund takes them off, so the category nets to
+            what you kept. See{' '}
+            <a href="#forgive">Forgiving their share of a cashback</a>.
+          </li>
+          <li>
+            If the cashback lands next month, the forgive shows this month and
+            the refund next month; the two months even out.
+          </li>
+          <li>
+            Cashback that is <strong>all</strong> someone else's (their
+            order's instant offer) goes toward what they owe instead:{' '}
+            <em>+ Settles a lend</em>, with an honest title like “Amazon
+            instant cashback”. See <a href="#card-offers">A friend uses your card</a>.
           </li>
           <li>
             The Cards tab estimates the cashback a cycle should earn from the

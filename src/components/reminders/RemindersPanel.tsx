@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { IntInput } from '@/components/ui/int-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -581,7 +582,7 @@ function ReminderForm({ draft, onChange }: { draft: Draft; onChange: (draft: Dra
         {draft.repeat && (
           <div className="mt-3 grid gap-3 border-t border-[hsl(var(--outline-variant)/0.6)] pt-3">
             <div className="grid grid-cols-[88px_1fr] gap-2">
-              <Input type="number" min={1} max={999} value={draft.interval} aria-label="Repeat interval" onChange={(event) => onChange({ ...draft, interval: Number(event.target.value) || 1 })} />
+              <IntInput min={1} max={999} value={draft.interval} aria-label="Repeat interval" onChange={(interval) => onChange({ ...draft, interval })} />
               <Select value={draft.frequency} onValueChange={(value) => onChange({ ...draft, frequency: value as Draft['frequency'] })} items={frequencyItems}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{FREQUENCIES.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}{draft.interval > 1 ? 's' : ''}</SelectItem>)}</SelectContent>
@@ -613,7 +614,7 @@ function ReminderForm({ draft, onChange }: { draft: Draft; onChange: (draft: Dra
                   <SelectContent><SelectItem value="date">Day of month</SelectItem><SelectItem value="weekday">Weekday pattern</SelectItem></SelectContent>
                 </Select>
                 {draft.monthlyMode === 'date' ? (
-                  <Input type="number" min={1} max={31} value={draft.monthDay} aria-label="Day of month" onChange={(event) => onChange({ ...draft, monthDay: Number(event.target.value) || 1 })} />
+                  <IntInput min={1} max={31} value={draft.monthDay} aria-label="Day of month" onChange={(monthDay) => onChange({ ...draft, monthDay })} />
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <Select value={String(draft.ordinal)} onValueChange={(value) => onChange({ ...draft, ordinal: Number(value) })} items={[[-1, 'Last'], [1, 'First'], [2, 'Second'], [3, 'Third'], [4, 'Fourth'], [5, 'Fifth']].map(([value, label]) => ({ value: String(value), label: String(label) }))}>
@@ -635,7 +636,7 @@ function ReminderForm({ draft, onChange }: { draft: Draft; onChange: (draft: Dra
                 <SelectContent><SelectItem value="never">Never ends</SelectItem><SelectItem value="date">Ends on date</SelectItem><SelectItem value="count">Ends after count</SelectItem></SelectContent>
               </Select>
               {draft.endMode === 'date' && <Input type="date" value={draft.until} aria-label="Recurrence end date" onChange={(event) => onChange({ ...draft, until: event.target.value })} />}
-              {draft.endMode === 'count' && <Input type="number" min={1} value={draft.count} aria-label="Number of occurrences" onChange={(event) => onChange({ ...draft, count: Number(event.target.value) || 1 })} />}
+              {draft.endMode === 'count' && <IntInput min={1} value={draft.count} aria-label="Number of occurrences" onChange={(count) => onChange({ ...draft, count })} />}
             </div>
           </div>
         )}

@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { msg } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { IntInput } from '@/components/ui/int-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MorphingDialog, type MorphSourceRect } from '@/components/motion/morphing-dialog';
@@ -2698,12 +2699,6 @@ function formatTimelineDate(iso: string): string {
   }
 }
 
-// NumberField — string-buffered numeric input. Without the buffer the
-// controlled `value={number}` flicker against the base-ui Input wrapper
-// makes the field feel locked: clearing it snaps back to "0", and
-// editing on top of "0" requires manual select-all first. Buffering
-// the displayed string lets the user type freely and only reflects the
-// canonical number when the field is non-empty.
 function NumberField({
   label, value, min = 0, max, onChange,
 }: {
@@ -2713,30 +2708,9 @@ function NumberField({
   max?: number;
   onChange: (n: number) => void;
 }) {
-  const [draft, setDraft] = useState(String(value || 0));
-  // Keep draft synced when external `value` changes (e.g. after fetching
-  // TMDB details, season switch, or load existing entry).
-  useEffect(() => { setDraft(String(value || 0)); }, [value]);
   return (
     <FieldSimple label={label}>
-      <Input
-        type="number"
-        inputMode="numeric"
-        min={min}
-        max={max}
-        value={draft}
-        onChange={(e) => {
-          const next = e.target.value;
-          setDraft(next);
-          if (next === '') { onChange(0); return; }
-          const n = parseInt(next, 10);
-          if (!Number.isNaN(n)) {
-            const clamped = max !== undefined ? Math.min(max, Math.max(min, n)) : Math.max(min, n);
-            onChange(clamped);
-          }
-        }}
-        onBlur={() => { setDraft(String(value || 0)); }}
-      />
+      <IntInput min={min} max={max} value={value || 0} onChange={onChange} />
     </FieldSimple>
   );
 }
