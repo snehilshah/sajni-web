@@ -244,10 +244,11 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Finding things">
             <p>
-              Search by title or category, and filter by account, type
-              (Expense, Income, Refund, Transfer, Lend, Repayment, Adjusted) or
-              slate. Tick <strong>several accounts</strong> in the account
-              filter to see them together, say your two cards. Days are grouped with their totals; split bills count only
+              Search by title or category, and filter by account, category,
+              type (Expense, Income, Refund, Transfer, Lend, Repayment,
+              Adjusted) or slate. Tick <strong>several accounts</strong> or{' '}
+              <strong>several categories</strong> to see them together, say
+              your two cards, or Food and Groceries. Days are grouped with their totals; split bills count only
               your part as spent.
             </p>
           </Feature>

@@ -178,6 +178,8 @@ export default function TransactionsTab({
   const [search, setSearch] = useState('');
   // Any of these accounts; empty = all.
   const [accountFilter, setAccountFilter] = useState<string[]>([]);
+  // Any of these categories; empty = all.
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [newSlate, setNewSlate] = useState(false);
@@ -216,6 +218,11 @@ export default function TransactionsTab({
 
   const accountNameById = (id: number | null) => accounts.find((a) => a.id === id)?.name || '';
   const slateById = (id: number) => slates.find((s) => s.id === id);
+  // Spending categories first, then income, each by name.
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'expense' ? -1 : 1) || a.name.localeCompare(b.name)),
+    [categories],
+  );
 
   const merged = useMemo(
     () => transactions.map((t) => (overrides[t.id] ? { ...t, ...overrides[t.id] } : t)),
@@ -229,13 +236,14 @@ export default function TransactionsTab({
       if (search && !t.description.toLowerCase().includes(search.toLowerCase()) &&
           !(t.category_name || '').toLowerCase().includes(search.toLowerCase())) return false;
       if (accountFilter.length && !accountFilter.includes(String(t.account_id))) return false;
+      if (categoryFilter.length && !categoryFilter.includes(String(t.category_id))) return false;
       if (typeFilter) {
         if (typeFilter === 'transfer_out' && t.type !== 'transfer_out') return false;
         if (typeFilter !== 'transfer_out' && t.type !== typeFilter) return false;
       }
       return true;
     });
-  }, [merged, search, accountFilter, typeFilter]);
+  }, [merged, search, accountFilter, categoryFilter, typeFilter]);
 
   // Month > week > day, each level carrying its own net. One day tells you
   // nothing on its own — a ₹4,000 Saturday is normal or alarming depending on
@@ -367,6 +375,20 @@ export default function TransactionsTab({
             <SelectContent>
               {accounts.map((a) => (
                 <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select multiple value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? [])}
+            items={sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))}>
+            <SelectTrigger size="sm" className="w-[150px] shrink-0">
+              <SelectValue>
+                {(ids: string[]) => !ids.length ? 'All categories'
+                  : ids.length === 1 ? categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category' : `${ids.length} categories`}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {sortedCategories.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
