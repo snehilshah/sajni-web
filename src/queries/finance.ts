@@ -103,6 +103,14 @@ export function useFinOverview(enabled = true) {
   });
 }
 
+export function useFinAnalytics(month: string, enabled = true) {
+  return useQuery({
+    queryKey: qk.finance.analytics(month),
+    queryFn: () => finance.analytics(month || undefined),
+    enabled,
+  });
+}
+
 export function useFinNetworthHistory(enabled = true) {
   return useQuery({
     queryKey: qk.finance.networthHistory(),

@@ -815,6 +815,41 @@ export interface FinTransaction {
   created_at: string;
 }
 
+/** Finance → Analytics (sajni-api internal/finstats). Spending = expenses +
+ *  forgives − refunds; totals count every slate, comparisons only Plain. */
+export interface FinAnalytics {
+  month: string;
+  days_in_month: number;
+  /** Days counted: today, or the whole month once it's over. */
+  day: number;
+  current: boolean;
+  spent: number;
+  slate_spent: number;
+  income: number;
+  saved: number;
+  rate: number | null;
+  daily_avg: number;
+  /** Earlier months "usual" averages (0–3). */
+  base_months: number;
+  comparable: number;
+  usual: number | null;
+  vs_usual: number | null;
+  last_month: number;
+  projected: number | null;
+  cumulative: { day: number; this: number | null; last: number; usual: number | null }[];
+  daily: { day: number; spent: number }[];
+  categories: { id: number | null; name: string; color: string; spent: number; count: number; share: number; usual: number | null; change: number | null }[];
+  merchants: { name: string; spent: number; count: number; avg: number }[];
+  largest: FinAnalyticsTxn[];
+  unusual: FinAnalyticsTxn[];
+  trend: { month: string; income: number; spent: number; saved: number; rate: number | null }[];
+}
+
+export interface FinAnalyticsTxn {
+  id: number; title: string; amount: number; date: string;
+  category: string; color: string; slate?: string; reason?: string;
+}
+
 export interface FinTxnSettlement {
   id: number;
   borrower: string;
@@ -1371,6 +1406,10 @@ export const finance = {
     investment_assets?: { id: number; name: string; type: string; amount: number }[];
     lends_breakdown?: { id: number; borrower: string; description: string; outstanding: number }[];
   }>('/finance/overview'),
+
+  /** Finance → Analytics for a month (YYYY-MM; default this month). */
+  analytics: (month?: string) =>
+    request<FinAnalytics>('/finance/analytics' + (month ? '?month=' + month : '')),
 
   networthHistory: () =>
     request<{ date: string; assets: number; liabilities: number; net_worth: number }[]>('/finance/networth/history'),

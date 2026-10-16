@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import {
-  LayoutDashboard, Landmark, ArrowLeftRight, PiggyBank,
+  ChartColumn, Landmark, ArrowLeftRight, PiggyBank,
   TrendingUp, CreditCard, Download, Receipt, Wallet, Coins,
   Eye, VenetianMask,
 } from '@/components/ui/icons';
@@ -19,7 +19,7 @@ import {
   useFinInvestments, useFinLends, useFinSavings, useFinStatements, useFinSlates,
 } from '@/queries/finance';
 import { qk } from '@/queries/keys';
-import OverviewTab from './OverviewTab';
+import AnalyticsTab from './AnalyticsTab';
 import AccountsTab from './AccountsTab';
 import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
@@ -41,7 +41,7 @@ const TXN_LIMIT = 1000;
 
 // Exported so other Finance screens render the same secondary bar.
 const financeTabs = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'analytics', label: 'Analytics', icon: ChartColumn },
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
   { id: 'lends', label: 'Lends', icon: Coins },
@@ -78,14 +78,14 @@ export default function FinancePage() {
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const active: TabId = useMemo(
-    () => (financeTabs.find((t) => t.id === tab)?.id as TabId) || 'overview',
+    () => (financeTabs.find((t) => t.id === tab)?.id as TabId) || 'analytics',
     [tab],
   );
 
   const qc = useQueryClient();
 
   // Each data set turns on when the first tab that needs it is visited, then
-  // stays cached. This keeps the overview from hydrating hidden tabs.
+  // stays cached. This keeps the first tab from hydrating hidden tabs.
   const [activated, setActivated] = useState<Set<string>>(() => new Set([active]));
   useEffect(() => {
     setActivated((prev) => (prev.has(active) ? prev : new Set(prev).add(active)));
@@ -194,7 +194,7 @@ export default function FinancePage() {
   }, [privacy]);
 
   const setActive = (id: TabId) => {
-    navigate(id === 'overview' ? '/finance' : '/finance/' + id, { replace: true });
+    navigate(id === 'analytics' ? '/finance' : '/finance/' + id, { replace: true });
   };
 
   return (
@@ -229,16 +229,17 @@ export default function FinancePage() {
         {/* All tabs always mounted; only active is visible.
             This eliminates the "wrong UI flash" entirely - content for every
             tab is already in the DOM by the time the user taps it. */}
-        <TabPanel active={active === 'overview'}>
-          <OverviewTab enabled={want('overview')} />
+        <TabPanel active={active === 'analytics'}>
+          <AnalyticsTab enabled={want('analytics')} />
         </TabPanel>
         <TabPanel active={active === 'accounts'}>
           <AccountsTab
+            enabled={want('accounts')}
             accounts={data.accounts}
             categories={data.categories}
             savings={data.savings}
             loaded={data.loaded.accounts}
-            reload={() => { loadAccounts(); loadSavings(); loadTransactions(); }}
+            reload={() => { loadAccounts(); loadSavings(); loadTransactions(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); }}
           />
         </TabPanel>
         <TabPanel active={active === 'transactions'}>

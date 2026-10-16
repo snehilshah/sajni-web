@@ -115,6 +115,8 @@ export const qk = {
     billerPayments: (id: number) => ['finance', 'billerPayments', id] as const,
     billerAlerts: (unseenOnly?: boolean) => ['finance', 'billerAlerts', !!unseenOnly] as const,
     overview: () => ['finance', 'overview'] as const,
+    // Under the overview prefix: whatever refreshes the overview refreshes it.
+    analytics: (month: string) => ['finance', 'overview', 'analytics', month] as const,
     networthHistory: () => ['finance', 'networthHistory'] as const,
   },
   insights: {

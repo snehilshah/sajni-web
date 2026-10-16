@@ -11,6 +11,7 @@ export const financeMeta = {
   blurb: 'Your money in one calm ledger: accounts, spending, people who owe you, cards, bills, budgets and investments.',
   sections: [
     { id: 'privacy', label: 'Privacy mode' },
+    { id: 'analytics', label: 'Analytics' },
     { id: 'accounts', label: 'Accounts' },
     { id: 'transactions', label: 'Adding a transaction' },
     { id: 'split', label: 'Splitting a bill' },
@@ -26,7 +27,6 @@ export const financeMeta = {
     { id: 'cards', label: 'Cards' },
     { id: 'billers', label: 'Billers' },
     { id: 'investments', label: 'Investments' },
-    { id: 'overview', label: 'Overview' },
     { id: 'capture', label: 'Automatic capture' },
     { id: 'ask', label: 'Asking Sajni' },
     { id: 'exports', label: 'Exports' },
@@ -58,7 +58,88 @@ export default function FinanceDoc() {
         </p>
       </Section>
 
+      <Section id="analytics" title="Analytics" chip="tab">
+        <p>
+          Finance opens on Analytics: one month at a time, with ‹ and › to
+          step back through earlier months. It answers “how much went out,
+          and why”.
+        </p>
+        <RefTable
+          head={['figure', 'what it means']}
+          rows={[
+            ['Spent', 'expenses and forgiven lends, less refunds; every slate counts'],
+            ['Income', 'salary and other money in (refunds and paybacks are not income)'],
+            ['Saved', 'income minus spent; negative when you spent more than came in'],
+            ['Savings rate', 'saved as a share of income'],
+            ['Daily average', 'spent divided by the days so far'],
+            ['Month end, at this pace', 'this month only: what you have spent, plus what usually goes out in the rest of the month'],
+          ]}
+        />
+        <FeatureList>
+          <Feature name="Usual">
+            <p>
+              Your usual is the average of up to three earlier months, counted
+              to the <strong>same day</strong>. On 16 October, “usual” is what
+              July, August and September had spent by their 16th, so rent on
+              the 1st doesn't make the month look high. Comparisons use your{' '}
+              <em>Plain</em> spending only, so a Goa trip in its own slate
+              never makes a month look unusual. It starts once there is an
+              earlier month to compare with.
+            </p>
+          </Feature>
+          <Feature name="How the month built up">
+            <p>
+              The running total through the month, against your usual and
+              last month. Point at the chart to read any day.
+            </p>
+          </Feature>
+          <Feature name="Why it's higher">
+            <p>
+              The categories that are above their usual by this day, biggest
+              rise first. For example, Food at ₹4,800 against a usual ₹2,000
+              shows “+₹2,800.00”.
+            </p>
+          </Feature>
+          <Feature name="Stood out">
+            <p>Plain expenses that don't look like the rest:</p>
+            <ul>
+              <li>
+                At least 2.5× your usual spend in that category (its median over
+                the last six months), and ₹300 or more above it: a ₹4,000
+                dinner where lunch is usually ₹500 reads “8.0× your usual Food
+                spend”.
+              </li>
+              <li>
+                A big one-off in a category you rarely use: ₹1,000 or more and
+                at least 15% of the month.
+              </li>
+              <li>
+                Something new: a title you haven't used in the last year, of
+                ₹1,000 or more.
+              </li>
+            </ul>
+          </Feature>
+          <Feature name="Where it went">
+            <p>
+              Day by day, the five largest, every category with its share, and
+              the places you spent most. Places group by title, ignoring
+              capitals and spacing, so “Cafe X” and “cafe x” are one.
+            </p>
+          </Feature>
+          <Feature name="Saving, month by month">
+            <p>Income against spending for each month, with the savings rate.</p>
+          </Feature>
+        </FeatureList>
+      </Section>
+
       <Section id="accounts" title="Accounts" chip="tab">
+        <p>
+          The tab opens with your <strong>net worth</strong>: what you have
+          (accounts, investments, money owed to you) minus what you owe
+          (cards), with its history and what it's made of. Press{' '}
+          <em>Snapshot</em> to save today's figure; snapshots build the history
+          chart and are never rewritten.
+        </p>
         <p>An account is anywhere your money lives. Pick the type that fits:</p>
         <RefTable
           head={['type', 'use it for']}
@@ -715,8 +796,7 @@ export default function FinanceDoc() {
         </ul>
         <p>
           Preview it, and overwrite any figure with the one on the real
-          statement. Unpaid statements appear in Overview's upcoming dues.
-          Press <em>Mark paid</em> and choose the account it's paid from: Sajni
+          statement. Press <em>Mark paid</em> and choose the account it's paid from: Sajni
           records the transfer to the card and closes the cycle.
         </p>
       </Section>
@@ -801,25 +881,6 @@ export default function FinanceDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="overview" title="Overview" chip="tab">
-        <ul>
-          <li>
-            <strong>Net worth</strong>: what you have (accounts, investments,
-            money owed to you) minus what you owe (cards).
-          </li>
-          <li>
-            <strong>This month</strong>: income, spending (after refunds,
-            including forgiven lends), savings and recurring investing.
-          </li>
-          <li>Account balances, top spending categories and a 30-day trend.</li>
-          <li>Upcoming card dues and bills.</li>
-        </ul>
-        <p>
-          Press <em>Snapshot</em> to save today's net worth. Snapshots build the
-          history chart, and are never rewritten afterwards.
-        </p>
-      </Section>
-
       <Section id="capture" title="Capturing transactions automatically" chip="android · share">
         <FeatureList>
           <Feature name="On Android">
@@ -878,6 +939,7 @@ export default function FinanceDoc() {
             ['the Amazon credit yesterday was a refund', 'turns that income into a refund'],
             ['forgive what Aman owes', 'forgives it'],
             ['what did the Goa trip cost?', 'totals the Goa slate'],
+            ['why is spending so high this month?', 'explains it, with the same figures as Analytics'],
           ]}
         />
       </Section>

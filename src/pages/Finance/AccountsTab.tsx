@@ -15,11 +15,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
-import { ACCOUNT_TYPES, ACCOUNT_COLORS, sumMoney, subMoney } from './utils';
+import { ACCOUNT_TYPES, ACCOUNT_COLORS, sumMoney } from './utils';
 import { ListSkeleton } from './Skeletons';
-import { Stat, StatGroup } from './StatGroup';
+import NetWorth from './NetWorth';
 import { DateBadge } from '@/components/ui/state-chip';
 import { Money } from './Money';
 import { useEditorAutosave } from '@/hooks/use-autosave';
@@ -40,6 +39,8 @@ type AcctType = FinAccount['type'];
 type CashType = FinAccount['cashback_type'];
 
 interface Props {
+  /** Turns on the net worth queries once the tab is first visited. */
+  enabled: boolean;
   accounts: FinAccount[];
   categories: FinCategory[];
   savings: FinSaving[];
@@ -47,7 +48,7 @@ interface Props {
   reload: () => void;
 }
 
-export default function AccountsTab({ accounts, categories, savings: parentSavings, loaded, reload }: Props) {
+export default function AccountsTab({ enabled, accounts, categories, savings: parentSavings, loaded, reload }: Props) {
   const { formatPercent } = useFinanceFormatters();
   const [editingAcct, setEditingAcct] = useState<FinAccount | null>(null);
   const [creating, setCreating] = useState(false);
@@ -64,19 +65,9 @@ export default function AccountsTab({ accounts, categories, savings: parentSavin
     [accounts, showArchived],
   );
 
-  const totalAssets = sumMoney(
-    visible.filter((a) => a.type !== 'credit_card' || a.balance >= 0),
-    (a) => Math.max(a.balance, 0),
-  );
-  const totalLiab = sumMoney(visible.filter((a) => a.balance < 0), (a) => -a.balance);
-
   return (
     <div className="flex flex-col gap-4">
-      <StatGroup className="grid-cols-2 md:grid-cols-3">
-        <Stat label="Assets" value={<AnimatedMoney value={totalAssets} />} tone="primary" />
-        <Stat label="Liabilities" value={<AnimatedMoney value={totalLiab} />} tone="destructive" />
-        <Stat label="Net" value={<AnimatedMoney value={subMoney(totalAssets, totalLiab)} />} className="col-span-2 md:col-span-1" />
-      </StatGroup>
+      <NetWorth enabled={enabled} />
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">Accounts</h2>
