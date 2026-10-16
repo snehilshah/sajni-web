@@ -812,6 +812,11 @@ export interface FinTransaction {
   split: FinTxnSplit | null;
   /** Refund: the purchase it came back for. */
   refund_of: number | null;
+  /** A transfer into an investment (an RD instalment, a SIP): one row out of
+   *  the account, no other leg; the investment's name stands in for the
+   *  destination account. */
+  investment_id: number | null;
+  investment_name: string | null;
   created_at: string;
 }
 
@@ -921,7 +926,7 @@ export interface FinInvestment {
   expected_return: number;
   notes: string;
   last_updated: string;
-  /** Cron posts the contribution from account_id each cycle when on. */
+  /** When on, each cycle Sajni records a transfer from account_id into it. */
   auto_debit: boolean;
   next_debit_date: string | null;
 }
@@ -1137,6 +1142,8 @@ export interface TxnDraft {
   note?: string;
   txn_at: string;
   linked_account?: number;
+  /** Transfer only, instead of linked_account: pay into this investment. */
+  investment_id?: number;
   /** Omit or 0 → Plain (normal life); N → that slate. */
   slate_id?: number;
   /** Refund only: the purchase it came back for. */

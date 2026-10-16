@@ -6,7 +6,7 @@ import { format, startOfMonth, subMonths } from 'date-fns';
 import {
   ChartColumn, Landmark, ArrowLeftRight, PiggyBank,
   TrendingUp, CreditCard, Download, Receipt, Wallet, Coins,
-  Eye, VenetianMask,
+  Eye, VenetianMask, Plus,
 } from '@/components/ui/icons';
 
 import {
@@ -35,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /** Server-side max for GET /finance/transactions. */
 const TXN_LIMIT = 1000;
@@ -75,6 +76,7 @@ export interface FinanceData {
 }
 
 export default function FinancePage() {
+  const isMobile = useIsMobile();
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const active: TabId = useMemo(
@@ -210,6 +212,11 @@ export default function FinancePage() {
           onTogglePrivacy={togglePrivacy}
           exportOpen={exportOpen}
           setExportOpen={setExportOpen}
+          // Desktop keeps Add in the header, pinned while the list scrolls;
+          // phones get the FAB inside the tab.
+          onAdd={active === 'transactions' && !isMobile
+            ? () => setSheetRequest((r) => ({ kind: 'expense', person: '', n: (r?.n ?? 0) + 1 }))
+            : undefined}
         />
       }
       navigation={
@@ -257,7 +264,7 @@ export default function FinancePage() {
             onLoadEarlier={() => setMonthsBack((n) => n + 3)}
             sheetRequest={sheetRequest}
             active={active === 'transactions'}
-            reload={() => { loadTransactions(); loadAccounts(); loadLends(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); loadSlates(); }}
+            reload={() => { loadTransactions(); loadAccounts(); loadLends(); loadInvestments(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); loadSlates(); }}
             reloadCategories={loadCategories}
           />
         </TabPanel>
@@ -325,11 +332,13 @@ function FinanceHeaderActions({
   onTogglePrivacy,
   exportOpen,
   setExportOpen,
+  onAdd,
 }: {
   privacy: boolean;
   onTogglePrivacy: () => void;
   exportOpen: boolean;
   setExportOpen: Dispatch<SetStateAction<boolean>>;
+  onAdd?: () => void;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -399,6 +408,13 @@ function FinanceHeaderActions({
           </>
         )}
       </div>
+
+      {onAdd && (
+        <Button type="button" size="sm" onClick={onAdd} className="h-10 gap-1.5">
+          <Plus className="size-3.5" />
+          Add
+        </Button>
+      )}
     </div>
   );
 }

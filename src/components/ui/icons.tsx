@@ -11,7 +11,6 @@ import _px_AlertTriangle from 'pixelarticons/svg/warning-diamond.svg?raw';
 import _px_Archive from 'pixelarticons/svg/archive.svg?raw';
 import _px_ArchiveRestore from 'pixelarticons/svg/archive.svg?raw';
 import _px_ArrowDown from 'pixelarticons/svg/arrow-down.svg?raw';
-import _px_ArrowDownLeft from 'pixelarticons/svg/corner-down-left.svg?raw';
 import _px_ArrowDownToLine from 'pixelarticons/svg/arrow-bar-down.svg?raw';
 import _px_ArrowLeft from 'pixelarticons/svg/arrow-left.svg?raw';
 import _px_ArrowLeftRight from 'pixelarticons/svg/arrows-horizontal.svg?raw';
@@ -154,7 +153,6 @@ export const AlertTriangle = px(_px_AlertTriangle);
 export const Archive = px(_px_Archive);
 export const ArchiveRestore = px(_px_ArchiveRestore);
 export const ArrowDown = px(_px_ArrowDown);
-export const ArrowDownLeft = px(_px_ArrowDownLeft);
 export const ArrowDownToLine = px(_px_ArrowDownToLine);
 export const ArrowLeft = px(_px_ArrowLeft);
 export const ArrowLeftRight = px(_px_ArrowLeftRight);
@@ -278,6 +276,8 @@ export const Zap = px(_px_Zap);
 
 // --- passthrough to lucide (no good pixel match) ---
 export {
+  // A pair: out ↗ and in ↙ must match in weight and size.
+  ArrowDownLeft,
   ArrowUpRight,
   Bold,
   History,

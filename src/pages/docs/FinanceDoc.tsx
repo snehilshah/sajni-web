@@ -191,8 +191,9 @@ export default function FinanceDoc() {
 
       <Section id="transactions" title="Adding a transaction" chip="tab">
         <p>
-          Press <em>Add</em> in Transactions; it floats at the bottom corner,
-          so it is there however far you scroll. The sheet always asks for the
+          Press <em>Add</em> in Transactions. On a computer it sits in the
+          page header, which stays at the top as you scroll; on a phone it's
+          the round button above the dock. The sheet always asks for the
           same few things: whether it's an <strong>Expense</strong>,{' '}
           <strong>Income</strong> or <strong>Transfer</strong>; the amount; a
           title (“Lunch at Cafe X”); the account, date and time; and a
@@ -226,6 +227,21 @@ export default function FinanceDoc() {
               ATM, or salary to pay a card. A transfer is neither spending nor
               income, so it never changes your totals. Both sides stay in step
               when you edit it.
+            </p>
+          </Feature>
+          <Feature name="Paying into an investment">
+            <p>
+              An RD instalment or a SIP is just a transaction: a Transfer whose{' '}
+              <em>To</em> is the investment (the picker lists your investments
+              under your accounts). It leaves the account's balance and adds to
+              the investment's invested amount, and it's never spending.
+            </p>
+            <p>
+              <strong>Example.</strong> ₹10,000 goes from Salary to your RD on
+              the 12th. Add a Transfer of ₹10,000 from Salary to “Savings RD”.
+              Salary drops by ₹10,000.00, the RD's invested amount rises by the
+              same, and your month's spending doesn't change. Edit the amount
+              or delete it and the RD follows.
             </p>
           </Feature>
           <Feature name="Editing">
@@ -873,9 +889,11 @@ export default function FinanceDoc() {
             <p>
               For something paid every month, quarter or year, set the amount
               per cycle and link the paying account. Each cycle Sajni records
-              the payment from that account, adds it to the invested amount,
-              and tells you. If cycles were missed, each one is caught up
-              exactly once.
+              the payment as a transfer from that account into the investment
+              (see <em>Paying into an investment</em>), so it adds to the
+              invested amount, never to your spending, and tells you. If
+              cycles were missed, each one is caught up exactly once. Pay one
+              by hand instead and you add that same transfer yourself.
             </p>
           </Feature>
           <Feature name="Maturity">

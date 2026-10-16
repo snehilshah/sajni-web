@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Money } from './Money';
 import { txnAtToParts, formatTxnTime, toPaise, fromPaise, sumMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
@@ -159,13 +160,14 @@ interface Props {
   truncated: boolean;
   canLoadEarlier: boolean;
   onLoadEarlier: () => void;
-  /** Open the sheet pre-filled (from Lends): a new lend, or a payment back. */
+  /** Open the sheet: the header's Add, or pre-filled from Lends (a new
+   *  lend, or a payment back). */
   sheetRequest: SheetRequest | null;
-  /** The visible tab. Hidden tabs stay mounted, so the floating Add needs it. */
+  /** The visible tab. Hidden tabs stay mounted, so the phone's Add FAB needs it. */
   active: boolean;
 }
 
-export interface SheetRequest { kind: 'lend' | 'settle'; person: string; n: number }
+export interface SheetRequest { kind: 'expense' | 'lend' | 'settle'; person: string; n: number }
 
 export default function TransactionsTab({
   accounts, categories, slates, transactions, lends, loaded,
@@ -174,6 +176,7 @@ export default function TransactionsTab({
   sheetRequest, active,
 }: Props) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [editingLend, setEditingLend] = useState<FinLend | null>(null);
   const [editingRepayment, setEditingRepayment] = useState<Payment | null>(null);
@@ -344,8 +347,8 @@ export default function TransactionsTab({
   const activeSlates = slates.filter((s) => !s.archived || s.id === slateFilter);
 
   return (
-    // Bottom room so the last rows clear the floating Add.
-    <div className="flex flex-col gap-4 pb-20">
+    // Bottom room on phones so the last rows clear the Add FAB.
+    <div className="flex flex-col gap-4 pb-20 md:pb-0">
       {/* Filters. Search + Categories on the first line; lenses on the
           second, horizontally scrollable so nothing clips on a phone. */}
       <div className="flex flex-col gap-2">
@@ -392,16 +395,21 @@ export default function TransactionsTab({
                   : ids.length === 1 ? (ids[0] === 'none' ? 'Uncategorised' : categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category') : `${ids.length} categories`}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Uncategorised</SelectItem>
-              {/* Out ↗ for spending, in ↙ for income, as on the rows, so two
-                  of the same name can be told apart. */}
+            {/* Fixed width: long names end in "…" instead of widening the
+                menu. Out ↗ for spending, in ↙ for income, as on the rows, in
+                one leading column so they line up; Uncategorised keeps the
+                column empty. */}
+            <SelectContent className="w-60">
+              <SelectItem value="none">
+                <span className="size-3.5 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate">Uncategorised</span>
+              </SelectItem>
               {sortedCategories.map((c) => (
                 <SelectItem key={c.id} value={String(c.id)}>
-                  <span className="flex-1 truncate">{c.name}</span>
                   {c.kind === 'expense'
                     ? <ArrowUpRight aria-label="Expense" className="size-3.5 text-destructive" />
                     : <ArrowDownLeft aria-label="Income" className="size-3.5 text-[hsl(var(--color-complete))]" />}
+                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -523,7 +531,7 @@ export default function TransactionsTab({
                       onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment' || t.type === 'writeoff') ? openTransaction(t) : toggle(t.id)}
                       onOpen={() => openTransaction(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
-                      linkedName={linkedAccountName(t.linked_account)}
+                      linkedName={t.investment_name ?? linkedAccountName(t.linked_account)}
                       onTag={(tag) => navigate(`/tags/${encodeURIComponent(tag)}`)}
                     />
                   ))}
@@ -596,17 +604,18 @@ export default function TransactionsTab({
         )}
       </AnimatePresence>
 
-      {/* Add stays on screen however far the list scrolls. Portalled: the
-          tab panel's transform would pin a fixed child to the panel. The
-          sweep bar owns the bottom edge while a selection is live. */}
-      {active && !selecting && createPortal(
+      {/* Phones: Add is the FAB above the dock, as on Tasks and Media.
+          Desktop: it's in the page header, which stays pinned as you
+          scroll. Portalled: the tab panel's transform would pin a fixed
+          child to the panel. The sweep bar owns the bottom while selecting. */}
+      {active && isMobile && !selecting && createPortal(
         <Button
-          size="fab-extended"
+          size="fab"
           aria-label="Add transaction"
           onClick={() => { setCreateKind('expense'); setCreatePerson(''); setCreating(true); }}
-          className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+84px)] z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97] md:right-6 md:bottom-6"
+          className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+84px)] z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
         >
-          <Plus /> Add
+          <Plus />
         </Button>,
         document.body,
       )}
@@ -836,7 +845,7 @@ function LedgerRow({
           <span aria-hidden className="md:hidden">·</span>
           <span className="truncate">
             {accountName}
-            {isTransfer && t.linked_account && ' → ' + linkedName}
+            {isTransfer && (t.linked_account || t.investment_id) && ' → ' + linkedName}
           </span>
         </div>
 

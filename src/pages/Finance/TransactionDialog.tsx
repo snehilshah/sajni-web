@@ -19,9 +19,9 @@ import { DateBadge } from '@/components/ui/state-chip';
 import { HuePill } from '@/components/ui/hue-pill';
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import { useFinLendPeople, useFinLends, useLendCandidates } from '@/queries/finance';
+import { useFinInvestments, useFinLendPeople, useFinLends, useLendCandidates } from '@/queries/finance';
 import { CategoryChips } from './CategoryChips';
 import { Money } from './Money';
 import { formatMoney, txnAtToParts, partsToTxnAt, subMoney } from './utils';
@@ -152,6 +152,8 @@ export default function TransactionDialog({
   const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const peopleQ = useFinLendPeople(open);
+  // A transfer can go into an investment too (an RD instalment, a SIP).
+  const investments = useFinInvestments(open).data ?? [];
   const people = peopleQ.data ?? [];
   const isRefund = type === 'income' && addons.has('refund');
   const splitOn = type === 'expense' && addons.has('split');
@@ -397,7 +399,7 @@ export default function TransactionDialog({
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
     if (!description.trim()) e.description = 'Add a title.';
     if (type === 'transfer' && !txn) {
-      if (!linkedId) e.linked = 'Choose a destination account.';
+      if (!linkedId) e.linked = 'Choose where it goes.';
       else if (linkedId === accountId) e.linked = 'Destination must differ from the source.';
     }
     if (splitOn) {
@@ -425,9 +427,11 @@ export default function TransactionDialog({
     setSaving(true);
     try {
       if (type === 'transfer') {
+        // "inv:N" is an investment; anything else an account.
+        const into = linkedId.startsWith('inv:') ? { investment_id: parseInt(linkedId.slice(4)) } : { linked_account: parseInt(linkedId) };
         await finance.createTransaction({
           account_id: parseInt(accountId), type: 'transfer', amount: amt, description: description.trim(), note,
-          txn_at: txnAt, linked_account: parseInt(linkedId),
+          txn_at: txnAt, ...into,
         });
       } else if (allTheirs) {
         // All of it is theirs: money lent, not spent.
@@ -700,15 +704,37 @@ export default function TransactionDialog({
             </div>
             {type === 'transfer' && !txn && (
               <Field label="To" error={errors.linked}>
-                <Select value={linkedId || undefined} onValueChange={(v) => { setLinkedId(v ?? ''); clearError('linked'); }}
-                  items={accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name }))}>
+                {/* Another account, or an investment: an RD instalment is
+                    just a transfer into the RD, never spending. */}
+                <Select value={linkedId || undefined}
+                  onValueChange={(v) => {
+                    setLinkedId(v ?? ''); clearError('linked');
+                    // An untitled payment into an investment takes its name.
+                    const inv = v?.startsWith('inv:') ? investments.find((i) => `inv:${i.id}` === v) : undefined;
+                    if (inv && !description.trim()) setDescription(inv.name);
+                  }}
+                  items={[
+                    ...accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name })),
+                    ...investments.map((i) => ({ value: `inv:${i.id}`, label: i.name })),
+                  ]}>
                   <SelectTrigger aria-invalid={!!errors.linked}>
                     <SelectValue placeholder="Select destination" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.filter((a) => String(a.id) !== accountId).map((a) => (
-                      <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {investments.length > 0 && <SelectLabel>Accounts</SelectLabel>}
+                      {accounts.filter((a) => String(a.id) !== accountId).map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                    {investments.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Investments</SelectLabel>
+                        {investments.map((i) => (
+                          <SelectItem key={i.id} value={`inv:${i.id}`}>{i.name}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
                   </SelectContent>
                 </Select>
               </Field>

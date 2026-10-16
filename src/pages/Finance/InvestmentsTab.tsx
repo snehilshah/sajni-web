@@ -382,7 +382,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAuto
             <div className="col-span-2 rounded-xl border border-border divide-y divide-border">
               <CheckRow
                 label="Automatically debit?"
-                desc="Each cycle Sajni posts the contribution from the linked account and grows this investment. You'll get a notification."
+                desc="Each cycle Sajni records a transfer from the linked account into this investment. It isn't spending. You'll get a notification."
                 checked={autoDebit && !autoDebitBlocked}
                 onChange={setAutoDebit}
                 disabled={!!autoDebitBlocked}
