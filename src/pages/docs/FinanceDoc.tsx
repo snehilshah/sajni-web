@@ -900,7 +900,9 @@ export default function FinanceDoc() {
             <p>
               FDs and RDs carry a maturity date and count down to it (“45d to
               maturity”). The estimate stops growing at maturity; the bank's
-              final figure may round differently.
+              final figure may round differently. Auto-debit stops there too:
+              an RD maturing on 12 Dec takes its last instalment on 12 Nov,
+              and auto-debit then switches itself off.
             </p>
           </Feature>
         </FeatureList>
