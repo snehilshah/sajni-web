@@ -191,7 +191,8 @@ export default function FinanceDoc() {
 
       <Section id="transactions" title="Adding a transaction" chip="tab">
         <p>
-          Press <em>Add</em> in Transactions. The sheet always asks for the
+          Press <em>Add</em> in Transactions; it floats at the bottom corner,
+          so it is there however far you scroll. The sheet always asks for the
           same few things: whether it's an <strong>Expense</strong>,{' '}
           <strong>Income</strong> or <strong>Transfer</strong>; the amount; a
           title (“Lunch at Cafe X”); the account, date and time; and a

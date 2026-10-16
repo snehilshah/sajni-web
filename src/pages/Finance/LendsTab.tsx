@@ -337,7 +337,7 @@ function ForgiveDialog({ person, onClose, onDone }: {
     } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
   };
   return <Dialog open={!!person} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
       <DialogHeader><DialogTitle>Adjust what {person?.borrower} owes</DialogTitle></DialogHeader>
       <div className="grid gap-3">
         <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={bad} /></Field>
@@ -455,7 +455,7 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved, onRemoved
     try { await finance.deleteLend(lend.id); onRemoved(); } catch (error) { toast.error(failureText(error)); }
   };
   return <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
-    <DialogContent showCloseButton={false} className="sm:max-w-md">
+    <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
       <DialogHeader className="flex-row items-baseline justify-between gap-3">
         <DialogTitle>Edit lend</DialogTitle>
         <AutosaveStatus status={autosave.status} />
@@ -613,7 +613,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
     try { await finance.deleteLendSettlement(payment.settlementId); onRemoved(); } catch (error) { toast.error(failureText(error)); }
   };
   return <Dialog open={!!payment} onOpenChange={(next) => { if (!next) requestClose(); }}>
-    <DialogContent showCloseButton={false} className="sm:max-w-md">
+    <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
       <DialogHeader className="flex-row items-baseline justify-between gap-3">
         <DialogTitle>{payment?.forgiven ? 'Edit adjustment' : 'Edit repayment'}</DialogTitle>
         <AutosaveStatus status={autosave.status} />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, startOfWeek, endOfWeek, endOfMonth } from 'date-fns';
@@ -160,6 +161,8 @@ interface Props {
   onLoadEarlier: () => void;
   /** Open the sheet pre-filled (from Lends): a new lend, or a payment back. */
   sheetRequest: SheetRequest | null;
+  /** The visible tab. Hidden tabs stay mounted, so the floating Add needs it. */
+  active: boolean;
 }
 
 export interface SheetRequest { kind: 'lend' | 'settle'; person: string; n: number }
@@ -168,7 +171,7 @@ export default function TransactionsTab({
   accounts, categories, slates, transactions, lends, loaded,
   slateFilter, onSlateFilter, reload, reloadCategories,
   truncated, canLoadEarlier, onLoadEarlier,
-  sheetRequest,
+  sheetRequest, active,
 }: Props) {
   const navigate = useNavigate();
   const [editing, setEditing] = useState<FinTransaction | null>(null);
@@ -341,8 +344,9 @@ export default function TransactionsTab({
   const activeSlates = slates.filter((s) => !s.archived || s.id === slateFilter);
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Filters. Search + write actions on the first line; lenses on the
+    // Bottom room so the last rows clear the floating Add.
+    <div className="flex flex-col gap-4 pb-20">
+      {/* Filters. Search + Categories on the first line; lenses on the
           second, horizontally scrollable so nothing clips on a phone. */}
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
@@ -361,9 +365,6 @@ export default function TransactionsTab({
           </div>
           <Button variant="outline" onClick={() => setManageCats(true)} title="Add / edit categories">
             <Tags className="size-4 md:mr-1" /> <span className="hidden md:inline">Categories</span>
-          </Button>
-          <Button aria-label="Add transaction" onClick={() => { setCreateKind('expense'); setCreatePerson(''); setCreating(true); }}>
-            <Plus className="size-4 md:mr-1" /> <span className="hidden md:inline">Add</span>
           </Button>
         </div>
 
@@ -594,6 +595,21 @@ export default function TransactionsTab({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Add stays on screen however far the list scrolls. Portalled: the
+          tab panel's transform would pin a fixed child to the panel. The
+          sweep bar owns the bottom edge while a selection is live. */}
+      {active && !selecting && createPortal(
+        <Button
+          size="fab-extended"
+          aria-label="Add transaction"
+          onClick={() => { setCreateKind('expense'); setCreatePerson(''); setCreating(true); }}
+          className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+84px)] z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97] md:right-6 md:bottom-6"
+        >
+          <Plus /> Add
+        </Button>,
+        document.body,
+      )}
 
       <TransactionDialog
         open={creating || editing !== null}

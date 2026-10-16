@@ -58,7 +58,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 scale-100 gap-5 rounded-[28px] bg-[hsl(var(--surface-container-high))] p-6 text-sm text-popover-foreground opacity-100 shadow-[var(--m3-elev-3)] outline-none transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.96] data-ending-style:opacity-0 motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100 motion-reduce:duration-150 sm:max-w-md",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] grid-cols-[minmax(0,1fr)] -translate-x-1/2 -translate-y-1/2 scale-100 gap-5 rounded-[28px] bg-[hsl(var(--surface-container-high))] p-6 text-sm text-popover-foreground opacity-100 shadow-[var(--m3-elev-3)] outline-none transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.96] data-ending-style:opacity-0 motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100 motion-reduce:duration-150 sm:max-w-lg",
           className
         )}
         onKeyDown={(e) => {

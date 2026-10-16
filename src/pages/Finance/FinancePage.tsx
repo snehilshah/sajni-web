@@ -256,6 +256,7 @@ export default function FinancePage() {
             canLoadEarlier={data.loaded.transactions}
             onLoadEarlier={() => setMonthsBack((n) => n + 3)}
             sheetRequest={sheetRequest}
+            active={active === 'transactions'}
             reload={() => { loadTransactions(); loadAccounts(); loadLends(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); loadSlates(); }}
             reloadCategories={loadCategories}
           />
