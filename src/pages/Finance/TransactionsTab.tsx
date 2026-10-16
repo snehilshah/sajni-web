@@ -26,6 +26,9 @@ import TransactionDialog from './TransactionDialog';
 import SlateDialog from './SlateDialog';
 import { EditLendDialog, EditRepaymentDialog, paymentFromTxn, type Payment } from './LendsTab';
 
+/** Types that take a category; the rest (transfers, lends) never do. */
+const CATEGORISED = new Set(['expense', 'income', 'refund', 'writeoff']);
+
 // The ledger is one surface, and its job beyond "what did I spend" is to show
 // which spending was NOT normal life. So: rows on a slate other than Plain
 // carry a coloured spine and a name chip; Plain rows carry nothing, because
@@ -218,7 +221,8 @@ export default function TransactionsTab({
 
   const accountNameById = (id: number | null) => accounts.find((a) => a.id === id)?.name || '';
   const slateById = (id: number) => slates.find((s) => s.id === id);
-  // Spending categories first, then income, each by name.
+  // Spending categories first, then income, each by name. "Uncategorised"
+  // means a row that takes a category but has none (not transfers or lends).
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'expense' ? -1 : 1) || a.name.localeCompare(b.name)),
     [categories],
@@ -229,6 +233,7 @@ export default function TransactionsTab({
     [transactions, overrides],
   );
 
+  const filtering = !!search || accountFilter.length > 0 || categoryFilter.length > 0 || !!typeFilter || slateFilter !== null;
   // Filter client-side off the parent's cached list so changes are instant.
   // (Backend filtering kicks in only when reload() is called after a mutation.)
   const filtered = useMemo(() => {
@@ -236,7 +241,7 @@ export default function TransactionsTab({
       if (search && !t.description.toLowerCase().includes(search.toLowerCase()) &&
           !(t.category_name || '').toLowerCase().includes(search.toLowerCase())) return false;
       if (accountFilter.length && !accountFilter.includes(String(t.account_id))) return false;
-      if (categoryFilter.length && !categoryFilter.includes(String(t.category_id))) return false;
+      if (categoryFilter.length && !categoryFilter.includes(t.category_id == null ? (CATEGORISED.has(t.type) ? 'none' : '') : String(t.category_id))) return false;
       if (typeFilter) {
         if (typeFilter === 'transfer_out' && t.type !== 'transfer_out') return false;
         if (typeFilter !== 'transfer_out' && t.type !== typeFilter) return false;
@@ -379,16 +384,24 @@ export default function TransactionsTab({
             </SelectContent>
           </Select>
           <Select multiple value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? [])}
-            items={sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))}>
+            items={[{ value: 'none', label: 'Uncategorised' }, ...sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))]}>
             <SelectTrigger size="sm" className="w-[150px] shrink-0">
               <SelectValue>
                 {(ids: string[]) => !ids.length ? 'All categories'
-                  : ids.length === 1 ? categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category' : `${ids.length} categories`}
+                  : ids.length === 1 ? (ids[0] === 'none' ? 'Uncategorised' : categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category') : `${ids.length} categories`}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">Uncategorised</SelectItem>
+              {/* Out ↗ for spending, in ↙ for income, as on the rows, so two
+                  of the same name can be told apart. */}
               {sortedCategories.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                <SelectItem key={c.id} value={String(c.id)}>
+                  <span className="flex-1 truncate">{c.name}</span>
+                  {c.kind === 'expense'
+                    ? <ArrowUpRight aria-label="Expense" className="size-3.5 text-destructive" />
+                    : <ArrowDownLeft aria-label="Income" className="size-3.5 text-[hsl(var(--color-complete))]" />}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -427,6 +440,13 @@ export default function TransactionsTab({
               ))}
             </SelectContent>
           </Select>
+          {filtering && (
+            <Button variant="ghost" size="sm" className="shrink-0" onClick={() => {
+              setSearch(''); setAccountFilter([]); setCategoryFilter([]); setTypeFilter(''); onSlateFilter(null);
+            }}>
+              <X className="size-4 mr-1" /> Clear
+            </Button>
+          )}
         </div>
       </div>
 

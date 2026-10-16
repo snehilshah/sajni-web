@@ -248,7 +248,11 @@ export default function FinanceDoc() {
               type (Expense, Income, Refund, Transfer, Lend, Repayment,
               Adjusted) or slate. Tick <strong>several accounts</strong> or{' '}
               <strong>several categories</strong> to see them together, say
-              your two cards, or Food and Groceries. Days are grouped with their totals; split bills count only
+              your two cards, or Food and Groceries.{' '}
+              <em>Uncategorised</em> finds expenses, income and refunds you
+              haven't given a category yet.{' '}In the category list ↗ marks a spending
+              category and ↙ an income one. <em>Clear</em> removes every
+              filter at once. Days are grouped with their totals; split bills count only
               your part as spent.
             </p>
           </Feature>
