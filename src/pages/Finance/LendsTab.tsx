@@ -512,6 +512,7 @@ export interface Payment {
   note: string;
   lendId: number | null;
   forgiven: boolean;
+  categoryId: number | null;
 }
 
 export function paymentFromTxn(txn: FinTransaction): Payment | null {
@@ -519,7 +520,7 @@ export function paymentFromTxn(txn: FinTransaction): Payment | null {
   return {
     settlementId: txn.settlement.id, transactionId: txn.id, borrower: txn.settlement.borrower,
     amount: txn.amount, account: txn.account_name, at: txn.txn_at, description: txn.description,
-    note: txn.note || '', lendId: txn.settlement.lend_id, forgiven: txn.type === 'writeoff',
+    note: txn.note || '', lendId: txn.settlement.lend_id, forgiven: txn.type === 'writeoff', categoryId: txn.category_id,
   };
 }
 
@@ -527,14 +528,24 @@ function paymentFromSettlement(s: FinLendSettlement, borrower: string): Payment 
   return {
     settlementId: s.id, transactionId: s.transaction_id, borrower, amount: s.amount, account: s.account,
     at: s.txn_at, description: s.description, note: s.note || '', lendId: s.lend_id, forgiven: s.forgiven,
+    categoryId: s.category_id,
   };
 }
 
-interface RepaymentValues { description: string; note: string }
+// An adjustment moved no money, so its amount, category and time are the
+// user's too; a payment back keeps them blank.
+interface RepaymentValues { description: string; note: string; amount: string; categoryId: string; date: string; time: string }
 
-// The one editor for a payment back (or a forgive). Its amount, account and
-// date belong to the lends it settles; its title and note are the user's
-// words; Toward picks the lend it counts for. Unmarking it lives here too.
+function repaymentValues(p: Payment): RepaymentValues {
+  const at = txnAtToParts(p.at);
+  return { description: p.description, note: p.note, ...(p.forgiven
+    ? { amount: String(p.amount), categoryId: p.categoryId ? String(p.categoryId) : '', date: at.date, time: at.time }
+    : { amount: '', categoryId: '', date: '', time: '' }) };
+}
+
+// The one editor for a payment back (or an adjustment). A payment's amount,
+// account and date belong to the lends it settles; its title and note are the
+// user's words; Toward picks the lend it counts for. Unmarking lives here too.
 export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: {
   payment: Payment | null;
   onClose: () => void;
@@ -544,17 +555,33 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
 }) {
   const [description, setDescription] = useState('');
   const [note, setNote] = useState('');
+  const [amount, setAmount] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [toward, setToward] = useState('');
-  const values: RepaymentValues = { description, note };
-  const apply = (v: RepaymentValues) => { setDescription(v.description); setNote(v.note); };
+  const adjusted = !!payment?.forgiven;
+  const categoriesQ = useFinCategories(adjusted);
+  const expenseCats = (categoriesQ.data ?? []).filter((c) => c.kind === 'expense');
+  const values: RepaymentValues = { description, note, amount, categoryId, date, time };
+  const apply = (v: RepaymentValues) => {
+    setDescription(v.description); setNote(v.note); setAmount(v.amount); setCategoryId(v.categoryId); setDate(v.date); setTime(v.time);
+  };
+  const badAmount = adjusted && !(Number(amount) > 0);
   const autosave = useEditorAutosave({
     key: payment?.settlementId ?? null,
     value: values,
     apply,
-    invalid: !description.trim() ? 'add a title.' : null,
+    invalid: !description.trim() ? 'add a title.' : badAmount ? 'enter an amount above zero.' : null,
     save: async (v) => {
       if (!payment) return;
-      await finance.updateTransaction(payment.transactionId, { description: v.description.trim(), note: v.note });
+      await finance.updateTransaction(payment.transactionId, {
+        description: v.description.trim(), note: v.note,
+        ...(payment.forgiven ? {
+          amount: Number(v.amount), txn_at: partsToTxnAt(v.date, v.time),
+          ...(v.categoryId ? { category_id: Number(v.categoryId) } : {}),
+        } : {}),
+      });
       onChanged();
     },
   });
@@ -562,7 +589,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   const requestClose = () => autosave.close(onClose);
   useEffect(() => {
     if (!payment) return;
-    const v = { description: payment.description, note: payment.note };
+    const v = repaymentValues(payment);
     apply(v);
     loadAutosave(v);
     setToward(payment.lendId ? String(payment.lendId) : '');
@@ -593,13 +620,25 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
       </DialogHeader>
       {payment && (
         <div className="flex flex-wrap gap-1.5">
-          <DateBadge tone="positive">Settles · {payment.borrower} <Money value={payment.amount} /></DateBadge>
-          <DateBadge>{payment.forgiven ? '' : payment.account + ' · '}{format(parseISO(payment.at), 'd MMM')}</DateBadge>
+          {payment.forgiven
+            ? <DateBadge tone="positive">Settles · {payment.borrower}</DateBadge>
+            : <>
+              <DateBadge tone="positive">Settles · {payment.borrower} <Money value={payment.amount} /></DateBadge>
+              <DateBadge>{payment.account} · {format(parseISO(payment.at), 'd MMM')}</DateBadge>
+            </>}
         </div>
       )}
       <div className="grid gap-3">
         <Field label="Title"><Input value={description} onChange={(e) => setDescription(e.target.value)} aria-invalid={!description.trim()} placeholder="e.g. UPI from Monica" maxLength={120} autoFocus /></Field>
+        {adjusted && <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={badAmount} /></Field>}
         {payment && <TowardPicker person={payment.borrower} value={toward} onChange={pickToward} />}
+        {adjusted && <>
+          <Field label="Counts as"><CategoryChips categories={expenseCats} value={categoryId} onChange={setCategoryId} /></Field>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+            <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
+            <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
+          </div>
+        </>}
         <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={1000} /></Field>
       </div>
       <DialogFooter className="flex-row items-center justify-between">

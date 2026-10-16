@@ -980,6 +980,8 @@ export interface FinLendSettlement {
   /** Pinned lend; null = toward the person's overall total. */
   lend_id: number | null;
   toward: string | null;
+  /** An adjustment's category ("Counts as"). */
+  category_id: number | null;
 }
 
 /** A person's balance: outstanding = every lend minus every payment;

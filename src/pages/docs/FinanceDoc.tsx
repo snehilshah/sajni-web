@@ -487,8 +487,9 @@ export default function FinanceDoc() {
         </ul>
         <p>
           Like a payment, an adjustment can go <em>Toward</em> one lend or
-          their overall total. To undo it, tap the <em>Adjusted</em> line in
-          the timeline and press <em>Undo adjustment</em>.
+          their overall total. Tap the <em>Adjusted</em> line in the timeline
+          to change its amount, what it counts as, or its date and time (up to
+          what they'd owe without it), or press <em>Undo adjustment</em>.
         </p>
         <FeatureList>
           <Feature name="Adjusting their share of a cashback">
