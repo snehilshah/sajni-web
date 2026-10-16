@@ -371,7 +371,7 @@ export default function TransactionsTab({
             </SelectContent>
           </Select>
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
-            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'refund', label: 'Refund' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }, { value: 'writeoff', label: 'Forgiven' }]}>
+            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'refund', label: 'Refund' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }, { value: 'writeoff', label: 'Adjusted' }]}>
             <SelectTrigger size="sm" className="w-[130px] shrink-0">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
@@ -383,7 +383,7 @@ export default function TransactionsTab({
               <SelectItem value="transfer_out">Transfer</SelectItem>
               <SelectItem value="lend">Lend</SelectItem>
               <SelectItem value="lend_repayment">Lend repayment</SelectItem>
-              <SelectItem value="writeoff">Forgiven</SelectItem>
+              <SelectItem value="writeoff">Adjusted</SelectItem>
             </SelectContent>
           </Select>
           {/* Server-side slate filter (params-keyed query in FinancePage). */}
@@ -638,7 +638,7 @@ function LedgerRow({
   // A split bill shows the charge as it hit the account; the user's part
   // sits under it.
   const shown = t.split ? sumMoney([t.amount, t.split.share], (v) => v) : t.amount;
-  const marker = t.split ? `Split · ${t.split.borrower}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Forgiven' : null;
+  const marker = t.split ? `Split · ${t.split.borrower}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Adjusted' : null;
   const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
   const isMove = isTransfer || isLend || isLendRepayment;
   const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'));

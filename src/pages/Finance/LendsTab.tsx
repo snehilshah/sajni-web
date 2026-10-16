@@ -45,7 +45,7 @@ const today = () => format(new Date(), 'yyyy-MM-dd');
 // Lends grouped by person. Lends and payments back are made in the
 // transaction sheet (Split, Settles a lend); the buttons here open it
 // pre-filled. A payment counts toward one lend (pinned) or the person's
-// overall total. "Forgive" writes off what is left as the user's spending.
+// overall total. "Adjust" writes off what is left as the user's spending.
 // Every row opens its editor, which holds its actions.
 export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, onSettle }: Props) {
   const peopleQ = useFinLendPeople();
@@ -252,7 +252,7 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment }:
             className={cn(ROW, 'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
             <TimelineNode {...rail} tone={s.forgiven ? 'neutral' : 'positive'}>{s.forgiven ? <Check className="!size-3" /> : <ArrowUpRight className="rotate-180" />}</TimelineNode>
             <span className="min-w-0 py-2">
-              <span className="block truncate text-sm font-medium">{s.forgiven ? 'Forgiven' : s.description}</span>
+              <span className="block truncate text-sm font-medium">{s.forgiven ? 'Adjusted' : s.description}</span>
               <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                 {format(parseISO(s.txn_at), 'd MMM')}{s.forgiven ? '' : ' · ' + s.account} · {s.toward ? `Toward ${s.toward}` : 'Overall'}
               </span>
@@ -268,7 +268,7 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment }:
       <div className={cn(ROW, 'pt-2')}>
         <div className="col-start-2 col-span-2 flex items-center gap-2">
           {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}><ArrowUpRight className="size-4 rotate-180" /> Settle</Button>}
-          {person.outstanding > 0 && <Button variant="outline" size="sm" onClick={onForgive}>Forgive</Button>}
+          {person.outstanding > 0 && <Button variant="outline" size="sm" onClick={onForgive}>Adjust</Button>}
         </div>
       </div>
     </div>
@@ -338,7 +338,7 @@ function ForgiveDialog({ person, onClose, onDone }: {
   };
   return <Dialog open={!!person} onOpenChange={(next) => { if (!next) onClose(); }}>
     <DialogContent className="sm:max-w-md">
-      <DialogHeader><DialogTitle>Forgive {person?.borrower}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>Adjust what {person?.borrower} owes</DialogTitle></DialogHeader>
       <div className="grid gap-3">
         <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={bad} /></Field>
         <div className="-mt-1 flex flex-wrap gap-1.5">
@@ -359,7 +359,7 @@ function ForgiveDialog({ person, onClose, onDone }: {
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={save} disabled={saving || bad}>{saving ? 'Saving…' : 'Forgive'}</Button>
+        <Button onClick={save} disabled={saving || bad}>{saving ? 'Saving…' : 'Adjust'}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -580,7 +580,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   const unmark = async () => {
     if (!payment) return;
     if (!(await confirmDialog(payment.forgiven
-      ? 'Undo this forgive? They owe that amount again, and it leaves your spending.'
+      ? 'Undo this adjustment? They owe that amount again, and it leaves your spending.'
       : 'Unmark this payment? It goes back to plain income.'))) return;
     autosave.cancel();
     try { await finance.deleteLendSettlement(payment.settlementId); onRemoved(); } catch (error) { toast.error(failureText(error)); }
@@ -588,7 +588,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   return <Dialog open={!!payment} onOpenChange={(next) => { if (!next) requestClose(); }}>
     <DialogContent showCloseButton={false} className="sm:max-w-md">
       <DialogHeader className="flex-row items-baseline justify-between gap-3">
-        <DialogTitle>{payment?.forgiven ? 'Edit forgive' : 'Edit repayment'}</DialogTitle>
+        <DialogTitle>{payment?.forgiven ? 'Edit adjustment' : 'Edit repayment'}</DialogTitle>
         <AutosaveStatus status={autosave.status} />
       </DialogHeader>
       {payment && (
@@ -603,7 +603,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
         <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={1000} /></Field>
       </div>
       <DialogFooter className="flex-row items-center justify-between">
-        <Button variant="destructive-quiet" onClick={unmark}><RotateCcw className="size-4 mr-1" /> {payment?.forgiven ? 'Undo forgive' : 'Unmark'}</Button>
+        <Button variant="destructive-quiet" onClick={unmark}><RotateCcw className="size-4 mr-1" /> {payment?.forgiven ? 'Undo adjustment' : 'Unmark'}</Button>
         <div className="flex gap-2"><EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} /></div>
       </DialogFooter>
     </DialogContent>

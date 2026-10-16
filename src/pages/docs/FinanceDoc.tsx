@@ -17,7 +17,7 @@ export const financeMeta = {
     { id: 'split', label: 'Splitting a bill' },
     { id: 'lending', label: 'Lending money' },
     { id: 'paid-back', label: 'Getting paid back' },
-    { id: 'forgive', label: 'Forgiving' },
+    { id: 'adjust', label: 'Adjusting' },
     { id: 'refunds', label: 'Refunds' },
     { id: 'card-offers', label: 'A friend uses your card' },
     { id: 'cashback', label: 'Cashback' },
@@ -67,7 +67,7 @@ export default function FinanceDoc() {
         <RefTable
           head={['figure', 'what it means']}
           rows={[
-            ['Spent', 'expenses and forgiven lends, less refunds; every slate counts'],
+            ['Spent', 'expenses and adjusted lends, less refunds; every slate counts'],
             ['Income', 'salary and other money in (refunds and paybacks are not income)'],
             ['Saved', 'income minus spent; negative when you spent more than came in'],
             ['Savings rate', 'saved as a share of income'],
@@ -245,7 +245,7 @@ export default function FinanceDoc() {
           <Feature name="Finding things">
             <p>
               Search by title or category, and filter by account, type
-              (Expense, Income, Refund, Transfer, Lend, Repayment, Forgiven) or
+              (Expense, Income, Refund, Transfer, Lend, Repayment, Adjusted) or
               slate. Tick <strong>several accounts</strong> in the account
               filter to see them together, say your two cards. Days are grouped with their totals; split bills count only
               your part as spent.
@@ -367,7 +367,7 @@ export default function FinanceDoc() {
             <p>
               Everyone who owes you, with the total at the top. Tap a person to
               see their history as a timeline, oldest first: what you lent (↗),
-              what came back (↙) and anything forgiven (✓). Tap any line to
+              what came back (↙) and anything adjusted (✓). Tap any line to
               edit it. People who have paid everything fold away under{' '}
               <em>Settled</em>.
             </p>
@@ -466,17 +466,17 @@ export default function FinanceDoc() {
         </FeatureList>
       </Section>
 
-      <Section id="forgive" title="Forgiving what someone owes" chip="forgive">
+      <Section id="adjust" title="Adjusting what someone owes" chip="adjust">
         <Callout>
           <strong>Example.</strong> Rahul still owes ₹317.48 and you tell him
-          to forget it. Open Rahul in Lends and press <em>Forgive</em>. The
-          amount starts at everything he owes; lower it to forgive only part.
+          to leave it. Open Rahul in Lends and press <em>Adjust</em>. The
+          amount starts at everything he owes; lower it to adjust only part.
           Choose what it counts as (say, Gifts) and the date and time.
         </Callout>
         <ul>
-          <li>Rahul then owes ₹0.00, or whatever you didn't forgive.</li>
+          <li>Rahul then owes ₹0.00, or whatever you didn't adjust.</li>
           <li>
-            The forgiven amount <strong>counts as your spending</strong> on
+            The adjusted amount <strong>counts as your spending</strong> on
             that date, in the category you chose. You did give that money
             away.
           </li>
@@ -486,15 +486,15 @@ export default function FinanceDoc() {
           </li>
         </ul>
         <p>
-          Like a payment, a forgive can go <em>Toward</em> one lend or their
-          overall total. To undo it, tap the <em>Forgiven</em> line in the
-          timeline and press <em>Undo forgive</em>.
+          Like a payment, an adjustment can go <em>Toward</em> one lend or
+          their overall total. To undo it, tap the <em>Adjusted</em> line in
+          the timeline and press <em>Undo adjustment</em>.
         </p>
         <FeatureList>
-          <Feature name="Forgiving their share of a cashback">
+          <Feature name="Adjusting their share of a cashback">
             <p>
               Alefiya paid ₹378 for a ₹398 order, keeping the ₹20 your card
-              will give back at month end. Forgive the ₹20 in your{' '}
+              will give back at month end. Adjust the ₹20 in your{' '}
               <em>Cashback</em> category. It adds ₹20 to your spending for now;
               when the month's cashback arrives as a refund in the same
               category (see <a href="#cashback">Cashback</a>), it takes the ₹20
@@ -614,9 +614,9 @@ export default function FinanceDoc() {
             <p>
               If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 −
               ₹200 − ₹74.95), mark it paid back as above. She still owes
-              ₹74.95; open her in Lends and <em>Forgive</em> it in{' '}
+              ₹74.95; open her in Lends and <em>Adjust</em> it in{' '}
               <em>Cashback</em>. Record the card's cashback as usual: the
-              forgive and the refund cancel out in that category.
+              adjustment and the refund cancel out in that category.
             </p>
           </Feature>
           <Feature name="Two orders, one payment">
@@ -625,7 +625,7 @@ export default function FinanceDoc() {
               paid back once, Toward <em>Overall</em>: her total reaches ₹0,
               so both lends are settled, and you never split her payment by
               hand. Whatever is still short (her 5% on both, if she kept it) is
-              one forgive.
+              one adjustment.
             </p>
           </Feature>
           <Feature name="Which credit is whose">
@@ -633,7 +633,7 @@ export default function FinanceDoc() {
               A credit that is <strong>all hers</strong>, like the order's ₹200
               offer, <em>settles a lend</em>. A credit that mixes hers with
               yours, like the card's monthly cashback, is yours: record it as
-              a Cashback refund, and pass her share on (or forgive it) in
+              a Cashback refund, and pass her share on (or adjust it) in
               Cashback. One credit can't be part repayment and part refund.
             </p>
           </Feature>
@@ -660,14 +660,14 @@ export default function FinanceDoc() {
             order.
           </li>
           <li>
-            Part of it belongs to a friend whose orders earned it? Forgive (or
+            Part of it belongs to a friend whose orders earned it? Adjust (or
             pay out) their share in <em>Cashback</em> too. Those add to
             spending and the refund takes them off, so the category nets to
             what you kept. See{' '}
-            <a href="#forgive">Forgiving their share of a cashback</a>.
+            <a href="#adjust">Adjusting their share of a cashback</a>.
           </li>
           <li>
-            If the cashback lands next month, the forgive shows this month and
+            If the cashback lands next month, the adjustment shows this month and
             the refund next month; the two months even out.
           </li>
           <li>
@@ -757,7 +757,7 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="What counts as spent">
             <p>
-              Expenses and forgiven lends count; refunds take away; your share
+              Expenses and adjusted lends count; refunds take away; your share
               of a split bill counts, not the whole bill. Category caps follow
               the budget's slates.
             </p>
@@ -937,7 +937,7 @@ export default function FinanceDoc() {
             ['the 754.96 dinner on Oct 1 was half Rahul\'s', 'splits that bill ½ with Rahul'],
             ['Rahul sent me 100 for the cab, mark it paid back', 'settles it toward the cab lend'],
             ['the Amazon credit yesterday was a refund', 'turns that income into a refund'],
-            ['forgive what Aman owes', 'forgives it'],
+            ['adjust what Aman owes', 'adjusts it'],
             ['what did the Goa trip cost?', 'totals the Goa slate'],
             ['why is spending so high this month?', 'explains it, with the same figures as Analytics'],
           ]}
