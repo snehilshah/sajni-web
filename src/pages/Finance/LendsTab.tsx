@@ -25,8 +25,8 @@ import { Stat, StatGroup } from './StatGroup';
 import { partsToTxnAt, txnAtToParts, sumMoney, subMoney } from './utils';
 import { Money } from './Money';
 import { TowardPicker } from './TransactionDialog';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 interface Props {
   accounts: FinAccount[];
@@ -176,7 +176,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
         onClose={() => setForgiving(null)}
         onDone={() => { setForgiving(null); done(); }}
       />
-      <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onAutosaved={done} onRemoved={() => { setEditing(null); done(); }} />
+      <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); done(); }} onRemoved={() => { setEditing(null); done(); }} />
       <EditRepaymentDialog
         payment={payment}
         onClose={() => setPayment(null)}
@@ -381,14 +381,14 @@ function lendValues(lend: FinLend): LendValues {
 
 // The one editor for a lend; it is made in the transaction sheet. A split
 // share keeps only who, their share and the due date here: its title,
-// account, date and note are the bill's. Edits save themselves (the server
-// rebalances the person after each one); undoing it lives here too.
-export function EditLendDialog({ lend, accounts, onClose, onAutosaved, onRemoved }: {
+// account, date and note are the bill's. Nothing saves until Save (the server
+// rebalances the person after it); undoing the lend lives here too.
+export function EditLendDialog({ lend, accounts, onClose, onSaved, onRemoved }: {
   lend: FinLend | null;
   accounts: FinAccount[];
   onClose: () => void;
-  /** An edit saved while the dialog stays open: refresh, keep editing. */
-  onAutosaved: () => void;
+  /** Saved: refresh and close. */
+  onSaved: () => void;
   /** Deleted, or handed back as an expense. */
   onRemoved: () => void;
 }) {
@@ -418,10 +418,9 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved, onRemoved
           : !description.trim() ? 'add a title.'
             : !lentDate || !lentTime ? 'pick when it was lent.'
               : null;
-  const autosave = useEditorAutosave({
-    key: lend?.id ?? null,
+  const editor = useEditorDraft({
+    editing: !!lend,
     value: values,
-    apply,
     invalid,
     save: async (v) => {
       if (!lend) return;
@@ -431,16 +430,15 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved, onRemoved
         lent_at: partsToTxnAt(v.lentDate, v.lentTime),
         due_date: v.dueDate, remind: v.remind && !!v.dueDate,
       });
-      onAutosaved();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(onClose);
   useEffect(() => {
     if (!lend) return;
     const v = lendValues(lend);
     apply(v);
-    loadAutosave(v);
+    loadDraft(v);
     // Keyed on the lend being opened; the setters are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lend]);
@@ -451,14 +449,13 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved, onRemoved
         : `Unmark "${lend.description}"? It goes back to being your expense.`
       : `Delete the lend to ${lend.borrower}? Its transaction is removed too.`;
     if (!(await confirmDialog(ask))) return;
-    autosave.cancel();
+    editor.cancel();
     try { await finance.deleteLend(lend.id); onRemoved(); } catch (error) { toast.error(failureText(error)); }
   };
   return <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
     <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
       <DialogHeader className="flex-row items-baseline justify-between gap-3">
         <DialogTitle>Edit lend</DialogTitle>
-        <AutosaveStatus status={autosave.status} />
       </DialogHeader>
       <div className="grid gap-3">
         {split ? (
@@ -494,7 +491,7 @@ export function EditLendDialog({ lend, accounts, onClose, onAutosaved, onRemoved
         <Button variant="destructive-quiet" onClick={remove}>
           {lend?.origin === 'paid_for' ? <><RotateCcw className="size-4 mr-1" /> {split ? 'Remove split' : 'Unmark'}</> : <><Trash2 className="size-4 mr-1" /> Delete</>}
         </Button>
-        <div className="flex gap-2"><EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} /></div>
+        <div className="flex gap-2"><EditActions draft={editor} onCancel={onClose} onSave={() => editor.save(onSaved)} /></div>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -534,22 +531,27 @@ function paymentFromSettlement(s: FinLendSettlement, borrower: string): Payment 
 
 // An adjustment moved no money, so its amount, category and time are the
 // user's too; a payment back keeps them blank.
-interface RepaymentValues { description: string; note: string; amount: string; categoryId: string; date: string; time: string }
+interface RepaymentValues {
+  description: string; note: string; amount: string; categoryId: string; date: string; time: string;
+  /** The lend it counts toward; '' = Overall. */
+  toward: string;
+}
 
 function repaymentValues(p: Payment): RepaymentValues {
   const at = txnAtToParts(p.at);
-  return { description: p.description, note: p.note, ...(p.forgiven
+  return { description: p.description, note: p.note, toward: p.lendId ? String(p.lendId) : '', ...(p.forgiven
     ? { amount: String(p.amount), categoryId: p.categoryId ? String(p.categoryId) : '', date: at.date, time: at.time }
     : { amount: '', categoryId: '', date: '', time: '' }) };
 }
 
 // The one editor for a payment back (or an adjustment). A payment's amount,
 // account and date belong to the lends it settles; its title and note are the
-// user's words; Toward picks the lend it counts for. Unmarking lives here too.
+// user's words; Toward picks the lend it counts for. All save on Save.
+// Unmarking lives here too.
 export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: {
   payment: Payment | null;
   onClose: () => void;
-  /** A title, note or Toward change saved: refresh, keep editing. */
+  /** Saved: refresh what shows it. */
   onChanged: () => void;
   onRemoved: () => void;
 }) {
@@ -563,60 +565,56 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   const adjusted = !!payment?.forgiven;
   const categoriesQ = useFinCategories(adjusted);
   const expenseCats = (categoriesQ.data ?? []).filter((c) => c.kind === 'expense');
-  const values: RepaymentValues = { description, note, amount, categoryId, date, time };
+  const values: RepaymentValues = { description, note, amount, categoryId, date, time, toward };
   const apply = (v: RepaymentValues) => {
     setDescription(v.description); setNote(v.note); setAmount(v.amount); setCategoryId(v.categoryId); setDate(v.date); setTime(v.time);
+    setToward(v.toward);
   };
   const badAmount = adjusted && !(Number(amount) > 0);
-  const autosave = useEditorAutosave({
-    key: payment?.settlementId ?? null,
+  const editor = useEditorDraft({
+    editing: !!payment,
     value: values,
-    apply,
     invalid: !description.trim() ? 'add a title.' : badAmount ? 'enter an amount above zero.' : null,
     save: async (v) => {
       if (!payment) return;
-      await finance.updateTransaction(payment.transactionId, {
-        description: v.description.trim(), note: v.note,
-        ...(payment.forgiven ? {
-          amount: Number(v.amount), txn_at: partsToTxnAt(v.date, v.time),
-          ...(v.categoryId ? { category_id: Number(v.categoryId) } : {}),
-        } : {}),
-      });
+      // Two writes; each only when its part changed. Save closes the
+      // dialog, so what's saved is what it opened with.
+      const opened = repaymentValues(payment);
+      if (JSON.stringify({ ...v, toward: opened.toward }) !== JSON.stringify(opened)) {
+        await finance.updateTransaction(payment.transactionId, {
+          description: v.description.trim(), note: v.note,
+          ...(payment.forgiven ? {
+            amount: Number(v.amount), txn_at: partsToTxnAt(v.date, v.time),
+            ...(v.categoryId ? { category_id: Number(v.categoryId) } : {}),
+          } : {}),
+        });
+      }
+      if (v.toward !== opened.toward) await finance.setSettlementLend(payment.settlementId, v.toward ? Number(v.toward) : null);
       onChanged();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(onClose);
   useEffect(() => {
     if (!payment) return;
     const v = repaymentValues(payment);
     apply(v);
-    loadAutosave(v);
-    setToward(payment.lendId ? String(payment.lendId) : '');
+    loadDraft(v);
     // Keyed on the payment being opened; the setters are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payment]);
-  // Toward is a choice, not typing: it saves the moment it changes.
-  const pickToward = async (lendId: string) => {
-    if (!payment) return;
-    const before = toward;
-    setToward(lendId);
-    try { await finance.setSettlementLend(payment.settlementId, lendId ? Number(lendId) : null); onChanged(); }
-    catch (error) { setToward(before); toast.error(failureText(error)); }
-  };
   const unmark = async () => {
     if (!payment) return;
     if (!(await confirmDialog(payment.forgiven
       ? 'Undo this adjustment? They owe that amount again, and it leaves your spending.'
       : 'Unmark this payment? It goes back to plain income.'))) return;
-    autosave.cancel();
+    editor.cancel();
     try { await finance.deleteLendSettlement(payment.settlementId); onRemoved(); } catch (error) { toast.error(failureText(error)); }
   };
   return <Dialog open={!!payment} onOpenChange={(next) => { if (!next) requestClose(); }}>
     <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
       <DialogHeader className="flex-row items-baseline justify-between gap-3">
         <DialogTitle>{payment?.forgiven ? 'Edit adjustment' : 'Edit repayment'}</DialogTitle>
-        <AutosaveStatus status={autosave.status} />
       </DialogHeader>
       {payment && (
         <div className="flex flex-wrap gap-1.5">
@@ -631,7 +629,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
       <div className="grid gap-3">
         <Field label="Title"><Input value={description} onChange={(e) => setDescription(e.target.value)} aria-invalid={!description.trim()} placeholder="e.g. UPI from Monica" maxLength={120} autoFocus /></Field>
         {adjusted && <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={badAmount} /></Field>}
-        {payment && <TowardPicker person={payment.borrower} value={toward} onChange={pickToward} />}
+        {payment && <TowardPicker person={payment.borrower} value={toward} onChange={setToward} />}
         {adjusted && <>
           <Field label="Counts as"><CategoryChips categories={expenseCats} value={categoryId} onChange={setCategoryId} /></Field>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
@@ -643,7 +641,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
       </div>
       <DialogFooter className="flex-row items-center justify-between">
         <Button variant="destructive-quiet" onClick={unmark}><RotateCcw className="size-4 mr-1" /> {payment?.forgiven ? 'Undo adjustment' : 'Unmark'}</Button>
-        <div className="flex gap-2"><EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} /></div>
+        <div className="flex gap-2"><EditActions draft={editor} onCancel={onClose} onSave={() => editor.save(onClose)} /></div>
       </DialogFooter>
     </DialogContent>
   </Dialog>;

@@ -99,9 +99,9 @@ export function useDeleteHabit() {
   });
 }
 
-/** Autosave's write: no toast of its own (the editor's autosave reports
+/** An editor's Save: no toast of its own (the editor reports
  *  failures), then refresh every habit view. */
-export function useAutosaveHabit() {
+export function useSaveHabit() {
   const qc = useQueryClient();
   return async (id: number, data: HabitPatch) => {
     await habitsApi.update(id, data);

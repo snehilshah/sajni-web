@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { EditActions } from '@/components/editor-actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { TimePicker } from '@/components/ui/time-picker';
-import { useEditorAutosave } from '@/hooks/use-autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
@@ -55,7 +55,7 @@ const draftOf = (r: Routine): RoutineInput => ({
 });
 
 /** Journal's routines manager: the list, and an editor for one routine.
- *  Edits save themselves; a new routine is an explicit Add. */
+ *  Nothing saves until Save; a new routine is an explicit Add. */
 export function RoutinesManager({ open, onOpenChange, initialId = null }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -73,10 +73,12 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
   const invalid = !draft.name.trim() ? 'a routine needs a name.'
     : draft.weekdays.length === 0 ? 'pick at least one day.' : null;
 
-  const autosave = useEditorAutosave({
-    key: open && editing ? editing.id : null,
+  // Nothing saves until Save (or Add routine); leaving with changes asks twice.
+  const editor = useEditorDraft({
+    editing: !!(open && editing),
     value: draft,
-    apply: setDraft,
+    // The list has nothing to lose.
+    dirty: view === null ? false : undefined,
     invalid,
     save: async (v) => {
       if (!editing) return;
@@ -84,23 +86,23 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
       void qc.invalidateQueries({ queryKey: qk.tasks.all });
     },
   });
-  const loadAutosave = autosave.load;
+  const loadDraft = editor.load;
 
   useEffect(() => { if (open) setView(initialId); }, [open, initialId]);
   // Load once per opened routine; later list refetches mustn't reset typing.
   const editingId = editing?.id ?? null;
   useEffect(() => {
-    if (view === 'new') { setDraft(emptyDraft()); return; }
+    if (view === 'new') { const blank = emptyDraft(); setDraft(blank); loadDraft(blank); return; }
     const r = list.find((x) => x.id === view);
     if (!r) return;
     const loaded = draftOf(r);
     setDraft(loaded);
-    loadAutosave(loaded);
+    loadDraft(loaded);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, editingId, loadAutosave]);
+  }, [view, editingId, loadDraft]);
 
-  const back = () => autosave.close(() => setView(null));
-  const requestClose = () => autosave.close(() => onOpenChange(false));
+  const back = () => editor.close(() => setView(null));
+  const requestClose = () => editor.close(() => onOpenChange(false));
   const handleOpenChange = (next: boolean) => (next ? onOpenChange(true) : requestClose());
 
   const add = () => {
@@ -110,7 +112,7 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
   const del = async () => {
     if (!editing) return;
     if (!(await confirmDialog(`Delete ${editing.name}? Its agenda tasks stay in Tasks.`))) return;
-    autosave.cancel();
+    editor.cancel();
     remove.mutate(editing.id, { onSuccess: () => setView(null) });
   };
 
@@ -119,7 +121,6 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
   const description = !inEditor
     ? 'Time slots that repeat, each with its own checklist. They show at the top of each Journal day.'
     : 'A checklist that starts fresh each day it runs.';
-  const status = editing ? <AutosaveStatus status={autosave.status} /> : null;
 
   const body = !inEditor ? (
     <RoutineList routines={list} onOpen={setView} />
@@ -136,13 +137,11 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
       <Button variant="destructive-ghost" size="icon-sm" className="mr-auto size-10" onClick={del} aria-label="Delete routine" title="Delete routine">
         <Trash2 className="size-4" />
       </Button>
-      <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={back} />
+      <EditActions draft={editor} onCancel={() => setView(null)} onSave={() => void editor.save(() => setView(null))} />
     </>
   ) : (
-    <>
-      <Button variant="outline" onClick={() => setView(null)}>Cancel</Button>
-      <Button disabled={create.isPending || !!invalid} onClick={add}>Add routine</Button>
-    </>
+    <EditActions draft={editor} onCancel={() => setView(null)} onSave={add} saveLabel="Add routine"
+      disabled={create.isPending || !!invalid} />
   );
   const heading = (
     <span className="flex items-center gap-1.5">
@@ -160,7 +159,7 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="bottom" className="max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto">
           <SheetHeader className="pb-3">
-            <SheetTitle className="flex items-baseline justify-between gap-3 serif text-xl normal-case tracking-tight">{heading}{status}</SheetTitle>
+            <SheetTitle className="flex items-baseline justify-between gap-3 serif text-xl normal-case tracking-tight">{heading}</SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-4">{body}</div>
@@ -175,7 +174,6 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{heading}</DialogTitle>
-            {status}
           </div>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>

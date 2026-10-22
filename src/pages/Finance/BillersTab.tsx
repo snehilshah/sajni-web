@@ -33,8 +33,8 @@ import { useFinanceFormatters } from './useFinancePrivacy';
 import { formatTxnDate, sumMoney } from './utils';
 import { cn } from '@/lib/utils';
 import { Money } from './Money';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 interface Props {
   accounts: FinAccount[];
@@ -141,7 +141,6 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
         categories={categories}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); refreshBillers(); }}
-        onAutosaved={refreshBillers}
       />
 
       <BillerDetailSheet
@@ -561,7 +560,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 // ─── Create / edit dialog ───────────────────────────────────────────────────
 
-// The biller editor's fields as one value: autosave diffs it, Undo restores it.
+// The biller editor's fields as one value: the editor compares it to tell what's unsaved.
 interface BillerValues {
   name: string; kind: BillerKind; amount: string; frequency: BillerFrequency; nextDueDate: string;
   accountID: number | null; categoryID: number | null; autoRenew: boolean; remindTask: boolean;
@@ -595,7 +594,7 @@ function billerPayload(v: BillerValues): Partial<FinBiller> {
 }
 
 function BillerDialog({
-  open, biller, accounts, categories, onClose, onSaved, onAutosaved,
+  open, biller, accounts, categories, onClose, onSaved,
 }: {
   open: boolean;
   biller: FinBiller | null;
@@ -603,8 +602,6 @@ function BillerDialog({
   categories: FinCategory[];
   onClose: () => void;
   onSaved: () => void;
-  /** An edit saved while the dialog stays open: refresh, keep editing. */
-  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState<BillerKind>('subscription');
@@ -629,40 +626,27 @@ function BillerDialog({
   };
   const invalid = !name.trim() ? 'a biller needs a name.'
     : kind === 'subscription' && !(parseFloat(amount) > 0) ? 'a subscription needs a fixed amount.' : null;
-  // Edits save themselves; a new biller is created explicitly.
-  const autosave = useEditorAutosave({
-    key: open && biller ? biller.id : null,
+  // Nothing saves until Save; a new biller is created explicitly.
+  const editor = useEditorDraft({
+    editing: !!(open && biller),
     value: values,
-    apply,
     invalid,
     save: async (v) => {
       if (!biller) return;
       await finance.updateBiller(biller.id, billerPayload(v));
-      onAutosaved?.();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(onClose);
 
   useEffect(() => {
     if (!open) return;
-    if (biller) {
-      const v = billerValues(biller);
-      apply(v);
-      loadAutosave(v);
-    } else {
-      setName('');
-      setKind('subscription');
-      setAmount('');
-      setFrequency('monthly');
-      setNextDueDate(format(new Date(), 'yyyy-MM-dd'));
-      setAccountID(null);
-      setCategoryID(null);
-      setAutoRenew(false);
-      setRemindTask(false);
-      setAlertDays(3);
-      setNotes('');
-    }
+    const v: BillerValues = biller ? billerValues(biller) : {
+      name: '', kind: 'subscription', amount: '', frequency: 'monthly', nextDueDate: format(new Date(), 'yyyy-MM-dd'),
+      accountID: null, categoryID: null, autoRenew: false, remindTask: false, alertDays: 3, notes: '',
+    };
+    apply(v);
+    loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, biller]);
@@ -670,7 +654,7 @@ function BillerDialog({
   const canSubmit = !invalid;
 
   const submit = async () => {
-    if (biller) { requestClose(); return; }
+    if (biller) { await editor.save(onSaved); return; }
     if (!canSubmit) return;
     setSaving(true);
     try {
@@ -689,7 +673,6 @@ function BillerDialog({
       <DialogContent showCloseButton={false} className="max-w-lg">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{biller ? 'Edit biller' : 'New biller'}</DialogTitle>
-          {biller && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
 
         {/* Tall form — cap height and scroll the fields so the modal never
@@ -829,14 +812,8 @@ function BillerDialog({
         </div>
 
         <DialogFooter className="mt-3">
-          {biller ? (
-            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-          ) : (
-            <>
-              <Button variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button onClick={submit} disabled={saving || !canSubmit}>{saving ? 'Saving…' : 'Create biller'}</Button>
-            </>
-          )}
+          <EditActions draft={editor} onCancel={onClose} onSave={submit} saveLabel={biller ? 'Save' : saving ? 'Saving…' : 'Create biller'}
+            disabled={!biller && (saving || !canSubmit)} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 import { media as mediaApi, type CollectionPart, type MediaEventRow } from '@/api';
-import { useMedia, useCreateMedia, useAutosaveMedia, useDeleteMedia } from '@/queries/media';
+import { useMedia, useCreateMedia, useSaveMedia, useDeleteMedia } from '@/queries/media';
 import BookmarksPanel from '@/pages/BookmarksPanel';
 import type { MediaEntry, MediaStatus, MediaSearchResult, MediaPatch } from '@/types';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
@@ -46,8 +46,8 @@ import pxPlay from 'pixelarticons/svg/play.svg?raw';
 import pxBuilding from 'pixelarticons/svg/building.svg?raw';
 import pxDownload from 'pixelarticons/svg/download.svg?raw';
 import pxImage from 'pixelarticons/svg/image.svg?raw';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 import { failureText } from '@/lib/errors';
 
 const MEDIA_VIEW_KEY = 'sajni:media:view';
@@ -782,7 +782,7 @@ export default function MediaPage() {
     data: MediaEntry[]; isLoading: boolean;
   };
   const createMedia = useCreateMedia();
-  const autosaveMedia = useAutosaveMedia();
+  const writeMedia = useSaveMedia();
   const deleteMedia = useDeleteMedia();
 
   // Deep-links (`/media?tab=videos` from the share flow) can land while
@@ -888,20 +888,19 @@ export default function MediaPage() {
     }
   };
 
-  // Edits save themselves; adding to the library is explicit.
-  const autosave = useEditorAutosave({
-    key: showForm && editItem ? editItem.id : null,
+  // Nothing saves until Save (or Add to library); closing with changes asks twice.
+  const editor = useEditorDraft({
+    editing: !!(showForm && editItem),
     value: form,
-    apply: setForm,
     invalid: form.title.trim() ? null : 'an entry needs a title.',
     save: async (v) => {
       if (!editItem) return;
       await assertNotDuplicate(v, editItem.id);
-      await autosaveMedia(editItem.id, mediaPayload(v));
+      await writeMedia(editItem.id, mediaPayload(v));
     },
   });
-  const loadAutosave = autosave.load;
-  const closeForm = () => autosave.close(() => setShowForm(false));
+  const loadDraft = editor.load;
+  const closeForm = () => editor.close(() => setShowForm(false));
 
   const openForm = useCallback((item?: MediaEntry, morph?: 'card' | 'add', sourceEl?: Element | null) => {
     const rect = sourceEl?.getBoundingClientRect();
@@ -911,13 +910,15 @@ export default function MediaPage() {
       const loaded = mediaFormOf(item);
       setEditItem(item);
       setForm(loaded);
-      loadAutosave(loaded);
+      loadDraft(loaded);
     } else {
+      const blank = blankForm();
       setEditItem(null);
-      setForm(blankForm());
+      setForm(blank);
+      loadDraft(blank);
     }
     setShowForm(true);
-  }, [blankForm, loadAutosave]);
+  }, [blankForm, loadDraft]);
 
   // `?id=` (from a tag reference) opens that entry once its shelf loads.
   const deepLinkId = Number(searchParams.get('id')) || null;
@@ -996,7 +997,7 @@ export default function MediaPage() {
   };
 
   const handleSave = async () => {
-    if (editItem) { closeForm(); return; }
+    if (editItem) { await editor.save(() => setShowForm(false)); return; }
     if (!form.title.trim()) return;
     setSaving(true);
     try {
@@ -1012,7 +1013,7 @@ export default function MediaPage() {
   };
 
   const handleDelete = async (id: number) => {
-    autosave.cancel();
+    editor.cancel();
     await deleteMedia.mutateAsync(id);
     setShowForm(false);
   };
@@ -1158,7 +1159,7 @@ export default function MediaPage() {
       {editItem ? 'Edit' : 'Add'} {TYPE_META[form.type]?.label || 'Entry'}
     </>
   );
-  const mediaFormSubtitle = editItem ? <AutosaveStatus status={autosave.status} /> : 'Search a database or fill it in manually';
+  const mediaFormSubtitle = editItem ? null : 'Search a database or fill it in manually';
 
   // Grids collapse to one column on narrow screens so nothing shrinks
   // below a usable size; the poster shrinks 120→96px on phones.
@@ -1305,17 +1306,8 @@ export default function MediaPage() {
           <Trash2 className="size-3.5" /> Delete
         </Button>
       )}
-      {editItem ? (
-        <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={closeForm} />
-      ) : (
-        <>
-          <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || !form.title.trim()} className="gap-1.5">
-            {saving && <M3CookieLoader size="xs" tone="primary" />}
-            Add to library
-          </Button>
-        </>
-      )}
+      <EditActions draft={editor} onCancel={() => setShowForm(false)} onSave={() => void handleSave()}
+        saveLabel={editItem ? 'Save' : saving ? 'Adding…' : 'Add to library'} disabled={saving || !form.title.trim()} />
     </>
   );
 

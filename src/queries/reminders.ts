@@ -35,9 +35,9 @@ export function useCreateReminder() {
   return useReminderMutation((input: ReminderInput) => remindersApi.create(input), 'Could not create reminder');
 }
 
-/** Autosave's write: no toast of its own (the editor's autosave reports
+/** An editor's Save: no toast of its own (the editor reports
  *  failures), then refresh reminders and the planner. */
-export function useAutosaveReminder() {
+export function useSaveReminder() {
   const qc = useQueryClient();
   return async (id: number, input: ReminderInput) => {
     await remindersApi.update(id, input);

@@ -21,8 +21,8 @@ import { ListSkeleton } from './Skeletons';
 import NetWorth from './NetWorth';
 import { DateBadge } from '@/components/ui/state-chip';
 import { Money } from './Money';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 const typeIcon = (type: string) => {
   switch (type) {
@@ -176,7 +176,6 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
         account={editingAcct}
         onClose={() => { setCreating(false); setEditingAcct(null); }}
         onSaved={() => { reload(); setCreating(false); setEditingAcct(null); }}
-        onAutosaved={reload}
       />
       {crediting && (
         <SalaryDialog account={crediting} categories={categories} onClose={() => setCrediting(null)} onDone={reload} />
@@ -190,7 +189,7 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
   );
 }
 
-// The account editor's fields as one value: autosave diffs it, Undo restores it.
+// The account editor's fields as one value: the draft compares it to tell what's unsaved.
 interface AccountValues {
   name: string; type: AcctType; institution: string; openingBalance: string;
   creditLimit: string; statementDay: string; dueDay: string;
@@ -240,13 +239,11 @@ function accountDraft(v: AccountValues): AccountDraft {
   return data;
 }
 
-function AccountDialog({ open, account, onClose, onSaved, onAutosaved }: {
+function AccountDialog({ open, account, onClose, onSaved }: {
   open: boolean;
   account: FinAccount | null;
   onClose: () => void;
   onSaved: () => void;
-  /** An edit saved while the dialog stays open: refresh, keep editing. */
-  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<AcctType>('savings');
@@ -274,39 +271,33 @@ function AccountDialog({ open, account, onClose, onSaved, onAutosaved }: {
     setSalaryAmount(v.salaryAmount); setSalaryDay(v.salaryDay); setMatchHints(v.matchHints);
     setColor(v.color); setArchived(v.archived);
   };
-  // Edits save themselves; a new account is created explicitly.
-  const autosave = useEditorAutosave({
-    key: open && account ? account.id : null,
+  // Nothing saves until Save (or Create); closing with changes asks twice.
+  const draft = useEditorDraft({
+    editing: !!account,
     value: values,
-    apply,
     invalid: name.trim() ? null : 'an account needs a name.',
     save: async (v) => {
       if (!account) return;
       await finance.updateAccount(account.id, { ...accountDraft(v), archived: v.archived });
-      onAutosaved?.();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = draft.load;
+  const requestClose = () => draft.close(onClose);
 
   useEffect(() => {
-    if (account) {
-      const v = accountValues(account);
-      apply(v);
-      loadAutosave(v);
-    } else {
-      setName(''); setType('savings'); setInstitution(''); setOpeningBalance('0');
-      setCreditLimit(''); setStatementDay(''); setDueDay('');
-      setCashbackType('none'); setCashbackValue('0');
-      setSalaryAmount('0'); setSalaryDay(''); setMatchHints('');
-      setColor(ACCOUNT_COLORS[0]); setArchived(false);
-    }
-    // Keyed on the dialog opening, not on the setters (stable) or loadAutosave.
+    const v: AccountValues = account ? accountValues(account) : {
+      name: '', type: 'savings', institution: '', openingBalance: '0', creditLimit: '', statementDay: '', dueDay: '',
+      cashbackType: 'none', cashbackValue: '0', salaryAmount: '0', salaryDay: '', matchHints: '',
+      color: ACCOUNT_COLORS[0], archived: false,
+    };
+    apply(v);
+    loadDraft(v);
+    // Keyed on the dialog opening, not on the setters (stable) or loadDraft.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, open]);
 
   const save = async () => {
-    if (account) { requestClose(); return; }
+    if (account) { await draft.save(onSaved); return; }
     if (!name.trim()) return;
     await finance.createAccount(accountDraft(values));
     onSaved();
@@ -315,7 +306,7 @@ function AccountDialog({ open, account, onClose, onSaved, onAutosaved }: {
   const remove = async () => {
     if (!account) return;
     if (!(await confirmDialog('Delete this account? Transactions on it will also be removed.'))) return;
-    autosave.cancel();
+    draft.cancel();
     await finance.deleteAccount(account.id);
     onSaved();
   };
@@ -325,7 +316,6 @@ function AccountDialog({ open, account, onClose, onSaved, onAutosaved }: {
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{account ? 'Edit account' : 'New account'}</DialogTitle>
-          {account && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Name" className="sm:col-span-2">
@@ -451,14 +441,7 @@ function AccountDialog({ open, account, onClose, onSaved, onAutosaved }: {
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            {account ? (
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-            ) : (
-              <>
-                <Button variant="outline" onClick={onClose}>Cancel</Button>
-                <Button onClick={save}>Create</Button>
-              </>
-            )}
+            <EditActions draft={draft} onCancel={onClose} onSave={save} saveLabel={account ? 'Save' : 'Create'} />
           </div>
         </DialogFooter>
       </DialogContent>

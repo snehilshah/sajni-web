@@ -21,8 +21,8 @@ import { Stat, StatGroup } from './StatGroup';
 import { cardClass } from '@/components/ui/card';
 import { DateBadge } from '@/components/ui/state-chip';
 import { Money } from './Money';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 interface Props {
   accounts: FinAccount[];
@@ -143,14 +143,13 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         accounts={accounts}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); reload(); }}
-        onAutosaved={reload}
       />
     </div>
   );
 }
 
 
-// The investment editor's fields as one value: autosave diffs it, Undo restores it.
+// The investment editor's fields as one value: the editor compares it to tell what's unsaved.
 interface InvestmentValues {
   name: string; type: FinInvestment['type']; accountId: string; invested: string; current: string;
   monthly: string; frequency: string; startDate: string; maturityDate: string; expectedReturn: string;
@@ -208,14 +207,12 @@ function investmentDraft(v: InvestmentValues): InvDraft {
   };
 }
 
-function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAutosaved }: {
+function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   open: boolean;
   investment: FinInvestment | null;
   accounts: FinAccount[];
   onClose: () => void;
   onSaved: () => void;
-  /** An edit saved while the dialog stays open: refresh, keep editing. */
-  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<FinInvestment['type']>('fd');
@@ -241,32 +238,26 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAuto
     setMaturityDate(v.maturityDate); setExpectedReturn(v.expectedReturn); setNotes(v.notes);
     setAutoDebit(v.autoDebit); setNextDebitDate(v.nextDebitDate);
   };
-  // Edits save themselves; a new investment is created explicitly.
-  const autosave = useEditorAutosave({
-    key: open && investment ? investment.id : null,
+  // Nothing saves until Save; a new investment is created explicitly.
+  const editor = useEditorDraft({
+    editing: !!(open && investment),
     value: values,
-    apply,
     invalid: name.trim() ? null : 'an investment needs a name.',
     save: async (v) => {
       if (!investment) return;
       await finance.updateInvestment(investment.id, investmentDraft(v));
-      onAutosaved?.();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(onClose);
 
   useEffect(() => {
-    if (investment) {
-      const v = investmentValues(investment);
-      apply(v);
-      loadAutosave(v);
-    } else {
-      setName(''); setType('sip'); setAccountId(''); setInvested(''); setCurrent('');
-      setMonthly(''); setFrequency('monthly'); setStartDate(''); setMaturityDate('');
-      setExpectedReturn(''); setNotes('');
-      setAutoDebit(false); setNextDebitDate('');
-    }
+    const v: InvestmentValues = investment ? investmentValues(investment) : {
+      name: '', type: 'sip', accountId: '', invested: '', current: '', monthly: '', frequency: 'monthly',
+      startDate: '', maturityDate: '', expectedReturn: '', notes: '', autoDebit: false, nextDebitDate: '',
+    };
+    apply(v);
+    loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [investment, open]);
@@ -290,7 +281,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAuto
   });
 
   const save = async () => {
-    if (investment) { requestClose(); return; }
+    if (investment) { await editor.save(onSaved); return; }
     if (!name.trim()) return;
     await finance.createInvestment(investmentDraft(values));
     onSaved();
@@ -299,7 +290,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAuto
   const remove = async () => {
     if (!investment) return;
     if (!(await confirmDialog('Delete this investment?'))) return;
-    autosave.cancel();
+    editor.cancel();
     await finance.deleteInvestment(investment.id);
     onSaved();
   };
@@ -309,7 +300,6 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAuto
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{investment ? 'Edit investment' : 'New investment'}</DialogTitle>
-          {investment && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Name" className="col-span-2">
@@ -434,14 +424,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved, onAuto
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            {investment ? (
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-            ) : (
-              <>
-                <Button variant="outline" onClick={onClose}>Cancel</Button>
-                <Button onClick={save}>Create</Button>
-              </>
-            )}
+            <EditActions draft={editor} onCancel={onClose} onSave={save} saveLabel={investment ? 'Save' : 'Create'} />
           </div>
         </DialogFooter>
       </DialogContent>

@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, isYesterday } from 'date-fns';
 
-import { useMemos, useCreateMemo, useUpdateMemo, useDeleteMemo, useAutosaveMemo } from '@/queries/memos';
+import { useMemos, useCreateMemo, useUpdateMemo, useDeleteMemo, useSaveMemo } from '@/queries/memos';
 import { confirmDialog } from '@/lib/confirm';
 import type { Memo } from '@/types';
 import TagPill from '@/components/TagPill';
@@ -15,8 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ArrowDown, Pin, PinOff, Pencil, Trash2, Search, Loader2, X, Copy, Check, Calendar as CalendarIcon, Clock } from '@/components/ui/icons';
 import PageShell from '@/components/PageShell';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 export default function MemosPage() {
   const [draft, setDraft] = useState('');
@@ -297,21 +297,22 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete }: {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [copied, setCopied] = useState(false);
-  const autosaveMemo = useAutosaveMemo();
+  const writeMemo = useSaveMemo();
 
-  // Editing saves itself; Done (or closing) flushes the last change.
-  const autosave = useEditorAutosave({
-    key: editing && memo ? memo.id : null,
+  // Nothing saves until Save; leaving the edit with changes asks twice.
+  const editor = useEditorDraft({
+    editing: !!(editing && memo),
     value: editContent,
-    apply: setEditContent,
+    // Reading: nothing can be unsaved.
+    dirty: editing ? undefined : false,
     invalid: editContent.trim() ? null : 'a memo needs some text.',
     save: async (content) => {
-      if (memo) await autosaveMemo(memo.id, content);
+      if (memo) await writeMemo(memo.id, content);
     },
   });
 
-  // A different memo starts in reading mode. Keyed on the id only: an
-  // autosave refreshes `memo.content`, which must not end the edit.
+  // A different memo starts in reading mode. Keyed on the id only: a save
+  // refreshes `memo.content`, which must not end the edit.
   useEffect(() => {
     setEditing(false);
     setCopied(false);
@@ -333,13 +334,12 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete }: {
 
   const startEditing = () => {
     setEditContent(memo.content);
-    autosave.load(memo.content);
+    editor.load(memo.content);
     setEditing(true);
   };
-  const finishEditing = () => autosave.close(() => setEditing(false));
 
   return (
-    <Dialog open={!!memo} onOpenChange={(o) => { if (!o) autosave.close(onClose); }}>
+    <Dialog open={!!memo} onOpenChange={(o) => { if (!o) editor.close(onClose); }}>
       <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
           <div className="flex items-start justify-between gap-3">
@@ -347,7 +347,6 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete }: {
               <DialogTitle className="flex items-center gap-2">
                 {memo.pinned && <Pin className="size-4 text-secondary shrink-0" />}
                 Memo
-                {editing && <AutosaveStatus status={autosave.status} />}
               </DialogTitle>
               <div className="flex items-center gap-3 mt-1 font-mono text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
@@ -391,7 +390,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete }: {
 
         <DialogFooter className="shrink-0 px-6 py-3 gap-1">
           {editing ? (
-            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={finishEditing} />
+            <EditActions draft={editor} onCancel={() => setEditing(false)} onSave={() => void editor.save(() => setEditing(false))} />
           ) : (
             <>
               <Button variant="destructive-quiet" size="sm" onClick={() => onDelete(memo.id)} className="mr-auto gap-1.5">

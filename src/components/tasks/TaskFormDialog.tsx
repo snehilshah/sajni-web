@@ -10,8 +10,8 @@ import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X,
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
@@ -202,12 +202,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 
   const invalid = !form.title.trim() ? 'a task needs a title.'
     : form.status === 'blocked' && !form.blocked_by_task_id ? 'pick the task that blocks this one.' : null;
-  // Edits save themselves (3s after the last change, on close, on switching
-  // to a subtask, when the app is hidden). Create stays an explicit action.
-  const autosave = useEditorAutosave({
-    key: open && editing ? editing.id : null,
+  // Nothing saves until Save (or Create task); every way out with changes
+  // asks twice.
+  const editor = useEditorDraft({
+    editing: !!(open && editing),
     value: form,
-    apply: setForm,
     invalid,
     save: async (f) => {
       if (!editing) return;
@@ -215,7 +214,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       onSaved();
     },
   });
-  const loadAutosave = autosave.load;
+  const loadDraft = editor.load;
 
   useEffect(() => {
     if (!open) return;
@@ -241,7 +240,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         subtasks: [],
       };
       setForm(loaded);
-      loadAutosave(loaded);
+      loadDraft(loaded);
       setHistory([]);
       setEvents([]);
       setParent(null);
@@ -262,7 +261,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           .catch(() => setParent(null));
       }
     } else {
-      setForm({ ...blank, ...defaults });
+      const fresh = { ...blank, ...defaults };
+      setForm(fresh);
+      loadDraft(fresh);
       setHistory([]);
       setEvents([]);
       setParent(null);
@@ -271,7 +272,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       queryKey: qk.tasks.list({ smart: 'all' }),
       queryFn: () => tasksApi.list({ smart: 'all' }),
     }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
-  }, [open, editing, defaults, qc, loadAutosave]);
+  }, [open, editing, defaults, qc, loadDraft]);
 
   const blockerCandidates = blockerTasks.filter((candidate) => {
     if (candidate.id === editing?.id || candidate.status === 'done' || candidate.status === 'scratched') return false;
@@ -287,11 +288,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     return true;
   });
 
-  // Every close path (Esc, backdrop, ×, Done) lands here: flush, then close.
-  const requestClose = () => autosave.close(() => onOpenChange(false));
+  // Every close path (Esc, backdrop, ×, Cancel) lands here.
+  const requestClose = () => editor.close(() => onOpenChange(false));
 
   const handleSave = async () => {
-    if (editing) { requestClose(); return; }
+    if (editing) { await editor.save(() => onOpenChange(false)); return; }
     if (!form.title.trim()) return;
     setSaving(true);
     const isWeek = form.due_type === 'week';
@@ -353,7 +354,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const handleDelete = async () => {
     if (!editing) return;
     if (!(await confirmDialog(`Delete "${editing.title}"? Subtasks will be removed too.`))) return;
-    autosave.cancel();
+    editor.cancel();
     await tasksApi.delete(editing.id);
     onOpenChange(false);
     onSaved();
@@ -373,7 +374,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     if (!editing) return;
     const next: FormState = { ...form, status: form.status === 'scratched' ? 'todo' : 'scratched' };
     setForm(next);
-    await autosave.commit(next);
+    await editor.commit(next);
     onOpenChange(false);
   };
 
@@ -805,20 +806,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		</div>
 
         <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] ">
-		  <div className="mr-auto min-w-0 text-xs text-muted-foreground" aria-live="polite">
-		    {editing ? <AutosaveStatus status={autosave.status} /> : form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
+		  <div className="mr-auto min-w-0 text-xs text-muted-foreground">
+		    {!editing && !editor.warning && form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
 		  </div>
-          {editing ? (
-            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving || !!invalid} className="gap-1.5">
-                {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
-                Create task
-              </Button>
-            </>
-          )}
+          <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void handleSave()}
+            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create task'} disabled={!editing && (saving || !!invalid)} />
         </div>
     </MorphingDialog>
   );

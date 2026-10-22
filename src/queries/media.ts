@@ -43,9 +43,9 @@ export function useDeleteMedia() {
   });
 }
 
-/** Autosave's write: no toast of its own (the editor's autosave reports
+/** An editor's Save: no toast of its own (the editor reports
  *  failures), then refresh library and tag views. */
-export function useAutosaveMedia() {
+export function useSaveMedia() {
   const qc = useQueryClient();
   return async (id: number, data: MediaPatch) => {
     await mediaApi.update(id, data);

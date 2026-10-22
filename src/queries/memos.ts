@@ -41,9 +41,9 @@ export function useDeleteMemo() {
   });
 }
 
-/** Autosave's write: no toast of its own (the editor's autosave reports
+/** An editor's Save: no toast of its own (the editor reports
  *  failures), then refresh memo views. */
-export function useAutosaveMemo() {
+export function useSaveMemo() {
   const qc = useQueryClient();
   return async (id: number, content: string) => {
     await memosApi.update(id, { content });

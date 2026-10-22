@@ -147,6 +147,16 @@ export default function StartDoc() {
             <em>and</em> email. Miss the ping, catch the mail.
           </li>
           <li>
+            <strong>Edits save when you press Save.</strong> Forms (a task, a
+            transaction, an account, a habit…) change nothing until{' '}
+            <em>Save</em> (or <em>Create</em> / <em>Add</em> for something
+            new). Close one with unsaved changes (Esc, ×, Cancel, tapping
+            outside; on the phone, back or a swipe down) and it stays open,
+            says <em>Unsaved changes</em>, and the phone buzzes; close again
+            within a few seconds to discard them. Notes and journal entries
+            are writing, not forms: they save on their own.
+          </li>
+          <li>
             <strong>Abandoning is an outcome, not a deletion.</strong> Tasks
             can be <em>scratched</em>, media <em>dropped</em>, pockets{' '}
             <em>archived</em>. History stays honest instead of vanishing.

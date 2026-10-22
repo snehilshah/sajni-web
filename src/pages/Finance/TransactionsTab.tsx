@@ -642,16 +642,12 @@ export default function TransactionsTab({
           if (patch) setOverrides((prev) => ({ ...prev, [patch.id]: { ...prev[patch.id], ...patch } }));
           reload();
         }}
-        onAutosaved={(patch) => {
-          setOverrides((prev) => ({ ...prev, [patch.id]: { ...prev[patch.id], ...patch } }));
-          reload();
-        }}
       />
       <EditLendDialog
         lend={editingLend}
         accounts={accounts}
         onClose={() => setEditingLend(null)}
-        onAutosaved={reload}
+        onSaved={() => { setEditingLend(null); reload(); }}
         onRemoved={() => { setEditingLend(null); reload(); }}
       />
       <EditRepaymentDialog

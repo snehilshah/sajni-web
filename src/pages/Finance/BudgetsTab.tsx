@@ -26,8 +26,8 @@ import { huePillBase, huePillOn, huePillOff, huePillGlyph, hueVar } from '@/comp
 import { CategoryPill } from './CategoryChips';
 import { sumMoney, subMoney } from './utils';
 import { Money } from './Money';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 // A budget is a lens, not a container: many budgets can read the same
 // transaction. There is no period and nothing resets — a budget owns the window
@@ -146,7 +146,6 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
         slates={slates}
         onClose={() => { setCreating(null); setEditing(null); }}
         onSaved={() => { setCreating(null); setEditing(null); reload(); }}
-        onAutosaved={reload}
       />
       <CategoryManager
         open={manageCats}
@@ -290,8 +289,8 @@ const WINDOWS: { label: string; range: () => [string, string] }[] = [
   ] },
 ];
 
-// The budget editor's fields as one value: autosave diffs it, Undo restores
-// it. Slates are a sorted id list (a Set doesn't serialise).
+// The budget editor's fields as one value: the draft compares it to tell
+// what's unsaved. Slates are a sorted id list (a Set doesn't serialise).
 interface BudgetValues {
   name: string; overall: string; startDate: string; endDate: string;
   slateIds: number[]; items: { category_id: number | null; amount: string }[];
@@ -329,7 +328,7 @@ function budgetDraft(v: BudgetValues): BudgetDraft {
   };
 }
 
-function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSaved, onAutosaved }: {
+function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSaved }: {
   open: boolean;
   budget: FinBudget | null;
   /** Values for a new budget — blank, or a duplicate of an existing one. */
@@ -338,8 +337,6 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   slates: FinSlate[];
   onClose: () => void;
   onSaved: () => void;
-  /** An edit saved while the dialog stays open: refresh, keep editing. */
-  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [overall, setOverall] = useState('');
@@ -358,20 +355,18 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   };
   const total = budgetTotal(values);
   const invalid = !name.trim() ? 'a budget needs a name.' : total > 0 ? null : 'set an amount.';
-  // Edits save themselves; a new budget is created explicitly.
-  const autosave = useEditorAutosave({
-    key: open && budget ? budget.id : null,
+  // Nothing saves until Save; a new budget is created explicitly.
+  const editor = useEditorDraft({
+    editing: !!(open && budget),
     value: values,
-    apply,
     invalid,
     save: async (v) => {
       if (!budget) return;
       await finance.updateBudget(budget.id, budgetDraft(v));
-      onAutosaved?.();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(onClose);
 
   useEffect(() => {
     if (!open) return;
@@ -386,7 +381,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
         }
       : prefill ?? { name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [] });
     apply(v);
-    if (budget) loadAutosave(v);
+    loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [budget, prefill, open]);
@@ -408,7 +403,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const canSave = !invalid;
 
   const save = async () => {
-    if (budget) { requestClose(); return; }
+    if (budget) { await editor.save(onSaved); return; }
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -424,7 +419,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const remove = async () => {
     if (!budget) return;
     if (!(await confirmDialog('Delete this budget?'))) return;
-    autosave.cancel();
+    editor.cancel();
     await finance.deleteBudget(budget.id);
     onSaved();
   };
@@ -434,7 +429,6 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
       <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{budget ? 'Edit budget' : 'New budget'}</DialogTitle>
-          {budget && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
@@ -591,14 +585,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
             </Button>
           ) : <span />}
           <div className="flex gap-2">
-            {budget ? (
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-            ) : (
-              <>
-                <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-                <Button onClick={save} disabled={saving || !canSave}>{saving ? 'Saving…' : 'Create'}</Button>
-              </>
-            )}
+            <EditActions draft={editor} onCancel={onClose} onSave={save} saveLabel={budget ? 'Save' : 'Create'} disabled={!budget && (saving || !canSave)} />
           </div>
         </DialogFooter>
       </DialogContent>

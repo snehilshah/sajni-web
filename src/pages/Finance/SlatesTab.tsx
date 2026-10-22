@@ -194,7 +194,6 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
         slate={editing}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); refreshSlates(); }}
-        onAutosaved={refreshSlates}
       />
     </div>
   );

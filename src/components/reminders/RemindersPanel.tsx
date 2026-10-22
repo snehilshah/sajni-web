@@ -4,7 +4,7 @@ import { addDays, format, isSameDay, startOfDay } from 'date-fns';
 import type { Reminder, ReminderHistoryItem, ReminderInput, ReminderRecurrence } from '@/types';
 import {
   useCreateReminder, useDeleteReminder, useDeleteReminderHistory, useReminderHistory, useReminders,
-  useSkipReminder, useSnoozeReminder, useAutosaveReminder,
+  useSkipReminder, useSnoozeReminder, useSaveReminder,
 } from '@/queries/reminders';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -19,8 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -468,56 +468,50 @@ export function ReminderEditor({ open, editing, onOpenChange }: { open: boolean;
   const mobile = useIsMobile();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const create = useCreateReminder();
-  const autosaveReminder = useAutosaveReminder();
+  const writeReminder = useSaveReminder();
   const saving = create.isPending;
   const invalid = !draft.message.trim() ? 'a reminder needs a message.'
     : !draft.when ? 'pick when to remind you.'
       : draft.repeat && draft.frequency === 'weekly' && draft.weekdays.length === 0 ? 'pick at least one weekday.' : null;
 
-  // Edits save themselves (each save reschedules); a new reminder is explicit.
-  const autosave = useEditorAutosave({
-    key: open && editing ? editing.id : null,
+  // Nothing saves until Save (each save reschedules); closing with changes asks twice.
+  const editor = useEditorDraft({
+    editing: !!(open && editing),
     value: draft,
-    apply: setDraft,
     invalid,
     save: async (v) => {
-      if (editing) await autosaveReminder(editing.id, reminderInput(v));
+      if (editing) await writeReminder(editing.id, reminderInput(v));
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(() => onOpenChange(false));
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(() => onOpenChange(false));
   const handleOpenChange = (next: boolean) => (next ? onOpenChange(true) : requestClose());
 
   useEffect(() => {
     if (!open) return;
     const loaded = editing ? reminderDraft(editing) : emptyDraft();
     setDraft(loaded);
-    if (editing) loadAutosave(loaded);
-  }, [editing, open, loadAutosave]);
+    loadDraft(loaded);
+  }, [editing, open, loadDraft]);
 
   const save = () => {
-    if (editing) { requestClose(); return; }
+    if (editing) { void editor.save(() => onOpenChange(false)); return; }
     if (invalid) return;
     create.mutate(reminderInput(draft), { onSuccess: () => onOpenChange(false) });
   };
 
   const form = <ReminderForm draft={draft} onChange={setDraft} />;
-  const footer = editing ? (
-    <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-  ) : (
-    <>
-      <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-      <Button disabled={saving || !!invalid} onClick={save}>Create reminder</Button>
-    </>
+  const footer = (
+    <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={save}
+      saveLabel={editing ? 'Save' : 'Create reminder'} disabled={!editing && (saving || !!invalid)} />
   );
-  const status = editing ? <AutosaveStatus status={autosave.status} /> : null;
 
   if (mobile) {
     return (
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="bottom" className="max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto">
           <SheetHeader className="pb-3">
-            <SheetTitle className="flex items-baseline justify-between gap-3 serif text-xl normal-case tracking-tight">{editing ? 'Edit reminder' : 'New reminder'}{status}</SheetTitle>
+            <SheetTitle className="flex items-baseline justify-between gap-3 serif text-xl normal-case tracking-tight">{editing ? 'Edit reminder' : 'New reminder'}</SheetTitle>
             <SheetDescription>A message and a time. Everything else is optional.</SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-4">{form}</div>
@@ -532,7 +526,6 @@ export function ReminderEditor({ open, editing, onOpenChange }: { open: boolean;
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{editing ? 'Edit reminder' : 'New reminder'}</DialogTitle>
-            {status}
           </div>
           <DialogDescription>A message and a time. Everything else is optional.</DialogDescription>
         </DialogHeader>

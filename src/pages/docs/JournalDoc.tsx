@@ -26,8 +26,9 @@ export default function JournalDoc() {
         <FeatureList>
           <Feature name="Autosave">
             <p>
-              Entries save as you type, there is no save button. Content
-              and location both mark the entry dirty and flush together.
+              On the web, entries save as you type; there is no save button.
+              On the phone, an entry saves when you close it (back, or Save).
+              Content and location save together.
             </p>
           </Feature>
           <Feature name="Location">
@@ -99,7 +100,8 @@ export default function JournalDoc() {
               Tap <em>Edit</em> beside Routines (or <em>Set up a routine</em>{' '}
               when you have none). Give it a name, pick its days (Workdays,
               Weekends, Every day, or single days), a start time, and type its
-              checklist. Edits to a routine save themselves.
+              checklist, then press <em>Save</em> (<em>Add routine</em> for a
+              new one).
             </p>
           </Feature>
           <Feature name="The checklist">

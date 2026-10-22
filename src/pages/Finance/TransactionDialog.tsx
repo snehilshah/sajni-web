@@ -7,8 +7,8 @@ import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTran
 import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
 import { cn } from '@/lib/utils';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions, UnsavedNotice } from '@/components/editor-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -93,7 +93,7 @@ function editKind(kind: FinTransaction['type']): TxnKind {
 }
 
 export default function TransactionDialog({
-  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', initialPerson = '', onClose, onSaved, onAutosaved, onEditLend,
+  open, txn, accounts, categories, slates, defaultSlateId, initialType = 'expense', initialPerson = '', onClose, onSaved, onEditLend,
 }: {
   open: boolean;
   txn: FinTransaction | null;
@@ -111,8 +111,6 @@ export default function TransactionDialog({
   onEditLend?: (lendId: number) => void;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
-  /** An edit autosaved while the dialog stays open: patch the row, keep editing. */
-  onAutosaved?: (patch: { id: number } & Partial<FinTransaction>) => void;
 }) {
   const [type, setType] = useState<TxnKind>('expense');
   const [accountId, setAccountId] = useState('');
@@ -187,20 +185,31 @@ export default function TransactionDialog({
     if (!v.description.trim()) e.description = 'Add a title.';
     return e;
   };
-  // Edits save themselves 3s after the last change and on close. Create
-  // stays an explicit Add.
-  const autosave = useEditorAutosave({
-    key: open && txn ? txn.id : null,
+  // A split or a settlement filled in on a saved transaction but not yet
+  // applied. The footer's Save becomes this action. (Explicit: a half-typed
+  // name would settle someone.)
+  const pendingTotal = parseFloat(amount) || 0;
+  const pendingShare = shareOf(pendingTotal, shareMode, customShare);
+  const pendingLabel = !txn ? null
+    : type === 'expense' && addons.has('split') && !txn.split && person.trim() && pendingShare > 0 && pendingShare <= pendingTotal ? 'Split this bill'
+      : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
+        : null;
+  // Nothing saves until Save (or Add). A new one starts with defaults filled
+  // in (account, category guess), so only what was typed counts as unsaved;
+  // a split or settlement waiting to be applied is unsaved too.
+  const savedPatch = useRef<({ id: number } & Partial<FinTransaction>) | undefined>(undefined);
+  const editor = useEditorDraft({
+    editing: !!(open && txn),
     value: values,
-    apply: (v) => { applyValues(v); setErrors({}); },
+    dirty: !txn ? !!(amount.trim() || description.trim() || note.trim() || person.trim())
+      : pendingLabel ? true : undefined,
     invalid: Object.values(editErrors(values))[0]?.toLowerCase() ?? null,
     save: async (v) => {
       if (!txn) return;
-      const patch = await persistEdit(txn, v);
-      onAutosaved?.(patch);
+      savedPatch.current = await persistEdit(txn, v);
     },
   });
-  const loadAutosave = autosave.load;
+  const loadDraft = editor.load;
 
   // Edit → PUT; returns the optimistic row patch for the list.
   const persistEdit = async (t: FinTransaction, v: EditValues) => {
@@ -241,20 +250,8 @@ export default function TransactionDialog({
     };
   };
 
-  // A split or a settlement filled in on a saved transaction but not yet
-  // applied. The footer's Done becomes this action; any other close says it
-  // wasn't saved. (Never autosaved: a half-typed name would settle someone.)
-  const pendingTotal = parseFloat(amount) || 0;
-  const pendingShare = shareOf(pendingTotal, shareMode, customShare);
-  const pendingLabel = !txn ? null
-    : type === 'expense' && addons.has('split') && !txn.split && person.trim() && pendingShare > 0 && pendingShare <= pendingTotal ? 'Split this bill'
-      : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
-        : null;
-  // Every close path (Esc, backdrop, Done) for an edit: flush, then close.
-  const requestClose = () => {
-    if (pendingLabel) toast.info(`Not saved: ${pendingLabel.toLowerCase()} wasn't applied.`);
-    autosave.close(onClose);
-  };
+  // Every close path (Esc, backdrop, ×, Cancel): with changes, warn first.
+  const requestClose = () => editor.close(onClose);
 
   useEffect(() => {
     setErrors({});
@@ -270,7 +267,7 @@ export default function TransactionDialog({
       setType(editKind(txn.type));
       setLinkedId(txn.linked_account ? String(txn.linked_account) : '');
       applyValues(v);
-      loadAutosave(v);
+      loadDraft(v);
       const on = new Set<Addon>();
       if (txn.split) { on.add('split'); setPerson(txn.split.borrower); }
       if (txn.type === 'refund') on.add('refund');
@@ -310,7 +307,7 @@ export default function TransactionDialog({
     // re-runs and wipes whatever the user has typed into an open dialog. The
     // reset belongs to "the dialog opened", not "the data changed".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txn, open, defaultSlateId, initialType, initialPerson, loadAutosave]);
+  }, [txn, open, defaultSlateId, initialType, initialPerson, loadDraft]);
 
   // A refund files under an expense category: it nets off that spending.
   const categoryKind = type === 'income' && !isRefund ? 'income' : 'expense';
@@ -411,7 +408,7 @@ export default function TransactionDialog({
   };
 
   const save = async () => {
-    if (txn) { if (pendingLabel) void applyToExisting(); else requestClose(); return; }
+    if (txn) { if (pendingLabel) void applyToExisting(); else await editor.save(() => onSaved(savedPatch.current)); return; }
     if (saving) return;
     const e = validate();
     if (Object.keys(e).length) {
@@ -463,7 +460,7 @@ export default function TransactionDialog({
   };
 
   // Edit mode: splitting an existing bill or settling an existing credit is
-  // a deliberate step, not something a half-typed name should autosave.
+  // a deliberate step.
   const applyToExisting = async () => {
     if (!txn || saving) return;
     if (!person.trim()) { setErrors({ person: type === 'expense' ? 'Enter who owes this.' : 'Enter who is paying you back.' }); return; }
@@ -472,7 +469,7 @@ export default function TransactionDialog({
     setSaving(true);
     try {
       // Land any pending field edits first, then make the structural change.
-      if (autosave.changed) await autosave.commit(values);
+      if (editor.changed) await editor.commit(values);
       if (type === 'expense') {
         await finance.markPaidFor({
           borrower: person.trim(), transaction_ids: [txn.id], share: theirShare, remind,
@@ -492,7 +489,7 @@ export default function TransactionDialog({
   const remove = async () => {
     if (!txn) return;
     if (!(await confirmDialog('Delete this transaction?'))) return;
-    autosave.cancel();
+    editor.cancel();
     try {
       await finance.deleteTransaction(txn.id);
       onSaved();
@@ -529,7 +526,7 @@ export default function TransactionDialog({
     if (a === 'split' && existingSplit) return (
       <section key={a} className="flex flex-col gap-2 pt-1">
         <Label className="font-mono text-xs label-kicker text-muted-foreground">Split with {existingSplit.borrower}</Label>
-        <SummaryRow action={onEditLend && <Button variant="tonal" size="sm" onClick={() => autosave.close(() => onEditLend(existingSplit.lend_id))}>Edit lend</Button>}>
+        <SummaryRow action={onEditLend && <Button variant="tonal" size="sm" onClick={() => editor.close(() => onEditLend(existingSplit.lend_id))}>Edit lend</Button>}>
           {total > 0 && theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
           <DateBadge tone="accent">{existingSplit.borrower} owes <Money value={theirShare} /></DateBadge>
         </SummaryRow>
@@ -644,7 +641,6 @@ export default function TransactionDialog({
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{txn ? (isRefund ? 'Edit refund' : 'Edit transaction') : 'New transaction'}</DialogTitle>
-            {txn && <AutosaveStatus status={autosave.status} />}
           </div>
         </DialogHeader>
         {/* The fade sits inside the 8px padding, so at rest it touches no content. */}
@@ -792,12 +788,15 @@ export default function TransactionDialog({
           ) : <span />}
           {txn ? (
             <div className="flex gap-2">
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={() => (pendingLabel ? applyToExisting() : requestClose())}
-                doneLabel={pendingLabel ?? 'Done'} disabled={saving} />
+              <EditActions draft={editor} onCancel={onClose} onSave={() => void save()}
+                saveLabel={pendingLabel ?? 'Save'} disabled={saving} />
             </div>
           ) : (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+              <UnsavedNotice draft={editor} />
+              <Button variant="outline" className={cn(editor.warning && 'text-destructive')} onClick={requestClose} disabled={saving}>
+                {editor.warning ? 'Discard' : 'Cancel'}
+              </Button>
               <Button onClick={save} disabled={saving} className="gap-1.5">
                 {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
                 Add

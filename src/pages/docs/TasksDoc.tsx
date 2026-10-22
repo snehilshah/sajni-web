@@ -119,7 +119,7 @@ export default function TasksDoc() {
               You can add subtasks while creating a task: “Paint the room”
               with “Buy paint” and “Sand the walls” typed under More details
               are all created together when you press Create (on the phone,
-              just close the sheet: a new task with a title saves itself).
+              Add at the top of the sheet).
               When a subtask shows up on its own in a smart view (My Day, Missed, All), a
               small “↳ Paint the room” chip beside its title names the parent;
               tap the chip to open the parent. A task added to a Journal

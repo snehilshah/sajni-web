@@ -246,10 +246,10 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Editing">
             <p>
-              Tap any transaction to edit it. Changes save on their own a few
-              seconds after you stop typing, and when you close the sheet.{' '}
-              <em>Undo changes</em> puts it back the way it was when you opened
-              it.
+              Tap any transaction to edit it, then press <em>Save</em>.
+              Nothing changes until you do: close it with unsaved changes and
+              it asks once (<em>Unsaved changes</em>); close again to discard
+              them.
             </p>
           </Feature>
           <Feature name="Notes and tags">
@@ -329,7 +329,7 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="A bill that's already in Sajni">
             <p>
-              Open it, tap <em>+ Split</em> and fill it in; the sheet's Done
+              Open it, tap <em>+ Split</em> and fill it in; the sheet's Save
               button becomes <em>Split this bill</em>. Press it. This is how you split card charges that
               were captured automatically.
             </p>
@@ -465,7 +465,7 @@ export default function FinanceDoc() {
             <p>
               The repayment was usually captured from a UPI message. Open it,
               tap <em>+ Settles a lend</em>, pick the person (and Toward), then
-              press <em>Mark as paid back</em> (the sheet's Done button takes
+              press <em>Mark as paid back</em> (the sheet's Save button takes
               that name once a person is picked).
             </p>
           </Feature>

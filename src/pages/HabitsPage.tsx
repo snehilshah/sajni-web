@@ -13,7 +13,7 @@ import {
   useHabitLogRange,
   useHabits,
   useToggleHabitPeriod,
-  useAutosaveHabit,
+  useSaveHabit,
 } from '@/queries/habits';
 import {
   dailyPeriods,
@@ -53,13 +53,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
-  Loader2,
   Plus,
   Trash2,
 } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 const FREQUENCIES: HabitFrequency[] = ['daily', 'weekly', 'fortnightly', 'monthly'];
@@ -110,7 +109,7 @@ export default function HabitsPage() {
 
   const togglePeriod = useToggleHabitPeriod();
   const createHabit = useCreateHabit();
-  const autosaveHabit = useAutosaveHabit();
+  const writeHabit = useSaveHabit();
   const deleteHabit = useDeleteHabit();
 
   const [showForm, setShowForm] = useState(false);
@@ -121,25 +120,24 @@ export default function HabitsPage() {
     color: SWATCHES[0],
   });
   const [saving, setSaving] = useState(false);
-  // Edits save themselves; a new habit is created explicitly.
-  const autosave = useEditorAutosave({
-    key: showForm && editing ? editing.id : null,
+  // Nothing saves until Save; a new habit is created explicitly.
+  const editor = useEditorDraft({
+    editing: !!(showForm && editing),
     value: form,
-    apply: setForm,
     invalid: form.name.trim() ? null : 'a habit needs a name.',
     save: async (v) => {
-      if (editing) await autosaveHabit(editing.id, { ...v, name: v.name.trim() });
+      if (editing) await writeHabit(editing.id, { ...v, name: v.name.trim() });
     },
   });
-  const closeForm = () => autosave.close(() => setShowForm(false));
-  const loadAutosave = autosave.load;
+  const closeForm = () => editor.close(() => setShowForm(false));
+  const loadDraft = editor.load;
   const openEdit = useCallback((habit: Habit) => {
     const v: HabitForm = { name: habit.name, frequency: habit.frequency, color: habit.color };
     setEditing(habit);
     setForm(v);
-    loadAutosave(v);
+    loadDraft(v);
     setShowForm(true);
-  }, [loadAutosave]);
+  }, [loadDraft]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get('focus');
@@ -158,13 +156,15 @@ export default function HabitsPage() {
 
 
   const openCreate = () => {
+    const v: HabitForm = { name: '', frequency: 'daily', color: SWATCHES[0] };
     setEditing(null);
-    setForm({ name: '', frequency: 'daily', color: SWATCHES[0] });
+    setForm(v);
+    loadDraft(v);
     setShowForm(true);
   };
 
   const saveHabit = async () => {
-    if (editing) { closeForm(); return; }
+    if (editing) { await editor.save(() => setShowForm(false)); return; }
     if (!form.name.trim()) return;
     setSaving(true);
     try {
@@ -177,7 +177,7 @@ export default function HabitsPage() {
 
   const removeHabit = async (habit: Habit) => {
     if (!(await confirmDialog(`Delete "${habit.name}" and all its logs?`))) return;
-    autosave.cancel();
+    editor.cancel();
     await deleteHabit.mutateAsync(habit.id);
     setShowForm(false);
   };
@@ -268,7 +268,6 @@ export default function HabitsPage() {
         <DialogContent showCloseButton={false}>
           <DialogHeader className="flex-row items-baseline justify-between gap-3">
             <DialogTitle>{editing ? 'Edit habit' : 'New habit'}</DialogTitle>
-            {editing && <AutosaveStatus status={autosave.status} />}
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
@@ -358,17 +357,8 @@ export default function HabitsPage() {
                 <Trash2 className="size-4 mr-1" /> Delete
               </Button>
             )}
-            {editing ? (
-              <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={closeForm} />
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button onClick={saveHabit} disabled={saving || !form.name.trim()} className="gap-1.5">
-                  {saving && <Loader2 className="size-3.5 animate-spin" />}
-                  Create
-                </Button>
-              </>
-            )}
+            <EditActions draft={editor} onCancel={() => setShowForm(false)} onSave={() => void saveHabit()}
+              saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create'} disabled={saving || !form.name.trim()} />
           </DialogFooter>
         </DialogContent>
       </Dialog>

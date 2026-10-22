@@ -3,57 +3,52 @@ import { toast } from 'sonner';
 
 import { finance, type FinSlate } from '@/api';
 import { failureText } from '@/lib/errors';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ACCOUNT_COLORS } from './utils';
 import { cn } from '@/lib/utils';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 
 // Create/edit form for a slate (name + color). Plain never reaches here —
 // it can't be renamed, so SlatesTab offers no edit action for it.
 
-export default function SlateDialog({ open, slate, onClose, onSaved, onAutosaved }: {
+export default function SlateDialog({ open, slate, onClose, onSaved }: {
   open: boolean;
   slate: FinSlate | null;
   onClose: () => void;
   /** Receives the new slate's id on create, so a caller mid-sweep can move the
    *  selected transactions into it without waiting for a slates refetch. */
   onSaved: (createdId?: number) => void;
-  /** An edit saved while the dialog stays open: refresh, keep editing. */
-  onAutosaved?: () => void;
 }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState(ACCOUNT_COLORS[0]);
   const [saving, setSaving] = useState(false);
 
-  // Edits save themselves; a new slate is created explicitly.
-  const autosave = useEditorAutosave({
-    key: open && slate ? slate.id : null,
+  // Nothing saves until Save; a new slate is created explicitly.
+  const editor = useEditorDraft({
+    editing: !!(open && slate),
     value: { name, color },
-    apply: (v) => { setName(v.name); setColor(v.color); },
     invalid: name.trim() ? null : 'a slate needs a name.',
     save: async (v) => {
       if (!slate) return;
       await finance.updateSlate(slate.id, { name: v.name.trim(), color: v.color });
-      onAutosaved?.();
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(onClose);
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(onClose);
 
   useEffect(() => {
     if (!open) return;
     const v = { name: slate?.name ?? '', color: slate?.color || ACCOUNT_COLORS[0] };
     setName(v.name);
     setColor(v.color);
-    if (slate) loadAutosave(v);
-  }, [open, slate, loadAutosave]);
+    loadDraft(v);
+  }, [open, slate, loadDraft]);
 
   const save = async () => {
-    if (slate) { requestClose(); return; }
+    if (slate) { await editor.save(onSaved); return; }
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
@@ -71,7 +66,6 @@ export default function SlateDialog({ open, slate, onClose, onSaved, onAutosaved
       <DialogContent showCloseButton={false} className="sm:max-w-sm">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{slate ? 'Edit slate' : 'New slate'}</DialogTitle>
-          {slate && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
@@ -114,14 +108,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved, onAutosaved
           )}
         </div>
         <DialogFooter>
-          {slate ? (
-            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-          ) : (
-            <>
-              <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-              <Button onClick={save} disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Create'}</Button>
-            </>
-          )}
+          <EditActions draft={editor} onCancel={onClose} onSave={save} saveLabel={slate ? 'Save' : 'Create'} disabled={!slate && (saving || !name.trim())} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -33,7 +33,6 @@ import {
   Gift,
   Globe,
   Heart,
-  Loader2,
   MapPin,
   Plus,
   Search,
@@ -60,8 +59,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
 import { confirmDialog } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
-import { useEditorAutosave } from '@/hooks/use-autosave';
-import { AutosaveStatus, EditActions } from '@/components/autosave';
+import { useEditorDraft } from '@/hooks/use-editor-draft';
+import { EditActions } from '@/components/editor-actions';
 import { useQueryClient } from '@tanstack/react-query';
 import { events as eventsApi } from '@/api';
 import { qk } from '@/queries/keys';
@@ -825,24 +824,16 @@ function EventEditor({
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
   const deleteVariable = useDeleteEventVariable();
-  // Variables as the server has them (id → name/unit), so autosave renames
+  // Variables as the server has them (id → name/unit), so Save renames
   // only what changed and never touches a variable deleted meanwhile.
   const savedVariables = useRef(new Map<number, { name: string; unit: string }>());
 
-  // Edits save themselves. Fields and variable names are diffed; a new
-  // variable is created once it has a name, and its id is written back.
-  // Deleting a variable stays an explicit, confirmed action.
-  const autosave = useEditorAutosave({
-    key: editing ? editing.id : null,
+  // Nothing saves until Save. Fields and variable names are diffed; a new
+  // variable is created once it has a name. Deleting a variable is its own
+  // confirmed step.
+  const editor = useEditorDraft({
+    editing: !!editing,
     value: draft,
-    // Undo restores fields and names; it never resurrects or drops variables.
-    apply: (back) => setDraft((current) => ({
-      ...back,
-      variables: current.variables.map((variable) => {
-        const original = back.variables.find((item) => item.id !== undefined && item.id === variable.id);
-        return original ? { ...variable, name: original.name, unit: original.unit } : variable;
-      }),
-    })),
     invalid: draft.name.trim() ? null : 'an event needs a name.',
     save: async (v) => {
       if (!editing) return;
@@ -870,12 +861,15 @@ function EventEditor({
       void queryClient.invalidateQueries({ queryKey: qk.events.all });
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(() => onOpenChange(false));
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(() => onOpenChange(false));
 
   useEffect(() => {
-    if (value === 'new') setDraft({ ...EMPTY_EVENT, variables: [] });
-    else if (value) {
+    if (value === 'new') {
+      const blank = { ...EMPTY_EVENT, variables: [] };
+      setDraft(blank);
+      loadDraft(blank);
+    } else if (value) {
       const loaded: EventDraft = {
         name: value.name,
         description: value.description,
@@ -889,12 +883,12 @@ function EventEditor({
       };
       savedVariables.current = new Map(value.variables.map((variable) => [variable.id, { name: variable.name, unit: variable.unit }]));
       setDraft(loaded);
-      loadAutosave(loaded);
+      loadDraft(loaded);
     }
-  }, [value, loadAutosave]);
+  }, [value, loadDraft]);
 
   async function save() {
-    if (editing) { requestClose(); return; }
+    if (editing) { await editor.save(() => onOpenChange(false)); return; }
     if (!draft.name.trim()) return;
     setSaving(true);
     try {
@@ -943,7 +937,7 @@ function EventEditor({
       confirmText: 'Delete event',
     });
     if (!confirmed) return;
-    autosave.cancel();
+    editor.cancel();
     await deleteEvent.mutateAsync(editing.id);
     onOpenChange(false);
     onDeleted?.();
@@ -954,7 +948,6 @@ function EventEditor({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{editing ? 'Edit event' : 'New event'}</DialogTitle>
-          {editing && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="flex flex-col gap-5">
           <div className="space-y-1.5">
@@ -1084,17 +1077,8 @@ function EventEditor({
               </Button>
             </div>
           )}
-          {editing ? (
-            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={save} disabled={!draft.name.trim() || saving}>
-                {saving && <Loader2 className="size-4 animate-spin" />}
-                Create
-              </Button>
-            </>
-          )}
+          <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void save()}
+            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create'} disabled={!draft.name.trim() || saving} />
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1140,7 +1124,7 @@ function EntryEditor({
   const createEntry = useCreateEventEntry();
   const deleteEntry = useDeleteEventEntry();
 
-  // The entry's fields as one value for autosave and Undo.
+  // The entry's fields as one value: the draft compares it to tell what's unsaved.
   const form = { date, time, note, values };
   const entryData = (v: typeof form) => ({
     occurred_at: combineLocalDateTime(v.date, v.time),
@@ -1152,11 +1136,10 @@ function EntryEditor({
       return Number.isFinite(number) ? [{ variable_id: variable.id, value: number }] : [];
     }),
   });
-  // Editing an entry saves itself; logging a new one is explicit.
-  const autosave = useEditorAutosave({
-    key: entry ? entry.id : null,
+  // Nothing saves until Save (or Log event); closing with changes asks twice.
+  const editor = useEditorDraft({
+    editing: !!entry,
     value: form,
-    apply: (v) => { setDate(v.date); setTime(v.time); setNote(v.note); setValues(v.values); },
     invalid: date && time ? null : 'pick a date and time.',
     save: async (v) => {
       if (!event || !entry) return;
@@ -1164,8 +1147,8 @@ function EntryEditor({
       void queryClient.invalidateQueries({ queryKey: qk.events.all });
     },
   });
-  const loadAutosave = autosave.load;
-  const requestClose = () => autosave.close(() => onOpenChange(false));
+  const loadDraft = editor.load;
+  const requestClose = () => editor.close(() => onOpenChange(false));
 
   useEffect(() => {
     if (!value) return;
@@ -1180,11 +1163,11 @@ function EntryEditor({
     setTime(loaded.time);
     setNote(loaded.note);
     setValues(loaded.values);
-    if (entry) loadAutosave(loaded);
-  }, [entry, value, loadAutosave]);
+    loadDraft(loaded);
+  }, [entry, value, loadDraft]);
 
   async function save() {
-    if (entry) { requestClose(); return; }
+    if (entry) { await editor.save(() => onOpenChange(false)); return; }
     if (!event || !date || !time) return;
     setSaving(true);
     try {
@@ -1202,7 +1185,7 @@ function EntryEditor({
       description: `${exactTime(entry.occurred_at)} will be removed from the timeline.`,
       confirmText: 'Delete entry',
     }))) return;
-    autosave.cancel();
+    editor.cancel();
     await deleteEntry.mutateAsync({ eventId: event.id, entryId: entry.id });
     onOpenChange(false);
   }
@@ -1212,7 +1195,6 @@ function EntryEditor({
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{entry ? `Edit ${event?.name ?? 'entry'}` : `Log ${event?.name ?? 'event'}`}</DialogTitle>
-          {entry && <AutosaveStatus status={autosave.status} />}
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
@@ -1271,17 +1253,8 @@ function EntryEditor({
               <Trash2 className="size-4 mr-1" /> Delete
             </Button>
           )}
-          {entry ? (
-            <EditActions changed={autosave.changed} onUndo={autosave.undo} onDone={requestClose} />
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={save} disabled={saving || !date || !time}>
-                {saving && <Loader2 className="size-4 animate-spin" />}
-                Log event
-              </Button>
-            </>
-          )}
+          <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void save()}
+            saveLabel={entry ? 'Save' : saving ? 'Logging…' : 'Log event'} disabled={saving || !date || !time} />
         </DialogFooter>
       </DialogContent>
     </Dialog>
