@@ -680,7 +680,10 @@ export const uploads = {
     const form = new FormData();
     form.append('file', file);
     const res = await authFetch('/uploads', { method: 'POST', body: form });
-    if (!res.ok) throw new Error('Upload failed');
+    if (!res.ok) {
+      const body = await res.json().catch(() => null) as { error?: string } | null;
+      throw new Error(body?.error || "Couldn't upload the image");
+    }
     return res.json();
   },
   // Build a fully-qualified URL for an upload — the relative form `/api/uploads/foo`

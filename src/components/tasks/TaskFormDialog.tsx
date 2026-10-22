@@ -487,7 +487,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		  </div>
 
 		  <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
-		    <RichEditor value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Add some extra notes here…" toolbar="compact" />
+		    <RichEditor value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} placeholder="Add some extra notes here…" toolbar="compact" />
 		  </div>
 
 		  <div className="py-0.5">

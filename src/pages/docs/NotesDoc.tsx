@@ -102,6 +102,13 @@ export default function NotesDoc() {
               in the task system.
             </p>
           </Feature>
+          <Feature name="Images">
+            <p>
+              Paste or drop a screenshot into the editor, or use the image
+              button (Android: the Image tool above the text). It uploads to
+              your private storage and shows in place.
+            </p>
+          </Feature>
           <Feature name="#tags">
             <p>
               <Code>#tag</Code> anywhere in the text files the note under

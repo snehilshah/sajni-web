@@ -4,7 +4,7 @@
    useCallback memoization here. Both are intentional, working integration
    patterns the React Compiler can't model (it flags them as errors). All other
    react-hooks rules stay active for this file. */
-import { useEffect, useRef, useCallback, useMemo, useState, lazy, Suspense } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback, useMemo, useState, lazy, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
@@ -18,6 +18,7 @@ import type { Editor } from '@tiptap/react';
 import { useNavigate } from 'react-router-dom';
 
 import { toast } from 'sonner';
+import { msg } from '@/lib/errors';
 
 import { uploads, notes as notesApi, tasks as tasksApi, taskLists as listsApi, links as linksApi } from '@/api';
 import type { Task, TaskList as TaskListModel } from '@/types';
@@ -79,6 +80,10 @@ export default function RichEditor({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isLocalUpdate = useRef(false);
+  // tiptap registers onUpdate once, at creation; read the latest onChange
+  // through a ref so edits never land on the form as it was at mount.
+  const onChangeRef = useRef(onChange);
+  useLayoutEffect(() => { onChangeRef.current = onChange; });
 
   // Picker for /task — search-and-pick over existing tasks, plus a "Create
   // task" affordance that opens the generic add-task panel and inserts the
@@ -229,18 +234,21 @@ export default function RichEditor({
       if (!markdown) return;
       isLocalUpdate.current = true;
       const md = markdown.getMarkdown();
-      onChange(md);
+      onChangeRef.current(md);
       queueMicrotask(() => { isLocalUpdate.current = false; });
     },
   });
 
   const uploadAndInsertImage = useCallback(async (file: File | Blob) => {
     if (!editor) return;
+    const id = toast.loading('Adding image…');
     try {
       const result = await uploads.upload(file);
+      if (editor.isDestroyed) { toast.dismiss(id); return; }
       editor.chain().focus().setImage({ src: result.url, alt: '' }).run();
+      toast.dismiss(id);
     } catch (err) {
-      console.error('Image upload failed:', err);
+      toast.error(msg(err, "Couldn't add the image"), { id });
     }
   }, [editor]);
 
@@ -601,6 +609,7 @@ function Toolbar({ editor, onImage, compact = false }: { editor: Editor; onImage
           if (url.trim() === '') chain.unsetLink().run();
           else chain.setLink({ href: url.trim() }).run();
         }, Link2, a.link ? 'Edit link' : 'Link')}
+        {btn(false, onImage, ImageIcon, 'Image')}
       </div>
     );
   }

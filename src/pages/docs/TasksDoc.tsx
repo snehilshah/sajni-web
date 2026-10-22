@@ -137,10 +137,13 @@ export default function TasksDoc() {
               priority marks the row with a dot.
             </p>
           </Feature>
-          <Feature name="Description & #tags">
+          <Feature name="Notes, images & #tags">
             <p>
               Free-form details; <Code>#tags</Code> written there index the
-              task under Analytics → Tags.
+              task under Analytics → Tags. To attach a screenshot, paste or
+              drop it into Notes on the web, or tap the image button above
+              Notes (web and Android). It uploads and shows in place, and
+              saves with the task when you press Save.
             </p>
           </Feature>
           <Feature name="History & activity">
