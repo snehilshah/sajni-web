@@ -22,9 +22,9 @@ import { useJournalEntry, useJournalList } from '@/queries/journal';
 import { useHabitPeriodStatus } from '@/queries/habits';
 import { useMissedTasksForDate, useTasks, useToggleTaskStatus } from '@/queries/tasks';
 import { useEventDayEntries } from '@/queries/events';
-import { useDayRoutines } from '@/queries/routines';
-import { RoutinesManager } from '@/components/routines/RoutinesManager';
-import { RoutinesPanel } from '@/components/routines/RoutinesPanel';
+import { useDayPlans } from '@/queries/plans';
+import { PlansManager } from '@/components/plans/PlansManager';
+import { PlansPanel } from '@/components/plans/PlansPanel';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
@@ -183,13 +183,13 @@ export default function JournalPage() {
   const { data: dueTaskData = [], isLoading: loadingDueTasks } = useTasks({ due_date: selectedDate });
   const { data: completedTaskData = [], isLoading: loadingCompletedTasks } = useTasks({ completed_date: selectedDate });
   const { data: missedTasks = [], isLoading: loadingMissedTasks } = useMissedTasksForDate(selectedDate);
-  const { data: dayRoutines = [], isLoading: loadingRoutines } = useDayRoutines(selectedDate);
-  const [routinesEditor, setRoutinesEditor] = useState<{ open: boolean; id: number | 'new' | null }>({ open: false, id: null });
-  // A routine's agenda shows under the routine, not again in Tasks.
-  const routineIds = useMemo(() => new Set(dayRoutines.map((r) => r.id)), [dayRoutines]);
-  const inRoutine = (t: Task) => t.routine_id != null && routineIds.has(t.routine_id) && t.due_date === selectedDate;
-  const dueTasks = dueTaskData.filter((t) => t.status !== 'done' && t.status !== 'scratched' && !inRoutine(t));
-  const completedTasks = completedTaskData.filter((t) => !inRoutine(t));
+  const { data: dayPlans = [], isLoading: loadingPlans } = useDayPlans(selectedDate);
+  const [plansEditor, setPlansEditor] = useState<{ open: boolean; id: number | 'new' | null }>({ open: false, id: null });
+  // A plan's tasks show under the plan, not again in Tasks.
+  const planIds = useMemo(() => new Set(dayPlans.map((p) => p.id)), [dayPlans]);
+  const inPlan = (t: Task) => t.plan_id != null && planIds.has(t.plan_id) && t.due_date === selectedDate;
+  const dueTasks = dueTaskData.filter((t) => t.status !== 'done' && t.status !== 'scratched' && !inPlan(t));
+  const completedTasks = completedTaskData.filter((t) => !inPlan(t));
   const loadingTasks = loadingDueTasks || loadingCompletedTasks || loadingMissedTasks;
   const toggleTaskStatus = useToggleTaskStatus();
   // Editor writes go through journalApi (day-scoped); refresh the cached list
@@ -335,12 +335,12 @@ export default function JournalPage() {
 
   const contextPanel = (
     <div className="flex flex-col gap-6 p-4">
-      <RoutinesPanel
+      <PlansPanel
         date={selectedDate}
         today={todayKey}
-        routines={dayRoutines}
-        loading={loadingRoutines}
-        onEdit={(id) => setRoutinesEditor({ open: true, id })}
+        plans={dayPlans}
+        loading={loadingPlans}
+        onEdit={(id) => setPlansEditor({ open: true, id })}
       />
 
       {/* Tasks today */}
@@ -759,10 +759,10 @@ export default function JournalPage() {
         )}
       </AnimatePresence>
 
-      <RoutinesManager
-        open={routinesEditor.open}
-        initialId={routinesEditor.id}
-        onOpenChange={(open) => setRoutinesEditor((v) => ({ ...v, open }))}
+      <PlansManager
+        open={plansEditor.open}
+        initialId={plansEditor.id}
+        onOpenChange={(open) => setPlansEditor((v) => ({ ...v, open }))}
       />
 
       {/* Mobile right margin — bottom sheet */}

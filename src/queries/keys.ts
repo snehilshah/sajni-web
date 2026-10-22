@@ -22,12 +22,13 @@ export const qk = {
     reminders: (id: number) => ['tasks', 'reminders', id] as const,
     attachments: (id: number) => ['tasks', 'attachments', id] as const,
   },
-  // Under 'tasks' on purpose: a day's routines embed its agenda tasks, so
-  // every task invalidation refreshes them too.
-  routines: {
-    all: ['tasks', 'routines'] as const,
-    list: () => ['tasks', 'routines', 'list'] as const,
-    day: (date: string) => ['tasks', 'routines', 'day', date] as const,
+  // Under 'tasks' on purpose: a day's plans embed their tasks, so every
+  // task invalidation refreshes them too.
+  plans: {
+    all: ['tasks', 'plans'] as const,
+    list: () => ['tasks', 'plans', 'list'] as const,
+    day: (date: string) => ['tasks', 'plans', 'day', date] as const,
+    candidates: (id: number, date: string) => ['tasks', 'plans', 'candidates', id, date] as const,
   },
   reminders: {
     all: ['reminders'] as const,

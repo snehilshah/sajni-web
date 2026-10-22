@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, Plus, Trash2, X } from '@/components/ui/icons';
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -15,11 +15,11 @@ import { useEditorDraft } from '@/hooks/use-editor-draft';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
-import { routines as routinesApi } from '@/api';
-import { useCreateRoutine, useDeleteRoutine, useRoutines } from '@/queries/routines';
+import { plans as plansApi } from '@/api';
+import { useCreatePlan, useDeletePlan, usePlans } from '@/queries/plans';
 import { useQueryClient } from '@tanstack/react-query';
 import { qk } from '@/queries/keys';
-import type { Routine, RoutineInput } from '@/types';
+import type { Plan, PlanInput } from '@/types';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 const WEEKDAYS = [
@@ -34,7 +34,7 @@ const WEEKENDS = [0, 6];
 const same = (a: number[], b: number[]) => a.length === b.length && b.every((d) => a.includes(d));
 
 /** "Workdays", "Weekends", "Every day", else "Mon, Wed". */
-export function routineDaysLabel(days: number[]) {
+export function planDaysLabel(days: number[]) {
   if (days.length === 7) return 'Every day';
   if (same(days, WORKDAYS)) return 'Workdays';
   if (same(days, WEEKENDS)) return 'Weekends';
@@ -47,33 +47,33 @@ export function formatClock(hhmm: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
-const emptyDraft = (): RoutineInput => ({
-  name: '', color: SWATCHES[0], weekdays: WORKDAYS, start_time: '09:00', notify: true, items: [],
+const emptyDraft = (): PlanInput => ({
+  name: '', color: SWATCHES[0], weekdays: WORKDAYS, start_time: '09:00', notify: true,
 });
-const draftOf = (r: Routine): RoutineInput => ({
-  name: r.name, color: r.color, weekdays: r.weekdays, start_time: r.start_time, notify: r.notify, items: r.items,
+const draftOf = (p: Plan): PlanInput => ({
+  name: p.name, color: p.color, weekdays: p.weekdays, start_time: p.start_time, notify: p.notify,
 });
 
-/** Journal's routines manager: the list, and an editor for one routine.
- *  Nothing saves until Save; a new routine is an explicit Add. */
-export function RoutinesManager({ open, onOpenChange, initialId = null }: {
+/** Journal's plans manager: the list, and an editor for one plan.
+ *  Nothing saves until Save; a new plan is an explicit Add. */
+export function PlansManager({ open, onOpenChange, initialId = null }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Opens straight into this routine's editor ('new' for a blank one). */
+  /** Opens straight into this plan's editor ('new' for a blank one). */
   initialId?: number | 'new' | null;
 }) {
   const mobile = useIsMobile();
   const qc = useQueryClient();
-  const { data: list = [] } = useRoutines();
-  const create = useCreateRoutine();
-  const remove = useDeleteRoutine();
+  const { data: list = [] } = usePlans();
+  const create = useCreatePlan();
+  const remove = useDeletePlan();
   const [view, setView] = useState<number | 'new' | null>(null);
-  const [draft, setDraft] = useState<RoutineInput>(emptyDraft);
+  const [draft, setDraft] = useState<PlanInput>(emptyDraft);
   const editing = typeof view === 'number' ? list.find((r) => r.id === view) ?? null : null;
-  const invalid = !draft.name.trim() ? 'a routine needs a name.'
+  const invalid = !draft.name.trim() ? 'a plan needs a name.'
     : draft.weekdays.length === 0 ? 'pick at least one day.' : null;
 
-  // Nothing saves until Save (or Add routine); leaving with changes asks twice.
+  // Nothing saves until Save (or Add plan); leaving with changes asks twice.
   const editor = useEditorDraft({
     editing: !!(open && editing),
     value: draft,
@@ -82,14 +82,14 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
     invalid,
     save: async (v) => {
       if (!editing) return;
-      await routinesApi.update(editing.id, v);
+      await plansApi.update(editing.id, v);
       void qc.invalidateQueries({ queryKey: qk.tasks.all });
     },
   });
   const loadDraft = editor.load;
 
   useEffect(() => { if (open) setView(initialId); }, [open, initialId]);
-  // Load once per opened routine; later list refetches mustn't reset typing.
+  // Load once per opened plan; later list refetches mustn't reset typing.
   const editingId = editing?.id ?? null;
   useEffect(() => {
     if (view === 'new') { const blank = emptyDraft(); setDraft(blank); loadDraft(blank); return; }
@@ -111,42 +111,42 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
   };
   const del = async () => {
     if (!editing) return;
-    if (!(await confirmDialog(`Delete ${editing.name}? Its agenda tasks stay in Tasks.`))) return;
+    if (!(await confirmDialog(`Delete ${editing.name}? Its tasks stay in Tasks.`))) return;
     editor.cancel();
     remove.mutate(editing.id, { onSuccess: () => setView(null) });
   };
 
   const inEditor = view !== null;
-  const title = !inEditor ? 'Routines' : editing ? 'Edit routine' : 'New routine';
+  const title = !inEditor ? 'Plans' : editing ? 'Edit plan' : 'New plan';
   const description = !inEditor
-    ? 'Time slots that repeat, each with its own checklist. They show at the top of each Journal day.'
-    : 'A checklist that starts fresh each day it runs.';
+    ? 'Moments to plan your day, like reaching the office. They show at the top of each Journal day.'
+    : 'At this time on these days, plan what the day is about.';
 
   const body = !inEditor ? (
-    <RoutineList routines={list} onOpen={setView} />
+    <PlanList plans={list} onOpen={setView} />
   ) : (
-    <RoutineForm draft={draft} onChange={setDraft} />
+    <PlanForm draft={draft} onChange={setDraft} />
   );
   const footer = !inEditor ? (
     <>
       <Button variant="outline" onClick={requestClose}>Close</Button>
-      <Button onClick={() => setView('new')}><Plus className="size-4" /> New routine</Button>
+      <Button onClick={() => setView('new')}><Plus className="size-4" /> New plan</Button>
     </>
   ) : editing ? (
     <>
-      <Button variant="destructive-ghost" size="icon-sm" className="mr-auto size-10" onClick={del} aria-label="Delete routine" title="Delete routine">
+      <Button variant="destructive-ghost" size="icon-sm" className="mr-auto size-10" onClick={del} aria-label="Delete plan" title="Delete plan">
         <Trash2 className="size-4" />
       </Button>
       <EditActions draft={editor} onCancel={() => setView(null)} onSave={() => void editor.save(() => setView(null))} />
     </>
   ) : (
-    <EditActions draft={editor} onCancel={() => setView(null)} onSave={add} saveLabel="Add routine"
+    <EditActions draft={editor} onCancel={() => setView(null)} onSave={add} saveLabel="Add plan"
       disabled={create.isPending || !!invalid} />
   );
   const heading = (
     <span className="flex items-center gap-1.5">
       {inEditor && (
-        <Button variant="ghost" size="icon-sm" className="-ml-2 rounded-full" onClick={back} aria-label="All routines">
+        <Button variant="ghost" size="icon-sm" className="-ml-2 rounded-full" onClick={back} aria-label="All plans">
           <ChevronLeft className="size-4" />
         </Button>
       )}
@@ -184,29 +184,28 @@ export function RoutinesManager({ open, onOpenChange, initialId = null }: {
   );
 }
 
-function RoutineList({ routines, onOpen }: { routines: Routine[]; onOpen: (id: number) => void }) {
-  if (routines.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No routines yet. Try “Office start”, workdays at 9:00.</p>;
+function PlanList({ plans, onOpen }: { plans: Plan[]; onOpen: (id: number) => void }) {
+  if (plans.length === 0) {
+    return <p className="py-6 text-center text-sm text-muted-foreground">No plans yet. Try “Office start”, workdays at 9:00.</p>;
   }
   return (
     <div className="overflow-hidden rounded-xl bg-[hsl(var(--surface-container-low))]">
-      {routines.map((r, i) => (
+      {plans.map((p, i) => (
         <button
-          key={r.id}
+          key={p.id}
           type="button"
-          onClick={() => onOpen(r.id)}
+          onClick={() => onOpen(p.id)}
           className={cn(
             'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[hsl(var(--surface-container))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45',
             i > 0 && 'border-t border-[hsl(var(--outline-variant)/0.55)]',
           )}
         >
-          <span className="size-2.5 shrink-0 rounded-full" style={{ background: r.color || SWATCHES[0] }} />
+          <span className="size-2.5 shrink-0 rounded-full" style={{ background: p.color || SWATCHES[0] }} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">{r.name}</span>
+            <span className="block truncate text-sm font-medium">{p.name}</span>
             <span className="block text-xs text-muted-foreground">
-              {routineDaysLabel(r.weekdays)} · {formatClock(r.start_time)}
-              {r.items.length > 0 && ` · ${r.items.length} ${r.items.length === 1 ? 'item' : 'items'}`}
-              {!r.notify && ' · no alert'}
+              {planDaysLabel(p.weekdays)} · {formatClock(p.start_time)}
+              {!p.notify && ' · no alert'}
             </span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
@@ -216,15 +215,8 @@ function RoutineList({ routines, onOpen }: { routines: Routine[]; onOpen: (id: n
   );
 }
 
-function RoutineForm({ draft, onChange }: { draft: RoutineInput; onChange: (d: RoutineInput) => void }) {
-  const [newItem, setNewItem] = useState('');
-  const set = (patch: Partial<RoutineInput>) => onChange({ ...draft, ...patch });
-  const addItem = () => {
-    const text = newItem.trim();
-    if (!text) return;
-    set({ items: [...draft.items, { id: `i_${Date.now()}`, text }] });
-    setNewItem('');
-  };
+function PlanForm({ draft, onChange }: { draft: PlanInput; onChange: (d: PlanInput) => void }) {
+  const set = (patch: Partial<PlanInput>) => onChange({ ...draft, ...patch });
   const presets = [
     { label: 'Workdays', days: WORKDAYS },
     { label: 'Weekends', days: WEEKENDS },
@@ -233,8 +225,8 @@ function RoutineForm({ draft, onChange }: { draft: RoutineInput; onChange: (d: R
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="routine-name">Name</Label>
-        <Input id="routine-name" autoFocus value={draft.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} placeholder="Office start" />
+        <Label htmlFor="plan-name">Name</Label>
+        <Input id="plan-name" autoFocus value={draft.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} placeholder="Office start" />
       </div>
 
       <div className="grid gap-2">
@@ -268,42 +260,13 @@ function RoutineForm({ draft, onChange }: { draft: RoutineInput; onChange: (d: R
 
       <div className="grid grid-cols-[1fr_auto] items-end gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="routine-time">Starts at</Label>
-          <TimePicker id="routine-time" value={draft.start_time} onChange={(v) => v && set({ start_time: v })} />
+          <Label htmlFor="plan-time">Starts at</Label>
+          <TimePicker id="plan-time" value={draft.start_time} onChange={(v) => v && set({ start_time: v })} />
         </div>
         <label className="flex min-h-10 items-center gap-2.5 text-sm">
           Alert
           <Switch checked={draft.notify} onCheckedChange={(v) => set({ notify: v })} aria-label="Alert at the start time" />
         </label>
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="routine-new-item">Checklist</Label>
-        {draft.items.map((it, i) => (
-          <div key={it.id} className="flex items-center gap-1.5">
-            <Input
-              value={it.text}
-              maxLength={300}
-              aria-label={`Item ${i + 1}`}
-              onChange={(e) => set({ items: draft.items.map((x) => (x.id === it.id ? { ...x, text: e.target.value } : x)) })}
-              className="h-9"
-            />
-            <Button variant="ghost" size="icon-sm" className="size-9 shrink-0" aria-label={`Remove ${it.text}`}
-              onClick={() => set({ items: draft.items.filter((x) => x.id !== it.id) })}>
-              <X className="size-4" />
-            </Button>
-          </div>
-        ))}
-        <Input
-          id="routine-new-item"
-          value={newItem}
-          maxLength={300}
-          onChange={(e) => setNewItem(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
-          onBlur={addItem}
-          placeholder="Add an item, like “Check calendar”"
-          className="h-9"
-        />
       </div>
 
       <div className="grid gap-2">

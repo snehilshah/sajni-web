@@ -16,10 +16,12 @@ import type {
   Reminder,
   ReminderHistoryItem,
   ReminderInput,
+  ReminderRecurrence,
   PlannerResponse,
-  DayRoutine,
-  Routine,
-  RoutineInput,
+  DayPlan,
+  Plan,
+  PlanCandidateGroup,
+  PlanInput,
   SmartList,
   TagEntities,
   Task,
@@ -189,8 +191,9 @@ export const tasks = {
     parent_task_id?: number | null;
     important?: boolean;
     steps?: TaskStep[];
-    /** Adds it to a routine's agenda on due_date (or its next occurrence). */
-    routine_id?: number;
+    /** Puts it in a plan on due_date (or the plan's next occurrence). */
+    plan_id?: number;
+    recurrence?: ReminderRecurrence;
   }) => request<{ id: number }>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   get: (id: number) => request<Task>('/tasks/' + id),
   update: (id: number, data: TaskPatch) =>
@@ -198,6 +201,8 @@ export const tasks = {
   delete: (id: number) => request('/tasks/' + id, { method: 'DELETE' }),
   // Scratch = abandon-but-keep (reversible). Distinct from delete.
   scratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'scratched' }) }),
+  /** Repeating task: move past its current date without a miss. */
+  skip: (id: number) => request<{ id: number; from: string; to: string }>(`/tasks/${id}/skip`, { method: 'POST' }),
   unscratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'todo' }) }),
   // Reschedule a (usually overdue) task. Server records the move off a past
   // day as a 'rescheduled' lifecycle entry, not a miss.
@@ -265,18 +270,21 @@ export const reminders = {
     request<Reminder>(`/reminders/${id}/skip`, { method: 'POST', body: JSON.stringify({ occurrence_id }) }),
 };
 
-export const routines = {
-  list: () => request<Routine[]>('/routines'),
-  day: (date: string) => request<DayRoutine[]>(`/routines/day?date=${encodeURIComponent(date)}`),
-  create: (data: RoutineInput) => request<Routine>('/routines', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: RoutineInput) => request<Routine>(`/routines/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: number) => request(`/routines/${id}`, { method: 'DELETE' }),
-  check: (id: number, data: { date: string; item_id: string; done: boolean }) =>
-    request(`/routines/${id}/check`, { method: 'POST', body: JSON.stringify(data) }),
+export const plans = {
+  list: () => request<Plan[]>('/plans'),
+  day: (date: string) => request<DayPlan[]>(`/plans/day?date=${encodeURIComponent(date)}`),
+  candidates: (id: number, date: string) =>
+    request<PlanCandidateGroup[]>(`/plans/${id}/candidates?date=${encodeURIComponent(date)}`),
+  /** Pulls an existing task into the plan's occurrence on date. */
+  addTask: (id: number, taskId: number, date: string) =>
+    request<{ date: string }>(`/plans/${id}/tasks`, { method: 'POST', body: JSON.stringify({ task_id: taskId, date }) }),
+  create: (data: PlanInput) => request<Plan>('/plans', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: PlanInput) => request<Plan>(`/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => request(`/plans/${id}`, { method: 'DELETE' }),
 };
 
 export interface TaskEvent {
-  kind: 'created' | 'status' | 'title' | 'list' | 'rescheduled';
+  kind: 'created' | 'status' | 'title' | 'list' | 'rescheduled' | 'repeated' | 'missed' | 'skipped' | 'planned';
   from: string;
   to: string;
   created_at: string;

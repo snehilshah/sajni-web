@@ -50,9 +50,11 @@ export interface Task {
   parent_task_id?: number | null;
   /** Parent's title, so a subtask listed flat can name its parent. */
   parent_task_title?: string | null;
-  /** Agenda item of this Journal routine's occurrence on due_date. */
-  routine_id?: number | null;
-  routine_name?: string | null;
+  /** In this Journal plan's occurrence on due_date. */
+  plan_id?: number | null;
+  plan_name?: string | null;
+  /** Repeat rule; {} (no frequency) when the task doesn't repeat. */
+  recurrence?: ReminderRecurrence;
   blocked_by_task_id?: number | null;
   blocked_by_task_title?: string | null;
   blocked_by_task_status?: Task['status'] | null;
@@ -137,9 +139,9 @@ export type TaskPatch = Partial<Pick<
   | 'blocked_by_task_id'
   | 'important'
   | 'steps'
-  | 'routine_id'
+  | 'recurrence'
 >> & {
-  clear_routine?: boolean;
+  clear_plan?: boolean;
   clear_due?: boolean;
   clear_week?: boolean;
   clear_month?: boolean;
@@ -150,15 +152,9 @@ export type TaskPatch = Partial<Pick<
   clear_color?: boolean;
 };
 
-/** One line of a routine's standing checklist, ticked fresh each day. */
-export interface RoutineItem {
-  id: string;
-  text: string;
-}
-
-/** A Journal routine: a named slot that repeats on weekdays at a local
- *  start time ("Office start", Mon–Fri 09:00). */
-export interface Routine {
+/** A Journal plan: a named moment that repeats on weekdays at a local
+ *  start time ("Office start", Mon–Fri 09:00) to plan what that day is about. */
+export interface Plan {
   id: number;
   name: string;
   color: string;
@@ -168,19 +164,36 @@ export interface Routine {
   start_time: string;
   /** One alert at the start time. */
   notify: boolean;
-  items: RoutineItem[];
   next_alert_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
-export type RoutineInput = Pick<Routine, 'name' | 'color' | 'weekdays' | 'start_time' | 'notify' | 'items'>;
+export type PlanInput = Pick<Plan, 'name' | 'color' | 'weekdays' | 'start_time' | 'notify'>;
 
-/** A routine as it stands on one date: ticked item ids and agenda tasks. */
-export interface DayRoutine extends Routine {
+/** The short task shape listed under a plan and in its picker. */
+export interface PlanTask {
+  id: number;
+  title: string;
+  status: Task['status'];
+  priority: Task['priority'];
+  due_date?: string | null;
+  recurring: boolean;
+}
+
+/** A plan as it stands on one date. */
+export interface DayPlan extends Plan {
   date: string;
-  done: string[];
-  agenda: { id: number; title: string; status: Task['status']; priority: Task['priority'] }[];
+  tasks: PlanTask[];
+  /** This plan's unfinished tasks from earlier days. */
+  left_over: PlanTask[];
+}
+
+/** One section of a plan's "pick a task" list. */
+export interface PlanCandidateGroup {
+  key: 'left_over' | 'overdue' | 'due' | 'week' | 'later' | 'undated';
+  label: string;
+  tasks: PlanTask[];
 }
 
 export type TaskColor = '#2D5A4F' | '#7C9A92' | '#C49A6C' | '#A14B4F' | '#4F6FA1' | '#8B6FA1' | '#7A7A7A';

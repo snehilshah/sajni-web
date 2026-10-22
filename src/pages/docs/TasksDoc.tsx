@@ -9,6 +9,7 @@ export const tasksMeta = {
     { id: 'views', label: 'Smart views & lists' },
     { id: 'scopes', label: 'Day / week / month scope' },
     { id: 'anatomy', label: 'Anatomy of a task' },
+    { id: 'repeat', label: 'Repeating tasks' },
     { id: 'blocking', label: 'Blocked tasks' },
     { id: 'reminders', label: 'Tasks & reminders' },
     { id: 'lifecycle', label: 'Lifecycle & missed' },
@@ -122,9 +123,10 @@ export default function TasksDoc() {
               Add at the top of the sheet).
               When a subtask shows up on its own in a smart view (My Day, Missed, All), a
               small “↳ Paint the room” chip beside its title names the parent;
-              tap the chip to open the parent. A task added to a Journal
-              routine carries that routine's name as a chip too (“Office
-              start”); tap it to open that day in Journal. Delete the last subtask and the
+              tap the chip to open the parent. A task in a Journal plan
+              carries that plan's name as a chip too (“Office start”); tap it
+              to open that day in Journal. A repeating task shows ↻ and how
+              often (“Workdays”). Delete the last subtask and the
               group folds away with it. Use subtasks when the child
               is real work; steps when it's just a checklist line.
               Month-goal sessions are subtasks.
@@ -161,6 +163,53 @@ export default function TasksDoc() {
             </p>
           </Feature>
         </FeatureList>
+      </Section>
+
+      <Section id="repeat" title="Repeating Tasks">
+        <p>
+          A task can repeat: set <em>Repeat</em> under its date (Daily,
+          Workdays, Weekly, Monthly, Yearly, or Custom, like every 2 days or
+          Mon and Thu). Week tasks repeat every week or every few weeks;
+          month goals every month or few months. It needs a date first. It
+          stays one task that moves forward, so lists never fill with
+          copies.
+        </p>
+        <FeatureList>
+          <Feature name="When its day ends">
+            <p>
+              Done: it stays ticked for the rest of the day, then reopens on
+              its next date with its steps unticked. Not done: it moves to
+              its next date and its timeline records “Missed Oct 20”, so it
+              never piles up in Missed. Blocked: it stays blocked, moves on,
+              and you get a notification that it's still blocked. A week task
+              moves when its week ends, a month goal when its month does.
+            </p>
+          </Feature>
+          <Feature name="Skip this time">
+            <p>
+              In the task's <em>⋯</em> menu: moves it to its next date
+              without counting a miss.
+            </p>
+          </Feature>
+          <Feature name="Reminders">
+            <p>
+              Its time, <em>Remind me</em> and extra reminders move with it,
+              so they fire again on every date.
+            </p>
+          </Feature>
+          <Feature name="Stopping">
+            <p>
+              Set Repeat to <em>Doesn't repeat</em>. Scratching it stops it
+              too; unscratching picks the series back up.
+            </p>
+          </Feature>
+        </FeatureList>
+        <Callout>
+          <strong>Example.</strong> “Check the build board”, Workdays, due
+          Friday. You tick it Friday. On Monday it's back, unticked, due
+          Monday. Monday is busy and you don't get to it: on Tuesday it's due
+          Tuesday and its timeline reads “Missed Oct 26, repeats Oct 27”.
+        </Callout>
       </Section>
 
       <Section id="blocking" title="Blocked Tasks">

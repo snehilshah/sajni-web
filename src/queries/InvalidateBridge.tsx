@@ -16,8 +16,8 @@ const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   // A task create, edit, or delete can change its hashtag index too.
   { prefix: 'task_', keys: [qk.tasks.all, qk.tags.all, qk.planner.all] },
   { prefix: 'reminder_', keys: [qk.reminders.all, qk.planner.all] },
-  // Routines key under tasks, so this also refreshes their agenda tasks.
-  { prefix: 'routine_', keys: [qk.tasks.all, qk.planner.all] },
+  // Plans key under tasks, so this also refreshes their tasks.
+  { prefix: 'plan_', keys: [qk.tasks.all, qk.planner.all] },
   { prefix: 'habit_', keys: [qk.habits.all] },
   { prefix: 'event_', keys: [qk.events.all] },
   { prefix: 'memo_', keys: [qk.memos.all] },

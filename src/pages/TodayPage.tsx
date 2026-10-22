@@ -11,6 +11,9 @@ import { journal as journalApi } from '@/api';
 import type { JournalEntry as JournalFull } from '@/types';
 import { useTasks, useToggleTaskStatus, useCreateTask } from '@/queries/tasks';
 import { useHabits, useHabitRecentLogs, useToggleHabitPeriod } from '@/queries/habits';
+import { useDayPlans } from '@/queries/plans';
+import { PlanBody } from '@/components/plans/PlansPanel';
+import { formatClock } from '@/components/plans/PlansManager';
 import { dateKey, habitPeriodForDate } from '@/lib/habit-periods';
 import { useMemos, useCreateMemo } from '@/queries/memos';
 import { useJournalList, useSaveJournal } from '@/queries/journal';
@@ -80,6 +83,7 @@ export default function TodayPage() {
 	// Cached reads — refetch automatically when their roots are invalidated
 	// (post-mutation here, or via the AI InvalidateBridge).
 	const { data: dueToday = [] } = useTasks({ smart: 'my_day' });
+	const { data: todayPlans = [] } = useDayPlans(today);
 	const { data: habitsList = [] } = useHabits();
 	const { data: recentLogsMap = {} } = useHabitRecentLogs(14);
 	const { data: memosData = [] } = useMemos();
@@ -138,7 +142,10 @@ export default function TodayPage() {
 	const habitsLeft = habitStatus.filter((h) => !h.logged).length;
 	const habitsDone = habitStatus.filter((h) => h.logged).length;
 	const totalHabitsToday = habitStatus.length;
-	const dueOpen = dueToday.filter((t) => t.status !== 'done' && t.status !== 'scratched');
+	// A plan's tasks show under the plan, not again in On deck.
+	const planIds = new Set(todayPlans.map((p) => p.id));
+	const dueOpen = dueToday.filter((t) => t.status !== 'done' && t.status !== 'scratched'
+		&& !(t.plan_id != null && planIds.has(t.plan_id)));
 
 	// Server order (last updated first) — the same order as every task view.
 	const dueOpenSorted = dueOpen;
@@ -288,6 +295,38 @@ export default function TodayPage() {
 					{/* Two-column grid */}
 					<div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 mt-8">
 						<div className="flex flex-col gap-6">
+							{/* Today's plans ("Office start · 9:00 AM"), each with what's
+							    planned and the ways to add to it. Hidden with none today. */}
+							{todayPlans.length > 0 && (
+								<Section
+									title={todayPlans.length === 1 ? todayPlans[0].name : 'Plans'}
+									hint={todayPlans.length === 1 ? formatClock(todayPlans[0].start_time) : `${todayPlans.length} today`}
+									action={
+										<Link
+											to={`/journal?date=${today}`}
+											className="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+										>
+											Journal <ArrowRight className="size-3" />
+										</Link>
+									}
+								>
+									<div className="flex flex-col gap-3">
+										{todayPlans.map((p) => (
+											<div key={p.id} className="rounded-xl px-4 py-3.5 md:px-5 bg-[hsl(var(--surface-container))]">
+												{todayPlans.length > 1 && (
+													<div className="mb-2 flex items-center gap-2 text-[13px] font-medium">
+														<span className="size-2 rounded-full" style={{ background: p.color || 'hsl(var(--primary))' }} />
+														{p.name}
+														<span className="font-normal text-muted-foreground">{formatClock(p.start_time)}</span>
+													</div>
+												)}
+												<PlanBody plan={p} />
+											</div>
+										))}
+									</div>
+								</Section>
+							)}
+
 							{/* On deck */}
 							<Section
 								title="On deck"

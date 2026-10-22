@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import { clientMsg } from '@/lib/errors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle, Image as ImageIcon } from '@/components/ui/icons';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle, SkipForward, Image as ImageIcon } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
-import type { Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
+import type { ReminderRecurrence, Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
 import { useEditorDraft } from '@/hooks/use-editor-draft';
 import { EditActions } from '@/components/editor-actions';
 import { tasks as tasksApi, uploads, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
@@ -35,6 +35,7 @@ import {
   STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey, monthFirstKey,
 } from './helpers';
 import { StepsEditor } from './TaskRow';
+import { RepeatPicker, repeatLabel, repeats } from './RepeatPicker';
 import { TaskAttachments, imageFiles, pickImages, type AttachmentTile } from './TaskAttachments';
 
 export interface FormState {
@@ -61,6 +62,8 @@ export interface FormState {
   list_id: number | null;
   important: boolean;
   steps: TaskStep[];
+  /** Repeat rule; {} when it doesn't repeat. Needs a date. */
+  recurrence: ReminderRecurrence;
   /** Extra reminders (ISO instants) buffered while creating — flushed to the
    *  task after it's created. Unused when editing (those load from the API). */
   reminders: string[];
@@ -79,8 +82,11 @@ export type TaskDefaults = Partial<FormState>;
 const blank: FormState = {
   title: '', description: '', priority: 'medium', color: null, status: 'todo', blocked_by_task_id: null,
   due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
-  notify_emails: [], list_id: null, important: false, steps: [], reminders: [], subtasks: [], files: [],
+  notify_emails: [], list_id: null, important: false, steps: [], recurrence: {}, reminders: [], subtasks: [], files: [],
 };
+
+/** The task's anchor for its scope: the day, the Monday or the 1st. */
+const scopeDate = (f: FormState) => (f.due_type === 'month' ? f.month_of : f.due_type === 'week' ? f.week_of : f.due_date);
 
 const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
   { value: '#2D5A4F', label: 'Forest' }, { value: '#7C9A92', label: 'Sage' },
@@ -99,6 +105,8 @@ function timeFromISO(iso?: string | null): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+const fmtDay = (s: string) => { try { return format(parseISO(s), 'MMM d'); } catch { return s; } };
+
 // eventText renders one audit-trail line for the activity timeline.
 function eventText(e: TaskEvent): React.ReactNode {
   const label = (s: string) => STATUS_LABELS[s as Task['status']] ?? s;
@@ -111,10 +119,16 @@ function eventText(e: TaskEvent): React.ReactNode {
       return <>Renamed to <b className="font-medium">“{e.to}”</b></>;
     case 'list':
       return <>Moved <b className="font-medium">{e.from}</b> → <b className="font-medium">{e.to}</b></>;
-    case 'rescheduled': {
-      const fmt = (s: string) => { try { return format(parseISO(s), 'MMM d'); } catch { return s; } };
-      return <>Rescheduled from <b className="font-medium">{fmt(e.from)}</b> → <b className="font-medium">{fmt(e.to)}</b></>;
-    }
+    case 'rescheduled':
+      return <>Rescheduled from <b className="font-medium">{fmtDay(e.from)}</b> → <b className="font-medium">{fmtDay(e.to)}</b></>;
+    case 'repeated':
+      return <>Done for <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b></>;
+    case 'missed':
+      return <>Missed <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b></>;
+    case 'skipped':
+      return <>Skipped <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b></>;
+    case 'planned':
+      return <>Planned for <b className="font-medium">{e.to.replace(/ · (\d{4}-\d{2}-\d{2})$/, (_, d: string) => ` · ${fmtDay(d)}`)}</b></>;
     default:
       return e.kind;
   }
@@ -187,6 +201,7 @@ function buildUpdate(form: FormState, editing: Task, parent: { id: number } | nu
     ...(parent && listChanged ? { clear_parent: true } : {}),
     important: form.important,
     steps: form.steps,
+    recurrence: scopeDate(form) ? form.recurrence : {},
   };
 }
 
@@ -240,6 +255,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         list_id: editing.list_id ?? null,
         important: editing.important,
         steps: editing.steps || [],
+        recurrence: editing.recurrence ?? {},
         reminders: [],
         subtasks: [],
         files: [],
@@ -366,6 +382,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         list_id: form.list_id ?? null,
         important: form.important,
         steps: form.steps,
+        recurrence: scopeDate(form) && repeats(form.recurrence) ? form.recurrence : undefined,
       });
       // Flush buffered extra reminders to the new task (parity with edit,
       // where RemindersSection talks to the API directly). The task is
@@ -401,6 +418,20 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       toast.error(clientMsg(e, 'Could not save task'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  // A repeating task moves past this date without counting as missed.
+  const handleSkip = async () => {
+    if (!editing) return;
+    editor.cancel();
+    try {
+      const res = await tasksApi.skip(editing.id);
+      toast.success(`Skipped. Next on ${format(parseISO(res.to), 'EEE, MMM d')}.`);
+      onOpenChange(false);
+      onSaved();
+    } catch (e) {
+      toast.error(clientMsg(e, 'Could not skip'));
     }
   };
 
@@ -487,6 +518,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		        {form.due_type === 'month' && form.month_of ? format(parseISO(form.month_of), 'MMMM yyyy')
 		          : form.due_type === 'week' && form.week_of ? `Week of ${format(parseISO(form.week_of), 'MMM d')}`
 		            : form.due_date ? format(parseISO(form.due_date), 'EEE, MMM d') : 'No date'}
+		        {scopeDate(form) && repeats(form.recurrence) && <span className="font-normal text-muted-foreground"> · ↻ {repeatLabel(form.recurrence)}</span>}
 		      </span>
 		    </button>
 		    <div className="flex shrink-0 items-center gap-0.5">
@@ -510,6 +542,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		        <DropdownMenu modal={false}>
 		          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More task actions" title="More task actions" />}><MoreHorizontal /></DropdownMenuTrigger>
 		          <DropdownMenuContent align="end" sideOffset={8} className="z-[70]">
+		            {repeats(editing.recurrence) && (
+		              <DropdownMenuItem onClick={handleSkip}><SkipForward /> Skip this time</DropdownMenuItem>
+		            )}
 		            <DropdownMenuItem onClick={handleScratch}>{form.status === 'scratched' ? <RotateCcw /> : <Ban />}{form.status === 'scratched' ? 'Unscratch' : 'Scratch'}</DropdownMenuItem>
 		            <DropdownMenuSeparator />
 		            <DropdownMenuItem variant="destructive" onClick={handleDelete}><Trash2 /> Delete task</DropdownMenuItem>
@@ -715,6 +750,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 due_type: t as FormState['due_type'],
                 ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
                 ...(t === 'month' && !form.month_of ? { month_of: monthFirstKey() } : {}),
+                // Each scope repeats its own way; start over on a switch.
+                ...(t !== form.due_type ? { recurrence: {} } : {}),
               })}
               options={[
                 { value: 'day', label: 'Day' },
@@ -761,6 +798,12 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               />
             )}
             </div>
+            <RepeatPicker
+              value={form.recurrence}
+              onChange={(recurrence) => setForm({ ...form, recurrence })}
+              scope={form.due_type}
+              date={scopeDate(form)}
+            />
           </div>
 
           {/* Reminder controls stay together, separate from due date/time. */}

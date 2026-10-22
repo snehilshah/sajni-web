@@ -8,7 +8,7 @@ export const journalMeta = {
   sections: [
     { id: 'daily', label: 'Daily editor' },
     { id: 'margin', label: 'The margin' },
-    { id: 'routines', label: 'Routines' },
+    { id: 'plans', label: 'Plans' },
     { id: 'weekly', label: 'Weekly view' },
     { id: 'monthly', label: 'Monthly view' },
   ],
@@ -85,68 +85,81 @@ export default function JournalDoc() {
         </Callout>
       </Section>
 
-      <Section id="routines" title="Routines" chip="day view">
+      <Section id="plans" title="Plans" chip="day view">
         <p>
-          A routine is a time slot that repeats: “Office start” every workday
-          at 9:00, “Closing” at 6:00, “Weekend reset” on Saturdays. Each has
-          a short checklist that starts fresh every day it runs, and room for
-          one-off things you want to handle in that slot. The day's routines
-          sit at the top of the margin, in time order, folded to one line
-          each (“Office start · 9:00 AM · 1/5”). Tap one to unfold it.
+          A plan is a moment to decide what a day is about: “Office start”
+          every workday at 9:00, “Weekend start” on Saturdays at 10:00. You
+          make the ones you want. At that time you pick what the day is for,
+          from your open tasks or by typing new ones, and you can plan ahead
+          for any future day the plan runs. The day's plans sit at the top of
+          the margin, in time order (“Office start · 9:00 AM · 1/3”); today
+          and later days open unfolded. Today's plans also show at the top of
+          the Today page.
         </p>
         <FeatureList>
           <Feature name="Setting one up">
             <p>
-              Tap <em>Edit</em> beside Routines (or <em>Set up a routine</em>{' '}
-              when you have none). Give it a name, pick its days (Workdays,
-              Weekends, Every day, or single days), a start time, and type its
-              checklist, then press <em>Save</em> (<em>Add routine</em> for a
-              new one).
+              Tap <em>Edit</em> beside Plans (or <em>Set up a plan</em> when
+              you have none). Give it a name, pick its days (Workdays,
+              Weekends, Every day, or single days) and a start time, then
+              press <em>Add plan</em>.
             </p>
           </Feature>
-          <Feature name="The checklist">
+          <Feature name="Planning">
             <p>
-              Tick items as you go. Ticks belong to that day only, so tomorrow
-              starts clean, and past days keep what you ticked. Future days
-              can't be ticked yet.
+              Under an unfolded plan, <em>Add to Office start</em> types a
+              new task for that day. <em>Pick from your tasks</em> lists your
+              open tasks in groups (Left over, Overdue, Due that day, That
+              week, Coming up, No date); tap one to move it to that day. It
+              keeps its own time if it has one. Planned tasks are normal
+              tasks: they show in Tasks with a small “Office start” chip, and
+              tick off anywhere.
             </p>
           </Feature>
-          <Feature name="Adding to a routine">
+          <Feature name="Left over">
             <p>
-              <em>Add to Office start</em> under an unfolded routine creates a
-              task for that day, timed at the routine's start. It is a normal
-              task: it shows in Tasks with a small “Office start” chip, and if
-              you don't finish it that day it becomes Missed like any other
-              task. It doesn't roll over to the next run.
+              A planned task you don't finish stays as an overdue task on its
+              day. From the next day on, the plan lists it under{' '}
+              <em>Left over</em>; <em>Move here</em> brings it to the day
+              you're planning. Nothing moves on its own.
+            </p>
+          </Feature>
+          <Feature name="Every time">
+            <p>
+              For something you do at every office start, make it a repeating
+              task (Workdays) and put it in the plan once: each time it
+              repeats it comes back to that plan's day. See Tasks → Repeating
+              tasks.
             </p>
           </Feature>
           <Feature name="The alert">
             <p>
-              Each routine sends one notification at its start time, naming
-              the first few things on it. Switch <em>Alert</em> off in its
-              editor if you don't want it.
+              Each plan sends one notification at its start time: what's
+              planned (“Standup · Reply to Rahul +2 more”), or “Nothing
+              planned yet. Plan your day.” Tapping it opens that day in
+              Journal. Switch <em>Alert</em> off in its editor if you don't
+              want it.
             </p>
           </Feature>
         </FeatureList>
         <Callout>
-          <strong>Example.</strong> You want a calm start to work.
+          <strong>Example.</strong> It's Monday and Thursday has a client
+          meeting.
           <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
+            <li>Make “Office start”: Workdays, 9:00 AM.</li>
             <li>
-              Make “Office start”: Workdays, 9:00 AM, with “Check calendar”,
-              “Clear inbox” and “Plan the day”.
+              Open Thursday in Journal, unfold Office start and add “Prepare
+              for the client meeting”.
             </li>
             <li>
-              On Monday evening, open Tuesday in Journal, unfold Office start
-              and add “Ask Rahul about the invoice”.
+              Thursday at 9:00 the alert reads “Office start · 9:00 AM:
+              Prepare for the client meeting”. Tap it, then <em>Pick from
+              your tasks</em> and add “Send the invoice” from Overdue.
             </li>
             <li>
-              At 9:00 on Tuesday the alert reads “Office start · 9:00 AM:
-              Check calendar · Clear inbox · Plan the day +1 more”. Tapping it
-              opens Tuesday in Journal.
-            </li>
-            <li>
-              Tick the three items and the task: the row reads 4/4. Skip the
-              task instead and it shows as Missed on Wednesday.
+              Finish the meeting prep but not the invoice. On Friday the
+              invoice shows under Left over in Office start; tap{' '}
+              <em>Move here</em>.
             </li>
           </ul>
         </Callout>

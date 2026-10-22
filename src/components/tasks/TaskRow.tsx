@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronDown, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch, StickyNote, Repeat,
+  Star, ChevronDown, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch, StickyNote, Repeat, CalendarClock,
 } from '@/components/ui/icons';
+import { repeatLabel, repeats } from './RepeatPicker';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskStep } from '@/types';
@@ -187,21 +188,27 @@ export default function TaskRow({
                   <span className="truncate">{task.parent_task_title || 'Subtask'}</span>
                 </button>
               )}
-              {/* An agenda item names its Journal routine; tapping opens
-                  that day in Journal, where the routine lists it. */}
-              {task.routine_id != null && task.routine_name && (
+              {/* A planned task names its Journal plan; tapping opens that
+                  day in Journal, where the plan lists it. */}
+              {task.plan_id != null && task.plan_name && (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(task.due_date ? `/journal?date=${task.due_date}` : '/journal');
                   }}
-                  title={`Part of ${task.routine_name}`}
+                  title={`Planned for ${task.plan_name}`}
                   className={cn(chip, neutral, 'min-w-0 shrink max-w-40 hover:text-foreground')}
                 >
-                  <Repeat className="size-3 shrink-0" aria-hidden />
-                  <span className="truncate">{task.routine_name}</span>
+                  <CalendarClock className="size-3 shrink-0" aria-hidden />
+                  <span className="truncate">{task.plan_name}</span>
                 </button>
+              )}
+              {repeats(task.recurrence) && (
+                <span title={`Repeats ${repeatLabel(task.recurrence).toLowerCase()}`} className={cn(chip, neutral, 'min-w-0 shrink max-w-36')}>
+                  <Repeat className="size-3 shrink-0" aria-hidden />
+                  <span className="hidden truncate @md:inline">{repeatLabel(task.recurrence)}</span>
+                </span>
               )}
               {task.tags && task.tags.length > 0 && (
                 <span className="hidden @2xl:inline-flex items-center gap-1">

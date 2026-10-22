@@ -66,7 +66,7 @@ const CARE_VIEWS: CareView[] = [
     id: 'tend',
     label: 'Tend',
     title: 'Small Care, at the Right Time.',
-    body: 'Reminders follow your local clock. Recurring money and routines move without duplicate work.',
+    body: 'Reminders follow your local clock. Recurring money and repeating tasks move without duplicate work.',
     items: [
       { icon: Bell, title: 'Call home', detail: 'Tomorrow · 7:00 PM', state: 'Reminder' },
       { icon: Wallet, title: 'Recurring deposit', detail: 'Next contribution scheduled', state: 'Finance' },
