@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { clientMsg } from '@/lib/errors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle } from '@/components/ui/icons';
+import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle, Image as ImageIcon } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
 import { useEditorDraft } from '@/hooks/use-editor-draft';
 import { EditActions } from '@/components/editor-actions';
-import { tasks as tasksApi, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
+import { tasks as tasksApi, uploads, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
@@ -35,6 +35,7 @@ import {
   STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey, monthFirstKey,
 } from './helpers';
 import { StepsEditor } from './TaskRow';
+import { TaskAttachments, imageFiles, pickImages, type AttachmentTile } from './TaskAttachments';
 
 export interface FormState {
   title: string;
@@ -66,6 +67,9 @@ export interface FormState {
   /** Subtasks typed while creating, created under the new task once it
    *  exists. Unused when editing (those talk to the API directly). */
   subtasks: DraftSubtask[];
+  /** Images added while creating, attached once the task exists. Unused
+   *  when editing (those upload straight to the task). */
+  files: File[];
 }
 
 export interface DraftSubtask { title: string; due_date?: string }
@@ -75,7 +79,7 @@ export type TaskDefaults = Partial<FormState>;
 const blank: FormState = {
   title: '', description: '', priority: 'medium', color: null, status: 'todo', blocked_by_task_id: null,
   due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
-  notify_emails: [], list_id: null, important: false, steps: [], reminders: [], subtasks: [],
+  notify_emails: [], list_id: null, important: false, steps: [], reminders: [], subtasks: [], files: [],
 };
 
 const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
@@ -238,6 +242,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         steps: editing.steps || [],
         reminders: [],
         subtasks: [],
+        files: [],
       };
       setForm(loaded);
       loadDraft(loaded);
@@ -273,6 +278,49 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       queryFn: () => tasksApi.list({ smart: 'all' }),
     }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
   }, [open, editing, defaults, qc, loadDraft]);
+
+  // Images: straight to the task when editing, held in the form when creating.
+  const [uploading, setUploading] = useState(0);
+  const attachmentsQuery = useQuery({
+    queryKey: qk.tasks.attachments(editing?.id ?? 0),
+    queryFn: () => tasksApi.attachments(editing!.id),
+    enabled: open && !!editing,
+  });
+  const draftUrls = useMemo(() => form.files.map((f) => URL.createObjectURL(f)), [form.files]);
+  useEffect(() => () => draftUrls.forEach((u) => URL.revokeObjectURL(u)), [draftUrls]);
+  const addFiles = async (files: File[]) => {
+    if (files.length === 0) return;
+    if (!editing) {
+      setForm((f) => ({ ...f, files: [...f.files, ...files] }));
+      return;
+    }
+    setUploading((n) => n + files.length);
+    for (const file of files) {
+      try {
+        await tasksApi.attach(editing.id, file);
+      } catch (e) {
+        toast.error(clientMsg(e, "Couldn't attach the image"));
+      } finally {
+        setUploading((n) => n - 1);
+      }
+      await qc.invalidateQueries({ queryKey: qk.tasks.attachments(editing.id) });
+    }
+  };
+  const tiles: AttachmentTile[] = editing
+    ? (attachmentsQuery.data ?? []).map((a) => ({
+        key: String(a.id),
+        src: uploads.resolveUrl(a.url),
+        onRemove: async () => {
+          if (!(await confirmDialog('Remove this image from the task?'))) return;
+          await tasksApi.removeAttachment(editing.id, a.id);
+          qc.invalidateQueries({ queryKey: qk.tasks.attachments(editing.id) });
+        },
+      }))
+    : form.files.map((file, i) => ({
+        key: draftUrls[i],
+        src: draftUrls[i],
+        onRemove: () => setForm((f) => ({ ...f, files: f.files.filter((x) => x !== file) })),
+      }));
 
   const blockerCandidates = blockerTasks.filter((candidate) => {
     if (candidate.id === editing?.id || candidate.status === 'done' || candidate.status === 'scratched') return false;
@@ -341,6 +389,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         }
         if (failed > 0) toast.error(`Task saved, but ${failed} subtask${failed > 1 ? 's' : ''} failed to add.`);
       }
+      if (form.files.length > 0) {
+        const results = await Promise.allSettled(form.files.map((file) => tasksApi.attach(res.id, file)));
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) toast.error(`Task saved, but ${failed} image${failed > 1 ? 's' : ''} failed to attach.`);
+      }
       onOpenChange(false);
       onSaved();
       onCreated?.({ id: res.id, title: form.title.trim() });
@@ -401,6 +454,23 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
             ),
       )}
     >
+      {/* An image pasted or dropped anywhere in the task attaches to it. */}
+      <div
+        className="contents"
+        onPaste={(e) => {
+          const files = imageFiles(e.clipboardData);
+          if (e.defaultPrevented || files.length === 0) return;
+          e.preventDefault();
+          addFiles(files);
+        }}
+        onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+        onDrop={(e) => {
+          const files = imageFiles(e.dataTransfer);
+          if (e.defaultPrevented || files.length === 0) return;
+          e.preventDefault();
+          addFiles(files);
+        }}
+      >
 		<div className="shrink-0 px-4 pb-1 pt-4 md:px-6 md:pt-5">
 		  <div className="flex items-center justify-between gap-3">
 		    <button
@@ -434,6 +504,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		        </DropdownMenuContent>
 		      </DropdownMenu>
 		      <Button variant="ghost" size="icon-sm" aria-label="Reminder settings" title="Reminder settings" onClick={() => setMoreDetails(true)} className={form.remind || form.reminders.length ? 'text-primary' : undefined}><Bell /></Button>
+		      <Button variant="ghost" size="icon-sm" aria-label="Attach image" title="Attach image (or paste one)" onClick={() => pickImages(addFiles)}><ImageIcon /></Button>
 		      <Button variant="ghost" size="icon-sm" aria-label={form.important ? 'Remove important' : 'Mark important'} title={form.important ? 'Remove important' : 'Mark important'} onClick={() => setForm({ ...form, important: !form.important })}><Star className={form.important ? 'fill-current text-[hsl(var(--tertiary))]' : ''} /></Button>
 		      {editing && (
 		        <DropdownMenu modal={false}>
@@ -487,8 +558,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		  </div>
 
 		  <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
-		    <RichEditor value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} placeholder="Add some extra notes here…" toolbar="compact" />
+		    <RichEditor value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} placeholder="Add some extra notes here…" toolbar="compact" onImageFiles={addFiles} />
 		  </div>
+
+		  <TaskAttachments tiles={tiles} uploading={uploading} />
 
 		  <div className="py-0.5">
 		    <StepsEditor
@@ -812,6 +885,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void handleSave()}
             saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create task'} disabled={!editing && (saving || !!invalid)} />
         </div>
+      </div>
     </MorphingDialog>
   );
 }

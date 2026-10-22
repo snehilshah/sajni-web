@@ -220,6 +220,21 @@ export const tasks = {
     request<{ id: number }>('/tasks/' + id + '/reminders', { method: 'POST', body: JSON.stringify({ remind_at }) }),
   deleteReminder: (id: number, rid: number) =>
     request('/tasks/' + id + '/reminders/' + rid, { method: 'DELETE' }),
+  // Images attached to the task (the API takes images only).
+  attachments: (id: number) =>
+    request<TaskAttachment[]>('/tasks/' + id + '/attachments'),
+  attach: async (id: number, file: File): Promise<TaskAttachment> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await authFetch('/tasks/' + id + '/attachments', { method: 'POST', body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null) as { error?: string } | null;
+      throw new Error(body?.error || "Couldn't attach the image");
+    }
+    return res.json();
+  },
+  removeAttachment: (id: number, aid: number) =>
+    request('/tasks/' + id + '/attachments/' + aid, { method: 'DELETE' }),
 };
 
 export const planner = {
@@ -264,6 +279,14 @@ export interface TaskEvent {
   kind: 'created' | 'status' | 'title' | 'list' | 'rescheduled';
   from: string;
   to: string;
+  created_at: string;
+}
+
+export interface TaskAttachment {
+  id: number;
+  url: string;
+  filename: string;
+  content_type: string;
   created_at: string;
 }
 

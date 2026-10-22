@@ -20,6 +20,7 @@ export const qk = {
     history: (id: number) => ['tasks', 'history', id] as const,
     events: (id: number) => ['tasks', 'events', id] as const,
     reminders: (id: number) => ['tasks', 'reminders', id] as const,
+    attachments: (id: number) => ['tasks', 'attachments', id] as const,
   },
   // Under 'tasks' on purpose: a day's routines embed its agenda tasks, so
   // every task invalidation refreshes them too.

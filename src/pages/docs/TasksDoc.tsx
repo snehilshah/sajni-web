@@ -137,13 +137,21 @@ export default function TasksDoc() {
               priority marks the row with a dot.
             </p>
           </Feature>
-          <Feature name="Notes, images & #tags">
+          <Feature name="Description & #tags">
             <p>
               Free-form details; <Code>#tags</Code> written there index the
-              task under Analytics → Tags. To attach a screenshot, paste or
-              drop it into Notes on the web, or tap the image button above
-              Notes (web and Android). It uploads and shows in place, and
-              saves with the task when you press Save.
+              task under Analytics → Tags.
+            </p>
+          </Feature>
+          <Feature name="Images">
+            <p>
+              Attach screenshots or photos with the image button at the top
+              of the task. On the web you can also paste or drop an image
+              anywhere in the task. They show as thumbnails under the notes;
+              open one to see it full size. On a task you're editing, an
+              image attaches (or is removed) straight away; on a new one it
+              attaches when you create the task. Deleting a task deletes its
+              images.
             </p>
           </Feature>
           <Feature name="History & activity">

@@ -72,10 +72,13 @@ interface Props {
   contextDate?: string;
   /** Keep a small formatting row visible above compact note fields. */
   toolbar?: 'bubble' | 'compact';
+  /** Pasted or dropped images go here instead of into the text (a task
+   *  keeps its images apart from its notes). */
+  onImageFiles?: (files: File[]) => void;
 }
 
 export default function RichEditor({
-  value, onChange, placeholder, className, autoFocus, minHeight, fill, contextDate, toolbar = 'bubble',
+  value, onChange, placeholder, className, autoFocus, minHeight, fill, contextDate, toolbar = 'bubble', onImageFiles,
 }: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -83,7 +86,8 @@ export default function RichEditor({
   // tiptap registers onUpdate once, at creation; read the latest onChange
   // through a ref so edits never land on the form as it was at mount.
   const onChangeRef = useRef(onChange);
-  useLayoutEffect(() => { onChangeRef.current = onChange; });
+  const onImageFilesRef = useRef(onImageFiles);
+  useLayoutEffect(() => { onChangeRef.current = onChange; onImageFilesRef.current = onImageFiles; });
 
   // Picker for /task — search-and-pick over existing tasks, plus a "Create
   // task" affordance that opens the generic add-task panel and inserts the
@@ -185,6 +189,11 @@ export default function RichEditor({
         return false;
       },
       handlePaste(view, event) {
+        const pasted = [...(event.clipboardData?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+        if (pasted.length && onImageFilesRef.current) {
+          onImageFilesRef.current(pasted);
+          return true;
+        }
         const items = event.clipboardData?.items;
         if (items) {
           for (const item of items) {
@@ -221,6 +230,12 @@ export default function RichEditor({
       handleDrop(_view, event) {
         const dt = event.dataTransfer;
         if (!dt || dt.files.length === 0) return false;
+        const dropped = [...dt.files].filter((f) => f.type.startsWith('image/'));
+        if (dropped.length && onImageFilesRef.current) {
+          event.preventDefault();
+          onImageFilesRef.current(dropped);
+          return true;
+        }
         const file = dt.files[0];
         if (!file.type.startsWith('image/')) return false;
         event.preventDefault();
@@ -609,7 +624,6 @@ function Toolbar({ editor, onImage, compact = false }: { editor: Editor; onImage
           if (url.trim() === '') chain.unsetLink().run();
           else chain.setLink({ href: url.trim() }).run();
         }, Link2, a.link ? 'Edit link' : 'Link')}
-        {btn(false, onImage, ImageIcon, 'Image')}
       </div>
     );
   }
