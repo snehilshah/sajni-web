@@ -2653,7 +2653,10 @@ function eventLabel(e: MediaEventRow, type: MediaKind): string {
   switch (e.kind) {
     case 'added': return 'Added to library';
     case 'started': return `Started ${verb}`;
-    case 'progress': return 'Progress';
+    case 'progress': {
+      const n = watchedInRun(e);
+      return type === 'show' && n > 0 ? `Watched ${n} episode${n === 1 ? '' : 's'}` : 'Progress';
+    }
     case 'released': return 'Released · moved to Pending';
     case 'new_season': return 'New season detected';
     case 'completed': return 'Completed';
@@ -2661,6 +2664,12 @@ function eventLabel(e: MediaEventRow, type: MediaKind): string {
     case 'rating': return `Rated ${e.meta.rating ?? '?'}/5`;
     default: return e.kind;
   }
+}
+
+/** Episodes a merged progress entry covers, when it records where it started. */
+function watchedInRun(e: MediaEventRow): number {
+  const { from_episodes_watched: from, episodes_watched: at } = e.meta || {};
+  return typeof from === 'number' && typeof at === 'number' ? at - from : 0;
 }
 
 function eventSublabel(e: MediaEventRow): string {
@@ -2671,8 +2680,9 @@ function eventSublabel(e: MediaEventRow): string {
     parts.push(`${m.old_seasons} → ${m.new_seasons} seasons`);
   }
   if (typeof m.season === 'number' && m.season > 0) {
-    parts.push(`S${m.season}`);
-    if (typeof m.episode === 'number' && m.episode > 0) parts.push(`E${m.episode}`);
+    const at = `S${m.season}` + (typeof m.episode === 'number' && m.episode > 0 ? ` · E${m.episode}` : '');
+    const from = m.from_season && m.from_episode ? `S${m.from_season} · E${m.from_episode}` : null;
+    parts.push(from && from !== at ? `${from} → ${at}` : at);
   }
   if (typeof m.episodes_watched === 'number' && typeof m.episodes_total === 'number' && m.episodes_total > 0) {
     parts.push(`${m.episodes_watched}/${m.episodes_total} eps`);

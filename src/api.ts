@@ -535,6 +535,10 @@ export interface MediaEventMeta {
   episodes_watched?: number;
   episodes_total?: number;
   seasons_watched?: number;
+  /** Progress entries: where this run started (taps within 30 minutes merge). */
+  from_episodes_watched?: number;
+  from_season?: number;
+  from_episode?: number;
   old_seasons?: number;
   new_seasons?: number;
   release_date?: string;

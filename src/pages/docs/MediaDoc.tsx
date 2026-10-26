@@ -102,6 +102,16 @@ export default function MediaDoc() {
             When TMDB doesn't know the counts, set totals by hand, tracking
             degrades gracefully instead of blocking.
           </li>
+          <li>
+            Updates close together are one activity entry. On S1 · E3 you tap
+            +1 four times: the timeline shows one “Watched 4 episodes · S1 ·
+            E3 → S1 · E7”, not four. Any change within 30 minutes of the last
+            joins it; tapping back to where it started removes it.
+          </li>
+          <li>
+            Catching up a backlog: on the phone, tap the episode count and
+            type it (pick the season first). The jump is one entry too.
+          </li>
         </ul>
       </Section>
 
