@@ -8,3 +8,6 @@ sideEffectsCache: true
 # Optional macOS watcher from the imported npm lockfile.
 allowBuilds:
   fsevents@2.3.3: true
+minimumReleaseAgeExclude:
+  - '@tanstack/query-core@5.105.0'
+  - '@tanstack/react-query@5.105.0'
