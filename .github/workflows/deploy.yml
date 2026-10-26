@@ -18,6 +18,10 @@ concurrency:
   group: deploy-prod
   cancel-in-progress: false
 
+# Read-only token; a job that needs more says so itself.
+permissions:
+  contents: read
+
 jobs:
   promote:
     runs-on: ubuntu-latest
