@@ -240,6 +240,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   };
   // Nothing saves until Save; a new investment is created explicitly.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && investment),
     value: values,
     invalid: name.trim() ? null : 'an investment needs a name.',

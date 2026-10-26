@@ -357,6 +357,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const invalid = !name.trim() ? 'a budget needs a name.' : total > 0 ? null : 'set an amount.';
   // Nothing saves until Save; a new budget is created explicitly.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && budget),
     value: values,
     invalid,

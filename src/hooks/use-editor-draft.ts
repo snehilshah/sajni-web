@@ -17,10 +17,13 @@ const WARN_MS = 3000;
  *   save(then)    write an edit, then `then` (usually: close)
  *   commit(v)     write `v` now (a one-tap action inside the editor)
  *
+ * `open` is whether the editor is showing. A closed one has nothing unsaved,
+ * even when its fields still hold what was typed (after Add, or a discard).
  * `editing` false means create: the dialog has its own Add, `save` is unused.
  * `dirty` overrides what counts as unsaved (fields that fill in defaults).
  */
-export function useEditorDraft<T>({ editing, value, invalid = null, save, dirty }: {
+export function useEditorDraft<T>({ open, editing, value, invalid = null, save, dirty }: {
+  open: boolean;
   editing: boolean;
   value: T;
   /** Why `value` can't be saved right now ("a name is required"), if it can't. */
@@ -32,7 +35,7 @@ export function useEditorDraft<T>({ editing, value, invalid = null, save, dirty 
   const [armed, setArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const snapshot = JSON.stringify(value);
-  const changed = dirty ?? (baseline !== null && snapshot !== baseline);
+  const changed = open && (dirty ?? (baseline !== null && snapshot !== baseline));
   // Nothing unsaved, nothing to warn about.
   const warning = armed && changed;
 

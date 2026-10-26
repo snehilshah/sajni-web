@@ -832,6 +832,7 @@ function EventEditor({
   // variable is created once it has a name. Deleting a variable is its own
   // confirmed step.
   const editor = useEditorDraft({
+    open: value !== null,
     editing: !!editing,
     value: draft,
     invalid: draft.name.trim() ? null : 'an event needs a name.',
@@ -1138,6 +1139,7 @@ function EntryEditor({
   });
   // Nothing saves until Save (or Log event); closing with changes asks twice.
   const editor = useEditorDraft({
+    open: value !== null,
     editing: !!entry,
     value: form,
     invalid: date && time ? null : 'pick a date and time.',

@@ -28,6 +28,7 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
 
   // Nothing saves until Save; a new slate is created explicitly.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && slate),
     value: { name, color },
     invalid: name.trim() ? null : 'a slate needs a name.',

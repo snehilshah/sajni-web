@@ -224,6 +224,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   // Nothing saves until Save (or Create task); every way out with changes
   // asks twice.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && editing),
     value: form,
     invalid,

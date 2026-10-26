@@ -199,6 +199,7 @@ export default function TransactionDialog({
   // a split or settlement waiting to be applied is unsaved too.
   const savedPatch = useRef<({ id: number } & Partial<FinTransaction>) | undefined>(undefined);
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && txn),
     value: values,
     dirty: !txn ? !!(amount.trim() || description.trim() || note.trim() || person.trim())

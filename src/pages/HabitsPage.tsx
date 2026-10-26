@@ -122,6 +122,7 @@ export default function HabitsPage() {
   const [saving, setSaving] = useState(false);
   // Nothing saves until Save; a new habit is created explicitly.
   const editor = useEditorDraft({
+    open: showForm,
     editing: !!(showForm && editing),
     value: form,
     invalid: form.name.trim() ? null : 'a habit needs a name.',

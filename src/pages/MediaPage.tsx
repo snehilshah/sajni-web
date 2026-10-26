@@ -890,6 +890,7 @@ export default function MediaPage() {
 
   // Nothing saves until Save (or Add to library); closing with changes asks twice.
   const editor = useEditorDraft({
+    open: showForm,
     editing: !!(showForm && editItem),
     value: form,
     invalid: form.title.trim() ? null : 'an entry needs a title.',

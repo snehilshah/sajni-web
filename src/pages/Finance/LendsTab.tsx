@@ -419,6 +419,7 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved, onRemoved }: 
             : !lentDate || !lentTime ? 'pick when it was lent.'
               : null;
   const editor = useEditorDraft({
+    open,
     editing: !!lend,
     value: values,
     invalid,
@@ -572,6 +573,7 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   };
   const badAmount = adjusted && !(Number(amount) > 0);
   const editor = useEditorDraft({
+    open: !!payment,
     editing: !!payment,
     value: values,
     invalid: !description.trim() ? 'add a title.' : badAmount ? 'enter an amount above zero.' : null,

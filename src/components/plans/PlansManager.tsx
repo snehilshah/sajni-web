@@ -75,6 +75,7 @@ export function PlansManager({ open, onOpenChange, initialId = null }: {
 
   // Nothing saves until Save (or Add plan); leaving with changes asks twice.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && editing),
     value: draft,
     // The list has nothing to lose.

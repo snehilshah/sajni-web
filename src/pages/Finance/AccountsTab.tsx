@@ -273,6 +273,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   };
   // Nothing saves until Save (or Create); closing with changes asks twice.
   const draft = useEditorDraft({
+    open: open,
     editing: !!account,
     value: values,
     invalid: name.trim() ? null : 'an account needs a name.',

@@ -301,6 +301,7 @@ function MemoDetailDialog({ memo, onClose, onPin, onDelete }: {
 
   // Nothing saves until Save; leaving the edit with changes asks twice.
   const editor = useEditorDraft({
+    open: !!memo,
     editing: !!(editing && memo),
     value: editContent,
     // Reading: nothing can be unsaved.

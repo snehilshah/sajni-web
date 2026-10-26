@@ -628,6 +628,7 @@ function BillerDialog({
     : kind === 'subscription' && !(parseFloat(amount) > 0) ? 'a subscription needs a fixed amount.' : null;
   // Nothing saves until Save; a new biller is created explicitly.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && biller),
     value: values,
     invalid,

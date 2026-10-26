@@ -476,6 +476,7 @@ export function ReminderEditor({ open, editing, onOpenChange }: { open: boolean;
 
   // Nothing saves until Save (each save reschedules); closing with changes asks twice.
   const editor = useEditorDraft({
+    open: open,
     editing: !!(open && editing),
     value: draft,
     invalid,
