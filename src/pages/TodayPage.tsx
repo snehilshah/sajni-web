@@ -24,6 +24,9 @@ import MissedBanner from '@/components/tasks/MissedBanner';
 import { PageChrome, chromeClearance, useOwnScrolled } from '@/components/PageShell';
 import { useNavChrome } from '@/components/nav-chrome';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToday } from '@/hooks/use-today';
+import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/queries/keys';
 
 interface Memo {
 	id: number;
@@ -72,7 +75,17 @@ export default function TodayPage() {
 	const [captureKind, setCaptureKind] = useState<CaptureKind>('memo');
 	const [saving, setSaving] = useState(false);
 
-	const today = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+	// Turns over at midnight or on return to the tab. Lists that mean "today"
+	// without a date in their key (My Day, habit periods) refetch with it.
+	const today = useToday();
+	const queryClient = useQueryClient();
+	const shownDay = useRef(today);
+	useEffect(() => {
+		if (shownDay.current === today) return;
+		shownDay.current = today;
+		queryClient.invalidateQueries({ queryKey: qk.tasks.all });
+		queryClient.invalidateQueries({ queryKey: qk.habits.all });
+	}, [today, queryClient]);
 
 	// Tick the hour so the greeting stays fresh.
 	useEffect(() => {
