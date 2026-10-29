@@ -17,20 +17,20 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import { DateBadge } from '@/components/ui/state-chip';
 import { HuePill } from '@/components/ui/hue-pill';
-import { SegmentedButton } from '@/components/ui/segmented-button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useFinInvestments, useFinLendPeople, useFinLends, useLendCandidates } from '@/queries/finance';
 import { CategoryChips } from './CategoryChips';
 import { Money } from './Money';
-import { formatMoney, txnAtToParts, partsToTxnAt, subMoney } from './utils';
+import { formatMoney, txnAtToParts, partsToTxnAt, subMoney, sumMoney } from './utils';
+import { SplitFields, computeSplit, emptySplit, isAllTheirs, splitNames, type SplitState } from './SplitFields';
 
 // The add/edit sheet for personal-ledger transactions. Five things are always
 // there (kind, amount, title, account + date, category); everything optional
 // is a "+" chip under them that, once tapped, becomes one more section of the
 // form (its label on the leading edge, a × on the trailing edge):
-//   expense → Split (someone owes part or all of it), Slate, Note
+//   expense → Split (people who owe part or all of it), Slate, Note
 //   income  → Settles a lend (it pays someone's lends back), Refund, Slate, Note
 // "Lend" is not a kind: lending cash is an expense split with someone for
 // all of it. This sheet is the one place a lend or a payment back is made;
@@ -39,7 +39,6 @@ import { formatMoney, txnAtToParts, partsToTxnAt, subMoney } from './utils';
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
 type Addon = 'split' | 'settle' | 'refund' | 'slate' | 'note';
-export type ShareMode = 'half' | 'custom' | 'all';
 
 export const personKey = (name: string) => name.trim().toLowerCase();
 // Money typed or pasted ("₹1,200.50") down to a plain decimal string.
@@ -49,18 +48,10 @@ export const decimalOnly = (v: string) => {
 };
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export function shareOf(total: number, mode: ShareMode, custom: string) {
-  if (!(total > 0)) return 0;
-  if (mode === 'all') return round2(total);
-  if (mode === 'half') return round2(total / 2);
-  const v = parseFloat(custom);
-  return Number.isFinite(v) ? round2(v) : 0;
-}
-
 // The editable fields of an existing transaction, as the form holds them.
 // Autosave diffs this shape, so the loader and the form must build it alike.
-// On a split bill `amount` is the whole bill and `share` the other person's
-// part; the server stores the user's part (amount − share).
+// On a split bill `amount` is the whole bill; the server stores the user's
+// part (amount − everyone's shares).
 interface EditValues {
   accountId: string; categoryId: string; amount: string; description: string;
   note: string; slateId: string; date: string; time: string;
@@ -69,13 +60,17 @@ interface EditValues {
   refund: boolean;
 }
 
+/** The people a saved bill is shared with (older servers send one). */
+export const txnSplits = (txn: FinTransaction | null | undefined) =>
+  txn?.splits?.length ? txn.splits : txn?.split ? [txn.split] : [];
+
 function editValues(txn: FinTransaction): EditValues {
   const p = txnAtToParts(txn.txn_at);
-  const share = txn.split?.share ?? 0;
+  const shared = sumMoney(txnSplits(txn), (s) => s.share);
   return {
     accountId: String(txn.account_id),
     categoryId: txn.category_id ? String(txn.category_id) : '',
-    amount: String(round2(txn.amount + share)),
+    amount: String(round2(txn.amount + shared)),
     description: txn.description,
     note: txn.note || '',
     slateId: String(txn.slate_id ?? 0),
@@ -107,7 +102,7 @@ export default function TransactionDialog({
   initialType?: TxnKind | 'lend' | 'settle';
   /** With 'lend' / 'settle': who it's with. */
   initialPerson?: string;
-  /** A split bill's lend (who, their share, due) is edited in Edit lend. */
+  /** A split bill's lends (who, their share, due) are edited in Edit lend. */
   onEditLend?: (lendId: number) => void;
   onClose: () => void;
   onSaved: (patch?: { id: number } & Partial<FinTransaction>) => void;
@@ -127,9 +122,9 @@ export default function TransactionDialog({
   // Add-ons that are on; the one just added takes focus.
   const [addons, setAddons] = useState<Set<Addon>>(new Set());
   const [justAdded, setJustAdded] = useState<Addon | null>(null);
+  // Settles a lend: who is paying back.
   const [person, setPerson] = useState('');
-  const [shareMode, setShareMode] = useState<ShareMode>('half');
-  const [customShare, setCustomShare] = useState('');
+  const [split, setSplit] = useState<SplitState>(() => emptySplit());
   // Settles a lend: toward one of their lends ('' = their overall total).
   const [towardLendId, setTowardLendId] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -154,11 +149,12 @@ export default function TransactionDialog({
   const investments = useFinInvestments(open).data ?? [];
   const people = peopleQ.data ?? [];
   const isRefund = type === 'income' && addons.has('refund');
-  const splitOn = type === 'expense' && addons.has('split');
-  const existingSplit = txn?.split ?? null;
+  const existingSplits = txnSplits(txn);
+  const sharedOut = sumMoney(existingSplits, (s) => s.share);
+  const splitOn = type === 'expense' && addons.has('split') && existingSplits.length === 0;
   const total = parseFloat(amount) || 0;
-  const theirShare = existingSplit ? existingSplit.share : splitOn ? shareOf(total, shareMode, customShare) : 0;
-  const allTheirs = splitOn && !existingSplit && shareMode === 'all';
+  const splitResult = splitOn ? computeSplit(total, split) : null;
+  const allTheirs = splitOn && isAllTheirs(split);
   const account = accounts.find((a) => String(a.id) === accountId);
   // Slates worth offering: the live ones, plus whatever this txn already sits
   // in. Plain is not a choice; removing the add-on is.
@@ -181,17 +177,16 @@ export default function TransactionDialog({
     const amt = parseFloat(v.amount);
     if (!v.amount.trim()) e.amount = 'Enter an amount.';
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
-    else if (txn?.split && round2(amt) <= txn.split.share) e.amount = 'The bill has to be more than their share. Change their share in Edit lend.';
+    else if (existingSplits.length === 1 && round2(amt) <= sharedOut) e.amount = 'The bill has to be more than their share. Change their share in Edit lend.';
+    else if (existingSplits.length > 1 && round2(amt) < sharedOut) e.amount = 'The bill can\'t be less than everyone\'s shares. Change a share in Edit lend.';
     if (!v.description.trim()) e.description = 'Add a title.';
     return e;
   };
   // A split or a settlement filled in on a saved transaction but not yet
   // applied. The footer's Save becomes this action. (Explicit: a half-typed
   // name would settle someone.)
-  const pendingTotal = parseFloat(amount) || 0;
-  const pendingShare = shareOf(pendingTotal, shareMode, customShare);
   const pendingLabel = !txn ? null
-    : type === 'expense' && addons.has('split') && !txn.split && person.trim() && pendingShare > 0 && pendingShare <= pendingTotal ? 'Split this bill'
+    : splitOn && splitResult && !splitResult.error ? 'Split this bill'
       : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
         : null;
   // Nothing saves until Save (or Add). A new one starts with defaults filled
@@ -202,7 +197,7 @@ export default function TransactionDialog({
     open: open,
     editing: !!(open && txn),
     value: values,
-    dirty: !txn ? !!(amount.trim() || description.trim() || note.trim() || person.trim())
+    dirty: !txn ? !!(amount.trim() || description.trim() || note.trim() || person.trim() || splitNames(split).length)
       : pendingLabel ? true : undefined,
     invalid: Object.values(editErrors(values))[0]?.toLowerCase() ?? null,
     save: async (v) => {
@@ -223,9 +218,9 @@ export default function TransactionDialog({
     const billTotal = round2(parseFloat(v.amount));
     const txnAt = partsToTxnAt(v.date, v.time);
     const sid = parseInt(v.slateId) || 0;
-    // On a split bill the server holds the user's part; their share stays
-    // as it is (Edit lend moves it), so the bill total moves the user's part.
-    const mine = round2(billTotal - (t.split?.share ?? 0));
+    // On a split bill the server holds the user's part; the shares stay as
+    // they are (Edit lend moves them), so the bill total moves the user's part.
+    const mine = round2(billTotal - sumMoney(txnSplits(t), (s) => s.share));
     const patch: TxnPatch = {
       account_id: acctId, amount: mine, description: v.description.trim(), note: v.note,
       txn_at: txnAt, category_id: catId, slate_id: sid,
@@ -258,8 +253,7 @@ export default function TransactionDialog({
     setErrors({});
     setJustAdded(null);
     setPerson('');
-    setShareMode('half');
-    setCustomShare('');
+    setSplit(emptySplit());
     setDueDate('');
     setRemind(false);
     setTowardLendId('');
@@ -270,7 +264,7 @@ export default function TransactionDialog({
       applyValues(v);
       loadDraft(v);
       const on = new Set<Addon>();
-      if (txn.split) { on.add('split'); setPerson(txn.split.borrower); }
+      if (txnSplits(txn).length) on.add('split');
       if (txn.type === 'refund') on.add('refund');
       if (txn.note) on.add('note');
       if (slates.find((p) => p.id === txn.slate_id && !p.is_plain)) on.add('slate');
@@ -295,9 +289,9 @@ export default function TransactionDialog({
         ...(settle ? ['settle' as const] : []),
         ...(slates.find((p) => p.id === slate && !p.is_plain) ? ['slate' as const] : []),
       ]));
-      if (lend) { setShareMode('all'); setJustAdded(initialPerson ? null : 'split'); }
-      if (settle) setJustAdded(initialPerson ? null : 'settle');
-      if (lend || settle) setPerson(initialPerson);
+      // Lending: one person, all of it theirs.
+      if (lend) { setSplit(emptySplit(initialPerson.trim() ? [initialPerson.trim()] : [], false)); setJustAdded(initialPerson ? null : 'split'); }
+      if (settle) { setJustAdded(initialPerson ? null : 'settle'); setPerson(initialPerson); }
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
@@ -375,7 +369,8 @@ export default function TransactionDialog({
       return next;
     });
     if (a === 'refund' || (a === 'settle' && addons.has('refund'))) setCategoryId('');
-    if (a === 'split' || a === 'settle') { setPerson(''); setTowardLendId(''); }
+    if (a === 'split') setSplit(emptySplit());
+    if (a === 'settle') { setPerson(''); setTowardLendId(''); }
     // A slate add-on with one slate to offer picks it.
     if (a === 'slate' && pickableSlates.length === 1) setSlateId(String(pickableSlates[0].id));
     setJustAdded(a);
@@ -400,10 +395,7 @@ export default function TransactionDialog({
       if (!linkedId) e.linked = 'Choose where it goes.';
       else if (linkedId === accountId) e.linked = 'Destination must differ from the source.';
     }
-    if (splitOn) {
-      if (!person.trim()) e.person = 'Enter who owes this.';
-      else if (!(theirShare > 0) || theirShare > amt) e.share = 'Their share has to be above zero and at most the bill.';
-    }
+    if (splitResult?.error) Object.assign(e, splitResult.error);
     if (type === 'income' && addons.has('settle') && !person.trim()) e.person = 'Enter who is paying you back.';
     return e;
   };
@@ -420,7 +412,6 @@ export default function TransactionDialog({
     const amt = parseFloat(amount);
     const txnAt = partsToTxnAt(date, time);
     const selectedCategoryId = categoryId || (othersCategory ? String(othersCategory.id) : '');
-    const due = dueDate ? { due_date: dueDate } : {};
 
     setSaving(true);
     try {
@@ -431,10 +422,10 @@ export default function TransactionDialog({
           account_id: parseInt(accountId), type: 'transfer', amount: amt, description: description.trim(), note,
           txn_at: txnAt, ...into,
         });
-      } else if (allTheirs) {
+      } else if (allTheirs && splitResult) {
         // All of it is theirs: money lent, not spent.
         await finance.createLend({
-          source_account_id: parseInt(accountId), borrower: person.trim(), amount: amt,
+          source_account_id: parseInt(accountId), borrower: splitResult.shares[0].borrower, amount: amt,
           description: description.trim(), note, lent_at: txnAt, due_date: dueDate || null, remind: remind && !!dueDate,
         });
       } else {
@@ -446,7 +437,7 @@ export default function TransactionDialog({
           category_id: isRefund && refundOf && !categoryId ? null : selectedCategoryId ? parseInt(selectedCategoryId) : null,
           slate_id: parseInt(slateId) || 0,
           ...(isRefund && refundOf ? { refund_of: parseInt(refundOf) } : {}),
-          ...(splitOn ? { split: { borrower: person.trim(), share: theirShare, remind, ...due } } : {}),
+          ...(splitResult ? splitDraft(splitResult.shares, remind, dueDate) : {}),
           ...(type === 'income' && addons.has('settle') ? { settle_with: person.trim(), ...(towardLendId ? { settle_lend_id: Number(towardLendId) } : {}) } : {}),
         };
         await finance.createTransaction(draft);
@@ -464,16 +455,19 @@ export default function TransactionDialog({
   // a deliberate step.
   const applyToExisting = async () => {
     if (!txn || saving) return;
-    if (!person.trim()) { setErrors({ person: type === 'expense' ? 'Enter who owes this.' : 'Enter who is paying you back.' }); return; }
+    if (type === 'expense' && splitResult?.error) { setErrors(splitResult.error); return; }
+    if (type !== 'expense' && !person.trim()) { setErrors({ person: 'Enter who is paying you back.' }); return; }
     if (!description.trim()) { setErrors({ description: 'Add a title.' }); return; }
-    if (type === 'expense' && (!(theirShare > 0) || theirShare > total)) { setErrors({ share: 'Their share has to be above zero and at most the bill.' }); return; }
     setSaving(true);
     try {
       // Land any pending field edits first, then make the structural change.
       if (editor.changed) await editor.commit(values);
-      if (type === 'expense') {
+      if (type === 'expense' && splitResult) {
+        const sh = splitResult.shares;
         await finance.markPaidFor({
-          borrower: person.trim(), transaction_ids: [txn.id], share: theirShare, remind,
+          // One person keeps the one-person form older servers know.
+          ...(sh.length === 1 ? { borrower: sh[0].borrower, share: sh[0].share } : { shares: sh }),
+          transaction_ids: [txn.id], remind,
           ...(dueDate ? { due_date: dueDate } : {}),
         });
       } else {
@@ -509,46 +503,23 @@ export default function TransactionDialog({
     split: 'Split', settle: 'Settles a lend', refund: 'Refund', slate: 'Slate', note: 'Note',
   };
 
-  // Their share: one field plus ½ / All. Typing makes it custom; ½ and All
-  // fill it in, so the row never changes shape.
-  const shareText = shareMode === 'custom' ? customShare : theirShare > 0 ? String(theirShare) : '';
-  const setShareText = (v: string) => {
-    clearError('share');
-    setShareMode('custom');
-    setCustomShare(decimalOnly(v));
-  };
-  const pickQuickShare = (m: ShareMode) => {
-    clearError('share');
-    setShareMode(m);
-  };
-
   const section = (a: Addon) => {
-    // A saved split's lend has one editor: Edit lend (who, share, due, undo).
-    if (a === 'split' && existingSplit) return (
+    // A saved split's lends have one editor each: Edit lend (who, share, due, undo).
+    if (a === 'split' && existingSplits.length) return (
       <section key={a} className="flex flex-col gap-2 pt-1">
-        <Label className="font-mono text-xs label-kicker text-muted-foreground">Split with {existingSplit.borrower}</Label>
-        <SummaryRow action={onEditLend && <Button variant="tonal" size="sm" onClick={() => editor.close(() => onEditLend(existingSplit.lend_id))}>Edit lend</Button>}>
-          {total > 0 && theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
-          <DateBadge tone="accent">{existingSplit.borrower} owes <Money value={theirShare} /></DateBadge>
-        </SummaryRow>
+        <Label className="font-mono text-xs label-kicker text-muted-foreground">Split with {existingSplits.map((s) => s.borrower).join(', ')}</Label>
+        {total > 0 && subMoney(total, sharedOut) > 0 && <SummaryRow><DateBadge>You <Money value={subMoney(total, sharedOut)} /></DateBadge></SummaryRow>}
+        {existingSplits.map((s) => (
+          <SummaryRow key={s.lend_id} action={onEditLend && <Button variant="tonal" size="sm" onClick={() => editor.close(() => onEditLend(s.lend_id))}>Edit lend</Button>}>
+            <DateBadge tone="accent">{s.borrower} owes <Money value={s.share} /></DateBadge>
+          </SummaryRow>
+        ))}
       </section>
     );
     if (a === 'split') return (
       <AddonSection key={a} label="Split with" onRemove={() => removeAddon('split')}>
-        <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
-          suggestions={people.map((p) => p.borrower)} placeholder="Who owes this?" autoFocus={justAdded === 'split'} />
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-          <PrefixedInput prefix="Their share ₹" value={shareText} onChange={setShareText} invalid={!!errors.share} />
-          <SegmentedButton<ShareMode>
-            aria-label="Quick share"
-            value={shareMode}
-            onChange={pickQuickShare}
-            options={[{ value: 'half', label: '½' }, { value: 'all', label: 'All' }]}
-            showCheck={false}
-            className="h-11 bg-[hsl(var(--surface-container-highest))] p-1"
-          />
-        </div>
-        {errors.share && <p className="text-xs text-destructive">{errors.share}</p>}
+        <SplitFields value={split} onChange={(next) => { setSplit(next); clearError('person'); clearError('share'); }} total={total}
+          suggestions={people.map((p) => p.borrower)} errors={errors} autoFocus={justAdded === 'split'}>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
           <DatePicker value={dueDate} onChange={setDueDate} prefix="Due" placeholder={account?.type === 'credit_card' ? 'With the card bill' : 'Anytime'} />
           <button
@@ -565,12 +536,7 @@ export default function TransactionDialog({
             <Bell className="size-4" /> Remind
           </button>
         </div>
-        <SummaryRow>
-          {total > 0 && theirShare > 0 && theirShare <= total && (<>
-            {theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
-            <DateBadge tone="accent">{person.trim() || 'They'} owe{person.trim() ? 's' : ''} <Money value={theirShare} /></DateBadge>
-          </>)}
-        </SummaryRow>
+        </SplitFields>
       </AddonSection>
     );
     if (a === 'settle') return (
@@ -662,7 +628,7 @@ export default function TransactionDialog({
             </div>
           )}
           <div className="flex flex-col gap-3">
-            <Field label={existingSplit || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
+            <Field label={existingSplits.length || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
               <Input
                 inputMode="decimal"
                 value={amount}
@@ -738,7 +704,7 @@ export default function TransactionDialog({
             )}
             {showCategory && (
               <Field
-                label={splitOn || existingSplit ? 'Category of your part' : 'Category'}
+                label={splitOn || existingSplits.length ? 'Category of your part' : 'Category'}
                 hint={inferring ? (
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground normal-case tracking-normal">
                     <M3CookieLoader size="xs" tone="primary" />
@@ -863,6 +829,13 @@ export function PrefixedInput({ prefix, value, onChange, invalid }: { prefix: st
       />
     </label>
   );
+}
+
+/** The create body's split: one person keeps the one-person form older
+ *  servers know; several go as splits. */
+export function splitDraft(shares: { borrower: string; share: number }[], remind = false, dueDate = ''): Pick<TxnDraft, 'split' | 'splits' | 'split_due_date' | 'split_remind'> {
+  if (shares.length === 1) return { split: { borrower: shares[0].borrower, share: shares[0].share, remind, ...(dueDate ? { due_date: dueDate } : {}) } };
+  return { splits: shares, split_remind: remind, ...(dueDate ? { split_due_date: dueDate } : {}) };
 }
 
 export function PersonField({ value, onChange, suggestions, placeholder, error, autoFocus }: {

@@ -17,13 +17,11 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
-import { DateBadge } from '@/components/ui/state-chip';
-import { SegmentedButton } from '@/components/ui/segmented-button';
 import { useFinLendPeople } from '@/queries/finance';
 import { CategoryChips } from './CategoryChips';
-import { Money } from './Money';
-import { AddonSection, PersonField, PrefixedInput, SummaryRow, decimalOnly, round2, shareOf, type ShareMode } from './TransactionDialog';
-import { formatMoney, subMoney, txnAtToParts, partsToTxnAt } from './utils';
+import { AddonSection, splitDraft } from './TransactionDialog';
+import { SplitFields, computeSplit, emptySplit, type SplitState } from './SplitFields';
+import { formatMoney, txnAtToParts, partsToTxnAt } from './utils';
 
 const SHARE_KEY = 'sajni:shareText';
 const LAST_ACCT_KEY = 'sajni:lastTxnAccount';
@@ -219,13 +217,11 @@ function Capture({ text }: { text: string }) {
   const [matched, setMatched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [slateId, setSlateId] = useState('0'); // '0' = General
-  // Split: someone owes part or all of this charge (a friend's purchase on
-  // your card). All of it makes the expense a lend.
+  // Split: people who owe part or all of this charge (a friend's purchase on
+  // your card). One person owing all of it makes the expense a lend.
   const [splitOn, setSplitOn] = useState(false);
-  const [person, setPerson] = useState('');
-  const [shareMode, setShareMode] = useState<ShareMode>('half');
-  const [customShare, setCustomShare] = useState('');
-  const [splitError, setSplitError] = useState('');
+  const [split, setSplit] = useState<SplitState>(() => emptySplit());
+  const [splitError, setSplitError] = useState<{ person?: string; share?: string }>({});
   const people = useFinLendPeople().data ?? [];
 
   useEffect(() => {
@@ -283,19 +279,16 @@ function Capture({ text }: { text: string }) {
   const filteredCats = categories.filter((c) => c.kind === type);
   const total = parseFloat(amount) || 0;
   const splitting = splitOn && type === 'expense';
-  const theirShare = splitting ? shareOf(total, shareMode, customShare) : 0;
-  const allTheirs = splitting && shareMode === 'all';
-  const shareText = shareMode === 'custom' ? customShare : theirShare > 0 ? String(theirShare) : '';
+  const splitResult = splitting ? computeSplit(total, split) : null;
+  // A lend has no category: none of it is the user's spending.
+  const allTheirs = !!splitResult && !splitResult.error && splitResult.mine === 0;
 
   const save = async () => {
     const amt = parseFloat(amount);
     if (!accountId) { toast.error('Pick an account'); return; }
     if (!(amt > 0)) { toast.error('Enter a valid amount'); return; }
     if (!description.trim()) { toast.error('Add a title'); return; }
-    if (splitting) {
-      if (!person.trim()) { setSplitError('Enter who owes this.'); return; }
-      if (!(theirShare > 0) || theirShare > round2(amt)) { setSplitError('Their share has to be above zero and at most the bill.'); return; }
-    }
+    if (splitResult?.error) { setSplitError(splitResult.error); return; }
     setSaving(true);
     try {
       await finance.createTransaction({
@@ -309,13 +302,13 @@ function Capture({ text }: { text: string }) {
         category_id: categoryId && !allTheirs ? parseInt(categoryId) : null,
         slate_id: parseInt(slateId) || 0,
         // No due date sent: a card charge is due with that cycle's bill.
-        ...(splitting ? { split: { borrower: person.trim(), share: theirShare } } : {}),
+        ...(splitResult ? splitDraft(splitResult.shares) : {}),
       });
       try { localStorage.setItem(LAST_ACCT_KEY, accountId); } catch { /* ignore */ }
       try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
       // Refresh any warm finance views (balances, ledger, overview).
       qc.invalidateQueries({ queryKey: qk.finance.all });
-      toast.success(allTheirs ? `Lent to ${person.trim()}` : 'Transaction added');
+      toast.success(allTheirs && splitResult?.shares.length === 1 ? `Lent to ${splitResult.shares[0].borrower}` : 'Transaction added');
       navigate('/finance/transactions', { replace: true });
     } catch (e) {
       toast.error('Could not save: ' + (e as Error).message);
@@ -442,35 +435,16 @@ function Capture({ text }: { text: string }) {
 
           {type === 'expense' && (splitOn ? (
             <div className="col-span-2">
-              <AddonSection label={allTheirs ? 'Lend to' : 'Split with'} onRemove={() => { setSplitOn(false); setSplitError(''); }}>
-                <PersonField value={person} onChange={(v) => { setPerson(v); setSplitError(''); }}
-                  suggestions={people.map((p) => p.borrower)} placeholder="Who owes this?" autoFocus />
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <PrefixedInput prefix="Their share ₹" value={shareText} invalid={!!splitError && !!person.trim()}
-                    onChange={(v) => { setSplitError(''); setShareMode('custom'); setCustomShare(decimalOnly(v)); }} />
-                  <SegmentedButton<ShareMode>
-                    aria-label="Quick share"
-                    value={shareMode}
-                    onChange={(m) => { setSplitError(''); setShareMode(m); }}
-                    options={[{ value: 'half', label: '½' }, { value: 'all', label: 'All' }]}
-                    showCheck={false}
-                    className="h-11 bg-[hsl(var(--surface-container-highest))] p-1"
-                  />
-                </div>
-                {splitError && <p className="text-xs text-destructive">{splitError}</p>}
-                <SummaryRow>
-                  {total > 0 && theirShare > 0 && theirShare <= total && (<>
-                    {theirShare < total && <DateBadge>You <Money value={subMoney(total, theirShare)} /></DateBadge>}
-                    <DateBadge tone="accent">{person.trim() || 'They'} owe{person.trim() ? 's' : ''} <Money value={theirShare} /></DateBadge>
-                  </>)}
-                </SummaryRow>
+              <AddonSection label={allTheirs && splitResult?.shares.length === 1 ? 'Lend to' : 'Split with'} onRemove={() => { setSplitOn(false); setSplitError({}); }}>
+                <SplitFields value={split} onChange={(next) => { setSplit(next); setSplitError({}); }} total={total}
+                  suggestions={people.map((p) => p.borrower)} errors={splitError} autoFocus />
               </AddonSection>
             </div>
           ) : (
             <div className="col-span-2">
               <button
                 type="button"
-                onClick={() => { setSplitOn(true); setPerson(''); setShareMode('half'); setCustomShare(''); }}
+                onClick={() => { setSplitOn(true); setSplit(emptySplit()); setSplitError({}); }}
                 className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
               >
                 <Plus className="size-3.5" /> Split

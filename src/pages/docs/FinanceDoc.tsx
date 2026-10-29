@@ -279,7 +279,7 @@ export default function FinanceDoc() {
       <Section id="split" title="Splitting a bill" chip="split">
         <p>
           Use Split when you paid the whole bill but part of it belongs to
-          someone else.
+          someone else, or to several people.
         </p>
         <Callout>
           <strong>Example.</strong> On 1 October you pay ₹754.96 for dinner on
@@ -291,8 +291,8 @@ export default function FinanceDoc() {
             </li>
             <li>
               Tap <em>+ Split</em>, type Rahul (or tap his name if he's owed you
-              before). <strong>½</strong> is already picked, so{' '}
-              <em>Their share</em> reads ₹377.48.
+              before). <strong>Equally</strong> and <strong>Include me</strong>{' '}
+              are already on, so the bill is divided between the two of you.
             </li>
             <li>
               Sajni shows <em>You ₹377.48 · Rahul owes ₹377.48</em>. Press Add.
@@ -313,11 +313,29 @@ export default function FinanceDoc() {
           </li>
         </ul>
         <FeatureList>
+          <Feature name="Splitting with several people">
+            <p>
+              Add everyone to the same bill. A ₹900 dinner with Rahul and
+              Priya: type Rahul, press Enter (or tap his name), then add Priya.
+              Equally divides it three ways, you included:{' '}
+              <em>You ₹300 · Rahul owes ₹300 · Priya owes ₹300</em>. The card
+              shows one ₹900 charge, your spending is ₹300, and Rahul and Priya
+              each owe you ₹300 on their own, so each can pay you back
+              separately.
+            </p>
+            <p>
+              Paid for them and none of it was yours (two movie tickets)? Turn
+              off <strong>Include me</strong> and the bill is divided between
+              them alone. When it doesn't divide evenly, the spare paise are
+              yours (or the first person's, without you).
+            </p>
+          </Feature>
           <Feature name="Other shares">
             <p>
-              Type any amount into <em>Their share</em> (Rahul had the
-              expensive dish and owes ₹500), or tap <strong>All</strong> if
-              the whole bill is his.
+              Tap <strong>Custom</strong> and type each person's share (Rahul
+              had the expensive dish and owes ₹500). Whatever is left is your
+              part. With one person, turning off <strong>Include me</strong>{' '}
+              makes the whole bill his.
             </p>
           </Feature>
           <Feature name="When it's due">
@@ -329,7 +347,7 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="A bill that's already in Sajni">
             <p>
-              Open it, tap <em>+ Split</em> and fill it in; the sheet's Save
+              Open it, tap <em>+ Split</em> and add the people; the sheet's Save
               button becomes <em>Split this bill</em>. Press it. This is how you split card charges that
               were captured automatically.
             </p>
@@ -344,6 +362,9 @@ export default function FinanceDoc() {
               by tapping the lend in Lends. Changing his share only moves the
               line between your part and his; the bill stays ₹754.96.{' '}
               <em>Remove split</em> there makes the whole bill yours again.
+              With several people, each one has their own <em>Edit lend</em>{' '}
+              on the bill: changing or removing one person's share only moves
+              money between them and your part.
             </p>
           </Feature>
         </FeatureList>
@@ -362,16 +383,16 @@ export default function FinanceDoc() {
         </p>
         <Callout>
           <strong>Example.</strong> You give Aman ₹500 in cash. Add an Expense
-          of ₹500 from Cash, tap <em>+ Split</em>, type Aman and pick{' '}
-          <strong>All</strong>. No category is needed, because it isn't your
+          of ₹500 from Cash, tap <em>+ Split</em>, type Aman and turn off{' '}
+          <strong>Include me</strong>. No category is needed, because it isn't your
           spending. Your cash goes down by ₹500 and Aman owes you ₹500.
         </Callout>
         <FeatureList>
           <Feature name="A friend's purchase on your card">
             <p>
               Priya buys a ₹1,499 jacket on your card for its offers. None of
-              it is yours: Expense on the card → <em>+ Split</em> → Priya →{' '}
-              <strong>All</strong>. Category disappears, because none of it is
+              it is yours: Expense on the card → <em>+ Split</em> → Priya, with{' '}
+              <strong>Include me</strong> off. Category disappears, because none of it is
               your spending, and it's due with that card bill. The whole
               story, offers and cashback included, is in{' '}
               <a href="#card-offers">A friend uses your card</a>.
@@ -381,8 +402,9 @@ export default function FinanceDoc() {
             <p>
               Something already in Sajni that was really for someone else, like
               Dad's electricity bill on your card: open it, tap{' '}
-              <em>+ Split</em>, pick Dad and <strong>All</strong> (or his part),
-              then press <em>Split this bill</em>. One transaction at a time.
+              <em>+ Split</em>, pick Dad and turn off <strong>Include me</strong>{' '}
+              (or type his part under Custom), then press <em>Split this bill</em>.
+              One transaction at a time.
             </p>
           </Feature>
           <Feature name="The Lends tab">
@@ -395,7 +417,7 @@ export default function FinanceDoc() {
             </p>
             <p>
               <em>Lend</em>, and a person's <em>Settle</em>, open the same
-              transaction sheet already filled in (Expense → Split → All, or
+              transaction sheet already filled in (Expense → Split → them, Include me off, or
               Income → Settles a lend → them). There is one way to record a
               lend and one way to record a payment back: the sheet.
             </p>
@@ -595,7 +617,7 @@ export default function FinanceDoc() {
           <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
             <li>
               <strong>Order day.</strong> Expense ₹1,499 on the card →{' '}
-              <em>+ Split</em> → Priya → <strong>All</strong>. No category.
+              <em>+ Split</em> → Priya, <strong>Include me</strong> off. No category.
               Priya owes ₹1,499.
             </li>
             <li>
@@ -944,8 +966,9 @@ export default function FinanceDoc() {
           <Feature name="Someone else's charge">
             <p>
               The check screen (shared, or when Sajni asks which account) has
-              the same <em>+ Split</em> as a new expense: pick the person and ½,
-              All or their share, and it's filed split or lent in one go.
+              the same <em>+ Split</em> as a new expense: add the people, split
+              it equally or type their shares, and it's filed split or lent in
+              one go.
             </p>
           </Feature>
         </FeatureList>
@@ -962,6 +985,7 @@ export default function FinanceDoc() {
           rows={[
             ['spent 450 on lunch, card', 'adds the expense'],
             ['the 754.96 dinner on Oct 1 was half Rahul\'s', 'splits that bill ½ with Rahul'],
+            ['split the 900 dinner equally with Rahul and Priya', 'splits it three ways, ₹300 each'],
             ['Rahul sent me 100 for the cab, mark it paid back', 'settles it toward the cab lend'],
             ['the Amazon credit yesterday was a refund', 'turns that income into a refund'],
             ['adjust what Aman owes', 'adjusts it'],
@@ -984,11 +1008,10 @@ export default function FinanceDoc() {
         <FeatureList>
           <Feature name="I paid a group dinner and three friends owe me">
             <p>
-              A split has one person, so spread the bill over rows on the same
-              card and date. For ₹1,000 shared by four: add ₹500 split ½ with
-              Rahul (your ₹250 and his), then ₹250 split All with Priya and ₹250
-              split All with Aman. The card shows ₹1,000, your spending is ₹250,
-              and each friend owes ₹250.
+              One bill, three people. Add the ₹1,000 expense, tap{' '}
+              <em>+ Split</em> and add Rahul, Priya and Aman; Equally with you
+              included makes it ₹250 each. The card shows ₹1,000, your spending
+              is ₹250, and each friend owes ₹250 separately.
             </p>
           </Feature>
           <Feature name="A friend paid for me">
@@ -1012,7 +1035,7 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Can I delete a lend?">
             <p>
-              Yes, from <em>Edit lend</em>. A cash lend (Split → All) is
+              Yes, from <em>Edit lend</em>. A cash lend (Split, Include me off) is
               deleted along with its transaction. A bill you marked, or a
               split, is <em>unmarked</em> instead, which hands the whole bill
               back to you as an expense. To delete a split bill itself, remove

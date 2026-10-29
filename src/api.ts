@@ -846,8 +846,10 @@ export interface FinTransaction {
   lend_borrower: string | null;
   /** A payment back (or a forgive): who from, and the lend it counts toward. */
   settlement: FinTxnSettlement | null;
-  /** A bill shared with someone: their part, owed as a lend. */
+  /** A bill shared with people: each one's part, owed as a lend. `split`
+   *  is the first of them. */
   split: FinTxnSplit | null;
+  splits?: FinTxnSplit[];
   /** Refund: the purchase it came back for. */
   refund_of: number | null;
   /** A transfer into an investment (an RD instalment, a SIP): one row out of
@@ -1189,6 +1191,11 @@ export interface TxnDraft {
   /** Expense only: someone owes `share` of this bill. due_date omitted →
    *  card-cycle due date; '' → none. */
   split?: { borrower: string; share: number; due_date?: string; remind?: boolean };
+  /** Expense only, instead of split: several people, each owing `share`.
+   *  split_due_date / split_remind apply to all. */
+  splits?: { borrower: string; share: number }[];
+  split_due_date?: string;
+  split_remind?: boolean;
   /** Income only: this is that person paying the user back, toward one
    *  of their lends (settle_lend_id) or their overall total. */
   settle_with?: string;
@@ -1313,7 +1320,7 @@ export const finance = {
   },
   /** due_date omitted → card-cycle due date (cards only). */
   /** share (one transaction): their part of the bill; the rest stays the user's. */
-  markPaidFor: (data: { borrower: string; transaction_ids: number[]; due_date?: string; remind?: boolean; share?: number }) =>
+  markPaidFor: (data: { borrower?: string; transaction_ids: number[]; due_date?: string; remind?: boolean; share?: number; shares?: { borrower: string; share: number }[] }) =>
     request<{ lend_ids: number[] }>('/finance/lends/paid-for', { method: 'POST', body: JSON.stringify(data) }),
   /** lend_id: the lend these were for; omitted = the person's overall total. */
   settleLends: (data: { borrower: string; transaction_ids: number[]; lend_id?: number }) =>

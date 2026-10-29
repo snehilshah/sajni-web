@@ -24,7 +24,7 @@ import { Money } from './Money';
 import { txnAtToParts, formatTxnTime, toPaise, fromPaise, sumMoney } from './utils';
 import { RowsSkeleton } from './Skeletons';
 import CategoryManager from './CategoryManager';
-import TransactionDialog from './TransactionDialog';
+import TransactionDialog, { txnSplits } from './TransactionDialog';
 import SlateDialog from './SlateDialog';
 import { EditLendDialog, EditRepaymentDialog, paymentFromTxn, type Payment } from './LendsTab';
 
@@ -89,9 +89,9 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
     d.items.push(t);
     // Tallies accumulate in paise (exact) and convert back below.
     const paise = toPaise(t.amount);
-    // A split bill's own amount is the user's part; the other person's
-    // share is lent. A refund nets off spending; a forgiven lend is spending.
-    const share = t.split ? toPaise(t.split.share) : 0;
+    // A split bill's own amount is the user's part; everyone else's share
+    // is lent. A refund nets off spending; a forgiven lend is spending.
+    const share = txnSplits(t).reduce((p, sp) => p + toPaise(sp.share), 0);
     for (const b of [m, w, d] as Tally[]) {
       if (t.type === 'expense' || t.type === 'writeoff') b.spent += paise;
       if (t.type === 'refund') b.spent -= paise;
@@ -700,8 +700,9 @@ function LedgerRow({
   const isRefund = t.type === 'refund';
   // A split bill shows the charge as it hit the account; the user's part
   // sits under it.
-  const shown = t.split ? sumMoney([t.amount, t.split.share], (v) => v) : t.amount;
-  const marker = t.split ? `Split · ${t.split.borrower}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Adjusted' : null;
+  const splits = txnSplits(t);
+  const shown = splits.length ? sumMoney([t.amount, ...splits.map((sp) => sp.share)], (v) => v) : t.amount;
+  const marker = splits.length ? `Split · ${splits.map((sp) => sp.borrower).join(', ')}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Adjusted' : null;
   const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
   const isMove = isTransfer || isLend || isLendRepayment;
   const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'));
@@ -850,7 +851,7 @@ function LedgerRow({
         }`}>
           <span className="flex flex-col items-end">
             <Money value={shown} sign={isExpense || isLend ? '−' : !isTransfer ? '+' : ''} />
-            {t.split && <span className="text-xs font-normal text-muted-foreground">yours <Money value={t.amount} /></span>}
+            {splits.length > 0 && <span className="text-xs font-normal text-muted-foreground">yours <Money value={t.amount} /></span>}
           </span>
         </div>
       </button>
