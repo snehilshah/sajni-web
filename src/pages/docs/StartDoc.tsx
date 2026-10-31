@@ -188,14 +188,15 @@ export default function StartDoc() {
             <p>
               Writing the journal (day, week and month pages), planning a day
               (adding tasks to a plan, moving them), tasks (add, tick, edit,
-              move to tomorrow, delete), memos, logging an expense or income
+              move to tomorrow, delete), habit check-ins (today, a past day or
+              a week's), memos, logging an expense or income
               (a split included), lending cash, show and book progress, and
               saving a link from the share sheet. Each change shows straight
               away and waits in an outbox; the pill counts them (<em>Offline ·
               3 changes waiting</em>).
             </p>
             <p>
-              Everything else (habits, settling lends, notes, the AI,
+              Everything else (settling lends, notes, the AI,
               search, uploads) needs a connection and says so if you try.
               A screen you never opened online has no copy yet: <em>Not saved
               for offline yet</em>. A journal day you haven't written opens
@@ -218,6 +219,12 @@ export default function StartDoc() {
               title on the web. When the phone syncs, both stick: they touched
               different fields. Had you also renamed it on the phone at 9:00,
               the web's 9:30 title would stay, being later.
+            </p>
+            <p>
+              A habit check-in syncs as what you left it at: tick{' '}
+              <em>Workout</em> offline and it arrives as <em>done on Sunday</em>,
+              even if the web unticked it meanwhile, and even if the phone only
+              syncs on Monday.
             </p>
             <p>
               If Sajni refuses a change when it syncs (say, ticking a task
