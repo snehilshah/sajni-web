@@ -11,6 +11,7 @@ export const startMeta = {
     { id: 'navigation', label: 'Moving around' },
     { id: 'palette', label: 'Command palette' },
     { id: 'conventions', label: 'House rules' },
+    { id: 'offline', label: 'Offline on the phone' },
   ],
 };
 
@@ -171,6 +172,61 @@ export default function StartDoc() {
             <em>Settings &amp; data</em>.
           </li>
         </ul>
+      </Section>
+
+      <Section id="offline" title="Offline on the Phone">
+        <p>
+          The Android app keeps a copy of everything you've opened, so it
+          still works with no signal: on a flight, in the metro, in a dead
+          zone. A small pill above the nav bar says so (<em>Offline · changes
+          will sync</em>, or <em>Can't reach Sajni right now</em> when the
+          phone is online but the server isn't answering). Pulling to refresh
+          shows the saved copy instead of an error.
+        </p>
+        <FeatureList>
+          <Feature name="What works offline">
+            <p>
+              Writing the journal (day, week and month pages), planning a day
+              (adding tasks to a plan, moving them), tasks (add, tick, edit,
+              move to tomorrow, delete), memos, logging an expense or income
+              (a split included), lending cash, show and book progress, and
+              saving a link from the share sheet. Each change shows straight
+              away and waits in an outbox; the pill counts them (<em>Offline ·
+              3 changes waiting</em>).
+            </p>
+            <p>
+              Everything else (habits, settling lends, notes, the AI,
+              search, uploads) needs a connection and says so if you try.
+              A screen you never opened online has no copy yet: <em>Not saved
+              for offline yet</em>. A journal day you haven't written opens
+              empty and saves offline like any other.
+            </p>
+          </Feature>
+          <Feature name="Syncing">
+            <p>
+              When the connection comes back, the changes go out in the order
+              you made them, even if the app is closed by then. The pill reads{' '}
+              <em>Syncing 3 changes</em>, then <em>Synced 3 changes</em> for a
+              moment. A change can't be filed twice, even if the signal
+              drops halfway through sending it.
+            </p>
+          </Feature>
+          <Feature name="When the same thing changed elsewhere">
+            <p>
+              Field by field, the later edit wins. You tick <em>Pay rent</em>{' '}
+              done on the phone in the metro at 9:00; at 9:30 you change its
+              title on the web. When the phone syncs, both stick: they touched
+              different fields. Had you also renamed it on the phone at 9:00,
+              the web's 9:30 title would stay, being later.
+            </p>
+            <p>
+              If Sajni refuses a change when it syncs (say, ticking a task
+              whose subtasks were reopened on the web), it's dropped and a
+              notice says why: <em>Couldn't sync “Pay rent”: Finish its 2 open
+              subtasks first</em>.
+            </p>
+          </Feature>
+        </FeatureList>
       </Section>
     </>
   );
