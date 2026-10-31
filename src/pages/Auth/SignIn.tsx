@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from '@/components/ui/icons';
 import { useAuth } from '@/auth/AuthContext';
+import { AFTER_LOGIN_KEY } from '@/auth/afterLogin';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -56,6 +57,8 @@ export default function SignIn() {
   function startOAuth(provider: 'google' | 'github') {
     if (oauthBusy) return;
     setOauthBusy(provider);
+    // The provider round trip drops router state; OAuthDone picks this up.
+    if (afterLogin !== '/') sessionStorage.setItem(AFTER_LOGIN_KEY, afterLogin);
     beginOAuth(provider);
   }
 

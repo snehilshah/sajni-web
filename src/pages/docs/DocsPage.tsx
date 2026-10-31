@@ -14,6 +14,7 @@ import FinanceDoc, { financeMeta } from './FinanceDoc';
 import AnalyticsDoc, { analyticsMeta } from './AnalyticsDoc';
 import AiDoc, { aiMeta } from './AiDoc';
 import SettingsDoc, { settingsMeta } from './SettingsDoc';
+import ConnectedAppsDoc, { connectedAppsMeta } from './ConnectedAppsDoc';
 
 // The Sajni field guide — one docs page per primary-nav space (plus the
 // cross-cutting Start / Ask Sajni / Settings pages), each broken into
@@ -57,6 +58,7 @@ const GROUPS: { name: string; pages: PageDef[] }[] = [
     name: 'System',
     pages: [
       { meta: aiMeta, Component: AiDoc },
+      { meta: connectedAppsMeta, Component: ConnectedAppsDoc },
       { meta: settingsMeta, Component: SettingsDoc },
     ],
   },

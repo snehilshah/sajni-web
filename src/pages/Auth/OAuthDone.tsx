@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/AuthContext';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { AFTER_LOGIN_KEY } from '@/auth/afterLogin';
 
 // OAuthDone is the landing page for both Google + GitHub callbacks. The
 // API issues a 302 to `/auth/done?linked=<provider>#access=<token>`; we
@@ -39,7 +40,10 @@ export default function OAuthDone() {
         if (linked) {
           toast.success(`Linked ${linked} to your account`);
         }
-        navigate('/', { replace: true });
+        // Back to the page that asked for sign-in (e.g. connecting an app).
+        const next = sessionStorage.getItem(AFTER_LOGIN_KEY);
+        sessionStorage.removeItem(AFTER_LOGIN_KEY);
+        navigate(next && next.startsWith('/') && !next.startsWith('//') ? next : '/', { replace: true });
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Sign-in failed'),

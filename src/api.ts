@@ -731,6 +731,36 @@ export const uploads = {
   },
 };
 
+// --- Connected apps: outside assistants (ChatGPT, Gemini) using Sajni over MCP ---
+export interface ConnectedApp {
+  id: string;
+  name: string;
+  /** Where the app lives (chatgpt.com), shown so a look-alike stands out. */
+  host: string;
+  can_write: boolean;
+  created_at: string;
+  last_used_at?: string;
+}
+/** The consent page's view of an /oauth/authorize request. A `redirect`
+ *  means send the browser straight back to the app (a request it got wrong). */
+export interface ConnectRequest {
+  client_name?: string;
+  client_host?: string;
+  redirect_host?: string;
+  write_requested?: boolean;
+  connected?: boolean;
+  connected_write?: boolean;
+  redirect?: string;
+}
+export const connectedApps = {
+  list: () => request<ConnectedApp[]>('/connected-apps'),
+  remove: (id: string) => request<{ status: string }>(`/connected-apps/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  /** `query` is the authorize page's own query string, passed through as is. */
+  check: (query: string) => request<ConnectRequest>(`/oauth/request${query}`),
+  decide: (query: string, allow: boolean, write: boolean) =>
+    request<{ redirect: string }>('/oauth/approve', { method: 'POST', body: JSON.stringify({ query, allow, write }) }),
+};
+
 // --- Takeout (export/import all user data) + account delete ---
 export const account = {
   // Downloads the user's full takeout archive (zip). Browser kicks off a

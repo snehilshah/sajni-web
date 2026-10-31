@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Wand2, Pencil, Mail, Check, X, RefreshCw } from '@/components/ui/icons';
+import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Wand2, Pencil, Mail, Check, X, RefreshCw, Copy } from '@/components/ui/icons';
 // No pixel match — straight lucide (same as the icon shim's passthroughs).
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,12 @@ import { useMode, useDensity, type ModePref, type Density } from '@/hooks/useThe
 import { cn } from '@/lib/utils';
 import { huePillBase, huePillOn, huePillOff, hueVar } from '@/components/ui/hue-pill';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { account, type UserTheme } from '@/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { account, connectedApps, type ConnectedApp, type UserTheme } from '@/api';
 import { useThemes } from '@/queries/themes';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
+import { failureText } from '@/lib/errors';
 import { format, parseISO } from 'date-fns';
 import { useTheme as useUserTheme } from '@/theme/ThemeProvider';
 import { previewSwatches } from '@/theme/applyM3';
@@ -173,6 +174,85 @@ function AIThemes() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// Connected apps: assistants (ChatGPT, Gemini) the user let in over MCP.
+// The server URL is what they paste; each app can be removed, which signs
+// it out at once.
+const MCP_URL = `${window.location.origin}/mcp`;
+
+function ConnectedApps() {
+  const qc = useQueryClient();
+  const { data: apps } = useQuery({ queryKey: qk.connectedApps.all, queryFn: connectedApps.list });
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  async function remove(app: ConnectedApp) {
+    const ok = await confirmDialog({
+      title: `Remove ${app.name}?`,
+      description: 'It loses access to Sajni right away. You can connect it again later.',
+      confirmText: 'Remove',
+    });
+    if (!ok) return;
+    setRemoving(app.id);
+    try {
+      await connectedApps.remove(app.id);
+      await qc.invalidateQueries({ queryKey: qk.connectedApps.all });
+    } catch (e) {
+      toast.error(failureText(e));
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(MCP_URL);
+      toast.success('Copied');
+    } catch {
+      toast.error("Couldn't copy");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-md bg-[hsl(var(--surface-container-high))] px-3 py-2 text-xs">
+          {MCP_URL}
+        </code>
+        <Button variant="outline" size="icon" onClick={copy} title="Copy server URL" aria-label="Copy server URL">
+          <Copy className="size-4" />
+        </Button>
+      </div>
+      {apps && apps.length > 0 && (
+        <ul className="flex flex-col">
+          {apps.map((app) => (
+            <li key={app.id} className="flex items-center gap-3 py-2">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{app.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {[
+                    app.host,
+                    app.can_write ? 'Can make changes' : 'Read only',
+                    app.last_used_at ? `Used ${format(parseISO(app.last_used_at), 'd MMM, h:mm a')}` : 'Not used yet',
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              <Button
+                variant="destructive-ghost"
+                size="icon"
+                disabled={removing === app.id}
+                onClick={() => remove(app)}
+                title={`Remove ${app.name}`}
+                aria-label={`Remove ${app.name}`}
+              >
+                {removing === app.id ? <M3CookieLoader size="xs" tone="primary" /> : <Trash2 className="size-4" />}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -558,6 +638,10 @@ export default function SettingsPage() {
             <Choice value={'comfortable'  as Density} current={density} onSelect={setDensity} Icon={Type} label="Comfortable" />
             <Choice value={'cozy'         as Density} current={density} onSelect={setDensity} Icon={Type} label="Cozy" />
           </div>
+        </Section>
+
+        <Section id="connected-apps" title="Connected apps">
+          <ConnectedApps />
         </Section>
 
         <Section title="Your data">

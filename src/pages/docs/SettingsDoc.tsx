@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Section, Callout, Code, Feature, FeatureList } from './primitives';
 
 export const settingsMeta = {
@@ -113,6 +114,11 @@ export default function SettingsDoc() {
           Finance has its own CSV exports (transactions, budgets, net-worth)
           under Finance → Export, spreadsheet-shaped, no lock-in.
         </Callout>
+        <p>
+          <strong>Connected apps</strong> lists the assistants (ChatGPT,
+          Gemini, Claude) you let use Sajni, with a copy button for the address
+          they need. See <Link to="/docs/connected-apps">Connected apps</Link>.
+        </p>
       </Section>
     </>
   );

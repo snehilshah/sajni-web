@@ -24,6 +24,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const SignInPage = lazy(() => import('./pages/Auth/SignIn'));
 const OAuthDonePage = lazy(() => import('./pages/Auth/OAuthDone'));
 const LinkChallengePage = lazy(() => import('./pages/Auth/LinkChallenge'));
+const ConnectAppPage = lazy(() => import('./pages/Auth/ConnectApp'));
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import RequireAuth from './auth/RequireAuth';
 import { TaskDetailProvider } from '@/components/tasks/TaskDetailProvider';
@@ -109,6 +110,8 @@ export default function App() {
           <Route path="/register" element={<Navigate to="/signin" replace />} />
           {/* OAuth callback handoff (token in URL fragment). */}
           <Route path="/auth/done" element={<OAuthDonePage />} />
+          {/* OAuth consent for connected apps (ChatGPT, Gemini over MCP). */}
+          <Route path="/oauth/authorize" element={<RequireAuth><ConnectAppPage /></RequireAuth>} />
           {/* TOTP-link challenge after an unverified-email provider collision. */}
           <Route path="/auth/link" element={<LinkChallengePage />} />
           {/* PWA share target — captures a shared UPI message; gates auth itself

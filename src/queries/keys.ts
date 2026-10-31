@@ -125,6 +125,9 @@ export const qk = {
     all: ['insights'] as const,
     list: (window?: string) => ['insights', 'list', window ?? 'all'] as const,
   },
+  connectedApps: {
+    all: ['connected-apps'] as const,
+  },
   themes: {
     all: ['themes'] as const,
     list: () => ['themes', 'list'] as const,
