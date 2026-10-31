@@ -1,4 +1,3 @@
-import { X } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { DateBadge } from '@/components/ui/state-chip';
@@ -99,46 +98,42 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
     delete custom[personKey(name)];
     set({ people: s.people.filter((p) => p !== name), custom });
   };
-  const offered = suggestions.filter((p) => !names.some((n) => personKey(n) === personKey(p))).slice(0, 6);
+  // One row of people under the box: earlier names in a fixed order, then
+  // anyone added by typing. Tapping one switches it in or out where it sits,
+  // so nothing jumps around as people are picked.
+  const pool = suggestions.slice(0, 6);
+  const row = [...pool, ...s.people.filter((p) => !pool.some((q) => personKey(q) === personKey(p)))];
 
   return (
     <div className="flex flex-col gap-2">
-      <div className={cn(
-        'flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] px-2 py-1.5',
-        'focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
-        errors?.person && 'border-destructive',
-      )}>
-        {s.people.map((p) => (
-          <span key={p} className="inline-flex h-8 items-center gap-1 rounded-lg bg-[hsl(var(--secondary-container))] pl-2.5 pr-1 text-sm font-medium text-[hsl(var(--on-secondary-container))]">
-            {p}
-            <button type="button" aria-label={`Remove ${p}`} onClick={() => remove(p)}
-              className="grid size-6 place-items-center rounded-full outline-none hover:bg-[hsl(var(--on-secondary-container)/0.12)] focus-visible:ring-2 focus-visible:ring-ring/45">
-              <X className="size-3.5" />
-            </button>
-          </span>
-        ))}
-        <Input
-          value={s.draft}
-          onChange={(e) => {
-            const v = e.target.value;
-            // A comma finishes a name.
-            if (v.endsWith(',')) add(v.slice(0, -1)); else set({ draft: v });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && s.draft.trim()) { e.preventDefault(); add(s.draft); }
-            if (e.key === 'Backspace' && !s.draft && s.people.length) remove(s.people[s.people.length - 1]);
-          }}
-          onBlur={() => { if (s.draft.trim()) add(s.draft); }}
-          placeholder={s.people.length ? 'Add someone' : 'Who owes this?'}
-          aria-label="Who owes this"
-          aria-invalid={!!errors?.person}
-          autoFocus={autoFocus}
-          className="h-8 min-w-[8rem] flex-1 border-0 bg-transparent px-1.5 shadow-none focus-visible:shadow-none"
-        />
-      </div>
-      {offered.length > 0 && (
+      <Input
+        value={s.draft}
+        onChange={(e) => {
+          const v = e.target.value;
+          // A comma finishes a name.
+          if (v.endsWith(',')) add(v.slice(0, -1)); else set({ draft: v });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && s.draft.trim()) { e.preventDefault(); add(s.draft); }
+        }}
+        onBlur={() => { if (s.draft.trim()) add(s.draft); }}
+        placeholder={s.people.length ? 'Add someone' : 'Who owes this?'}
+        aria-label="Who owes this"
+        aria-invalid={!!errors?.person}
+        autoFocus={autoFocus}
+        className={cn(errors?.person && 'border-destructive')}
+      />
+      {row.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {offered.map((p) => <HuePill key={p} onClick={() => add(p)} className="h-8">{p}</HuePill>)}
+          {row.map((p) => {
+            const picked = s.people.find((q) => personKey(q) === personKey(p));
+            // One weight in both states, so picking doesn't widen the pill.
+            return (
+              <HuePill key={personKey(p)} selected={!!picked} onClick={() => (picked ? remove(picked) : add(p))} className="h-8 font-medium">
+                {p}
+              </HuePill>
+            );
+          })}
         </div>
       )}
       {errors?.person && <p className="text-xs text-destructive">{errors.person}</p>}

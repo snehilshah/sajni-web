@@ -321,7 +321,8 @@ export default function FinanceDoc() {
               <em>You ₹300 · Rahul owes ₹300 · Priya owes ₹300</em>. The card
               shows one ₹900 charge, your spending is ₹300, and Rahul and Priya
               each owe you ₹300 on their own, so each can pay you back
-              separately.
+              separately. Everyone you pick lights up in the row of names
+              under the box; tap a name again to take them out.
             </p>
             <p>
               Paid for them and none of it was yours (two movie tickets)? Turn
