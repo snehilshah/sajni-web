@@ -305,6 +305,40 @@ function onResource(entry: PerformanceResourceTiming) {
   });
 }
 
+// ─── Route commits ──────────────────────────────────────────────────────
+// The URL changes before React renders the new page. If the old page keeps
+// React busy (a render loop) the new page never commits: the URL is right
+// but the screen is stuck. Compare the URL with the last committed route.
+
+let urlPath = location.pathname;
+let urlChangedAt = performance.now();
+let committedPath = location.pathname;
+let navStep = 0;
+
+function urlChanged() {
+  if (location.pathname === urlPath) return;
+  urlPath = location.pathname;
+  urlChangedAt = performance.now();
+  navStep = 0;
+}
+
+/** TelemetryRoute reports each committed route. */
+export function routeCommitted(pathname: string) {
+  if (navStep > 0 && pathname === urlPath) {
+    track('nav_unstuck', { p: pathname, age: Math.round(performance.now() - urlChangedAt) });
+  }
+  committedPath = pathname;
+}
+
+function checkNav() {
+  if (committedPath === urlPath) { navStep = 0; return; }
+  const age = performance.now() - urlChangedAt;
+  while (navStep < STUCK_STEPS.length && age >= STUCK_STEPS[navStep]) {
+    const step = STUCK_STEPS[navStep++];
+    track('nav_stuck', { url: urlPath, shown: committedPath, step, age: Math.round(age), ...visState(), fetches: pendingSummary() }, true);
+  }
+}
+
 // ─── Watchdogs ──────────────────────────────────────────────────────────
 
 interface QueryWatch { since: number; step: number }
@@ -386,6 +420,7 @@ function tick() {
   lastWall = wall;
   checkFetches();
   checkQueries();
+  checkNav();
   if (document.visibilityState === 'visible' && t - lastHeartbeat > 60_000) {
     lastHeartbeat = t;
     const active = client?.getQueryCache().getAll().filter((q) => q.getObserversCount() > 0) ?? [];
@@ -415,6 +450,12 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
   getToken = tokenGetter;
 
   track('boot', sessionInfo());
+
+  for (const method of ['pushState', 'replaceState'] as const) {
+    const orig = history[method].bind(history);
+    history[method] = (...args: Parameters<History['pushState']>) => { orig(...args); urlChanged(); };
+  }
+  window.addEventListener('popstate', urlChanged);
 
   const lifecycle = (name: string, extra?: (e: Event) => Fields) =>
     (e: Event) => track(name, { ...(extra?.(e) ?? {}), ...visState() });
