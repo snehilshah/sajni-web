@@ -1,3 +1,5 @@
+// First: wraps fetch before anything else can call it.
+import { installTelemetry } from './lib/telemetry'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -10,13 +12,15 @@ import App from './App.tsx'
 import { queryClient } from './queries/queryClient'
 import { InvalidateBridge } from './queries/InvalidateBridge'
 import log from './lib/logger'
-import { API_BASE } from './auth/client'
+import { API_BASE, getAccessToken } from './auth/client'
 import { installChunkReload } from './lib/chunkReload'
 import { installErrorNet } from './lib/errorNet'
 import { BuildWatcher } from './lib/buildWatch'
+import { TelemetryRoute } from './lib/TelemetryRoute'
 
 log.info({ api: API_BASE, env: import.meta.env.MODE }, 'sajni init')
 
+installTelemetry(queryClient, getAccessToken)
 installChunkReload()
 installErrorNet()
 
@@ -35,6 +39,7 @@ createRoot(document.getElementById('root')!).render(
       <InvalidateBridge />
       <BrowserRouter>
         <BuildWatcher />
+        <TelemetryRoute />
         <MotionConfig reducedMotion="user">
           <App />
         </MotionConfig>

@@ -1,4 +1,5 @@
 import log from '../lib/logger';
+import { track } from '../lib/telemetry';
 
 // Both the Vite dev proxy and Vercel rewrite serve the backend at /api.
 // Keep auth same-origin so OAuth callbacks and refresh cookies share a host.
@@ -10,6 +11,10 @@ let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
+}
+
+export function getAccessToken(): string | null {
+  return accessToken;
 }
 
 // Public refresh payload — exposes the full /auth/refresh response so
@@ -36,16 +41,21 @@ let refreshInflight: Promise<RefreshResult | null> | null = null;
 export async function refreshSession(): Promise<RefreshResult | null> {
   if (!refreshInflight) {
     refreshInflight = (async () => {
+      const started = performance.now();
+      const done = (outcome: string, status?: number) =>
+        track('auth_refresh', { outcome, status, ms: Math.round(performance.now() - started), hadToken: !!accessToken });
       try {
         const res = await fetch(`${API_BASE}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
         });
-        if (!res.ok) return null;
+        if (!res.ok) { done('rejected', res.status); return null; }
         const data = (await res.json()) as RefreshResult;
         accessToken = data.access_token;
+        done('ok', res.status);
         return data;
-      } catch {
+      } catch (e) {
+        done('error: ' + (e instanceof Error ? e.message : String(e)));
         return null;
       } finally {
         refreshInflight = null;

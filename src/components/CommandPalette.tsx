@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, BookOpen, CheckSquare, Target, FileText, Film, Clock,
   Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft, X,
-  Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight,
+  Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight, Activity,
   Bookmark as BookmarkIcon,
 } from '@/components/ui/icons';
 
@@ -15,6 +15,8 @@ import {
 } from '@/lib/fuzzy';
 import { useMode, useDensity } from '@/hooks/useThemePrefs';
 import { useAuth } from '@/auth/AuthContext';
+import { reportHang } from '@/lib/telemetry';
+import { toast } from 'sonner';
 import { Input } from './ui/input';
 
 const AIPaletteAnswer = lazy(() => import('@/components/AIPaletteAnswer'));
@@ -89,6 +91,7 @@ export default function CommandPalette({ onOpenChange }: Props) {
     { id: 'density-comf',  label: 'Density: Comfortable', Icon: Type, run: () => setDensity('comfortable') },
     { id: 'density-comp',  label: 'Density: Compact',     Icon: Type, run: () => setDensity('compact') },
     { id: 'density-cozy',  label: 'Density: Cozy',        Icon: Type, run: () => setDensity('cozy') },
+    { id: 'report-slow',   label: 'Report slow loading', Icon: Activity, run: () => { reportHang(); toast('Noted. Thanks.'); } },
     { id: 'go-settings',   label: 'Open Settings',  Icon: Settings, hint: '/settings', run: () => navigate('/settings') },
     { id: 'sign-out',      label: 'Sign out',       Icon: LogOut,   danger: true, run: () => logout() },
   ], [setMode, setDensity, navigate, logout]);

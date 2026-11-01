@@ -1,5 +1,7 @@
 import { lazy, type ComponentType } from 'react';
 
+import { trackChunk } from './telemetry';
+
 // Lazy-loaded screens and heavy surfaces register here so the signed-in shell
 // can fetch them all once the app is idle. After that, switching pages never
 // waits on the network (no frozen-looking transition on a slow connection),
@@ -9,8 +11,16 @@ const loaders: Array<() => Promise<unknown>> = [];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React.lazy's own constraint
 export function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T }>) {
-  loaders.push(load);
-  return lazy(load);
+  const name = /import\(["']([^"']+)["']\)/.exec(load.toString())?.[1] ?? 'chunk';
+  const timed = () => {
+    const started = performance.now();
+    return load().then(
+      (mod) => { trackChunk(name, Math.round(performance.now() - started)); return mod; },
+      (err: unknown) => { trackChunk(name, Math.round(performance.now() - started), err); throw err; },
+    );
+  };
+  loaders.push(timed);
+  return lazy(timed);
 }
 
 let started = false;
