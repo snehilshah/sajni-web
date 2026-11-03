@@ -93,6 +93,13 @@ export async function authFetch(
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
+  // A change can reach the server twice: on a stalled connection the browser
+  // re-sends it on a fresh one, and the stalled copy may still arrive. The
+  // API runs a keyed change once and replays its reply to later copies.
+  const method = (rest.method || 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD' && !headers['Idempotency-Key']) {
+    headers['Idempotency-Key'] = crypto.randomUUID();
+  }
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...rest,
