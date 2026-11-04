@@ -534,7 +534,7 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
           track('long_frame', {
             d: Math.round(e.duration),
             block: Math.round(loaf.blockingDuration ?? 0),
-            scripts: (loaf.scripts ?? []).sort((a, b) => b.duration - a.duration).slice(0, 3)
+            scripts: [...(loaf.scripts ?? [])].sort((a, b) => b.duration - a.duration).slice(0, 3)
               .map((s) => ({ src: s.sourceURL ? shortUrl(s.sourceURL) : '', inv: trim(s.invoker ?? '', 80), d: Math.round(s.duration) })),
             path: location.pathname,
           });

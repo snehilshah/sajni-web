@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { confirmDialog } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
+import { useTaskLists } from '@/queries/tasks';
 
 const RECENT_KEY = 'sajni:tasks:recent-lists';
 const RECENT_MAX = 4;
@@ -56,6 +57,9 @@ export default function ListPicker({
   const [editDraft, setEditDraft] = useState('');
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
+  // Same query the page reads (deduped). Until it answers, the menu says so
+  // instead of looking like there are no lists.
+  const listsQ = useTaskLists();
 
   const selected = lists.find((l) => l.id === selectedId) ?? null;
   const q = query.trim().toLowerCase();
@@ -240,6 +244,18 @@ export default function ListPicker({
             </>
           )}
           {matches.map(row)}
+          {lists.length === 0 && listsQ.isPending && (
+            <div className="px-2.5 py-3 text-sm text-muted-foreground">Loading your lists…</div>
+          )}
+          {lists.length === 0 && listsQ.isError && (
+            <button
+              type="button"
+              onClick={() => listsQ.refetch()}
+              className="w-full px-2.5 py-3 text-left text-sm text-muted-foreground hover:text-foreground"
+            >
+              Couldn’t load your lists. Tap to retry.
+            </button>
+          )}
           {q && matches.length === 0 && !showInbox && (
             <div className="px-2.5 py-3 text-sm text-muted-foreground">No list called “{query.trim()}”</div>
           )}
