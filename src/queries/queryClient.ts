@@ -1,24 +1,17 @@
-import { QueryClient, type Query } from '@tanstack/react-query';
-import { retryable } from '@/lib/retryable';
+import { QueryClient } from '@tanstack/react-query';
 
 // Single-device PKMS: invalidation (post-mutation + the AI bus bridge) is the
 // correctness mechanism, not focus-polling. So we keep a short stale window for
-// snappy repeat reads and skip refetch-on-focus for loaded data, but do refetch
+// snappy repeat reads, skip refetch-on-focus (pure noise here), but do refetch
 // on reconnect so a dropped connection self-heals.
-//
-// A read that failed on a bad connection (no reply, a cut-off reply, a 5xx,
-// our 30 s limit) is tried again after 1, 2 and 4 s; a refusal (4xx) isn't. One
-// that still failed is fetched again when the tab is next focused, so a page
-// isn't left showing nothing until a reload.
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60_000,
       gcTime: 5 * 60_000,
-      refetchOnWindowFocus: (query: Query) => query.state.status === 'error',
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      retry: (failures, err) => failures < 3 && retryable(err),
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+      retry: 1,
     },
     mutations: {
       retry: 0,

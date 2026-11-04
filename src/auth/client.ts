@@ -88,10 +88,6 @@ export function withPin<T>(pin: Pin, fn: () => T): T {
   try { return fn(); } finally { pinned = prev; }
 }
 
-// A read that hasn't answered in this long is abandoned so it can be retried
-// (a stalled connection can otherwise hang it for half a minute or more).
-const READ_HEADERS_TIMEOUT_MS = 30_000;
-
 // authFetch is the canonical entry point for backend requests.
 //   - prepends API_BASE
 //   - sends `Authorization: Bearer` if we have one
@@ -120,20 +116,11 @@ export async function authFetch(
   }
   if (!rest.signal && pin?.signal) rest.signal = pin.signal;
 
-  let res: Response;
-  if (read) {
-    // Only the wait for the reply's headers is limited; a long body can stream.
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(new DOMException('No reply from Sajni in time', 'TimeoutError')), READ_HEADERS_TIMEOUT_MS);
-    const signal = rest.signal ? AbortSignal.any([rest.signal, ctrl.signal]) : ctrl.signal;
-    try {
-      res = await fetch(`${API_BASE}${path}`, { ...rest, signal, credentials: 'include', headers });
-    } finally {
-      clearTimeout(timer);
-    }
-  } else {
-    res = await fetch(`${API_BASE}${path}`, { ...rest, credentials: 'include', headers });
-  }
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...rest,
+    credentials: 'include',
+    headers,
+  });
 
   if (res.status !== 401 || skipRefresh) return res;
 
