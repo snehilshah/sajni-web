@@ -570,7 +570,7 @@ export default function TodayPage() {
 															{h.name}
 														</div>
 														{habit?.frequency === 'daily' ? (
-															<div className="flex items-center gap-1.5 mt-1">
+															<div className="mt-1.5 flex items-center gap-2">
 																{Array.from({ length: 7 }).map((_, idx) => {
 																	const filled = week[idx];
 																	const isToday = idx === todayIdx;
@@ -578,10 +578,10 @@ export default function TodayPage() {
 																	return (
 																		<div
 																			key={idx}
-																			className="rounded-[2px]"
+																			// The week fills the row's width.
+																			className="min-w-3.5 flex-1 rounded-full"
 																			style={{
-																				width: 14,
-																				height: isToday ? 6 : 4,
+																				height: isToday ? 8 : 6,
 																				background: filled
 																					? h.color
 																					: isFuture
