@@ -76,6 +76,22 @@ interface AuthFetchOptions extends Omit<RequestInit, 'headers'> {
   skipRefresh?: boolean;
 }
 
+// A pin gives the requests started inside `fn` (synchronously, before their
+// first await) a fixed Idempotency-Key and an abort signal. Retrying a change
+// under the same key is safe: the API runs it once.
+interface Pin { key?: string; signal?: AbortSignal }
+let pinned: Pin | null = null;
+
+export function withPin<T>(pin: Pin, fn: () => T): T {
+  const prev = pinned;
+  pinned = pin;
+  try { return fn(); } finally { pinned = prev; }
+}
+
+// A read that hasn't answered in this long is abandoned so it can be retried
+// (a stalled connection can otherwise hang it for half a minute or more).
+const READ_HEADERS_TIMEOUT_MS = 30_000;
+
 // authFetch is the canonical entry point for backend requests.
 //   - prepends API_BASE
 //   - sends `Authorization: Bearer` if we have one
@@ -85,6 +101,7 @@ export async function authFetch(
   path: string,
   options: AuthFetchOptions = {},
 ): Promise<Response> {
+  const pin = pinned;
   const { skipRefresh, headers: callerHeaders, ...rest } = options;
   const headers: Record<string, string> = { ...(callerHeaders || {}) };
   if (rest.body && !(rest.body instanceof FormData) && !headers['Content-Type']) {
@@ -97,15 +114,26 @@ export async function authFetch(
   // re-sends it on a fresh one, and the stalled copy may still arrive. The
   // API runs a keyed change once and replays its reply to later copies.
   const method = (rest.method || 'GET').toUpperCase();
-  if (method !== 'GET' && method !== 'HEAD' && !headers['Idempotency-Key']) {
-    headers['Idempotency-Key'] = crypto.randomUUID();
+  const read = method === 'GET' || method === 'HEAD';
+  if (!read && !headers['Idempotency-Key']) {
+    headers['Idempotency-Key'] = pin?.key ?? crypto.randomUUID();
   }
+  if (!rest.signal && pin?.signal) rest.signal = pin.signal;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    credentials: 'include',
-    headers,
-  });
+  let res: Response;
+  if (read) {
+    // Only the wait for the reply's headers is limited; a long body can stream.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(new DOMException('No reply from Sajni in time', 'TimeoutError')), READ_HEADERS_TIMEOUT_MS);
+    const signal = rest.signal ? AbortSignal.any([rest.signal, ctrl.signal]) : ctrl.signal;
+    try {
+      res = await fetch(`${API_BASE}${path}`, { ...rest, signal, credentials: 'include', headers });
+    } finally {
+      clearTimeout(timer);
+    }
+  } else {
+    res = await fetch(`${API_BASE}${path}`, { ...rest, credentials: 'include', headers });
+  }
 
   if (res.status !== 401 || skipRefresh) return res;
 
@@ -131,7 +159,8 @@ export async function requestJSON<T>(
     if (res.status >= 500) {
       log.error({ path, status: res.status }, `api error: ${msg}`);
     }
-    throw Object.assign(new Error(msg), { status: res.status });
+    // `pending`: the same change is still running on the server; try again soon.
+    throw Object.assign(new Error(msg), { status: res.status, pending: res.headers.get('X-Idempotency-Pending') === '1' });
   }
   return res.json();
 }

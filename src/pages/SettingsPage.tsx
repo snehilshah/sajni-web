@@ -23,6 +23,7 @@ import { presetSwatches, THEMES } from '@/theme/presets';
 import PageShell from '@/components/PageShell';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { AnimatePresence, motion } from 'framer-motion';
+import { diagStats, downloadDiagnostics, sendDiagnostics, type DiagStats } from '@/lib/telemetry';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
 // applied through the ThemeProvider so other pages observe the swap
@@ -253,6 +254,48 @@ function ConnectedApps() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// Diagnostics recorded on this device (lib/telemetry). Nothing uploads on a
+// timer; Send puts the rest in the server logs, Download saves a file.
+function Diagnostics() {
+  const [stats, setStats] = useState<DiagStats | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const refresh = () => { diagStats().then(setStats).catch(() => setStats(null)); };
+  useEffect(refresh, []);
+
+  async function send() {
+    setProgress('Sending…');
+    try {
+      const n = await sendDiagnostics((sent, total) => setProgress(`Sending ${sent.toLocaleString()} of ${total.toLocaleString()}…`));
+      toast.success(n ? `Sent ${n.toLocaleString()} events` : 'Nothing new to send');
+    } catch (e) {
+      toast.error(failureText(e, "Couldn't send. Try again."));
+    } finally {
+      setProgress(null);
+      refresh();
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="text-xs text-muted-foreground">
+        {stats
+          ? `${stats.total.toLocaleString()} events on this device${stats.oldestAt ? ` since ${format(stats.oldestAt, 'd MMM, h:mm a')}` : ''} · ${stats.unsent.toLocaleString()} not sent`
+          : 'Loading…'}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={progress !== null || !stats?.unsent} onClick={send} className="gap-2">
+          {progress ? <M3CookieLoader size="xs" tone="primary" /> : <Upload className="size-4" />}
+          {progress ?? 'Send to Sajni'}
+        </Button>
+        <Button variant="outline" disabled={!stats?.total} onClick={() => { downloadDiagnostics().catch((e) => toast.error(failureText(e))); }} className="gap-2">
+          <Download className="size-4" />
+          Download (.json)
+        </Button>
+      </div>
     </div>
   );
 }
@@ -677,6 +720,10 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </Section>
+
+        <Section id="diagnostics" title="Diagnostics">
+          <Diagnostics />
         </Section>
 
         <Section title="Danger zone">

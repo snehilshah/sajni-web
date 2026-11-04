@@ -156,6 +156,18 @@ export default function TasksDoc() {
               images.
             </p>
           </Feature>
+          <Feature name="Saving on a slow connection">
+            <p>
+              Save (or Create) normally closes the task the moment the server
+              has it. If the connection is slow, the task closes anyway after
+              a second and a “Saving “Buy milk”…” notice finishes the job in
+              the background; the edit already shows in your lists. Sajni
+              keeps trying for about a minute and never saves the same change
+              twice. If it still can't get through, the notice says so and
+              offers Retry. Ticking, starring and rescheduling retry the same
+              way.
+            </p>
+          </Feature>
           <Feature name="History & activity">
             <p>
               Editing a task shows its trail, status flips, date moves,

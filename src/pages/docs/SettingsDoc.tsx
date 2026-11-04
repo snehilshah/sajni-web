@@ -101,6 +101,21 @@ export default function SettingsDoc() {
               what it restored, per module.
             </p>
           </Feature>
+          <Feature name="Diagnostics">
+            <p>
+              Sajni keeps a log of how each page and save went (how long
+              requests took, anything that got stuck) on this device only.
+              Nothing is uploaded on a timer. When something does get stuck,
+              or you pick <Code>Report slow loading</Code> in the command
+              palette, that moment is sent so it can be looked into.
+            </p>
+            <p>
+              Settings → Diagnostics shows how much is stored. <strong>Send
+              to Sajni</strong> uploads what hasn't been sent yet;
+              <strong> Download</strong> saves it as a file. The newest
+              100,000 events are kept.
+            </p>
+          </Feature>
           <Feature name="Delete account">
             <p>
               Type-to-confirm, and deletion is <em>scheduled</em> with a

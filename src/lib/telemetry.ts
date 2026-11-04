@@ -9,10 +9,13 @@ import { focusManager, onlineManager, type QueryClient } from '@tanstack/react-q
 // online/offline, network changes, sleep gaps), main-thread stalls and long
 // frames, lazy-chunk loads, auth refreshes, route changes and JS errors.
 //
-// Events buffer in memory and in localStorage (per tab), and upload in batches
-// to POST /api/telemetry, which writes them to Cloud Logging. A tab that dies
-// mid-hang (closed, reloaded, killed) leaves its buffer behind; the next tab
-// uploads it. `sid` + `q` identify an event, so duplicates can be dropped.
+// Events are kept on this device, in IndexedDB (`sajni-diag`, the newest
+// 100k events across tabs and reloads). Nothing uploads on a timer. Only
+// problems (stuck ≥10 s, errors, "Report slow loading") go to the server right
+// away, through POST /api/telemetry into Cloud Logging; a report also sends the
+// last 15 minutes of events around it. Settings → Diagnostics uploads the rest
+// on request, or downloads it as a file. `sid` + `q` identify an event, so
+// duplicates can be dropped.
 //
 // Every same-origin /api request carries X-Sajni-Req, which the API logs, so
 // a stuck request can be matched with the server's view of it.
@@ -21,23 +24,29 @@ type Fields = Record<string, unknown>;
 interface Ev extends Fields { k: string; q: number; at: number; t: number }
 
 const SID = Math.random().toString(36).slice(2, 10);
-const KEY_PREFIX = 'sajni:tm:';
-const OWN_KEY = KEY_PREFIX + SID;
-const MAX_BUF = 3000;
-const BATCH = 300;
-const ORPHAN_AGE_MS = 2 * 60_000;
+const LEGACY_PREFIX = 'sajni:tm:'; // old localStorage buffers, moved into IndexedDB
+const SENT_KEY = 'sajni:diag:sent'; // last record uploaded from Settings
+const DB_NAME = 'sajni-diag';
+const STORE = 'ev';
+const KEEP = 100_000;
+const WRITE_MS = 2_000;
+const RECENT = 3_000; // in memory, for a report's context
+const REPORT_WINDOW_MS = 15 * 60_000;
+const BATCH = 250;
 const STUCK_STEPS = [3_000, 10_000, 30_000, 60_000, 120_000, 300_000];
 const TELEMETRY_URL = '/api/telemetry';
 
 const BUILD = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
 const origFetch: typeof fetch = window.fetch.bind(window);
 
+interface Rec { s: string; b: string; e: Ev }
+
 let seq = 0;
-let buf: Ev[] = [];
-let flushing = false;
-let flushFails = 0;
-let lastFlushMs = -1;
-let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let recent: Ev[] = [];
+let toWrite: Rec[] = [];
+let writeTimer: ReturnType<typeof setTimeout> | null = null;
+let outbox: Ev[] = [];
+let sending = false;
 let getToken: () => string | null = () => null;
 
 let lastVisibleAt = document.visibilityState === 'visible' ? performance.now() : -1;
@@ -62,31 +71,109 @@ function visState() {
 
 export function track(k: string, fields: Fields = {}, urgent = false) {
   const ev: Ev = { k, q: ++seq, at: Date.now(), t: now(), ...fields };
-  buf.push(ev);
-  if (buf.length > MAX_BUF) buf = buf.slice(buf.length - MAX_BUF);
-  schedulePersist(urgent ? 0 : 1000);
-  if (urgent) setTimeout(() => void flush('urgent'), 0);
-}
-
-// ─── Persistence ────────────────────────────────────────────────────────
-
-function persist() {
-  persistTimer = null;
-  try {
-    localStorage.setItem(OWN_KEY, JSON.stringify({ t: Date.now(), build: BUILD, ev: buf }));
-  } catch {
-    // Quota: keep the newest half and try once more.
-    buf = buf.slice(Math.floor(buf.length / 2));
-    try { localStorage.setItem(OWN_KEY, JSON.stringify({ t: Date.now(), build: BUILD, ev: buf })); } catch { /* give up */ }
+  recent.push(ev);
+  if (recent.length > RECENT) recent = recent.slice(recent.length - RECENT);
+  toWrite.push({ s: SID, b: BUILD, e: ev });
+  scheduleWrite(urgent ? 0 : WRITE_MS);
+  if (urgent) {
+    outbox.push(ev);
+    if (outbox.length > 200) outbox = outbox.slice(outbox.length - 200);
+    setTimeout(() => void sendOutbox(), 0);
   }
 }
 
-function schedulePersist(delay: number) {
-  if (persistTimer !== null) {
+// ─── On-device store (IndexedDB) ────────────────────────────────────────
+
+let dbp: Promise<IDBDatabase> | null = null;
+function openDb(): Promise<IDBDatabase> {
+  if (!dbp) {
+    dbp = new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE, { autoIncrement: true });
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => { db.close(); dbp = null; };
+        resolve(db);
+      };
+      req.onerror = () => reject(req.error);
+      req.onblocked = () => reject(new Error('blocked'));
+    });
+    dbp.catch(() => { dbp = null; });
+  }
+  return dbp;
+}
+
+function done(req: IDBRequest | IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ('oncomplete' in req) {
+      req.oncomplete = () => resolve();
+      req.onabort = req.onerror = () => reject(req.error);
+    } else {
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    }
+  });
+}
+
+function result<T>(req: IDBRequest<T>): Promise<T> {
+  return done(req).then(() => req.result);
+}
+
+function scheduleWrite(delay: number) {
+  if (writeTimer !== null) {
     if (delay > 0) return;
-    clearTimeout(persistTimer);
+    clearTimeout(writeTimer);
   }
-  persistTimer = setTimeout(persist, delay);
+  writeTimer = setTimeout(() => void writeOut(), delay);
+}
+
+let written = 0;
+async function writeOut() {
+  writeTimer = null;
+  if (toWrite.length === 0) return;
+  const batch = toWrite;
+  toWrite = [];
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE, 'readwrite');
+    const st = tx.objectStore(STORE);
+    for (const r of batch) st.add(r);
+    await done(tx);
+    written += batch.length;
+    if (written >= 2_000) { written = 0; void prune(); }
+  } catch {
+    // Storage unavailable or full: these events stay only in memory.
+  }
+}
+
+// Keep the newest KEEP events.
+async function prune() {
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE, 'readwrite');
+    const st = tx.objectStore(STORE);
+    const extra = (await result(st.count())) - KEEP;
+    if (extra > 0) {
+      const keys = await result(st.getAllKeys(null, extra));
+      if (keys.length) st.delete(IDBKeyRange.upperBound(keys[keys.length - 1]));
+    }
+    await done(tx);
+  } catch { /* storage unavailable */ }
+}
+
+// Buffers from builds that kept them in localStorage move into the store.
+function adoptLegacy() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(LEGACY_PREFIX)) continue;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) ?? 'null') as { build?: string; ev?: Ev[] } | null;
+        for (const e of parsed?.ev ?? []) toWrite.push({ s: key.slice(LEGACY_PREFIX.length), b: parsed?.build ?? '?', e });
+      } catch { /* corrupt */ }
+      localStorage.removeItem(key);
+    }
+  } catch { /* storage unavailable */ }
 }
 
 // ─── Upload ─────────────────────────────────────────────────────────────
@@ -112,49 +199,88 @@ async function post(sid: string, build: string, events: Ev[], session: Fields | 
   }
 }
 
-async function flush(reason: string) {
-  if (flushing || buf.length === 0) return;
-  flushing = true;
-  const started = performance.now();
+// Problems go up straight away; a failed send waits for the next problem,
+// the tab coming back, or the network returning.
+async function sendOutbox() {
+  if (sending || outbox.length === 0) return;
+  sending = true;
   try {
-    while (buf.length > 0) {
-      const chunk = buf.slice(0, BATCH);
-      const ok = await post(SID, BUILD, chunk, { ...sessionInfo(), reason, flushFails, lastFlushMs });
-      if (ok === false) { flushFails++; break; }
+    while (outbox.length > 0) {
+      const chunk = outbox.slice(0, BATCH);
+      const ok = await post(SID, BUILD, chunk, { ...sessionInfo(), reason: 'problem' });
+      if (ok === false) break;
       const sent = new Set(chunk.map((e) => e.q));
-      buf = buf.filter((e) => !sent.has(e.q));
-      persist();
+      outbox = outbox.filter((e) => !sent.has(e.q));
     }
-    lastFlushMs = Math.round(performance.now() - started);
   } finally {
-    flushing = false;
+    sending = false;
   }
-  void adoptOrphans();
 }
 
-let adopting = false;
-// Upload buffers left behind by tabs that died (closed, reloaded, killed).
-async function adoptOrphans() {
-  if (adopting) return;
-  adopting = true;
-  try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith(KEY_PREFIX) || key === OWN_KEY) continue;
-      let parsed: { t?: number; build?: string; ev?: Ev[] } | null = null;
-      try { parsed = JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { /* corrupt */ }
-      if (parsed && typeof parsed.t === 'number' && Date.now() - parsed.t < ORPHAN_AGE_MS) continue; // live tab
-      const events = Array.isArray(parsed?.ev) ? parsed.ev : [];
-      let ok: boolean | 'drop' = true;
-      for (let j = 0; j < events.length && ok !== false; j += BATCH) {
-        ok = await post(key.slice(KEY_PREFIX.length), parsed?.build ?? '?', events.slice(j, j + BATCH),
-          { orphan: true, adoptedBy: SID });
-      }
-      if (ok !== false) localStorage.removeItem(key);
-    }
-  } catch { /* storage unavailable */ } finally {
-    adopting = false;
+async function sendRecent(sinceMs: number, reason: string) {
+  const events = recent.filter((e) => e.at >= sinceMs);
+  for (let i = 0; i < events.length; i += BATCH) {
+    if ((await post(SID, BUILD, events.slice(i, i + BATCH), { ...sessionInfo(), reason })) === false) return;
   }
+}
+
+function sentUpTo(): number {
+  try { return Number(localStorage.getItem(SENT_KEY)) || 0; } catch { return 0; }
+}
+
+export interface DiagStats { total: number; unsent: number; oldestAt: number | null }
+
+/** Settings → Diagnostics: what's stored on this device. */
+export async function diagStats(): Promise<DiagStats> {
+  await writeOut();
+  const db = await openDb();
+  const st = db.transaction(STORE).objectStore(STORE);
+  const [total, unsent, first] = await Promise.all([
+    result(st.count()),
+    result(st.count(IDBKeyRange.lowerBound(sentUpTo(), true))),
+    result(st.openCursor()).then((c) => (c?.value as Rec | undefined)?.e.at ?? null),
+  ]);
+  return { total, unsent, oldestAt: first };
+}
+
+async function readSince(after: number): Promise<{ keys: number[]; recs: Rec[] }> {
+  const db = await openDb();
+  const st = db.transaction(STORE).objectStore(STORE);
+  const range = after > 0 ? IDBKeyRange.lowerBound(after, true) : undefined;
+  const [keys, recs] = await Promise.all([result(st.getAllKeys(range)), result(st.getAll(range))]);
+  return { keys: keys as number[], recs: recs as Rec[] };
+}
+
+/** Upload everything not sent yet. Returns how many events went up. */
+export async function sendDiagnostics(progress?: (sent: number, total: number) => void): Promise<number> {
+  await writeOut();
+  const { keys, recs } = await readSince(sentUpTo());
+  let sent = 0;
+  let i = 0;
+  while (i < recs.length) {
+    // One batch per tab session, in order.
+    let j = i + 1;
+    while (j < recs.length && j - i < BATCH && recs[j].s === recs[i].s) j++;
+    const ok = await post(recs[i].s, recs[i].b, recs.slice(i, j).map((r) => r.e), { reason: 'settings', sentBy: SID, ua: navigator.userAgent });
+    if (ok === false) throw new Error("Couldn't reach Sajni. Try again.");
+    sent += j - i;
+    try { localStorage.setItem(SENT_KEY, String(keys[j - 1])); } catch { /* storage unavailable */ }
+    progress?.(sent, recs.length);
+    i = j;
+  }
+  return sent;
+}
+
+/** Save everything stored as a JSON file. */
+export async function downloadDiagnostics() {
+  await writeOut();
+  const { recs } = await readSince(0);
+  const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), events: recs })], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `sajni-diagnostics-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
 }
 
 // ─── Session context ────────────────────────────────────────────────────
@@ -465,13 +591,14 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
     const hidFor = hiddenSince >= 0 ? now() - Math.round(hiddenSince) : 0;
     if (visible) { lastVisibleAt = performance.now(); hiddenSince = -1; } else { hiddenSince = performance.now(); }
     track(visible ? 'visible' : 'hidden', { hidFor: visible ? hidFor : undefined, pend: pending.size, ...visState() });
-    if (!visible) { persist(); void flush('hidden'); }
+    if (visible) void sendOutbox(); else void writeOut();
   });
-  window.addEventListener('pagehide', (e) => { track('pagehide', { persisted: e.persisted }); persist(); });
+  window.addEventListener('pagehide', (e) => { track('pagehide', { persisted: e.persisted }); void writeOut(); });
   window.addEventListener('pageshow', (e) => track('pageshow', { persisted: e.persisted, ...visState() }));
   document.addEventListener('freeze', lifecycle('freeze'));
   document.addEventListener('resume', lifecycle('resume'));
   window.addEventListener('online', lifecycle('online'));
+  window.addEventListener('online', () => void sendOutbox());
   window.addEventListener('offline', lifecycle('offline'));
   window.addEventListener('focus', lifecycle('focus'));
   window.addEventListener('blur', lifecycle('blur'));
@@ -550,13 +677,11 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
   } catch { /* unsupported */ }
 
   setInterval(tick, 1000);
-  setInterval(() => {
-    if (document.visibilityState === 'visible' && navigator.onLine) void flush('interval');
-  }, 15_000);
-  setTimeout(() => void flush('boot'), 5_000);
+  adoptLegacy();
+  void prune();
 
   (window as Window & { __sajniTelemetry?: unknown }).__sajniTelemetry = {
-    sid: SID, buffer: () => buf, pending: () => [...pending.values()], report: reportHang, flush: () => flush('manual'),
+    sid: SID, recent: () => recent, pending: () => [...pending.values()], report: reportHang, stats: diagStats,
   };
 }
 
@@ -573,4 +698,5 @@ export function reportHang() {
     .filter((q) => q.getObserversCount() > 0 && (q.state.status === 'pending' || q.state.fetchStatus !== 'idle'))
     .map((q) => ({ key: trim(q.queryHash, 160), st: q.state.status, fs: q.state.fetchStatus, fc: q.state.fetchFailureCount })) ?? [];
   track('user_report', { path: location.pathname + location.search, fetches: pendingSummary(), queries: stuck, ...visState(), net: netInfo() }, true);
+  void sendRecent(Date.now() - REPORT_WINDOW_MS, 'user_report');
 }

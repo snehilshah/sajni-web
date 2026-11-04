@@ -179,7 +179,9 @@ export default function JournalPage() {
   const { data: eventDayEntries = [], isLoading: loadingEvents } = useEventDayEntries(selectedDate);
   const { data: entryData, isLoading: loadingEntry } = useJournalEntry(selectedDate);
   const loading = loadingEntry;
-  const { data: habitStatusData = [], isLoading: loadingHabits } = useHabitPeriodStatus(selectedDate);
+  // No `= []` default: a fresh array each render would re-run the effect below
+  // forever while the query loads or fails, freezing the page.
+  const { data: habitStatusData, isLoading: loadingHabits } = useHabitPeriodStatus(selectedDate);
   const { data: dueTaskData = [], isLoading: loadingDueTasks } = useTasks({ due_date: selectedDate });
   const { data: completedTaskData = [], isLoading: loadingCompletedTasks } = useTasks({ completed_date: selectedDate });
   const { data: missedTasks = [], isLoading: loadingMissedTasks } = useMissedTasksForDate(selectedDate);
@@ -210,7 +212,7 @@ export default function JournalPage() {
   }, [entryData, selectedDate]);
 
   useEffect(() => {
-    setHabitStatuses(habitStatusData);
+    setHabitStatuses(habitStatusData ?? []);
   }, [habitStatusData, selectedDate]);
 
   const performSave = useCallback(async (silent = false) => {

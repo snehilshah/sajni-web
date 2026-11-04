@@ -14,6 +14,8 @@ import { useEditorDraft } from '@/hooks/use-editor-draft';
 import { EditActions } from '@/components/editor-actions';
 import { tasks as tasksApi, uploads, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
+import { patchTaskInLists } from '@/queries/tasks';
+import { saveWithGrace } from '@/lib/reliableSave';
 import { confirmDialog } from '@/lib/confirm';
 import RichEditor from '@/components/editor/RichEditor';
 import { Button } from '@/components/ui/button';
@@ -205,6 +207,25 @@ function buildUpdate(form: FormState, editing: Task, parent: { id: number } | nu
   };
 }
 
+// What a list row shows of an edit, for the moment before the server answers.
+function shownFields(form: FormState): Partial<Task> {
+  const isWeek = form.due_type === 'week';
+  const isMonth = form.due_type === 'month';
+  return {
+    title: form.title,
+    description: form.description,
+    priority: form.priority,
+    color: form.color,
+    status: form.status,
+    important: form.important,
+    list_id: form.list_id,
+    steps: form.steps,
+    due_date: isWeek || isMonth ? null : form.due_date || null,
+    week_of: isWeek ? form.week_of : null,
+    month_of: isMonth ? form.month_of : null,
+  };
+}
+
 export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, layoutId, onCreated }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(blank);
@@ -230,8 +251,17 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     invalid,
     save: async (f) => {
       if (!editing) return;
-      await tasksApi.update(editing.id, buildUpdate(f, editing, parent));
-      onSaved();
+      const id = editing.id;
+      const patch = buildUpdate(f, editing, parent);
+      await saveWithGrace({
+        label: f.title.trim(),
+        run: () => tasksApi.update(id, patch),
+        then: () => onSaved(),
+        // Slow network: close now and show the edit in the lists meanwhile.
+        onBackground: () => patchTaskInLists(qc, id, shownFields(f)),
+        // Put the lists back to what the server has.
+        onFail: () => onSaved(),
+      });
     },
   });
   const loadDraft = editor.load;
@@ -366,55 +396,61 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     const scheduledISO = noDay ? null : toScheduledISO(form.due_date, form.scheduled_time);
     const remind = scheduledISO ? form.remind : false;
     const notify_emails = form.notify_emails;
-    try {
-      const res = await tasksApi.create({
-        title: form.title,
-        description: form.description,
-        priority: form.priority,
-        color: form.color ?? undefined,
-        status: form.status,
-        blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
-        due_date: noDay ? undefined : (form.due_date || undefined),
-        week_of: isWeek ? form.week_of : undefined,
-        month_of: isMonth ? form.month_of : undefined,
-        scheduled_at: scheduledISO ?? undefined,
-        remind,
-        notify_emails,
-        list_id: form.list_id ?? null,
-        important: form.important,
-        steps: form.steps,
-        recurrence: scopeDate(form) && repeats(form.recurrence) ? form.recurrence : undefined,
-      });
-      // Flush buffered extra reminders to the new task (parity with edit,
-      // where RemindersSection talks to the API directly). The task is
-      // already saved — a failed reminder shouldn't lose it, so surface a
-      // soft toast and carry on.
-      if (form.reminders.length > 0) {
+    // Everything below reads this snapshot: the form resets when the dialog
+    // is next opened, possibly while a slow save is still going.
+    const f = form;
+    const payload = {
+      title: f.title,
+      description: f.description,
+      priority: f.priority,
+      color: f.color ?? undefined,
+      status: f.status,
+      blocked_by_task_id: f.status === 'blocked' ? f.blocked_by_task_id ?? undefined : undefined,
+      due_date: noDay ? undefined : (f.due_date || undefined),
+      week_of: isWeek ? f.week_of : undefined,
+      month_of: isMonth ? f.month_of : undefined,
+      scheduled_at: scheduledISO ?? undefined,
+      remind,
+      notify_emails,
+      list_id: f.list_id ?? null,
+      important: f.important,
+      steps: f.steps,
+      recurrence: scopeDate(f) && repeats(f.recurrence) ? f.recurrence : undefined,
+    };
+    // Reminders, subtasks and images follow the new task. It is already
+    // saved, so a failed one gets a soft notice rather than losing the task.
+    const finish = async (res: { id: number }) => {
+      if (f.reminders.length > 0) {
         const results = await Promise.allSettled(
-          form.reminders.map((iso) => tasksApi.addReminder(res.id, iso)),
+          f.reminders.map((iso) => tasksApi.addReminder(res.id, iso)),
         );
         const failed = results.filter((r) => r.status === 'rejected').length;
         if (failed > 0) toast.error(`Task saved, but ${failed} reminder${failed > 1 ? 's' : ''} failed to add.`);
       }
       // Draft subtasks go in one at a time: the list orders by created_at,
       // so this keeps the order they were typed in.
-      if (form.subtasks.length > 0) {
+      if (f.subtasks.length > 0) {
         let failed = 0;
-        for (const sub of form.subtasks) {
+        for (const sub of f.subtasks) {
           try {
-            await tasksApi.create({ title: sub.title, parent_task_id: res.id, list_id: form.list_id ?? null, due_date: sub.due_date || undefined });
+            await tasksApi.create({ title: sub.title, parent_task_id: res.id, list_id: f.list_id ?? null, due_date: sub.due_date || undefined });
           } catch { failed++; }
         }
         if (failed > 0) toast.error(`Task saved, but ${failed} subtask${failed > 1 ? 's' : ''} failed to add.`);
       }
-      if (form.files.length > 0) {
-        const results = await Promise.allSettled(form.files.map((file) => tasksApi.attach(res.id, file)));
+      if (f.files.length > 0) {
+        const results = await Promise.allSettled(f.files.map((file) => tasksApi.attach(res.id, file)));
         const failed = results.filter((r) => r.status === 'rejected').length;
         if (failed > 0) toast.error(`Task saved, but ${failed} image${failed > 1 ? 's' : ''} failed to attach.`);
       }
-      onOpenChange(false);
       onSaved();
-      onCreated?.({ id: res.id, title: form.title.trim() });
+      onCreated?.({ id: res.id, title: f.title.trim() });
+    };
+    try {
+      // A slow network hands the save to the background ("Saving…") and the
+      // dialog closes; the task shows up once the server has it.
+      await saveWithGrace({ label: f.title.trim(), run: () => tasksApi.create(payload), then: finish });
+      onOpenChange(false);
     } catch (e) {
       toast.error(clientMsg(e, 'Could not save task'));
     } finally {

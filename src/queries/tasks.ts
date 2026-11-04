@@ -5,6 +5,7 @@ import { clientMsg } from '@/lib/errors';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskList, TaskPatch } from '@/types';
 import { qk } from './keys';
+import { sendReliably } from '@/lib/reliableSave';
 
 export type TaskListParams = Parameters<typeof tasksApi.list>[0];
 
@@ -65,7 +66,7 @@ export function usePrefetchSubtasks() {
 // Patch a task across every cached *list* query (My Day, a user list, board,
 // subtasks...) without touching detail/missed shapes. Used by optimistic
 // toggles so the change shows in whatever view is mounted.
-function patchTaskInLists(
+export function patchTaskInLists(
   qc: ReturnType<typeof useQueryClient>,
   id: number,
   patch: Partial<Task>,
@@ -94,7 +95,7 @@ function patchTaskInLists(
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Parameters<typeof tasksApi.create>[0]) => tasksApi.create(data),
+    mutationFn: (data: Parameters<typeof tasksApi.create>[0]) => sendReliably(() => tasksApi.create(data), undefined, 'create'),
     onError: () => toast.error('Could not create task'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
@@ -109,7 +110,7 @@ export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: TaskPatch }) =>
-      tasksApi.update(id, data),
+      sendReliably(() => tasksApi.update(id, data), undefined, 'update'),
     onError: (e) => toast.error(clientMsg(e, 'Could not save task')),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
@@ -125,7 +126,7 @@ export function useToggleTaskStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status }: { id: number; status: Task['status'] }) =>
-      tasksApi.update(id, { status }),
+      sendReliably(() => tasksApi.update(id, { status }), undefined, 'status'),
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: qk.tasks.all });
       const prev = qc.getQueriesData({ queryKey: ['tasks', 'list'] });
@@ -150,7 +151,7 @@ export function useToggleTaskImportant() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, important }: { id: number; important: boolean }) =>
-      tasksApi.update(id, { important }),
+      sendReliably(() => tasksApi.update(id, { important }), undefined, 'important'),
     onMutate: async ({ id, important }) => {
       await qc.cancelQueries({ queryKey: qk.tasks.all });
       const prev = qc.getQueriesData({ queryKey: ['tasks', 'list'] });
@@ -172,7 +173,8 @@ export function useToggleTaskImportant() {
 export function useRescheduleTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, date }: { id: number; date: string }) => tasksApi.reschedule(id, { target_date: date, schedule_mode: 'preserve' }),
+    mutationFn: ({ id, date }: { id: number; date: string }) =>
+      sendReliably(() => tasksApi.reschedule(id, { target_date: date, schedule_mode: 'preserve' }), undefined, 'reschedule'),
     onError: () => toast.error('Could not reschedule'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
@@ -185,7 +187,7 @@ export function useRescheduleTask() {
 export function useScratchTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => tasksApi.scratch(id),
+    mutationFn: (id: number) => sendReliably(() => tasksApi.scratch(id), undefined, 'scratch'),
     onError: () => toast.error('Could not scratch task'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
