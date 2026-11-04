@@ -2,7 +2,8 @@ import { DateBadge } from '@/components/ui/state-chip';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, isPast, isToday, parseISO } from 'date-fns';
-import { CheckSquare, BookOpen, ArrowRight, Clock, Flame, Quote, Bell, CornerDownRight } from '@/components/ui/icons';
+import { inkOn } from '@/lib/ink';
+import { CheckSquare, BookOpen, ArrowRight, Clock, Quote, Bell, CornerDownRight } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -516,7 +517,6 @@ export default function TodayPage() {
 											const week = habitWeek[h.id] || [];
 											const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0 … Sun=6
 											const habit = habitsList.find((x) => x.id === h.id);
-											const streak = habit?.current_streak ?? 0;
 											return (
 												<div
 													key={h.id}
@@ -540,7 +540,8 @@ export default function TodayPage() {
 														style={{
 															background: h.logged ? h.color : 'transparent',
 															border: `1.5px solid ${h.logged ? h.color : 'hsl(var(--muted-foreground))'}`,
-															color: 'hsl(var(--primary-foreground))',
+															// Same contrast-chosen ink as the habit's name pill.
+															color: inkOn(h.color),
 														}}
 														title={h.logged ? 'Unmark' : 'Mark done'}
 													>
@@ -605,10 +606,6 @@ export default function TodayPage() {
 															</div>
 														) : null}
 													</button>
-													<div className="flex items-center gap-1 text-xs text-muted-foreground">
-														<Flame className="size-3 text-secondary" />
-														<span className="mono">{streak}</span>
-													</div>
 												</div>
 											);
 										})

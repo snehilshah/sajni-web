@@ -1,3 +1,4 @@
+import { inkOn } from '@/lib/ink';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1174,7 +1175,7 @@ function WeekView({
                           className="grid size-11 place-items-center rounded-[18px] mono text-xs font-semibold"
                           style={{
                             background: h.period_logged ? h.color : 'hsl(var(--surface-container-highest))',
-                            color: h.period_logged ? 'hsl(var(--primary-foreground))' : 'hsl(var(--on-surface-variant))',
+                            color: h.period_logged ? inkOn(h.color) : 'hsl(var(--on-surface-variant))',
                             boxShadow: h.period_logged ? 'none' : 'inset 0 0 0 1px hsl(var(--outline-variant))',
                           }}
                         >
