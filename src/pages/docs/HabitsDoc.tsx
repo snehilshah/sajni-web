@@ -90,6 +90,15 @@ export default function HabitsDoc() {
               buckets, and monthly counts months. Sajni uses the owner’s local
               calendar throughout.
             </p>
+            <p>
+              On the grid, ticks in a row are joined by a soft band in the
+              habit’s colour, and the newest tick of a streak of two or more
+              turns into a scalloped badge with the count. Example: checks on
+              Monday, Tuesday and Wednesday read as one band with “3” on
+              Wednesday; tick Thursday and the badge moves there as “4”. Until
+              today is ticked, the count stays on yesterday, since the streak
+              is still alive.
+            </p>
           </Feature>
           <Feature name="Backfill">
             <p>

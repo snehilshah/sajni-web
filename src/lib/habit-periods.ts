@@ -51,6 +51,16 @@ export function habitPeriodForDate(date: Date, frequency: HabitFrequency): Habit
   return makePeriod(start, end, frequency);
 }
 
+/**
+ * The period that carries the streak count: the current one once it's done,
+ * otherwise the one before it (the server counts a streak through it).
+ */
+export function streakHeadKey(currentPeriodKey: string, currentDone: boolean, frequency: HabitFrequency): string {
+  if (currentDone) return currentPeriodKey;
+  const [year, month, day] = currentPeriodKey.split('-').map(Number);
+  return habitPeriodForDate(addDays(new Date(year, month - 1, day), -1), frequency).key;
+}
+
 export function periodIsComplete(logDates: string[], period: HabitPeriod): boolean {
   return logDates.some((date) => date >= dateKey(period.start) && date <= dateKey(period.end));
 }

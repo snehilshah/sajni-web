@@ -66,7 +66,12 @@ export function useToggleHabitPeriod() {
       if (isCurrent) {
         qc.setQueryData<Habit[]>(qk.habits.list(), (old) =>
           old?.map((habit) => habit.id === id
-            ? { ...habit, logged_current_period: nextLogged }
+            ? {
+              ...habit,
+              logged_current_period: nextLogged,
+              // Ticking the current period moves the streak by one at once.
+              current_streak: Math.max(0, habit.current_streak + (nextLogged ? 1 : -1)),
+            }
             : habit),
         );
       }

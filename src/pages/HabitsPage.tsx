@@ -24,6 +24,7 @@ import {
   periodIsComplete,
   periodWindowEnd,
   periodWindowTitle,
+  streakHeadKey,
   visiblePeriodRange,
   weeklyPeriods,
   type HabitPeriod,
@@ -52,7 +53,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Flame,
   Plus,
   Trash2,
 } from '@/components/ui/icons';
@@ -518,6 +518,11 @@ function RhythmLedger({
         <AnimatePresence initial={false}>
           {habits.map((habit) => {
             const logDates = logsMap[String(habit.id)] ?? [];
+            const done = periods.map((period) => periodIsComplete(logDates, period));
+            // The streak's newest tick carries the count (from 2 up).
+            const headKey = habit.current_streak >= 2
+              ? streakHeadKey(currentPeriodKey, habit.logged_current_period, frequency)
+              : null;
             return (
               <motion.div
                 key={habit.id}
@@ -535,9 +540,10 @@ function RhythmLedger({
                   className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-card px-2 py-3 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   title={`Edit ${habit.name}`}
                 >
-                  {/* One line: name in the habit's colour (pills share the
-                      section's longest width so the figures line up), then
-                      total and streak. Phones stack the figures below. */}
+                  {/* Name in the habit's colour (pills share the section's
+                      longest width so the figures line up), then the total.
+                      The streak lives in its newest tick. Phones stack the
+                      total below. */}
                   <span className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-4">
                     <span
                       className="max-w-full shrink-0 truncate rounded-lg px-2.5 py-1 text-sm font-semibold"
@@ -547,23 +553,35 @@ function RhythmLedger({
                     </span>
                     <span className="flex items-center gap-4 pl-0.5 text-xs text-muted-foreground sm:pl-0">
                       <span className="w-14 tabular-nums">{habit.total_periods ?? habit.total_logs} total</span>
-                      <span className="inline-flex items-center gap-1" title={`${habit.current_streak} ${habit.streak_unit} streak`}>
-                        <Flame className={cn('size-3.5', habit.current_streak > 0 && 'text-[hsl(var(--tertiary))]')} />
-                        <span className="tabular-nums">{habit.current_streak} streak</span>
-                      </span>
                     </span>
                   </span>
                 </button>
 
-                {periods.map((period) => {
-                  const complete = periodIsComplete(logDates, period);
+                {periods.map((period, index) => {
+                  const complete = done[index];
                   const isCurrent = period.key === currentPeriodKey;
                   const isFuture = period.key > currentPeriodKey || period.key > todayKey && frequency === 'daily';
+                  // Ticks in a row are joined by a soft band in the habit's
+                  // colour (it spans half the 4px column gap each side).
+                  const joinLeft = complete && index > 0 && done[index - 1];
+                  const joinRight = complete && index < done.length - 1 && done[index + 1];
                   return (
-                    <div key={period.key} className="flex items-center justify-center py-2">
+                    <div key={period.key} className="relative flex items-center justify-center py-2">
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-2 -left-0.5 right-1/2 transition-opacity duration-200 motion-reduce:transition-none"
+                        style={{ backgroundColor: habit.color, opacity: joinLeft ? 0.4 : 0 }}
+                      />
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-2 left-1/2 -right-0.5 transition-opacity duration-200 motion-reduce:transition-none"
+                        style={{ backgroundColor: habit.color, opacity: joinRight ? 0.4 : 0 }}
+                      />
                       <PeriodToggle
                         period={period}
                         complete={complete}
+                        streak={complete && period.key === headKey ? habit.current_streak : undefined}
+                        streakUnit={habit.streak_unit}
                         current={isCurrent}
                         future={isFuture}
                         color={habit.color}
@@ -585,9 +603,41 @@ function RhythmLedger({
   );
 }
 
+// Both outlines share one point count, so clip-path can morph between them.
+const OUTLINE_POINTS = 72;
+function outline(radiusAt: (angle: number) => number): string {
+  const points = Array.from({ length: OUTLINE_POINTS }, (_, i) => {
+    const angle = (i / OUTLINE_POINTS) * 2 * Math.PI;
+    const r = radiusAt(angle);
+    return `${(50 + r * Math.cos(angle)).toFixed(2)}% ${(50 + r * Math.sin(angle)).toFixed(2)}%`;
+  });
+  return `polygon(${points.join(', ')})`;
+}
+// The toggle's 44px tile with 18px corners, in % of its side.
+function tileRadius(angle: number): number {
+  const corner = (18 / 44) * 100;
+  const inner = 50 - corner;
+  let low = 0;
+  let high = 75;
+  for (let step = 0; step < 24; step++) {
+    const r = (low + high) / 2;
+    const qx = Math.abs(r * Math.cos(angle)) - inner;
+    const qy = Math.abs(r * Math.sin(angle)) - inner;
+    const distance = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - corner;
+    if (distance > 0) high = r;
+    else low = r;
+  }
+  return low;
+}
+const TILE_OUTLINE = outline(tileRadius);
+// M3 Expressive's nine-sided cookie marks the streak's newest tick.
+const COOKIE_OUTLINE = outline((angle) => 46.5 + 3.5 * Math.cos(9 * angle));
+
 function PeriodToggle({
   period,
   complete,
+  streak,
+  streakUnit,
   current,
   future,
   color,
@@ -597,6 +647,9 @@ function PeriodToggle({
 }: {
   period: HabitPeriod;
   complete: boolean;
+  /** Set on the streak's newest tick: shown instead of the check. */
+  streak?: number;
+  streakUnit: string;
   current: boolean;
   future: boolean;
   color: string;
@@ -607,7 +660,7 @@ function PeriodToggle({
   const disabled = future || loading;
   const title = future
     ? `${period.accessibleLabel}, future period`
-    : `${period.accessibleLabel}, ${complete ? 'completed' : 'not completed'}`;
+    : `${period.accessibleLabel}, ${complete ? 'completed' : 'not completed'}${streak ? `, ${streak} ${streakUnit} streak` : ''}`;
   return (
     <button
       type="button"
@@ -620,7 +673,8 @@ function PeriodToggle({
         disabled ? 'cursor-default opacity-40' : 'active:scale-[0.96]'
       }`}
       style={{
-        backgroundColor: 'hsl(var(--surface-container-highest))',
+        // Once done, the fill is the whole shape (the cookie has no corners to fill).
+        backgroundColor: complete ? 'transparent' : 'hsl(var(--surface-container-highest))',
         boxShadow: current && !complete ? 'inset 0 0 0 2px hsl(var(--outline))' : 'none',
       }}
     >
@@ -628,8 +682,8 @@ function PeriodToggle({
         {complete && (
           <motion.span
             key="fill"
-            className="absolute inset-0 rounded-[18px]"
-            style={{ backgroundColor: color }}
+            className="absolute inset-0 transition-[clip-path] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none"
+            style={{ backgroundColor: color, clipPath: streak ? COOKIE_OUTLINE : TILE_OUTLINE }}
             initial={{ opacity: 0, scale: 0.75 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.86 }}
@@ -640,14 +694,14 @@ function PeriodToggle({
       <AnimatePresence initial={false}>
         {complete && (
           <motion.span
-            key="check"
-            className="relative z-10 inline-flex text-[hsl(var(--primary-foreground))]"
+            key={streak ? `streak-${streak}` : 'check'}
+            className="relative z-10 inline-flex text-[15px] font-bold tabular-nums text-[hsl(var(--primary-foreground))] [grid-area:1/1]"
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={reducedMotion ? { duration: 0 } : { duration: 0.16, ease: [0.2, 0, 0, 1] }}
           >
-            <Check className="size-4" strokeWidth={3} />
+            {streak ? streak : <Check className="size-4" strokeWidth={3} />}
           </motion.span>
         )}
       </AnimatePresence>
