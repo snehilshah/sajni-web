@@ -695,7 +695,9 @@ function PeriodToggle({
         {complete && (
           <motion.span
             key={streak ? `streak-${streak}` : 'check'}
-            className="relative z-10 inline-flex text-[15px] font-bold tabular-nums text-[hsl(var(--primary-foreground))] [grid-area:1/1]"
+            className="relative z-10 inline-flex text-[15px] font-bold tabular-nums [grid-area:1/1]"
+            // Same contrast-chosen ink as the habit's name pill.
+            style={{ color: inkOn(color) }}
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}

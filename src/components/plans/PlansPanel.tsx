@@ -5,10 +5,11 @@ import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronDown, Plus, Repeat } from '@/components/ui/icons';
+import { ArrowDownToLine, CalendarClock, Check, ChevronDown, Plus, Repeat } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WavyProgress } from '@/components/ui/wavy-progress';
 import { useTaskDetail } from '@/components/tasks/TaskDetailProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -111,22 +112,9 @@ function PlanDay({ plan, open, onToggle }: { plan: DayPlan; open: boolean; onTog
  *  type a new task, or pick from your open ones. Shared with Today. */
 export function PlanBody({ plan }: { plan: DayPlan }) {
   const { openTask } = useTaskDetail();
-  const toggleTask = useToggleTaskStatus();
   const addToPlan = useAddToPlan();
-  const [picking, setPicking] = useState(false);
-  // A fresh picker (nothing marked Added) each time it opens.
-  const [pickerKey, setPickerKey] = useState(0);
-  // Ticks land instantly and hold until the day refetches after the save.
-  const [ticks, setTicks] = useState<{ of: PlanTask[]; status: Record<number, PlanTask['status']> }>({ of: plan.tasks, status: {} });
-  const ticked = ticks.of === plan.tasks ? ticks.status : {};
-  const statusOf = (t: PlanTask) => ticked[t.id] ?? t.status;
-  const toggle = (t: PlanTask) => {
-    const next = statusOf(t) === 'done' ? 'todo' : 'done';
-    setTicks({ of: plan.tasks, status: { ...ticked, [t.id]: next } });
-    toggleTask.mutate({ id: t.id, status: next }, {
-      onError: () => setTicks({ of: plan.tasks, status: {} }),
-    });
-  };
+  const { statusOf, toggle } = usePlanTicks(plan);
+  const picker = usePickerOpen();
 
   return (
     <div className="flex flex-col gap-2">
@@ -172,14 +160,211 @@ export function PlanBody({ plan }: { plan: DayPlan }) {
       <AddToPlan planId={plan.id} name={plan.name} date={plan.date} />
       <button
         type="button"
-        onClick={() => { setPickerKey((k) => k + 1); setPicking(true); }}
+        onClick={picker.show}
         className="flex items-center gap-2 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
       >
         <span className="mono w-4 text-center text-[12px]">⇣</span>
         <span>Pick from your tasks</span>
       </button>
-      <PlanPicker key={pickerKey} plan={plan} open={picking} onOpenChange={setPicking} />
+      <PlanPicker key={picker.key} plan={plan} open={picker.open} onOpenChange={picker.setOpen} />
     </div>
+  );
+}
+
+/** Ticks land instantly and hold until the day refetches after the save. */
+function usePlanTicks(plan: DayPlan) {
+  const toggleTask = useToggleTaskStatus();
+  const [ticks, setTicks] = useState<{ of: PlanTask[]; status: Record<number, PlanTask['status']> }>({ of: plan.tasks, status: {} });
+  const ticked = ticks.of === plan.tasks ? ticks.status : {};
+  const statusOf = (t: PlanTask) => ticked[t.id] ?? t.status;
+  const toggle = (t: PlanTask) => {
+    const next = statusOf(t) === 'done' ? 'todo' : 'done';
+    setTicks({ of: plan.tasks, status: { ...ticked, [t.id]: next } });
+    toggleTask.mutate({ id: t.id, status: next }, {
+      onError: () => setTicks({ of: plan.tasks, status: {} }),
+    });
+  };
+  return { statusOf, toggle };
+}
+
+/** A fresh picker (nothing marked Added) each time it opens. */
+function usePickerOpen() {
+  const [open, setOpen] = useState(false);
+  const [key, setKey] = useState(0);
+  return { open, setOpen, key, show: () => { setKey((k) => k + 1); setOpen(true); } };
+}
+
+const ringTone: Record<PlanTask['priority'], string> = {
+  high: 'border-destructive',
+  medium: 'border-[hsl(var(--outline))]',
+  low: 'border-[hsl(var(--outline-variant))]',
+};
+
+/** Today's card for one plan: progress, its tasks as full rows (same anatomy
+ *  as On deck), left-overs to move in, and a footer to add or pick tasks.
+ *  `showName` heads the card when Today lists several plans. */
+export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean }) {
+  const { openTask } = useTaskDetail();
+  const addToPlan = useAddToPlan();
+  const { statusOf, toggle } = usePlanTicks(plan);
+  const picker = usePickerOpen();
+  const [adding, setAdding] = useState(false);
+  const done = plan.tasks.filter((t) => statusOf(t) === 'done').length;
+  const total = plan.tasks.length;
+  const accent = plan.color || 'hsl(var(--primary))';
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-[hsl(var(--surface-container))]">
+      {(showName || total > 0) && (
+        <div className="flex flex-col gap-2.5 px-4 pb-1 pt-3.5 md:px-5">
+          {showName && (
+            <div className="flex items-center gap-2 text-[13px]">
+              <span
+                className="rounded-md px-2 py-0.5 font-semibold"
+                style={{ backgroundColor: `color-mix(in srgb, ${accent} 22%, transparent)`, color: `color-mix(in srgb, ${accent} 55%, hsl(var(--on-surface)))` }}
+              >{plan.name}</span>
+              <span className="mono text-xs text-muted-foreground">{formatClock(plan.start_time)}</span>
+            </div>
+          )}
+          {total > 0 && (
+            <div className="flex items-center gap-3">
+              <WavyProgress value={(done / total) * 100} height={10} className="flex-1" label={`${done} of ${total} done`} />
+              <span className={cn('mono shrink-0 text-xs tabular-nums', done === total ? 'text-[hsl(var(--primary))]' : 'text-muted-foreground')}>
+                {done === total ? 'All done' : `${done} of ${total}`}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {total === 0 && plan.left_over.length === 0 && !adding && (
+        <div className="flex items-center gap-3.5 px-4 py-5 md:px-5">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]">
+            <CalendarClock className="size-[18px]" />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[14px] font-medium">Nothing planned yet</div>
+            <div className="mt-0.5 text-[12.5px] text-muted-foreground">
+              Add what {plan.name} is for, or pull in tasks you already have.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {plan.tasks.map((t, i) => {
+        const isDone = statusOf(t) === 'done';
+        return (
+          <div
+            key={t.id}
+            onClick={() => openTask(t.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter') openTask(t.id); }}
+            className={cn(
+              'flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-container-high))] md:px-5',
+              i > 0 && 'border-t border-border/50',
+            )}
+          >
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggle(t); }}
+              aria-label={isDone ? 'Mark not done' : 'Mark done'}
+              className={cn(
+                'grid size-[18px] shrink-0 place-items-center rounded-full border-2 transition-colors',
+                isDone ? 'border-primary bg-primary text-primary-foreground' : cn(ringTone[t.priority], 'hover:bg-primary/10'),
+              )}
+            >
+              {isDone && <Check className="size-3" strokeWidth={3} />}
+            </button>
+            <span className={cn('min-w-0 flex-1 truncate text-[14px] font-medium', isDone && 'text-muted-foreground line-through')}>
+              {t.title}
+            </span>
+            {t.recurring && <Repeat className="size-3.5 shrink-0 text-muted-foreground" aria-label="Repeats" />}
+          </div>
+        );
+      })}
+
+      {plan.left_over.length > 0 && (
+        <div className={cn('flex flex-col px-4 pb-1.5 pt-3 md:px-5', total > 0 && 'border-t border-border/50')}>
+          <span className="mono label-kicker mb-1 text-xs text-muted-foreground">Left over · {plan.left_over.length}</span>
+          {plan.left_over.map((t) => (
+            <div key={t.id} className="flex min-h-9 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => openTask(t.id)}
+                className="min-w-0 flex-1 truncate text-left text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t.title}
+                {t.due_date && <span className="mono text-xs"> · {format(parseISO(t.due_date), 'MMM d')}</span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => addToPlan.mutate({ id: plan.id, taskId: t.id, date: plan.date })}
+                className="h-7 shrink-0 rounded-full bg-[hsl(var(--secondary-container))] px-3 text-xs font-medium text-[hsl(var(--on-secondary-container))] transition-colors hover:brightness-110"
+              >Move here</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 border-t border-border/50 px-3 py-2.5 md:px-4">
+        {adding ? (
+          <PlanCardInput plan={plan} onDone={() => setAdding(false)} />
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] px-3.5 text-[13px] font-medium text-[hsl(var(--on-secondary-container))] transition-colors hover:brightness-110"
+            >
+              <Plus className="size-3.5" /> Add a task
+            </button>
+            <button
+              type="button"
+              onClick={picker.show}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground"
+            >
+              <ArrowDownToLine className="size-3.5" /> Pick from tasks
+            </button>
+          </>
+        )}
+      </div>
+      <PlanPicker key={picker.key} plan={plan} open={picker.open} onOpenChange={picker.setOpen} />
+    </div>
+  );
+}
+
+/** The footer's inline add: Enter adds and stays open for the next one. */
+function PlanCardInput({ plan, onDone }: { plan: DayPlan; onDone: () => void }) {
+  const create = useCreateTask();
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  const submit = () => {
+    const title = value.trim();
+    if (!title) { onDone(); return; }
+    create.mutate({ title, due_date: plan.date, plan_id: plan.id }, {
+      onSuccess: () => { setValue(''); inputRef.current?.focus(); },
+    });
+  };
+  return (
+    <>
+      <Input
+        name="plan-task-title"
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); submit(); }
+          else if (e.key === 'Escape') onDone();
+        }}
+        onBlur={() => { if (!value.trim()) onDone(); }}
+        disabled={create.isPending}
+        placeholder={`Add to ${plan.name}…`}
+        className="h-8 flex-1 text-[13.5px]"
+      />
+      <Button size="sm" className="h-8" disabled={!value.trim() || create.isPending} onMouseDown={(e) => e.preventDefault()} onClick={submit}>Add</Button>
+    </>
   );
 }
 

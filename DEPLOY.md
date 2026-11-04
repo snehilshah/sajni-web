@@ -125,9 +125,10 @@ fail to load on a bad connection. Both look the same in the browser
   never needs the network to switch screens, so a deploy can't break it.
 - **Version check.** Each build compiles in `__BUILD_ID__` (commit sha) and
   publishes `/version.json` (`buildVersion` in `vite.config.ts`). On returning
-  to the app and on page changes (at most once a minute), the tab compares
-  them; once a newer build is out, the next page change is a full load of
-  that page (`src/lib/buildWatch.ts`).
+  to the app, on page changes and every 10 minutes while visible (at most once
+  a minute), the tab compares them; once a newer build is out it shows one
+  lasting toast, "A new version of Sajni is ready · Reload", and never reloads
+  by itself (`src/lib/buildWatch.ts`).
 - **Recovery.** A failed chunk asks `/version.json` which case it is: a newer
   build reloads at once, the same build (network) reloads after a 1s/2s/3s
   backoff. At most 3 automatic reloads per 2 minutes (sessionStorage), then

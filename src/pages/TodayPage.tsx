@@ -12,7 +12,7 @@ import type { JournalEntry as JournalFull } from '@/types';
 import { useTasks, useToggleTaskStatus, useCreateTask } from '@/queries/tasks';
 import { useHabits, useHabitRecentLogs, useToggleHabitPeriod } from '@/queries/habits';
 import { useDayPlans } from '@/queries/plans';
-import { PlanBody } from '@/components/plans/PlansPanel';
+import { PlanCard } from '@/components/plans/PlansPanel';
 import { formatClock } from '@/components/plans/PlansManager';
 import { dateKey, habitPeriodForDate } from '@/lib/habit-periods';
 import { useMemos, useCreateMemo } from '@/queries/memos';
@@ -325,16 +325,7 @@ export default function TodayPage() {
 								>
 									<div className="flex flex-col gap-3">
 										{todayPlans.map((p) => (
-											<div key={p.id} className="rounded-xl px-4 py-3.5 md:px-5 bg-[hsl(var(--surface-container))]">
-												{todayPlans.length > 1 && (
-													<div className="mb-2 flex items-center gap-2 text-[13px] font-medium">
-														<span className="size-2 rounded-full" style={{ background: p.color || 'hsl(var(--primary))' }} />
-														{p.name}
-														<span className="font-normal text-muted-foreground">{formatClock(p.start_time)}</span>
-													</div>
-												)}
-												<PlanBody plan={p} />
-											</div>
+											<PlanCard key={p.id} plan={p} showName={todayPlans.length > 1} />
 										))}
 									</div>
 								</Section>
