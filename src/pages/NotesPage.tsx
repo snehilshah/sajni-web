@@ -32,7 +32,7 @@ import NoteContext from './notes/NoteContext';
 import { FolderPicker, MoveDialog } from './notes/FolderPicker';
 import { useNoteDoc, type SaveStatus } from './notes/useNoteDoc';
 import {
-  buildTree, countText, displayTitle, effectiveTitle, extractOutgoing, extractOutline, folderAncestors, relTime,
+  buildTree, countText, displayTitle, effectiveTitle, extractOutgoing, extractOutline, folderAncestors, fullTime, relTime,
   type NoteListItem, type OutgoingLink, type OutlineItem,
 } from './notes/model';
 
@@ -297,9 +297,6 @@ export default function NotesPage() {
       outgoing={outgoing}
       onOutgoing={(l) => { void openOutgoing(l); }}
       tags={doc.tags}
-      createdAt={doc.created_at}
-      updatedAt={doc.updated_at}
-      counts={isMobile ? counts : undefined}
       onCollapse={isWide ? () => setDetailsOpen(false) : undefined}
     />
   );
@@ -365,6 +362,18 @@ export default function NotesPage() {
             <DropdownMenuItem variant="destructive" onClick={() => { void deleteNote({ id: doc.id!, title: effectiveTitle(doc.title, doc.content) }); }}>
               <Trash2 /> Delete
             </DropdownMenuItem>
+          </>
+        )}
+        {/* Read-only facts, like the foot of Notion's ⋯ menu. Desktop shows
+            "Edited" above the title and the counts in its corner pill. */}
+        {doc.created_at && (
+          <>
+            <DropdownMenuSeparator />
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 px-3 pb-1.5 pt-1 text-xs text-muted-foreground">
+              <dt>Created</dt><dd className="text-foreground/80">{fullTime(doc.created_at)}</dd>
+              {isMobile && doc.updated_at && <><dt>Edited</dt><dd className="text-foreground/80">{fullTime(doc.updated_at)}</dd></>}
+              {isMobile && <><dt>Length</dt><dd className="tabular-nums text-foreground/80">{counts.words.toLocaleString()} words · {counts.characters.toLocaleString()} chars</dd></>}
+            </dl>
           </>
         )}
       </DropdownMenuContent>

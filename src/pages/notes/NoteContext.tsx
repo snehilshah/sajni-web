@@ -5,17 +5,17 @@ import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowDownLeft, ArrowUpRight, PanelRightClose } from '@/components/ui/icons';
-import { fullTime, type OutgoingLink, type OutlineItem } from './model';
+import type { OutgoingLink, OutlineItem } from './model';
 
 const KIND: Record<string, string> = { note: 'Note', journal: 'Journal', memo: 'Memo', task: 'Task' };
 
 /**
- * The open note's context: description, outline, links both ways, tags and
- * when it was made. Sections are a label and space; empty ones hide.
+ * The open note's context: description, outline, links both ways and tags
+ * (when it was made is in the note's ⋯ menu). Sections are a label and
+ * space; empty ones hide.
  */
 export default function NoteContext({
-  description, onDescription, outline, onOutline, backlinks, onBacklink, outgoing, onOutgoing, tags,
-  createdAt, updatedAt, counts, onCollapse,
+  description, onDescription, outline, onOutline, backlinks, onBacklink, outgoing, onOutgoing, tags, onCollapse,
 }: {
   description: string;
   onDescription: (v: string) => void;
@@ -26,10 +26,6 @@ export default function NoteContext({
   outgoing: OutgoingLink[];
   onOutgoing: (l: OutgoingLink) => void;
   tags: string[];
-  createdAt?: string;
-  updatedAt?: string;
-  /** Shown here where there's no status line (phones). */
-  counts?: { words: number; characters: number };
   onCollapse?: () => void;
 }) {
   const minLevel = Math.min(...outline.map((o) => o.level), 6);
@@ -92,14 +88,6 @@ export default function NoteContext({
           <Section label="Tags">
             <div className="flex flex-wrap gap-1.5">{tags.map((t) => <TagPill key={t} tag={t} />)}</div>
           </Section>
-        )}
-
-        {(createdAt || updatedAt) && (
-          <dl className="mt-auto grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            {createdAt && <><dt>Created</dt><dd className="text-foreground/80">{fullTime(createdAt)}</dd></>}
-            {updatedAt && <><dt>Edited</dt><dd className="text-foreground/80">{fullTime(updatedAt)}</dd></>}
-            {counts && <><dt>Length</dt><dd className="text-foreground/80 tabular-nums">{counts.words.toLocaleString()} words · {counts.characters.toLocaleString()} characters</dd></>}
-          </dl>
         )}
       </div>
       {/* Same corner as the "Show details" button when the rail is closed. */}

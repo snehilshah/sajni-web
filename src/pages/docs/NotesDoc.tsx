@@ -64,8 +64,10 @@ export default function NotesDoc() {
             <p>
               The right rail (<Kbd>Details</Kbd> in the <Kbd>⋯</Kbd> menu on
               smaller screens) has the note's description, its outline (click a
-              heading to jump), what links to it, what it links to, its tags,
-              and when it was created and last edited.
+              heading to jump), what links to it, what it links to and its
+              tags. When the note was last edited shows above its title; when
+              it was created is at the foot of the <Kbd>⋯</Kbd> menu (on a
+              phone, along with when it was edited and its length).
             </p>
             <p>
               The <strong>description</strong> is one line on what the note is
