@@ -37,13 +37,8 @@ export default function NoteContext({
     <div className="flex h-full min-h-0 w-full flex-col">
       <header className="flex h-14 shrink-0 items-center gap-1 pl-4 pr-2">
         <h2 className="flex-1 text-sm font-medium text-muted-foreground">Details</h2>
-        {onCollapse && (
-          <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide details" aria-label="Hide details" onClick={onCollapse}>
-            <PanelRightClose className="size-4" />
-          </Button>
-        )}
       </header>
-      <div className="stable-scrollbar flex-1 min-h-0 overflow-y-auto px-4 pb-8 flex flex-col gap-6">
+      <div className="stable-scrollbar flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-6">
         <Section label="Description">
           <Textarea
             value={description}
@@ -107,6 +102,14 @@ export default function NoteContext({
           </dl>
         )}
       </div>
+      {/* Same corner as the "Show details" button when the rail is closed. */}
+      {onCollapse && (
+        <footer className="flex h-[60px] shrink-0 items-center justify-end px-3">
+          <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide details" aria-label="Hide details" onClick={onCollapse}>
+            <PanelRightClose className="size-4" />
+          </Button>
+        </footer>
+      )}
     </div>
   );
 }

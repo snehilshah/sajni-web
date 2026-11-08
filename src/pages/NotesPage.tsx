@@ -43,7 +43,8 @@ type Mode = 'live' | 'source' | 'read';
 const LIBRARY_KEY = 'sajni:notes-library';
 const DETAILS_KEY = 'sajni:notes-details';
 const EXPANDED_KEY = 'sajni:notes-expanded';
-const WIDE_KEY = 'sajni:notes-wide';
+// Full width is the default; "Readable width" brings back the column.
+const WIDE_KEY = 'sajni:notes-full-width';
 
 const EASE = [0.2, 0, 0, 1] as const;
 
@@ -73,7 +74,7 @@ export default function NotesPage() {
   const [detailsSheet, setDetailsSheet] = useState(false);
   const [moveTarget, setMoveTarget] = useState<NoteListItem | null>(null);
   const [focus, setFocus] = useState(false);
-  const [wide, setWide] = useState(() => readFlag(WIDE_KEY, false));
+  const [wide, setWide] = useState(() => readFlag(WIDE_KEY, true));
   const [calm, setCalm] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
@@ -406,7 +407,7 @@ export default function NotesPage() {
         transition={{ duration: 0.16, ease: EASE }}
         className={cn(
           'mx-auto flex min-h-full w-full flex-col px-5 pt-6 pb-[40vh] md:pt-[76px]',
-          wide ? 'max-w-none md:px-8 xl:px-12' : 'max-w-[64rem] md:px-8',
+          wide ? 'max-w-none md:px-8' : 'max-w-[64rem] md:px-8',
         )}
         onKeyDownCapture={onWritingKey}
       >
@@ -503,12 +504,12 @@ export default function NotesPage() {
         )}
         <SaveState status={status} onRetry={() => { void flush(); }} />
         {modeSwitch}
+        {overflowMenu}
         {!showDetailsRail && (
           <Button variant="ghost" size="icon-sm" className="size-8 rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
             <PanelRight className="size-4" />
           </Button>
         )}
-        {overflowMenu}
       </div>
     </>
   );

@@ -262,11 +262,6 @@ export default function LibraryRail(props: LibraryRailProps) {
         <Button size="icon-sm" variant="ghost" className="rounded-full" title="New folder" aria-label="New folder" onClick={() => setEditing({ kind: 'new', parent: '' })}>
           <FolderPlus className="size-4" />
         </Button>
-        {props.onCollapse && (
-          <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide library" aria-label="Hide library" onClick={props.onCollapse}>
-            <PanelLeftClose className="size-4" />
-          </Button>
-        )}
       </header>
 
       <div className="shrink-0 px-2 pb-2">
@@ -309,6 +304,14 @@ export default function LibraryRail(props: LibraryRailProps) {
           </p>
         ) : renderChildren(props.tree, 0)}
       </div>
+      {/* Same corner as the "Show library" button when the rail is closed. */}
+      {props.onCollapse && (
+        <footer className="flex h-[60px] shrink-0 items-center px-3">
+          <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide library" aria-label="Hide library" onClick={props.onCollapse}>
+            <PanelLeftClose className="size-4" />
+          </Button>
+        </footer>
+      )}
     </div>
   );
 }

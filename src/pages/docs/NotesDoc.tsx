@@ -82,9 +82,11 @@ export default function NotesDoc() {
               or <Kbd>Ctrl</Kbd>+<Kbd>.</Kbd> brings them back.
             </p>
             <p>
-              <strong>Full width</strong> (<Kbd>⋯</Kbd> → Full width) lets the
-              text use the whole page instead of a readable column; the choice
-              is remembered.
+              Text uses the whole width of the page. <Kbd>⋯</Kbd> →{' '}
+              <strong>Readable width</strong> keeps it to a narrower column
+              instead; the choice is remembered. The buttons that hide and show
+              the library and Details sit in the bottom corners, in the same
+              place whether the panel is open or closed.
             </p>
           </Feature>
           <Feature name="Pin">
