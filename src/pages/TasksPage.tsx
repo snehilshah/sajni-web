@@ -26,7 +26,7 @@ import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
 import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
-// Lazy: keeps tiptap (RichEditor inside the dialog) out of this route chunk.
+// Lazy: keeps the Markdown editor (inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
 const PlannerView = lazyPage(() => import('@/components/tasks/PlannerView'));
 import MissedBanner from '@/components/tasks/MissedBanner';

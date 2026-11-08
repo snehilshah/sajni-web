@@ -15,7 +15,7 @@ const KIND: Record<string, string> = { note: 'Note', journal: 'Journal', memo: '
  */
 export default function NoteContext({
   description, onDescription, outline, onOutline, backlinks, onBacklink, outgoing, onOutgoing, tags,
-  createdAt, updatedAt, onCollapse,
+  createdAt, updatedAt, counts, onCollapse,
 }: {
   description: string;
   onDescription: (v: string) => void;
@@ -28,6 +28,8 @@ export default function NoteContext({
   tags: string[];
   createdAt?: string;
   updatedAt?: string;
+  /** Shown here where there's no status line (phones). */
+  counts?: { words: number; characters: number };
   onCollapse?: () => void;
 }) {
   const minLevel = Math.min(...outline.map((o) => o.level), 6);
@@ -101,6 +103,7 @@ export default function NoteContext({
           <dl className="mt-auto grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {createdAt && <><dt>Created</dt><dd className="text-foreground/80">{fullTime(createdAt)}</dd></>}
             {updatedAt && <><dt>Edited</dt><dd className="text-foreground/80">{fullTime(updatedAt)}</dd></>}
+            {counts && <><dt>Length</dt><dd className="text-foreground/80 tabular-nums">{counts.words.toLocaleString()} words · {counts.characters.toLocaleString()} characters</dd></>}
           </dl>
         )}
       </div>

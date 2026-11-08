@@ -29,7 +29,7 @@ import { PlansPanel } from '@/components/plans/PlansPanel';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
-import RichEditor from '@/components/editor/RichEditor';
+import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
@@ -283,7 +283,7 @@ export default function JournalPage() {
   const goNext = () => setSelectedDate(format(addDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'));
 
   // Page-level keymap. Editor-local shortcuts (⌘B/I/U, ⌘⇧7/8, ⌘⇧C
-  // checklist, slash menu) are already wired in RichEditor. These extras
+  // checklist, slash menu) are already wired in MarkdownEditor. These extras
   // give the journal page parity with the iOS Journal experience.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -722,7 +722,7 @@ export default function JournalPage() {
                 {loading ? (
                   <Skeleton className="h-64 w-full" />
                 ) : (
-                  <RichEditor
+                  <MarkdownEditor
                     value={content}
                     onChange={handleContentChange}
                     placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
@@ -984,7 +984,7 @@ function WeekView({
         {loading ? (
           <Skeleton className="h-64 w-full" />
         ) : (
-          <RichEditor
+          <MarkdownEditor
             value={content}
             onChange={handleContent}
             placeholder="What do you want this week to be about? Use / for commands, [[ to link, /task to reference…"
@@ -1792,7 +1792,7 @@ function MonthView({
         {loading ? (
           <Skeleton className="h-64 w-full" />
         ) : (
-          <RichEditor
+          <MarkdownEditor
             value={content}
             onChange={handleContent}
             placeholder="What's this month about? Use / for commands, [[ to link, /task to reference…"

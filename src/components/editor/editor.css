@@ -1,0 +1,147 @@
+/* Sajni's Markdown editor (CodeMirror). One look in every mode: Live hides
+   the Markdown except on the lines being edited, Source shows all of it
+   (dimmed), Read is Live with nothing being edited. */
+
+.sajni-editor .cm-editor { background: transparent; color: hsl(var(--foreground)); font-family: var(--font-sans); font-size: 1rem; }
+.sajni-editor .cm-editor.cm-focused { outline: none; }
+.sajni-editor .cm-scroller { font-family: inherit; line-height: 1.7; overflow: visible; }
+.sajni-editor .cm-content { padding: 0; caret-color: hsl(var(--primary)); min-height: var(--editor-min-height, auto); }
+.sajni-editor .cm-line { padding: 0; }
+.sajni-editor .cm-content ::selection { background: hsl(var(--primary) / 0.22); }
+.sajni-editor .cm-placeholder { color: hsl(var(--muted-foreground) / 0.7); }
+.sajni-editor.is-fill { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.sajni-editor.is-fill .cm-editor { flex: 1 1 auto; }
+
+/* Markup that's showing (Source mode, or the line being edited). */
+.sajni-editor .cm-md-mark, .sajni-editor .cm-list-mark { color: hsl(var(--muted-foreground) / 0.75); }
+.sajni-editor .cm-md-src { color: hsl(var(--muted-foreground)); }
+
+/* Headings */
+.sajni-editor .cm-h { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.012em; line-height: 1.3; }
+.sajni-editor .cm-h1 { font-size: 1.75em; padding-top: 0.5em; }
+.sajni-editor .cm-h2 { font-size: 1.4em; padding-top: 0.45em; }
+.sajni-editor .cm-h3 { font-size: 1.18em; padding-top: 0.35em; }
+.sajni-editor .cm-h4, .sajni-editor .cm-h5, .sajni-editor .cm-h6 { font-size: 1.04em; padding-top: 0.3em; }
+.sajni-editor .cm-h .cm-md-mark { font-family: var(--font-sans); font-weight: 400; }
+.sajni-editor .cm-setext-mark { color: hsl(var(--muted-foreground) / 0.6); }
+
+/* Inline */
+.sajni-editor .cm-strong { font-weight: 650; }
+.sajni-editor .cm-em { font-style: italic; }
+.sajni-editor .cm-strike { text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground)); }
+.sajni-editor .cm-highlight { background: hsl(var(--tertiary-container) / 0.75); color: hsl(var(--on-tertiary-container)); border-radius: 3px; padding: 0.05em 0; }
+.sajni-editor .cm-inline-code { font-family: var(--font-code); font-size: 0.86em; background: hsl(var(--surface-container-high)); border-radius: 4px; padding: 0.1em 0.3em; }
+.sajni-editor .cm-link { color: hsl(var(--primary)); text-decoration: underline; text-decoration-color: hsl(var(--primary) / 0.35); text-underline-offset: 2px; }
+.sajni-editor [data-mode="read"] .cm-link { cursor: pointer; }
+.sajni-editor .cm-tag { color: hsl(var(--on-secondary-container)); background: hsl(var(--secondary-container) / 0.7); border-radius: 5px; padding: 0.05em 0.3em; font-size: 0.94em; }
+.sajni-editor [data-mode="read"] .cm-tag { cursor: pointer; }
+.sajni-editor .cm-wiki-src, .sajni-editor .cm-task-src { color: hsl(var(--primary)); }
+
+/* [[Note]] */
+.sajni-editor .cm-wiki {
+  color: hsl(var(--primary)); cursor: pointer; border-radius: 3px;
+  text-decoration: underline; text-decoration-color: hsl(var(--primary) / 0.35); text-underline-offset: 2px;
+}
+.sajni-editor .cm-wiki:hover { text-decoration-color: hsl(var(--primary)); }
+.sajni-editor .cm-wiki.is-missing { color: hsl(var(--muted-foreground)); text-decoration-style: dashed; text-decoration-color: hsl(var(--muted-foreground) / 0.6); }
+
+/* [[task:N|Title]]: quiet outlined chip with the task's own state. */
+.sajni-editor .cm-task {
+  display: inline-flex; align-items: baseline; gap: 0.4em; max-width: 100%;
+  padding: 0 0.45em 0 0.4em; margin: 0 0.05em; border-radius: 6px;
+  box-shadow: inset 0 0 0 1px hsl(var(--outline-variant));
+  cursor: pointer; vertical-align: baseline; line-height: 1.45;
+  transition: background-color 150ms var(--m3-ease-standard);
+}
+.sajni-editor .cm-task:hover { background: hsl(var(--on-surface) / 0.06); }
+.sajni-editor .cm-task-ring {
+  align-self: center; flex-shrink: 0; width: 0.72em; height: 0.72em; border-radius: 9999px;
+  box-shadow: inset 0 0 0 1.5px hsl(var(--on-surface-variant));
+}
+.sajni-editor .cm-task-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sajni-editor .cm-task-due { font-size: 0.8em; color: hsl(var(--muted-foreground)); white-space: nowrap; }
+.sajni-editor .cm-task-due.is-overdue { color: hsl(var(--destructive)); }
+.sajni-editor .cm-task.is-done .cm-task-ring { background: hsl(var(--primary)); box-shadow: none; }
+.sajni-editor .cm-task.is-done .cm-task-title { text-decoration: line-through; color: hsl(var(--muted-foreground)); }
+.sajni-editor .cm-task.is-blocked .cm-task-ring { box-shadow: inset 0 0 0 1.5px hsl(var(--destructive)); }
+.sajni-editor .cm-task.is-gone { opacity: 0.6; }
+.sajni-editor .cm-task.is-gone .cm-task-ring { box-shadow: inset 0 0 0 1.5px hsl(var(--muted-foreground)); }
+
+/* [time:9:30] */
+.sajni-editor .cm-time {
+  display: inline-block; padding: 0 0.4em; border-radius: 6px; font-variant-numeric: tabular-nums;
+  background: hsl(var(--tertiary-container) / 0.6); color: hsl(var(--on-tertiary-container)); font-size: 0.92em;
+}
+
+/* Lists */
+.sajni-editor .cm-bullet { display: inline-block; width: 1ch; color: hsl(var(--muted-foreground)); font-weight: 700; text-align: center; }
+.sajni-editor .cm-checkbox {
+  display: inline-block; position: relative; width: 1.02em; height: 1.02em; margin-right: 0.45em;
+  vertical-align: -0.16em; border-radius: 5px; cursor: pointer;
+  box-shadow: inset 0 0 0 1.6px hsl(var(--on-surface-variant));
+  transition: background-color 120ms var(--m3-ease-standard), box-shadow 120ms var(--m3-ease-standard);
+}
+.sajni-editor .cm-checkbox:hover { box-shadow: inset 0 0 0 1.6px hsl(var(--primary)); }
+.sajni-editor .cm-checkbox.is-checked { background: hsl(var(--primary)); box-shadow: none; }
+.sajni-editor .cm-checkbox.is-checked::after {
+  content: ''; position: absolute; left: 0.34em; top: 0.14em; width: 0.28em; height: 0.52em;
+  border: solid hsl(var(--primary-foreground)); border-width: 0 0.13em 0.13em 0; transform: rotate(45deg);
+}
+.sajni-editor .cm-task-done { color: hsl(var(--muted-foreground)); text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground) / 0.6); }
+
+/* Quote */
+.sajni-editor .cm-quote { box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.45); padding-left: 1em !important; color: hsl(var(--muted-foreground)); }
+
+/* Divider */
+.sajni-editor .cm-hr { display: inline-block; width: 100%; height: 1px; vertical-align: middle; background: hsl(var(--outline-variant)); }
+
+/* Images */
+.sajni-editor .cm-image { display: block; max-width: 100%; max-height: 32rem; margin: 0.4rem 0; border-radius: 12px; }
+
+/* Code blocks: one tonal surface across the block's lines. */
+.sajni-editor .cm-codeblock {
+  font-family: var(--font-code); font-size: 0.86em; line-height: 1.6;
+  background: hsl(var(--surface-container-low)); padding: 0 1rem !important;
+  box-shadow: inset 1px 0 0 hsl(var(--outline-variant)), inset -1px 0 0 hsl(var(--outline-variant));
+}
+.sajni-editor .cm-codeblock.is-first { border-radius: 12px 12px 0 0; padding-top: 0.55rem !important; box-shadow: inset 1px 0 0 hsl(var(--outline-variant)), inset -1px 0 0 hsl(var(--outline-variant)), inset 0 1px 0 hsl(var(--outline-variant)); }
+.sajni-editor .cm-codeblock.is-last { border-radius: 0 0 12px 12px; padding-bottom: 0.55rem !important; box-shadow: inset 1px 0 0 hsl(var(--outline-variant)), inset -1px 0 0 hsl(var(--outline-variant)), inset 0 -1px 0 hsl(var(--outline-variant)); }
+.sajni-editor .cm-codeblock.is-first.is-last { border-radius: 12px; box-shadow: inset 0 0 0 1px hsl(var(--outline-variant)); }
+.sajni-editor .cm-fence { color: hsl(var(--muted-foreground)); }
+.sajni-editor .cm-fence.is-folded { font-size: 0.72em; line-height: 1.4; text-align: right; }
+.sajni-editor .cm-code-lang { color: hsl(var(--muted-foreground)); font-family: var(--font-sans); }
+.sajni-editor .cm-codeblock .tok-keyword, .sajni-editor .cm-codeblock .tok-operatorKeyword { color: hsl(var(--primary)); }
+.sajni-editor .cm-codeblock .tok-string, .sajni-editor .cm-codeblock .tok-string2 { color: hsl(var(--tertiary)); }
+.sajni-editor .cm-codeblock .tok-number, .sajni-editor .cm-codeblock .tok-bool, .sajni-editor .cm-codeblock .tok-atom { color: hsl(var(--secondary)); }
+.sajni-editor .cm-codeblock .tok-comment { color: hsl(var(--muted-foreground)); font-style: italic; }
+.sajni-editor .cm-codeblock .tok-typeName, .sajni-editor .cm-codeblock .tok-className { color: hsl(var(--secondary)); }
+.sajni-editor .cm-codeblock .tok-definition, .sajni-editor .cm-codeblock .tok-function { color: hsl(var(--on-surface)); font-weight: 600; }
+.sajni-editor .cm-codeblock .tok-propertyName { color: hsl(var(--on-surface-variant)); }
+
+/* Tables */
+.sajni-editor .cm-table-src { font-family: var(--font-code); font-size: 0.86em; }
+.sajni-editor .cm-table-wrap { overflow-x: auto; margin: 0.35rem 0; }
+.sajni-editor .cm-table-wrap table { border-collapse: separate; border-spacing: 0; min-width: 50%; font-size: 0.95em; line-height: 1.5; }
+.sajni-editor .cm-table-wrap th, .sajni-editor .cm-table-wrap td { padding: 0.4rem 0.75rem; border-bottom: 1px solid hsl(var(--outline-variant)); vertical-align: top; }
+.sajni-editor .cm-table-wrap th { font-weight: 600; color: hsl(var(--muted-foreground)); font-size: 0.92em; border-bottom-color: hsl(var(--outline)); }
+.sajni-editor .cm-table-wrap tr:last-child td { border-bottom: 0; }
+.sajni-editor .cm-table-wrap code { font-family: var(--font-code); font-size: 0.86em; background: hsl(var(--surface-container-high)); border-radius: 4px; padding: 0.1em 0.3em; }
+.sajni-editor .cm-table-wrap mark { background: hsl(var(--tertiary-container) / 0.75); color: hsl(var(--on-tertiary-container)); border-radius: 3px; }
+.sajni-editor .cm-table-wrap a { color: hsl(var(--primary)); text-decoration: underline; text-decoration-color: hsl(var(--primary) / 0.35); }
+
+/* Autocomplete (/, [[, #, @) */
+.cm-tooltip.sajni-complete {
+  border: 0; border-radius: 16px; padding: 6px; min-width: 15rem;
+  background: hsl(var(--surface-container-high)); color: hsl(var(--popover-foreground));
+  box-shadow: var(--m3-elev-2); font-family: var(--font-sans);
+}
+.cm-tooltip.sajni-complete > ul { max-height: min(20rem, 50vh); font-family: inherit !important; }
+.cm-tooltip.sajni-complete > ul > li {
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0.65rem !important;
+  border-radius: 10px; font-size: 0.875rem; line-height: 1.35; color: hsl(var(--foreground));
+}
+.cm-tooltip.sajni-complete > ul > li[aria-selected] { background: hsl(var(--secondary-container)); color: hsl(var(--on-secondary-container)); }
+.cm-tooltip.sajni-complete .cm-completionLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.cm-tooltip.sajni-complete .cm-completionDetail { font-style: normal; margin-left: auto; font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
+.cm-tooltip.sajni-complete .cm-completionMatchedText { text-decoration: none; font-weight: 650; }
+.cm-tooltip.sajni-complete .cm-completionIcon { display: none; }

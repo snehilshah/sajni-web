@@ -61,14 +61,17 @@ function FolderList({ folders, current, onPick }: { folders: NoteFolder[]; curre
 }
 
 /** The note's place as a breadcrumb; tap it to move the note (or pick where a new one goes). */
-export function FolderPicker({ folders, folder, onPick, className }: {
+export function FolderPicker({ folders, folder, onPick, compact, className }: {
   folders: NoteFolder[];
   folder: string;
   onPick: (path: string) => void;
+  /** Only the note's own folder (phones). */
+  compact?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const parts = folder ? folder.split('/') : [];
+  const all = folder ? folder.split('/') : [];
+  const parts = compact ? all.slice(-1) : all;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
@@ -81,10 +84,10 @@ export function FolderPicker({ folders, folder, onPick, className }: {
               className,
             )}
           >
-            <span className="truncate">Notes</span>
+            {!(compact && parts.length) && <span className="truncate">Notes</span>}
             {parts.map((p, i) => (
               <span key={`${p}:${i}`} className="flex min-w-0 items-center gap-1">
-                <ChevronRight className="size-3 shrink-0 opacity-60" aria-hidden />
+                {!(compact && i === 0) && <ChevronRight className="size-3 shrink-0 opacity-60" aria-hidden />}
                 <span className={cn('truncate', i === parts.length - 1 && 'text-foreground/85')}>{p}</span>
               </span>
             ))}

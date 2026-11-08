@@ -17,7 +17,7 @@ import { qk } from '@/queries/keys';
 import { patchTaskInLists } from '@/queries/tasks';
 import { saveWithGrace } from '@/lib/reliableSave';
 import { confirmDialog } from '@/lib/confirm';
-import RichEditor from '@/components/editor/RichEditor';
+import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -507,7 +507,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       onClose={requestClose}
       onCloseComplete={onCloseComplete}
       // New-task opens can morph from a page-owned source. Flows without one
-      // (task rows, RichEditor /task) keep the scale/fade fallback.
+      // (task rows, the editor's /task) keep the scale/fade fallback.
       layoutId={editing ? undefined : layoutId}
       ariaLabel={editing ? 'Edit task' : 'New task'}
       className={cn(
@@ -630,7 +630,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		  </div>
 
 		  <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
-		    <RichEditor value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} placeholder="Add some extra notes here…" toolbar="compact" onImageFiles={addFiles} />
+		    <MarkdownEditor value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} placeholder="Add some extra notes here…" toolbar="compact" onImageFiles={addFiles} />
 		  </div>
 
 		  <TaskAttachments tiles={tiles} uploading={uploading} />

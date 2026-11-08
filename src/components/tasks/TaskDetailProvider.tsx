@@ -10,8 +10,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { lazyPage } from '@/lib/lazyPage';
 import { failureText } from '@/lib/errors';
 import { toast } from 'sonner';
-// Lazy: TaskFormDialog drags the whole tiptap editor along; this provider
-// wraps every page, so an eager import would put tiptap in the boot bundle.
+// Lazy: TaskFormDialog drags the Markdown editor along; this provider
+// wraps every page, so an eager import would put it in the boot bundle.
 const TaskFormDialog = lazyPage(() => import('./TaskFormDialog'));
 
 /**
@@ -163,7 +163,7 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new CustomEvent('data:invalidate', { detail: { kind: 'task_saved' } }));
   }, []);
 
-  // Listen for global "open task" events so non-React code (e.g. tiptap
+  // Listen for global "open task" events so non-React code (e.g. editor
   // chip click handlers) can trigger without grabbing the hook.
   useEffect(() => {
     const onOpen = (e: Event) => {

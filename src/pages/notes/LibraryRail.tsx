@@ -366,9 +366,10 @@ function Row({
     >
       <span className="flex w-4 shrink-0 items-center justify-center">{leading}</span>
       {children}
-      {/* One trailing slot: pin/count at rest, the menu on hover (no shift). */}
-      <span className="relative flex h-7 min-w-7 shrink-0 items-center justify-end gap-1.5 pr-1">
-        <span className={cn('flex items-center gap-1.5', menu && (menuOpen ? 'invisible' : 'group-hover:invisible group-focus-within:invisible'))}>
+      {/* One trailing slot: pin/count at rest, the menu on hover (no shift).
+          Touch screens have no hover, so there the menu sits after the count. */}
+      <span className="relative flex h-7 shrink-0 items-center justify-end gap-1 md:min-w-7 md:pr-1">
+        <span className={cn('flex items-center gap-1.5', menu && (menuOpen ? 'md:invisible' : 'md:group-hover:invisible md:group-focus-within:invisible'))}>
           {trailing}
         </span>
         {menu && (
@@ -379,8 +380,9 @@ function Row({
                   type="button"
                   onClick={(e) => e.stopPropagation()}
                   className={cn(
-                    'absolute right-0 top-0 flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
-                    menuOpen ? 'flex' : 'max-md:flex md:invisible md:group-hover:visible md:group-focus-within:visible',
+                    'flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
+                    'md:absolute md:right-0 md:top-0 md:size-7',
+                    menuOpen ? 'md:visible' : 'md:invisible md:group-hover:visible md:group-focus-within:visible',
                   )}
                   aria-label={menuLabel}
                   title="More"

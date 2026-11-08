@@ -4,7 +4,7 @@ export const notesMeta = {
   id: 'notes',
   label: 'Notes',
   title: 'Notes & Memos',
-  blurb: 'Long-form writing with structure, and a frictionless inbox for half-formed thoughts.',
+  blurb: 'Long-form writing in plain Markdown, and a frictionless inbox for half-formed thoughts.',
   sections: [
     { id: 'notes', label: 'Notes' },
     { id: 'editor', label: 'The editor' },
@@ -22,52 +22,66 @@ export default function NotesDoc() {
           memo.</em>
         </p>
         <FeatureList>
-          <Feature name="The index">
+          <Feature name="The library">
             <p>
-              With no note open, Notes is an index rather than a card wall:
-              rows grouped into folder sections, pinned notes in a strip at
-              the top. Each section header is a toggle, the chevron and
-              folder icon fold that folder's notes away and back. It's a
-              reveal, not a route: the index never navigates <em>into</em> a
-              folder, so the other sections stay where they are. What you
-              fold is remembered per browser; anything you haven't touched
-              starts open.
+              The left rail lists folders and notes as one tree: folders first,
+              pinned items at the top of their group, the number beside a folder
+              counts every note inside it. Click a folder to open or close it;
+              what you open is remembered. Each row's <Kbd>⋯</Kbd> (or a
+              right-click) holds the rest: new note or folder inside it,
+              rename, pin, move, delete. Drag a note onto a folder to move it,
+              or onto the empty space below to take it out of every folder.
+            </p>
+            <p>
+              The search box filters titles and tags as you type. With no note
+              open, the page lists what you edited most recently.
             </p>
           </Feature>
-          <Feature name="Vault tree (folders)">
+          <Feature name="Writing is instant">
             <p>
-              Notes live in nested folders (paths like{' '}
-              <Code>projects/sajni</Code>). The tree sorts folders first, then
-              notes; <strong>pinned</strong> folders and notes float to the
-              top of their group. On mobile the tree slides in as a left
-              sheet.
+              Your title shows in the library as you type it, and everything
+              saves on its own a moment after you stop. The top bar says{' '}
+              <em>Saving</em> and then <em>Saved</em>; if the connection drops it
+              says <em>Retry save</em>. <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd> saves at
+              once. Switching notes or closing the tab saves first.
+            </p>
+          </Feature>
+          <Feature name="Where a note lives">
+            <p>
+              The path above the note (<em>Notes › Work › Plans</em>) is also
+              the way to move it: tap it and pick a folder. A new note starts in
+              the folder of the note you had open; choose another the same way
+              before or after you write.
+            </p>
+          </Feature>
+          <Feature name="Details">
+            <p>
+              The right rail (<Kbd>Details</Kbd> in the <Kbd>⋯</Kbd> menu on
+              smaller screens) has the note's description, its outline (click a
+              heading to jump), what links to it, what it links to, its tags,
+              and when it was created and last edited.
+            </p>
+            <p>
+              The <strong>description</strong> is one line on what the note is
+              about, so it can be found by meaning as well as by title.
+            </p>
+          </Feature>
+          <Feature name="Calm and focus">
+            <p>
+              Start typing and everything but the text fades out: the top bar,
+              the nav pill and the word count. Move the mouse (or scroll up)
+              and they come back. Reading works the same way: scroll down and
+              the chrome steps aside.
+            </p>
+            <p>
+              <strong>Focus</strong> (<Kbd>Ctrl</Kbd>+<Kbd>.</Kbd>, or{' '}
+              <Kbd>⋯</Kbd> → Focus) also folds both rails away. <Kbd>Esc</Kbd>{' '}
+              or <Kbd>Ctrl</Kbd>+<Kbd>.</Kbd> brings them back.
             </p>
           </Feature>
           <Feature name="Pin">
             <p>
-              Both notes and folders pin. Pinning is ordering, nothing more,
-              no badges, no notifications.
-            </p>
-          </Feature>
-          <Feature name="Description">
-            <p>
-              A one-line subtitle shown in the tree and in search results, so
-              a note can be found by what it's <em>about</em>, not just its
-              title.
-            </p>
-          </Feature>
-          <Feature name="Backlinks">
-            <p>
-              Every note shows what links to it, journal entries and other
-              notes that reference it. Backlinks are collected server-side on
-              save; you never maintain them.
-            </p>
-          </Feature>
-          <Feature name="Search">
-            <p>
-              The in-page search filters the tree live; the global palette
-              (<Kbd>Ctrl</Kbd>+<Kbd>K</Kbd> → <Code>note …</Code>) searches
-              titles, descriptions and content.
+              Both notes and folders pin. Pinning is ordering, nothing more.
             </p>
           </Feature>
         </FeatureList>
@@ -75,67 +89,93 @@ export default function NotesDoc() {
 
       <Section id="editor" title="The Editor">
         <p>
-          The rich editor (used by Notes; the journal shares its link and tag
-          behavior) is block-based. Type <Kbd>/</Kbd> on an empty line for
-          the block menu:
+          Everything you write is plain Markdown, stored exactly as you typed
+          it. The same editor is used in Notes, the Journal and a task's notes.
+          Notes has three ways to look at it (the switch in the top bar):
         </p>
         <RefTable
-          head={['command', 'what it inserts']}
+          head={['mode', 'what you see']}
           rows={[
-            ['/heading 1 · 2 · 3', 'Section headings, three sizes'],
-            ['/bullet list', 'Unordered list'],
-            ['/numbered list', 'Ordered list'],
-            ['/to-do list', 'Checkboxes inside the note'],
-            ['/quote', 'Blockquote'],
-            ['/code block', 'Multi-line code'],
-            ['/divider', 'Horizontal rule'],
-            ['/link', 'A titled link via a small dialog'],
-            ['/task', 'Creates a REAL task and references it inline'],
+            ['Live', 'Formatted, except the line you are on, which shows its Markdown so you can edit it. The default.'],
+            ['Source', 'All the Markdown, with the symbols dimmed and headings sized.'],
+            ['Read', 'Formatted and not editable. Links open with a click. Ctrl+E switches between Live and Read.'],
+          ]}
+        />
+        <p>
+          For example, typing <Code>## Plan</Code> on a line shows a heading
+          the moment the cursor leaves it; click back into it and the{' '}
+          <Code>##</Code> is there again.
+        </p>
+        <RefTable
+          head={['type', 'to get']}
+          rows={[
+            ['/', 'The menu: headings, lists, checklist, task, quote, code block, table, divider, highlight, link, image, time, date'],
+            ['[[', 'A link to a note (pick one, or type a new title: clicking it creates the note), or to a journal day'],
+            ['#', 'A tag; the list suggests the ones you already use'],
+            ['@', 'A time chip: @now, @9:30, or a range like @9-18:30'],
+            ['==text==', 'Highlighted text'],
+            ['- [ ] ', 'A checkbox; click it to tick'],
           ]}
         />
         <FeatureList>
           <Feature name="Task chips (/task)">
             <p>
-              The chip in your note <em>is</em> the task, one object, two
-              views. Check it in Tasks and the chip reflects it; the chip
-              opens the full task sheet. Notes stay prose; commitments stay
-              in the task system.
+              Pick an open task or create one; it appears in the text as a small
+              chip with its title, a ring that fills when it's done, and its due
+              date (red when overdue). The chip always shows the task as it is
+              now, so renaming or finishing the task updates every note that
+              mentions it. Click it to open the task. In the Markdown it's{' '}
+              <Code>[[task:42|Call the bank]]</Code>.
             </p>
           </Feature>
-          <Feature name="Images">
+          <Feature name="Tables, code and highlights">
             <p>
-              Paste or drop a screenshot into the editor, or use the image
-              button (Android: the Image tool above the text). It uploads to
-              your private storage and shows in place.
+              Tables show as tables; click one to edit its Markdown. Code
+              blocks are coloured by language (write it after the opening
+              fence, like <Code>```go</Code>).
+            </p>
+          </Feature>
+          <Feature name="Images and links">
+            <p>
+              Paste or drop a picture to upload it into the note. Paste a web
+              address and it becomes a link; Sajni offers the page's title to
+              use as its text. <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd> turns selected
+              text into a link. While editing, <Kbd>Ctrl</Kbd>-click opens a
+              link.
+            </p>
+          </Feature>
+          <Feature name="Shortcuts">
+            <p>
+              <Kbd>Ctrl</Kbd>+<Kbd>B</Kbd> bold · <Kbd>Ctrl</Kbd>+<Kbd>I</Kbd>{' '}
+              italic · <Kbd>Ctrl</Kbd>+<Kbd>Shift</Kbd>+<Kbd>H</Kbd> highlight ·{' '}
+              <Kbd>Ctrl</Kbd>+<Kbd>Shift</Kbd>+<Kbd>C</Kbd> checklist ·{' '}
+              <Kbd>Ctrl</Kbd>+<Kbd>Alt</Kbd>+<Kbd>1–3</Kbd> headings ·{' '}
+              <Kbd>Tab</Kbd> indents a list item · <Kbd>Alt</Kbd>+<Kbd>N</Kbd>{' '}
+              new note. On a touch screen a small formatting bar appears while
+              you type.
             </p>
           </Feature>
           <Feature name="#tags">
             <p>
-              <Code>#tag</Code> anywhere in the text files the note under
-              that tag globally (Analytics → Tags). Tag pills render inline
-              and are tappable.
+              <Code>#tag</Code> anywhere in the text files the note under that
+              tag (Analytics → Tags). In Read mode a tag opens its page.
             </p>
           </Feature>
           <Feature name="On the phone: read first, write when you mean to">
             <p>
               In the Android app a note opens as a page to read: headings,
-              lists, quotes and tables are formatted, and checklist boxes
-              tick with a tap (the note saves itself). Tap{' '}
-              <strong>Edit</strong> or double-tap the page to write. New
-              notes open straight to writing.
+              lists, quotes, tables and highlights are formatted, and checklist
+              boxes tick with a tap (the note saves itself). Tap{' '}
+              <strong>Edit</strong> or double-tap the page to write. New notes
+              open straight to writing.
             </p>
             <p>
               While you write, the Markdown is styled as you type:{' '}
               <Code>## Plan</Code> shows as a heading,{' '}
-              <Code>**done**</Code> as bold, and the symbols fade back.
-              The formatting bar sits on the keyboard.
-            </p>
-            <p>
-              The app steps back while you focus. Scroll down to read and the
+              <Code>**done**</Code> as bold, and the symbols fade back. The
+              formatting bar sits on the keyboard. Scroll down to read and the
               top bar and the nav dock fade out; scroll up or tap the page to
-              bring them back. Start typing and the bar thins to back and{' '}
-              <strong>Done</strong>. Word count and backlinks sit at the end
-              of the page.
+              bring them back.
             </p>
           </Feature>
         </FeatureList>

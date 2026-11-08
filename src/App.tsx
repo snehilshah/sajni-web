@@ -3,7 +3,7 @@ import { lazyPage } from '@/lib/lazyPage';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import Layout from './components/Layout';
 // Pages are lazy route-level chunks so heavy per-page deps (recharts,
-// tiptap, markdown) stay out of the boot bundle.
+// the editor, markdown) stay out of the boot bundle.
 const TodayPage = lazyPage(() => import('./pages/TodayPage'));
 const MemosPage = lazyPage(() => import('./pages/MemosPage'));
 const ThinkingPage = lazyPage(() => import('./pages/ThinkingPage'));

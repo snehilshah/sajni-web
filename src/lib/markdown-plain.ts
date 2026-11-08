@@ -11,8 +11,10 @@ export function markdownPlain(md: string): string {
         .replace(/^>\s*/, '')
         .replace(/^([-*+]|\d+\.)\s+(\[[ xX]\]\s+)?/, '')
         .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/\[\[([^\]|]*)(\|[^\]]*)?\]\]/g, '$1')
-        .replace(/[*_~`]+/g, ''),
+        .replace(/\[\[([^\]|]*)(?:\|([^\]]*))?\]\]/g, (_m, target: string, label?: string) => label || target)
+        .replace(/\(\(task:\d+\|([^)]*)\)\)/g, '$1')
+        .replace(/\[time:([\d:-]+)\]/g, '$1')
+        .replace(/[*_~`]+|==/g, ''),
     )
     .join(' ')
     .replace(/\s+/g, ' ')

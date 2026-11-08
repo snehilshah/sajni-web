@@ -2,8 +2,6 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type React
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 import { notes as notesApi } from '@/api';
 import type { BacklinkRef } from '@/types';
@@ -19,12 +17,13 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft, Copy, Edit3, Eye, FilePlus, Maximize2, MoreHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
+  ArrowLeft, Code, Copy, Edit3, Eye, FilePlus, Maximize2, MoreHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
 } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { lazyPage } from '@/lib/lazyPage';
+import type { MarkdownEditorHandle } from '@/components/editor/MarkdownEditor';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -37,9 +36,9 @@ import {
   type NoteListItem, type OutgoingLink, type OutlineItem,
 } from './notes/model';
 
-const RichEditor = lazyPage(() => import('@/components/editor/RichEditor'));
+const MarkdownEditor = lazyPage(() => import('@/components/editor/MarkdownEditor'));
 
-type Mode = 'edit' | 'read';
+type Mode = 'live' | 'source' | 'read';
 
 const LIBRARY_KEY = 'sajni:notes-library';
 const DETAILS_KEY = 'sajni:notes-details';
@@ -66,7 +65,7 @@ export default function NotesPage() {
 
   const { doc, loading, status, edit, open, prefetch, newDraft, close, move, setPinned, remove, flush } = useNoteDoc();
 
-  const [mode, setMode] = useState<Mode>('edit');
+  const [mode, setMode] = useState<Mode>('live');
   const [search, setSearch] = useState('');
   const [libraryOpen, setLibraryOpen] = useState(() => readFlag(LIBRARY_KEY, true));
   const [detailsOpen, setDetailsOpen] = useState(() => readFlag(DETAILS_KEY, true));
@@ -80,7 +79,7 @@ export default function NotesPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<MarkdownEditorHandle>(null);
 
   useEffect(() => { try { localStorage.setItem(LIBRARY_KEY, libraryOpen ? '1' : '0'); } catch { /* private mode */ } }, [libraryOpen]);
   useEffect(() => { try { localStorage.setItem(DETAILS_KEY, detailsOpen ? '1' : '0'); } catch { /* private mode */ } }, [detailsOpen]);
@@ -113,49 +112,40 @@ export default function NotesPage() {
   }, []);
 
   // ── URL ⇄ open note ───────────────────────────────────────────────────
+  // The URL mirrors the open note. A URL this page didn't write (a link,
+  // back/forward) opens that note instead.
   const urlId = Number(params.get('id')) || null;
   const docId = doc?.id ?? null;
-  const lastUrlId = useRef<number | null>(null);
+  const written = useRef<number | null | undefined>(undefined);
   useEffect(() => {
-    if (urlId && urlId !== docId && urlId !== lastUrlId.current) {
-      lastUrlId.current = urlId;
-      void open(urlId).then((d) => d && reveal(d.folder));
+    if (urlId !== written.current) {
+      written.current = urlId;
+      if (urlId && urlId !== docId) void open(urlId).then((d) => d && reveal(d.folder));
+      return;
     }
-  }, [urlId, docId, open, reveal]);
-  useEffect(() => {
-    if (!docId || docId === urlId) return;
-    lastUrlId.current = docId;
+    if (docId === urlId) return;
+    written.current = docId;
     const next = new URLSearchParams(params);
-    next.set('id', String(docId));
+    if (docId) next.set('id', String(docId)); else next.delete('id');
     setParams(next, { replace: true });
-  }, [docId, urlId, params, setParams]);
-
-  const clearUrl = useCallback(() => {
-    lastUrlId.current = null;
-    if (!params.get('id')) return;
-    const next = new URLSearchParams(params);
-    next.delete('id');
-    setParams(next, { replace: true });
-  }, [params, setParams]);
+  }, [urlId, docId, params, setParams, open, reveal]);
 
   const openNote = useCallback((id: number) => {
     void open(id).then((d) => d && reveal(d.folder));
   }, [open, reveal]);
 
   const startNew = useCallback((folder?: string) => {
-    setMode('edit');
-    clearUrl();
+    setMode('live');
     void newDraft(folder ?? doc?.folder ?? '').then(() => requestAnimationFrame(() => titleRef.current?.focus()));
-  }, [clearUrl, newDraft, doc?.folder]);
+  }, [newDraft, doc?.folder]);
 
-  const closeNote = useCallback(() => { clearUrl(); void close(); }, [clearUrl, close]);
+  const closeNote = useCallback(() => { void close(); }, [close]);
 
   const deleteNote = useCallback(async (note: { id: number; title: string }) => {
     const ok = await confirmDialog({ title: `Delete “${displayTitle(note.title)}”?`, description: "This can't be undone.", confirmText: 'Delete note' });
     if (!ok) return;
-    if (doc?.id === note.id) clearUrl();
     await remove(note.id);
-  }, [doc?.id, clearUrl, remove]);
+  }, [remove]);
 
   // ── Derived from the open note ─────────────────────────────────────────
   const content = doc?.content ?? '';
@@ -193,14 +183,10 @@ export default function NotesPage() {
 
   const jumpTo = (item: OutlineItem) => {
     setDetailsSheet(false);
-    const heads = bodyRef.current?.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    heads?.item(item.index)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    editorRef.current?.revealHeading(item.index);
   };
 
-  const focusBody = () => {
-    const el = bodyRef.current?.querySelector<HTMLElement>('.ProseMirror');
-    el?.focus();
-  };
+  const focusBody = () => editorRef.current?.focus('start');
 
   // ── Calm & focus ───────────────────────────────────────────────────────
   // Typing (or reading down) calms the chrome; moving the pointer or
@@ -245,7 +231,7 @@ export default function NotesPage() {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); void flush(); return; }
-      if (mod && (e.key === 'e' || e.key === 'E') && doc) { e.preventDefault(); setMode((m) => (m === 'edit' ? 'read' : 'edit')); return; }
+      if (mod && (e.key === 'e' || e.key === 'E') && doc) { e.preventDefault(); setMode((m) => (m === 'read' ? 'live' : 'read')); return; }
       if (mod && e.key === '.') { e.preventDefault(); setFocus((f) => !f); return; }
       if (e.altKey && (e.key === 'n' || e.key === 'N' || e.code === 'KeyN')) { e.preventDefault(); startNew(); return; }
       if (e.key === 'Escape' && focus && !e.defaultPrevented && !document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) setFocus(false);
@@ -297,6 +283,7 @@ export default function NotesPage() {
       tags={doc.tags}
       createdAt={doc.created_at}
       updatedAt={doc.updated_at}
+      counts={isMobile ? counts : undefined}
       onCollapse={isWide ? () => setDetailsOpen(false) : undefined}
     />
   );
@@ -376,6 +363,7 @@ export default function NotesPage() {
           folders={folders}
           folder={doc.folder}
           onPick={(path) => { void move(doc.id, path); reveal(path); }}
+          compact={isMobile}
           className="min-w-0"
         />
         {doc.updated_at && !isMobile && (
@@ -393,7 +381,8 @@ export default function NotesPage() {
         aria-label="View"
         className="[&>button]:h-8 [&>button]:px-2.5 max-md:[&>button]:h-10"
         options={[
-          { value: 'edit', label: isMobile ? '' : 'Edit', icon: Edit3 },
+          { value: 'live', label: isMobile ? '' : 'Live', icon: Edit3 },
+          { value: 'source', label: isMobile ? '' : 'Source', icon: Code },
           { value: 'read', label: isMobile ? '' : 'Read', icon: Eye },
         ]}
       />
@@ -438,23 +427,23 @@ export default function NotesPage() {
             className="min-h-0 rounded-none border-0 bg-transparent p-0 font-serif text-[2rem] md:text-[2.5rem] font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/35 focus-visible:shadow-none"
           />
         )}
-        <div ref={bodyRef} className="mt-6 flex flex-1 flex-col">
+        <div className="mt-5 flex flex-1 flex-col">
           {loading ? (
             <div className="flex flex-col gap-3">
               <Skeleton className="h-4 w-11/12" />
               <Skeleton className="h-4 w-10/12" />
               <Skeleton className="h-4 w-8/12" />
             </div>
-          ) : mode === 'read' ? (
-            <ReadView content={doc.content} />
           ) : (
             <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
-              <RichEditor
+              <MarkdownEditor
                 key={doc.key}
+                ref={editorRef}
                 value={doc.content}
                 onChange={(v) => edit({ content: v })}
-                placeholder="Write, or type / for blocks, [[ to link, # to tag"
-                className="notes-editor [&_.ProseMirror>:first-child]:mt-0"
+                mode={mode}
+                placeholder={mode === 'read' ? 'Nothing written yet.' : 'Write, or type / for more'}
+                ariaLabel="Note"
                 fill
               />
             </Suspense>
@@ -464,12 +453,11 @@ export default function NotesPage() {
     </div>
   );
 
-  const statusLine = doc && (
+  const statusLine = doc && !isMobile && (
     <div
       className={cn(
         'pointer-events-none absolute right-3 z-10 flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs tabular-nums text-muted-foreground transition-opacity duration-300 md:right-5',
-        'bg-[hsl(var(--background)/0.85)]',
-        isMobile ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+80px)]' : 'bottom-2',
+        'bottom-2 bg-[hsl(var(--background)/0.85)]',
         chromeHidden && 'opacity-0',
       )}
       aria-live="off"
@@ -599,15 +587,6 @@ function SaveState({ status, onRetry }: { status: SaveStatus; onRetry: () => voi
         <button type="button" onClick={onRetry} className="font-medium text-destructive hover:underline">Retry save</button>
       )}
     </span>
-  );
-}
-
-function ReadView({ content }: { content: string }) {
-  if (!content.trim()) return <p className="text-muted-foreground">Nothing written yet.</p>;
-  return (
-    <article className="prose prose-sajni dark:prose-invert max-w-none [&>:first-child]:mt-0">
-      <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
-    </article>
   );
 }
 

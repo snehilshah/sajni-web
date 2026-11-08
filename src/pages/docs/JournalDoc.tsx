@@ -1,4 +1,4 @@
-import { Section, Callout, Feature, FeatureList } from './primitives';
+import { Section, Callout, Code, Feature, FeatureList } from './primitives';
 
 export const journalMeta = {
   id: 'journal',
@@ -29,6 +29,16 @@ export default function JournalDoc() {
               On the web, entries save as you type; there is no save button.
               On the phone, an entry saves when you close it (back, or Save).
               Content and location save together.
+            </p>
+          </Feature>
+          <Feature name="Writing">
+            <p>
+              The day is written in the same editor as Notes, in Live mode:
+              formatted as you go, with the Markdown showing only on the line
+              you're on. <Code>/</Code> opens the menu (checklist, task, time,
+              table…), <Code>[[</Code> links a note or another day, and{' '}
+              <Code>@9:30</Code> drops a time chip. See Notes → The editor for
+              the rest.
             </p>
           </Feature>
           <Feature name="Location">
