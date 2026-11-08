@@ -65,10 +65,7 @@ export default defineConfig({
     },
   },
   build: {
-    // RichEditor is loaded only when an editor surface opens. Keep its deferred
-    // payload out of the startup graph without forcing ProseMirror across a
-    // manual chunk boundary; those packages contain circular module links that
-    // Rolldown must resolve together.
+    // The Markdown editor (CodeMirror) loads only when an editor surface opens.
     chunkSizeWarningLimit: 700,
     rolldownOptions: {
       // Asset transforms and the React Compiler are intentional. Keep every

@@ -5,12 +5,13 @@ import { toast } from 'sonner';
 import { BUILD_ID, deployedBuild } from './chunkReload';
 
 // Notices a new deploy. Checks /version.json when the app comes back to the
-// foreground, on page changes and every 10 minutes while visible (at most once
-// a minute). Once a newer build is out it says so, once, with a Reload button;
+// foreground or gets focus, when the network returns, on page changes and
+// every 2 minutes while visible (at most once a minute; the file is tiny and
+// CDN-cached). Once a newer build is out it says so, once, with a Reload button;
 // it never reloads by itself. The running tab keeps working meanwhile: every
 // page chunk was prefetched at start (lazyPage.ts).
 const MIN_GAP_MS = 60_000;
-const POLL_MS = 10 * 60_000;
+const POLL_MS = 2 * 60_000;
 let announced = false;
 let lastCheck = 0;
 
@@ -37,9 +38,15 @@ export function BuildWatcher() {
   useEffect(() => {
     const onVisible = () => { if (document.visibilityState === 'visible') check(); };
     document.addEventListener('visibilitychange', onVisible);
+    // A desktop PWA window stays "visible" behind other windows; focus is
+    // the moment you come back to it.
+    window.addEventListener('focus', onVisible);
+    window.addEventListener('online', onVisible);
     const poll = window.setInterval(onVisible, POLL_MS);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+      window.removeEventListener('online', onVisible);
       window.clearInterval(poll);
     };
   }, []);
