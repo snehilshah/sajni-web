@@ -29,6 +29,7 @@ import { sajniMarkdown } from './cm/syntax';
 import { editorHooks, editorMode, livePreview, refreshDecorations, type EditorHooks, type EditorMode } from './cm/live';
 import { formattingKeymap, insertText, setLineKind, toggleWrap } from './cm/commands';
 import { sajniCompletion } from './cm/complete';
+import { vimExtension } from './cm/vim';
 import './editor.css';
 
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
@@ -58,6 +59,10 @@ export interface MarkdownEditorProps {
   toolbar?: 'compact' | 'touch' | 'none';
   /** Pasted or dropped images go here instead of into the text. */
   onImageFiles?: (files: File[]) => void;
+  /** Vim keys (Notes and Journal, when turned on in Settings). Off in read mode. */
+  vim?: boolean;
+  /** Save now; Vim's `:w`. */
+  onSave?: () => void;
   ariaLabel?: string;
   ref?: Ref<MarkdownEditorHandle>;
 }
@@ -66,7 +71,7 @@ const BARE_URL = /^https?:\/\/\S+$/i;
 
 export default function MarkdownEditor({
   value, onChange, mode = 'live', placeholder, className, autoFocus, minHeight, fill, contextDate,
-  toolbar = 'touch', onImageFiles, ariaLabel, ref,
+  toolbar = 'touch', onImageFiles, ariaLabel, vim = false, onSave, ref,
 }: MarkdownEditorProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -74,6 +79,9 @@ export default function MarkdownEditor({
   const viewRef = useRef<EditorView | null>(null);
   const modeComp = useRef(new Compartment());
   const placeholderComp = useRef(new Compartment());
+  // Vim sits ahead of every other keymap; it's loaded the first time it's on.
+  const vimComp = useRef(new Compartment());
+  const vimExtRef = useRef<Extension>([]);
   const [focused, setFocused] = useState(false);
   const extensionsRef = useRef<Extension[]>([]);
   const modeRef = useRef(mode);
@@ -83,7 +91,8 @@ export default function MarkdownEditor({
   // Latest props, read from CodeMirror callbacks that are bound once.
   const onChangeRef = useRef(onChange);
   const onImageFilesRef = useRef(onImageFiles);
-  useLayoutEffect(() => { onChangeRef.current = onChange; onImageFilesRef.current = onImageFiles; });
+  const onSaveRef = useRef(onSave);
+  useLayoutEffect(() => { onChangeRef.current = onChange; onImageFilesRef.current = onImageFiles; onSaveRef.current = onSave; });
 
   // /task picker + create dialog
   const [taskPicker, setTaskPicker] = useState(false);
@@ -343,7 +352,7 @@ export default function MarkdownEditor({
     const view = new EditorView({
       state: EditorState.create({
         doc: value,
-        extensions: [...extensions, modeComp.current.of(modeExtension(mode)), placeholderComp.current.of(placeholder ? cmPlaceholder(placeholder) : [])],
+        extensions: [vimComp.current.of(vimExtRef.current), ...extensions, modeComp.current.of(modeExtension(mode)), placeholderComp.current.of(placeholder ? cmPlaceholder(placeholder) : [])],
       }),
       parent,
     });
@@ -374,7 +383,7 @@ export default function MarkdownEditor({
     const view = viewRef.current;
     if (!view || value === view.state.doc.toString()) return;
     const hadFocus = view.hasFocus;
-    view.setState(EditorState.create({ doc: value, extensions: [...extensionsRef.current, modeComp.current.of(modeExtension(modeRef.current)), placeholderComp.current.of(placeholderRef.current ? cmPlaceholder(placeholderRef.current) : [])] }));
+    view.setState(EditorState.create({ doc: value, extensions: [vimComp.current.of(vimExtRef.current), ...extensionsRef.current, modeComp.current.of(modeExtension(modeRef.current)), placeholderComp.current.of(placeholderRef.current ? cmPlaceholder(placeholderRef.current) : [])] }));
     if (hadFocus) view.focus();
   }, [value]);
 
@@ -385,6 +394,20 @@ export default function MarkdownEditor({
   useEffect(() => {
     viewRef.current?.dispatch({ effects: placeholderComp.current.reconfigure(placeholder ? cmPlaceholder(placeholder) : []) });
   }, [placeholder]);
+
+  const vimOn = vim && mode !== 'read';
+  useEffect(() => {
+    let live = true;
+    const apply = (ext: Extension) => {
+      if (!live) return;
+      vimExtRef.current = ext;
+      viewRef.current?.dispatch({ effects: vimComp.current.reconfigure(ext) });
+    };
+    if (vimOn) {
+      vimExtension(() => onSaveRef.current?.()).then(apply).catch(() => toast.error("Couldn't load Vim keys"));
+    } else apply([]);
+    return () => { live = false; };
+  }, [vimOn]);
 
   useImperativeHandle(ref, () => ({
     focus: (at = 'end') => {

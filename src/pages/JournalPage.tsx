@@ -30,6 +30,7 @@ import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
+import { useVimKeys } from '@/lib/vimPref';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ const MARGIN_KEY = 'sajni:journal-margin';
 const EXPANDED_MONTHS_KEY = 'sajni:journal-months';
 
 export default function JournalPage() {
+  const vimKeys = useVimKeys();
   const [params, setParams] = useSearchParams();
   const initialDate = params.get('date') || format(new Date(), 'yyyy-MM-dd');
   const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
@@ -288,6 +290,12 @@ export default function JournalPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
+      // Alt+[ / Alt+] change the day (by key position, so any layout works).
+      if (e.altKey && !mod && (e.code === 'BracketLeft' || e.code === 'BracketRight')) {
+        e.preventDefault();
+        if (e.code === 'BracketLeft') goPrev(); else goNext();
+        return;
+      }
       if (!mod) return;
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -728,6 +736,8 @@ export default function JournalPage() {
                     placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
                     fill
                     contextDate={selectedDate}
+                    vim={vimKeys}
+                    onSave={() => { void performSave(); }}
                   />
                 )}
               </div>
@@ -835,6 +845,7 @@ function WeekView({
   onPickDay: (date: string) => void;
   onShiftWeek: (delta: number) => void;
 }) {
+  const vimKeys = useVimKeys();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -990,6 +1001,7 @@ function WeekView({
             placeholder="What do you want this week to be about? Use / for commands, [[ to link, /task to reference…"
             minHeight="280px"
             contextDate={mondayKey}
+            vim={vimKeys}
           />
         )}
       </div>
@@ -1666,6 +1678,7 @@ function MonthView({
   onPickWeek: (year: number, week: number) => void;
   onShiftMonth: (delta: number) => void;
 }) {
+  const vimKeys = useVimKeys();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1798,6 +1811,7 @@ function MonthView({
             placeholder="What's this month about? Use / for commands, [[ to link, /task to reference…"
             minHeight="280px"
             contextDate={monthKey}
+            vim={vimKeys}
           />
         )}
       </div>

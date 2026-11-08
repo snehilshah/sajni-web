@@ -23,6 +23,7 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { lazyPage } from '@/lib/lazyPage';
+import { useVimKeys } from '@/lib/vimPref';
 import type { MarkdownEditorHandle } from '@/components/editor/MarkdownEditor';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -86,6 +87,7 @@ export default function NotesPage() {
   const [libraryWidth, setLibraryWidth] = useState(() => readWidth(LIBRARY_WIDTH_KEY, LIBRARY_DEFAULT));
   const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY, DETAILS_DEFAULT));
   const [calm, setCalm] = useState(false);
+  const vimKeys = useVimKeys();
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
   });
@@ -244,16 +246,30 @@ export default function NotesPage() {
 
   // ── Keyboard ───────────────────────────────────────────────────────────
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    // Page shortcuts run first (capture) and stop there, so the editor (and
+    // Vim keys, which use Ctrl+E to scroll) never sees them.
+    const onShortcut = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
-      if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); void flush(); return; }
-      if (mod && (e.key === 'e' || e.key === 'E') && doc) { e.preventDefault(); setMode((m) => (m === 'read' ? 'live' : 'read')); return; }
-      if (mod && e.key === '.') { e.preventDefault(); setFocus((f) => !f); return; }
-      if (e.altKey && (e.key === 'n' || e.key === 'N' || e.code === 'KeyN')) { e.preventDefault(); startNew(); return; }
-      if (e.key === 'Escape' && focus && !e.defaultPrevented && !document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) setFocus(false);
+      const take = (run: () => void) => { e.preventDefault(); e.stopPropagation(); run(); };
+      if (mod && (e.key === 's' || e.key === 'S')) take(() => { void flush(); });
+      else if (mod && (e.key === 'e' || e.key === 'E') && doc) take(() => setMode((m) => (m === 'read' ? 'live' : 'read')));
+      else if (mod && e.key === '.') take(() => setFocus((f) => !f));
+      else if (e.altKey && (e.key === 'n' || e.key === 'N' || e.code === 'KeyN')) take(startNew);
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // Esc last (bubble), so dialogs and Vim (back to normal mode) get it first.
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || !focus || e.defaultPrevented) return;
+      // Any Esc inside a Vim editor (text, ":" or "/" prompt) is Vim's.
+      if (e.target instanceof Element && e.target.closest('.cm-editor')?.querySelector('.cm-vim-panel')) return;
+      if (document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) return;
+      setFocus(false);
+    };
+    window.addEventListener('keydown', onShortcut, true);
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      window.removeEventListener('keydown', onShortcut, true);
+      window.removeEventListener('keydown', onEscape);
+    };
   }, [flush, doc, focus, startNew]);
 
   // ── Pieces ─────────────────────────────────────────────────────────────
@@ -493,6 +509,8 @@ export default function NotesPage() {
                 placeholder={mode === 'read' ? 'Nothing written yet.' : 'Write, or type / for more'}
                 ariaLabel="Note"
                 fill
+                vim={vimKeys}
+                onSave={() => { void flush(); }}
               />
             </Suspense>
           )}

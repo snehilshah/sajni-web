@@ -186,6 +186,26 @@ export default function NotesDoc() {
               you type.
             </p>
           </Feature>
+          <Feature name="Vim keys">
+            <p>
+              Settings → Editor keys → <strong>Vim</strong> (or{' '}
+              <Code>&gt;Editor keys</Code> in the command palette) turns on Vim
+              in Notes and Journal, on that computer only; phones never get it.
+              You start in normal mode, and the mode shows at the bottom left
+              while you're in the text. <Kbd>j</Kbd> and <Kbd>k</Kbd> move by
+              the line you see, so long wrapped paragraphs behave.
+            </p>
+            <p>
+              Yanks and deletes go to the system clipboard, and{' '}
+              <Kbd>p</Kbd> pastes whatever you last copied anywhere (the
+              browser asks once to let Sajni read the clipboard).{' '}
+              <Code>:w</Code> saves at once. <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd>,{' '}
+              <Kbd>Ctrl</Kbd>+<Kbd>E</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>.</Kbd>{' '}
+              keep their Notes meanings, and <Kbd>Esc</Kbd> in the text only
+              changes Vim's mode. Read mode turns Vim off; switch back to Live
+              or Source to edit.
+            </p>
+          </Feature>
           <Feature name="#tags">
             <p>
               <Code>#tag</Code> anywhere in the text files the note under that

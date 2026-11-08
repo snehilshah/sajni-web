@@ -16,6 +16,7 @@ import {
 import { useMode, useDensity } from '@/hooks/useThemePrefs';
 import { useAuth } from '@/auth/AuthContext';
 import { reportHang } from '@/lib/telemetry';
+import { hasKeyboardPointer, setVimKeys } from '@/lib/vimPref';
 import { toast } from 'sonner';
 import { Input } from './ui/input';
 
@@ -91,6 +92,10 @@ export default function CommandPalette({ onOpenChange }: Props) {
     { id: 'density-comf',  label: 'Density: Comfortable', Icon: Type, run: () => setDensity('comfortable') },
     { id: 'density-comp',  label: 'Density: Compact',     Icon: Type, run: () => setDensity('compact') },
     { id: 'density-cozy',  label: 'Density: Cozy',        Icon: Type, run: () => setDensity('cozy') },
+    ...(hasKeyboardPointer() ? [
+      { id: 'keys-vim',      label: 'Editor keys: Vim',      Icon: Type, run: () => { setVimKeys(true); toast('Vim keys on for Notes and Journal'); } },
+      { id: 'keys-standard', label: 'Editor keys: Standard', Icon: Type, run: () => { setVimKeys(false); toast('Vim keys off'); } },
+    ] : []),
     { id: 'report-slow',   label: 'Report slow loading', Icon: Activity, run: () => { reportHang(); toast('Noted. Thanks.'); } },
     { id: 'go-settings',   label: 'Open Settings',  Icon: Settings, hint: '/settings', run: () => navigate('/settings') },
     { id: 'sign-out',      label: 'Sign out',       Icon: LogOut,   danger: true, run: () => logout() },

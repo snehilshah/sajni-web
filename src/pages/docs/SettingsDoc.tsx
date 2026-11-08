@@ -32,6 +32,12 @@ export default function SettingsDoc() {
               knob, no per-page settings.
             </p>
           </Feature>
+          <Feature name="Editor keys">
+            <p>
+              Standard or Vim, for the Notes and Journal editors on this
+              computer (it isn't offered on phones). See Notes → Vim keys.
+            </p>
+          </Feature>
         </FeatureList>
       </Section>
 

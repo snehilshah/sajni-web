@@ -23,6 +23,7 @@ import { presetSwatches, THEMES } from '@/theme/presets';
 import PageShell from '@/components/PageShell';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { AnimatePresence, motion } from 'framer-motion';
+import { hasKeyboardPointer, setVimKeys, useVimPref } from '@/lib/vimPref';
 import { diagStats, downloadDiagnostics, sendDiagnostics, type DiagStats } from '@/lib/telemetry';
 
 // AIThemes — prompt input + saved theme list. Generated palettes are
@@ -463,6 +464,7 @@ export default function SettingsPage() {
   } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
+  const vimPref = useVimPref();
   const qc = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
   const [rerollingAvatar, setRerollingAvatar] = useState(false);
@@ -682,6 +684,16 @@ export default function SettingsPage() {
             <Choice value={'cozy'         as Density} current={density} onSelect={setDensity} Icon={Type} label="Cozy" />
           </div>
         </Section>
+
+        {hasKeyboardPointer() && (
+          <Section id="editor" title="Editor keys">
+            <div className="flex flex-wrap gap-2">
+              <Choice value="standard" current={vimPref ? 'vim' : 'standard'} onSelect={() => setVimKeys(false)} label="Standard" />
+              <Choice value="vim" current={vimPref ? 'vim' : 'standard'} onSelect={() => setVimKeys(true)} label="Vim" />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">For Notes and Journal on this device. Yanks go to the clipboard; <code>:w</code> saves.</p>
+          </Section>
+        )}
 
         <Section id="connected-apps" title="Connected apps">
           <ConnectedApps />

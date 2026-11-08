@@ -145,3 +145,15 @@
 .cm-tooltip.sajni-complete .cm-completionDetail { font-style: normal; margin-left: auto; font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
 .cm-tooltip.sajni-complete .cm-completionMatchedText { text-decoration: none; font-weight: 650; }
 .cm-tooltip.sajni-complete .cm-completionIcon { display: none; }
+
+/* Vim keys (Settings → Editor keys). Normal and visual mode draw their own
+   cursor and selection; insert mode uses the usual caret. */
+.sajni-editor .cm-fat-cursor { background: hsl(var(--primary) / 0.7) !important; color: hsl(var(--primary-foreground)) !important; border-radius: 2px; }
+/* Not typing here: no cursor box, no mode line (the ":" prompt keeps it while open). */
+.sajni-editor .cm-editor:not(.cm-focused) .cm-fat-cursor { display: none !important; }
+.sajni-editor .cm-editor:not(:focus-within) .cm-vim-panel { visibility: hidden; }
+.sajni-editor .cm-selectionBackground { background: hsl(var(--primary) / 0.22) !important; }
+.sajni-editor .cm-panels { background: hsl(var(--background)); color: inherit; border: 0 !important; z-index: 5; }
+.sajni-editor .cm-vim-panel { padding: 6px 0; font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.02em; color: hsl(var(--muted-foreground)); }
+.sajni-editor .cm-vim-panel input { color: hsl(var(--foreground)); font: inherit; }
+.sajni-editor .cm-searchMatch { background: hsl(var(--primary) / 0.22); border-radius: 2px; }
