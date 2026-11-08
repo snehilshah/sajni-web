@@ -170,7 +170,7 @@ export const TaskChip = Node.create({
           // Drop the node entirely in that case — better to lose the
           // reference than to permanently corrupt the entry.
           if (!String(id).trim()) return;
-          state.write(`((task:${id}|${title}))`);
+          state.write(`[[task:${id}|${title}]]`);
         },
         parse: {
           setup(md: Md) {
@@ -227,11 +227,11 @@ export const TaskChip = Node.create({
         'data-title': title,
         class: 'tiptap-taskchip',
       }),
-      `☑ ${title}`,
+      title,
     ];
   },
 
   renderText({ node }) {
-    return `((task:${node.attrs.id ?? ''}|${node.attrs.title ?? ''}))`;
+    return `[[task:${node.attrs.id ?? ''}|${node.attrs.title ?? ''}]]`;
   },
 });

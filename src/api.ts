@@ -693,9 +693,10 @@ export const notes = {
   },
   get: (id: number) => request<Note>('/notes/' + id),
   create: (title: string, content: string, folder?: string, description?: string) =>
-    request<{ id: number; folder: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }) }),
+    request<{ id: number; folder: string; title: string; tags: string[]; created_at: string; updated_at: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }) }),
+  /** `tags` comes back only when the content was sent. */
   update: (id: number, data: { title?: string; content?: string; folder?: string; description?: string; pinned?: boolean }) =>
-    request('/notes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+    request<{ folder: string; title: string; updated_at?: string; tags?: string[] }>('/notes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/notes/' + id, { method: 'DELETE' }),
   // Folders
   listFolders: () => request<NoteFolder[]>('/notes/folders'),

@@ -182,10 +182,11 @@ function DockNavIcon({
 // sidebars) run underneath to the viewport top. Slides up + fades when
 // the page scrolls; the merged pill (PageChrome) morphs into its place.
 function PrimaryBar({
-  pathname, scrolled, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
+  pathname, scrolled, onOpenCommand, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
 }: {
   pathname: string;
   scrolled: boolean;
+  onOpenCommand: () => void;
   userMenuContent: ReactNode;
   user: User;
   accountMenuOpen: boolean;
@@ -241,6 +242,23 @@ function PrimaryBar({
           />
         ))}
         <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+        {/* Search and Sajni live in the pill: nothing floats over the page. */}
+        <button
+          onClick={onOpenCommand}
+          className="size-10 inline-flex items-center justify-center rounded-full text-foreground/80 outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring/45"
+          title="Search · ⌘K"
+          aria-label="Search"
+        >
+          <Search className="size-[18px]" />
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('chat:open'))}
+          className="size-10 inline-flex items-center justify-center rounded-full text-foreground/80 outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring/45"
+          title="Ask Sajni"
+          aria-label="Ask Sajni"
+        >
+          <Sparkles className="size-[18px]" />
+        </button>
         <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <DropdownMenuTrigger
             render={
@@ -255,35 +273,6 @@ function PrimaryBar({
         </DropdownMenu>
       </nav>
     </motion.div>
-  );
-}
-
-// ─── Corner search island (desktop) ──────────────────────────────────────
-function SearchIsland({ onOpen }: { onOpen: () => void }) {
-  return (
-    <div
-      className="fixed z-50 hidden md:flex items-center gap-2"
-      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 16 }}
-    >
-      {/* Talking to Sajni is one click from every page, beside search. */}
-      <button
-        onClick={() => window.dispatchEvent(new CustomEvent('chat:open'))}
-        className="h-12 pl-3.5 pr-4 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] shadow-[var(--m3-elev-2)] hover:brightness-[0.97] transition-[filter] text-sm font-medium"
-        title="Ask Sajni"
-      >
-        <Sparkles className="size-[18px]" />
-        <span className="hidden lg:inline">Ask Sajni</span>
-      </button>
-      <button
-        onClick={onOpen}
-        className="h-12 px-4 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-2)] text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] transition-colors text-sm"
-        title="Ask anything · ⌘K"
-        aria-label="Ask anything"
-      >
-        <Search className="size-[18px]" />
-        <span className="kbd hidden lg:inline">⌘K</span>
-      </button>
-    </div>
   );
 }
 
@@ -401,9 +390,8 @@ function BottomDock({
 }
 
 // ─── Layout root ────────────────────────────────────────────────────────
-// Islands architecture: floating primary icon pill (desktop top / mobile
-// bottom dock), page-owned secondary pill (PageShell), corner search
-// island. On scroll the primary + secondary bars merge into one condensed
+// Islands architecture: floating primary icon pill (desktop top, with
+// search + Sajni; mobile bottom dock), page-owned secondary pill (PageShell). On scroll the primary + secondary bars merge into one condensed
 // pill — pages report scroll through NavChromeContext.
 export default function Layout() {
   const location = useLocation();
@@ -429,7 +417,17 @@ export default function Layout() {
       return { pathname: location.pathname, scrolled: value };
     });
   }, [location.pathname]);
-  const chromeCtx = useMemo(() => ({ scrolled, setScrolled }), [scrolled, setScrolled]);
+  // Calm is per page too: leaving the page drops it.
+  const [calmState, setCalmState] = useState({ pathname: location.pathname, calm: false });
+  const calm = calmState.pathname === location.pathname && calmState.calm;
+  const setCalm = useCallback((value: boolean) => {
+    setCalmState((previous) => (
+      previous.pathname === location.pathname && previous.calm === value
+        ? previous
+        : { pathname: location.pathname, calm: value }
+    ));
+  }, [location.pathname]);
+  const chromeCtx = useMemo(() => ({ scrolled, setScrolled, calm, setCalm }), [scrolled, setScrolled, calm, setCalm]);
 
   const accountMenuOpen = accountMenuState.pathname === location.pathname && accountMenuState.open;
   const setAccountMenuOpen = useCallback((open: boolean) => {
@@ -501,12 +499,11 @@ export default function Layout() {
       <Backdrop />
 
       <div className="relative z-10 flex flex-col h-[100dvh] overflow-hidden text-foreground">
-        <SearchIsland onOpen={openCommand} />
-
         {!isMobile && (
           <PrimaryBar
             pathname={location.pathname}
-            scrolled={scrolled}
+            scrolled={scrolled || calm}
+            onOpenCommand={openCommand}
             userMenuContent={userMenuBody}
             user={user}
             accountMenuOpen={accountMenuOpen}
@@ -526,7 +523,7 @@ export default function Layout() {
         {isMobile && (
           <BottomDock
             pathname={location.pathname}
-            hidden={keyboardOpen}
+            hidden={keyboardOpen || calm}
             onOpenCommand={openCommand}
             userMenuContent={userMenuBody}
             user={user}

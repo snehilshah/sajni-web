@@ -287,6 +287,7 @@ export {
   ListOrdered,
   Loader2,
   Loader2Icon,
+  Maximize2,
   PanelLeft,
   PanelLeftClose,
   PanelRight,

@@ -26,10 +26,15 @@ export function isActivePath(pathname: string, path: string): boolean {
 // page's secondary bar. The page scroller reports `scrolled`; Layout
 // collapses the primary bar and PageChrome swaps its rest bar for the
 // merged pill (title dropdown · tab icons · CTAs).
+//
+// `calm` is raised by a document page while the user writes (Notes): the
+// primary bar and the mobile dock step away until the pointer moves.
 export const NavChromeContext = createContext<{
   scrolled: boolean;
   setScrolled: (b: boolean) => void;
-}>({ scrolled: false, setScrolled: () => {} });
+  calm: boolean;
+  setCalm: (b: boolean) => void;
+}>({ scrolled: false, setScrolled: () => {}, calm: false, setCalm: () => {} });
 
 export function useNavChrome() {
   return useContext(NavChromeContext);

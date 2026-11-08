@@ -1,1439 +1,659 @@
-import { Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { notes as notesApi } from '@/api';
-import type { BacklinkRef, NoteFolder } from '@/types';
+import type { BacklinkRef } from '@/types';
 import { useNotes, useNoteFolders } from '@/queries/notes';
 import { qk } from '@/queries/keys';
-import TagPill from '@/components/TagPill';
+import { useNavChrome } from '@/components/nav-chrome';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { SegmentedButton } from '@/components/ui/segmented-button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-const RichEditor = lazyPage(() => import('@/components/editor/RichEditor'));
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  ArrowLeft, Copy, Edit3, Eye, FilePlus, Maximize2, MoreHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
+} from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { confirmDialog } from '@/lib/confirm';
+import { lazyPage } from '@/lib/lazyPage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { confirmDialog } from '@/lib/confirm';
-import { failureText } from '@/lib/errors';
-import { lazyPage } from '@/lib/lazyPage';
+
+import LibraryRail from './notes/LibraryRail';
+import NoteContext from './notes/NoteContext';
+import { FolderPicker, MoveDialog } from './notes/FolderPicker';
+import { useNoteDoc, type SaveStatus } from './notes/useNoteDoc';
 import {
-  Trash2, Search, Save, Link as LinkIcon, FileText, X, ArrowLeft, Calendar, Edit3, Eye, LayoutGrid, StickyNote,
-  ChevronRight, Folder, FolderPlus, FolderOpen, FilePlus, MoreHorizontal,
-  PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, FolderInput as FolderMoveIcon, Pin, PinOff,
-} from '@/components/ui/icons';
+  buildTree, countText, displayTitle, effectiveTitle, extractOutgoing, extractOutline, folderAncestors, relTime,
+  type NoteListItem, type OutgoingLink, type OutlineItem,
+} from './notes/model';
 
-function deriveTitle(content: string): string {
-  for (const raw of content.split('\n')) {
-    let line = raw.trim();
-    line = line.replace(/^#+\s*/, '');
-    if (line) return line.length > 80 ? line.slice(0, 80) : line;
-  }
-  return 'Untitled';
-}
+const RichEditor = lazyPage(() => import('@/components/editor/RichEditor'));
 
-interface NoteListItem {
-  id: number; title: string; folder: string; description: string; pinned: boolean; tags: string[]; created_at: string; updated_at: string;
-}
+type Mode = 'edit' | 'read';
 
-interface OutlineItem {
-  level: number;
-  text: string;
-  index: number;
-}
-
-interface LinkedNoteRef {
-  ref: string;
-  title: string;
-  id?: number;
-}
-
-type EditorMode = 'edit' | 'split' | 'preview';
-
-interface TreeNode {
-  type: 'folder' | 'note';
-  name: string;
-  path: string; // folder path; for note, the parent folder
-  pinned?: boolean;
-  note?: NoteListItem;
-  children: TreeNode[];
-}
-
-// This key intentionally differs from the old Notes layout. Reusing the old
-// preference could boot the redesigned page with its only library rail hidden
-// and no selected note, making existing notes appear to have disappeared.
-const SIDEBAR_KEY = 'sajni:notes-library-rail';
+const LIBRARY_KEY = 'sajni:notes-library';
+const DETAILS_KEY = 'sajni:notes-details';
 const EXPANDED_KEY = 'sajni:notes-expanded';
-const EDITOR_MODE_KEY = 'sajni:notes-editor-mode';
-const ROOT_FOLDER_VALUE = '__root__';
 
-function extractOutline(markdown: string): OutlineItem[] {
-  const items: OutlineItem[] = [];
-  for (const line of markdown.split('\n')) {
-    const match = line.match(/^\s*(#{1,3})\s+(.+?)\s*#*\s*$/);
-    if (!match) continue;
-    const text = match[2].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_~`]/g, '').trim();
-    if (text) items.push({ level: match[1].length, text, index: items.length });
-  }
-  return items;
-}
+const EASE = [0.2, 0, 0, 1] as const;
 
-function extractLinkedNotes(markdown: string, notes: NoteListItem[], selectedId: number | null): LinkedNoteRef[] {
-  const byTitle = new Map(notes.map((note) => [note.title.trim().toLowerCase(), note]));
-  const seen = new Set<string>();
-  const links: LinkedNoteRef[] = [];
-  const pattern = /\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g;
-  for (const match of markdown.matchAll(pattern)) {
-    const ref = match[1].trim();
-    const key = ref.toLowerCase();
-    if (!ref || key.startsWith('task:') || seen.has(key)) continue;
-    seen.add(key);
-    const note = byTitle.get(key);
-    if (note?.id === selectedId) continue;
-    links.push({ ref, title: match[2]?.trim() || note?.title || ref, id: note?.id });
-  }
-  return links;
-}
-
-function plainText(markdown: string): string {
-  return markdown
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, ref: string, label?: string) => label || ref)
-    .replace(/[#>*_~`()]/g, ' ')
-    .replaceAll('[', ' ')
-    .replaceAll(']', ' ')
-    .replaceAll('-', ' ')
-    .replace(/\s+/gu, ' ')
-    .trim();
-}
-
-function wordCount(markdown: string): number {
-  const plain = plainText(markdown);
-  return plain ? plain.split(/\s+/u).length : 0;
-}
-
-function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNode {
-  const root: TreeNode = { type: 'folder', name: '', path: '', children: [] };
-  const folderMap = new Map<string, TreeNode>();
-  folderMap.set('', root);
-  const pinnedFolders = new Set(folders.filter((f) => f.pinned).map((f) => f.path));
-
-  // Ensure all folder paths exist as nodes (including parents)
-  const allPaths = new Set<string>(folders.map((f) => f.path));
-  for (const f of folders) {
-    const parts = f.path.split('/');
-    for (let i = 1; i < parts.length; i++) allPaths.add(parts.slice(0, i).join('/'));
-  }
-  for (const n of notes) {
-    if (n.folder) {
-      const parts = n.folder.split('/');
-      for (let i = 1; i <= parts.length; i++) allPaths.add(parts.slice(0, i).join('/'));
-    }
-  }
-
-  // Create folder nodes in path order so parents exist before children
-  const sortedPaths = Array.from(allPaths).sort((a, b) => a.localeCompare(b));
-  for (const p of sortedPaths) {
-    if (folderMap.has(p)) continue;
-    const idx = p.lastIndexOf('/');
-    const parentPath = idx >= 0 ? p.slice(0, idx) : '';
-    const name = idx >= 0 ? p.slice(idx + 1) : p;
-    const node: TreeNode = { type: 'folder', name, path: p, pinned: pinnedFolders.has(p), children: [] };
-    folderMap.set(p, node);
-    folderMap.get(parentPath)?.children.push(node);
-  }
-
-  // Attach notes
-  for (const n of notes) {
-    const parent = folderMap.get(n.folder) || root;
-    parent.children.push({
-      type: 'note',
-      name: n.title || 'Untitled',
-      path: n.folder,
-      pinned: n.pinned,
-      note: n,
-      children: [],
-    });
-  }
-
-  // Sort: folders first, then notes; pinned float to the top of each group.
-  const sortNode = (node: TreeNode) => {
-    node.children.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-    for (const c of node.children) if (c.type === 'folder') sortNode(c);
-  };
-  sortNode(root);
-  return root;
+function readFlag(key: string, fallback: boolean) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
 }
 
 export default function NotesPage() {
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [title, setTitle] = useState('');
-  const [folder, setFolder] = useState('');
-  const [description, setDescription] = useState('');
-  const [content, setContent] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [backlinks, setBacklinks] = useState<BacklinkRef[]>([]);
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-  const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [loadingNote, setLoadingNote] = useState(false);
-  const [activeFolder, setActiveFolder] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem(SIDEBAR_KEY) !== '0'; } catch { return true; }
-  });
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(EXPANDED_KEY);
-      return raw ? new Set(JSON.parse(raw)) : new Set();
-    } catch { return new Set(); }
-  });
-  const [showNewFolder, setShowNewFolder] = useState<string | null>(null); // parent path or null for closed
-  const [newFolderName, setNewFolderName] = useState('');
-  const [moveTarget, setMoveTarget] = useState<NoteListItem | null>(null);
-
-  const dirtyRef = useRef(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [params, setParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
-  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
-  const [inspectorTab, setInspectorTab] = useState<'outline' | 'backlinks' | 'linked'>('outline');
-  const [editorMode, setEditorMode] = useState<EditorMode>(() => {
-    try {
-      const stored = localStorage.getItem(EDITOR_MODE_KEY);
-      return stored === 'split' || stored === 'preview' ? stored : 'edit';
-    } catch { return 'edit'; }
+  const isWide = useWide();
+  const { setCalm: setChromeCalm } = useNavChrome();
+
+  const notesQ = useNotes();
+  const foldersQ = useNoteFolders();
+  const allNotes = useMemo(() => (notesQ.data ?? []) as NoteListItem[], [notesQ.data]);
+  const folders = useMemo(() => foldersQ.data ?? [], [foldersQ.data]);
+
+  const { doc, loading, status, edit, open, prefetch, newDraft, close, move, setPinned, remove, flush } = useNoteDoc();
+
+  const [mode, setMode] = useState<Mode>('edit');
+  const [search, setSearch] = useState('');
+  const [libraryOpen, setLibraryOpen] = useState(() => readFlag(LIBRARY_KEY, true));
+  const [detailsOpen, setDetailsOpen] = useState(() => readFlag(DETAILS_KEY, true));
+  const [detailsSheet, setDetailsSheet] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<NoteListItem | null>(null);
+  const [focus, setFocus] = useState(false);
+  const [calm, setCalm] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
   });
-  const [drafting, setDrafting] = useState(false);
-  const editorScrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    try { localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0'); } catch {}
-  }, [sidebarOpen]);
-  useEffect(() => {
-    try { localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expandedFolders))); } catch {}
-  }, [expandedFolders]);
-  useEffect(() => {
-    try { localStorage.setItem(EDITOR_MODE_KEY, editorMode); } catch {}
-  }, [editorMode]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
-  // Debounce search into the query param so each keystroke doesn't refetch.
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), search ? 200 : 0);
-    return () => clearTimeout(t);
-  }, [search]);
+  useEffect(() => { try { localStorage.setItem(LIBRARY_KEY, libraryOpen ? '1' : '0'); } catch { /* private mode */ } }, [libraryOpen]);
+  useEffect(() => { try { localStorage.setItem(DETAILS_KEY, detailsOpen ? '1' : '0'); } catch { /* private mode */ } }, [detailsOpen]);
+  useEffect(() => { try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...expanded])); } catch { /* private mode */ } }, [expanded]);
 
-  const { data: notesData, isLoading: loading } = useNotes(debounced ? { search: debounced } : undefined);
-  const { data: foldersData } = useNoteFolders();
-  const notesList = useMemo(() => (notesData ?? []) as NoteListItem[], [notesData]);
-  const folders = useMemo(() => (foldersData ?? []) as NoteFolder[], [foldersData]);
-  const outline = useMemo(() => extractOutline(content), [content]);
-  const linkedNotes = useMemo(() => extractLinkedNotes(content, notesList, selectedId), [content, notesList, selectedId]);
-  const words = useMemo(() => wordCount(content), [content]);
-  const characters = useMemo(() => Array.from(plainText(content)).length, [content]);
+  // ── Library ────────────────────────────────────────────────────────────
+  const visibleNotes = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allNotes;
+    return allNotes.filter((n) => displayTitle(n.title).toLowerCase().includes(q)
+      || n.tags.some((t) => t.toLowerCase().includes(q.replace(/^#/, ''))));
+  }, [allNotes, search]);
+  const tree = useMemo(() => buildTree(visibleNotes, search.trim() ? [] : folders), [visibleNotes, folders, search]);
 
-  // Editor writes go straight through notesApi (single-doc surface); this
-  // refreshes the cached list/folders + any other notes view after a write.
-  const loadAll = useCallback(() => {
-    qc.invalidateQueries({ queryKey: qk.notes.all });
-  }, [qc]);
-
-  // Initial select via URL ?id=X
-  useEffect(() => {
-    const idParam = params.get('id');
-    if (idParam) {
-      const id = parseInt(idParam, 10);
-      if (!Number.isNaN(id)) selectNote(id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const toggleFolder = useCallback((path: string, force?: boolean) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      const on = force ?? !next.has(path);
+      if (on) next.add(path); else next.delete(path);
+      return next;
+    });
   }, []);
 
-  const tree = useMemo(() => buildTree(notesList, folders), [notesList, folders]);
+  const reveal = useCallback((folder: string) => {
+    if (!folder) return;
+    setExpanded((prev) => {
+      const missing = folderAncestors(folder).filter((p) => !prev.has(p));
+      return missing.length ? new Set([...prev, ...missing]) : prev;
+    });
+  }, []);
 
-  async function selectNote(id: number) {
-    setLoadingNote(true);
-    setDrafting(false);
-    dirtyRef.current = false;
-    try {
-      const note = await notesApi.get(id);
-      setSelectedId(note.id);
-      setTitle(note.title);
-      setFolder(note.folder || '');
-      setDescription(note.description || '');
-      setContent(note.content || '');
-      setTags(note.tags || []);
-      setBacklinks(note.backlinks || []);
-      setActiveFolder(note.folder || '');
-      // Auto-expand ancestors
-      if (note.folder) {
-        setExpandedFolders((prev) => {
-          const next = new Set(prev);
-          const parts = note.folder.split('/');
-          for (let i = 1; i <= parts.length; i++) next.add(parts.slice(0, i).join('/'));
-          return next;
-        });
-      }
-      const next = new URLSearchParams(params);
-      next.set('id', String(note.id));
-      setParams(next, { replace: true });
-    } finally {
-      setLoadingNote(false);
-    }
-  }
-
-  const handleNew = (parentFolder?: string) => {
-    setSelectedId(null);
-    setTitle('');
-    const targetFolder = parentFolder ?? activeFolder ?? '';
-    setFolder(targetFolder);
-    setActiveFolder(targetFolder);
-    setDescription('');
-    setContent('');
-    setTags([]);
-    setBacklinks([]);
-    setEditorMode('edit');
-    dirtyRef.current = false;
-    setDrafting(true);
-    const next = new URLSearchParams(params);
-    next.delete('id');
-    setParams(next, { replace: true });
-  };
-
-  const clearToBrowse = () => {
-    setSelectedId(null);
-    setTitle('');
-    setFolder('');
-    setDescription('');
-    setContent('');
-    setTags([]);
-    setBacklinks([]);
-    setDrafting(false);
-    dirtyRef.current = false;
-    const next = new URLSearchParams(params);
-    next.delete('id');
-    setParams(next, { replace: true });
-  };
-
-  const performSave = useCallback(async (silent = false) => {
-    const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
-    if (!trimmedTitle && !trimmedContent) return;
-    const effectiveTitle = trimmedTitle || deriveTitle(content);
-    if (effectiveTitle !== title) setTitle(effectiveTitle);
-    if (!silent) setSavingState('saving');
-    try {
-      let id = selectedId;
-      if (id) {
-        await notesApi.update(id, { title: effectiveTitle, content, description });
-      } else {
-        const res = await notesApi.create(effectiveTitle, content, folder, description);
-        id = res.id;
-        setSelectedId(id);
-        const next = new URLSearchParams(params);
-        next.set('id', String(id));
-        setParams(next, { replace: true });
-      }
-      const note = await notesApi.get(id!);
-      setTags(note.tags || []);
-      setBacklinks(note.backlinks || []);
-      setFolder(note.folder || '');
-      setSavingState('saved');
-      setTimeout(() => setSavingState((s) => (s === 'saved' ? 'idle' : s)), 1400);
-      dirtyRef.current = false;
-      setDrafting(false);
-      loadAll();
-    } catch (err) {
-      console.error('[notes] save failed', err);
-      toast.error(failureText(err, "Couldn't save note"));
-      setSavingState('idle');
-    }
-  }, [title, content, description, folder, selectedId, params, setParams, loadAll]);
-
-  // Debounced auto-save — fires once content OR title becomes non-empty.
+  // ── URL ⇄ open note ───────────────────────────────────────────────────
+  const urlId = Number(params.get('id')) || null;
+  const docId = doc?.id ?? null;
+  const lastUrlId = useRef<number | null>(null);
   useEffect(() => {
-    if (loadingNote) return;
-    if (!dirtyRef.current) return;
-    if (!title.trim() && !content.trim()) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => performSave(true), 1200);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [title, content, description, performSave, loadingNote]);
+    if (urlId && urlId !== docId && urlId !== lastUrlId.current) {
+      lastUrlId.current = urlId;
+      void open(urlId).then((d) => d && reveal(d.folder));
+    }
+  }, [urlId, docId, open, reveal]);
+  useEffect(() => {
+    if (!docId || docId === urlId) return;
+    lastUrlId.current = docId;
+    const next = new URLSearchParams(params);
+    next.set('id', String(docId));
+    setParams(next, { replace: true });
+  }, [docId, urlId, params, setParams]);
 
-  // Ctrl/Cmd+S forces an immediate save and swallows the browser's
-  // "save page" dialog. Autosave still runs; this is the muscle-memory path.
+  const clearUrl = useCallback(() => {
+    lastUrlId.current = null;
+    if (!params.get('id')) return;
+    const next = new URLSearchParams(params);
+    next.delete('id');
+    setParams(next, { replace: true });
+  }, [params, setParams]);
+
+  const openNote = useCallback((id: number) => {
+    void open(id).then((d) => d && reveal(d.folder));
+  }, [open, reveal]);
+
+  const startNew = useCallback((folder?: string) => {
+    setMode('edit');
+    clearUrl();
+    void newDraft(folder ?? doc?.folder ?? '').then(() => requestAnimationFrame(() => titleRef.current?.focus()));
+  }, [clearUrl, newDraft, doc?.folder]);
+
+  const closeNote = useCallback(() => { clearUrl(); void close(); }, [clearUrl, close]);
+
+  const deleteNote = useCallback(async (note: { id: number; title: string }) => {
+    const ok = await confirmDialog({ title: `Delete “${displayTitle(note.title)}”?`, description: "This can't be undone.", confirmText: 'Delete note' });
+    if (!ok) return;
+    if (doc?.id === note.id) clearUrl();
+    await remove(note.id);
+  }, [doc?.id, clearUrl, remove]);
+
+  // ── Derived from the open note ─────────────────────────────────────────
+  const content = doc?.content ?? '';
+  const outline = useMemo(() => extractOutline(content), [content]);
+  const outgoing = useMemo(() => extractOutgoing(content, allNotes, doc?.id ?? null), [content, allNotes, doc?.id]);
+  // Counting walks the whole text; doing it a beat after typing stops keeps keystrokes light.
+  const [counts, setCounts] = useState({ words: 0, characters: 0 });
+  useEffect(() => {
+    const t = setTimeout(() => setCounts(countText(content)), 250);
+    return () => clearTimeout(t);
+  }, [content]);
+  const listItem = doc?.id ? allNotes.find((n) => n.id === doc.id) : undefined;
+  const pinned = !!listItem?.pinned;
+
+  const openBacklink = (b: BacklinkRef) => {
+    setDetailsSheet(false);
+    if (b.source_type === 'note') return openNote(b.source_id);
+    if (b.source_type === 'journal') return navigate(`/journal?date=${encodeURIComponent(b.title)}`);
+    if (b.source_type === 'memo') return navigate(`/memos?id=${b.source_id}`);
+    if (b.source_type === 'task') window.dispatchEvent(new CustomEvent('task:open', { detail: { id: b.source_id } }));
+  };
+
+  const openOutgoing = async (l: OutgoingLink) => {
+    setDetailsSheet(false);
+    if (l.id) return openNote(l.id);
+    try {
+      await flush();
+      const created = await notesApi.create(l.ref, '', doc?.folder ?? '');
+      await qc.invalidateQueries({ queryKey: qk.notes.all });
+      openNote(created.id);
+    } catch {
+      toast.error(`Couldn't create “${l.ref}”`);
+    }
+  };
+
+  const jumpTo = (item: OutlineItem) => {
+    setDetailsSheet(false);
+    const heads = bodyRef.current?.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    heads?.item(item.index)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const focusBody = () => {
+    const el = bodyRef.current?.querySelector<HTMLElement>('.ProseMirror');
+    el?.focus();
+  };
+
+  // ── Calm & focus ───────────────────────────────────────────────────────
+  // Typing (or reading down) calms the chrome; moving the pointer or
+  // scrolling back up brings it back. Focus also folds both rails away.
+  useEffect(() => { setChromeCalm(calm || focus); }, [calm, focus, setChromeCalm]);
+  useEffect(() => () => setChromeCalm(false), [setChromeCalm]);
+
+  useEffect(() => {
+    if (!calm) return;
+    let travelled = 0;
+    let last: { x: number; y: number } | null = null;
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      if (last) travelled += Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y);
+      last = { x: e.clientX, y: e.clientY };
+      if (travelled > 24) setCalm(false);
+    };
+    window.addEventListener('pointermove', onMove);
+    return () => window.removeEventListener('pointermove', onMove);
+  }, [calm]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let anchor = el.scrollTop;
+    const onScroll = () => {
+      const y = Math.max(0, el.scrollTop);
+      if (y < 8) { setCalm(false); anchor = y; return; }
+      if (y - anchor > 48) { setCalm(true); anchor = y; } else if (anchor - y > 48) { setCalm(false); anchor = y; }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [doc?.key]);
+
+  const onWritingKey = (e: React.KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key.length === 1 || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Tab') setCalm(true);
+  };
+
+  // ── Keyboard ───────────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-        if (title.trim() || content.trim()) performSave();
-      }
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); void flush(); return; }
+      if (mod && (e.key === 'e' || e.key === 'E') && doc) { e.preventDefault(); setMode((m) => (m === 'edit' ? 'read' : 'edit')); return; }
+      if (mod && e.key === '.') { e.preventDefault(); setFocus((f) => !f); return; }
+      if (e.altKey && (e.key === 'n' || e.key === 'N' || e.code === 'KeyN')) { e.preventDefault(); startNew(); return; }
+      if (e.key === 'Escape' && focus && !e.defaultPrevented && !document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) setFocus(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [performSave, title, content]);
+  }, [flush, doc, focus, startNew]);
 
-  const handleTitleChange = (v: string) => { dirtyRef.current = true; setTitle(v); };
-  const handleContentChange = (v: string) => {
-    // TipTap can normalize its initial Markdown while constructing the editor.
-    // Defer the parent update so that initialization never sets state during
-    // RichEditor's render; regular typing still lands in the same microtask.
-    queueMicrotask(() => {
-      setContent((current) => {
-        if (v === current) return current;
-        dirtyRef.current = true;
-        return v;
-      });
-    });
-  };
-  const handleDelete = async () => {
-    if (!selectedId) return;
-    if (!(await confirmDialog(`Delete "${title || 'Untitled'}"?`))) return;
-    await notesApi.delete(selectedId);
-    clearToBrowse();
-    loadAll();
-  };
-
-  const toggleFolder = (path: string) => {
-    setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path); else next.add(path);
-      return next;
-    });
-  };
-
-  const handleCreateFolder = async () => {
-    const trimmed = newFolderName.trim();
-    if (!trimmed) { setShowNewFolder(null); return; }
-    const parent = showNewFolder ?? '';
-    const fullPath = parent ? `${parent}/${trimmed}` : trimmed;
-    await notesApi.createFolder(fullPath);
-    setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      const parts = fullPath.split('/');
-      for (let i = 1; i <= parts.length; i++) next.add(parts.slice(0, i).join('/'));
-      return next;
-    });
-    setShowNewFolder(null);
-    setNewFolderName('');
-    loadAll();
+  // ── Pieces ─────────────────────────────────────────────────────────────
+  const railProps = {
+    tree,
+    loading: notesQ.isPending,
+    search,
+    onSearch: setSearch,
+    selectedId: doc?.id ?? null,
+    draft: doc && doc.id == null ? { folder: doc.folder, title: doc.title } : null,
+    expanded,
+    onToggle: toggleFolder,
+    onOpen: openNote,
+    onPrefetch: prefetch,
+    onNew: (folder: string) => startNew(folder),
+    onMove: (id: number, folder: string) => { void move(id, folder); },
+    onMoveRequest: setMoveTarget,
+    onPin: (n: NoteListItem) => { void setPinned(n.id, !n.pinned); },
+    onDelete: (n: NoteListItem) => { void deleteNote(n); },
+    onFolderRenamed: (from: string, to: string) => {
+      if (doc && (doc.folder === from || doc.folder.startsWith(`${from}/`))) {
+        // The open note moved with its folder; reload it under the new path.
+        const id = doc.id;
+        if (id) void qc.invalidateQueries({ queryKey: qk.notes.detail(id) });
+        reveal(to + doc.folder.slice(from.length));
+      }
+    },
+    onFolderDeleted: (path: string) => {
+      if (doc && (doc.folder === path || doc.folder.startsWith(`${path}/`))) closeNote();
+    },
   };
 
-  const handleDeleteFolder = async (path: string) => {
-    if (!(await confirmDialog({
-      title: 'Delete folder?',
-      description: `Delete folder "${path}" and all notes inside it? This cannot be undone.`,
-      confirmText: 'Delete folder',
-    }))) return;
-    try {
-      await notesApi.deleteFolder(path);
-      if (selectedId && (folder === path || folder.startsWith(`${path}/`))) handleNew();
-      loadAll();
-    } catch (e) {
-      toast.error(failureText(e, "Couldn't delete folder"));
-    }
-  };
-
-  const handleMoveNote = async (noteId: number, newFolder: string) => {
-    await notesApi.update(noteId, { folder: newFolder });
-    if (selectedId === noteId) setFolder(newFolder);
-    setMoveTarget(null);
-    loadAll();
-  };
-
-  const handleTogglePinNote = async (note: NoteListItem) => {
-    await notesApi.update(note.id, { pinned: !note.pinned });
-    loadAll();
-  };
-
-  const handleTogglePinFolder = async (path: string, pinned: boolean) => {
-    await notesApi.pinFolder(path, pinned);
-    loadAll();
-  };
-
-  // Pinned state of the open note, resolved from the cached list so the
-  // header button stays honest after tree-side toggles.
-  const selectedNote = selectedId ? notesList.find((n) => n.id === selectedId) : undefined;
-
-  const breadcrumb = useMemo(() => {
-    if (!folder) return [];
-    return folder.split('/');
-  }, [folder]);
-
-  const handleDraftFolderChange = (value: string | null) => {
-    const nextFolder = value === ROOT_FOLDER_VALUE ? '' : value || '';
-    setFolder(nextFolder);
-    setActiveFolder(nextFolder);
-  };
-
-  const treeBody = (
-    <>
-      {/* Title + create actions on one row; the actions end on the rail's
-          trailing edge (glyph-aligned), so nothing floats in a second row. */}
-      <header className="flex items-center gap-2 pl-4 pr-2 pt-3.5 pb-1 shrink-0">
-        <p className="flex-1 text-2xl font-medium tracking-tight">Notes</p>
-        <Button
-          onClick={() => { handleNew(); setMobileTreeOpen(false); }}
-          size="icon-sm" variant="ghost" className="rounded-full"
-          title="New note" aria-label="New note"
-        >
-          <FilePlus className="size-4" />
-        </Button>
-        <Button
-          onClick={() => { setShowNewFolder(''); setNewFolderName(''); }}
-          size="icon-sm" variant="ghost" className="rounded-full"
-          title="New folder" aria-label="New folder"
-        >
-          <FolderPlus className="size-4" />
-        </Button>
-      </header>
-
-      <div className="p-2 flex flex-col gap-2 shrink-0">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search notes…"
-            className="h-9 pl-8 pr-8 text-xs bg-[hsl(var(--surface-container))]"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="size-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <section className="px-2 pb-2 shrink-0" aria-label="Quick access">
-        <button
-          type="button"
-          onClick={() => { setActiveFolder(null); setMobileTreeOpen(false); }}
-          className={cn(
-            'w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50',
-            selectedId === null && activeFolder === null
-              ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-              : 'hover:bg-[hsl(var(--surface-container-high))] text-foreground/85',
-          )}
-        >
-          <FileText className="size-3.5 text-muted-foreground" />
-          <span className="flex-1">All notes</span>
-          <span className="tabular-nums text-muted-foreground">{notesList.length}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { navigate('/memos'); setMobileTreeOpen(false); }}
-          className="w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left text-foreground/85 outline-none transition-colors hover:bg-sidebar-accent/40 focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <StickyNote className="size-3.5 text-muted-foreground" />
-          <span>Scratch notes</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { navigate('/journal'); setMobileTreeOpen(false); }}
-          className="w-full min-h-11 md:min-h-9 flex items-center gap-2 rounded-lg px-2.5 text-sm text-left text-foreground/85 outline-none transition-colors hover:bg-sidebar-accent/40 focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <Calendar className="size-3.5 text-muted-foreground" />
-          <span>Daily notes</span>
-        </button>
-      </section>
-
-      <div className="flex-1 min-h-0 overflow-y-auto pt-2 pb-2 px-2 stable-scrollbar">
-        <p className="px-2.5 pb-1 text-xs font-medium text-muted-foreground">Folders</p>
-        {loading ? (
-          <div className="px-2 py-2 flex flex-col gap-1.5">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
-          </div>
-        ) : tree.children.length === 0 && showNewFolder !== '' ? (
-          <div className="text-center text-xs text-muted-foreground py-12 px-3">
-            {search ? 'No notes match' : 'No notes yet. Start writing.'}
-          </div>
-        ) : (
-          <>
-            {showNewFolder === '' && (
-              <FolderInput
-                depth={0}
-                value={newFolderName}
-                onChange={setNewFolderName}
-                onConfirm={handleCreateFolder}
-                onCancel={() => { setShowNewFolder(null); setNewFolderName(''); }}
-              />
-            )}
-            <TreeView
-              node={tree}
-              depth={0}
-              expanded={expandedFolders}
-              selectedId={selectedId}
-              showNewFolderUnder={showNewFolder}
-              newFolderValue={newFolderName}
-              onNewFolderChange={setNewFolderName}
-              onToggle={toggleFolder}
-              onSelectFolder={(path) => { setActiveFolder(path); setMobileTreeOpen(false); }}
-              onSelectNote={(id) => { selectNote(id); setMobileTreeOpen(false); }}
-              onNewNoteIn={(p) => { handleNew(p); setMobileTreeOpen(false); }}
-              onNewSubfolder={(p) => { setShowNewFolder(p); setNewFolderName(''); }}
-              onDeleteFolder={handleDeleteFolder}
-              onMoveNote={(n) => setMoveTarget(n)}
-              onTogglePinNote={handleTogglePinNote}
-              onTogglePinFolder={handleTogglePinFolder}
-              onCreateFolder={handleCreateFolder}
-              onCancelNewFolder={() => { setShowNewFolder(null); setNewFolderName(''); }}
-            />
-          </>
-        )}
-      </div>
-    </>
-  );
-
-  const hasOpenNote = selectedId !== null || drafting || loadingNote;
-
-  const scrollToOutline = (item: OutlineItem) => {
-    const selector = editorMode === 'preview'
-      ? '[aria-label="Rendered Markdown preview"] h1, [aria-label="Rendered Markdown preview"] h2, [aria-label="Rendered Markdown preview"] h3'
-      : '.ProseMirror h1, .ProseMirror h2, .ProseMirror h3';
-    const headings = editorScrollRef.current?.querySelectorAll(selector);
-    headings?.item(item.index)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
-  const openBacklink = (backlink: BacklinkRef) => {
-    setMobileInspectorOpen(false);
-    if (backlink.source_type === 'note') {
-      selectNote(backlink.source_id);
-      return;
-    }
-    if (backlink.source_type === 'journal') {
-      navigate(`/journal?date=${encodeURIComponent(backlink.title)}`);
-      return;
-    }
-    if (backlink.source_type === 'memo') {
-      navigate(`/memos?id=${backlink.source_id}`);
-      return;
-    }
-    if (backlink.source_type === 'task') {
-      window.dispatchEvent(new CustomEvent('task:open', { detail: { id: backlink.source_id } }));
-    }
-  };
-
-  const inspector = (
-    <NoteInspector
-      title={title}
-      hasOpenNote={hasOpenNote}
-      tab={inspectorTab}
-      onTabChange={setInspectorTab}
+  const details = doc && (
+    <NoteContext
+      description={doc.description}
+      onDescription={(v) => edit({ description: v })}
       outline={outline}
-      backlinks={backlinks}
-      linkedNotes={linkedNotes}
-      tags={tags}
-      onOutlinePick={scrollToOutline}
-      onBacklinkPick={openBacklink}
-      onLinkedPick={(link) => {
-        if (link.id) selectNote(link.id);
-        setMobileInspectorOpen(false);
-      }}
+      onOutline={jumpTo}
+      backlinks={doc.backlinks}
+      onBacklink={openBacklink}
+      outgoing={outgoing}
+      onOutgoing={(l) => { void openOutgoing(l); }}
+      tags={doc.tags}
+      createdAt={doc.created_at}
+      updatedAt={doc.updated_at}
+      onCollapse={isWide ? () => setDetailsOpen(false) : undefined}
     />
   );
 
-  return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <AnimatePresence initial={false} mode="popLayout">
-          {sidebarOpen && (
-            <motion.aside
-              key="notebooks"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 264, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-              className="hidden md:flex border-r border-[hsl(var(--outline-variant))] bg-sidebar text-sidebar-foreground flex-col shrink-0 overflow-hidden order-1"
-            >
-              {treeBody}
-            </motion.aside>
-          )}
-        </AnimatePresence>
+  const showLibraryRail = !isMobile && libraryOpen && !focus;
+  const showDetailsRail = isWide && detailsOpen && !focus && !!doc;
+  const openDetails = () => {
+    if (isWide) { setFocus(false); setDetailsOpen(true); } else setDetailsSheet(true);
+  };
+  const chromeHidden = calm;
 
-        <main
-          className="flex flex-1 min-w-0 min-h-0 flex-col bg-background order-2"
-          style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 8 : 72}px)` }}
-        >
-          {!hasOpenNote ? (
-            <BrowseEmpty
-              showLibraryButton={isMobile || !sidebarOpen}
-              onNew={() => handleNew()}
-              onOpenLibrary={() => {
-                if (isMobile) setMobileTreeOpen(true);
-                else setSidebarOpen(true);
-              }}
-            />
-          ) : (
-            <>
-              <div ref={editorScrollRef} className="flex-1 min-h-0 overflow-y-auto stable-scrollbar">
-                <div className={cn(
-                  'w-full mx-auto px-4 md:px-8 lg:px-10 pt-4 md:pt-5 pb-16 min-h-full flex flex-col',
-                  editorMode === 'split' ? 'max-w-[100rem]' : 'max-w-5xl',
-                )}>
-                  {loadingNote ? (
-                    <div className="flex flex-col gap-5">
-                      <Skeleton className="h-12 w-3/4" />
-                      <Skeleton className="h-72 w-full rounded-2xl" />
-                    </div>
-                  ) : (
-                    <motion.div
-                      key={selectedId ?? 'draft'}
-                      initial={{ opacity: 0, filter: 'blur(2px)' }}
-                      animate={{ opacity: 1, filter: 'blur(0px)' }}
-                      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-                      className="flex flex-1 min-h-0 flex-col gap-4"
-                    >
-                      <header className="flex items-start justify-between gap-x-5 gap-y-2 md:gap-y-4 flex-wrap">
-                        <div className="flex-1 min-w-[16rem]">
-                          <Button
-                            variant="ghost" size="sm"
-                            onClick={clearToBrowse}
-                            className="md:hidden self-start -ml-2 mb-2 gap-1.5 text-muted-foreground"
-                          >
-                            <ArrowLeft className="size-4" /> Notes
-                          </Button>
-                          {drafting ? (
-                            <div className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="shrink-0">Create in</span>
-                              <Select value={folder || ROOT_FOLDER_VALUE} onValueChange={handleDraftFolderChange}>
-                                <SelectTrigger
-                                  size="sm"
-                                  className="h-8 w-auto min-w-36 max-w-full border-[hsl(var(--outline-variant))] px-2.5 text-xs"
-                                  aria-label="Choose where to create the note"
-                                >
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent align="start">
-                                  <SelectItem value={ROOT_FOLDER_VALUE}>
-                                    <Folder className="size-3.5" /> Root
-                                  </SelectItem>
-                                  {folders.map((item) => (
-                                    <SelectItem key={item.path} value={item.path}>
-                                      <Folder className="size-3.5" /> {item.path}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ) : (
-                            <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                              {breadcrumb.length > 0 ? breadcrumb.map((segment, index) => (
-                                <span key={`${segment}:${index}`} className="flex items-center gap-1 min-w-0">
-                                  <span className="truncate">{segment}</span>
-                                  {index < breadcrumb.length - 1 && <ChevronRight className="size-3 opacity-60" />}
-                                </span>
-                              )) : <span>Root</span>}
-                              {selectedNote?.updated_at && <span>· Edited {fmtRelTime(selectedNote.updated_at)}</span>}
-                            </div>
-                          )}
-                          {editorMode === 'preview' ? (
-                            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-tight text-foreground">
-                              {title || 'Untitled'}
-                            </h1>
-                          ) : (
-                            <Input
-                              type="text"
-                              placeholder="Untitled"
-                              value={title}
-                              autoFocus={drafting}
-                              onChange={(event) => handleTitleChange(event.target.value)}
-                              className="w-full h-auto px-0 py-1 bg-transparent border-none outline-none focus-visible:shadow-none text-4xl md:text-5xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/30"
-                            />
-                          )}
-                        </div>
-
-                        <div className="flex w-full md:w-auto items-center justify-end gap-0.5 md:gap-1 flex-nowrap">
-                          <SaveIndicator state={savingState} canSave={!!title.trim() || !!content.trim()} onSave={() => performSave()} />
-                          {selectedId && (
-                            <>
-                              <Button
-                                variant="ghost" size="icon-sm"
-                                onClick={() => selectedNote && handleTogglePinNote(selectedNote)}
-                                className={cn('rounded-full max-md:size-11', selectedNote?.pinned && 'text-primary')}
-                                title={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
-                                aria-label={selectedNote?.pinned ? 'Unpin note' : 'Pin note'}
-                              >
-                                {selectedNote?.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
-                              </Button>
-                              <Button
-                                variant="ghost" size="icon-sm"
-                                className="rounded-full max-md:size-11"
-                                onClick={() => setMoveTarget(notesList.find((note) => note.id === selectedId) || null)}
-                                title="Move to folder" aria-label="Move to folder"
-                              >
-                                <FolderMoveIcon className="size-4" />
-                              </Button>
-                              <Button
-                                variant="destructive-ghost" size="icon-sm" onClick={handleDelete}
-                                className="max-md:size-11"
-                                title="Delete note" aria-label="Delete note"
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </>
-                          )}
-                          <span className="w-px h-5 mx-0.5 md:mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden />
-                          <Button
-                            variant="ghost" size="icon-sm"
-                            onClick={() => setMobileTreeOpen(true)}
-                            className="md:hidden rounded-full max-md:size-11"
-                            title="Open library" aria-label="Open library"
-                          >
-                            <PanelLeft className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost" size="icon-sm"
-                            onClick={() => setSidebarOpen((open) => !open)}
-                            className="hidden md:inline-flex rounded-full"
-                            title={sidebarOpen ? 'Hide library' : 'Show library'}
-                            aria-label={sidebarOpen ? 'Hide library' : 'Show library'}
-                          >
-                            {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
-                          </Button>
-                          <Button
-                            variant="ghost" size="icon-sm"
-                            onClick={() => setMobileInspectorOpen(true)}
-                            className="lg:hidden rounded-full max-md:size-11"
-                            title="Open note context" aria-label="Open note context"
-                          >
-                            <PanelRight className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost" size="icon-sm"
-                            onClick={() => setInspectorOpen((open) => !open)}
-                            className="hidden lg:inline-flex rounded-full"
-                            title={inspectorOpen ? 'Hide note context' : 'Show note context'}
-                            aria-label={inspectorOpen ? 'Hide note context' : 'Show note context'}
-                          >
-                            {inspectorOpen ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
-                          </Button>
-                        </div>
-                      </header>
-
-                      {editorMode === 'split' ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 min-h-0 border-y border-[hsl(var(--outline-variant))]">
-                          <section className="min-w-0 py-3 lg:pr-6 lg:border-r border-[hsl(var(--outline-variant))]" aria-label="Edit note">
-                            <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">Edit</p>
-                            <Suspense fallback={<Skeleton className="h-72 w-full rounded-2xl" />}>
-                              <RichEditor
-                                value={content}
-                                onChange={handleContentChange}
-                                placeholder="Type / for commands. Use [[ to link to other notes."
-                                className="[&_.ProseMirror>:first-child]:mt-0"
-                                fill
-                              />
-                            </Suspense>
-                          </section>
-                          <section className="min-w-0 py-3 lg:pl-6 border-t lg:border-t-0 border-[hsl(var(--outline-variant))]" aria-label="Preview note">
-                            <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">Preview</p>
-                            <MarkdownPreview content={content} />
-                          </section>
-                        </div>
-                      ) : editorMode === 'preview' ? (
-                        <div className="max-w-3xl w-full pb-12">
-                          <MarkdownPreview content={content} empty="Nothing to preview yet." />
-                        </div>
-                      ) : (
-                        <div className="flex flex-1 flex-col min-h-0 max-w-4xl w-full">
-                          <Suspense fallback={<Skeleton className="h-72 w-full rounded-2xl" />}>
-                            <RichEditor
-                              value={content}
-                              onChange={handleContentChange}
-                              placeholder="Type / for commands. Use [[ to link to other notes."
-                              className="[&_.ProseMirror>:first-child]:mt-0"
-                              fill
-                            />
-                          </Suspense>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-              <footer className="h-12 md:h-10 max-md:mb-[calc(env(safe-area-inset-bottom,0px)+76px)] px-2.5 md:px-5 shrink-0 border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <div className="min-w-0 flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                  <span aria-label={`${words.toLocaleString()} ${words === 1 ? 'word' : 'words'}`}>
-                    <span className="sm:hidden">{words.toLocaleString()}w</span>
-                    <span className="hidden sm:inline">{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</span>
-                  </span>
-                  <span aria-hidden>·</span>
-                  <span aria-label={`${characters.toLocaleString()} ${characters === 1 ? 'character' : 'characters'}`}>
-                    <span className="sm:hidden">{characters.toLocaleString()}c</span>
-                    <span className="hidden sm:inline">{characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}</span>
-                  </span>
-                  <span aria-hidden>·</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInspectorTab('backlinks');
-                      if (window.matchMedia('(min-width: 1024px)').matches) setInspectorOpen(true);
-                      else setMobileInspectorOpen(true);
-                    }}
-                    aria-label={`${backlinks.length.toLocaleString()} ${backlinks.length === 1 ? 'backlink' : 'backlinks'}`}
-                    className="min-h-11 md:min-h-0 rounded px-1 py-0.5 hover:bg-[hsl(var(--surface-container-high))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                  >
-                    <span className="sm:hidden">{backlinks.length.toLocaleString()} links</span>
-                    <span className="hidden sm:inline">{backlinks.length.toLocaleString()} {backlinks.length === 1 ? 'backlink' : 'backlinks'}</span>
-                  </button>
-                </div>
-                <SegmentedButton
-                  value={editorMode}
-                  onChange={setEditorMode}
-                  showCheck={false}
-                  size="sm"
-                  aria-label="Editor mode"
-                  className="[&>button]:h-11 [&>button]:px-2 [&>button]:text-xs md:[&>button]:h-7"
-                  options={[
-                    { value: 'edit', label: 'Edit', icon: Edit3 },
-                    { value: 'split', label: 'Split', icon: LayoutGrid },
-                    { value: 'preview', label: 'Preview', icon: Eye },
-                  ]}
-                />
-              </footer>
-            </>
-          )}
-        </main>
-
-        <AnimatePresence initial={false} mode="popLayout">
-          {inspectorOpen && hasOpenNote && (
-            <motion.aside
-              key="inspector"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 288, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-              className="hidden lg:flex shrink-0 overflow-hidden border-l border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] order-3"
-            >
-              {inspector}
-            </motion.aside>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <Sheet open={mobileTreeOpen} onOpenChange={setMobileTreeOpen}>
-        <SheetContent side="left" showCloseButton={false} className="md:hidden w-[88vw] max-w-[320px] p-0 pt-[env(safe-area-inset-top)] bg-sidebar text-sidebar-foreground flex flex-col">
-          <SheetHeader className="sr-only"><SheetTitle>Notebooks</SheetTitle></SheetHeader>
-          {treeBody}
-        </SheetContent>
-      </Sheet>
-
-      <Sheet open={mobileInspectorOpen} onOpenChange={setMobileInspectorOpen}>
-        <SheetContent side="right" className="lg:hidden w-[90vw] max-w-[360px] p-0 bg-[hsl(var(--surface-container-low))] flex flex-col">
-          <SheetHeader className="sr-only"><SheetTitle>Note Details</SheetTitle></SheetHeader>
-          {inspector}
-        </SheetContent>
-      </Sheet>
-
-      {/* Move-to-folder dialog (sits at page root, outside the editor scroll) */}
-      <Dialog open={!!moveTarget} onOpenChange={(o) => { if (!o) setMoveTarget(null); }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Move Note</DialogTitle>
-            <p className="font-mono text-xs label-kicker text-muted-foreground mt-0.5">{moveTarget?.title || 'Untitled'}</p>
-          </DialogHeader>
-          <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
-            <FolderRow
-              label="(root)"
-              path=""
-              active={moveTarget?.folder === ''}
-              onClick={() => moveTarget && handleMoveNote(moveTarget.id, '')}
-            />
-            {folders.map((f) => (
-              <FolderRow
-                key={f.path}
-                label={f.path}
-                path={f.path}
-                active={moveTarget?.folder === f.path}
-                onClick={() => moveTarget && handleMoveNote(moveTarget.id, f.path)}
-              />
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoveTarget(null)}>Cancel</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-/* ---------------- Workspace panes ---------------- */
-
-function BrowseEmpty({
-  showLibraryButton, onNew, onOpenLibrary,
-}: {
-  showLibraryButton: boolean;
-  onNew: () => void;
-  onOpenLibrary: () => void;
-}) {
-  return (
-    <div className="flex-1 flex items-center justify-center p-8 text-center">
-      <div className="max-w-xs text-muted-foreground">
-        <p className="text-sm font-medium text-foreground">No note open</p>
-        <div className="mt-4 flex items-center justify-center gap-2">
-          {showLibraryButton && (
-            <Button variant="outline" size="sm" onClick={onOpenLibrary}>
-              <PanelLeft className="size-3.5" /> Open library
-            </Button>
-          )}
-          <Button size="sm" onClick={onNew}>
-            <FilePlus className="size-3.5" /> New note
+  const overflowMenu = doc && (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={(
+          <Button variant="ghost" size="icon-sm" className="rounded-full max-md:size-11" title="More" aria-label="More">
+            <MoreHorizontal className="size-4" />
           </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MarkdownPreview({ content, empty = 'Start writing to see the preview.' }: { content: string; empty?: string }) {
-  if (!content.trim()) {
-    return <p className="py-12 text-sm text-muted-foreground">{empty}</p>;
-  }
-  return (
-    <article className="prose prose-sajni dark:prose-invert max-w-none [&>:first-child]:mt-0" aria-label="Rendered Markdown preview">
-      <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
-    </article>
-  );
-}
-
-function NoteInspector({
-  title, hasOpenNote, tab, onTabChange, outline, backlinks, linkedNotes, tags,
-  onOutlinePick, onBacklinkPick, onLinkedPick,
-}: {
-  title: string;
-  hasOpenNote: boolean;
-  tab: 'outline' | 'backlinks' | 'linked';
-  onTabChange: (tab: 'outline' | 'backlinks' | 'linked') => void;
-  outline: OutlineItem[];
-  backlinks: BacklinkRef[];
-  linkedNotes: LinkedNoteRef[];
-  tags: string[];
-  onOutlinePick: (item: OutlineItem) => void;
-  onBacklinkPick: (backlink: BacklinkRef) => void;
-  onLinkedPick: (link: LinkedNoteRef) => void;
-}) {
-  const tabs = [
-    { value: 'outline' as const, label: 'Outline' },
-    { value: 'backlinks' as const, label: 'Backlinks' },
-    { value: 'linked' as const, label: 'Linked' },
-  ];
-  return (
-    <div className="w-full min-w-[288px] flex flex-col min-h-0">
-      <header className="p-3 border-b border-[hsl(var(--outline-variant))] shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <Badge variant="secondary" className="shrink-0">Note</Badge>
-          <span className="text-sm font-semibold truncate">{title || (hasOpenNote ? 'Untitled' : 'Note details')}</span>
-        </div>
-        <nav aria-label="Note details" className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-[hsl(var(--surface-container))] p-1">
-          {tabs.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => onTabChange(item.value)}
-              className={cn(
-                'h-8 rounded-lg px-2 text-xs font-medium transition-colors',
-                tab === item.value
-                  ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container-high))]',
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <div className="flex-1 min-h-0 overflow-y-auto stable-scrollbar">
-        <section className="p-3" aria-label={tab}>
-          <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">{tabs.find((item) => item.value === tab)?.label}</p>
-          {tab === 'outline' && (outline.length > 0 ? (
-            <div className="flex flex-col gap-0.5">
-              {outline.map((item) => (
-                <button
-                  key={`${item.index}:${item.text}`}
-                  type="button"
-                  onClick={() => onOutlinePick(item)}
-                  className="w-full rounded-md py-1.5 pr-2 text-left text-xs text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--surface-container))] transition-colors truncate"
-                  style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
-                  title={item.text}
-                >
-                  {item.text}
-                </button>
-              ))}
-            </div>
-          ) : <InspectorEmpty>Headings in this note will appear here.</InspectorEmpty>)}
-
-          {tab === 'backlinks' && (backlinks.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              {backlinks.map((backlink) => (
-                <button
-                  key={`${backlink.source_type}:${backlink.source_id}`}
-                  type="button"
-                  onClick={() => onBacklinkPick(backlink)}
-                  className="w-full rounded-lg p-2 text-left hover:bg-[hsl(var(--surface-container))] transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <LinkIcon className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-sm truncate">{backlink.title || 'Untitled'}</span>
-                  </span>
-                  <span className="block pl-5.5 mt-0.5 text-xs capitalize text-muted-foreground">{backlink.source_type}</span>
-                </button>
-              ))}
-            </div>
-          ) : <InspectorEmpty>No other item links to this note yet.</InspectorEmpty>)}
-
-          {tab === 'linked' && (linkedNotes.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              {linkedNotes.map((link) => (
-                <button
-                  key={link.ref.toLowerCase()}
-                  type="button"
-                  onClick={() => onLinkedPick(link)}
-                  disabled={!link.id}
-                  className="w-full rounded-lg p-2 text-left enabled:hover:bg-[hsl(var(--surface-container))] disabled:opacity-55 transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <FileText className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-sm truncate">{link.title}</span>
-                  </span>
-                  {!link.id && <span className="block pl-5.5 mt-0.5 text-xs text-muted-foreground">Not created</span>}
-                </button>
-              ))}
-            </div>
-          ) : <InspectorEmpty>Use [[Note title]] to link another note.</InspectorEmpty>)}
-        </section>
-
-        <div className="h-px bg-[hsl(var(--outline-variant))]" />
-        <section className="p-3" aria-label="Tags">
-          <p className="mb-2 text-xs font-semibold label-kicker text-muted-foreground">Tags</p>
-          {tags.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">{tags.map((tag) => <TagPill key={tag} tag={tag} />)}</div>
-          ) : <InspectorEmpty>Type #tag in the note to add one.</InspectorEmpty>}
-        </section>
-      </div>
-
-    </div>
-  );
-}
-
-function InspectorEmpty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-lg border border-dashed border-[hsl(var(--outline-variant))] px-3 py-4 text-xs leading-relaxed text-muted-foreground">{children}</p>;
-}
-
-/* ---------------- Tree view ---------------- */
-
-interface TreeViewProps {
-  node: TreeNode;
-  depth: number;
-  expanded: Set<string>;
-  selectedId: number | null;
-  showNewFolderUnder: string | null;
-  newFolderValue: string;
-  onNewFolderChange: (v: string) => void;
-  onToggle: (path: string) => void;
-  onSelectFolder: (path: string) => void;
-  onSelectNote: (id: number) => void;
-  onNewNoteIn: (path: string) => void;
-  onNewSubfolder: (path: string) => void;
-  onDeleteFolder: (path: string) => void;
-  onMoveNote: (n: NoteListItem) => void;
-  onTogglePinNote: (n: NoteListItem) => void;
-  onTogglePinFolder: (path: string, pinned: boolean) => void;
-  onCreateFolder: () => void;
-  onCancelNewFolder: () => void;
-}
-
-function TreeView(props: TreeViewProps) {
-  return (
-    <div className="flex flex-col" role={props.depth === 0 ? 'tree' : 'group'}>
-      {props.node.children.map((child) => {
-        if (child.type === 'folder') {
-          const isExpanded = props.expanded.has(child.path);
-          return (
-            <div key={`f:${child.path}`}>
-              <FolderRowItem
-                node={child}
-                depth={props.depth}
-                expanded={isExpanded}
-                onToggle={() => props.onToggle(child.path)}
-                onSelect={() => props.onSelectFolder(child.path)}
-                onNewNote={() => props.onNewNoteIn(child.path)}
-                onNewSubfolder={() => props.onNewSubfolder(child.path)}
-                onDelete={() => props.onDeleteFolder(child.path)}
-                onTogglePin={() => props.onTogglePinFolder(child.path, !child.pinned)}
-              />
-              <AnimatePresence initial={false}>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    {props.showNewFolderUnder === child.path && (
-                      <FolderInput
-                        depth={props.depth + 1}
-                        value={props.newFolderValue}
-                        onChange={props.onNewFolderChange}
-                        onConfirm={props.onCreateFolder}
-                        onCancel={props.onCancelNewFolder}
-                      />
-                    )}
-                    <TreeView {...props} node={child} depth={props.depth + 1} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        }
-        return (
-          <NoteRowItem
-            key={`n:${child.note!.id}`}
-            note={child.note!}
-            depth={props.depth}
-            selected={props.selectedId === child.note!.id}
-            onSelect={() => props.onSelectNote(child.note!.id)}
-            onMove={() => props.onMoveNote(child.note!)}
-            onTogglePin={() => props.onTogglePinNote(child.note!)}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function countTreeNotes(node: TreeNode): number {
-  return node.children.reduce((count, child) => count + (child.type === 'note' ? 1 : countTreeNotes(child)), 0);
-}
-
-function FolderRowItem({
-  node, depth, expanded, onToggle, onSelect, onNewNote, onNewSubfolder, onDelete, onTogglePin,
-}: {
-  node: TreeNode; depth: number; expanded: boolean;
-  onToggle: () => void; onSelect: () => void; onNewNote: () => void; onNewSubfolder: () => void; onDelete: () => void; onTogglePin: () => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const count = countTreeNotes(node);
-  return (
-    <div
-      role="treeitem"
-      tabIndex={0}
-      aria-expanded={expanded}
-      className="group relative flex min-h-11 md:min-h-8 cursor-pointer items-center gap-2 rounded-lg pr-2.5 text-sm outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))]"
-      style={{ paddingLeft: `${depth * 14 + 10}px` }}
-      onClick={() => { onSelect(); onToggle(); }}
-      onKeyDown={(event) => {
-        if (event.currentTarget !== event.target) return;
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect();
-          onToggle();
-        }
-      }}
-    >
-      {expanded ? (
-        <FolderOpen className="size-3.5 text-muted-foreground shrink-0" />
-      ) : (
-        <Folder className="size-3.5 text-muted-foreground shrink-0" />
-      )}
-      <span className="flex-1 truncate text-foreground/90 text-sm">{node.name}</span>
-      {node.pinned && <Pin className="size-3 text-muted-foreground shrink-0" aria-label="Pinned" />}
-      {/* The count owns the trailing edge; on hover the menu button takes
-          its place instead of pushing it inward. */}
-      <span className="text-sm tabular-nums text-muted-foreground group-hover:invisible group-focus-within:invisible">{count}</span>
-      <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden items-center group-hover:flex group-focus-within:flex">
-        <button
-          className="size-7 rounded-md hover:bg-[hsl(var(--surface-container-highest))] flex items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
-          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-          title="More"
-          aria-label={`More options for ${node.name}`}
-        >
-          <MoreHorizontal className="size-3" />
-        </button>
-      </div>
-      {menuOpen && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
-          <div
-            className="absolute right-1 top-full z-40 min-w-[160px] rounded-xl bg-popover shadow-lg p-1 text-foreground"
-            onClick={(e) => e.stopPropagation()}
+        )}
+      />
+      <DropdownMenuContent align="end" className="min-w-52">
+        {doc.id != null && (
+          <DropdownMenuItem onClick={() => { void setPinned(doc.id!, !pinned); }}>
+            {pinned ? <PinOff /> : <Pin />} {pinned ? 'Unpin' : 'Pin'}
+          </DropdownMenuItem>
+        )}
+        {!isMobile && (
+          <DropdownMenuItem onClick={() => setFocus((f) => !f)}>
+            <Maximize2 /> {focus ? 'Leave focus' : 'Focus'}
+            <DropdownMenuShortcut>Ctrl .</DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+        {!isWide && (
+          <DropdownMenuItem onClick={openDetails}>
+            <PanelRight /> Details
+          </DropdownMenuItem>
+        )}
+        {doc.id != null && (
+          <DropdownMenuItem onClick={() => {
+            void navigator.clipboard?.writeText(`[[${effectiveTitle(doc.title, doc.content) || 'Untitled'}]]`);
+            toast.success('Link copied');
+          }}
           >
-            <button
-              onClick={() => { onNewNote(); setMenuOpen(false); }}
-              className="w-full text-left px-2.5 py-1.5 rounded text-sm hover:bg-accent flex items-center gap-2"
-            >
-              <FilePlus className="size-3.5" /> New note here
-            </button>
-            <button
-              onClick={() => { onNewSubfolder(); setMenuOpen(false); }}
-              className="w-full text-left px-2.5 py-1.5 rounded text-sm hover:bg-accent flex items-center gap-2"
-            >
-              <FolderPlus className="size-3.5" /> New subfolder
-            </button>
-            <button
-              onClick={() => { onTogglePin(); setMenuOpen(false); }}
-              className="w-full text-left px-2.5 py-1.5 rounded text-sm hover:bg-accent flex items-center gap-2"
-            >
-              {node.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
-              {node.pinned ? 'Unpin folder' : 'Pin folder'}
-            </button>
-            <div className="my-1 h-px bg-border" />
-            <button
-              onClick={() => { onDelete(); setMenuOpen(false); }}
-              className="w-full text-left px-2.5 py-1.5 rounded text-sm text-destructive hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))] flex items-center gap-2"
-            >
-              <Trash2 className="size-3.5" /> Delete folder
-            </button>
-          </div>
+            <Copy /> Copy link
+          </DropdownMenuItem>
+        )}
+        {doc.id != null && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={() => { void deleteNote({ id: doc.id!, title: effectiveTitle(doc.title, doc.content) }); }}>
+              <Trash2 /> Delete
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const topBar = doc && (
+    <div
+      className={cn(
+        'flex h-12 shrink-0 items-center gap-1 px-3 md:px-4 transition-opacity duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        chromeHidden && 'pointer-events-none opacity-0',
+      )}
+    >
+      {isMobile ? (
+        <Button variant="ghost" size="icon-sm" className="size-11 rounded-full" onClick={closeNote} title="All notes" aria-label="All notes">
+          <ArrowLeft className="size-4" />
+        </Button>
+      ) : (!libraryOpen || focus) && (
+        <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={() => { setFocus(false); setLibraryOpen(true); }} title="Show library" aria-label="Show library">
+          <PanelLeft className="size-4" />
+        </Button>
+      )}
+      <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
+        <FolderPicker
+          folders={folders}
+          folder={doc.folder}
+          onPick={(path) => { void move(doc.id, path); reveal(path); }}
+          className="min-w-0"
+        />
+        {doc.updated_at && !isMobile && (
+          <span className="hidden shrink-0 text-sm text-muted-foreground lg:inline" title={new Date(doc.updated_at).toLocaleString()}>
+            · Edited {relTime(doc.updated_at)}
+          </span>
+        )}
+      </div>
+      <SaveState status={status} onRetry={() => { void flush(); }} />
+      <SegmentedButton
+        value={mode}
+        onChange={setMode}
+        showCheck={false}
+        size="sm"
+        aria-label="View"
+        className="[&>button]:h-8 [&>button]:px-2.5 max-md:[&>button]:h-10"
+        options={[
+          { value: 'edit', label: isMobile ? '' : 'Edit', icon: Edit3 },
+          { value: 'read', label: isMobile ? '' : 'Read', icon: Eye },
+        ]}
+      />
+      {!isMobile && (!showDetailsRail) && (
+        <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
+          <PanelRight className="size-4" />
+        </Button>
+      )}
+      {overflowMenu}
+    </div>
+  );
+
+  const writing = doc && (
+    <div ref={scrollRef} className="stable-scrollbar flex-1 min-h-0 overflow-y-auto">
+      <motion.article
+        key={doc.key}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.16, ease: EASE }}
+        className="mx-auto flex min-h-full w-full max-w-[46rem] flex-col px-5 pt-6 pb-[40vh] md:px-8 md:pt-10"
+        onKeyDownCapture={onWritingKey}
+      >
+        {mode === 'read' ? (
+          <h1 className="font-serif text-[2rem] md:text-[2.5rem] font-semibold leading-tight tracking-tight text-balance">
+            {displayTitle(effectiveTitle(doc.title, doc.content))}
+          </h1>
+        ) : (
+          <Textarea
+            ref={titleRef}
+            value={doc.title}
+            rows={1}
+            readOnly={loading}
+            placeholder={doc.content.trim() ? effectiveTitle('', doc.content) : 'Untitled'}
+            aria-label="Title"
+            onChange={(e) => edit({ title: e.target.value.replace(/\n/g, ' ') })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || (e.key === 'ArrowDown' && e.currentTarget.selectionStart === e.currentTarget.value.length)) {
+                e.preventDefault();
+                focusBody();
+              }
+            }}
+            className="min-h-0 rounded-none border-0 bg-transparent p-0 font-serif text-[2rem] md:text-[2.5rem] font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/35 focus-visible:shadow-none"
+          />
+        )}
+        <div ref={bodyRef} className="mt-6 flex flex-1 flex-col">
+          {loading ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-10/12" />
+              <Skeleton className="h-4 w-8/12" />
+            </div>
+          ) : mode === 'read' ? (
+            <ReadView content={doc.content} />
+          ) : (
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <RichEditor
+                key={doc.key}
+                value={doc.content}
+                onChange={(v) => edit({ content: v })}
+                placeholder="Write, or type / for blocks, [[ to link, # to tag"
+                className="notes-editor [&_.ProseMirror>:first-child]:mt-0"
+                fill
+              />
+            </Suspense>
+          )}
+        </div>
+      </motion.article>
+    </div>
+  );
+
+  const statusLine = doc && (
+    <div
+      className={cn(
+        'pointer-events-none absolute right-3 z-10 flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs tabular-nums text-muted-foreground transition-opacity duration-300 md:right-5',
+        'bg-[hsl(var(--background)/0.85)]',
+        isMobile ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+80px)]' : 'bottom-2',
+        chromeHidden && 'opacity-0',
+      )}
+      aria-live="off"
+    >
+      <span>{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}</span>
+      <span aria-hidden>·</span>
+      <span>{counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
+      {doc.backlinks.length > 0 && (
+        <>
+          <span aria-hidden>·</span>
+          <button
+            type="button"
+            className="pointer-events-auto rounded hover:text-foreground"
+            onClick={openDetails}
+          >
+            {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
+          </button>
         </>
       )}
     </div>
   );
-}
 
-function NoteRowItem({
-  note, depth, selected, onSelect, onMove, onTogglePin,
-}: {
-  note: NoteListItem; depth: number; selected: boolean;
-  onSelect: () => void; onMove: () => void; onTogglePin: () => void;
-}) {
   return (
-    <div
-      role="treeitem"
-      tabIndex={0}
-      aria-selected={selected}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.currentTarget !== event.target) return;
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-      className={`group relative flex min-h-11 md:min-h-8 cursor-pointer items-center gap-2 rounded-lg outline-none transition-colors text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))] ${
-        selected
-          ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-          : 'hover:bg-[hsl(var(--surface-container-high))] text-foreground/85'
-      }`}
-      style={{ paddingLeft: `${depth * 14 + 10}px`, paddingRight: '4px' }}
-    >
-      <FileText className="size-3.5 text-muted-foreground shrink-0" />
-      <span className="flex-1 truncate">{note.title || 'Untitled'}</span>
-      {note.pinned && <Pin className="size-3 text-muted-foreground shrink-0 group-hover:hidden" aria-label="Pinned" />}
-      <button
-        onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-        className="opacity-0 group-hover:opacity-100 size-7 rounded-md hover:bg-[hsl(var(--surface-container-highest))] hidden group-hover:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
-        title={note.pinned ? 'Unpin' : 'Pin'}
-        aria-label={`${note.pinned ? 'Unpin' : 'Pin'} ${note.title || 'Untitled'}`}
-      >
-        {note.pinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); onMove(); }}
-        className="opacity-0 group-hover:opacity-100 size-7 rounded-md hover:bg-[hsl(var(--surface-container-highest))] hidden group-hover:flex focus-visible:flex items-center justify-center text-muted-foreground hover:text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
-        title="Move"
-        aria-label={`Move ${note.title || 'Untitled'}`}
-      >
-        <FolderMoveIcon className="size-3" />
-      </button>
-    </div>
-  );
-}
+    <div className="page-fade-in flex flex-1 min-h-0 overflow-hidden">
+      <AnimatePresence initial={false}>
+        {showLibraryRail && (
+          <Rail key="library" side="left" width={272}>
+            <LibraryRail {...railProps} onCollapse={() => setLibraryOpen(false)} />
+          </Rail>
+        )}
+      </AnimatePresence>
 
-function FolderInput({
-  depth, value, onChange, onConfirm, onCancel,
-}: {
-  depth: number; value: string; onChange: (v: string) => void; onConfirm: () => void; onCancel: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => { ref.current?.focus(); }, []);
-  return (
-    <div
-      className="flex items-center gap-1 py-0.5"
-      style={{ paddingLeft: `${depth * 12 + 4}px`, paddingRight: '4px' }}
-    >
-      <FolderPlus className="size-3.5 text-muted-foreground shrink-0 ml-4" />
-      <Input
-        ref={ref}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
-          if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+      <main
+        className="relative flex min-w-0 flex-1 flex-col bg-background"
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 4 : 60}px)` }}
+      >
+        {doc ? (
+          <>
+            {topBar}
+            {writing}
+            {statusLine}
+          </>
+        ) : isMobile ? (
+          <div className="flex min-h-0 flex-1 flex-col pb-[calc(env(safe-area-inset-bottom,0px)+76px)]">
+            <LibraryRail {...railProps} />
+          </div>
+        ) : (
+          <NothingOpen
+            notes={allNotes}
+            onOpen={openNote}
+            onNew={() => startNew('')}
+            showLibrary={!libraryOpen}
+            onShowLibrary={() => setLibraryOpen(true)}
+          />
+        )}
+      </main>
+
+      <AnimatePresence initial={false}>
+        {showDetailsRail && (
+          <Rail key="details" side="right" width={288}>
+            {details}
+          </Rail>
+        )}
+      </AnimatePresence>
+      {!isWide && (
+        <Sheet open={detailsSheet && !!doc} onOpenChange={setDetailsSheet}>
+          <SheetContent side="right" className="w-[90vw] max-w-[340px] p-0 pt-[env(safe-area-inset-top)]">
+            <SheetHeader className="sr-only"><SheetTitle>Details</SheetTitle></SheetHeader>
+            {details}
+          </SheetContent>
+        </Sheet>
+      )}
+
+      <MoveDialog
+        open={!!moveTarget}
+        title={displayTitle(moveTarget?.title ?? '')}
+        folders={folders}
+        current={moveTarget?.folder ?? ''}
+        onOpenChange={(o) => { if (!o) setMoveTarget(null); }}
+        onPick={(path) => {
+          if (moveTarget) { void move(moveTarget.id, path); reveal(path); }
+          setMoveTarget(null);
         }}
-        onBlur={onConfirm}
-        placeholder="folder name"
-        className="flex-1 h-8 px-2 text-sm"
       />
     </div>
   );
 }
 
-function FolderRow({ label, path, active, onClick }: { label: string; path: string; active: boolean; onClick: () => void }) {
+/** Wide enough for the details rail beside the text (lg). */
+function useWide() {
+  const query = '(min-width: 1024px)';
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const on = () => setWide(mql.matches);
+    mql.addEventListener('change', on);
+    return () => mql.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
+
+function Rail({ side, width, className, children }: { side: 'left' | 'right'; width: number; className?: string; children: ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left rounded-md px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
-        active ? 'bg-primary/10 text-primary' : 'hover:bg-accent/40'
-      }`}
+    <motion.aside
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width, opacity: 1 }}
+      exit={{ width: 0, opacity: 0, transition: { duration: 0.16, ease: EASE } }}
+      transition={{ duration: 0.22, ease: EASE }}
+      className={cn(
+        'flex shrink-0 overflow-hidden bg-[hsl(var(--surface-container-low))]',
+        side === 'left' ? 'order-first' : 'order-last',
+        className,
+      )}
     >
-      <Folder className="size-3.5 text-muted-foreground" />
-      <span className="font-mono text-xs">{path === '' ? <em className="not-italic text-muted-foreground">{label}</em> : label}</span>
-    </button>
+      <div className="h-full shrink-0" style={{ width }}>{children}</div>
+    </motion.aside>
   );
 }
 
-function SaveIndicator({ state, canSave, onSave }: { state: 'idle' | 'saving' | 'saved'; canSave: boolean; onSave: () => void }) {
-  if (state === 'saving') {
-    return <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><M3CookieLoader size="xs" tone="primary" />Saving</span>;
-  }
-  if (state === 'saved') {
-    return <span className="flex items-center gap-1.5 text-xs text-primary"><Save className="size-3.5" />Saved</span>;
-  }
+function SaveState({ status, onRetry }: { status: SaveStatus; onRetry: () => void }) {
+  // Reserved slot: the state changes in place, nothing beside it moves.
   return (
-    <Button variant="ghost" size="sm" onClick={onSave} disabled={!canSave} className="text-xs gap-1.5">
-      <Save className="size-3.5" /> Save
-    </Button>
+    <span className="flex w-20 shrink-0 items-center justify-end gap-1.5 pr-1 text-xs text-muted-foreground" aria-live="polite">
+      {status === 'saving' && (<><M3CookieLoader size="xs" tone="primary" /> Saving</>)}
+      {status === 'saved' && 'Saved'}
+      {status === 'error' && (
+        <button type="button" onClick={onRetry} className="font-medium text-destructive hover:underline">Retry save</button>
+      )}
+    </span>
   );
 }
 
-function fmtRelTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const ms = Date.now() - d.getTime();
-    const m = Math.floor(ms / 60_000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    const days = Math.floor(h / 24);
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  } catch {
-    return '';
-  }
+function ReadView({ content }: { content: string }) {
+  if (!content.trim()) return <p className="text-muted-foreground">Nothing written yet.</p>;
+  return (
+    <article className="prose prose-sajni dark:prose-invert max-w-none [&>:first-child]:mt-0">
+      <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+    </article>
+  );
+}
+
+function NothingOpen({ notes, onOpen, onNew, showLibrary, onShowLibrary }: {
+  notes: NoteListItem[];
+  onOpen: (id: number) => void;
+  onNew: () => void;
+  showLibrary: boolean;
+  onShowLibrary: () => void;
+}) {
+  const recent = useMemo(
+    () => [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8),
+    [notes],
+  );
+  return (
+    <div className="stable-scrollbar flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[46rem] px-5 pt-10 pb-24 md:px-8">
+        <div className="flex items-center gap-2">
+          {showLibrary && (
+            <Button variant="ghost" size="icon-sm" className="-ml-2 rounded-full" onClick={onShowLibrary} title="Show library" aria-label="Show library">
+              <PanelLeft className="size-4" />
+            </Button>
+          )}
+          <h1 className="flex-1 font-serif text-[2rem] font-semibold tracking-tight">Notes</h1>
+          <Button onClick={onNew} title="New note · Alt+N"><FilePlus className="size-4" /> New note</Button>
+        </div>
+        {recent.length > 0 && (
+          <section className="mt-8" aria-label="Recently edited">
+            <h2 className="mb-2 text-sm font-medium text-muted-foreground">Recently edited</h2>
+            <div className="-mx-3 flex flex-col">
+              {recent.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => onOpen(n.id)}
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left transition-colors hover:bg-[hsl(var(--surface-container))]"
+                >
+                  <span className="min-w-0 flex-1 truncate">{displayTitle(n.title)}</span>
+                  {n.folder && <span className="max-w-[40%] shrink-0 truncate text-sm text-muted-foreground">{n.folder.split('/').join(' / ')}</span>}
+                  <span className="w-16 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{relTime(n.updated_at)}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
 }

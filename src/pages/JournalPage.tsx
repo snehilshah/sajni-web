@@ -754,8 +754,7 @@ export default function JournalPage() {
             transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
             className="hidden md:flex bg-[hsl(var(--surface-container-low))] flex-col shrink-0 overflow-hidden order-3"
           >
-            {/* pt clears the fixed corner search pill. */}
-            <div className="overflow-y-auto pt-14">
+            <div className="overflow-y-auto pt-5">
               {contextPanel}
             </div>
           </motion.aside>
