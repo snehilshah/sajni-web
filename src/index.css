@@ -530,6 +530,8 @@ button, [role="button"], a {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
+/* Rows in a packed list (Notes library) keep the ring inside their box. */
+.tree-row:focus-visible { outline-offset: -2px; }
 :focus-visible:is(
   input,
   textarea,

@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft, Code, Copy, Edit3, Eye, FilePlus, Maximize2, MoreHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
+  ArrowLeft, Code, Copy, Edit3, Eye, FilePlus, Maximize2, MoreHorizontal, MoveHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
 } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -43,6 +43,7 @@ type Mode = 'live' | 'source' | 'read';
 const LIBRARY_KEY = 'sajni:notes-library';
 const DETAILS_KEY = 'sajni:notes-details';
 const EXPANDED_KEY = 'sajni:notes-expanded';
+const WIDE_KEY = 'sajni:notes-wide';
 
 const EASE = [0.2, 0, 0, 1] as const;
 
@@ -72,6 +73,7 @@ export default function NotesPage() {
   const [detailsSheet, setDetailsSheet] = useState(false);
   const [moveTarget, setMoveTarget] = useState<NoteListItem | null>(null);
   const [focus, setFocus] = useState(false);
+  const [wide, setWide] = useState(() => readFlag(WIDE_KEY, false));
   const [calm, setCalm] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
@@ -83,6 +85,7 @@ export default function NotesPage() {
 
   useEffect(() => { try { localStorage.setItem(LIBRARY_KEY, libraryOpen ? '1' : '0'); } catch { /* private mode */ } }, [libraryOpen]);
   useEffect(() => { try { localStorage.setItem(DETAILS_KEY, detailsOpen ? '1' : '0'); } catch { /* private mode */ } }, [detailsOpen]);
+  useEffect(() => { try { localStorage.setItem(WIDE_KEY, wide ? '1' : '0'); } catch { /* private mode */ } }, [wide]);
   useEffect(() => { try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...expanded])); } catch { /* private mode */ } }, [expanded]);
 
   // ── Library ────────────────────────────────────────────────────────────
@@ -299,12 +302,12 @@ export default function NotesPage() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={(
-          <Button variant="ghost" size="icon-sm" className="rounded-full max-md:size-11" title="More" aria-label="More">
+          <Button variant="ghost" size="icon-sm" className="rounded-full max-md:size-11 md:size-8" title="More" aria-label="More">
             <MoreHorizontal className="size-4" />
           </Button>
         )}
       />
-      <DropdownMenuContent align="end" className="min-w-52">
+      <DropdownMenuContent align="end" side={isMobile ? 'bottom' : 'top'} className="min-w-52">
         {doc.id != null && (
           <DropdownMenuItem onClick={() => { void setPinned(doc.id!, !pinned); }}>
             {pinned ? <PinOff /> : <Pin />} {pinned ? 'Unpin' : 'Pin'}
@@ -314,6 +317,11 @@ export default function NotesPage() {
           <DropdownMenuItem onClick={() => setFocus((f) => !f)}>
             <Maximize2 /> {focus ? 'Leave focus' : 'Focus'}
             <DropdownMenuShortcut>Ctrl .</DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+        {!isMobile && (
+          <DropdownMenuItem onClick={() => setWide((w) => !w)}>
+            <MoveHorizontal /> {wide ? 'Readable width' : 'Full width'}
           </DropdownMenuItem>
         )}
         {!isWide && (
@@ -342,69 +350,79 @@ export default function NotesPage() {
     </DropdownMenu>
   );
 
-  const topBar = doc && (
+  const modeSwitch = doc && (
+    <SegmentedButton
+      value={mode}
+      onChange={setMode}
+      showCheck={false}
+      size="sm"
+      aria-label="View"
+      className="[&>button]:h-7 [&>button]:px-2.5 max-md:[&>button]:h-10"
+      options={[
+        { value: 'live', label: isMobile ? '' : 'Live', icon: Edit3 },
+        { value: 'source', label: isMobile ? '' : 'Source', icon: Code },
+        { value: 'read', label: isMobile ? '' : 'Read', icon: Eye },
+      ]}
+    />
+  );
+
+  // Phones: one bar above the text (back · folder · view · more).
+  const topBar = doc && isMobile && (
     <div
       className={cn(
-        'flex h-12 shrink-0 items-center gap-1 px-3 md:px-4 transition-opacity duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        'flex h-12 shrink-0 items-center gap-1 px-3 transition-opacity duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
         chromeHidden && 'pointer-events-none opacity-0',
       )}
     >
-      {isMobile ? (
-        <Button variant="ghost" size="icon-sm" className="size-11 rounded-full" onClick={closeNote} title="All notes" aria-label="All notes">
-          <ArrowLeft className="size-4" />
-        </Button>
-      ) : (!libraryOpen || focus) && (
-        <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={() => { setFocus(false); setLibraryOpen(true); }} title="Show library" aria-label="Show library">
-          <PanelLeft className="size-4" />
-        </Button>
-      )}
-      <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
+      <Button variant="ghost" size="icon-sm" className="size-11 rounded-full" onClick={closeNote} title="All notes" aria-label="All notes">
+        <ArrowLeft className="size-4" />
+      </Button>
+      <div className="flex min-w-0 flex-1 items-center pl-2">
         <FolderPicker
           folders={folders}
           folder={doc.folder}
           onPick={(path) => { void move(doc.id, path); reveal(path); }}
-          compact={isMobile}
+          compact
           className="min-w-0"
         />
-        {doc.updated_at && !isMobile && (
-          <span className="hidden shrink-0 text-sm text-muted-foreground lg:inline" title={new Date(doc.updated_at).toLocaleString()}>
-            · Edited {relTime(doc.updated_at)}
-          </span>
-        )}
       </div>
       <SaveState status={status} onRetry={() => { void flush(); }} />
-      <SegmentedButton
-        value={mode}
-        onChange={setMode}
-        showCheck={false}
-        size="sm"
-        aria-label="View"
-        className="[&>button]:h-8 [&>button]:px-2.5 max-md:[&>button]:h-10"
-        options={[
-          { value: 'live', label: isMobile ? '' : 'Live', icon: Edit3 },
-          { value: 'source', label: isMobile ? '' : 'Source', icon: Code },
-          { value: 'read', label: isMobile ? '' : 'Read', icon: Eye },
-        ]}
-      />
-      {!isMobile && (!showDetailsRail) && (
-        <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
-          <PanelRight className="size-4" />
-        </Button>
-      )}
+      {modeSwitch}
       {overflowMenu}
     </div>
   );
 
   const writing = doc && (
-    <div ref={scrollRef} className="stable-scrollbar flex-1 min-h-0 overflow-y-auto">
+    // Desktop: the text runs the full height and slides under the nav pill,
+    // fading out at the top edge, so calm never leaves an empty band.
+    <div
+      ref={scrollRef}
+      className="stable-scrollbar flex-1 min-h-0 overflow-y-auto md:[mask-image:linear-gradient(to_bottom,transparent_0,black_68px)]"
+    >
       <motion.article
         key={doc.key}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.16, ease: EASE }}
-        className="mx-auto flex min-h-full w-full max-w-[46rem] flex-col px-5 pt-6 pb-[40vh] md:px-8 md:pt-10"
+        className={cn(
+          'mx-auto flex min-h-full w-full flex-col px-5 pt-6 pb-[40vh] md:pt-[76px]',
+          wide ? 'max-w-none md:px-8 xl:px-12' : 'max-w-[52rem] md:px-10',
+        )}
         onKeyDownCapture={onWritingKey}
       >
+        {!isMobile && (
+          <div className="-mt-1 mb-2 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+            <FolderPicker
+              folders={folders}
+              folder={doc.folder}
+              onPick={(path) => { void move(doc.id, path); reveal(path); }}
+              className="min-w-0"
+            />
+            {doc.updated_at && (
+              <span className="shrink-0" title={new Date(doc.updated_at).toLocaleString()}>· Edited {relTime(doc.updated_at)}</span>
+            )}
+          </div>
+        )}
         {mode === 'read' ? (
           <h1 className="font-serif text-[2rem] md:text-[2.5rem] font-semibold leading-tight tracking-tight text-balance">
             {displayTitle(effectiveTitle(doc.title, doc.content))}
@@ -424,7 +442,7 @@ export default function NotesPage() {
                 focusBody();
               }
             }}
-            className="min-h-0 rounded-none border-0 bg-transparent p-0 font-serif text-[2rem] md:text-[2.5rem] font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/35 focus-visible:shadow-none"
+            className="min-h-0 overflow-hidden rounded-none border-0 bg-transparent p-0 font-serif text-[2rem] md:text-[2.5rem] font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/35 focus-visible:shadow-none"
           />
         )}
         <div className="mt-5 flex flex-1 flex-col">
@@ -453,31 +471,46 @@ export default function NotesPage() {
     </div>
   );
 
+  // Desktop: the note's controls sit bottom-right with the counts, out of
+  // the way of the text; they fade while you type.
   const statusLine = doc && !isMobile && (
-    <div
-      className={cn(
-        'pointer-events-none absolute right-3 z-10 flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs tabular-nums text-muted-foreground transition-opacity duration-300 md:right-5',
-        'bottom-2 bg-[hsl(var(--background)/0.85)]',
-        chromeHidden && 'opacity-0',
+    <>
+      {(!libraryOpen || focus) && (
+        <Button
+          variant="ghost" size="icon-sm"
+          onClick={() => { setFocus(false); setLibraryOpen(true); }}
+          title="Show library" aria-label="Show library"
+          className={cn(
+            'absolute bottom-3 left-3 z-10 size-9 rounded-full bg-[hsl(var(--surface-container-low))] transition-opacity duration-300',
+            chromeHidden && 'pointer-events-none opacity-0',
+          )}
+        >
+          <PanelLeft className="size-4" />
+        </Button>
       )}
-      aria-live="off"
-    >
-      <span>{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}</span>
-      <span aria-hidden>·</span>
-      <span>{counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
-      {doc.backlinks.length > 0 && (
-        <>
-          <span aria-hidden>·</span>
-          <button
-            type="button"
-            className="pointer-events-auto rounded hover:text-foreground"
-            onClick={openDetails}
-          >
-            {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
+      <div
+        className={cn(
+          'absolute bottom-3 right-3 z-10 flex h-10 items-center gap-1 rounded-full bg-[hsl(var(--surface-container-low))] pl-3.5 pr-1 text-xs tabular-nums text-muted-foreground shadow-[var(--m3-elev-1)] transition-opacity duration-300',
+          chromeHidden && 'pointer-events-none opacity-0',
+        )}
+      >
+        <span className="hidden xl:inline">{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'} · {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
+        <span className="xl:hidden" title={`${counts.characters.toLocaleString()} characters`}>{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}</span>
+        {doc.backlinks.length > 0 && (
+          <button type="button" className="rounded hover:text-foreground" onClick={openDetails}>
+            · {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
           </button>
-        </>
-      )}
-    </div>
+        )}
+        <SaveState status={status} onRetry={() => { void flush(); }} />
+        {modeSwitch}
+        {!showDetailsRail && (
+          <Button variant="ghost" size="icon-sm" className="size-8 rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
+            <PanelRight className="size-4" />
+          </Button>
+        )}
+        {overflowMenu}
+      </div>
+    </>
   );
 
   return (
@@ -492,7 +525,7 @@ export default function NotesPage() {
 
       <main
         className="relative flex min-w-0 flex-1 flex-col bg-background"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 4 : 60}px)` }}
+        style={{ paddingTop: isMobile ? 'calc(env(safe-area-inset-top, 0px) + 4px)' : undefined }}
       >
         {doc ? (
           <>
@@ -580,7 +613,7 @@ function Rail({ side, width, className, children }: { side: 'left' | 'right'; wi
 function SaveState({ status, onRetry }: { status: SaveStatus; onRetry: () => void }) {
   // Reserved slot: the state changes in place, nothing beside it moves.
   return (
-    <span className="flex w-20 shrink-0 items-center justify-end gap-1.5 pr-1 text-xs text-muted-foreground" aria-live="polite">
+    <span className="flex w-16 shrink-0 items-center justify-end gap-1.5 pr-1 text-xs text-muted-foreground" aria-live="polite">
       {status === 'saving' && (<><M3CookieLoader size="xs" tone="primary" /> Saving</>)}
       {status === 'saved' && 'Saved'}
       {status === 'error' && (
@@ -603,7 +636,7 @@ function NothingOpen({ notes, onOpen, onNew, showLibrary, onShowLibrary }: {
   );
   return (
     <div className="stable-scrollbar flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[46rem] px-5 pt-10 pb-24 md:px-8">
+      <div className="mx-auto w-full max-w-[52rem] px-5 pt-10 pb-24 md:px-10 md:pt-[84px]">
         <div className="flex items-center gap-2">
           {showLibrary && (
             <Button variant="ghost" size="icon-sm" className="-ml-2 rounded-full" onClick={onShowLibrary} title="Show library" aria-label="Show library">

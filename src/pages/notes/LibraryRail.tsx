@@ -25,7 +25,8 @@ import { displayTitle, folderAncestors, type NoteListItem, type TreeNode } from 
 // 6px gap, then the name.
 const INDENT = 14;
 const PAD = 8;
-const rowPad = (depth: number) => ({ paddingLeft: PAD + depth * INDENT });
+// Indent is a margin, so a row's highlight starts at its own depth.
+const rowPad = (depth: number) => ({ marginLeft: depth * INDENT, paddingLeft: PAD });
 
 export interface LibraryRailProps {
   tree: TreeNode;
@@ -354,12 +355,11 @@ function Row({
       onContextMenu={menu ? (e) => { e.preventDefault(); setMenuOpen(true); } : undefined}
       style={rowPad(depth)}
       className={cn(
-        'group relative flex min-h-11 md:min-h-8 select-none items-center gap-1.5 rounded-lg pr-1.5 text-sm outline-none transition-colors',
-        'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))]',
+        'tree-row group relative flex min-h-11 md:min-h-8 select-none items-center gap-1.5 rounded-lg pr-1.5 text-sm transition-colors',
         onClick && 'cursor-pointer',
         selected
-          ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-          : 'text-foreground/85 hover:bg-[hsl(var(--surface-container-high))]',
+          ? 'bg-[hsl(var(--on-surface)/0.07)] font-medium text-foreground'
+          : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.05)] hover:text-foreground',
         dropping && 'ring-2 ring-inset ring-[hsl(var(--primary))]',
       )}
       {...rest}

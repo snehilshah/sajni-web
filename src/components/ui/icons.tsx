@@ -288,6 +288,7 @@ export {
   Loader2,
   Loader2Icon,
   Maximize2,
+  MoveHorizontal,
   PanelLeft,
   PanelLeftClose,
   PanelRight,

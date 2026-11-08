@@ -40,7 +40,8 @@ export default function NotesDoc() {
           <Feature name="Writing is instant">
             <p>
               Your title shows in the library as you type it, and everything
-              saves on its own a moment after you stop. The top bar says{' '}
+              saves on its own a moment after you stop. The bar at the bottom
+              right says{' '}
               <em>Saving</em> and then <em>Saved</em>; if the connection drops it
               says <em>Retry save</em>. <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd> saves at
               once. Switching notes or closing the tab saves first.
@@ -48,8 +49,8 @@ export default function NotesDoc() {
           </Feature>
           <Feature name="Where a note lives">
             <p>
-              The path above the note (<em>Notes › Work › Plans</em>) is also
-              the way to move it: tap it and pick a folder. A new note starts in
+              The path above the title (<em>Notes › Work › Plans</em>) is also
+              the way to move it: click it and pick a folder. A new note starts in
               the folder of the note you had open; choose another the same way
               before or after you write.
             </p>
@@ -68,15 +69,22 @@ export default function NotesDoc() {
           </Feature>
           <Feature name="Calm and focus">
             <p>
-              Start typing and everything but the text fades out: the top bar,
-              the nav pill and the word count. Move the mouse (or scroll up)
-              and they come back. Reading works the same way: scroll down and
-              the chrome steps aside.
+              The view switch, word count, Details and <Kbd>⋯</Kbd> sit in a
+              small bar at the bottom right. Start typing and everything but
+              the text fades out: that bar and the nav pill. Move the mouse (or
+              scroll up) and they come back. Reading works the same way: scroll
+              down and the chrome steps aside. Long notes run under the nav
+              pill and fade out at the top edge.
             </p>
             <p>
               <strong>Focus</strong> (<Kbd>Ctrl</Kbd>+<Kbd>.</Kbd>, or{' '}
               <Kbd>⋯</Kbd> → Focus) also folds both rails away. <Kbd>Esc</Kbd>{' '}
               or <Kbd>Ctrl</Kbd>+<Kbd>.</Kbd> brings them back.
+            </p>
+            <p>
+              <strong>Full width</strong> (<Kbd>⋯</Kbd> → Full width) lets the
+              text use the whole page instead of a readable column; the choice
+              is remembered.
             </p>
           </Feature>
           <Feature name="Pin">
@@ -91,7 +99,8 @@ export default function NotesDoc() {
         <p>
           Everything you write is plain Markdown, stored exactly as you typed
           it. The same editor is used in Notes, the Journal and a task's notes.
-          Notes has three ways to look at it (the switch in the top bar):
+          Notes has three ways to look at it (the switch at the bottom right;
+          on a phone, at the top):
         </p>
         <RefTable
           head={['mode', 'what you see']}
