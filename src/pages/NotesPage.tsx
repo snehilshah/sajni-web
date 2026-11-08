@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft, Code, Copy, Edit3, Eye, FilePlus, Maximize2, MoreHorizontal, MoveHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
+  ArrowLeft, Code, Copy, Edit3, Eye, FilePlus, AlignLeft, Check, Maximize2, MoreHorizontal, MoveHorizontal, PanelLeft, PanelRight, Pin, PinOff, Trash2,
 } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -47,6 +47,9 @@ const EXPANDED_KEY = 'sajni:notes-expanded';
 const WIDE_KEY = 'sajni:notes-full-width';
 
 const EASE = [0.2, 0, 0, 1] as const;
+const LIBRARY_WIDTH_KEY = 'sajni:notes-library-width';
+const RAIL_DEFAULT = 272;
+const clampRail = (w: number) => Math.round(Math.min(480, Math.max(200, w)));
 
 function readFlag(key: string, fallback: boolean) {
   try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
@@ -75,6 +78,9 @@ export default function NotesPage() {
   const [moveTarget, setMoveTarget] = useState<NoteListItem | null>(null);
   const [focus, setFocus] = useState(false);
   const [wide, setWide] = useState(() => readFlag(WIDE_KEY, true));
+  const [libraryWidth, setLibraryWidth] = useState(() => {
+    try { return clampRail(Number(localStorage.getItem(LIBRARY_WIDTH_KEY)) || RAIL_DEFAULT); } catch { return RAIL_DEFAULT; }
+  });
   const [calm, setCalm] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
@@ -86,6 +92,7 @@ export default function NotesPage() {
 
   useEffect(() => { try { localStorage.setItem(LIBRARY_KEY, libraryOpen ? '1' : '0'); } catch { /* private mode */ } }, [libraryOpen]);
   useEffect(() => { try { localStorage.setItem(DETAILS_KEY, detailsOpen ? '1' : '0'); } catch { /* private mode */ } }, [detailsOpen]);
+  useEffect(() => { try { localStorage.setItem(LIBRARY_WIDTH_KEY, String(libraryWidth)); } catch { /* private mode */ } }, [libraryWidth]);
   useEffect(() => { try { localStorage.setItem(WIDE_KEY, wide ? '1' : '0'); } catch { /* private mode */ } }, [wide]);
   useEffect(() => { try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...expanded])); } catch { /* private mode */ } }, [expanded]);
 
@@ -321,9 +328,17 @@ export default function NotesPage() {
           </DropdownMenuItem>
         )}
         {!isMobile && (
-          <DropdownMenuItem onClick={() => setWide((w) => !w)}>
-            <MoveHorizontal /> {wide ? 'Readable width' : 'Full width'}
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={() => setWide(true)}>
+              <MoveHorizontal /> Full width
+              {wide && <Check className="ml-auto" aria-label="On" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWide(false)}>
+              <AlignLeft /> Readable width
+              {!wide && <Check className="ml-auto" aria-label="On" />}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
         )}
         {!isWide && (
           <DropdownMenuItem onClick={openDetails}>
@@ -332,7 +347,7 @@ export default function NotesPage() {
         )}
         {doc.id != null && (
           <DropdownMenuItem onClick={() => {
-            void navigator.clipboard?.writeText(`[[${effectiveTitle(doc.title, doc.content) || 'Untitled'}]]`);
+            void navigator.clipboard?.writeText(`${window.location.origin}/notes?id=${doc.id}`);
             toast.success('Link copied');
           }}
           >
@@ -407,7 +422,7 @@ export default function NotesPage() {
         transition={{ duration: 0.16, ease: EASE }}
         className={cn(
           'mx-auto flex min-h-full w-full flex-col px-5 pt-6 pb-[40vh] md:pt-[76px]',
-          wide ? 'max-w-none md:px-8' : 'max-w-[64rem] md:px-8',
+          wide ? 'max-w-none md:pl-16 md:pr-10' : 'max-w-[46rem] md:px-8',
         )}
         onKeyDownCapture={onWritingKey}
       >
@@ -518,7 +533,7 @@ export default function NotesPage() {
     <div className="page-fade-in flex flex-1 min-h-0 overflow-hidden">
       <AnimatePresence initial={false}>
         {showLibraryRail && (
-          <Rail key="library" side="left" width={272}>
+          <Rail key="library" side="left" width={libraryWidth} onResize={setLibraryWidth}>
             <LibraryRail {...railProps} onCollapse={() => setLibraryOpen(false)} />
           </Rail>
         )}
@@ -593,20 +608,69 @@ function useWide() {
   return wide;
 }
 
-function Rail({ side, width, className, children }: { side: 'left' | 'right'; width: number; className?: string; children: ReactNode }) {
+function Rail({ side, width, onResize, className, children }: {
+  side: 'left' | 'right';
+  width: number;
+  /** Lets the rail's inner edge be dragged (double-click resets). */
+  onResize?: (width: number) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const startDrag = (e: React.PointerEvent) => {
+    if (!onResize || e.button !== 0) return;
+    e.preventDefault();
+    const x0 = e.clientX;
+    const w0 = width;
+    setDragging(true);
+    const move = (ev: PointerEvent) => onResize(clampRail(w0 + (side === 'left' ? ev.clientX - x0 : x0 - ev.clientX)));
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
   return (
     <motion.aside
       initial={{ width: 0, opacity: 0 }}
       animate={{ width, opacity: 1 }}
       exit={{ width: 0, opacity: 0, transition: { duration: 0.16, ease: EASE } }}
-      transition={{ duration: 0.22, ease: EASE }}
+      // Follow the pointer exactly while dragging; ease only on open/close.
+      transition={dragging ? { duration: 0 } : { duration: 0.22, ease: EASE }}
       className={cn(
-        'flex shrink-0 overflow-hidden bg-[hsl(var(--surface-container-low))]',
+        'relative flex shrink-0 overflow-hidden bg-[hsl(var(--surface-container-low))]',
         side === 'left' ? 'order-first' : 'order-last',
         className,
       )}
     >
       <div className="h-full shrink-0" style={{ width }}>{children}</div>
+      {onResize && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize"
+          title="Drag to resize · double-click to reset"
+          onPointerDown={startDrag}
+          onDoubleClick={() => onResize(RAIL_DEFAULT)}
+          className={cn(
+            'group/resize absolute top-0 z-10 h-full w-1.5 cursor-col-resize',
+            side === 'left' ? 'right-0' : 'left-0',
+          )}
+        >
+          <span className={cn(
+            'absolute inset-y-0 w-0.5 transition-colors',
+            side === 'left' ? 'right-0' : 'left-0',
+            dragging ? 'bg-[hsl(var(--primary))]' : 'group-hover/resize:bg-[hsl(var(--primary)/0.5)]',
+          )}
+          />
+        </div>
+      )}
     </motion.aside>
   );
 }

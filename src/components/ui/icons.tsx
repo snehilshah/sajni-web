@@ -281,6 +281,7 @@ export {
   // A pair: out ↗ and in ↙ must match in weight and size.
   ArrowDownLeft,
   ArrowUpRight,
+  AlignLeft,
   Bold,
   History,
   Italic,

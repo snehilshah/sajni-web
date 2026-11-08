@@ -36,6 +36,10 @@ export default function NotesDoc() {
               The search box filters titles and tags as you type. With no note
               open, the page lists what you edited most recently.
             </p>
+            <p>
+              Drag the library's right edge to make it wider or narrower; the
+              width is remembered. Double-click the edge to reset it.
+            </p>
           </Feature>
           <Feature name="Writing is instant">
             <p>
@@ -82,9 +86,10 @@ export default function NotesDoc() {
               or <Kbd>Ctrl</Kbd>+<Kbd>.</Kbd> brings them back.
             </p>
             <p>
-              Text uses the whole width of the page. <Kbd>⋯</Kbd> →{' '}
-              <strong>Readable width</strong> keeps it to a narrower column
-              instead; the choice is remembered. The buttons that hide and show
+              Text uses the whole width of the page, with a steady margin on
+              the left. <Kbd>⋯</Kbd> → <strong>Readable width</strong> keeps it
+              to a narrow column, about a book page wide; <strong>Full
+              width</strong> goes back. The choice is remembered. The buttons that hide and show
               the library and Details sit in the bottom corners, in the same
               place whether the panel is open or closed.
             </p>
@@ -92,6 +97,13 @@ export default function NotesDoc() {
           <Feature name="Pin">
             <p>
               Both notes and folders pin. Pinning is ordering, nothing more.
+            </p>
+          </Feature>
+          <Feature name="Share a link">
+            <p>
+              <Kbd>⋯</Kbd> → <strong>Copy link</strong> copies the note's web
+              address, so it opens straight to that note. To link one note from
+              another, type <Kbd>[[</Kbd> instead.
             </p>
           </Feature>
         </FeatureList>
