@@ -406,7 +406,7 @@ export default function NotesPage() {
         transition={{ duration: 0.16, ease: EASE }}
         className={cn(
           'mx-auto flex min-h-full w-full flex-col px-5 pt-6 pb-[40vh] md:pt-[76px]',
-          wide ? 'max-w-none md:px-8 xl:px-12' : 'max-w-[52rem] md:px-10',
+          wide ? 'max-w-none md:px-8 xl:px-12' : 'max-w-[64rem] md:px-8',
         )}
         onKeyDownCapture={onWritingKey}
       >
@@ -636,7 +636,7 @@ function NothingOpen({ notes, onOpen, onNew, showLibrary, onShowLibrary }: {
   );
   return (
     <div className="stable-scrollbar flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[52rem] px-5 pt-10 pb-24 md:px-10 md:pt-[84px]">
+      <div className="mx-auto w-full max-w-[64rem] px-5 pt-10 pb-24 md:px-8 md:pt-[84px]">
         <div className="flex items-center gap-2">
           {showLibrary && (
             <Button variant="ghost" size="icon-sm" className="-ml-2 rounded-full" onClick={onShowLibrary} title="Show library" aria-label="Show library">
