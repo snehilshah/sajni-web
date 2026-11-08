@@ -37,8 +37,9 @@ export default function NotesDoc() {
               open, the page lists what you edited most recently.
             </p>
             <p>
-              Drag the library's right edge to make it wider or narrower; the
-              width is remembered. Double-click the edge to reset it.
+              Drag the inner edge of the library (or of Details) to make it
+              wider or narrower; the width is remembered. Double-click the edge
+              to reset it.
             </p>
           </Feature>
           <Feature name="Writing is instant">
@@ -135,11 +136,16 @@ export default function NotesDoc() {
             ['/', 'The menu: headings, lists, checklist, task, quote, code block, table, divider, highlight, link, image, time, date'],
             ['[[', 'A link to a note (pick one, or type a new title: clicking it creates the note), or to a journal day'],
             ['#', 'A tag; the list suggests the ones you already use'],
-            ['@', 'A time chip: @now, @9:30, or a range like @9-18:30'],
+            ['@', 'A time chip: @now, @9:30, @4pm, or a range like @9-18:30'],
             ['==text==', 'Highlighted text'],
             ['- [ ] ', 'A checkbox; click it to tick'],
           ]}
         />
+        <p>
+          While a list of suggestions is open, <Kbd>Tab</Kbd> or{' '}
+          <Kbd>Enter</Kbd> takes the highlighted one and <Kbd>Esc</Kbd> closes
+          it. A half-typed time already counts: <Code>@4:3</Code> offers 04:30.
+        </p>
         <FeatureList>
           <Feature name="Task chips (/task)">
             <p>

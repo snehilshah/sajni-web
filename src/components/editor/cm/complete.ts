@@ -125,35 +125,64 @@ function tagSource(h: CompletionHooks) {
   };
 }
 
-const TIME_RE = /^(\d{1,2})(?::(\d{2}))?(?:-(\d{1,2})(?::(\d{2}))?)?$/;
+// A time as it's being typed: "4", "4:", "4:3", "16:30", "4pm", "9-11", "9:30-10".
+const TIME_RE = /^(\d{1,2})(?::(\d{0,2}))?\s*(a|am|p|pm)?(?:-(?:(\d{1,2})(?::(\d{0,2}))?\s*(a|am|p|pm)?)?)?$/i;
+
+/** "4", "3", "pm" → "16:30"; null when it can't be a clock time. Partial minutes fill with zeros. */
+function clock(h: string, m: string | undefined, ap: string | undefined): string | null {
+  let hour = +h;
+  const min = +(m ?? '').padEnd(2, '0');
+  if (min > 59) return null;
+  if (ap) {
+    if (hour < 1 || hour > 12) return null;
+    hour = (hour % 12) + (ap[0].toLowerCase() === 'p' ? 12 : 0);
+  }
+  return hour <= 23 ? `${pad(hour)}:${pad(min)}` : null;
+}
+
+/** What "@typed" could mean, best first. */
+export function timeOptions(typed: string, now = new Date()): { label: string; body: string; detail?: string }[] {
+  const tm = TIME_RE.exec(typed.trim());
+  if (tm) {
+    const start = clock(tm[1], tm[2], tm[3]);
+    const end = tm[4] ? clock(tm[4], tm[5], tm[6]) : null;
+    if (!start || (tm[4] && !end)) return [];
+    const body = end ? `${start}-${end}` : start;
+    return [{ label: typed, body, detail: body.replace('-', '–') }];
+  }
+  const hm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const all = [
+    { label: 'now', body: hm, detail: hm },
+    { label: '9:00', body: '09:00' },
+    { label: '13:00', body: '13:00' },
+    { label: '18:00', body: '18:00' },
+  ];
+  const q = typed.toLowerCase();
+  return all.filter((o) => o.label.startsWith(q));
+}
 
 function timeSource() {
   return (ctx: CompletionContext): CompletionResult | null => {
     const m = ctx.matchBefore(/(?:^|\s)@[\w:-]*$/);
     if (!m) return null;
     const at = m.from + m.text.indexOf('@');
-    const typed = m.text.slice(m.text.indexOf('@') + 1);
-    const opts: Completion[] = [];
-    const chip = (label: string, body: string, detail?: string, boost = 0): Completion => ({
-      label, detail, type: 'sajni-time', boost,
-      apply: (view, _c, _from, to) => {
-        const insert = `[time:${body}] `;
-        view.dispatch({ changes: { from: at, to, insert }, selection: { anchor: at + insert.length }, userEvent: 'input.complete' });
-      },
-    });
-    const tm = TIME_RE.exec(typed);
-    if (tm) {
-      const ok = (h: string, mm?: string) => +h <= 23 && (!mm || +mm <= 59);
-      if (ok(tm[1], tm[2]) && (!tm[3] || ok(tm[3], tm[4]))) {
-        const body = `${pad(+tm[1])}:${tm[2] ?? '00'}${tm[3] ? `-${pad(+tm[3])}:${tm[4] ?? '00'}` : ''}`;
-        opts.push(chip(typed, body, body.replace('-', '–'), 10));
-      }
-    }
-    const d = new Date();
-    const now = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    opts.push(chip('now', now, now, 5));
-    for (const p of ['09:00', '13:00', '18:00']) opts.push(chip(p.replace(/^0/, ''), p, undefined, -1));
-    return { from: at + 1, validFor: /^[\w:-]*$/, options: opts, filter: !tm };
+    const opts = timeOptions(m.text.slice(m.text.indexOf('@') + 1));
+    if (!opts.length) return null;
+    // No validFor: every keystroke asks again, so "@4" → "@4:" → "@4:30" stays right.
+    return {
+      from: at + 1,
+      filter: false,
+      options: opts.map<Completion>((o, i) => ({
+        label: o.label,
+        detail: o.detail,
+        type: 'sajni-time',
+        boost: -i,
+        apply: (view, _c, _from, to) => {
+          const insert = `[time:${o.body}] `;
+          view.dispatch({ changes: { from: at, to, insert }, selection: { anchor: at + insert.length }, userEvent: 'input.complete' });
+        },
+      })),
+    };
   };
 }
 

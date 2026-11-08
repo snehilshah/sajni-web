@@ -9,7 +9,7 @@ import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from '@
 import { syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
-import { completionKeymap } from '@codemirror/autocomplete';
+import { acceptCompletion, completionKeymap } from '@codemirror/autocomplete';
 import { classHighlighter } from '@lezer/highlight';
 
 import { notes as notesApi, tags as tagsApi, tasks as tasksApi, taskLists as listsApi, uploads, links as linksApi } from '@/api';
@@ -315,6 +315,8 @@ export default function MarkdownEditor({
         keymap.of([
           ...formattingKeymap(() => openLinkRef.current()),
           ...completionKeymap,
+          // Tab takes an open suggestion (like Enter); otherwise it indents.
+          { key: 'Tab', run: acceptCompletion },
           { key: 'Tab', run: indentMore, shift: indentLess },
           ...historyKeymap,
           ...defaultKeymap,

@@ -48,8 +48,13 @@ const WIDE_KEY = 'sajni:notes-full-width';
 
 const EASE = [0.2, 0, 0, 1] as const;
 const LIBRARY_WIDTH_KEY = 'sajni:notes-library-width';
-const RAIL_DEFAULT = 272;
+const DETAILS_WIDTH_KEY = 'sajni:notes-details-width';
+const LIBRARY_DEFAULT = 272;
+const DETAILS_DEFAULT = 288;
 const clampRail = (w: number) => Math.round(Math.min(480, Math.max(200, w)));
+const readWidth = (key: string, fallback: number) => {
+  try { return clampRail(Number(localStorage.getItem(key)) || fallback); } catch { return fallback; }
+};
 
 function readFlag(key: string, fallback: boolean) {
   try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
@@ -78,9 +83,8 @@ export default function NotesPage() {
   const [moveTarget, setMoveTarget] = useState<NoteListItem | null>(null);
   const [focus, setFocus] = useState(false);
   const [wide, setWide] = useState(() => readFlag(WIDE_KEY, true));
-  const [libraryWidth, setLibraryWidth] = useState(() => {
-    try { return clampRail(Number(localStorage.getItem(LIBRARY_WIDTH_KEY)) || RAIL_DEFAULT); } catch { return RAIL_DEFAULT; }
-  });
+  const [libraryWidth, setLibraryWidth] = useState(() => readWidth(LIBRARY_WIDTH_KEY, LIBRARY_DEFAULT));
+  const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY, DETAILS_DEFAULT));
   const [calm, setCalm] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
@@ -93,6 +97,7 @@ export default function NotesPage() {
   useEffect(() => { try { localStorage.setItem(LIBRARY_KEY, libraryOpen ? '1' : '0'); } catch { /* private mode */ } }, [libraryOpen]);
   useEffect(() => { try { localStorage.setItem(DETAILS_KEY, detailsOpen ? '1' : '0'); } catch { /* private mode */ } }, [detailsOpen]);
   useEffect(() => { try { localStorage.setItem(LIBRARY_WIDTH_KEY, String(libraryWidth)); } catch { /* private mode */ } }, [libraryWidth]);
+  useEffect(() => { try { localStorage.setItem(DETAILS_WIDTH_KEY, String(detailsWidth)); } catch { /* private mode */ } }, [detailsWidth]);
   useEffect(() => { try { localStorage.setItem(WIDE_KEY, wide ? '1' : '0'); } catch { /* private mode */ } }, [wide]);
   useEffect(() => { try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...expanded])); } catch { /* private mode */ } }, [expanded]);
 
@@ -533,7 +538,7 @@ export default function NotesPage() {
     <div className="page-fade-in flex flex-1 min-h-0 overflow-hidden">
       <AnimatePresence initial={false}>
         {showLibraryRail && (
-          <Rail key="library" side="left" width={libraryWidth} onResize={setLibraryWidth}>
+          <Rail key="library" side="left" width={libraryWidth} defaultWidth={LIBRARY_DEFAULT} onResize={setLibraryWidth}>
             <LibraryRail {...railProps} onCollapse={() => setLibraryOpen(false)} />
           </Rail>
         )}
@@ -566,7 +571,7 @@ export default function NotesPage() {
 
       <AnimatePresence initial={false}>
         {showDetailsRail && (
-          <Rail key="details" side="right" width={288}>
+          <Rail key="details" side="right" width={detailsWidth} defaultWidth={DETAILS_DEFAULT} onResize={setDetailsWidth}>
             {details}
           </Rail>
         )}
@@ -608,9 +613,11 @@ function useWide() {
   return wide;
 }
 
-function Rail({ side, width, onResize, className, children }: {
+function Rail({ side, width, defaultWidth, onResize, className, children }: {
   side: 'left' | 'right';
   width: number;
+  /** Where a double-click on the edge goes back to. */
+  defaultWidth: number;
   /** Lets the rail's inner edge be dragged (double-click resets). */
   onResize?: (width: number) => void;
   className?: string;
@@ -657,7 +664,7 @@ function Rail({ side, width, onResize, className, children }: {
           aria-label="Resize"
           title="Drag to resize · double-click to reset"
           onPointerDown={startDrag}
-          onDoubleClick={() => onResize(RAIL_DEFAULT)}
+          onDoubleClick={() => onResize(defaultWidth)}
           className={cn(
             'group/resize absolute top-0 z-10 h-full w-1.5 cursor-col-resize',
             side === 'left' ? 'right-0' : 'left-0',
