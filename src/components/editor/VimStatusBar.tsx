@@ -8,9 +8,11 @@ import { cn } from '@/lib/utils';
  * (mode, half-typed keys, ":" and "/" prompts) and the message slot; the page
  * puts its own controls on the right.
  */
-export default function VimStatusBar({ ref, leading, children, className }: {
+export default function VimStatusBar({ ref, leading, status, children, className }: {
   ref?: Ref<HTMLDivElement>;
   leading?: ReactNode;
+  /** Right after the mode chip (the note's save state), so nothing else moves when it changes. */
+  status?: ReactNode;
   children?: ReactNode;
   className?: string;
 }) {
@@ -23,6 +25,8 @@ export default function VimStatusBar({ ref, leading, children, className }: {
       )}
     >
       {leading}
+      <span data-vim-mode className="flex shrink-0 items-center" />
+      {status}
       <div data-vim-left className="sajni-vim-text flex min-w-0 items-center gap-2" />
       <div data-vim-msg className="sajni-vim-text min-w-0 flex-1 truncate" role="status" aria-live="polite" />
       {children && <div className="flex shrink-0 items-center gap-1 tabular-nums">{children}</div>}

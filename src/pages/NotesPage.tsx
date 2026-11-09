@@ -523,7 +523,7 @@ export default function NotesPage() {
   );
 
   // Desktop: the note's controls (counts, save state, view, ⋯, details).
-  const controls = doc && (
+  const countsNode = doc && (
     <>
       <span className="hidden xl:inline">{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'} · {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
       <span className="xl:hidden" title={`${counts.characters.toLocaleString()} characters`}>{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}</span>
@@ -532,7 +532,10 @@ export default function NotesPage() {
           · {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
         </button>
       )}
-      <SaveState status={status} onRetry={() => { void flush(); }} />
+    </>
+  );
+  const viewNodes = doc && (
+    <>
       {modeSwitch}
       {overflowMenu}
       {!showDetailsRail && (
@@ -556,7 +559,14 @@ export default function NotesPage() {
   // Without Vim the controls float bottom-right, out of the text's way, and
   // fade while you type. With Vim they sit in a fixed status line with Vim's mode.
   const statusLine = doc && !isMobile && (vimKeys ? (
-    <VimStatusBar ref={setVimHost} leading={showLibraryButton}>{controls}</VimStatusBar>
+    <VimStatusBar
+      ref={setVimHost}
+      leading={showLibraryButton}
+      status={<SaveState status={status} onRetry={() => { void flush(); }} align="start" />}
+    >
+      {countsNode}
+      {viewNodes}
+    </VimStatusBar>
   ) : (
     <>
       {showLibraryButton && (
@@ -570,7 +580,9 @@ export default function NotesPage() {
           chromeHidden && 'pointer-events-none opacity-0',
         )}
       >
-        {controls}
+        {countsNode}
+        <SaveState status={status} onRetry={() => { void flush(); }} />
+        {viewNodes}
       </div>
     </>
   ));
@@ -727,10 +739,13 @@ function Rail({ side, width, defaultWidth, onResize, className, children }: {
   );
 }
 
-function SaveState({ status, onRetry }: { status: SaveStatus; onRetry: () => void }) {
+function SaveState({ status, onRetry, align = 'end' }: { status: SaveStatus; onRetry: () => void; align?: 'start' | 'end' }) {
   // Reserved slot: the state changes in place, nothing beside it moves.
   return (
-    <span className="flex w-16 shrink-0 items-center justify-end gap-1.5 pr-1 text-xs text-muted-foreground" aria-live="polite">
+    <span
+      className={cn('flex min-w-16 shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground', align === 'end' ? 'justify-end pr-1' : 'justify-start')}
+      aria-live="polite"
+    >
       {status === 'saving' && (<><M3CookieLoader size="xs" tone="primary" /> Saving</>)}
       {status === 'saved' && 'Saved'}
       {status === 'error' && (

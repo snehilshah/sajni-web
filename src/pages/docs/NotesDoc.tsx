@@ -197,12 +197,13 @@ export default function NotesDoc() {
             <p>
               A <strong>status line</strong> runs along the bottom while Vim is
               on, and never moves or fades. On the left: the mode as a coloured
-              chip (NOR, INS, VIS, V-L, V-B, REP), then what you've typed of an
+              chip (NOR, INS, VIS, V-L, V-B, REP) and the save state, then
+              what you've typed of an
               unfinished command (<Code>2d</Code>), or the <Code>:</Code> and{' '}
               <Code>/</Code> prompts. Next to it, Vim's messages
               (<em>3 lines yanked</em>). On the right, the note's word count,
-              save state, Live · Source · Read, <Kbd>⋯</Kbd> and Details, which
-              otherwise float in the corner.
+              Live · Source · Read, <Kbd>⋯</Kbd> and Details, which otherwise
+              float in the corner.
             </p>
             <p>
               Only what you yank or cut reaches the clipboard.{' '}

@@ -174,7 +174,9 @@ function statusLine(getCM: VimModule['getCM']) {
       this.keys = make('sajni-vim-keys');
       this.prompt = make('sajni-vim-prompt');
       this.msg = this.host?.querySelector<HTMLElement>('[data-vim-msg]') ?? null;
-      this.host?.querySelector('[data-vim-left]')?.replaceChildren(this.mode, this.keys, this.prompt);
+      const modeSlot = this.host?.querySelector('[data-vim-mode]');
+      if (modeSlot) modeSlot.replaceChildren(this.mode);
+      this.host?.querySelector('[data-vim-left]')?.replaceChildren(...(modeSlot ? [] : [this.mode]), this.keys, this.prompt);
       this.onMode({ mode: 'normal' });
       view.dom.addEventListener('focusin', this.onFocus);
       view.dom.addEventListener('focusout', this.onFocus);
