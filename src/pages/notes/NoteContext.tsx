@@ -92,7 +92,7 @@ export default function NoteContext({
       </div>
       {/* Same corner as the "Show details" button when the rail is closed. */}
       {onCollapse && (
-        <footer className="flex h-[60px] shrink-0 items-center justify-end px-3">
+        <footer className="flex h-[var(--notes-foot-h,60px)] shrink-0 items-center justify-end px-3">
           <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide details" aria-label="Hide details" onClick={onCollapse}>
             <PanelRightClose className="size-4" />
           </Button>

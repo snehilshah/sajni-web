@@ -159,31 +159,20 @@
 .sajni-editor .cm-cursor, .sajni-editor .cm-dropCursor { border-left: 1.5px solid hsl(var(--primary)) !important; }
 .sajni-editor .cm-searchMatch { background: hsl(var(--primary) / 0.22); border-radius: 2px; }
 
-/* The mode pill: pinned to the window's bottom at the text's left edge,
-   level with Notes' control bar. */
-.sajni-vim-mode {
-  position: fixed; left: var(--vim-left, 1rem); bottom: calc(21px + var(--safe-bottom, 0px)); z-index: 30;
-  display: none; align-items: center; gap: 8px; pointer-events: none;
-  font-family: var(--font-code, ui-monospace, monospace); font-size: 11px; line-height: 1;
-}
-.sajni-vim-mode.is-on { display: flex; }
-.sajni-vim-mode-label {
-  padding: 5px 9px; border-radius: 999px; font-weight: 700; letter-spacing: 0.06em;
-  background: var(--color-primary); color: var(--color-primary-foreground);
-}
-.sajni-vim-mode[data-mode="insert"] .sajni-vim-mode-label { background: var(--color-tertiary); color: var(--color-tertiary-foreground); }
-.sajni-vim-mode[data-mode="visual"] .sajni-vim-mode-label { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
-.sajni-vim-mode[data-mode="replace"] .sajni-vim-mode-label { background: var(--color-destructive); color: var(--color-destructive-foreground); }
-.sajni-vim-mode-keys { color: hsl(var(--muted-foreground)); }
-/* While a ":" or "/" prompt is open it shows what's typed; don't repeat it. */
-.cm-editor:has(.cm-panels-bottom) .sajni-vim-mode-keys { display: none; }
+/* Vim's own bottom panel stays hidden: its prompt and messages move into the
+   page's status line (VimStatusBar). */
+.sajni-editor .cm-panels.cm-panels-bottom { display: none; }
 
-/* ":" and "/" prompts: a pill beside the mode pill. */
-.sajni-editor .cm-panels.cm-panels-bottom {
-  position: fixed !important; left: calc(var(--vim-left, 1rem) + 52px); right: auto !important; width: auto !important;
-  max-width: min(32rem, calc(100vw - var(--vim-left, 1rem) - 72px)); bottom: calc(16px + var(--safe-bottom, 0px)) !important;
-  z-index: 31; border: 0 !important; background: var(--color-surface-container-high); color: inherit;
-  border-radius: 999px; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+.sajni-vim-text { font-family: var(--font-code, ui-monospace, monospace); }
+.sajni-vim-mode {
+  padding: 4px 9px; border-radius: 999px; font-size: 11px; line-height: 1; font-weight: 700; letter-spacing: 0.06em;
+  background: var(--color-primary); color: var(--color-primary-foreground); transition: opacity 150ms;
 }
-.sajni-editor .cm-vim-panel { display: flex; align-items: center; min-height: 32px; padding: 0 14px; font-family: var(--font-code, ui-monospace, monospace); font-size: 12px; }
-.sajni-editor .cm-vim-panel input { color: hsl(var(--foreground)); font: inherit; min-width: 16rem; }
+.sajni-vim-mode[data-mode="insert"] { background: var(--color-tertiary); color: var(--color-tertiary-foreground); }
+.sajni-vim-mode[data-mode="visual"] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
+.sajni-vim-mode[data-mode="replace"] { background: var(--color-destructive); color: var(--color-destructive-foreground); }
+.sajni-vim-mode.is-idle { opacity: 0.45; }
+.sajni-vim-keys:empty, .sajni-vim-prompt:empty { display: none; }
+.sajni-vim-prompt > div { display: flex; align-items: center; color: hsl(var(--foreground)); }
+.sajni-vim-prompt input { width: 14rem; max-width: 30vw; border: 0; outline: 0; background: transparent; color: hsl(var(--foreground)); font: inherit; }
+.sajni-vim-status .cm-vim-message { color: inherit !important; white-space: nowrap !important; }

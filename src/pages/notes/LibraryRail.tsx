@@ -306,7 +306,7 @@ export default function LibraryRail(props: LibraryRailProps) {
       </div>
       {/* Same corner as the "Show library" button when the rail is closed. */}
       {props.onCollapse && (
-        <footer className="flex h-[60px] shrink-0 items-center px-3">
+        <footer className="flex h-[var(--notes-foot-h,60px)] shrink-0 items-center px-3">
           <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide library" aria-label="Hide library" onClick={props.onCollapse}>
             <PanelLeftClose className="size-4" />
           </Button>

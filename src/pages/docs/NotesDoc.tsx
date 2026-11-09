@@ -191,16 +191,31 @@ export default function NotesDoc() {
               Settings → Editor keys → <strong>Vim</strong> (or{' '}
               <Code>&gt;Editor keys</Code> in the command palette) turns on Vim
               in Notes and Journal, on that computer only; phones never get it.
-              You start in normal mode. While you're in the text, the mode
-              shows as a small coloured pill at the bottom left (NOR, INS,
-              VIS, V-L, V-B, REP), with a half-typed command beside it; the{' '}
-              <Code>:</Code> and <Code>/</Code> prompts open next to it. <Kbd>j</Kbd> and <Kbd>k</Kbd> move by
+              You start in normal mode. <Kbd>j</Kbd> and <Kbd>k</Kbd> move by
               the line you see, so long wrapped paragraphs behave.
             </p>
             <p>
-              Yanks and deletes go to the system clipboard, and{' '}
-              <Kbd>p</Kbd> pastes whatever you last copied anywhere (the
-              browser asks once to let Sajni read the clipboard).{' '}
+              A <strong>status line</strong> runs along the bottom while Vim is
+              on, and never moves or fades. On the left: the mode as a coloured
+              chip (NOR, INS, VIS, V-L, V-B, REP), then what you've typed of an
+              unfinished command (<Code>2d</Code>), or the <Code>:</Code> and{' '}
+              <Code>/</Code> prompts. Next to it, Vim's messages
+              (<em>3 lines yanked</em>). On the right, the note's word count,
+              save state, Live · Source · Read, <Kbd>⋯</Kbd> and Details, which
+              otherwise float in the corner.
+            </p>
+            <p>
+              Only what you yank or cut reaches the clipboard.{' '}
+              <Kbd>d</Kbd>, <Kbd>c</Kbd> and <Kbd>s</Kbd> delete without
+              copying. <Kbd>x</Kbd> is <em>cut</em>: it works like Vim's{' '}
+              <Kbd>d</Kbd> but keeps what it removed (<Code>xx</Code> a line,{' '}
+              <Code>xw</Code> a word, <Kbd>x</Kbd> on a selection), and{' '}
+              <Kbd>X</Kbd> cuts to the end of the line. <Kbd>p</Kbd> pastes
+              whatever you last copied anywhere (the browser asks once to let
+              Sajni read the clipboard). A named register (<Code>"ad</Code>)
+              still keeps what <Kbd>d</Kbd> removes.
+            </p>
+            <p>
               <Code>:w</Code> saves at once. <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd>,{' '}
               <Kbd>Ctrl</Kbd>+<Kbd>E</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>.</Kbd>{' '}
               keep their Notes meanings, and <Kbd>Esc</Kbd> in the text only

@@ -31,6 +31,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import { useVimKeys } from '@/lib/vimPref';
+import VimStatusBar from '@/components/editor/VimStatusBar';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,7 @@ const EXPANDED_MONTHS_KEY = 'sajni:journal-months';
 
 export default function JournalPage() {
   const vimKeys = useVimKeys();
+  const [vimHost, setVimHost] = useState<HTMLDivElement | null>(null);
   const [params, setParams] = useSearchParams();
   const initialDate = params.get('date') || format(new Date(), 'yyyy-MM-dd');
   const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
@@ -678,79 +680,86 @@ export default function JournalPage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Editor pane (CENTER) — pads below the floating primary pill
             (desktop); mobile has no top chrome, just the safe area. */}
-        <div
-          className="flex-1 flex flex-col min-w-0 order-2 overflow-y-auto"
-          style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 8 : 72}px)` }}
-        >
-          {viewMode === 'week' ? (
-            <WeekView
-              year={weekYear}
-              week={weekNumber}
-              onPickDay={(d) => setSelectedDate(d)}
-              onShiftWeek={(delta) => {
-                const ref = isoWeekDateFromKey(weekYear, weekNumber);
-                const shifted = delta > 0 ? addWeeks(ref, delta) : subWeeks(ref, -delta);
-                goWeek(getISOWeekYear(shifted), getISOWeek(shifted));
-              }}
-            />
-          ) : viewMode === 'month' ? (
-            <MonthView
-              year={monthYear}
-              month={monthNumber}
-              onPickWeek={goWeek}
-              onShiftMonth={(delta) => {
-                const ref = addMonths(new Date(monthYear, monthNumber - 1, 1), delta);
-                goMonth(ref.getFullYear(), ref.getMonth() + 1);
-              }}
-            />
-          ) : (
-            <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
-              {/* Date title — Obsidian-style serif hero; ALL page controls
-                  ride its trailing edge (no chrome rows above). */}
-              <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
-                <div className="min-w-0">
-                  <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
-                    {format(dateObj, 'EEEE')}
-                  </h1>
-                  <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
-                    {format(dateObj, 'MMMM d, yyyy')}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 order-2">
+          <div
+            className="flex-1 flex flex-col min-h-0 overflow-y-auto"
+            style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 8 : 72}px)` }}
+          >
+            {viewMode === 'week' ? (
+              <WeekView
+                vimStatus={vimHost}
+                year={weekYear}
+                week={weekNumber}
+                onPickDay={(d) => setSelectedDate(d)}
+                onShiftWeek={(delta) => {
+                  const ref = isoWeekDateFromKey(weekYear, weekNumber);
+                  const shifted = delta > 0 ? addWeeks(ref, delta) : subWeeks(ref, -delta);
+                  goWeek(getISOWeekYear(shifted), getISOWeek(shifted));
+                }}
+              />
+            ) : viewMode === 'month' ? (
+              <MonthView
+                vimStatus={vimHost}
+                year={monthYear}
+                month={monthNumber}
+                onPickWeek={goWeek}
+                onShiftMonth={(delta) => {
+                  const ref = addMonths(new Date(monthYear, monthNumber - 1, 1), delta);
+                  goMonth(ref.getFullYear(), ref.getMonth() + 1);
+                }}
+              />
+            ) : (
+              <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
+                {/* Date title — Obsidian-style serif hero; ALL page controls
+                    ride its trailing edge (no chrome rows above). */}
+                <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
+                  <div className="min-w-0">
+                    <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
+                      {format(dateObj, 'EEEE')}
+                    </h1>
+                    <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
+                      {format(dateObj, 'MMMM d, yyyy')}
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    {heroControls}
                   </div>
                 </div>
-                <div className="mt-1">
-                  {heroControls}
+
+                <div className="flex gap-1.5 flex-wrap items-center">
+                  <LocationPill value={location} onChange={handleLocationChange} />
                 </div>
-              </div>
 
-              <div className="flex gap-1.5 flex-wrap items-center">
-                <LocationPill value={location} onChange={handleLocationChange} />
-              </div>
+                {/* Editor — fills the available height (≈80–90%) like Notes. */}
+                <div className="flex flex-1 flex-col min-h-0">
+                  {loading ? (
+                    <Skeleton className="h-64 w-full" />
+                  ) : (
+                    <MarkdownEditor
+                      value={content}
+                      onChange={handleContentChange}
+                      placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
+                      fill
+                      contextDate={selectedDate}
+                      vim={vimKeys}
+                      vimStatus={vimHost}
+                      onSave={() => { void performSave(); }}
+                    />
+                  )}
+                </div>
 
-              {/* Editor — fills the available height (≈80–90%) like Notes. */}
-              <div className="flex flex-1 flex-col min-h-0">
-                {loading ? (
-                  <Skeleton className="h-64 w-full" />
-                ) : (
-                  <MarkdownEditor
-                    value={content}
-                    onChange={handleContentChange}
-                    placeholder="Write about your day. Use / for commands, [[ to link, # for tags…"
-                    fill
-                    contextDate={selectedDate}
-                    vim={vimKeys}
-                    onSave={() => { void performSave(); }}
-                  />
+                {/* Tags */}
+                {tags.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
+                    {tags.map((tag) => <TagPill key={tag} tag={tag} />)}
+                  </div>
                 )}
+
               </div>
-
-              {/* Tags */}
-              {tags.length > 0 && (
-                <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
-                  {tags.map((tag) => <TagPill key={tag} tag={tag} />)}
-                </div>
-              )}
-
-            </div>
-          )}
+            )}
+          </div>
+          {/* With Vim keys: a fixed status line under the text (mode, prompts, messages). */}
+          {vimKeys && !isMobile && <VimStatusBar ref={setVimHost} />}
         </div>
 
       {/* Right margin — context dock (desktop) */}
@@ -838,8 +847,9 @@ function isoWeekDateFromKey(year: number, week: number): Date {
 }
 
 function WeekView({
-  year, week, onPickDay, onShiftWeek,
+  year, week, onPickDay, onShiftWeek, vimStatus,
 }: {
+  vimStatus: HTMLElement | null;
   year: number;
   week: number;
   onPickDay: (date: string) => void;
@@ -1002,6 +1012,7 @@ function WeekView({
             minHeight="280px"
             contextDate={mondayKey}
             vim={vimKeys}
+            vimStatus={vimStatus}
           />
         )}
       </div>
@@ -1671,8 +1682,9 @@ function WeekTasksSection({
 // month entry + stat tiles, the "This month" goals (tasks.month_of),
 // and a per-week task breakdown that drills into the weekly view.
 function MonthView({
-  year, month, onPickWeek, onShiftMonth,
+  year, month, onPickWeek, onShiftMonth, vimStatus,
 }: {
+  vimStatus: HTMLElement | null;
   year: number;
   month: number;
   onPickWeek: (year: number, week: number) => void;
@@ -1812,6 +1824,7 @@ function MonthView({
             minHeight="280px"
             contextDate={monthKey}
             vim={vimKeys}
+            vimStatus={vimStatus}
           />
         )}
       </div>

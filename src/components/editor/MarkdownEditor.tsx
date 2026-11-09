@@ -63,6 +63,8 @@ export interface MarkdownEditorProps {
   vim?: boolean;
   /** Save now; Vim's `:w`. */
   onSave?: () => void;
+  /** The page's VimStatusBar element, where Vim shows its mode, prompts and messages. */
+  vimStatus?: HTMLElement | null;
   ariaLabel?: string;
   ref?: Ref<MarkdownEditorHandle>;
 }
@@ -71,7 +73,7 @@ const BARE_URL = /^https?:\/\/\S+$/i;
 
 export default function MarkdownEditor({
   value, onChange, mode = 'live', placeholder, className, autoFocus, minHeight, fill, contextDate,
-  toolbar = 'touch', onImageFiles, ariaLabel, vim = false, onSave, ref,
+  toolbar = 'touch', onImageFiles, ariaLabel, vim = false, onSave, vimStatus = null, ref,
 }: MarkdownEditorProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -404,10 +406,10 @@ export default function MarkdownEditor({
       viewRef.current?.dispatch({ effects: vimComp.current.reconfigure(ext) });
     };
     if (vimOn) {
-      vimExtension(() => onSaveRef.current?.()).then(apply).catch(() => toast.error("Couldn't load Vim keys"));
+      vimExtension(() => onSaveRef.current?.(), vimStatus).then(apply).catch(() => toast.error("Couldn't load Vim keys"));
     } else apply([]);
     return () => { live = false; };
-  }, [vimOn]);
+  }, [vimOn, vimStatus]);
 
   useImperativeHandle(ref, () => ({
     focus: (at = 'end') => {

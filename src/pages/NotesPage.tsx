@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -24,6 +24,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { lazyPage } from '@/lib/lazyPage';
 import { useVimKeys } from '@/lib/vimPref';
+import VimStatusBar from '@/components/editor/VimStatusBar';
 import type { MarkdownEditorHandle } from '@/components/editor/MarkdownEditor';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -88,6 +89,7 @@ export default function NotesPage() {
   const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY, DETAILS_DEFAULT));
   const [calm, setCalm] = useState(false);
   const vimKeys = useVimKeys();
+  const [vimHost, setVimHost] = useState<HTMLDivElement | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]')); } catch { return new Set(); }
   });
@@ -259,8 +261,8 @@ export default function NotesPage() {
     // Esc last (bubble), so dialogs and Vim (back to normal mode) get it first.
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || !focus || e.defaultPrevented) return;
-      // Any Esc inside a Vim editor (text, ":" or "/" prompt) is Vim's.
-      if (e.target instanceof Element && e.target.closest('.cm-editor')?.querySelector('.cm-vim-panel')) return;
+      // With Vim keys, Esc in the text or its ":" / "/" prompt is Vim's.
+      if (vimKeys && e.target instanceof Element && e.target.closest('.cm-editor, .sajni-vim-status')) return;
       if (document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) return;
       setFocus(false);
     };
@@ -270,7 +272,7 @@ export default function NotesPage() {
       window.removeEventListener('keydown', onShortcut, true);
       window.removeEventListener('keydown', onEscape);
     };
-  }, [flush, doc, focus, startNew]);
+  }, [flush, doc, focus, startNew, vimKeys]);
 
   // ── Pieces ─────────────────────────────────────────────────────────────
   const railProps = {
@@ -510,6 +512,7 @@ export default function NotesPage() {
                 ariaLabel="Note"
                 fill
                 vim={vimKeys}
+                vimStatus={vimHost}
                 onSave={() => { void flush(); }}
               />
             </Suspense>
@@ -519,22 +522,47 @@ export default function NotesPage() {
     </div>
   );
 
-  // Desktop: the note's controls sit bottom-right with the counts, out of
-  // the way of the text; they fade while you type.
-  const statusLine = doc && !isMobile && (
+  // Desktop: the note's controls (counts, save state, view, ⋯, details).
+  const controls = doc && (
     <>
-      {(!libraryOpen || focus) && (
-        <Button
-          variant="ghost" size="icon-sm"
-          onClick={() => { setFocus(false); setLibraryOpen(true); }}
-          title="Show library" aria-label="Show library"
-          className={cn(
-            'absolute bottom-3 left-3 z-10 size-9 rounded-full bg-[hsl(var(--surface-container-low))] transition-opacity duration-300',
-            chromeHidden && 'pointer-events-none opacity-0',
-          )}
-        >
-          <PanelLeft className="size-4" />
+      <span className="hidden xl:inline">{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'} · {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
+      <span className="xl:hidden" title={`${counts.characters.toLocaleString()} characters`}>{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}</span>
+      {doc.backlinks.length > 0 && (
+        <button type="button" className="rounded hover:text-foreground" onClick={openDetails}>
+          · {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
+        </button>
+      )}
+      <SaveState status={status} onRetry={() => { void flush(); }} />
+      {modeSwitch}
+      {overflowMenu}
+      {!showDetailsRail && (
+        <Button variant="ghost" size="icon-sm" className="size-8 rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
+          <PanelRight className="size-4" />
         </Button>
+      )}
+    </>
+  );
+  const showLibraryButton = (!libraryOpen || focus) && (
+    <Button
+      variant="ghost" size="icon-sm"
+      onClick={() => { setFocus(false); setLibraryOpen(true); }}
+      title="Show library" aria-label="Show library"
+      className="size-8 rounded-full"
+    >
+      <PanelLeft className="size-4" />
+    </Button>
+  );
+
+  // Without Vim the controls float bottom-right, out of the text's way, and
+  // fade while you type. With Vim they sit in a fixed status line with Vim's mode.
+  const statusLine = doc && !isMobile && (vimKeys ? (
+    <VimStatusBar ref={setVimHost} leading={showLibraryButton}>{controls}</VimStatusBar>
+  ) : (
+    <>
+      {showLibraryButton && (
+        <div className={cn('absolute bottom-3 left-3 z-10 rounded-full bg-[hsl(var(--surface-container-low))] p-0.5 transition-opacity duration-300', chromeHidden && 'pointer-events-none opacity-0')}>
+          {showLibraryButton}
+        </div>
       )}
       <div
         className={cn(
@@ -542,27 +570,17 @@ export default function NotesPage() {
           chromeHidden && 'pointer-events-none opacity-0',
         )}
       >
-        <span className="hidden xl:inline">{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'} · {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
-        <span className="xl:hidden" title={`${counts.characters.toLocaleString()} characters`}>{counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}</span>
-        {doc.backlinks.length > 0 && (
-          <button type="button" className="rounded hover:text-foreground" onClick={openDetails}>
-            · {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
-          </button>
-        )}
-        <SaveState status={status} onRetry={() => { void flush(); }} />
-        {modeSwitch}
-        {overflowMenu}
-        {!showDetailsRail && (
-          <Button variant="ghost" size="icon-sm" className="size-8 rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
-            <PanelRight className="size-4" />
-          </Button>
-        )}
+        {controls}
       </div>
     </>
-  );
+  ));
 
   return (
-    <div className="page-fade-in flex flex-1 min-h-0 overflow-hidden">
+    <div
+      className="page-fade-in flex flex-1 min-h-0 overflow-hidden"
+      // The rails' bottom buttons line up with the Vim status line when it shows.
+      style={vimKeys && doc && !isMobile ? { '--notes-foot-h': '40px' } as CSSProperties : undefined}
+    >
       <AnimatePresence initial={false}>
         {showLibraryRail && (
           <Rail key="library" side="left" width={libraryWidth} defaultWidth={LIBRARY_DEFAULT} onResize={setLibraryWidth}>
