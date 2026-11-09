@@ -277,6 +277,8 @@ export default function FinancePage() {
             reload={() => { loadLends(); loadAccounts(); loadTransactions(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); }}
             onNewLend={() => setSheetRequest((r) => ({ kind: 'lend', person: '', n: (r?.n ?? 0) + 1 }))}
             onSettle={(borrower) => setSheetRequest((r) => ({ kind: 'settle', person: borrower, n: (r?.n ?? 0) + 1 }))}
+            onBorrow={() => setSheetRequest((r) => ({ kind: 'borrow', person: '', n: (r?.n ?? 0) + 1 }))}
+            onPayBack={(person) => setSheetRequest((r) => ({ kind: 'payback', person, n: (r?.n ?? 0) + 1 }))}
           />
         </TabPanel>
         <TabPanel active={active === 'slates'}>

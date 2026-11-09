@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Bell, Trash2, Sparkles, Plus, X } from '@/components/ui/icons';
 
 import { toast } from 'sonner';
@@ -30,15 +30,17 @@ import { SplitFields, computeSplit, emptySplit, isAllTheirs, splitNames, type Sp
 // there (kind, amount, title, account + date, category); everything optional
 // is a "+" chip under them that, once tapped, becomes one more section of the
 // form (its label on the leading edge, a × on the trailing edge):
-//   expense → Split (people who owe part or all of it), Slate, Note
-//   income  → Settles a lend (it pays someone's lends back), Refund, Slate, Note
+//   expense → Split (people who owe part or all of it), Pays back (money the
+//             user owed someone; not spending), Slate, Note
+//   income  → Settles a lend (it pays someone's lends back), To pay back
+//             (money the user owes back; not income), Refund, Slate, Note
 // "Lend" is not a kind: lending cash is an expense split with someone for
 // all of it. This sheet is the one place a lend or a payment back is made;
-// the Lends tab's buttons open it pre-filled.
+// the People tab's buttons open it pre-filled.
 
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
-type Addon = 'split' | 'settle' | 'refund' | 'slate' | 'note';
+type Addon = 'split' | 'payback' | 'settle' | 'owe' | 'refund' | 'slate' | 'note';
 
 export const personKey = (name: string) => name.trim().toLowerCase();
 // Money typed or pasted ("₹1,200.50") down to a plain decimal string.
@@ -82,7 +84,7 @@ function editValues(txn: FinTransaction): EditValues {
 }
 
 function editKind(kind: FinTransaction['type']): TxnKind {
-  if (kind === 'income' || kind === 'refund') return 'income';
+  if (kind === 'income' || kind === 'refund' || kind === 'borrow') return 'income';
   if (kind === 'transfer_in' || kind === 'transfer_out') return 'transfer';
   return 'expense';
 }
@@ -98,9 +100,10 @@ export default function TransactionDialog({
   /** Preselect this slate for new txns. */
   defaultSlateId?: number;
   /** 'lend' opens an expense already split with someone for all of it;
-   *  'settle' an income that settles a lend. */
-  initialType?: TxnKind | 'lend' | 'settle';
-  /** With 'lend' / 'settle': who it's with. */
+   *  'settle' an income that settles a lend; 'borrow' an income owed back;
+   *  'payback' an expense paying someone back. */
+  initialType?: TxnKind | 'lend' | 'settle' | 'borrow' | 'payback';
+  /** With 'lend' / 'settle' / 'borrow' / 'payback': who it's with. */
   initialPerson?: string;
   /** A split bill's lends (who, their share, due) are edited in Edit lend. */
   onEditLend?: (lendId: number) => void;
@@ -188,7 +191,9 @@ export default function TransactionDialog({
   const pendingLabel = !txn ? null
     : splitOn && splitResult && !splitResult.error ? 'Split this bill'
       : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
-        : null;
+        : type === 'income' && addons.has('owe') && person.trim() ? 'Mark as owed back'
+          : type === 'expense' && addons.has('payback') && person.trim() ? 'Mark as paying back'
+            : null;
   // Nothing saves until Save (or Add). A new one starts with defaults filled
   // in (account, category guess), so only what was typed counts as unsaved;
   // a split or settlement waiting to be applied is unsaved too.
@@ -221,9 +226,11 @@ export default function TransactionDialog({
     // On a split bill the server holds the user's part; the shares stay as
     // they are (Edit lend moves them), so the bill total moves the user's part.
     const mine = round2(billTotal - sumMoney(txnSplits(t), (s) => s.share));
+    // Money owed or paid back has no category and keeps its kind.
+    const owedRow = !!t.owed;
     const patch: TxnPatch = {
       account_id: acctId, amount: mine, description: v.description.trim(), note: v.note,
-      txn_at: txnAt, category_id: catId, slate_id: sid,
+      txn_at: txnAt, ...(owedRow ? {} : { category_id: catId }), slate_id: sid,
       ...(credit ? { type: v.refund ? 'refund' as const : 'income' as const } : {}),
       ...(credit && v.refund ? { refund_of: v.refundOf ? parseInt(v.refundOf) : 0 } : {}),
     };
@@ -236,9 +243,11 @@ export default function TransactionDialog({
       account_id: acctId,
       account_name: accounts.find((a) => a.id === acctId)?.name || '',
       note: v.note,
-      category_id: catId,
-      category_name: cat?.name ?? null,
-      category_color: cat?.color ?? null,
+      ...(owedRow ? {} : {
+        category_id: catId,
+        category_name: cat?.name ?? null,
+        category_color: cat?.color ?? null,
+      }),
       amount: mine,
       description: v.description.trim(),
       txn_at: txnAt,
@@ -274,7 +283,9 @@ export default function TransactionDialog({
     } else {
       const lend = initialType === 'lend';
       const settle = initialType === 'settle';
-      setType(lend ? 'expense' : settle ? 'income' : initialType);
+      const owe = initialType === 'borrow';
+      const payback = initialType === 'payback';
+      setType(lend || payback ? 'expense' : settle || owe ? 'income' : initialType);
       setAccountId(accounts[0] ? String(accounts[0].id) : '');
       setLinkedId('');
       setCategoryId('');
@@ -287,11 +298,16 @@ export default function TransactionDialog({
       setAddons(new Set<Addon>([
         ...(lend ? ['split' as const] : []),
         ...(settle ? ['settle' as const] : []),
+        ...(owe ? ['owe' as const] : []),
+        ...(payback ? ['payback' as const] : []),
         ...(slates.find((p) => p.id === slate && !p.is_plain) ? ['slate' as const] : []),
       ]));
       // Lending: one person, all of it theirs.
       if (lend) { setSplit(emptySplit(initialPerson.trim() ? [initialPerson.trim()] : [], false)); setJustAdded(initialPerson ? null : 'split'); }
       if (settle) { setJustAdded(initialPerson ? null : 'settle'); setPerson(initialPerson); }
+      if (owe || payback) { setJustAdded(initialPerson ? null : owe ? 'owe' : 'payback'); setPerson(initialPerson); }
+      if (owe && !initialPerson) setDescription('');
+      if (payback && initialPerson) setDescription('Paid back ' + initialPerson.trim());
       { const p = txnAtToParts(new Date().toISOString()); setDate(p.date); setTime(p.time); }
       userPickedCategoryRef.current = false;
       setUserPickedCategory(false);
@@ -363,14 +379,18 @@ export default function TransactionDialog({
     setAddons((prev) => {
       const next = new Set(prev);
       next.add(a);
-      // Settling and refunding are different stories about the same credit.
-      if (a === 'settle') next.delete('refund');
-      if (a === 'refund') next.delete('settle');
+      // Settling, owing back and refunding are different stories about the
+      // same credit; splitting and paying back about the same expense.
+      const apart: Partial<Record<Addon, Addon[]>> = {
+        settle: ['refund', 'owe'], refund: ['settle', 'owe'], owe: ['settle', 'refund'],
+        split: ['payback'], payback: ['split'],
+      };
+      for (const other of apart[a] ?? []) next.delete(other);
       return next;
     });
     if (a === 'refund' || (a === 'settle' && addons.has('refund'))) setCategoryId('');
     if (a === 'split') setSplit(emptySplit());
-    if (a === 'settle') { setPerson(''); setTowardLendId(''); }
+    if (a === 'settle' || a === 'owe' || a === 'payback') { setPerson(''); setTowardLendId(''); setDueDate(''); }
     // A slate add-on with one slate to offer picks it.
     if (a === 'slate' && pickableSlates.length === 1) setSlateId(String(pickableSlates[0].id));
     setJustAdded(a);
@@ -397,6 +417,8 @@ export default function TransactionDialog({
     }
     if (splitResult?.error) Object.assign(e, splitResult.error);
     if (type === 'income' && addons.has('settle') && !person.trim()) e.person = 'Enter who is paying you back.';
+    if (type === 'income' && addons.has('owe') && !person.trim()) e.person = 'Enter who you owe it to.';
+    if (type === 'expense' && addons.has('payback') && !person.trim()) e.person = 'Enter who you are paying back.';
     return e;
   };
 
@@ -439,7 +461,11 @@ export default function TransactionDialog({
           ...(isRefund && refundOf ? { refund_of: parseInt(refundOf) } : {}),
           ...(splitResult ? splitDraft(splitResult.shares, remind, dueDate) : {}),
           ...(type === 'income' && addons.has('settle') ? { settle_with: person.trim(), ...(towardLendId ? { settle_lend_id: Number(towardLendId) } : {}) } : {}),
+          ...(type === 'income' && addons.has('owe') ? { owe_to: person.trim(), ...(dueDate ? { owe_due_date: dueDate } : {}) } : {}),
+          ...(type === 'expense' && addons.has('payback') ? { pay_back_to: person.trim() } : {}),
         };
+        // Owed or paid back: not income or spending, so no category.
+        if (draft.owe_to || draft.pay_back_to) draft.category_id = null;
         await finance.createTransaction(draft);
       }
       onSaved();
@@ -456,13 +482,17 @@ export default function TransactionDialog({
   const applyToExisting = async () => {
     if (!txn || saving) return;
     if (type === 'expense' && splitResult?.error) { setErrors(splitResult.error); return; }
-    if (type !== 'expense' && !person.trim()) { setErrors({ person: 'Enter who is paying you back.' }); return; }
+    if ((type !== 'expense' || addons.has('payback')) && !person.trim()) { setErrors({ person: 'Enter who it\'s with.' }); return; }
     if (!description.trim()) { setErrors({ description: 'Add a title.' }); return; }
     setSaving(true);
     try {
       // Land any pending field edits first, then make the structural change.
       if (editor.changed) await editor.commit(values);
-      if (type === 'expense' && splitResult) {
+      if (type === 'income' && addons.has('owe')) {
+        await finance.markBorrow({ transaction_id: txn.id, person: person.trim(), ...(dueDate ? { due_date: dueDate } : {}) });
+      } else if (type === 'expense' && addons.has('payback')) {
+        await finance.markPayBack({ transaction_id: txn.id, person: person.trim() });
+      } else if (type === 'expense' && splitResult) {
         const sh = splitResult.shares;
         await finance.markPaidFor({
           // One person keeps the one-person form older servers know.
@@ -495,12 +525,28 @@ export default function TransactionDialog({
 
   // Add-ons on offer for this kind, in a fixed order so the form never
   // shuffles. Slate only when there is a slate to pick.
-  const offered: Addon[] = (type === 'expense' ? ['split', 'slate', 'note'] as Addon[]
-    : type === 'income' ? ['settle', 'refund', 'slate', 'note'] as Addon[]
-      : ['note'] as Addon[]).filter((a) => a !== 'slate' || pickableSlates.length > 0 || addons.has('slate'));
+  // Money owed or paid back that's already saved is undone, not re-filed.
+  const savedOwed = txn?.owed ?? null;
+  const oweAnyone = people.some((p) => (p.you_owe ?? 0) > 0);
+  const offered: Addon[] = (type === 'expense' ? ['split', 'payback', 'slate', 'note'] as Addon[]
+    : type === 'income' ? ['settle', 'owe', 'refund', 'slate', 'note'] as Addon[]
+      : ['note'] as Addon[])
+    .filter((a) => a !== 'slate' || pickableSlates.length > 0 || addons.has('slate'))
+    .filter((a) => a !== 'payback' || oweAnyone || addons.has('payback'))
+    .filter((a) => !savedOwed || a === 'slate' || a === 'note');
   const owed = people.find((p) => personKey(p.borrower) === personKey(person));
   const addLabel: Record<Addon, string> = {
-    split: 'Split', settle: 'Settles a lend', refund: 'Refund', slate: 'Slate', note: 'Note',
+    split: 'Split', payback: 'Pays back', settle: 'Settles a lend', owe: 'To pay back', refund: 'Refund', slate: 'Slate', note: 'Note',
+  };
+  const undoOwed = async () => {
+    if (!savedOwed) return;
+    try {
+      await finance.deleteOwed(savedOwed.id);
+      editor.cancel();
+      onSaved();
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
 
   const section = (a: Addon) => {
@@ -537,6 +583,35 @@ export default function TransactionDialog({
           </button>
         </div>
         </SplitFields>
+      </AddonSection>
+    );
+    if (a === 'owe') return (
+      <AddonSection key={a} label="To pay back" onRemove={() => removeAddon('owe')}>
+        <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
+          suggestions={people.map((p) => p.borrower)} placeholder="Who do you owe it to?" autoFocus={justAdded === 'owe'} />
+        <DatePicker value={dueDate} onChange={setDueDate} prefix="Pay back by" placeholder="Anytime" />
+        <SummaryRow>
+          {owed && (owed.you_owe ?? 0) > 0 && <DateBadge>You owe <Money value={owed.you_owe ?? 0} /></DateBadge>}
+          {total > 0 && <DateBadge tone="accent">Not income</DateBadge>}
+        </SummaryRow>
+      </AddonSection>
+    );
+    if (a === 'payback') return (
+      <AddonSection key={a} label="Pays back" onRemove={() => removeAddon('payback')}>
+        <PersonField value={person} onChange={(v) => { setPerson(v); clearError('person'); }} error={errors.person}
+          suggestions={people.filter((p) => (p.you_owe ?? 0) > 0).map((p) => p.borrower)} placeholder="Who are you paying back?" autoFocus={justAdded === 'payback'} />
+        <SummaryRow>
+          {owed && (owed.you_owe ?? 0) > 0 && (<>
+            <DateBadge>You owe <Money value={owed.you_owe ?? 0} /></DateBadge>
+            {total > 0 && (() => {
+              const left = subMoney(owed.you_owe ?? 0, total);
+              return left > 0 ? <DateBadge><Money value={left} /> left</DateBadge>
+                : left < 0 ? <DateBadge tone="alert">More than you owe</DateBadge>
+                  : <DateBadge tone="positive">Paid back</DateBadge>;
+            })()}
+          </>)}
+          {total > 0 && <DateBadge tone="accent">Not spending</DateBadge>}
+        </SummaryRow>
       </AddonSection>
     );
     if (a === 'settle') return (
@@ -598,7 +673,8 @@ export default function TransactionDialog({
   };
 
   // A credit that pays someone back becomes a repayment: no category.
-  const showCategory = type !== 'transfer' && !allTheirs && !(type === 'income' && addons.has('settle'));
+  const showCategory = type !== 'transfer' && !allTheirs && !(type === 'income' && addons.has('settle'))
+    && !savedOwed && !(type === 'income' && addons.has('owe')) && !(type === 'expense' && addons.has('payback'));
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
@@ -730,6 +806,19 @@ export default function TransactionDialog({
 
             {/* Add-ons that are on are sections of the form; the rest wait
                 as quiet "+" chips under them. */}
+            {savedOwed && (
+              <section className="flex flex-col gap-2 pt-1">
+                <Label className="font-mono text-xs label-kicker text-muted-foreground">
+                  {savedOwed.kind === 'debt' ? 'To pay back' : 'Pays back'}
+                </Label>
+                <SummaryRow action={<Button variant="tonal" size="sm" onClick={() => void undoOwed()}>Undo</Button>}>
+                  <DateBadge tone="accent">
+                    {savedOwed.kind === 'debt' ? `You owe ${savedOwed.person}` : `Paying ${savedOwed.person} back`}
+                  </DateBadge>
+                  {savedOwed.due_date && <DateBadge>By {format(parseISO(savedOwed.due_date), 'd MMM')}</DateBadge>}
+                </SummaryRow>
+              </section>
+            )}
             {offered.filter((a) => addons.has(a)).map(section)}
             {offered.some((a) => !addons.has(a)) && (
               <div className="flex flex-wrap gap-1.5">

@@ -18,6 +18,7 @@ export const financeMeta = {
     { id: 'lending', label: 'Lending money' },
     { id: 'paid-back', label: 'Getting paid back' },
     { id: 'adjust', label: 'Adjusting' },
+    { id: 'owe', label: 'Money you owe' },
     { id: 'refunds', label: 'Refunds' },
     { id: 'card-offers', label: 'A friend uses your card' },
     { id: 'cashback', label: 'Cashback' },
@@ -410,9 +411,11 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="The People tab">
             <p>
-              Everyone who owes you, with the total at the top. Tap a person to
-              see their timeline: what you lent (↗), what came back (↙) and
-              anything adjusted (✓). What's still open comes first; everything
+              Everyone who owes you, and everyone you owe (see{' '}
+              <a href="#owe">Money you owe</a>), with the totals at the top.
+              When it runs both ways, a person shows the net and who it's on.
+              Tap a person to see their timeline: what you lent (↗), what came
+              back (↙) and anything adjusted (✓). What's still open comes first; everything
               up to the last time they owed you nothing folds into one{' '}
               <em>Earlier</em> line, which opens on tap. Tap any line to edit
               it. People who have paid everything fold away under{' '}
@@ -547,6 +550,61 @@ export default function FinanceDoc() {
               when the month's cashback arrives as a refund in the same
               category (see <a href="#cashback">Cashback</a>), it takes the ₹20
               back off. You never split the month's cashback by order.
+            </p>
+          </Feature>
+        </FeatureList>
+      </Section>
+
+      <Section id="owe" title="Money you owe" chip="tab: People">
+        <p>
+          The other way round: someone gives you money you'll pay back. It
+          lands in your account but isn't income, and paying it back isn't
+          spending.
+        </p>
+        <Callout>
+          <strong>Example.</strong> Papa sends ₹2,723.33 to your Kotak Neo
+          account, and you'll return it. Open that credit, tap{' '}
+          <em>+ To pay back</em>, pick Papa (and a date to pay by, if you
+          like), then press <em>Mark as owed back</em>. People now shows{' '}
+          <em>You owe ₹2,723.33</em> under Papa. In November you send him
+          ₹1,000: open that debit, tap <em>+ Pays back</em>, pick Papa and
+          press <em>Mark as paying back</em>. You owe ₹1,723.33.
+        </Callout>
+        <ul>
+          <li>
+            <em>Borrow</em> in People opens the sheet as an Income with{' '}
+            <em>To pay back</em> on, for money not in Sajni yet. A person's{' '}
+            <em>Pay back</em> opens an Expense with <em>Pays back</em> them.
+          </li>
+          <li>
+            You can't pay back more than you owe, or pay back someone you
+            never borrowed from.
+          </li>
+          <li>
+            Balances move as usual; your net worth counts what you owe against
+            you.
+          </li>
+          <li>
+            Tap a line under <em>You owe them</em> to undo it: the money goes
+            back to plain income or a plain expense.
+          </li>
+        </ul>
+        <FeatureList>
+          <Feature name="Net off">
+            <p>
+              When you owe Rahul ₹300 and he owes you ₹120, press{' '}
+              <em>Net off</em> on Rahul. Both sides drop by ₹120: he owes ₹0,
+              you owe ₹180. No money moves and nothing counts as spending or
+              income. The <em>Netted off</em> line on either side undoes both.
+            </p>
+          </Feature>
+          <Feature name="From before Sajni">
+            <p>
+              A debt older than your records, either way: press{' '}
+              <em>From before Sajni</em> in People. Pick <em>They owe
+              me</em> or <em>I owe them</em>, the person, the amount and since
+              when. No money moves and no balance changes; payments later
+              settle it like any other.
             </p>
           </Feature>
         </FeatureList>

@@ -10,6 +10,7 @@ import {
 
 import { finance, type FinAccount, type FinCategory, type FinLend, type FinSlate, type FinTransaction, type TxnKind } from '@/api';
 import { failureText } from '@/lib/errors';
+import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -167,7 +168,7 @@ interface Props {
   active: boolean;
 }
 
-export interface SheetRequest { kind: 'expense' | 'lend' | 'settle'; person: string; n: number }
+export interface SheetRequest { kind: 'expense' | 'lend' | 'settle' | 'borrow' | 'payback'; person: string; n: number }
 
 export default function TransactionsTab({
   accounts, categories, slates, transactions, lends, loaded,
@@ -181,7 +182,7 @@ export default function TransactionsTab({
   const [editingLend, setEditingLend] = useState<FinLend | null>(null);
   const [editingRepayment, setEditingRepayment] = useState<Payment | null>(null);
   const [creating, setCreating] = useState(false);
-  const [createKind, setCreateKind] = useState<TxnKind | 'lend' | 'settle'>('expense');
+  const [createKind, setCreateKind] = useState<TxnKind | 'lend' | 'settle' | 'borrow' | 'payback'>('expense');
   const [createPerson, setCreatePerson] = useState('');
   const [manageCats, setManageCats] = useState(false);
   const [search, setSearch] = useState('');
@@ -270,7 +271,7 @@ export default function TransactionsTab({
   // Selection is WYSIWYG: anything the filters hide is dropped, so the count in
   // the action bar always matches what the user can see and check.
   const visibleIds = useMemo(
-    () => new Set(days.flatMap((d) => d.items.filter((t) => t.type !== 'lend' && t.type !== 'lend_repayment').map((t) => t.id))),
+    () => new Set(days.flatMap((d) => d.items.filter((t) => !peopleRow(t)).map((t) => t.id))),
     [days],
   );
   useEffect(() => {
@@ -290,13 +291,17 @@ export default function TransactionsTab({
   });
 
   const openTransaction = (txn: FinTransaction) => {
+    if (txn.type === 'netoff') {
+      void undoNetOff(txn, reload);
+      return;
+    }
     if (txn.type === 'lend_repayment' || txn.type === 'writeoff') {
       const payment = paymentFromTxn(txn);
       if (payment) setEditingRepayment(payment);
       else toast.error('Payment details are unavailable. Refresh and try again.');
       return;
     }
-    if (txn.type !== 'lend') {
+    if (txn.type !== 'lend' && !(txn.type === 'owed' && txn.lend_id)) {
       setEditing(txn);
       return;
     }
@@ -415,7 +420,7 @@ export default function TransactionsTab({
             </SelectContent>
           </Select>
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
-            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'refund', label: 'Refund' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }, { value: 'writeoff', label: 'Adjusted' }]}>
+            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'refund', label: 'Refund' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }, { value: 'writeoff', label: 'Adjusted' }, { value: 'borrow', label: 'Borrowed' }, { value: 'borrow_repayment', label: 'Paid back' }]}>
             <SelectTrigger size="sm" className="w-[130px] shrink-0">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
@@ -428,6 +433,8 @@ export default function TransactionsTab({
               <SelectItem value="lend">Lend</SelectItem>
               <SelectItem value="lend_repayment">Lend repayment</SelectItem>
               <SelectItem value="writeoff">Adjusted</SelectItem>
+              <SelectItem value="borrow">Borrowed</SelectItem>
+              <SelectItem value="borrow_repayment">Paid back</SelectItem>
             </SelectContent>
           </Select>
           {/* Server-side slate filter (params-keyed query in FinancePage). */}
@@ -528,7 +535,7 @@ export default function TransactionsTab({
                       slate={slateById(t.slate_id)}
                       selecting={selecting}
                       checked={selected.has(t.id)}
-                      onToggle={() => (t.type === 'lend' || t.type === 'lend_repayment' || t.type === 'writeoff') ? openTransaction(t) : toggle(t.id)}
+                      onToggle={() => peopleRow(t) ? openTransaction(t) : toggle(t.id)}
                       onOpen={() => openTransaction(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
                       linkedName={t.investment_name ?? linkedAccountName(t.linked_account)}
@@ -698,14 +705,23 @@ function LedgerRow({
   const isLend = t.type === 'lend';
   const isLendRepayment = t.type === 'lend_repayment';
   const isRefund = t.type === 'refund';
+  // Money the user owes: in (borrowed) and out (paid back) move the account
+  // but aren't income or spending; owed rows and net-offs move nothing.
+  const isBorrow = t.type === 'borrow';
+  const isPayBack = t.type === 'borrow_repayment';
+  const noMoney = t.type === 'owed' || t.type === 'netoff';
+  const owedPill = isBorrow && t.owed ? `Owe · ${t.owed.person}`
+    : isPayBack && t.owed ? `Pays back · ${t.owed.person}`
+      : t.type === 'owed' ? (t.owed ? `You owed · ${t.owed.person}` : t.lend_borrower ? `Owed you · ${t.lend_borrower}` : 'Owed')
+        : t.type === 'netoff' ? `Netted · ${t.lend_borrower ?? ''}` : null;
   // A split bill shows the charge as it hit the account; the user's part
   // sits under it.
   const splits = txnSplits(t);
   const shown = splits.length ? sumMoney([t.amount, ...splits.map((sp) => sp.share)], (v) => v) : t.amount;
   const marker = splits.length ? `Split · ${splits.map((sp) => sp.borrower).join(', ')}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Adjusted' : null;
-  const Icon = isLend || isLendRepayment ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
-  const isMove = isTransfer || isLend || isLendRepayment;
-  const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : t.category_name || (isExpense ? 'Expense' : 'Income'));
+  const Icon = isLend || isLendRepayment || owedPill ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
+  const isMove = isTransfer || isLend || isLendRepayment || !!owedPill;
+  const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : owedPill || t.category_name || (isExpense ? 'Expense' : 'Income'));
   // Identity tile, like a merchant logo: the payee's initial on a tint of
   // the category colour; moves get a neutral glyph. The corner arrow is the
   // type, so nothing on the row needs a badge.
@@ -829,6 +845,10 @@ function LedgerRow({
               >
                 {t.category_name}
               </span>
+            ) : owedPill ? (
+              <span className="truncate rounded-full bg-[hsl(var(--surface-container-high))] px-2 py-0.5 font-sans font-medium text-[hsl(var(--on-surface-variant))]">
+                {owedPill}
+              </span>
             ) : (isLend || isLendRepayment) && t.lend_borrower ? (
               <span className="truncate rounded-full bg-[hsl(var(--surface-container-high))] px-2 py-0.5 font-sans font-medium text-[hsl(var(--on-surface-variant))]">
                 {isLend ? 'For ' : 'Settles · '}{t.lend_borrower}
@@ -847,10 +867,10 @@ function LedgerRow({
         </div>
 
         <div className={`col-start-2 row-start-1 row-span-2 self-center text-right text-sm font-medium md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
-          isExpense ? 'text-foreground' : isLend || isTransfer ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
+          isExpense ? 'text-foreground' : isLend || isTransfer || owedPill ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
         }`}>
           <span className="flex flex-col items-end">
-            <Money value={shown} sign={isExpense || isLend ? '−' : !isTransfer ? '+' : ''} />
+            <Money value={shown} sign={isExpense || isLend || isPayBack ? '−' : isTransfer || noMoney ? '' : '+'} />
             {splits.length > 0 && <span className="text-xs font-normal text-muted-foreground">yours <Money value={t.amount} /></span>}
           </span>
         </div>
@@ -913,4 +933,22 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
       </div>
     </div>
   );
+}
+
+/** Rows People owns (lends, repayments, adjustments, net-offs, a lend from
+ *  before Sajni): opened, never selected or moved in bulk. */
+function peopleRow(t: FinTransaction) {
+  return t.type === 'lend' || t.type === 'lend_repayment' || t.type === 'writeoff' || t.type === 'netoff' || (t.type === 'owed' && !!t.lend_id);
+}
+
+/** A net-off is undone as a whole: both debts come back. */
+export async function undoNetOff(t: { settlement: FinTransaction['settlement']; lend_borrower: string | null; amount: number }, done: () => void) {
+  if (!t.settlement) return;
+  if (!(await confirmDialog(`Undo this net-off? You and ${t.lend_borrower ?? 'they'} both owe the ₹${t.amount.toLocaleString('en-IN')} again.`))) return;
+  try {
+    await finance.deleteLendSettlement(t.settlement.id);
+    done();
+  } catch (e) {
+    toast.error(failureText(e));
+  }
 }

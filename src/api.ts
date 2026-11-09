@@ -859,8 +859,12 @@ export interface FinTransaction {
   category_name: string | null;
   category_color: string | null;
   /** refund = money back on a purchase (nets off spending, never income);
-   *  writeoff = a forgiven lend (spending, but no money moved). */
-  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'lend' | 'lend_repayment' | 'refund' | 'writeoff';
+   *  writeoff = a forgiven lend (spending, but no money moved);
+   *  borrow = money in the user owes back (not income); borrow_repayment =
+   *  paying it back (not spending); owed = a debt from before Sajni (no money
+   *  moved, either way); netoff = two debts closed against each other. */
+  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'lend' | 'lend_repayment' | 'refund' | 'writeoff'
+    | 'borrow' | 'borrow_repayment' | 'owed' | 'netoff';
   /** On a split bill, the user's own part; the charge is amount + split.share. */
   amount: number;
   description: string;
@@ -888,7 +892,16 @@ export interface FinTransaction {
    *  destination account. */
   investment_id: number | null;
   investment_name: string | null;
+  /** Money the user owes someone (debt) or pays them back (payment). */
+  owed?: FinTxnOwed | null;
   created_at: string;
+}
+
+export interface FinTxnOwed {
+  id: number;
+  person: string;
+  kind: 'debt' | 'payment';
+  due_date: string | null;
 }
 
 /** Finance → Analytics (sajni-api internal/finstats). Spending = expenses +
@@ -1053,6 +1066,8 @@ export interface FinLendSettlement {
   txn_at: string;
   /** A forgive (writeoff), not money received. */
   forgiven: boolean;
+  /** Closed against what the user owes them (a net-off): no money moved. */
+  netted?: boolean;
   /** Pinned lend; null = toward the person's overall total. */
   lend_id: number | null;
   toward: string | null;
@@ -1069,6 +1084,24 @@ export interface FinLendPerson {
   open: number;
   last_at: string;
   settlements: FinLendSettlement[];
+  /** What the user owes this person (debts minus payments back). */
+  you_owe?: number;
+  /** Those debts and payments, oldest first. */
+  owed?: FinOwedEntry[];
+}
+
+export interface FinOwedEntry {
+  id: number;
+  transaction_id: number;
+  kind: 'debt' | 'payment';
+  type: 'borrow' | 'owed' | 'borrow_repayment' | 'netoff';
+  account_id: number;
+  account: string;
+  amount: number;
+  description: string;
+  note: string;
+  txn_at: string;
+  due_date: string | null;
 }
 
 export interface FinLendCandidate {
@@ -1092,6 +1125,8 @@ export interface LendDraft {
   lent_at: string;
   due_date?: string | null;
   remind?: boolean;
+  /** Owed from before Sajni: no money moves. */
+  no_money_moved?: boolean;
 }
 
 export interface FinSaving {
@@ -1231,6 +1266,11 @@ export interface TxnDraft {
    *  of their lends (settle_lend_id) or their overall total. */
   settle_with?: string;
   settle_lend_id?: number;
+  /** Income only: money the user owes this person back (not income). */
+  owe_to?: string;
+  owe_due_date?: string;
+  /** Expense only: paying this person back (not spending). */
+  pay_back_to?: string;
 }
 
 export type TxnPatch = Partial<Pick<
@@ -1361,6 +1401,24 @@ export const finance = {
     request('/finance/lends/settlements/' + id, { method: 'PUT', body: JSON.stringify({ lend_id: lendId }) }),
   deleteLendSettlement: (id: number) =>
     request('/finance/lends/settlements/' + id, { method: 'DELETE' }),
+  /** Money the user owes: a new debt (borrowed into an account, or owed from
+   *  before Sajni with no_money_moved). */
+  createOwed: (data: { person: string; account_id: number; amount: number; description?: string; note?: string; at?: string; due_date?: string; no_money_moved?: boolean }) =>
+    request<{ transaction_id: number }>('/finance/owed', { method: 'POST', body: JSON.stringify(data) }),
+  /** Existing income → money owed back to person. */
+  markBorrow: (data: { transaction_id: number; person: string; due_date?: string }) =>
+    request('/finance/owed/borrow', { method: 'POST', body: JSON.stringify(data) }),
+  /** Existing expense → paying person back. */
+  markPayBack: (data: { transaction_id: number; person: string }) =>
+    request('/finance/owed/payback', { method: 'POST', body: JSON.stringify(data) }),
+  /** Close the smaller of what each owes the other; no money moves. */
+  netOff: (person: string) =>
+    request<{ amount: number }>('/finance/owed/netoff', { method: 'POST', body: JSON.stringify({ person }) }),
+  setOwedDue: (id: number, dueDate: string) =>
+    request('/finance/owed/' + id, { method: 'PUT', body: JSON.stringify({ due_date: dueDate }) }),
+  /** Undo: a borrow → income, a payment → expense; owed rows and net-offs go. */
+  deleteOwed: (id: number) =>
+    request('/finance/owed/' + id, { method: 'DELETE' }),
   /** Write off up to what a person owes: spending on that day, no money moves. */
   forgiveLends: (data: { borrower: string; amount: number; category_id?: number | null; forgiven_at?: string; note?: string; lend_id?: number }) =>
     request<{ transaction_id: number }>('/finance/lends/forgive', { method: 'POST', body: JSON.stringify(data) }),
@@ -1490,6 +1548,8 @@ export const finance = {
     investments_breakdown: { type: string; amount: number }[];
     investment_assets?: { id: number; name: string; type: string; amount: number }[];
     lends_breakdown?: { id: number; borrower: string; description: string; outstanding: number }[];
+    money_owed_total?: number;
+    owed_breakdown?: { person: string; amount: number }[];
   }>('/finance/overview'),
 
   /** Finance → Analytics for a month (YYYY-MM; default this month). */
