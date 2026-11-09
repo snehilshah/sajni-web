@@ -38,7 +38,9 @@ export default function JournalDoc() {
               you're on. <Code>/</Code> opens the menu (checklist, task, time,
               table…), <Code>[[</Code> links a note or another day, and{' '}
               <Code>@9:30</Code> drops a time chip. See Notes → The editor for
-              the rest, including Vim keys.
+              the rest, including Vim keys. With Vim keys on, Journal gets the
+              same status line along the bottom, with the entry's word and
+              character count on the right.
             </p>
             <p>
               <Code>Alt+[</Code> and <Code>Alt+]</Code> go to the day before and

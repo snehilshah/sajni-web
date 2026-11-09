@@ -579,7 +579,7 @@ export default function NotesPage() {
     <div
       className="page-fade-in flex flex-1 min-h-0 overflow-hidden"
       // The rails' bottom buttons line up with the Vim status line when it shows.
-      style={vimKeys && doc && !isMobile ? { '--notes-foot-h': '40px' } as CSSProperties : undefined}
+      style={vimKeys && doc && !isMobile ? { '--notes-foot-h': '36px' } as CSSProperties : undefined}
     >
       <AnimatePresence initial={false}>
         {showLibraryRail && (

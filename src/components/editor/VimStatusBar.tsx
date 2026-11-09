@@ -18,7 +18,7 @@ export default function VimStatusBar({ ref, leading, children, className }: {
     <div
       ref={ref}
       className={cn(
-        'sajni-vim-status flex h-10 shrink-0 items-center gap-3 border-t border-[hsl(var(--outline-variant)/0.5)] bg-[hsl(var(--surface-container-low))] px-3 text-xs text-muted-foreground',
+        'sajni-vim-status flex h-9 shrink-0 items-center gap-3 border-t border-[hsl(var(--outline-variant)/0.5)] bg-[hsl(var(--surface-container-low))] px-3 text-xs text-muted-foreground',
         className,
       )}
     >

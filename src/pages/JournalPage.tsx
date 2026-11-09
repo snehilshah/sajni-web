@@ -1,5 +1,5 @@
 import { inkOn } from '@/lib/ink';
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, useDeferredValue } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,6 +32,7 @@ import { habitPeriodForDate } from '@/lib/habit-periods';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import { useVimKeys } from '@/lib/vimPref';
 import VimStatusBar from '@/components/editor/VimStatusBar';
+import { countText } from '@/pages/notes/model';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,8 @@ const EXPANDED_MONTHS_KEY = 'sajni:journal-months';
 export default function JournalPage() {
   const vimKeys = useVimKeys();
   const [vimHost, setVimHost] = useState<HTMLDivElement | null>(null);
+  // The week / month text, reported up for the status line's counts.
+  const [periodText, setPeriodText] = useState('');
   const [params, setParams] = useSearchParams();
   const initialDate = params.get('date') || format(new Date(), 'yyyy-MM-dd');
   const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
@@ -688,6 +691,7 @@ export default function JournalPage() {
             {viewMode === 'week' ? (
               <WeekView
                 vimStatus={vimHost}
+                onText={setPeriodText}
                 year={weekYear}
                 week={weekNumber}
                 onPickDay={(d) => setSelectedDate(d)}
@@ -700,6 +704,7 @@ export default function JournalPage() {
             ) : viewMode === 'month' ? (
               <MonthView
                 vimStatus={vimHost}
+                onText={setPeriodText}
                 year={monthYear}
                 month={monthNumber}
                 onPickWeek={goWeek}
@@ -759,7 +764,11 @@ export default function JournalPage() {
             )}
           </div>
           {/* With Vim keys: a fixed status line under the text (mode, prompts, messages). */}
-          {vimKeys && !isMobile && <VimStatusBar ref={setVimHost} />}
+          {vimKeys && !isMobile && (
+            <VimStatusBar ref={setVimHost}>
+              <WordCount text={viewMode === 'week' || viewMode === 'month' ? periodText : content} />
+            </VimStatusBar>
+          )}
         </div>
 
       {/* Right margin — context dock (desktop) */}
@@ -840,6 +849,17 @@ export default function JournalPage() {
 
 // isoWeekDateFromKey returns the Monday of a given ISO year+week.
 // Anchors on Jan 4 (always in W1) and shifts forward week-1 weeks.
+/** "120 words · 640 characters" for the Vim status line; counted off the typing path. */
+function WordCount({ text }: { text: string }) {
+  const deferred = useDeferredValue(text);
+  const { words, characters } = useMemo(() => countText(deferred), [deferred]);
+  return (
+    <span title={`${characters.toLocaleString()} characters`}>
+      {words.toLocaleString()} {words === 1 ? 'word' : 'words'} · {characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}
+    </span>
+  );
+}
+
 function isoWeekDateFromKey(year: number, week: number): Date {
   const jan4 = new Date(year, 0, 4);
   const start = startOfISOWeek(jan4);
@@ -847,15 +867,19 @@ function isoWeekDateFromKey(year: number, week: number): Date {
 }
 
 function WeekView({
-  year, week, onPickDay, onShiftWeek, vimStatus,
+  year, week, onPickDay, onShiftWeek, vimStatus, onText,
 }: {
   vimStatus: HTMLElement | null;
+  /** The text as it changes (status line counts). */
+  onText?: (text: string) => void;
   year: number;
   week: number;
   onPickDay: (date: string) => void;
   onShiftWeek: (delta: number) => void;
 }) {
   const vimKeys = useVimKeys();
+  const onTextRef = useRef(onText);
+  useLayoutEffect(() => { onTextRef.current = onText; });
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -912,6 +936,7 @@ function WeekView({
         ]);
         if (!alive) return;
         setContent(entry.content || '');
+        onTextRef.current?.(entry.content || '');
         setSummary(summ);
       } finally {
         if (alive) setLoading(false);
@@ -939,7 +964,7 @@ function WeekView({
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [content, loading, year, week]);
 
-  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
+  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); onTextRef.current?.(v); };
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -1682,15 +1707,19 @@ function WeekTasksSection({
 // month entry + stat tiles, the "This month" goals (tasks.month_of),
 // and a per-week task breakdown that drills into the weekly view.
 function MonthView({
-  year, month, onPickWeek, onShiftMonth, vimStatus,
+  year, month, onPickWeek, onShiftMonth, vimStatus, onText,
 }: {
   vimStatus: HTMLElement | null;
+  /** The text as it changes (status line counts). */
+  onText?: (text: string) => void;
   year: number;
   month: number;
   onPickWeek: (year: number, week: number) => void;
   onShiftMonth: (delta: number) => void;
 }) {
   const vimKeys = useVimKeys();
+  const onTextRef = useRef(onText);
+  useLayoutEffect(() => { onTextRef.current = onText; });
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1741,6 +1770,7 @@ function MonthView({
         ]);
         if (!alive) return;
         setContent(entry.content || '');
+        onTextRef.current?.(entry.content || '');
         setSummary(summ);
       } finally {
         if (alive) setLoading(false);
@@ -1767,7 +1797,7 @@ function MonthView({
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [content, loading, year, month]);
 
-  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); };
+  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); onTextRef.current?.(v); };
 
 
   const totalDone = summary?.total_done ?? 0;
