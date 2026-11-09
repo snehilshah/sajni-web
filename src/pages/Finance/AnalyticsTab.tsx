@@ -6,12 +6,15 @@ import type { FinAnalytics, FinAnalyticsTxn } from '@/api';
 import { useFinAnalytics } from '@/queries/finance';
 import { Button } from '@/components/ui/button';
 import { DateBadge } from '@/components/ui/state-chip';
+import { hueVar } from '@/components/ui/hue-pill';
 import { cn } from '@/lib/utils';
 import { AnimatedMoney } from './AnimatedMoney';
 import { CategoryPill } from './CategoryChips';
 import { Money } from './Money';
 import { Stat, StatGroup } from './StatGroup';
 import { useFinanceFormatters } from './useFinancePrivacy';
+import { sumMoney } from './utils';
+import { ShareBar } from './ShareBar';
 
 // Finance → Analytics: one month at a time. What was spent against usual,
 // how the month built up, what drove it, what stood out, where it went, and
@@ -103,7 +106,8 @@ function Report({ data }: { data: FinAnalytics }) {
           <Rows>
             {drivers.map((c) => (
               <Row key={String(c.id) + c.name}
-                lead={<CategoryPill name={c.name} color={c.color} />}
+                tile={<Tile name={c.name} color={c.color} />}
+                title={c.name}
                 meta={<>usually <Money value={c.usual ?? 0} /> by the {ordinal(data.day)}</>}
                 figure={<span className="text-[hsl(var(--error))]">+<Money value={c.change ?? 0} /></span>}
               />
@@ -141,7 +145,7 @@ function Report({ data }: { data: FinAnalytics }) {
           <Section title="Where">
             <Rows>
               {data.merchants.map((m) => (
-                <Row key={m.name} lead={<span className="truncate text-sm font-medium">{m.name}</span>}
+                <Row key={m.name} tile={<Tile name={m.name} />} title={m.name}
                   meta={m.count > 1 ? <>{m.count}× · avg <Money value={m.avg} /></> : undefined}
                   figure={<Money value={m.spent} />}
                 />
@@ -174,35 +178,49 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+// One row grid for every list card: [tile] [title over meta] [amount]. The
+// columns are shared by the whole card (subgrid), so amounts form one
+// right-aligned column on the title line, whatever their width.
 function Rows({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col rounded-xl bg-card py-1">{children}</div>;
+  return <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] rounded-xl bg-card px-4 py-1">{children}</div>;
 }
 
-function Row({ lead, meta, figure }: { lead: ReactNode; meta?: ReactNode; figure: ReactNode }) {
+function Row({ tile, title, meta, figure }: { tile: ReactNode; title: ReactNode; meta?: ReactNode; figure: ReactNode }) {
   return (
-    <div className="flex min-h-12 items-center gap-3 px-4 py-2">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex min-w-0">{lead}</div>
-        {meta && <div className="truncate text-xs text-muted-foreground">{meta}</div>}
+    <div className={cn(
+      'col-span-full grid grid-cols-subgrid gap-x-3 py-3 [&+&]:border-t [&+&]:border-[hsl(var(--outline-variant)/0.5)]',
+      meta ? 'items-start' : 'items-center',
+    )}>
+      {tile}
+      <div className="flex min-w-0 flex-col gap-0.5 pt-px">
+        <div className="truncate text-sm font-medium leading-5">{title}</div>
+        {meta && <div className="truncate text-xs leading-4 text-muted-foreground">{meta}</div>}
       </div>
-      <div className="shrink-0 whitespace-nowrap text-sm tabular-nums">{figure}</div>
+      <div className="whitespace-nowrap pt-px text-right text-sm leading-5 tabular-nums">{figure}</div>
     </div>
+  );
+}
+
+/** A row's leading tile: the first letter on a tint of the category's colour
+ *  (neutral when there's none), so the colour needs no pill in the text. */
+function Tile({ name, color }: { name: string; color?: string | null }) {
+  return (
+    <span style={hueVar(color || 'hsl(var(--outline))')} aria-hidden
+      className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_oklab,var(--hue)_18%,transparent)] text-[13px] font-semibold text-[color-mix(in_oklab,var(--hue)_70%,hsl(var(--on-surface)))]">
+      {name.trim().charAt(0).toUpperCase() || '·'}
+    </span>
   );
 }
 
 function TxnRow({ t, month, meta }: { t: FinAnalyticsTxn; month: string; meta?: string }) {
   const day = Number(t.date.slice(8, 10));
   return (
-    <div className="flex min-h-14 items-center gap-3 px-4 py-2">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate text-sm font-medium">{t.title}</span>
-        <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-          <CategoryPill name={t.category} color={t.color} className="shrink-0" />
-          <span className="truncate">{dayLabel(month, day)}{t.slate ? ' · ' + t.slate : ''}{meta ? ' · ' + meta : ''}</span>
-        </span>
-      </div>
-      <span className="shrink-0 whitespace-nowrap text-sm tabular-nums"><Money value={t.amount} /></span>
-    </div>
+    <Row
+      tile={<Tile name={t.category} color={t.color} />}
+      title={t.title}
+      meta={<>{t.category} · {dayLabel(month, day)}{t.slate ? ' · ' + t.slate : ''}{meta ? ' · ' + meta : ''}</>}
+      figure={<Money value={t.amount} />}
+    />
   );
 }
 
@@ -351,26 +369,28 @@ function DailyChart({ data }: { data: FinAnalytics }) {
   );
 }
 
+// The month's split as one stacked bar, then a row per category on fixed
+// columns: every track is the same length and shows the share of the month.
 function CategoryBars({ cats }: { cats: FinAnalytics['categories'] }) {
   const { formatPercent } = useFinanceFormatters();
-  const max = Math.max(...cats.map((c) => c.spent), 1);
+  const total = sumMoney(cats, (c) => c.spent) || 1;
   return (
-    <Rows>
-      {cats.map((c) => (
-        <div key={String(c.id) + c.name} className="flex min-h-12 items-center gap-3 px-4 py-2">
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <CategoryPill name={c.name} color={c.color} className="shrink-0" />
-              <span className="truncate text-xs text-muted-foreground">{formatPercent(c.share)} · {c.count}×</span>
-            </div>
+    <div className="flex flex-col gap-4 rounded-xl bg-card p-4">
+      <ShareBar parts={cats.map((c) => ({ key: String(c.id) + c.name, label: c.name, value: c.spent, color: c.color }))} />
+      <div className="grid grid-cols-[minmax(0,8.5rem)_minmax(2.5rem,1fr)_auto_auto] items-center gap-x-3 gap-y-3">
+        {cats.map((c) => (
+          <div key={String(c.id) + c.name} className="col-span-full grid grid-cols-subgrid items-center"
+            title={`${c.count} payment${c.count === 1 ? '' : 's'}`}>
+            <CategoryPill name={c.name} color={c.color} className="justify-self-start" />
             <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-              <div className="h-full rounded-full" style={{ width: `${(c.spent / max) * 100}%`, backgroundColor: c.color }} />
+              <div className="h-full rounded-full" style={{ width: `${(c.spent / total) * 100}%`, backgroundColor: c.color || 'hsl(var(--outline))' }} />
             </div>
+            <span className="text-right text-xs text-muted-foreground tabular-nums">{formatPercent(c.share)}</span>
+            <span className="whitespace-nowrap text-right text-sm tabular-nums"><Money value={c.spent} /></span>
           </div>
-          <span className="shrink-0 whitespace-nowrap text-sm tabular-nums"><Money value={c.spent} /></span>
-        </div>
-      ))}
-    </Rows>
+        ))}
+      </div>
+    </div>
   );
 }
 

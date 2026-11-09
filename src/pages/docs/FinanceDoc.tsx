@@ -122,8 +122,9 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Where it went">
             <p>
-              Day by day, the five largest, every category with its share, and
-              the places you spent most. Places group by title, ignoring
+              Day by day, the five largest, every category with its share of
+              the month (one bar for the whole month, then a bar per category,
+              all the same length), and the places you spent most. Places group by title, ignoring
               capitals and spacing, so “Cafe X” and “cafe x” are one.
             </p>
           </Feature>
@@ -137,7 +138,9 @@ export default function FinanceDoc() {
         <p>
           The tab opens with your <strong>net worth</strong>: what you have
           (accounts, investments, money owed to you) minus what you owe
-          (cards), with its history and what it's made of. Press{' '}
+          (cards, and money you owe people), with its history and what it's
+          made of: bank and cash, investments, and money lent (one line per
+          person). Tap a group to see what's in it. Press{' '}
           <em>Snapshot</em> to save today's figure; snapshots build the history
           chart and are never rewritten.
         </p>

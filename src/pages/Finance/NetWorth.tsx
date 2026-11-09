@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { TrendingUp, TrendingDown, Camera } from '@/components/ui/icons';
+import { TrendingUp, TrendingDown, Camera, ChevronRight } from '@/components/ui/icons';
+import { cn } from '@/lib/utils';
 
 import { finance } from '@/api';
 import { useFinNetworthHistory, useFinOverview } from '@/queries/finance';
@@ -14,6 +15,7 @@ import { AnimatedMoney } from './AnimatedMoney';
 import { useFinanceFormatters } from './useFinancePrivacy';
 import { sumMoney } from './utils';
 import { Money } from './Money';
+import { ShareBar } from './ShareBar';
 
 type OverviewData = Awaited<ReturnType<typeof finance.overview>>;
 type Snapshot = Awaited<ReturnType<typeof finance.networthHistory>>[number];
@@ -156,74 +158,82 @@ function Sparkline({ points }: { points: number[] }) {
   );
 }
 
+type Group = { key: string; label: string; color: string; amount: number; members: { name: string; amount: number }[] };
+
+/** What the assets are made of, in three groups (bank and cash,
+ *  investments, money lent per person), not one row per account. Tap a
+ *  group to see what's in it. */
 function Distribution({ accounts, investments, lends }: {
   accounts: OverviewData['accounts'];
   investments: NonNullable<OverviewData['investment_assets']>;
   lends: NonNullable<OverviewData['lends_breakdown']>;
 }) {
-  const { formatPercent } = useFinanceFormatters();
-  const items = useMemo(() => {
-    const pos = accounts.filter((a) => a.balance > 0);
-    const list = pos.map((a) => ({ key: 'a' + a.account_id, name: a.name, color: a.color, amount: a.balance }));
-    const investmentColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
-    investments.forEach((investment, index) => {
-      if (investment.amount > 0) {
-        list.push({
-          key: 'i' + investment.id,
-          name: investment.name,
-          color: investmentColors[index % investmentColors.length],
-          amount: investment.amount,
-        });
-      }
-    });
-    lends.forEach((lend, index) => {
-      if (lend.outstanding > 0) {
-        list.push({
-          key: 'l' + lend.id,
-          name: `Lent · ${lend.borrower}`,
-          color: investmentColors[(investments.length + index) % investmentColors.length],
-          amount: lend.outstanding,
-        });
-      }
-    });
-    return list.sort((a, b) => b.amount - a.amount);
+  const { formatPercent, formatMoney } = useFinanceFormatters();
+  const [open, setOpen] = useState<string | null>(null);
+  const groups = useMemo(() => {
+    const byAmount = (a: { amount: number }, b: { amount: number }) => b.amount - a.amount;
+    const bank = accounts.filter((a) => a.balance > 0 && a.type !== 'investment').map((a) => ({ name: a.name, amount: a.balance }));
+    const invested = [
+      ...accounts.filter((a) => a.balance > 0 && a.type === 'investment').map((a) => ({ name: a.name, amount: a.balance })),
+      ...investments.filter((i) => i.amount > 0).map((i) => ({ name: i.name, amount: i.amount })),
+    ];
+    // One line per person, not per lend.
+    const people = new Map<string, { name: string; amount: number }>();
+    for (const l of lends) {
+      if (l.outstanding <= 0) continue;
+      const k = l.borrower.trim().toLowerCase();
+      const p = people.get(k);
+      if (p) p.amount = sumMoney([p.amount, l.outstanding], (v) => v);
+      else people.set(k, { name: l.borrower.trim(), amount: l.outstanding });
+    }
+    const list: Group[] = [
+      { key: 'bank', label: 'Bank and cash', color: 'hsl(var(--chart-1))', members: bank.sort(byAmount), amount: sumMoney(bank, (m) => m.amount) },
+      { key: 'invested', label: 'Investments', color: 'hsl(var(--chart-3))', members: invested.sort(byAmount), amount: sumMoney(invested, (m) => m.amount) },
+      { key: 'lent', label: 'Lent', color: 'hsl(var(--chart-2))', members: [...people.values()].sort(byAmount), amount: sumMoney([...people.values()], (m) => m.amount) },
+    ];
+    return list.filter((g) => g.amount > 0).sort(byAmount);
   }, [accounts, investments, lends]);
 
-  const total = sumMoney(items, (i) => i.amount);
-
+  const total = sumMoney(groups, (g) => g.amount);
   if (total === 0) {
-    return <div className="text-sm text-muted-foreground py-4 text-center">No assets yet.</div>;
+    return <div className="py-4 text-sm text-muted-foreground">No assets yet.</div>;
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Stacked bar */}
-      <div className="h-2.5 rounded-full overflow-hidden flex bg-muted">
-        {items.map((i) => (
-          <motion.div
-            key={i.key}
-            initial={{ transform: 'scaleX(0)' }}
-            animate={{ transform: 'scaleX(1)' }}
-            transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
-            style={{ width: `${(i.amount / total) * 100}%`, backgroundColor: i.color, transformOrigin: 'left center' }}
-            className="h-full"
-            title={i.name}
-          />
-        ))}
-      </div>
-      <div className="flex flex-col gap-1.5 mt-1">
-        {items.map((i) => (
-          <div key={i.key} className="flex items-center gap-2">
-            <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: i.color }} />
-            <span className="text-xs flex-1 truncate">{i.name}</span>
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              {formatPercent((i.amount / total) * 100)}
-            </span>
-            <span className="font-mono text-xs tabular-nums w-20 text-right"><Money value={i.amount} /></span>
-          </div>
-        ))}
+    <div className="flex flex-col gap-3">
+      <ShareBar parts={groups.map((g) => ({ key: g.key, label: g.label, value: g.amount, color: g.color }))} />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3">
+        {groups.map((g) => {
+          const expanded = open === g.key;
+          const summary = g.key === 'lent'
+            ? g.members.map((m) => `${m.name} ${formatMoney(m.amount)}`).join(' · ')
+            : g.members.map((m) => m.name).join(' · ');
+          return (
+            <div key={g.key} className="col-span-full grid grid-cols-subgrid [&+&]:border-t [&+&]:border-[hsl(var(--outline-variant)/0.5)]">
+              <button type="button" onClick={() => setOpen(expanded ? null : g.key)} aria-expanded={expanded}
+                className="col-span-full grid grid-cols-subgrid items-start py-3 text-left">
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex items-center gap-2 text-sm font-medium leading-5">
+                    <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: g.color }} />
+                    {g.label}
+                    <ChevronRight className={cn('size-3.5 text-muted-foreground transition-transform', expanded && 'rotate-90')} />
+                  </span>
+                  {!expanded && <span className="truncate pl-[18px] text-xs leading-4 text-muted-foreground">{summary}</span>}
+                </span>
+                <span className="pt-px text-right text-xs leading-5 text-muted-foreground tabular-nums">{formatPercent((g.amount / total) * 100)}</span>
+                <span className="whitespace-nowrap pt-px text-right text-sm leading-5 tabular-nums"><Money value={g.amount} /></span>
+              </button>
+              {expanded && g.members.map((m) => (
+                <div key={m.name} className="col-span-full grid grid-cols-subgrid pb-2 text-xs text-muted-foreground">
+                  <span className="truncate pl-[18px]">{m.name}</span>
+                  <span className="text-right tabular-nums">{formatPercent((m.amount / total) * 100)}</span>
+                  <span className="whitespace-nowrap text-right tabular-nums"><Money value={m.amount} /></span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-
