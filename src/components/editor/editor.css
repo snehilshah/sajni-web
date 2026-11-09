@@ -166,7 +166,7 @@
 .sajni-vim-text { font-family: var(--font-code, ui-monospace, monospace); }
 /* A slim pill, one width for every mode so what follows never moves. */
 .sajni-vim-mode {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; height: 1.25rem; padding: 0 0.5rem; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; height: 22px; padding: 0 0.5rem; border-radius: 999px;
   font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; line-height: 1;
   background: var(--color-primary); color: var(--color-primary-foreground); transition: opacity 150ms;
 }
@@ -174,6 +174,8 @@
 .sajni-vim-mode[data-mode="visual"] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
 .sajni-vim-mode[data-mode="replace"] { background: var(--color-destructive); color: var(--color-destructive-foreground); }
 .sajni-vim-mode.is-idle { opacity: 0.45; }
+/* Live · Source · Read in the bar: the same 22px as the chips beside it. */
+.sajni-vim-status [role="group"] > button { height: 18px; padding: 0 0.5rem; font-size: 11px; }
 .sajni-vim-keys:empty, .sajni-vim-prompt:empty { display: none; }
 .sajni-vim-prompt > div { display: flex; align-items: center; color: hsl(var(--foreground)); }
 .sajni-vim-prompt input { width: 14rem; max-width: 30vw; border: 0; outline: 0; background: transparent; color: hsl(var(--foreground)); font: inherit; }

@@ -31,7 +31,7 @@ import { confirmDialog } from '@/lib/confirm';
 import { habitPeriodForDate } from '@/lib/habit-periods';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import { useVimKeys } from '@/lib/vimPref';
-import VimStatusBar from '@/components/editor/VimStatusBar';
+import VimStatusBar, { StatusChip } from '@/components/editor/VimStatusBar';
 import { countText } from '@/pages/notes/model';
 import LocationPill from '@/components/editor/LocationPill';
 import TagPill from '@/components/TagPill';
@@ -854,9 +854,9 @@ function WordCount({ text }: { text: string }) {
   const deferred = useDeferredValue(text);
   const { words, characters } = useMemo(() => countText(deferred), [deferred]);
   return (
-    <span title={`${characters.toLocaleString()} characters`}>
+    <StatusChip>
       {words.toLocaleString()} {words === 1 ? 'word' : 'words'} · {characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}
-    </span>
+    </StatusChip>
   );
 }
 

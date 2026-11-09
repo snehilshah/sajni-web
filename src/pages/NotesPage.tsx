@@ -24,7 +24,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { lazyPage } from '@/lib/lazyPage';
 import { useVimKeys } from '@/lib/vimPref';
-import VimStatusBar from '@/components/editor/VimStatusBar';
+import VimStatusBar, { StatusChip } from '@/components/editor/VimStatusBar';
 import type { MarkdownEditorHandle } from '@/components/editor/MarkdownEditor';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -534,6 +534,20 @@ export default function NotesPage() {
       )}
     </>
   );
+  // The same facts as chips, for the Vim status line.
+  const countChips = doc && (
+    <>
+      <StatusChip title={`${counts.characters.toLocaleString()} characters`}>
+        {counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}
+        <span className="hidden xl:inline">· {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
+      </StatusChip>
+      {doc.backlinks.length > 0 && (
+        <StatusChip onClick={openDetails} title="Show what links here">
+          {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
+        </StatusChip>
+      )}
+    </>
+  );
   const viewNodes = doc && (
     <>
       {modeSwitch}
@@ -562,9 +576,9 @@ export default function NotesPage() {
     <VimStatusBar
       ref={setVimHost}
       leading={showLibraryButton}
-      status={<SaveState status={status} onRetry={() => { void flush(); }} align="start" />}
+      status={<SaveState status={status} onRetry={() => { void flush(); }} chip />}
     >
-      {countsNode}
+      {countChips}
       {viewNodes}
     </VimStatusBar>
   ) : (
@@ -739,11 +753,21 @@ function Rail({ side, width, defaultWidth, onResize, className, children }: {
   );
 }
 
-function SaveState({ status, onRetry, align = 'end' }: { status: SaveStatus; onRetry: () => void; align?: 'start' | 'end' }) {
+function SaveState({ status, onRetry, chip }: { status: SaveStatus; onRetry: () => void; chip?: boolean }) {
+  // Vim status line: a chip in a reserved slot, so nothing after it moves.
+  if (chip) {
+    return (
+      <span className="flex min-w-[4.5rem] shrink-0 items-center" aria-live="polite">
+        {status === 'saving' && <StatusChip><M3CookieLoader size="xs" tone="primary" /> Saving</StatusChip>}
+        {status === 'saved' && <StatusChip>Saved</StatusChip>}
+        {status === 'error' && <StatusChip onClick={onRetry} className="text-destructive">Retry save</StatusChip>}
+      </span>
+    );
+  }
   // Reserved slot: the state changes in place, nothing beside it moves.
   return (
     <span
-      className={cn('flex min-w-16 shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground', align === 'end' ? 'justify-end pr-1' : 'justify-start')}
+      className="flex min-w-16 shrink-0 items-center justify-end gap-1.5 whitespace-nowrap pr-1 text-xs text-muted-foreground"
       aria-live="polite"
     >
       {status === 'saving' && (<><M3CookieLoader size="xs" tone="primary" /> Saving</>)}

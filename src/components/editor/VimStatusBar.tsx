@@ -29,7 +29,26 @@ export default function VimStatusBar({ ref, leading, status, children, className
       {status}
       <div data-vim-left className="sajni-vim-text flex min-w-0 items-center gap-2" />
       <div data-vim-msg className="sajni-vim-text min-w-0 flex-1 truncate" role="status" aria-live="polite" />
-      {children && <div className="flex shrink-0 items-center gap-1 tabular-nums">{children}</div>}
+      {children && <div className="flex shrink-0 items-center gap-1.5 tabular-nums">{children}</div>}
     </div>
   );
+}
+
+const CHIP = 'inline-flex h-[22px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-[hsl(var(--surface-container-high))] px-2.5 font-sans text-[11px] tabular-nums text-foreground/75';
+
+/** One segment of the status line (counts, backlinks, save state): same height as the mode chip. */
+export function StatusChip({ children, onClick, title, className }: {
+  children: ReactNode;
+  onClick?: () => void;
+  title?: string;
+  className?: string;
+}) {
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} title={title} className={cn(CHIP, 'transition-colors hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground', className)}>
+        {children}
+      </button>
+    );
+  }
+  return <span title={title} className={cn(CHIP, className)}>{children}</span>;
 }
