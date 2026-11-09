@@ -164,18 +164,54 @@
 .sajni-editor .cm-panels.cm-panels-bottom { display: none; }
 
 .sajni-vim-text { font-family: var(--font-code, ui-monospace, monospace); }
-/* A slim pill, one width for every mode so what follows never moves. */
+/* Status chains: rounded pieces overlapping by one radius, so every join is
+   the curve of the piece on top. The piece underneath is square on its hidden
+   end, so no second curve shows through. Left chain: the mode chip on top,
+   the save state tucked under it. Right chain: each later piece on top,
+   ending in Live · Source · Read. */
+.sajni-chain { --chain-h: 26px; --chain-r: 13px; display: inline-flex; align-items: center; flex-shrink: 0; }
+.sajni-seg, .sajni-vim-mode, .sajni-chain > [role="group"] { position: relative; height: var(--chain-h); border-radius: 999px; }
+.sajni-seg {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; white-space: nowrap;
+  font-family: var(--font-sans); font-size: 11px; font-variant-numeric: tabular-nums; color: hsl(var(--muted-foreground));
+}
+.sajni-seg[data-tone="1"] { background: hsl(var(--surface-container-high)); }
+.sajni-seg[data-tone="2"] { background: hsl(var(--surface-container-highest)); }
+.sajni-seg[data-tone="3"] { background: color-mix(in srgb, hsl(var(--surface-container-highest)) 93%, hsl(var(--on-surface)) 7%); color: hsl(var(--foreground) / 0.85); }
+.sajni-seg.is-button { cursor: pointer; transition: color 150ms; }
+/* Narrow windows drop the less important facts (a utility can't, this rule sets display). */
+@media (max-width: 1279px) { .sajni-seg.is-wide { display: none; } }
+.sajni-seg.is-button:hover { color: hsl(var(--foreground)); }
+
+/* Left: under the mode chip. */
+.sajni-chain:not(.rtl) .sajni-seg {
+  z-index: 1; margin-left: calc(-1 * var(--chain-r)); padding-left: calc(11px + var(--chain-r));
+  border-top-left-radius: 0; border-bottom-left-radius: 0;
+}
+/* Right: later pieces on top. */
+.sajni-chain.rtl > * + * { margin-left: calc(-1 * var(--chain-r)); }
+.sajni-chain.rtl > :not(:last-child) { padding-right: calc(11px + var(--chain-r)); border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.sajni-chain.rtl > :nth-child(1) { z-index: 1; } .sajni-chain.rtl > :nth-child(2) { z-index: 2; }
+.sajni-chain.rtl > :nth-child(3) { z-index: 3; } .sajni-chain.rtl > :nth-child(4) { z-index: 4; }
+.sajni-chain.rtl > :nth-child(5) { z-index: 5; }
+/* Live · Source · Read closes the right chain, a shade lighter than the last fact. */
+.sajni-chain > [role="group"] {
+  padding: 2px; gap: 2px;
+  background: color-mix(in srgb, hsl(var(--surface-container-highest)) 86%, hsl(var(--on-surface)) 14%);
+}
+.sajni-chain > [role="group"] > button { height: calc(var(--chain-h) - 4px); padding: 0 0.625rem; font-size: 11px; }
+
+/* The mode chip: one width for every mode so what follows never moves. */
 .sajni-vim-mode {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; height: 22px; padding: 0 0.5rem; border-radius: 999px;
+  z-index: 2; display: inline-flex; align-items: center; justify-content: center; min-width: 3rem; padding: 0 0.6875rem;
   font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; line-height: 1;
-  background: var(--color-primary); color: var(--color-primary-foreground); transition: opacity 150ms;
+  background: var(--color-primary); color: var(--color-primary-foreground); transition: filter 150ms;
 }
 .sajni-vim-mode[data-mode="insert"] { background: var(--color-tertiary); color: var(--color-tertiary-foreground); }
 .sajni-vim-mode[data-mode="visual"] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
 .sajni-vim-mode[data-mode="replace"] { background: var(--color-destructive); color: var(--color-destructive-foreground); }
-.sajni-vim-mode.is-idle { opacity: 0.45; }
-/* Live · Source · Read in the bar: the same 22px as the chips beside it. */
-.sajni-vim-status [role="group"] > button { height: 18px; padding: 0 0.5rem; font-size: 11px; }
+/* Not in the text: muted, but opaque, so nothing underneath shows through. */
+.sajni-vim-mode.is-idle { filter: saturate(0.35) brightness(0.8); }
 .sajni-vim-keys:empty, .sajni-vim-prompt:empty { display: none; }
 .sajni-vim-prompt > div { display: flex; align-items: center; color: hsl(var(--foreground)); }
 .sajni-vim-prompt input { width: 14rem; max-width: 30vw; border: 0; outline: 0; background: transparent; color: hsl(var(--foreground)); font: inherit; }

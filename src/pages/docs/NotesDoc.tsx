@@ -201,9 +201,10 @@ export default function NotesDoc() {
               what you've typed of an
               unfinished command (<Code>2d</Code>), or the <Code>:</Code> and{' '}
               <Code>/</Code> prompts. Next to it, Vim's messages
-              (<em>3 lines yanked</em>). On the right, the note's word count,
-              Live · Source · Read, <Kbd>⋯</Kbd> and Details, which otherwise
-              float in the corner.
+              (<em>3 lines yanked</em>). On the right, one linked strip: words,
+              characters, backlinks (click to open them) and Live · Source ·
+              Read, then <Kbd>⋯</Kbd> and Details, which otherwise float in the
+              corner.
             </p>
             <p>
               Only what you yank or cut reaches the clipboard.{' '}

@@ -24,7 +24,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { confirmDialog } from '@/lib/confirm';
 import { lazyPage } from '@/lib/lazyPage';
 import { useVimKeys } from '@/lib/vimPref';
-import VimStatusBar, { StatusChip } from '@/components/editor/VimStatusBar';
+import VimStatusBar, { StatusSeg } from '@/components/editor/VimStatusBar';
 import type { MarkdownEditorHandle } from '@/components/editor/MarkdownEditor';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -534,23 +534,25 @@ export default function NotesPage() {
       )}
     </>
   );
-  // The same facts as chips, for the Vim status line.
-  const countChips = doc && (
+  // The same facts as the Vim status line's right chain, ending in the view switch.
+  const factChain = doc && (
     <>
-      <StatusChip title={`${counts.characters.toLocaleString()} characters`}>
+      <StatusSeg tone={1} title={`${counts.characters.toLocaleString()} characters`}>
         {counts.words.toLocaleString()} {counts.words === 1 ? 'word' : 'words'}
-        <span className="hidden xl:inline">· {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}</span>
-      </StatusChip>
+      </StatusSeg>
+      <StatusSeg tone={2} className="is-wide">
+        {counts.characters.toLocaleString()} {counts.characters === 1 ? 'character' : 'characters'}
+      </StatusSeg>
       {doc.backlinks.length > 0 && (
-        <StatusChip onClick={openDetails} title="Show what links here">
+        <StatusSeg tone={3} onClick={openDetails} title="Show what links here">
           {doc.backlinks.length} {doc.backlinks.length === 1 ? 'backlink' : 'backlinks'}
-        </StatusChip>
+        </StatusSeg>
       )}
+      {modeSwitch}
     </>
   );
-  const viewNodes = doc && (
+  const sideButtons = doc && (
     <>
-      {modeSwitch}
       {overflowMenu}
       {!showDetailsRail && (
         <Button variant="ghost" size="icon-sm" className="size-8 rounded-full" onClick={openDetails} title="Show details" aria-label="Show details">
@@ -576,10 +578,10 @@ export default function NotesPage() {
     <VimStatusBar
       ref={setVimHost}
       leading={showLibraryButton}
-      status={<SaveState status={status} onRetry={() => { void flush(); }} chip />}
+      status={<SaveState status={status} onRetry={() => { void flush(); }} chip saved={doc.id != null} />}
+      trailing={sideButtons}
     >
-      {countChips}
-      {viewNodes}
+      {factChain}
     </VimStatusBar>
   ) : (
     <>
@@ -596,7 +598,8 @@ export default function NotesPage() {
       >
         {countsNode}
         <SaveState status={status} onRetry={() => { void flush(); }} />
-        {viewNodes}
+        {modeSwitch}
+        {sideButtons}
       </div>
     </>
   ));
@@ -753,16 +756,19 @@ function Rail({ side, width, defaultWidth, onResize, className, children }: {
   );
 }
 
-function SaveState({ status, onRetry, chip }: { status: SaveStatus; onRetry: () => void; chip?: boolean }) {
-  // Vim status line: a chip in a reserved slot, so nothing after it moves.
+function SaveState({ status, onRetry, chip, saved }: {
+  status: SaveStatus;
+  onRetry: () => void;
+  /** As a piece of the Vim status line, tucked under the mode chip. */
+  chip?: boolean;
+  /** The note exists on the server, so at rest it reads "Saved" (a new draft shows nothing). */
+  saved?: boolean;
+}) {
   if (chip) {
-    return (
-      <span className="flex min-w-[4.5rem] shrink-0 items-center" aria-live="polite">
-        {status === 'saving' && <StatusChip><M3CookieLoader size="xs" tone="primary" /> Saving</StatusChip>}
-        {status === 'saved' && <StatusChip>Saved</StatusChip>}
-        {status === 'error' && <StatusChip onClick={onRetry} className="text-destructive">Retry save</StatusChip>}
-      </span>
-    );
+    // One width for Saved / Saving, so the keys after it never move.
+    if (status === 'error') return <StatusSeg tone={2} onClick={onRetry} className="min-w-[5.75rem] !text-destructive">Retry save</StatusSeg>;
+    if (status === 'saving') return <StatusSeg tone={2} className="min-w-[5.75rem]"><M3CookieLoader size="xs" tone="primary" /> Saving</StatusSeg>;
+    return saved ? <StatusSeg tone={2} className="min-w-[5.75rem]">Saved</StatusSeg> : null;
   }
   // Reserved slot: the state changes in place, nothing beside it moves.
   return (
