@@ -946,6 +946,18 @@ export default function FinanceDoc() {
               </li>
               <li>If Sajni can't tell which account, the notification asks you.</li>
               <li>
+                Anything that mentions an amount and an account or a payment
+                is read, however it's worded. Only money that has already
+                moved is added: failed payments, requests, "will be debited"
+                notices, bill reminders and offers are skipped. OTP messages
+                never leave your phone.
+              </li>
+              <li>
+                For an email, Sajni sees only what Gmail's notification shows
+                (the subject and first lines). If the amount is further down,
+                it can't be captured; add it yourself.
+              </li>
+              <li>
                 The same payment often arrives twice, as an SMS and a UPI
                 notification. Sajni recognises the bank reference number and
                 asks <em>Add anyway?</em> rather than adding it twice. Two
