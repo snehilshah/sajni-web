@@ -45,7 +45,7 @@ const financeTabs = [
   { id: 'analytics', label: 'Analytics', icon: ChartColumn },
   { id: 'accounts', label: 'Accounts', icon: Landmark },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { id: 'lends', label: 'Lends', icon: Coins },
+  { id: 'lends', label: 'People', icon: Coins },
   { id: 'slates', label: 'Slates', icon: Wallet },
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
   { id: 'billers', label: 'Billers', icon: Receipt },
@@ -80,7 +80,8 @@ export default function FinancePage() {
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const active: TabId = useMemo(
-    () => (financeTabs.find((t) => t.id === tab)?.id as TabId) || 'analytics',
+    // The People tab keeps its old id, so /finance/lends links still work.
+    () => (financeTabs.find((t) => t.id === (tab === 'people' ? 'lends' : tab))?.id as TabId) || 'analytics',
     [tab],
   );
 
@@ -158,7 +159,7 @@ export default function FinancePage() {
   const loadSlates = () => qc.invalidateQueries({ queryKey: qk.finance.slates() });
 
   const [exportOpen, setExportOpen] = useState(false);
-  // Lends' buttons open the transaction sheet pre-filled, over the Lends tab
+  // People's buttons open the transaction sheet pre-filled, over the People tab
   // (the panels stay mounted), so a lend or a payment has one form.
   const [sheetRequest, setSheetRequest] = useState<SheetRequest | null>(null);
   // Local state is the re-render driver. setPrivacyMode() updates the module flag

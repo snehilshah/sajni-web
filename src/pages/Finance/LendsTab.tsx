@@ -136,7 +136,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
       </StatGroup>
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-serif text-lg font-semibold">People</h2>
+        <h2 className="font-serif text-lg font-semibold">Open</h2>
         <Button variant="outline" size="sm" onClick={onNewLend}><ArrowUpRight className="size-4" /> Lend</Button>
       </div>
 
@@ -210,10 +210,40 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment }:
     ...person.settlements.map((settlement) => ({ kind: 'settlement' as const, at: settlement.txn_at, settlement })),
   ].sort((a, b) => a.at.localeCompare(b.at)), [lends, person.settlements]);
 
+  // Everything up to the last time the person owed nothing is history, folded
+  // into one line so what's open now leads. A settled person shows it all.
+  const cut = useMemo(() => {
+    let owed = 0;
+    let last = -1;
+    events.forEach((e, i) => {
+      owed += e.kind === 'lend' ? e.lend.principal : -e.settlement.amount;
+      if (owed <= 0.005) last = i;
+    });
+    return last === events.length - 1 ? -1 : last;
+  }, [events]);
+  const [showHistory, setShowHistory] = useState(false);
+  const history = events.slice(0, cut + 1);
+  const shown = showHistory ? events : events.slice(cut + 1);
+  const historyLends = history.filter((e) => e.kind === 'lend').length;
+  const historyPayments = history.length - historyLends;
+
   return (
     <div className="flex flex-col px-4 pb-3">
-      {events.map((event, i) => {
-        const rail = { first: i === 0, last: i === events.length - 1 };
+      {history.length > 0 && (
+        <div className={ROW}>
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            aria-expanded={showHistory}
+            className="col-start-2 col-span-2 -ml-2 inline-flex h-9 items-center gap-1.5 justify-self-start rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
+          >
+            <ChevronDown className={cn('size-3.5 transition-transform', !showHistory && '-rotate-90')} />
+            Earlier: {historyLends} {historyLends === 1 ? 'lend' : 'lends'}, {historyPayments} {historyPayments === 1 ? 'payment' : 'payments'}, settled by {format(parseISO(history[history.length - 1].at), 'd MMM')}
+          </button>
+        </div>
+      )}
+      {shown.map((event, i) => {
+        const rail = { first: i === 0, last: i === shown.length - 1 };
         if (event.kind === 'lend') {
           const { lend } = event;
           const overdue = lend.status === 'open' && !!lend.due_date && lend.due_date < today();

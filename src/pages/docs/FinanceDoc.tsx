@@ -306,7 +306,7 @@ export default function FinanceDoc() {
             matches the bank's message and your card statement.
           </li>
           <li>Your Food spending goes up by only <strong>₹377.48</strong>, your half.</li>
-          <li>Rahul owes you ₹377.48, listed under Finance → Lends.</li>
+          <li>Rahul owes you ₹377.48, listed under Finance → People.</li>
           <li>
             The transaction row reads ₹754.96 with <em>yours ₹377.48</em>{' '}
             under it and a <em>Split · Rahul</em> tag.
@@ -360,7 +360,7 @@ export default function FinanceDoc() {
               while his stays put. Everything about Rahul's part (who, his
               share, when it's due, the reminder) lives in one place:{' '}
               <em>Edit lend</em>, from the bill's <em>Edit lend</em> button or
-              by tapping the lend in Lends. Changing his share only moves the
+              by tapping the lend in People. Changing his share only moves the
               line between your part and his; the bill stays ₹754.96.{' '}
               <em>Remove split</em> there makes the whole bill yours again.
               With several people, each one has their own <em>Edit lend</em>{' '}
@@ -377,7 +377,7 @@ export default function FinanceDoc() {
         </Callout>
       </Section>
 
-      <Section id="lending" title="Lending money" chip="tab: Lends">
+      <Section id="lending" title="Lending money" chip="tab: People">
         <p>
           Lending is an expense where <strong>all</strong> of it belongs to
           someone else.
@@ -408,12 +408,14 @@ export default function FinanceDoc() {
               One transaction at a time.
             </p>
           </Feature>
-          <Feature name="The Lends tab">
+          <Feature name="The People tab">
             <p>
               Everyone who owes you, with the total at the top. Tap a person to
-              see their history as a timeline, oldest first: what you lent (↗),
-              what came back (↙) and anything adjusted (✓). Tap any line to
-              edit it. People who have paid everything fold away under{' '}
+              see their timeline: what you lent (↗), what came back (↙) and
+              anything adjusted (✓). What's still open comes first; everything
+              up to the last time they owed you nothing folds into one{' '}
+              <em>Earlier</em> line, which opens on tap. Tap any line to edit
+              it. People who have paid everything fold away under{' '}
               <em>Settled</em>.
             </p>
             <p>
@@ -425,7 +427,7 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Editing or deleting a lend">
             <p>
-              Tap the lend (in Lends, or its row in Transactions) to open{' '}
+              Tap the lend (in People, or its row in Transactions) to open{' '}
               <em>Edit lend</em>: who, the amount or their share, when it's
               due, the reminder. <em>Delete</em> (a cash lend) or{' '}
               <em>Unmark</em> (a bill you marked) is at the bottom of the same
@@ -496,7 +498,7 @@ export default function FinanceDoc() {
             <p>
               Cash, or a transfer that was never captured: add it as an Income
               with its real date and time and <em>+ Settles a lend</em>. In
-              Lends, the person's <em>Settle</em> button opens exactly that.
+              People, the person's <em>Settle</em> button opens exactly that.
               Don't add it again if the SMS already did; settle that one.
             </p>
           </Feature>
@@ -514,7 +516,7 @@ export default function FinanceDoc() {
       <Section id="adjust" title="Adjusting what someone owes" chip="adjust">
         <Callout>
           <strong>Example.</strong> Rahul still owes ₹317.48 and you tell him
-          to leave it. Open Rahul in Lends and press <em>Adjust</em>. The
+          to leave it. Open Rahul in People and press <em>Adjust</em>. The
           amount starts at everything he owes; lower it to adjust only part.
           Choose what it counts as (say, Gifts) and the date and time.
         </Callout>
@@ -660,7 +662,7 @@ export default function FinanceDoc() {
             <p>
               If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 −
               ₹200 − ₹74.95), mark it paid back as above. She still owes
-              ₹74.95; open her in Lends and <em>Adjust</em> it in{' '}
+              ₹74.95; open her in People and <em>Adjust</em> it in{' '}
               <em>Cashback</em>. Record the card's cashback as usual: the
               adjustment and the refund cancel out in that category.
             </p>
