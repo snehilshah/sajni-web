@@ -282,11 +282,12 @@ function ActivityPanel() {
               ) : (
                 // Streak as a bar: track to the best run, fill to the current
                 // run — read at a glance instead of "DAY 0 CUR 3 BEST".
-                <div className="flex flex-col gap-3">
+                // One grid for all rows, so every track is the same length.
+                <div className="grid grid-cols-[minmax(0,38%)_1fr_auto] gap-y-3">
                   {(() => {
                     const scale = Math.max(1, ...data.habit_streaks.map((h) => Math.max(h.longest, h.current)));
                     return data.habit_streaks.slice(0, 8).map((s) => (
-                      <div key={s.name} className="grid grid-cols-[minmax(0,38%)_1fr_auto] items-center gap-3">
+                      <div key={s.name} className="col-span-full grid grid-cols-subgrid items-center gap-x-3">
                         <span className="text-sm truncate">{s.name}</span>
                         <div className="relative h-2 rounded-full bg-[hsl(var(--surface-container-highest))]">
                           <div className="absolute inset-y-0 left-0 rounded-full bg-[hsl(var(--outline-variant))]" style={{ width: `${(s.longest / scale) * 100}%` }} />
@@ -294,7 +295,7 @@ function ActivityPanel() {
                             <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${(s.current / scale) * 100}%` }} />
                           )}
                         </div>
-                        <span className={`tabular-nums text-xs ${s.current > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        <span className={`text-right tabular-nums text-xs ${s.current > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {s.current}/{s.longest}
                         </span>
                       </div>

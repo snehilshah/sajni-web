@@ -9,7 +9,6 @@ import { DateBadge } from '@/components/ui/state-chip';
 import { hueVar } from '@/components/ui/hue-pill';
 import { cn } from '@/lib/utils';
 import { AnimatedMoney } from './AnimatedMoney';
-import { CategoryPill } from './CategoryChips';
 import { Money } from './Money';
 import { Stat, StatGroup } from './StatGroup';
 import { useFinanceFormatters } from './useFinancePrivacy';
@@ -369,24 +368,30 @@ function DailyChart({ data }: { data: FinAnalytics }) {
   );
 }
 
-// The month's split as one stacked bar, then a row per category on fixed
-// columns: every track is the same length and shows the share of the month.
+// The month's split as one stacked bar, then the same row grid as the other
+// cards: [tile] [name over its bar] [amount over its share]. Every bar spans
+// the same column and shows the share of the month, not of the biggest.
 function CategoryBars({ cats }: { cats: FinAnalytics['categories'] }) {
   const { formatPercent } = useFinanceFormatters();
   const total = sumMoney(cats, (c) => c.spent) || 1;
   return (
-    <div className="flex flex-col gap-4 rounded-xl bg-card p-4">
+    <div className="flex flex-col gap-2 rounded-xl bg-card px-4 pb-1 pt-4">
       <ShareBar parts={cats.map((c) => ({ key: String(c.id) + c.name, label: c.name, value: c.spent, color: c.color }))} />
-      <div className="grid grid-cols-[minmax(0,8.5rem)_minmax(2.5rem,1fr)_auto_auto] items-center gap-x-3 gap-y-3">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto]">
         {cats.map((c) => (
-          <div key={String(c.id) + c.name} className="col-span-full grid grid-cols-subgrid items-center"
-            title={`${c.count} payment${c.count === 1 ? '' : 's'}`}>
-            <CategoryPill name={c.name} color={c.color} className="justify-self-start" />
-            <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-              <div className="h-full rounded-full" style={{ width: `${(c.spent / total) * 100}%`, backgroundColor: c.color || 'hsl(var(--outline))' }} />
+          <div key={String(c.id) + c.name} title={`${c.count} payment${c.count === 1 ? '' : 's'}`}
+            className="col-span-full grid grid-cols-subgrid items-center gap-x-3 py-3 [&+&]:border-t [&+&]:border-[hsl(var(--outline-variant)/0.5)]">
+            <Tile name={c.name} color={c.color} />
+            <div className="flex min-w-0 flex-col gap-2">
+              <span className="truncate text-sm font-medium leading-5">{c.name}</span>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                <div className="h-full rounded-full" style={{ width: `${(c.spent / total) * 100}%`, backgroundColor: c.color || 'hsl(var(--outline))' }} />
+              </div>
             </div>
-            <span className="text-right text-xs text-muted-foreground tabular-nums">{formatPercent(c.share)}</span>
-            <span className="whitespace-nowrap text-right text-sm tabular-nums"><Money value={c.spent} /></span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="whitespace-nowrap text-sm leading-5 tabular-nums"><Money value={c.spent} /></span>
+              <span className="text-xs leading-4 text-muted-foreground tabular-nums">{formatPercent(c.share)}</span>
+            </div>
           </div>
         ))}
       </div>

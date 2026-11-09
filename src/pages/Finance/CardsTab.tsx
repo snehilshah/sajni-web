@@ -83,16 +83,18 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             {card.credit_limit ? (() => {
               const used = (owed / card.credit_limit) * 100;
               return (
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                // Label above, bar on its own line: every card's bar is the
+                // full width, whatever the limit's length.
+                <div className="mt-2 flex flex-col gap-1.5">
+                  <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                    {formatPercent(used)} of <Money value={card.credit_limit} /> limit
+                  </span>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
                     <div
                       className="h-full rounded-full"
                       style={{ width: Math.min(used, 100) + '%', backgroundColor: used > 80 ? 'hsl(var(--destructive))' : card.color }}
                     />
                   </div>
-                  <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                    {formatPercent(used)} of <Money value={card.credit_limit} />
-                  </span>
                 </div>
               );
             })() : null}
