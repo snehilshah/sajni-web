@@ -191,8 +191,10 @@ export default function NotesDoc() {
               Settings → Editor keys → <strong>Vim</strong> (or{' '}
               <Code>&gt;Editor keys</Code> in the command palette) turns on Vim
               in Notes and Journal, on that computer only; phones never get it.
-              You start in normal mode, and the mode shows at the bottom left
-              while you're in the text. <Kbd>j</Kbd> and <Kbd>k</Kbd> move by
+              You start in normal mode. While you're in the text, the mode
+              shows as a small coloured pill at the bottom left (NOR, INS,
+              VIS, V-L, V-B, REP), with a half-typed command beside it; the{' '}
+              <Code>:</Code> and <Code>/</Code> prompts open next to it. <Kbd>j</Kbd> and <Kbd>k</Kbd> move by
               the line you see, so long wrapped paragraphs behave.
             </p>
             <p>

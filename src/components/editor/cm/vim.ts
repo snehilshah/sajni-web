@@ -1,5 +1,5 @@
 import { Facet, type Extension } from '@codemirror/state';
-import { drawSelection, EditorView } from '@codemirror/view';
+import { drawSelection, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 
 type VimModule = typeof import('@replit/codemirror-vim');
 type Register = ReturnType<VimModule['Vim']['getRegisterController']>['unnamedRegister'];
@@ -52,11 +52,98 @@ function load(): Promise<VimModule> {
   return mod;
 }
 
+const MODE_LABEL: Record<string, string> = {
+  normal: 'NOR', insert: 'INS', replace: 'REP',
+  visual: 'VIS', 'visual linewise': 'V-L', 'visual blockwise': 'V-B',
+};
+
+/**
+ * The mode as a small coloured pill pinned to the bottom of the window, at
+ * the text's left edge (where Notes' control bar sits on the right), with any
+ * half-typed command beside it. Shown only while the editor has focus. The
+ * ":" and "/" prompts sit next to it (see editor.css).
+ */
+function modePill(getCM: VimModule['getCM']) {
+  return ViewPlugin.fromClass(class {
+    view: EditorView;
+    pill: HTMLDivElement;
+    label: HTMLSpanElement;
+    keys: HTMLSpanElement;
+    cm: ReturnType<VimModule['getCM']> = null;
+    onMode = (e: { mode: string; subMode?: string }) => {
+      const key = e.subMode ? `${e.mode} ${e.subMode}` : e.mode;
+      this.pill.dataset.mode = e.mode;
+      this.label.textContent = MODE_LABEL[key] ?? e.mode.slice(0, 3).toUpperCase();
+      this.keys.textContent = '';
+    };
+    onKey = () => {
+      queueMicrotask(() => { this.keys.textContent = (this.cm?.state.vim as { status?: string } | undefined)?.status ?? ''; });
+    };
+    onDone = () => { this.keys.textContent = ''; };
+    onFocus = () => this.sync();
+    onResize = () => this.place();
+
+    constructor(view: EditorView) {
+      this.view = view;
+      this.pill = document.createElement('div');
+      this.pill.className = 'sajni-vim-mode';
+      this.pill.setAttribute('aria-hidden', 'true');
+      this.label = document.createElement('span');
+      this.label.className = 'sajni-vim-mode-label';
+      this.keys = document.createElement('span');
+      this.keys.className = 'sajni-vim-mode-keys';
+      this.pill.append(this.label, this.keys);
+      view.dom.appendChild(this.pill);
+      this.onMode({ mode: 'normal' });
+      view.dom.addEventListener('focusin', this.onFocus);
+      view.dom.addEventListener('focusout', this.onFocus);
+      window.addEventListener('resize', this.onResize);
+      this.attach();
+      this.place();
+      this.sync();
+    }
+    attach() {
+      if (this.cm) return;
+      this.cm = getCM(this.view);
+      this.cm?.on('vim-mode-change', this.onMode);
+      this.cm?.on('vim-keypress', this.onKey);
+      this.cm?.on('vim-command-done', this.onDone);
+    }
+    // Follow the text's left edge (rails open and close, the window resizes).
+    place() {
+      this.view.requestMeasure({
+        read: (v) => v.contentDOM.getBoundingClientRect().left,
+        write: (left, v) => { v.dom.style.setProperty('--vim-left', `${Math.round(left)}px`); },
+      });
+    }
+    sync() {
+      // focusout fires before focus lands elsewhere; look once it has.
+      requestAnimationFrame(() => {
+        this.pill.classList.toggle('is-on', this.view.dom.contains(document.activeElement));
+      });
+    }
+    update(u: ViewUpdate) {
+      this.attach();
+      if (u.geometryChanged) this.place();
+    }
+    destroy() {
+      this.cm?.off('vim-mode-change', this.onMode);
+      this.cm?.off('vim-keypress', this.onKey);
+      this.cm?.off('vim-command-done', this.onDone);
+      this.view.dom.removeEventListener('focusin', this.onFocus);
+      this.view.dom.removeEventListener('focusout', this.onFocus);
+      window.removeEventListener('resize', this.onResize);
+      this.pill.remove();
+    }
+  });
+}
+
 /** The Vim keymap and what it needs; loaded only once someone turns it on. */
 export async function vimExtension(onSave: () => void): Promise<Extension> {
-  const { vim, Vim } = await load();
+  const { vim, Vim, getCM } = await load();
   return [
-    vim({ status: true }),
+    vim(),
+    modePill(getCM),
     // Vim hides the browser's selection, so draw it (visual mode).
     drawSelection(),
     vimSave.of(onSave),
