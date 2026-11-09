@@ -155,6 +155,8 @@
 }
 .sajni-editor .cm-editor:not(.cm-focused) .cm-fat-cursor { display: none !important; }
 .sajni-editor .cm-selectionBackground { background: hsl(var(--primary) / 0.22) !important; }
+/* The drawn insert caret (drawSelection) defaults to black; match the usual caret. */
+.sajni-editor .cm-cursor, .sajni-editor .cm-dropCursor { border-left: 1.5px solid hsl(var(--primary)) !important; }
 .sajni-editor .cm-searchMatch { background: hsl(var(--primary) / 0.22); border-radius: 2px; }
 
 /* The mode pill: pinned to the window's bottom at the text's left edge,
