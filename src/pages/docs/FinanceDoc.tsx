@@ -810,6 +810,15 @@ export default function FinanceDoc() {
           Banks often cut long names short (“Salman Mohammad Isma”); those
           still match.
         </p>
+        <p>
+          Names too: give a captured payment the same name twice (“Bhola Khan”
+          → “Sewri” on two different days) and the next payment to Bhola Khan
+          arrives as “Sewri”, in Sewri's category. One person can be more
+          than one thing by amount: if Salman's ₹22 payments are “Office
+          Smoke” and his ₹60 ones “Salman's shop”, a ₹25 one comes in as
+          Office Smoke and a ₹55 one as Salman's shop. A name you use once
+          (“Chai with Ronak”) stays on that payment only.
+        </p>
       </Section>
 
       <Section id="slates" title="Slates" chip="tab">
