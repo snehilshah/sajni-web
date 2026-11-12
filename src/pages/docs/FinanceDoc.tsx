@@ -996,6 +996,26 @@ export default function FinanceDoc() {
               and auto-debit then switches itself off.
             </p>
           </Feature>
+          <Feature name="Money back">
+            <p>
+              When an RD matures (or you break an FD or redeem a SIP), add a
+              Transfer whose <em>From</em> is the investment and whose{' '}
+              <em>To</em> is the account the money landed in, for the whole
+              amount you got. Up to what you put in is your own money coming
+              back: a transfer, not income. Anything above it is filed under
+              Interest. The sheet shows the split before you save. Once
+              nothing is left invested the investment shows as closed, with
+              what you put in, got back and earned. Deleting the transfer
+              puts it all back.
+            </p>
+            <p>
+              <strong>Example.</strong> You put ₹1,50,000 into an RD and
+              Kotak credits ₹1,57,420 on 12 Dec: ₹1,50,000 comes back as a
+              transfer and ₹7,420 is Interest. If the phone captures the
+              bank's message within two days of the maturity date, and it's
+              at least what you put in, Sajni files it this way by itself.
+            </p>
+          </Feature>
         </FeatureList>
       </Section>
 

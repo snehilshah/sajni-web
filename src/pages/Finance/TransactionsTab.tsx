@@ -75,7 +75,8 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
   for (const t of txns) {
     // A transfer's two legs cancel out; counting both would double every
     // total. The out-leg carries the pair.
-    if (t.type === 'transfer_in') continue;
+    // Money back from an investment has no out-leg, so it stays.
+    if (t.type === 'transfer_in' && !t.investment_id) continue;
     const day = txnAtToParts(t.txn_at).date; // IST calendar day
     const monday = format(startOfWeek(parseISO(day), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const monthKey = day.slice(0, 7);
@@ -250,7 +251,7 @@ export default function TransactionsTab({
       if (accountFilter.length && !accountFilter.includes(String(t.account_id))) return false;
       if (categoryFilter.length && !categoryFilter.includes(t.category_id == null ? (CATEGORISED.has(t.type) ? 'none' : '') : String(t.category_id))) return false;
       if (typeFilter) {
-        if (typeFilter === 'transfer_out' && t.type !== 'transfer_out') return false;
+        if (typeFilter === 'transfer_out' && t.type !== 'transfer_out' && !(t.type === 'transfer_in' && t.investment_id)) return false;
         if (typeFilter !== 'transfer_out' && t.type !== typeFilter) return false;
       }
       return true;
@@ -699,7 +700,9 @@ function LedgerRow({
   linkedName: string;
   onTag: (tag: string) => void;
 }) {
-  const isTransfer = t.type === 'transfer_out';
+  // Money back from an investment is the in-leg with no pair.
+  const fromInvestment = t.type === 'transfer_in' && !!t.investment_id;
+  const isTransfer = t.type === 'transfer_out' || fromInvestment;
   // A forgiven lend reads as spending; a refund as money in.
   const isExpense = t.type === 'expense' || t.type === 'writeoff';
   const isLend = t.type === 'lend';
@@ -861,8 +864,8 @@ function LedgerRow({
           </span>
           <span aria-hidden className="md:hidden">·</span>
           <span className="truncate">
-            {accountName}
-            {isTransfer && (t.linked_account || t.investment_id) && ' → ' + linkedName}
+            {fromInvestment ? `${linkedName} → ${accountName}` : accountName}
+            {!fromInvestment && isTransfer && (t.linked_account || t.investment_id) && ' → ' + linkedName}
           </span>
         </div>
 

@@ -75,6 +75,8 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
             const gainPct = inv.invested_amount > 0 ? (gain / inv.invested_amount) * 100 : 0;
             const positive = gain >= 0;
             const matDays = inv.maturity_date ? differenceInDays(parseISO(inv.maturity_date), new Date()) : null;
+            // Closed: everything came back (an RD matured). Show what it earned.
+            const closed = !!inv.closed_on;
             return (
               <motion.div
                 key={inv.id}
@@ -98,6 +100,9 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                   </div>
                 </div>
 
+                {closed ? (
+                  <ClosedSummary inv={inv} />
+                ) : (<>
                 <div className="mt-3 flex items-baseline justify-between gap-2">
                   <div className="font-serif text-2xl font-semibold tabular-nums">
                     <Money value={inv.current_value} />
@@ -110,10 +115,11 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                   of <Money value={inv.invested_amount} /> invested
                   {!(inv.type === 'rd' || inv.type === 'fd') && inv.last_updated && ' · ' + format(parseISO(inv.last_updated), 'd MMM')}
                 </div>
+                </>)}
 
                 {/* Cadence and dates as badges; auto-debit is the one that
                     acts on its own, so it carries the accent. */}
-                {(inv.frequency !== 'lumpsum' || inv.maturity_date) && (
+                {!closed && (inv.frequency !== 'lumpsum' || inv.maturity_date) && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {inv.frequency !== 'lumpsum' && (
                       <DateBadge tone={inv.auto_debit ? 'accent' : 'neutral'} icon={<Repeat />}>
@@ -538,5 +544,26 @@ function CheckRow({
         <div className="text-xs text-muted-foreground mt-1">{desc}</div>
       </div>
     </label>
+  );
+}
+
+/** A closed investment (everything came back): what went in, what came back,
+ *  and what it earned. */
+function ClosedSummary({ inv }: { inv: FinInvestment }) {
+  const { formatPercent } = useFinanceFormatters();
+  const back = inv.returned_amount ?? 0;
+  const earned = inv.earned_amount ?? 0;
+  const putIn = subMoney(back, earned);
+  const pct = putIn > 0 ? (earned / putIn) * 100 : 0;
+  return (
+    <div className="mt-3 flex flex-col gap-0.5 text-sm">
+      <div className="text-xs text-muted-foreground">Closed {inv.closed_on ? format(parseISO(inv.closed_on), 'd MMM yyyy') : ''}</div>
+      <div className="tabular-nums">
+        Put in <Money value={putIn} /> · got back <Money value={back} />
+      </div>
+      {earned > 0 && (
+        <div className="text-primary tabular-nums">Earned <Money value={earned} /> · {formatPercent(pct, 1)}</div>
+      )}
+    </div>
   );
 }

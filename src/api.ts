@@ -1013,6 +1013,12 @@ export interface FinInvestment {
   /** When on, each cycle Sajni records a transfer from account_id into it. */
   auto_debit: boolean;
   next_debit_date: string | null;
+  /** Money back from it so far (own money + gain). */
+  returned_amount?: number;
+  /** The part of returned_amount above what was put in (Interest). */
+  earned_amount?: number;
+  /** Set once nothing is left invested: the day the last of it came back. */
+  closed_on?: string | null;
 }
 
 /** How much of a lend one pinned payment covers. */
@@ -1250,6 +1256,9 @@ export interface TxnDraft {
   linked_account?: number;
   /** Transfer only, instead of linked_account: pay into this investment. */
   investment_id?: number;
+  /** Transfer only: money back from this investment into account_id (an RD
+   *  maturing). Up to what's invested is a transfer, the rest Interest. */
+  from_investment_id?: number;
   /** Omit or 0 → Plain (normal life); N → that slate. */
   slate_id?: number;
   /** Refund only: the purchase it came back for. */

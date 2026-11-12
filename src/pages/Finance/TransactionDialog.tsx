@@ -159,6 +159,11 @@ export default function TransactionDialog({
   const splitResult = splitOn ? computeSplit(total, split) : null;
   const allTheirs = splitOn && isAllTheirs(split);
   const account = accounts.find((a) => String(a.id) === accountId);
+  // A new transfer can start from an investment ("inv:N" in From): money
+  // coming back, e.g. an RD maturing. The account it lands in is the To.
+  const fromInv = type === 'transfer' && !txn && accountId.startsWith('inv:')
+    ? investments.find((i) => `inv:${i.id}` === accountId) : undefined;
+  const fromInvSplit = fromInv ? splitReturn(fromInv.invested_amount, total) : null;
   // Slates worth offering: the live ones, plus whatever this txn already sits
   // in. Plain is not a choice; removing the add-on is.
   const pickableSlates = slates.filter((p) => !p.is_plain && (!p.archived || String(p.id) === slateId));
@@ -406,7 +411,7 @@ export default function TransactionDialog({
   // missing instead of the Add button silently doing nothing.
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (!accountId) e.account = 'Select an account.';
+    if (!accountId || (accountId.startsWith('inv:') && !fromInv)) e.account = 'Select an account.';
     const amt = parseFloat(amount);
     if (!amount.trim()) e.amount = 'Enter an amount.';
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
@@ -414,6 +419,7 @@ export default function TransactionDialog({
     if (type === 'transfer' && !txn) {
       if (!linkedId) e.linked = 'Choose where it goes.';
       else if (linkedId === accountId) e.linked = 'Destination must differ from the source.';
+      else if (accountId.startsWith('inv:') && linkedId.startsWith('inv:')) e.linked = 'Pick the account the money came into.';
     }
     if (splitResult?.error) Object.assign(e, splitResult.error);
     if (type === 'income' && addons.has('settle') && !person.trim()) e.person = 'Enter who is paying you back.';
@@ -439,11 +445,18 @@ export default function TransactionDialog({
     try {
       if (type === 'transfer') {
         // "inv:N" is an investment; anything else an account.
-        const into = linkedId.startsWith('inv:') ? { investment_id: parseInt(linkedId.slice(4)) } : { linked_account: parseInt(linkedId) };
-        await finance.createTransaction({
-          account_id: parseInt(accountId), type: 'transfer', amount: amt, description: description.trim(), note,
-          txn_at: txnAt, ...into,
-        });
+        if (accountId.startsWith('inv:')) {
+          await finance.createTransaction({
+            account_id: parseInt(linkedId), type: 'transfer', amount: amt, description: description.trim(), note,
+            txn_at: txnAt, from_investment_id: parseInt(accountId.slice(4)),
+          });
+        } else {
+          const into = linkedId.startsWith('inv:') ? { investment_id: parseInt(linkedId.slice(4)) } : { linked_account: parseInt(linkedId) };
+          await finance.createTransaction({
+            account_id: parseInt(accountId), type: 'transfer', amount: amt, description: description.trim(), note,
+            txn_at: txnAt, ...into,
+          });
+        }
       } else if (allTheirs && splitResult) {
         // All of it is theirs: money lent, not spent.
         await finance.createLend({
@@ -726,15 +739,38 @@ export default function TransactionDialog({
             </Field>
             <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
               <Field label={type === 'transfer' ? 'From' : 'Account'} error={errors.account} className="col-span-2 sm:col-span-1">
-                <Select value={accountId || undefined} onValueChange={(v) => { setAccountId(v ?? ''); clearError('account'); }}
-                  items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
+                <Select value={accountId || undefined}
+                  onValueChange={(v) => {
+                    setAccountId(v ?? ''); clearError('account');
+                    // Money back from an investment lands in its account by default.
+                    const inv = v?.startsWith('inv:') ? investments.find((i) => `inv:${i.id}` === v) : undefined;
+                    if (inv) {
+                      if ((!linkedId || linkedId.startsWith('inv:')) && inv.account_id) setLinkedId(String(inv.account_id));
+                      if (!description.trim()) setDescription(`${inv.name} matured`);
+                    }
+                  }}
+                  items={[
+                    ...accounts.map((a) => ({ value: String(a.id), label: a.name })),
+                    ...(type === 'transfer' && !txn ? investments.map((i) => ({ value: `inv:${i.id}`, label: i.name })) : []),
+                  ]}>
                   <SelectTrigger aria-invalid={!!errors.account}>
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {type === 'transfer' && !txn && investments.length > 0 && <SelectLabel>Accounts</SelectLabel>}
+                      {accounts.map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                    {type === 'transfer' && !txn && investments.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Investments</SelectLabel>
+                        {investments.map((i) => (
+                          <SelectItem key={i.id} value={`inv:${i.id}`}>{i.name}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
                   </SelectContent>
                 </Select>
               </Field>
@@ -754,7 +790,7 @@ export default function TransactionDialog({
                   }}
                   items={[
                     ...accounts.filter((a) => String(a.id) !== accountId).map((a) => ({ value: String(a.id), label: a.name })),
-                    ...investments.map((i) => ({ value: `inv:${i.id}`, label: i.name })),
+                    ...(fromInv ? [] : investments.map((i) => ({ value: `inv:${i.id}`, label: i.name }))),
                   ]}>
                   <SelectTrigger aria-invalid={!!errors.linked}>
                     <SelectValue placeholder="Select destination" />
@@ -766,7 +802,7 @@ export default function TransactionDialog({
                         <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
                       ))}
                     </SelectGroup>
-                    {investments.length > 0 && (
+                    {investments.length > 0 && !fromInv && (
                       <SelectGroup>
                         <SelectLabel>Investments</SelectLabel>
                         {investments.map((i) => (
@@ -777,6 +813,25 @@ export default function TransactionDialog({
                   </SelectContent>
                 </Select>
               </Field>
+            )}
+            {fromInv && fromInvSplit && total > 0 && (
+              <div className="flex flex-col gap-1 rounded-xl bg-[hsl(var(--surface-container))] px-4 py-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span>Your money back <span className="text-xs text-muted-foreground">· transfer</span></span>
+                  <Money value={fromInvSplit.principal} />
+                </div>
+                {fromInvSplit.gain > 0 && (
+                  <div className="flex justify-between gap-3 border-t border-[hsl(var(--outline-variant)/0.5)] pt-1">
+                    <span>Interest <span className="text-xs text-muted-foreground">· income</span></span>
+                    <span className="text-[hsl(var(--color-complete))]"><Money value={fromInvSplit.gain} /></span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  You have <Money value={fromInv.invested_amount} /> in {fromInv.name}, so up to that much is your own money coming back.
+                  {fromInvSplit.gain > 0 ? ' The rest is filed under Interest.' : ''}
+                  {fromInvSplit.principal >= fromInv.invested_amount - 0.005 ? ` ${fromInv.name} shows as closed afterwards.` : ''}
+                </p>
+              </div>
             )}
             {showCategory && (
               <Field
@@ -1001,4 +1056,11 @@ function Field({ label, className = '', children, hint, error }: { label: string
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
+}
+
+/** Money back from an investment: up to what's invested is the user's own
+ *  money, the rest a gain (mirrors db.SplitReturn). */
+function splitReturn(invested: number, amount: number): { principal: number; gain: number } {
+  const principal = Math.round(Math.min(Math.max(invested, 0), amount) * 100) / 100;
+  return { principal, gain: Math.round((amount - principal) * 100) / 100 };
 }
