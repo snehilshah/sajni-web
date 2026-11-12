@@ -1090,6 +1090,17 @@ export default function FinanceDoc() {
                 it's read only once.
               </li>
               <li>
+                Money in from someone who owes you comes with a{' '}
+                <em>Paid back · Papa</em> button on its notification: one tap
+                counts it toward what they owe overall (pin it to one lend from
+                People afterwards if you like). Sajni offers it when the
+                sender's name is the person's name (“Alefiya Abbas Rampur” for
+                Alefiya), or once you've marked a payment from that name as
+                theirs before (“Ronak Arvind Shah” is Papa). It only offers
+                when they still owe you something, and never files it without
+                the tap.
+              </li>
+              <li>
                 Open a captured transaction to see where it came from:{' '}
                 <em>Captured from bank SMS · GPay</em> lists every reporter that
                 told about it. @sajni can also tell you what the phone heard
