@@ -803,7 +803,12 @@ export default function FinanceDoc() {
         </p>
         <p>
           Sajni learns from you: once you file “Swiggy” under Food, the next
-          Swiggy transaction is filed there too.
+          Swiggy transaction is filed there too. It learns only from what you
+          choose or change, never from its own guesses, and never learns{' '}
+          <em>Others</em>. Rename a captured row (“Bhola Khan” → “Sewri”) and
+          set its category, and both names are filed that way from then on.
+          Banks often cut long names short (“Salman Mohammad Isma”); those
+          still match.
         </p>
       </Section>
 
@@ -1021,13 +1026,31 @@ export default function FinanceDoc() {
                 it can't be captured; add it yourself.
               </li>
               <li>
-                The same payment often arrives twice, as an SMS and a UPI
-                notification. Sajni recognises the bank reference number and
-                asks <em>Add anyway?</em> rather than adding it twice. Two
+                The same payment often arrives more than once: an SMS, a UPI
+                notification, and sometimes a bank email up to an hour later.
+                When a copy carries the same reference number and amount as
+                one already added, Sajni quietly drops it (references are
+                remembered for two weeks). If a copy has no reference but the
+                same amount minutes later, it asks <em>Add anyway?</em>. Two
                 payments are never merged just because the amounts match.
                 One bank text seen twice (as the SMS itself and as your
                 messages app's notification of it) is the same message, so
                 it's read only once.
+              </li>
+              <li>
+                A capture Sajni can't guess a category for is left
+                uncategorised for you to sort, rather than filed under{' '}
+                <em>Others</em>.
+              </li>
+              <li>
+                Your bank's message about an RD or SIP instalment Sajni already
+                recorded (“Standing Instruction processed”) just confirms it;
+                nothing is added twice.
+              </li>
+              <li>
+                If Sajni can't read a message (its AI is busy or down), it
+                tries again and then shows you the text to add yourself, so
+                nothing slips by unseen.
               </li>
             </ul>
           </Feature>
