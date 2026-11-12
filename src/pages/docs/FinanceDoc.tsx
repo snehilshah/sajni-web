@@ -1048,14 +1048,44 @@ export default function FinanceDoc() {
               <li>
                 The same payment often arrives more than once: an SMS, a UPI
                 notification, and sometimes a bank email up to an hour later.
-                When a copy carries the same reference number and amount as
-                one already added, Sajni quietly drops it (references are
-                remembered for two weeks). If a copy has no reference but the
-                same amount minutes later, it asks <em>Add anyway?</em>. Two
-                payments are never merged just because the amounts match.
+                Sajni remembers every message it has heard for two weeks and
+                treats each sender as one reporter: your bank's SMS, GPay, and
+                each kind of bank email (Kotak's “Fund transfer” mail and its
+                later “Credit Alert” mail are two reporters). Each reporter
+                tells about a payment once. So:
+                <ul>
+                  <li>
+                    The same reference number and amount as a payment already
+                    added: dropped quietly, even if you've since deleted that
+                    payment.
+                  </li>
+                  <li>
+                    Different reference numbers: always two payments, never
+                    asked about. Two ₹22 teas at Sewri minutes apart are two
+                    rows.
+                  </li>
+                  <li>
+                    No reference, same amount, within three hours: if another
+                    reporter already told about it (GPay's “Alefiya paid you
+                    ₹1,322” after Kotak's SMS), it's the same payment and is
+                    dropped quietly. If the same reporter tells again (a second
+                    bank SMS), it's a second payment.
+                  </li>
+                  <li>
+                    The same reference with a different amount is the only case
+                    Sajni asks about: <em>Add anyway?</em>
+                  </li>
+                </ul>
                 One bank text seen twice (as the SMS itself and as your
                 messages app's notification of it) is the same message, so
                 it's read only once.
+              </li>
+              <li>
+                Open a captured transaction to see where it came from:{' '}
+                <em>Captured from bank SMS · GPay</em> lists every reporter that
+                told about it. @sajni can also tell you what the phone heard
+                lately and what it did with each message (“why wasn't my NEFT to
+                Papa captured?”). Message text is kept for 30 days.
               </li>
               <li>
                 A capture Sajni can't guess a category for is left

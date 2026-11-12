@@ -895,6 +895,8 @@ export interface FinTransaction {
   /** Money the user owes someone (debt) or pays them back (payment). */
   owed?: FinTxnOwed | null;
   created_at: string;
+  /** Where auto-capture heard of it ("bank SMS · GPay"); empty when entered by hand. */
+  seen_via?: string;
 }
 
 export interface FinTxnOwed {

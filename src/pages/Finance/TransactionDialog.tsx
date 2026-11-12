@@ -889,6 +889,9 @@ export default function TransactionDialog({
                 ))}
               </div>
             )}
+            {txn?.seen_via && (
+              <p className="text-xs text-muted-foreground">Captured from {txn.seen_via}</p>
+            )}
           </div>
         </div>
         <DialogFooter className="flex-row items-center justify-between">
