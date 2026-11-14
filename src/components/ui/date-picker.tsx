@@ -22,6 +22,8 @@ export interface DatePickerProps {
   showWeekday?: boolean
   /** Muted lead-in inside the field ("Due"), so it reads without a label. */
   prefix?: React.ReactNode
+  /** Always show the year ("Sat, 14 Nov 2026"); otherwise only when it isn't this year. */
+  withYear?: boolean
 }
 
 function isoToDate(iso?: string): Date | undefined {
@@ -51,12 +53,14 @@ export function DatePicker({
   name,
   showWeekday = true,
   prefix,
+  withYear = false,
 }: DatePickerProps) {
   const generatedId = React.useId()
   const fieldId = id ?? generatedId
   const [open, setOpen] = React.useState(false)
   const selected = isoToDate(value)
-  const display = selected ? format(selected, showWeekday ? "EEE, d MMM" : "d MMM yyyy") : placeholder
+  const year = withYear || (selected && selected.getFullYear() !== new Date().getFullYear()) ? " yyyy" : ""
+  const display = selected ? format(selected, showWeekday ? "EEE, d MMM" + year : "d MMM yyyy") : placeholder
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

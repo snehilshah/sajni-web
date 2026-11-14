@@ -1381,6 +1381,12 @@ export const finance = {
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request('/finance/transactions/' + id, { method: 'DELETE' }),
+  // A saved expense or income was money between the user's own accounts
+  // (an Amazon Pay top-up, cash handed back by UPI): make it a transfer.
+  makeTransfer: (id: number, accountId: number, description?: string) =>
+    request<{ id: number; pair_id: number }>('/finance/transactions/' + id + '/transfer', {
+      method: 'POST', body: JSON.stringify({ account_id: accountId, ...(description ? { description } : {}) }),
+    }),
 
   // Lending receivables. Principal moves out of/in to real accounts while
   // outstanding principal remains a separate asset in net worth.

@@ -3,12 +3,14 @@ import {
   DayPicker,
   getDefaultClassNames,
   type DayButton,
+  type DropdownProps,
   type Locale,
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "@/components/ui/icons"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 function Calendar({
   className,
@@ -100,10 +102,10 @@ function Calendar({
           defaultClassNames.week_number
         ),
         day: cn(
-          "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
-          props.showWeekNumber
-            ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)"
-            : "[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)",
+          // No one-sided radius on the first/last column: next to the
+          // button's rounded-full it collapsed those days' highlight to a
+          // square (the corner radii scale down together).
+          "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none",
           defaultClassNames.day
         ),
         range_start: cn(
@@ -141,6 +143,8 @@ function Calendar({
             />
           )
         },
+        // Month and year pickers in Sajni's own Select, not the browser's.
+        Dropdown: CalendarDropdown,
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
@@ -174,6 +178,31 @@ function Calendar({
       }}
       {...props}
     />
+  )
+}
+
+function CalendarDropdown({ options, value, onChange, disabled, "aria-label": ariaLabel }: DropdownProps) {
+  const items = (options ?? []).map((o) => ({ value: String(o.value), label: o.label }))
+  return (
+    <Select
+      value={value == null ? undefined : String(value)}
+      disabled={disabled}
+      items={items}
+      onValueChange={(v) => {
+        if (v == null) return
+        // DayPicker reads e.target.value, as from its own <select>.
+        onChange?.({ target: { value: v } } as unknown as React.ChangeEvent<HTMLSelectElement>)
+      }}
+    >
+      <SelectTrigger size="sm" aria-label={ariaLabel} className="h-8 w-auto gap-1 rounded-full bg-[hsl(var(--surface-container-highest))] px-3 font-medium">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="max-h-64">
+        {(options ?? []).map((o) => (
+          <SelectItem key={o.value} value={String(o.value)} disabled={o.disabled}>{o.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 

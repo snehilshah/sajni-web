@@ -40,7 +40,7 @@ import { SplitFields, computeSplit, emptySplit, isAllTheirs, splitNames, type Sp
 
 const fixedField: CSSProperties & { fieldSizing: 'fixed' } = { fieldSizing: 'fixed' };
 
-type Addon = 'split' | 'payback' | 'settle' | 'owe' | 'refund' | 'slate' | 'note';
+type Addon = 'split' | 'payback' | 'settle' | 'owe' | 'refund' | 'transfer' | 'slate' | 'note';
 
 export const personKey = (name: string) => name.trim().toLowerCase();
 // Money typed or pasted ("₹1,200.50") down to a plain decimal string.
@@ -195,6 +195,7 @@ export default function TransactionDialog({
   // name would settle someone.)
   const pendingLabel = !txn ? null
     : splitOn && splitResult && !splitResult.error ? 'Split this bill'
+      : addons.has('transfer') && linkedId ? 'Make it a transfer'
       : type === 'income' && addons.has('settle') && person.trim() ? 'Mark as paid back'
         : type === 'income' && addons.has('owe') && person.trim() ? 'Mark as owed back'
           : type === 'expense' && addons.has('payback') && person.trim() ? 'Mark as paying back'
@@ -387,24 +388,35 @@ export default function TransactionDialog({
       // Settling, owing back and refunding are different stories about the
       // same credit; splitting and paying back about the same expense.
       const apart: Partial<Record<Addon, Addon[]>> = {
-        settle: ['refund', 'owe'], refund: ['settle', 'owe'], owe: ['settle', 'refund'],
-        split: ['payback'], payback: ['split'],
+        settle: ['refund', 'owe', 'transfer'], refund: ['settle', 'owe', 'transfer'], owe: ['settle', 'refund', 'transfer'],
+        split: ['payback', 'transfer'], payback: ['split', 'transfer'],
+        transfer: ['split', 'payback', 'settle', 'owe', 'refund'],
       };
       for (const other of apart[a] ?? []) next.delete(other);
       return next;
     });
     if (a === 'refund' || (a === 'settle' && addons.has('refund'))) setCategoryId('');
     if (a === 'split') setSplit(emptySplit());
+    if (a === 'transfer') setLinkedId('');
     if (a === 'settle' || a === 'owe' || a === 'payback') { setPerson(''); setTowardLendId(''); setDueDate(''); }
     // A slate add-on with one slate to offer picks it.
     if (a === 'slate' && pickableSlates.length === 1) setSlateId(String(pickableSlates[0].id));
     setJustAdded(a);
   };
+  // An add-on just switched on slides into view in the side column instead
+  // of growing the sheet.
+  const sideRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!justAdded) return;
+    const el = sideRef.current?.querySelector(`[data-addon="${justAdded}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [justAdded]);
   const removeAddon = (a: Addon) => {
     setAddons((prev) => { const next = new Set(prev); next.delete(a); return next; });
     if (a === 'slate') setSlateId(String(slates.find((p) => p.is_plain)?.id ?? 0));
     if (a === 'note') setNote('');
     if (a === 'refund') { setRefundOf(''); setCategoryId(''); }
+    if (a === 'transfer') setLinkedId('');
   };
 
   // Collect per-field validation messages so the user sees exactly what's
@@ -494,14 +506,18 @@ export default function TransactionDialog({
   // a deliberate step.
   const applyToExisting = async () => {
     if (!txn || saving) return;
-    if (type === 'expense' && splitResult?.error) { setErrors(splitResult.error); return; }
-    if ((type !== 'expense' || addons.has('payback')) && !person.trim()) { setErrors({ person: 'Enter who it\'s with.' }); return; }
+    if (addons.has('transfer')) {
+      if (!linkedId) { setErrors({ linked: 'Choose the other account.' }); return; }
+    } else if (type === 'expense' && splitResult?.error) { setErrors(splitResult.error); return; }
+    if (!addons.has('transfer') && (type !== 'expense' || addons.has('payback')) && !person.trim()) { setErrors({ person: 'Enter who it\'s with.' }); return; }
     if (!description.trim()) { setErrors({ description: 'Add a title.' }); return; }
     setSaving(true);
     try {
       // Land any pending field edits first, then make the structural change.
       if (editor.changed) await editor.commit(values);
-      if (type === 'income' && addons.has('owe')) {
+      if (addons.has('transfer')) {
+        await finance.makeTransfer(txn.id, Number(linkedId));
+      } else if (type === 'income' && addons.has('owe')) {
         await finance.markBorrow({ transaction_id: txn.id, person: person.trim(), ...(dueDate ? { due_date: dueDate } : {}) });
       } else if (type === 'expense' && addons.has('payback')) {
         await finance.markPayBack({ transaction_id: txn.id, person: person.trim() });
@@ -541,15 +557,19 @@ export default function TransactionDialog({
   // Money owed or paid back that's already saved is undone, not re-filed.
   const savedOwed = txn?.owed ?? null;
   const oweAnyone = people.some((p) => (p.you_owe ?? 0) > 0);
-  const offered: Addon[] = (type === 'expense' ? ['split', 'payback', 'slate', 'note'] as Addon[]
-    : type === 'income' ? ['settle', 'owe', 'refund', 'slate', 'note'] as Addon[]
+  // A saved plain expense or income can turn out to be money between the
+  // user's own accounts.
+  const canTransfer = !!txn && (txn.type === 'expense' || txn.type === 'income') && !existingSplits.length && !savedOwed;
+  const offered: Addon[] = (type === 'expense' ? ['split', 'payback', 'transfer', 'slate', 'note'] as Addon[]
+    : type === 'income' ? ['settle', 'owe', 'refund', 'transfer', 'slate', 'note'] as Addon[]
       : ['note'] as Addon[])
+    .filter((a) => a !== 'transfer' || canTransfer)
     .filter((a) => a !== 'slate' || pickableSlates.length > 0 || addons.has('slate'))
     .filter((a) => a !== 'payback' || oweAnyone || addons.has('payback'))
     .filter((a) => !savedOwed || a === 'slate' || a === 'note');
   const owed = people.find((p) => personKey(p.borrower) === personKey(person));
   const addLabel: Record<Addon, string> = {
-    split: 'Split', payback: 'Pays back', settle: 'Settles a lend', owe: 'To pay back', refund: 'Refund', slate: 'Slate', note: 'Note',
+    split: 'Split', payback: 'Pays back', settle: 'Settles a lend', owe: 'To pay back', refund: 'Refund', transfer: 'Transfer', slate: 'Slate', note: 'Note',
   };
   const undoOwed = async () => {
     if (!savedOwed) return;
@@ -655,6 +675,24 @@ export default function TransactionDialog({
         }} />
       </AddonSection>
     );
+    if (a === 'transfer') return (
+      <AddonSection key={a} label={type === 'income' ? 'Transfer from' : 'Transfer to'} onRemove={() => removeAddon('transfer')}>
+        <Field label={type === 'income' ? 'From' : 'To'} error={errors.linked}>
+          <Select value={linkedId || undefined} onValueChange={(v) => { setLinkedId(v ?? ''); clearError('linked'); }}
+            items={accounts.filter((x) => String(x.id) !== accountId).map((x) => ({ value: String(x.id), label: x.name }))}>
+            <SelectTrigger aria-invalid={!!errors.linked}><SelectValue placeholder="Select account" /></SelectTrigger>
+            <SelectContent>
+              {accounts.filter((x) => String(x.id) !== accountId).map((x) => (
+                <SelectItem key={x.id} value={String(x.id)}>{x.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <p className="text-xs text-muted-foreground">
+          Money that only moved between your accounts: {type === 'income' ? 'not income' : 'not spending'}.
+        </p>
+      </AddonSection>
+    );
     if (a === 'slate') return (
       <AddonSection key={a} label="Slate" onRemove={() => removeAddon('slate')}>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
@@ -686,21 +724,25 @@ export default function TransactionDialog({
   };
 
   // A credit that pays someone back becomes a repayment: no category.
-  const showCategory = type !== 'transfer' && !allTheirs && !(type === 'income' && addons.has('settle'))
+  const showCategory = type !== 'transfer' && !allTheirs && !addons.has('transfer') && !(type === 'income' && addons.has('settle'))
     && !savedOwed && !(type === 'income' && addons.has('owe')) && !(type === 'expense' && addons.has('payback'));
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       {/* Sized in rem so density (Compact/Cozy) scales the sheet with its
-          type; the title and footer stay put while the form scrolls. */}
-      <DialogContent showCloseButton={false} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-xl">
+          type; the title and footer stay put while the form scrolls. From
+          md up it's two columns at a fixed height: what you type on the
+          left, category and add-ons on the right (that column scrolls), so
+          adding a Split or a Note never resizes the sheet. */}
+      <DialogContent showCloseButton={false} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-xl md:h-[min(42rem,90dvh)] md:max-w-4xl">
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{txn ? (isRefund ? 'Edit refund' : 'Edit transaction') : 'New transaction'}</DialogTitle>
           </div>
         </DialogHeader>
         {/* The fade sits inside the 8px padding, so at rest it touches no content. */}
-        <div className="-mx-6 -my-2 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-2 [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%-8px),transparent)]">
+        <div className="-mx-6 -my-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-2 [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%-8px),transparent)] md:grid md:grid-cols-2 md:gap-8 md:overflow-hidden">
+          <div className="flex flex-col gap-3 md:-mx-1 md:min-h-0 md:overflow-x-hidden md:overflow-y-auto md:px-1 md:py-1">
           {!txn && (
             <div className="grid grid-cols-3 gap-1 rounded-full bg-muted p-1">
               {(['expense', 'income', 'transfer'] as const).map((t) => (
@@ -716,7 +758,6 @@ export default function TransactionDialog({
               ))}
             </div>
           )}
-          <div className="flex flex-col gap-3">
             <Field label={existingSplits.length || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
               <Input
                 inputMode="decimal"
@@ -737,8 +778,7 @@ export default function TransactionDialog({
                 maxLength={120}
               />
             </Field>
-            <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-              <Field label={type === 'transfer' ? 'From' : 'Account'} error={errors.account} className="col-span-2 sm:col-span-1">
+              <Field label={type === 'transfer' ? 'From' : 'Account'} error={errors.account}>
                 <Select value={accountId || undefined}
                   onValueChange={(v) => {
                     setAccountId(v ?? ''); clearError('account');
@@ -774,7 +814,10 @@ export default function TransactionDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
+            {/* Date and time get a row of their own: room for "Fri, 13 Nov
+                2026" and "9:26 PM" without truncating. */}
+            <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2">
+              <Field label="Date"><DatePicker value={date} onChange={setDate} withYear /></Field>
               <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
             </div>
             {type === 'transfer' && !txn && (
@@ -833,6 +876,8 @@ export default function TransactionDialog({
                 </p>
               </div>
             )}
+          </div>
+          <div ref={sideRef} className="flex flex-col gap-3 md:-mx-1 md:min-h-0 md:overflow-x-hidden md:overflow-y-auto md:px-1 md:py-1">
             {showCategory && (
               <Field
                 label={splitOn || existingSplits.length ? 'Category of your part' : 'Category'}
@@ -874,7 +919,7 @@ export default function TransactionDialog({
                 </SummaryRow>
               </section>
             )}
-            {offered.filter((a) => addons.has(a)).map(section)}
+            {offered.filter((a) => addons.has(a)).map((a) => <div key={a} data-addon={a}>{section(a)}</div>)}
             {offered.some((a) => !addons.has(a)) && (
               <div className="flex flex-wrap gap-1.5">
                 {offered.filter((a) => !addons.has(a)).map((a) => (

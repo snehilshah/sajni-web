@@ -202,7 +202,11 @@ export default function FinanceDoc() {
           <strong>Income</strong> or <strong>Transfer</strong>; the amount; a
           title (“Lunch at Cafe X”); the account, date and time; and a
           category. Sajni suggests a category as you type the title (marked{' '}
-          <em>auto</em>); pick one yourself and it stops guessing.
+          <em>auto</em>); pick one yourself and it stops guessing. On a
+          computer the sheet has two columns: what you type on the left,
+          category and extras on the right, and it keeps its size as you add
+          extras. Type the time straight in (“926” is 9:26) or nudge it a
+          minute with ↑ ↓; <em>Now</em> sets the current time.
         </p>
         <p>
           Every transaction needs a <strong>title</strong>; the sheet won't
@@ -219,8 +223,8 @@ export default function FinanceDoc() {
         <RefTable
           head={['kind', 'optional extras']}
           rows={[
-            ['Expense', 'Split, Slate, Note'],
-            ['Income', 'Settles a lend, Refund, Slate, Note'],
+            ['Expense', 'Split, Pays back, Slate, Note (saved ones: Transfer)'],
+            ['Income', 'Settles a lend, To pay back, Refund, Slate, Note (saved ones: Transfer)'],
             ['Transfer', 'Note'],
           ]}
         />
@@ -231,6 +235,13 @@ export default function FinanceDoc() {
               ATM, or salary to pay a card. A transfer is neither spending nor
               income, so it never changes your totals. Both sides stay in step
               when you edit it.
+            </p>
+            <p>
+              <strong>Example.</strong> You gave Rahul ₹200 in cash and he sent
+              it back by UPI, which Sajni filed as ₹200 income in Salary. Open
+              it, add <em>Transfer</em>, pick <em>From</em> Cash and press{' '}
+              <em>Make it a transfer</em>: Cash drops by ₹200, Salary keeps it,
+              and your income doesn't change.
             </p>
           </Feature>
           <Feature name="Paying into an investment">
@@ -1041,7 +1052,12 @@ export default function FinanceDoc() {
                 If the account is matched (see matching hints), it's added
                 straight away, with an <em>Undo</em> in the notification.
               </li>
-              <li>If Sajni can't tell which account, the notification asks you.</li>
+              <li>
+                If Sajni can't tell which account, the notification asks you.
+                For a wallet you don't keep in Sajni (Zomato Money, a meal
+                card), tap <em>Don't track Zomato Money</em> and it stops
+                asking; Settings → Finance lists them to undo.
+              </li>
               <li>
                 Anything that mentions an amount and an account or a payment
                 is read, however it's worded. Only money that has already
@@ -1086,8 +1102,27 @@ export default function FinanceDoc() {
                   </li>
                 </ul>
                 One bank text seen twice (as the SMS itself and as your
-                messages app's notification of it) is the same message, so
-                it's read only once.
+                messages app's notification of it, even an hour later) is the
+                same message, so it's read only once. A bank email that writes
+                “at 11:40” for 11:40 at night is read as night, so it still
+                matches the SMS.
+              </li>
+              <li>
+                Money moving between your own accounts is one transfer, not a
+                spend and an income: ICICI's “debited ₹500; Amazon Pay balance
+                credited” and Amazon's “₹500 added to your Amazon Pay balance”
+                become <em>ICICI Savings → Amazon Wallet</em>.
+              </li>
+              <li>
+                When a captured row was really a transfer (₹100 “sent to SNEHIL
+                RONAK SHAH” is you loading UPI Lite), open it and add{' '}
+                <em>Transfer</em>. Sajni remembers: money to your own name goes
+                to UPI Lite from then on; anyone else needs it done twice.
+              </li>
+              <li>
+                An FD maturing that Sajni doesn't track (Kotak's ActivMoney
+                sweep) isn't ₹20,493 of income: the swept ₹20,000 is your own
+                money coming back, so only ₹493 is filed, as FD interest.
               </li>
               <li>
                 Money in from someone who owes you comes with a{' '}

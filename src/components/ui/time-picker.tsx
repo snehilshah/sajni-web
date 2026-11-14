@@ -3,14 +3,16 @@ import { Clock, X } from "@/components/ui/icons"
 
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 /**
  * M3 expressive time field — drop-in replacement for `<Input type="time" />`.
  *
  * value / onChange use 24h `HH:MM` strings (matches the HTML time input
- * contract). The popup is a shadcn Popover with two scroll columns (12h
- * hour, 5-min minute) and an AM/PM segmented control — no native picker.
+ * contract). The popup is a shadcn Popover with the M3 time input: typed
+ * hour and minute (↑/↓ move one), an AM/PM toggle and Now. No native
+ * picker, no scrolling through 5-minute steps.
  */
 export interface TimePickerProps {
   value?: string
@@ -22,8 +24,6 @@ export interface TimePickerProps {
   name?: string
 }
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 1) // 1..12
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5) // 0,5,..55
 
 interface Parts { h12: number; min: number; pm: boolean }
 
@@ -50,44 +50,54 @@ function display(parts: Parts | null): string {
   return `${parts.h12}:${String(parts.min).padStart(2, "0")} ${parts.pm ? "PM" : "AM"}`
 }
 
-// One scroll column (hour / minute). Module-level so it isn't re-created on
-// every TimePicker render — the React Compiler forbids defining a component
-// during render (react-hooks/static-components).
-function Col({
-  items, selected, onPick, fmt, ariaLabel,
+// One typed segment (hour or minute): type the digits, or ↑/↓ by one.
+// Module-level so it isn't re-created on every render (React Compiler).
+function Segment({
+  value, min, max, onChange, onFilled, ariaLabel, inputRef, autoFocus,
 }: {
-  items: number[]
-  selected: number
-  onPick: (n: number) => void
-  fmt: (n: number) => string
+  value: number
+  min: number
+  max: number
+  onChange: (n: number) => void
+  /** Called when the segment is complete (two digits, or one that can't grow). */
+  onFilled?: () => void
   ariaLabel: string
+  inputRef?: React.Ref<HTMLInputElement>
+  autoFocus?: boolean
 }) {
+  const [text, setText] = React.useState<string | null>(null)
+  const shown = text ?? String(value).padStart(2, "0")
   return (
-    <ScrollArea className="h-[200px] w-14">
-      <div className="flex flex-col gap-0.5 pr-2" role="listbox" aria-label={ariaLabel}>
-        {items.map((n) => {
-          const active = n === selected
-          return (
-            <button
-              key={n}
-              type="button"
-              role="option"
-              aria-selected={active}
-              ref={active ? (el) => el?.scrollIntoView({ block: "center" }) : undefined}
-              onClick={() => onPick(n)}
-              className={cn(
-                "h-9 shrink-0 rounded-full text-sm tabular-nums transition-colors",
-                active
-                  ? "bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] font-medium"
-                  : "text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.08)]",
-              )}
-            >
-              {fmt(n)}
-            </button>
-          )
-        })}
-      </div>
-    </ScrollArea>
+    <Input
+      ref={inputRef}
+      inputMode="numeric"
+      autoFocus={autoFocus}
+      aria-label={ariaLabel}
+      value={shown}
+      onFocus={(e) => e.currentTarget.select()}
+      onBlur={() => setText(null)}
+      onChange={(e) => {
+        const digits = e.target.value.replace(/\D/g, "").slice(-2)
+        setText(digits)
+        if (!digits) return
+        const n = Number(digits)
+        if (n >= min && n <= max) onChange(n)
+        // "9" can't become a valid hour 9x, "6" no minute 6x: move on.
+        if (digits.length === 2 || n * 10 > max) { setText(null); onFilled?.() }
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return
+        e.preventDefault()
+        const span = max - min + 1
+        const next = ((value - min + (e.key === "ArrowUp" ? 1 : -1)) % span + span) % span + min
+        setText(null)
+        onChange(next)
+      }}
+      className={cn(
+        "h-16 w-[4.5rem] px-0 py-0 rounded-xl border-0 bg-[hsl(var(--surface-container-highest))] text-center text-4xl font-medium tabular-nums text-foreground outline-none",
+        "focus:bg-[hsl(var(--primary-container))] focus:text-[hsl(var(--on-primary-container))] focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
+      )}
+    />
   )
 }
 
@@ -103,6 +113,7 @@ export function TimePicker({
   const generatedId = React.useId()
   const fieldId = id ?? generatedId
   const [open, setOpen] = React.useState(false)
+  const minuteRef = React.useRef<HTMLInputElement>(null)
   const parts = parse(value)
 
   // Editing defaults: a fresh pick lands on 9:00 AM so the columns aren't
@@ -143,43 +154,58 @@ export function TimePicker({
           </span>
         )}
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-2">
-        <div className="flex items-stretch gap-1">
-          <Col
-            items={HOURS}
-            selected={current.h12}
-            onPick={(h12) => emit({ ...current, h12 })}
-            fmt={(n) => String(n)}
+      <PopoverContent align="start" className="w-auto p-4">
+        <div className="flex items-center gap-2">
+          <Segment
+            value={current.h12}
+            min={1}
+            max={12}
+            onChange={(h12) => emit({ ...current, h12 })}
+            onFilled={() => minuteRef.current?.focus()}
             ariaLabel="Hour"
+            autoFocus
           />
-          <div className="flex items-center text-muted-foreground">:</div>
-          <Col
-            items={parts && !MINUTES.includes(parts.min) ? [...MINUTES, parts.min].sort((a, b) => a - b) : MINUTES}
-            selected={current.min}
-            onPick={(min) => emit({ ...current, min })}
-            fmt={(n) => String(n).padStart(2, "0")}
+          <span className="text-3xl text-muted-foreground">:</span>
+          <Segment
+            value={current.min}
+            min={0}
+            max={59}
+            onChange={(min) => emit({ ...current, min })}
             ariaLabel="Minute"
+            inputRef={minuteRef}
           />
-          <div className="ml-1 flex flex-col justify-center gap-1">
-            {([false, true] as const).map((pm) => {
-              const active = current.pm === pm
-              return (
-                <button
-                  key={pm ? "PM" : "AM"}
-                  type="button"
-                  onClick={() => emit({ ...current, pm })}
-                  className={cn(
-                    "h-9 w-12 rounded-full text-xs font-medium tracking-wide transition-colors",
-                    active
-                      ? "bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]"
-                      : "text-foreground/70 hover:bg-[hsl(var(--on-surface)/0.06)]",
-                  )}
-                >
-                  {pm ? "PM" : "AM"}
-                </button>
-              )
-            })}
+          <div className="ml-1 flex flex-col overflow-hidden rounded-xl border border-[hsl(var(--outline-variant))]">
+            {([false, true] as const).map((pm) => (
+              <button
+                key={pm ? "PM" : "AM"}
+                type="button"
+                aria-pressed={current.pm === pm}
+                onClick={() => emit({ ...current, pm })}
+                className={cn(
+                  "h-8 w-12 text-xs font-semibold tracking-wide transition-colors",
+                  current.pm === pm
+                    ? "bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]"
+                    : "text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)]",
+                )}
+              >
+                {pm ? "PM" : "AM"}
+              </button>
+            ))}
           </div>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">Type the time, or ↑ ↓ to move a minute.</p>
+        <div className="mt-3 flex justify-between gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const now = new Date()
+              emit({ h12: now.getHours() % 12 || 12, min: now.getMinutes(), pm: now.getHours() >= 12 })
+            }}
+          >
+            Now
+          </Button>
+          <Button size="sm" onClick={() => setOpen(false)}>Done</Button>
         </div>
       </PopoverContent>
     </Popover>
