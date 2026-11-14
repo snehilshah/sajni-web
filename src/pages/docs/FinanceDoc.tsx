@@ -212,7 +212,8 @@ export default function FinanceDoc() {
         <p>
           <strong>Sums.</strong> Amount takes a sum: a Zomato order paid
           ₹552.91 from Amazon Pay and ₹6.38 from Zomato Money is{' '}
-          <em>552.91+6.38</em>, shown as = ₹559.29 and saved as that.{' '}
+          <em>552.91+6.38</em>, shown as = ₹559.29 and saved as that (on
+          the phone, tap the <em>+</em> at the end of the field).{' '}
           <strong>Titles you've used</strong> come up as you type: “Sew” offers
           Sewri with its account (RuPay) and category (Smoke), and picking it
           fills all three on a new transaction. Under the fields, a new one
