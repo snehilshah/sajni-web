@@ -25,7 +25,8 @@ interface Ev extends Fields { k: string; q: number; at: number; t: number }
 
 const SID = Math.random().toString(36).slice(2, 10);
 const LEGACY_PREFIX = 'sajni:tm:'; // old localStorage buffers, moved into IndexedDB
-const SENT_KEY = 'sajni:diag:sent'; // last record uploaded from Settings
+const SENT_KEY = 'sajni:diag:sent'; // every record up to this key has been uploaded from Settings
+const SENT_RANGES_KEY = 'sajni:diag:sentRanges'; // [lo, hi] key ranges above it already uploaded
 const DB_NAME = 'sajni-diag';
 const STORE = 'ev';
 const KEEP = 100_000;
@@ -33,6 +34,10 @@ const WRITE_MS = 2_000;
 const RECENT = 3_000; // in memory, for a report's context
 const REPORT_WINDOW_MS = 15 * 60_000;
 const BATCH = 250;
+// Settings uploads ride out a connection that stalls (2026-11: Chrome needs
+// 10–20 s to give up on a frozen one): a longer wait per batch, then retries.
+const SEND_TIMEOUT_MS = 45_000;
+const SEND_RETRY_WAITS = [2_000, 5_000, 15_000];
 const STUCK_STEPS = [3_000, 10_000, 30_000, 60_000, 120_000, 300_000];
 const TELEMETRY_URL = '/api/telemetry';
 
@@ -178,7 +183,7 @@ function adoptLegacy() {
 
 // ─── Upload ─────────────────────────────────────────────────────────────
 
-async function post(sid: string, build: string, events: Ev[], session: Fields | null): Promise<boolean | 'drop'> {
+async function post(sid: string, build: string, events: Ev[], session: Fields | null, timeoutMs = 20_000): Promise<boolean | 'drop'> {
   const body = JSON.stringify({ sid, build, session, events });
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = getToken();
@@ -189,7 +194,7 @@ async function post(sid: string, build: string, events: Ev[], session: Fields | 
       body,
       headers,
       keepalive: body.length < 60_000,
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (res.ok) return true;
     // 4xx (bad batch, rate limit): drop rather than resend forever.
@@ -224,23 +229,57 @@ async function sendRecent(sinceMs: number, reason: string) {
   }
 }
 
-function sentUpTo(): number {
-  try { return Number(localStorage.getItem(SENT_KEY)) || 0; } catch { return 0; }
+// What Settings has uploaded: everything up to `upTo`, plus key ranges above
+// it (sends go newest first, so an interrupted send leaves a sent range on top).
+interface SentState { upTo: number; ranges: [number, number][] }
+
+function sentState(): SentState {
+  try {
+    const upTo = Number(localStorage.getItem(SENT_KEY)) || 0;
+    const raw: unknown = JSON.parse(localStorage.getItem(SENT_RANGES_KEY) ?? '[]');
+    const ranges = Array.isArray(raw)
+      ? raw.filter((r): r is [number, number] => Array.isArray(r) && r.length === 2 && typeof r[0] === 'number' && typeof r[1] === 'number' && r[1] > upTo)
+      : [];
+    return { upTo, ranges };
+  } catch {
+    return { upTo: 0, ranges: [] };
+  }
 }
+
+function saveSent(st: SentState) {
+  const sorted = [...st.ranges].sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const [lo, hi] of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && lo <= last[1] + 1) last[1] = Math.max(last[1], hi);
+    else merged.push([lo, hi]);
+  }
+  let upTo = st.upTo;
+  while (merged.length && merged[0][0] <= upTo + 1) upTo = Math.max(upTo, merged.shift()![1]);
+  try {
+    localStorage.setItem(SENT_KEY, String(upTo));
+    if (merged.length) localStorage.setItem(SENT_RANGES_KEY, JSON.stringify(merged));
+    else localStorage.removeItem(SENT_RANGES_KEY);
+  } catch { /* storage unavailable */ }
+}
+
+const isSent = (st: SentState, key: number) => key <= st.upTo || st.ranges.some(([lo, hi]) => key >= lo && key <= hi);
 
 export interface DiagStats { total: number; unsent: number; oldestAt: number | null }
 
 /** Settings → Diagnostics: what's stored on this device. */
 export async function diagStats(): Promise<DiagStats> {
   await writeOut();
+  const sent = sentState();
   const db = await openDb();
   const st = db.transaction(STORE).objectStore(STORE);
-  const [total, unsent, first] = await Promise.all([
+  const [total, above, inRanges, first] = await Promise.all([
     result(st.count()),
-    result(st.count(IDBKeyRange.lowerBound(sentUpTo(), true))),
+    result(st.count(IDBKeyRange.lowerBound(sent.upTo, true))),
+    Promise.all(sent.ranges.map(([lo, hi]) => result(st.count(IDBKeyRange.bound(lo, hi))))),
     result(st.openCursor()).then((c) => (c?.value as Rec | undefined)?.e.at ?? null),
   ]);
-  return { total, unsent, oldestAt: first };
+  return { total, unsent: Math.max(0, above - inRanges.reduce((a, b) => a + b, 0)), oldestAt: first };
 }
 
 async function readSince(after: number): Promise<{ keys: number[]; recs: Rec[] }> {
@@ -251,24 +290,48 @@ async function readSince(after: number): Promise<{ keys: number[]; recs: Rec[] }
   return { keys: keys as number[], recs: recs as Rec[] };
 }
 
-/** Upload everything not sent yet. Returns how many events went up. */
-export async function sendDiagnostics(progress?: (sent: number, total: number) => void): Promise<number> {
-  await writeOut();
-  const { keys, recs } = await readSince(sentUpTo());
-  let sent = 0;
-  let i = 0;
-  while (i < recs.length) {
-    // One batch per tab session, in order.
-    let j = i + 1;
-    while (j < recs.length && j - i < BATCH && recs[j].s === recs[i].s) j++;
-    const ok = await post(recs[i].s, recs[i].b, recs.slice(i, j).map((r) => r.e), { reason: 'settings', sentBy: SID, ua: navigator.userAgent });
-    if (ok === false) throw new Error("Couldn't reach Sajni. Try again.");
-    sent += j - i;
-    try { localStorage.setItem(SENT_KEY, String(keys[j - 1])); } catch { /* storage unavailable */ }
-    progress?.(sent, recs.length);
-    i = j;
+/** One Settings batch, retried when Sajni can't be reached. */
+async function postRetrying(rec: Rec, events: Ev[], onRetry: () => void): Promise<boolean | 'drop'> {
+  for (let attempt = 0; ; attempt++) {
+    const ok = await post(rec.s, rec.b, events, { reason: 'settings', sentBy: SID, ua: navigator.userAgent }, SEND_TIMEOUT_MS);
+    if (ok !== false || attempt >= SEND_RETRY_WAITS.length) return ok;
+    onRetry();
+    await new Promise((r) => setTimeout(r, SEND_RETRY_WAITS[attempt]));
   }
-  return sent;
+}
+
+export interface DiagSendProgress { sent: number; total: number; retrying: boolean }
+export interface DiagSendResult { sent: number; left: number }
+
+/** Upload everything not sent yet, newest first, so the latest problem lands
+ *  even if the backlog is cut short. `left` > 0: Sajni couldn't be reached
+ *  after retries; what went up is remembered, so Send again carries on. */
+export async function sendDiagnostics(progress?: (p: DiagSendProgress) => void): Promise<DiagSendResult> {
+  await writeOut();
+  const state = sentState();
+  const all = await readSince(state.upTo);
+  const keys: number[] = [];
+  const recs: Rec[] = [];
+  all.keys.forEach((k, n) => { if (!isSent(state, k)) { keys.push(k); recs.push(all.recs[n]); } });
+  const total = recs.length;
+  let sent = 0;
+  let j = recs.length;
+  while (j > 0) {
+    // One batch per tab session, events in order within it.
+    let i = j - 1;
+    while (i > 0 && j - i < BATCH && recs[i - 1].s === recs[j - 1].s) i--;
+    const ok = await postRetrying(recs[i], recs.slice(i, j).map((r) => r.e), () => progress?.({ sent, total, retrying: true }));
+    if (ok === false) return { sent, left: total - sent };
+    sent += j - i;
+    state.ranges.push([keys[i], keys[j - 1]]);
+    saveSent(state);
+    progress?.({ sent, total, retrying: false });
+    j = i;
+  }
+  // All caught up: everything read is sent, whatever gaps pruning left.
+  const top = all.keys[all.keys.length - 1];
+  if (top !== undefined) saveSent({ upTo: Math.max(state.upTo, top), ranges: state.ranges.filter(([, hi]) => hi > top) });
+  return { sent, left: 0 };
 }
 
 /** Save everything stored as a JSON file. */

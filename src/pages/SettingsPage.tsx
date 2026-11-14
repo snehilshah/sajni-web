@@ -270,8 +270,13 @@ function Diagnostics() {
   async function send() {
     setProgress('Sending…');
     try {
-      const n = await sendDiagnostics((sent, total) => setProgress(`Sending ${sent.toLocaleString()} of ${total.toLocaleString()}…`));
-      toast.success(n ? `Sent ${n.toLocaleString()} events` : 'Nothing new to send');
+      const { sent, left } = await sendDiagnostics((p) => setProgress(
+        p.retrying
+          ? `Connection stalled, retrying… (${p.sent.toLocaleString()} of ${p.total.toLocaleString()})`
+          : `Sending ${p.sent.toLocaleString()} of ${p.total.toLocaleString()}…`,
+      ));
+      if (left) toast.error(`Sent ${sent.toLocaleString()}, ${left.toLocaleString()} still to go: couldn't reach Sajni. Send again to carry on.`);
+      else toast.success(sent ? `Sent ${sent.toLocaleString()} events` : 'Nothing new to send');
     } catch (e) {
       toast.error(failureText(e, "Couldn't send. Try again."));
     } finally {

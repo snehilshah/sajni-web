@@ -117,7 +117,11 @@ export default function SettingsDoc() {
             </p>
             <p>
               Settings → Diagnostics shows how much is stored. <strong>Send
-              to Sajni</strong> uploads what hasn't been sent yet;
+              to Sajni</strong> uploads what hasn't been sent yet, newest
+              first, so today's hiccup arrives even if the upload is cut
+              short. If the connection stalls it says so and tries again; if
+              it still can't get through, it tells you how much went up, and
+              pressing Send again carries on from there.
               <strong> Download</strong> saves it as a file. The newest
               100,000 events are kept.
             </p>
