@@ -3,7 +3,8 @@ import { format, parseISO } from 'date-fns';
 import { Bell, Trash2, Sparkles, Plus, X } from '@/components/ui/icons';
 
 import { toast } from 'sonner';
-import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTransaction, type TxnDraft, type TxnKind, type TxnPatch } from '@/api';
+import { finance, type FinAccount, type FinCategory, type FinSlate, type FinTitleSuggestion, type FinTransaction, type TxnDraft, type TxnKind, type TxnPatch } from '@/api';
+import { Autocomplete } from '@base-ui/react/autocomplete';
 import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { useFinInvestments, useFinLendPeople, useFinLends, useLendCandidates } from '@/queries/finance';
-import { CategoryChips } from './CategoryChips';
+import { CategoryChips, CategoryPill } from './CategoryChips';
 import { Money } from './Money';
 import { formatMoney, txnAtToParts, partsToTxnAt, subMoney, sumMoney } from './utils';
 import { SplitFields, computeSplit, emptySplit, isAllTheirs, splitNames, type SplitState } from './SplitFields';
@@ -49,6 +50,17 @@ export const decimalOnly = (v: string) => {
   return rest.length ? `${int}.${rest.join('').slice(0, 2)}` : int;
 };
 export const round2 = (n: number) => Math.round(n * 100) / 100;
+// Amount can be a sum: "552.91+6.38" (one bill paid two ways) is 559.29.
+export const sumOnly = (v: string) => v.replace(/[^\d.+-]/g, '').replace(/([+-])[+-]+/g, '$1');
+export const isSum = (v: string) => /\d\s*[+-]\s*\.?\d/.test(v);
+export const amountOf = (v: string): number => {
+  let t = 0;
+  for (const part of v.match(/[+-]?[^+-]+/g) ?? []) {
+    const n = parseFloat(part);
+    if (!isNaN(n)) t += n;
+  }
+  return round2(t);
+};
 
 // The editable fields of an existing transaction, as the form holds them.
 // Autosave diffs this shape, so the loader and the form must build it alike.
@@ -155,7 +167,7 @@ export default function TransactionDialog({
   const existingSplits = txnSplits(txn);
   const sharedOut = sumMoney(existingSplits, (s) => s.share);
   const splitOn = type === 'expense' && addons.has('split') && existingSplits.length === 0;
-  const total = parseFloat(amount) || 0;
+  const total = amountOf(amount);
   const splitResult = splitOn ? computeSplit(total, split) : null;
   const allTheirs = splitOn && isAllTheirs(split);
   const account = accounts.find((a) => String(a.id) === accountId);
@@ -182,7 +194,7 @@ export default function TransactionDialog({
   const editErrors = (v: EditValues): Record<string, string> => {
     const e: Record<string, string> = {};
     if (!v.accountId) e.account = 'Select an account.';
-    const amt = parseFloat(v.amount);
+    const amt = amountOf(v.amount);
     if (!v.amount.trim()) e.amount = 'Enter an amount.';
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
     else if (existingSplits.length === 1 && round2(amt) <= sharedOut) e.amount = 'The bill has to be more than their share. Change their share in Edit lend.';
@@ -226,7 +238,7 @@ export default function TransactionDialog({
     const selectedCategoryId = v.categoryId || (others ? String(others.id) : '');
     const acctId = parseInt(v.accountId);
     const catId = selectedCategoryId ? parseInt(selectedCategoryId) : null;
-    const billTotal = round2(parseFloat(v.amount));
+    const billTotal = amountOf(v.amount);
     const txnAt = partsToTxnAt(v.date, v.time);
     const sid = parseInt(v.slateId) || 0;
     // On a split bill the server holds the user's part; the shares stay as
@@ -424,7 +436,7 @@ export default function TransactionDialog({
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
     if (!accountId || (accountId.startsWith('inv:') && !fromInv)) e.account = 'Select an account.';
-    const amt = parseFloat(amount);
+    const amt = amountOf(amount);
     if (!amount.trim()) e.amount = 'Enter an amount.';
     else if (isNaN(amt) || amt <= 0) e.amount = 'Amount must be greater than 0.';
     if (!description.trim()) e.description = 'Add a title.';
@@ -449,7 +461,7 @@ export default function TransactionDialog({
       return;
     }
     setErrors({});
-    const amt = parseFloat(amount);
+    const amt = amountOf(amount);
     const txnAt = partsToTxnAt(date, time);
     const selectedCategoryId = categoryId || (othersCategory ? String(othersCategory.id) : '');
 
@@ -723,6 +735,13 @@ export default function TransactionDialog({
     );
   };
 
+  // What a new payment does to its account: "Salary ₹50,236.48 → ₹49,683.57
+  // after this". Cards owe in negatives, as on Accounts.
+  const balanceLine = !txn && account && total > 0 && !fromInv ? (() => {
+    const after = subMoney(account.balance, type === 'income' ? -total : total);
+    return <>{account.name} <span className="font-medium text-foreground"><Money value={account.balance} /></span> → <span className="font-medium text-foreground"><Money value={after} /></span> after this</>;
+  })() : null;
+
   // A credit that pays someone back becomes a repayment: no category.
   const showCategory = type !== 'transfer' && !allTheirs && !addons.has('transfer') && !(type === 'income' && addons.has('settle'))
     && !savedOwed && !(type === 'income' && addons.has('owe')) && !(type === 'expense' && addons.has('payback'));
@@ -731,17 +750,18 @@ export default function TransactionDialog({
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       {/* Sized in rem so density (Compact/Cozy) scales the sheet with its
           type; the title and footer stay put while the form scrolls. From
-          md up it's two columns at a fixed height: what you type on the
-          left, category and add-ons on the right (that column scrolls), so
-          adding a Split or a Note never resizes the sheet. */}
-      <DialogContent showCloseButton={false} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-xl md:h-[min(42rem,90dvh)] md:max-w-4xl">
+          md up it's two columns at a fixed height, as tall as the left side
+          needs: what you type on the left, category and add-ons on a tinted
+          pane to the right (it scrolls), so adding a Split or a Note never
+          resizes the sheet. */}
+      <DialogContent showCloseButton={false} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-xl md:h-[min(35rem,90dvh)] md:max-w-4xl">
         <DialogHeader>
           <div className="flex items-baseline justify-between gap-3">
             <DialogTitle>{txn ? (isRefund ? 'Edit refund' : 'Edit transaction') : 'New transaction'}</DialogTitle>
           </div>
         </DialogHeader>
         {/* The fade sits inside the 8px padding, so at rest it touches no content. */}
-        <div className="-mx-6 -my-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-2 [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%-8px),transparent)] md:grid md:grid-cols-2 md:gap-8 md:overflow-hidden">
+        <div className="-mx-6 -my-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-2 [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%-8px),transparent)] md:grid md:grid-cols-2 md:gap-6 md:overflow-hidden md:[mask-image:none]">
           <div className="flex flex-col gap-3 md:-mx-1 md:min-h-0 md:overflow-x-hidden md:overflow-y-auto md:px-1 md:py-1">
           {!txn && (
             <div className="grid grid-cols-3 gap-1 rounded-full bg-muted p-1">
@@ -758,24 +778,41 @@ export default function TransactionDialog({
               ))}
             </div>
           )}
-            <Field label={existingSplits.length || splitOn ? 'Bill' : 'Amount'} error={errors.amount}>
+            <Field label={existingSplits.length || splitOn ? 'Bill' : 'Amount'} error={errors.amount}
+              hint={isSum(amount) ? <span className="text-xs tabular-nums text-muted-foreground">= <Money value={amountOf(amount)} /></span> : undefined}>
               <Input
                 inputMode="decimal"
                 value={amount}
                 aria-invalid={!!errors.amount}
-                onChange={(e) => { setAmount(decimalOnly(e.target.value)); clearError('amount'); }}
+                onChange={(e) => { setAmount(sumOnly(e.target.value)); clearError('amount'); }}
+                // A sum settles into its total when you move on.
+                onBlur={() => { if (isSum(amount)) setAmount(String(amountOf(amount))); }}
                 placeholder="0.00"
                 className="h-12 text-2xl font-semibold tabular-nums"
                 autoFocus={!txn}
               />
             </Field>
             <Field label="Title" error={errors.description}>
-              <Input
+              <TitleField
                 value={description}
-                aria-invalid={!!errors.description}
-                onChange={(e) => { setDescription(e.target.value); clearError('description'); }}
+                kind={type === 'income' && !isRefund ? 'income' : 'expense'}
+                enabled={type !== 'transfer' && !allTheirs}
+                invalid={!!errors.description}
+                accounts={accounts}
+                categories={categories}
                 placeholder={type === 'transfer' ? 'e.g. Move to savings' : isRefund ? 'e.g. Amazon refund' : type === 'income' ? 'e.g. October salary' : allTheirs ? 'e.g. Cash for Aman' : 'e.g. Lunch at Cafe X'}
-                maxLength={120}
+                onChange={(v) => { setDescription(v); clearError('description'); }}
+                onPick={(sug) => {
+                  // A new one takes the title's usual account and category;
+                  // an edit only takes the title.
+                  if (txn) return;
+                  if (sug.account_id && accounts.some((a) => a.id === sug.account_id)) setAccountId(String(sug.account_id));
+                  if (sug.category_id && filteredCats.some((c) => c.id === sug.category_id)) {
+                    userPickedCategoryRef.current = true;
+                    setUserPickedCategory(true);
+                    setCategoryId(String(sug.category_id));
+                  }
+                }}
               />
             </Field>
               <Field label={type === 'transfer' ? 'From' : 'Account'} error={errors.account}>
@@ -816,7 +853,7 @@ export default function TransactionDialog({
               </Field>
             {/* Date and time get a row of their own: room for "Fri, 13 Nov
                 2026" and "9:26 PM" without truncating. */}
-            <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_8.75rem] gap-2 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
               <Field label="Date"><DatePicker value={date} onChange={setDate} withYear /></Field>
               <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
             </div>
@@ -857,6 +894,7 @@ export default function TransactionDialog({
                 </Select>
               </Field>
             )}
+            {balanceLine && <p className="mt-auto hidden pt-2 text-xs text-muted-foreground md:block">{balanceLine}</p>}
             {fromInv && fromInvSplit && total > 0 && (
               <div className="flex flex-col gap-1 rounded-xl bg-[hsl(var(--surface-container))] px-4 py-3 text-sm">
                 <div className="flex justify-between gap-3">
@@ -877,7 +915,7 @@ export default function TransactionDialog({
               </div>
             )}
           </div>
-          <div ref={sideRef} className="flex flex-col gap-3 md:-mx-1 md:min-h-0 md:overflow-x-hidden md:overflow-y-auto md:px-1 md:py-1">
+          <div ref={sideRef} className="flex flex-col gap-3 md:-mr-6 md:min-h-0 md:overflow-x-hidden md:overflow-y-auto md:rounded-l-[20px] md:bg-[hsl(var(--surface-container-low))] md:py-4 md:pl-5 md:pr-6">
             {showCategory && (
               <Field
                 label={splitOn || existingSplits.length ? 'Category of your part' : 'Category'}
@@ -893,6 +931,7 @@ export default function TransactionDialog({
                 ) : undefined}
               >
                 <CategoryChips
+                  rowOnPhone
                   categories={filteredCats}
                   value={categoryId || (othersCategory ? String(othersCategory.id) : '')}
                   onChange={(v) => {
@@ -937,6 +976,7 @@ export default function TransactionDialog({
             {txn?.seen_via && (
               <p className="text-xs text-muted-foreground">Captured from {txn.seen_via}</p>
             )}
+            {balanceLine && <p className="text-xs text-muted-foreground md:hidden">{balanceLine}</p>}
           </div>
         </div>
         <DialogFooter className="flex-row items-center justify-between">
@@ -1090,6 +1130,74 @@ export function TowardPicker({ person, value, onChange }: { person: string; valu
         </SelectContent>
       </Select>
     </Field>
+  );
+}
+
+// Title with suggestions from earlier titles ("Sew" → Sewri · Smoke ·
+// RuPay). Picking one fills the title; the sheet decides what else to take.
+function TitleField({ value, kind, enabled, invalid, placeholder, accounts, categories, onChange, onPick }: {
+  value: string; kind: 'expense' | 'income'; enabled: boolean; invalid: boolean; placeholder: string;
+  accounts: FinAccount[]; categories: FinCategory[];
+  onChange: (v: string) => void; onPick: (s: FinTitleSuggestion) => void;
+}) {
+  const [found, setItems] = useState<FinTitleSuggestion[]>([]);
+  const asking = enabled && value.trim().length >= 2;
+  const items = asking ? found : [];
+  useEffect(() => {
+    const q = value.trim();
+    if (!enabled || q.length < 2) return;
+    const ac = new AbortController();
+    const t = setTimeout(() => {
+      finance.suggestTitles(q, kind, ac.signal)
+        // Nothing to offer when the only match is what's typed already.
+        .then((res) => { if (!ac.signal.aborted) setItems(res.filter((r) => r.title.toLowerCase() !== q.toLowerCase() || res.length > 1)); })
+        .catch(() => {});
+    }, 180);
+    return () => { clearTimeout(t); ac.abort(); };
+  }, [value, kind, enabled]);
+  const accountName = (id: number | null) => accounts.find((a) => a.id === id)?.name;
+  const category = (id: number | null) => categories.find((c) => c.id === id);
+  return (
+    <Autocomplete.Root
+      items={items}
+      value={value}
+      filter={null}
+      itemToStringValue={(s: FinTitleSuggestion) => s.title}
+      onValueChange={(v, details) => {
+        onChange(v);
+        if (details.reason === 'item-press') {
+          const hit = items.find((s) => s.title === v);
+          if (hit) onPick(hit);
+        }
+      }}
+    >
+      <Autocomplete.Input
+        render={<Input aria-invalid={invalid} placeholder={placeholder} maxLength={120} />}
+      />
+      <Autocomplete.Portal>
+        <Autocomplete.Positioner sideOffset={6} align="start" className="z-[60] w-[var(--anchor-width)] outline-none">
+          <Autocomplete.Popup className="max-h-72 overflow-y-auto rounded-2xl bg-[hsl(var(--surface-container-high))] p-1.5 shadow-[var(--m3-elev-3)] outline-none data-[empty]:hidden">
+            <Autocomplete.List>
+              {(s: FinTitleSuggestion) => {
+                const cat = category(s.category_id);
+                return (
+                  <Autocomplete.Item
+                    key={s.title}
+                    value={s}
+                    className="flex cursor-default items-center gap-2 rounded-xl px-3 py-2 text-sm outline-none select-none data-[highlighted]:bg-[hsl(var(--secondary-container))] data-[highlighted]:text-[hsl(var(--on-secondary-container))]"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">{s.title}</span>
+                    {cat && <CategoryPill name={cat.name} color={cat.color} />}
+                    {accountName(s.account_id) && <span className="shrink-0 text-xs text-muted-foreground">{accountName(s.account_id)}</span>}
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground"><Money value={s.amount} /></span>
+                  </Autocomplete.Item>
+                );
+              }}
+            </Autocomplete.List>
+          </Autocomplete.Popup>
+        </Autocomplete.Positioner>
+      </Autocomplete.Portal>
+    </Autocomplete.Root>
   );
 }
 

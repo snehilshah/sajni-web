@@ -50,7 +50,8 @@ function display(parts: Parts | null): string {
   return `${parts.h12}:${String(parts.min).padStart(2, "0")} ${parts.pm ? "PM" : "AM"}`
 }
 
-// One typed segment (hour or minute): type the digits, or ↑/↓ by one.
+// One typed segment (hour or minute): type the digits, ↑/↓, the mouse
+// wheel or a drag up/down move it by one.
 // Module-level so it isn't re-created on every render (React Compiler).
 function Segment({
   value, min, max, onChange, onFilled, ariaLabel, inputRef, autoFocus,
@@ -62,14 +63,51 @@ function Segment({
   /** Called when the segment is complete (two digits, or one that can't grow). */
   onFilled?: () => void
   ariaLabel: string
-  inputRef?: React.Ref<HTMLInputElement>
+  inputRef?: React.RefObject<HTMLInputElement | null>
   autoFocus?: boolean
 }) {
   const [text, setText] = React.useState<string | null>(null)
   const shown = text ?? String(value).padStart(2, "0")
+  const own = React.useRef<HTMLInputElement | null>(null)
+  const span = max - min + 1
+  const step = (d: number) => {
+    setText(null)
+    onChange(((value - min + d) % span + span) % span + min)
+  }
+  // The wheel listener is attached once; it calls the latest step.
+  const stepRef = React.useRef(step)
+  React.useEffect(() => { stepRef.current = step })
+  React.useEffect(() => {
+    const el = own.current
+    if (!el) return
+    let acc = 0
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      // A mouse notch is one step; a trackpad's small deltas add up first.
+      acc += e.deltaMode === 0 ? e.deltaY : e.deltaY * 40
+      if (Math.abs(acc) < 30) return
+      stepRef.current(acc < 0 ? 1 : -1)
+      acc = 0
+    }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [])
+  const drag = React.useRef<number | null>(null)
   return (
     <Input
-      ref={inputRef}
+      ref={(el: HTMLInputElement | null) => {
+        own.current = el
+        if (inputRef) inputRef.current = el
+      }}
+      onPointerDown={(e) => { if (e.pointerType === "mouse") { drag.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId) } }}
+      onPointerMove={(e) => {
+        if (drag.current == null) return
+        const dy = drag.current - e.clientY
+        if (Math.abs(dy) < 14) return
+        step(dy > 0 ? 1 : -1)
+        drag.current = e.clientY
+      }}
+      onPointerUp={() => { drag.current = null }}
       inputMode="numeric"
       autoFocus={autoFocus}
       aria-label={ariaLabel}
@@ -88,13 +126,10 @@ function Segment({
       onKeyDown={(e) => {
         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return
         e.preventDefault()
-        const span = max - min + 1
-        const next = ((value - min + (e.key === "ArrowUp" ? 1 : -1)) % span + span) % span + min
-        setText(null)
-        onChange(next)
+        step(e.key === "ArrowUp" ? 1 : -1)
       }}
       className={cn(
-        "h-16 w-[4.5rem] px-0 py-0 rounded-xl border-0 bg-[hsl(var(--surface-container-highest))] text-center text-4xl font-medium tabular-nums text-foreground outline-none",
+        "h-16 w-[4.5rem] cursor-ns-resize px-0 py-0 rounded-xl border-0 bg-[hsl(var(--surface-container-highest))] text-center text-4xl font-medium tabular-nums text-foreground outline-none",
         "focus:bg-[hsl(var(--primary-container))] focus:text-[hsl(var(--on-primary-container))] focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
       )}
     />
@@ -193,7 +228,6 @@ export function TimePicker({
             ))}
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Type the time, or ↑ ↓ to move a minute.</p>
         <div className="mt-3 flex justify-between gap-2">
           <Button
             variant="outline"

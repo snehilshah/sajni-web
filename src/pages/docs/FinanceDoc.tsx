@@ -205,8 +205,19 @@ export default function FinanceDoc() {
           <em>auto</em>); pick one yourself and it stops guessing. On a
           computer the sheet has two columns: what you type on the left,
           category and extras on the right, and it keeps its size as you add
-          extras. Type the time straight in (“926” is 9:26) or nudge it a
-          minute with ↑ ↓; <em>Now</em> sets the current time.
+          extras. Type the time straight in (“926” is 9:26), nudge it a
+          minute with ↑ ↓ or the mouse wheel (or drag a number up or down);{' '}
+          <em>Now</em> sets the current time.
+        </p>
+        <p>
+          <strong>Sums.</strong> Amount takes a sum: a Zomato order paid
+          ₹552.91 from Amazon Pay and ₹6.38 from Zomato Money is{' '}
+          <em>552.91+6.38</em>, shown as = ₹559.29 and saved as that.{' '}
+          <strong>Titles you've used</strong> come up as you type: “Sew” offers
+          Sewri with its account (RuPay) and category (Smoke), and picking it
+          fills all three on a new transaction. Under the fields, a new one
+          shows what it does to the account: “Salary ₹50,236.48 → ₹49,683.57
+          after this”.
         </p>
         <p>
           Every transaction needs a <strong>title</strong>; the sheet won't

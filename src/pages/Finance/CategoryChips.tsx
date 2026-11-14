@@ -3,15 +3,19 @@ import { HuePill, hueVar } from '@/components/ui/hue-pill';
 import { cn } from '@/lib/utils';
 
 // Category picker: every category as a chip tinted in its own colour (the
-// colour is the category, no dot), the picked one deepened with a check.
+// colour is the category, no dot), the picked one deepened with a ring.
 // Mirrors Android's tinted TonalChip row in the transaction sheet.
-export function CategoryChips({ categories, value, onChange }: {
+// rowOnPhone: below md, one sideways-scrolling row (bleeding to the sheet's
+// edges) instead of four wrapped rows.
+export function CategoryChips({ categories, value, onChange, rowOnPhone = false }: {
   categories: FinCategory[];
   value: string;
   onChange: (id: string) => void;
+  rowOnPhone?: boolean;
 }) {
   return (
-    <div role="radiogroup" className="flex flex-wrap gap-1.5">
+    <div role="radiogroup" className={cn('flex flex-wrap gap-1.5',
+      rowOnPhone && 'max-md:-mx-6 max-md:flex-nowrap max-md:overflow-x-auto max-md:px-6 max-md:[scrollbar-width:none]')}>
       {categories.map((c) => (
         <HuePill key={c.id} tinted hue={c.color} selected={value === String(c.id)} onClick={() => onChange(String(c.id))} className="h-8">
           {c.name}

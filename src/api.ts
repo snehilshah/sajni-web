@@ -973,6 +973,14 @@ export interface FinSlate {
   month_spend: number;
 }
 
+export interface FinTitleSuggestion {
+  title: string;
+  account_id: number | null;
+  category_id: number | null;
+  amount: number;
+  uses: number;
+}
+
 export interface FinSlatesResponse {
   items: FinSlate[];
 }
@@ -1381,6 +1389,10 @@ export const finance = {
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request('/finance/transactions/' + id, { method: 'DELETE' }),
+  // Titles used before that start with q (or have a word that does), most
+  // used first, each with its latest account, category and amount.
+  suggestTitles: (q: string, type: 'expense' | 'income', signal?: AbortSignal) =>
+    request<FinTitleSuggestion[]>('/finance/titles?' + new URLSearchParams({ q, type }), { signal }),
   // A saved expense or income was money between the user's own accounts
   // (an Amazon Pay top-up, cash handed back by UPI): make it a transfer.
   makeTransfer: (id: number, accountId: number, description?: string) =>
