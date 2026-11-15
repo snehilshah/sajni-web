@@ -85,16 +85,30 @@ That's it. `git push` for previews, `git tag srf/release/v*` for prod.
 
 ### 3. DNS for `ohmysajni.com`
 
-At your registrar, add the records Vercel printed in step 1.5.
-Typically:
+DNS is on Cloudflare (nameservers `autumn`/`bjorn.ns.cloudflare.com`).
+The apex and `www` are CNAMEs to the project's Vercel target
+(`a299e3bc409de96f.vercel-dns-017.com`) and are **Proxied** (orange
+cloud) since 2026-11-15:
 
 ```
-A     @     76.76.21.21          ; Vercel's apex IP
-CNAME www   cname.vercel-dns.com
+CNAME @     a299e3bc409de96f.vercel-dns-017.com   ; proxied (flattened at the apex)
+CNAME www   a299e3bc409de96f.vercel-dns-017.com   ; proxied
 ```
 
-No `api` record is needed while production uses Vercel rewrites to
-Cloud Run.
+Why proxied: from the owner's home network (JioAirFiber), open
+connections to Vercel's own addresses freeze every few minutes, which
+shows up as 8–20 s waits; Cloudflare's addresses don't
+(`~/vercel-edge-freeze-report/README.md`). Zone settings that go with
+it: SSL/TLS **Full (strict)**; a Cache Rule bypassing `/api/`,
+`/.well-known/` and `/mcp`; Browser Cache TTL "Respect existing
+headers"; Bot Fight Mode off (AI assistants call `/mcp`). Vercel's
+Domains page may flag the domain as misconfigured behind the proxy;
+that's expected. Check in mid-January 2027 that Vercel renewed its
+certificate (the current one runs to 11 Feb 2027).
+
+Turning the cloud grey again goes straight to Vercel (instant
+rollback). No `api` record is needed while production uses Vercel
+rewrites to Cloud Run.
 
 ---
 
