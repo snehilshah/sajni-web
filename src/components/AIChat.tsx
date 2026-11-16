@@ -616,7 +616,7 @@ function AssistantMessage({
           <div className="flex flex-col gap-1.5">
             {actions.map((a, i) => {
               const Icon = ACTION_ICONS[a.meta!.kind] || Sparkles;
-              const label = ACTION_LABELS[a.meta!.kind] || a.meta!.kind;
+              const label = ACTION_LABELS[a.meta!.kind] || a.meta!.label || a.meta!.kind;
               const route = a.meta?.route;
               return (
                 <button

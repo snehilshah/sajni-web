@@ -15,7 +15,7 @@ interface ToolResult {
   name: string;
   ok: boolean;
   error?: string;
-  meta?: { kind: string; id?: number; title?: string; route?: string };
+  meta?: { kind: string; label?: string; id?: number; title?: string; route?: string };
 }
 
 const ACTION_ICONS: Record<string, typeof CheckSquare> = {
@@ -240,7 +240,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
             <div className="flex flex-col gap-1.5">
               {actions.map((a, i) => {
                 const Icon = ACTION_ICONS[a.meta!.kind] || Sparkles;
-                const label = ACTION_LABELS[a.meta!.kind] || a.meta!.kind;
+                const label = ACTION_LABELS[a.meta!.kind] || a.meta!.label || a.meta!.kind;
                 const route = a.meta?.route;
                 return (
                   <motion.button

@@ -22,6 +22,8 @@ const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   { prefix: 'event_', keys: [qk.events.all] },
   { prefix: 'memo_', keys: [qk.memos.all] },
   { prefix: 'note_', keys: [qk.notes.all] },
+  { prefix: 'folder_', keys: [qk.notes.all] },
+  { prefix: 'thinking_', keys: [qk.thinking.all] },
   { prefix: 'media_', keys: [qk.media.all] },
   { prefix: 'journal_', keys: [qk.journal.all] },
   { prefix: 'bookmark_', keys: [qk.bookmarks.all] },
@@ -34,6 +36,7 @@ const ROUTES: Array<{ prefix: string; keys: QueryKey[] }> = [
   { prefix: 'slate_', keys: [qk.finance.all] },
   { prefix: 'investment_', keys: [qk.finance.all] },
   { prefix: 'budget_', keys: [qk.finance.all] },
+  { prefix: 'capture_', keys: [qk.finance.all] },
   { prefix: 'insight_', keys: [qk.insights.all] },
   { prefix: 'theme_', keys: [qk.themes.all] },
 ];

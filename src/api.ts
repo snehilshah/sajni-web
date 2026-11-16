@@ -1705,6 +1705,8 @@ export const search = {
 
 export interface AIToolMeta {
   kind: string;
+  /** Server-written past-tense line ("Deleted event entry"), for kinds the client doesn't name itself. */
+  label?: string;
   id?: number;
   title?: string;
   route?: string;
