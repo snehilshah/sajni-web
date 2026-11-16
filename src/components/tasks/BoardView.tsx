@@ -16,8 +16,8 @@ import { cn } from '@/lib/utils';
 import { repeats } from './RepeatPicker';
 import { STATUSES, STATUS_LABELS, PRIORITY_COLORS } from './helpers';
 
-// The Tasks board (desktop): one tonal lane per status, cards of one fixed
-// height (two-line title, one badge row; DESIGN.md → Board). Order in a lane
+// The Tasks board (desktop): one tonal lane per status; a card is its title
+// (up to two lines) and, when it has any, one badge row (DESIGN.md → Board). Order in a lane
 // is the app's order, last updated first, so a dropped card lands at the top
 // of its lane. Drag lifts the card into an overlay and leaves a same-sized
 // slot, so nothing under the pointer moves; on drop the card flies from where
@@ -327,9 +327,9 @@ function BoardCard({ task, landingFrom, onLanded, onClick, onToggleImportant, on
   );
 }
 
-// CardBody is one task at a fixed height: status box, priority/colour dot,
-// title on up to two lines and the star, then one row of badges in the list's
-// order (date, repeat, steps, subtasks, blocked).
+// CardBody is one task: status box, priority/colour dot, title on up to two
+// lines and the star, then (if any) one row of badges in the list's order
+// (date, repeat, steps, subtasks, blocked) right under it.
 function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDone }: {
   task: Task;
   lifted?: boolean;
@@ -345,17 +345,24 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
   const steps = task.steps?.length ?? 0;
   const stepsDone = task.steps?.filter((s) => s.done).length ?? 0;
   const subs = task.subtask_count ?? 0;
+  // Badges sit right under the title, from the card's edge; a card with
+  // none is just its title, so no card carries an empty row.
+  const hasBadges = Boolean(
+    (task.parent_task_id != null && task.parent_task_title) || task.due_date || task.week_of || task.month_of
+    || repeats(task.recurrence) || steps > 0 || subs > 0 || task.status === 'blocked',
+  );
   const chip = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs leading-none';
   const neutral = 'bg-[hsl(var(--on-surface)/0.06)] text-muted-foreground';
 
   return (
     <div
+      data-board-card={task.id}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
       className={cn(
-        'group flex h-24 flex-col justify-between rounded-[14px] bg-[hsl(var(--surface-container-lowest))] px-3 py-2.5 text-left outline-none',
+        'group flex flex-col gap-2 rounded-[14px] bg-[hsl(var(--surface-container-lowest))] px-3 py-2.5 text-left outline-none',
         'transition-shadow duration-150 focus-visible:ring-2 focus-visible:ring-ring/45',
         // State layer, not a new surface: a faint wash on hover.
         lifted ? 'cursor-grabbing' : 'cursor-pointer hover:shadow-[inset_0_0_0_100vmax_hsl(var(--on-surface)/0.035)]',
@@ -404,7 +411,8 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
         </button>
       </div>
 
-      <div className="flex min-w-0 items-center gap-1.5 overflow-hidden pl-[3.25rem]">
+      {hasBadges && (
+      <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
         {task.parent_task_id != null && task.parent_task_title && (
           <span className={cn(chip, neutral, 'min-w-0 max-w-32')} title={`Subtask of ${task.parent_task_title}`}>
             <CornerDownRight className="size-3 shrink-0" /><span className="truncate">{task.parent_task_title}</span>
@@ -435,6 +443,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
           </span>
         )}
       </div>
+      )}
     </div>
   );
 }

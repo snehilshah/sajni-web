@@ -370,9 +370,9 @@ export default function TasksDoc() {
           Desktop offers two projections of the same data: <strong>List</strong>{' '}
           (grouped Overdue / Today / This week / Later / No date) and{' '}
           <strong>Board</strong> (a lane per status: To do, In progress,
-          Blocked, Done). Every card is the same size: the title on up to two
-          lines, then one row of badges (date, repeat, steps, subtasks, what
-          blocks it).
+          Blocked, Done). A card shows the title on up to two lines, with
+          one row of badges under it when it has any (date, repeat, steps,
+          subtasks, what blocks it).
         </p>
         <ul>
           <li>
