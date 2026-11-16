@@ -131,7 +131,9 @@ export function useToggleTaskStatus() {
       await qc.cancelQueries({ queryKey: qk.tasks.all });
       const prev = qc.getQueriesData({ queryKey: ['tasks', 'list'] });
       const prevSubs = qc.getQueriesData({ queryKey: ['tasks', 'subtasks'] });
-      patchTaskInLists(qc, id, { status });
+      // updated_at too: lists and the board order by it, so the task sits
+      // where the server will put it and doesn't jump on refetch.
+      patchTaskInLists(qc, id, { status, updated_at: new Date().toISOString() });
       return { prev: [...prev, ...prevSubs] };
     },
     onError: (_e, _v, ctx) => {

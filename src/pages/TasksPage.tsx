@@ -3,11 +3,11 @@ import { useSearchParams } from 'react-router-dom';
 import { addDays, format, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import BoardView from '@/components/tasks/BoardView';
 import {
-  Bell, Plus, Loader2, LayoutGrid, ListChecks, ChevronDown, CalendarDays, StickyNote,
+  Bell, Plus, LayoutGrid, ListChecks, ChevronDown, CalendarDays,
 } from '@/components/ui/icons';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 
 import type { Task } from '@/types';
 import {
@@ -20,11 +20,9 @@ import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 
 import PillScroller from '@/components/tasks/PillScroller';
 import TaskRow from '@/components/tasks/TaskRow';
-import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps the Markdown editor (inside the dialog) out of this route chunk.
 const TaskFormDialog = lazy(() => import('@/components/tasks/TaskFormDialog'));
@@ -32,7 +30,7 @@ const PlannerView = lazyPage(() => import('@/components/tasks/PlannerView'));
 import MissedBanner from '@/components/tasks/MissedBanner';
 import RemindersPanel from '@/components/reminders/RemindersPanel';
 import {
-  STATUSES, STATUS_LABELS, PRIORITY_COLORS, type Selection, weekMondayKey, monthFirstKey,
+  type Selection, weekMondayKey, monthFirstKey,
 } from '@/components/tasks/helpers';
 import { useNavChrome } from '@/components/nav-chrome';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
@@ -366,6 +364,7 @@ export default function TasksPage() {
                 await createTask.mutateAsync(overrides);
               }}
               onToggleImportant={(id, important) => toggleImportant.mutate({ id, important })}
+              onToggleDone={(t) => moveStatus.mutate({ id: t.id, status: t.status === 'done' ? 'todo' : 'done' })}
             />
           )}
         </div>
@@ -541,178 +540,3 @@ function ListView({
   );
 }
 
-// --- Board view (kanban kept for users who prefer it) ---
-
-function BoardView({
-  grouped, onClick, onMove, onQuickAdd, onToggleImportant,
-}: {
-  grouped: Record<Task['status'], Task[]>;
-  onClick: (t: Task) => void;
-  onMove: (id: number, status: Task['status']) => void;
-  onQuickAdd: (status: Task['status'], title: string) => Promise<void>;
-  onToggleImportant: (id: number, important: boolean) => void;
-}) {
-  const [hover, setHover] = useState<Task['status'] | null>(null);
-  const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [adding, setAdding] = useState<Task['status'] | null>(null);
-  const [draft, setDraft] = useState('');
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-      {STATUSES.map((status) => (
-        <div
-          key={status}
-          onDragOver={(e) => { e.preventDefault(); setHover(status); }}
-          onDragLeave={() => setHover((c) => (c === status ? null : c))}
-          onDrop={(e) => {
-            e.preventDefault();
-            setHover(null);
-            const id = Number(e.dataTransfer.getData('text/task-id'));
-            if (id) onMove(id, status);
-          }}
-          className={`flex flex-col rounded-xl bg-card transition-colors ${hover === status ? 'border-primary/40 bg-primary/5' : ''}`}
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
-            <div className="flex items-center gap-2">
-              <span className={`size-2 rounded-full ${
-                status === 'todo' ? 'bg-muted-foreground/40' :
-                status === 'in_progress' ? 'bg-secondary' :
-                status === 'blocked' ? 'bg-destructive' : 'bg-primary'
-              }`} />
-              <span className="text-[13px] font-medium text-muted-foreground">
-                {STATUS_LABELS[status]}
-              </span>
-              <Badge variant="secondary" className="text-xs tabular-nums">{grouped[status].length}</Badge>
-            </div>
-            <Button variant="ghost" size="icon-xs" onClick={() => { setAdding(status); setDraft(''); }}>
-              <Plus className="size-3.5" />
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-2 p-2 min-h-[120px]">
-            {adding === status && (
-              <div className="rounded-md border border-primary/40 bg-card p-2 flex flex-col gap-2">
-                <Input
-                  autoFocus
-                  placeholder="What needs doing?"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter') {
-                      if (draft.trim()) {
-                        await onQuickAdd(status, draft.trim());
-                      }
-                      setAdding(null); setDraft('');
-                    }
-                    if (e.key === 'Escape') { setAdding(null); setDraft(''); }
-                  }}
-                  className="h-8 text-sm"
-                />
-                <div className="flex justify-end gap-1">
-                  <Button variant="ghost" size="xs" onClick={() => { setAdding(null); setDraft(''); }}>Cancel</Button>
-                  <Button size="xs" onClick={async () => {
-                    if (draft.trim()) await onQuickAdd(status, draft.trim());
-                    setAdding(null); setDraft('');
-                  }}>Add</Button>
-                </div>
-              </div>
-            )}
-            <AnimatePresence initial={false}>
-              {grouped[status].map((task) => (
-                <BoardCard
-                  key={task.id}
-                  task={task}
-                  dragging={draggingId === task.id}
-                  onDragStart={(e) => { setDraggingId(task.id); e.dataTransfer.setData('text/task-id', String(task.id)); }}
-                  onDragEnd={() => setDraggingId(null)}
-                  onClick={() => onClick(task)}
-                  onToggleImportant={onToggleImportant}
-                />
-              ))}
-            </AnimatePresence>
-            {grouped[status].length === 0 && adding !== status && (
-              <div className="text-center text-xs text-muted-foreground py-8 border border-dashed border-border/60 rounded-md">
-                No tasks
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function BoardCard({ task, dragging, onClick, onDragStart, onDragEnd, onToggleImportant }: {
-  task: Task;
-  dragging: boolean;
-  onClick: () => void;
-  onDragStart: (e: React.DragEvent) => void;
-  onDragEnd: () => void;
-  onToggleImportant: (id: number, important: boolean) => void;
-}) {
-  const toggleStar = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleImportant(task.id, !task.important);
-  };
-
-  return (
-    <motion.div
-      layout="position"
-      initial={{ opacity: 0, transform: 'translateY(-4px)' }}
-      animate={{ opacity: 1, transform: 'translateY(0)' }}
-      exit={{ opacity: 0, transform: 'scale(0.95)', transition: { duration: 0.12 } }}
-      transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
-    >
-      <div
-        draggable
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onClick={onClick}
-        className={`group rounded-lg bg-card px-3 py-2.5 cursor-pointer transition-[box-shadow,border-color,opacity] duration-200
-          ${dragging ? 'opacity-40' : 'opacity-100'}
-          hover:border-primary/40 hover:shadow-sm`}
-      >
-        <div className="flex items-start gap-2">
-          <span className={cn('size-2 rounded-full mt-1.5 shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
-          {Boolean(task.description?.trim()) && <StickyNote className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
-          <span className={`font-medium text-sm leading-tight flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
-            <TaskScopeBadge task={task} className="mr-2 align-middle" />
-            {task.title}
-          </span>
-          <button
-            onClick={toggleStar}
-            className={`opacity-60 hover:opacity-100 transition-opacity shrink-0 ${task.important ? 'text-secondary opacity-100' : ''}`}
-            title={task.important ? 'Remove from Important' : 'Mark important'}
-          >
-            <svg viewBox="0 0 24 24" className="size-3.5" fill={task.important ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-
-        {((task.subtask_count ?? 0) > 0 || (task.steps?.length ?? 0) > 0) && (
-          <div className="flex items-center gap-3 mt-2 ml-4 text-xs font-mono text-muted-foreground">
-            {task.steps && task.steps.length > 0 && (
-              <span>{task.steps.filter((s) => s.done).length}/{task.steps.length} steps</span>
-            )}
-            {(task.subtask_count ?? 0) > 0 && (
-              <span>{task.subtasks_done ?? 0}/{task.subtask_count ?? 0} subtasks</span>
-            )}
-          </div>
-        )}
-
-        {task.due_date && (
-          <div className="flex items-center gap-1 mt-2 ml-4 text-xs font-mono text-muted-foreground">
-            <Loader2 className="size-3 hidden" />
-            <span>{task.due_date}</span>
-          </div>
-        )}
-        {task.status === 'blocked' && (
-          <div className="mt-2 ml-4 truncate text-xs text-[hsl(var(--on-error-container))]">
-            Blocked by {task.blocked_by_task_title || 'another task'}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}

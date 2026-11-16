@@ -366,11 +366,29 @@ export default function TasksDoc() {
         <p>
           Desktop offers two projections of the same data: <strong>List</strong>{' '}
           (grouped Overdue / Today / This week / Later / No date) and{' '}
-          <strong>Board</strong> (kanban columns by status, todo, in
-          progress, blocked, done). Drag between columns to change status.
-          Phones always get the list; a board on a phone is a horizontal
-          scroll of regret.
+          <strong>Board</strong> (a lane per status: To do, In progress,
+          Blocked, Done). Every card is the same size: the title on up to two
+          lines, then one row of badges (date, repeat, steps, subtasks, what
+          blocks it).
         </p>
+        <ul>
+          <li>
+            <strong>Drag a card</strong> to another lane to change its status.
+            It lifts as you drag, its place stays held, and it lands at the top
+            of the new lane, since lanes list the latest change first.
+          </li>
+          <li>
+            Dropping on <strong>Blocked</strong> opens the task so you can pick
+            what blocks it. Dropping a task with open subtasks on{' '}
+            <strong>Done</strong> is refused with a note: finish them first.
+          </li>
+          <li>
+            <strong>Done</strong> shows the five most recent; “Show 37
+            more”. Each lane scrolls on its own; “Add a task” at its foot adds
+            one straight into that lane.
+          </li>
+        </ul>
+        <p>Phones always get the list; a board on a phone is a horizontal scroll of regret.</p>
       </Section>
     </>
   );
