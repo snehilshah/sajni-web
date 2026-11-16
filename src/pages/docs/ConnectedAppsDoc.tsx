@@ -57,6 +57,17 @@ export default function ConnectedAppsDoc() {
           Your theme and avatar stay in Sajni. Each app runs on its own model and
           its own account, so its answers and costs are its own.
         </p>
+        <p>
+          Apps sometimes send a change twice when Sajni is slow to reply. The
+          same change from the same app within 30 seconds runs once: ask for
+          “₹240 lunch on cash” and a resend won’t log a second lunch. To log
+          two identical things on purpose, make them differ a little, such as a
+          note or the time.
+        </p>
+        <p>
+          Apps can read any one item in full by its reference, say a note’s
+          text or a task’s subtasks: “what does my Trip ideas note say?”.
+        </p>
         <Callout tone="why">
           What a connected app sees is also sent to that app’s company. Keep
           changes off for an app you only want to ask questions, and never

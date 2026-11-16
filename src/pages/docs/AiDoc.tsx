@@ -53,7 +53,10 @@ export default function AiDoc() {
             delete standalone one-time or recurring reminders.
           </li>
           <li><strong>Habits</strong>: log ticks, check streaks.</li>
-          <li><strong>Notes & memos</strong>: capture memos, search notes, read content back.</li>
+          <li>
+            <strong>Notes & memos</strong>: capture memos, search notes, and read
+            any note in full: &ldquo;what does my Trip ideas note say?&rdquo;
+          </li>
           <li>
             <strong>Journal</strong>: read entries, and write in one. &ldquo;Add to
             today's journal: lunch with Riya&rdquo; adds a paragraph to the end of
@@ -98,17 +101,37 @@ export default function AiDoc() {
           </Feature>
           <Feature name="Context it carries">
             <p>
-              It knows the current date (IST), your open tasks and daily
-              habits, so “tomorrow”, “my usual” and “what's left today”
-              resolve correctly.
+              It knows the current date in your time zone, your open tasks,
+              habits, today's plans, and the names of your task lists and
+              accounts, so “tomorrow”, “add it to Work” and “paid from HDFC”
+              resolve without a lookup.
+            </p>
+          </Feature>
+          <Feature name="It brings only the tools it needs">
+            <p>
+              Everyday tools (tasks, journal, memos, reminders, transactions)
+              are always at hand; the rest (lends, budgets, events, themes and
+              so on) join when your question is about them, or when Sajni finds
+              it needs them. Answers cost less and pick the right tool more
+              often. You never have to ask for this.
+            </p>
+          </Feature>
+          <Feature name="A failed answer keeps your question">
+            <p>
+              If Sajni stops responding or hits a limit partway, the chat keeps
+              your question and any changes already made, with a short note on
+              what happened, so you can just ask again. A step that stalls with
+              nothing shown yet is retried once on its own.
             </p>
           </Feature>
           <Feature name="Budget">
             <p>
-              AI calls share a usage budget; if it runs dry mid-conversation
-              you get a clear “out of quota” rather than silent failure.
-              Palette answers are tuned short; chat goes as long as the
-              thought does.
+              Every AI call, including themes, insight wording and Projects
+              enrichment, shares a daily budget. Chat questions also have an
+              hourly one, which never holds up bank-message capture. Past a
+              limit you get a plain sentence saying when to try again, never a
+              silent failure. Palette answers are tuned short; chat goes as
+              long as the thought does.
             </p>
           </Feature>
         </FeatureList>
