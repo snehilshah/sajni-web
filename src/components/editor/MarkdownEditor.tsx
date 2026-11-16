@@ -330,7 +330,9 @@ export default function MarkdownEditor({
           { key: 'Tab', run: acceptCompletion },
           { key: 'Tab', run: indentMore, shift: indentLess },
           ...historyKeymap,
-          ...defaultKeymap,
+          // ⌘/Ctrl+Enter is left unhandled so it reaches the dialog around the
+          // editor and saves it (lib/enter-submit), instead of inserting a line.
+          ...defaultKeymap.filter((b) => b.key !== 'Mod-Enter'),
         ]),
         EditorView.lineWrapping,
         syntaxHighlighting(classHighlighter),

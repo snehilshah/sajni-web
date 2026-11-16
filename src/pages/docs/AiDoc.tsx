@@ -54,7 +54,11 @@ export default function AiDoc() {
           </li>
           <li><strong>Habits</strong>: log ticks, check streaks.</li>
           <li><strong>Notes & memos</strong>: capture memos, search notes, read content back.</li>
-          <li><strong>Journal</strong>: read/write entries.</li>
+          <li>
+            <strong>Journal</strong>: read entries, and write in one. &ldquo;Add to
+            today's journal: lunch with Riya&rdquo; adds a paragraph to the end of
+            the day; the day is only rewritten when you ask for that.
+          </li>
           <li><strong>Media</strong>: add/search the library, move statuses, advance episodes.</li>
           <li>
             <strong>Finance</strong>: add/edit transactions (they file into
