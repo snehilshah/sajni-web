@@ -279,8 +279,11 @@ export default function TasksDoc() {
           <Feature name="The reminder ledger">
             <p>
               Reminders group chronologically into Today, Tomorrow, Later and
-              Recurring. A row carries the message, next fire time, optional
-              note and compact actions. Delivered and skipped occurrences
+              Recurring. A row carries the message, next fire time, the first
+              line of its notes and compact actions; <em>More</em> unfolds long
+              notes in place, in the Recent ledger too. The notification shows
+              them as well: a short reminder is its title over the notes, a
+              long one stays in the text under “Reminder”. Delivered and skipped occurrences
               move into the collapsed Recent ledger instead of lingering in
               the active list. A new reminder starts at the next whole hour
               today (at 1:40 pm, 2:00 pm), so “in a bit” needs no date picking.

@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { addDays, format, isSameDay, startOfDay } from 'date-fns';
 
 import type { Reminder, ReminderHistoryItem, ReminderInput, ReminderRecurrence } from '@/types';
@@ -368,12 +369,12 @@ function ReminderGroup({ label, items, onEdit, onSnooze, onCustomSnooze, onSkip,
         <span className="mono text-xs tabular-nums text-muted-foreground/70">{items.length}</span>
         <span className="h-px flex-1 bg-[hsl(var(--outline-variant))]" />
       </div>
-      <div className="overflow-hidden rounded-[22px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+      <div className="flex flex-col gap-0.5">
         {items.map((item, index) => (
           <ReminderRow
             key={item.id}
             item={item}
-            separated={index > 0}
+            corners={tileCorners(index, items.length)}
             onEdit={() => onEdit(item)}
             onSnooze={(minutes) => onSnooze(item, minutes)}
             onCustomSnooze={() => onCustomSnooze(item)}
@@ -386,9 +387,68 @@ function ReminderGroup({ label, items, onEdit, onSnooze, onCustomSnooze, onSkip,
   );
 }
 
-function ReminderRow({ item, separated, onEdit, onSnooze, onCustomSnooze, onSkip, onDelete }: {
+// Segmented tiles 2dp apart: 20dp outer corners, 6dp inner (DESIGN.md).
+function tileCorners(index: number, count: number) {
+  return cn(
+    'rounded-[6px]',
+    index === 0 && 'rounded-t-[20px]',
+    index === count - 1 && 'rounded-b-[20px]',
+  );
+}
+
+// ReminderNotes shows a reminder's notes folded to one line; More unfolds
+// them in place (they can run to 4,000 characters). A button, not the row,
+// so delivered reminders, which open nothing, can be read too.
+function ReminderNotes({ notes }: { notes: string }) {
+  const text = notes.trim();
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  const long = text.includes('\n') || text.length > 70;
+  return (
+    <div className="mt-1 min-w-0">
+      <AnimatePresence initial={false} mode="wait">
+        {open ? (
+          <motion.p
+            key="all"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+            className="max-h-80 overflow-y-auto whitespace-pre-wrap break-words text-sm text-muted-foreground"
+          >
+            {text}
+          </motion.p>
+        ) : (
+          <motion.p
+            key="one"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="truncate text-sm text-muted-foreground"
+          >
+            {text.split('\n')[0]}
+          </motion.p>
+        )}
+      </AnimatePresence>
+      {long && (
+        <button
+          type="button"
+          onClick={(event) => { event.stopPropagation(); setOpen((v) => !v); }}
+          aria-expanded={open}
+          className="-ml-2 mt-0.5 inline-flex h-8 items-center gap-1 rounded-full px-2 text-xs font-medium text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--primary)/0.08)]"
+        >
+          {open ? 'Less' : 'More'}
+          <ChevronDown className={cn('size-3.5 transition-transform duration-200', open && 'rotate-180')} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ReminderRow({ item, corners, onEdit, onSnooze, onCustomSnooze, onSkip, onDelete }: {
   item: Reminder;
-  separated: boolean;
+  corners: string;
   onEdit: () => void;
   onSnooze: (minutes: number) => void;
   onCustomSnooze: () => void;
@@ -397,11 +457,12 @@ function ReminderRow({ item, separated, onEdit, onSnooze, onCustomSnooze, onSkip
 }) {
   const fireAt = item.next_occurrence ? new Date(item.next_occurrence.fire_at) : null;
   return (
-    <div className={cn('group flex min-h-16 items-center gap-3 px-3 py-2.5 sm:px-4', separated && 'border-t border-[hsl(var(--outline-variant)/0.55)]')}>
+    <div className={cn('group flex min-h-16 items-start gap-3 bg-[hsl(var(--surface-container-low))] px-3 py-2.5 sm:px-4', corners)}>
       <div className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]">
         <AlarmClock className="size-4" />
       </div>
-      <button type="button" onClick={onEdit} className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/45">
+      <div className="min-w-0 flex-1">
+      <button type="button" onClick={onEdit} className="block w-full min-w-0 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/45">
         <div className="truncate text-sm font-semibold text-foreground">{item.message}</div>
         <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
           {fireAt && <span className="shrink-0">{format(fireAt, isSameDay(fireAt, new Date()) ? 'h:mm a' : 'EEE, MMM d · h:mm a')}</span>}
@@ -412,6 +473,9 @@ function ReminderRow({ item, separated, onEdit, onSnooze, onCustomSnooze, onSkip
           )}
         </div>
       </button>
+      {/* Outside the edit button: a button can't hold another. */}
+      <ReminderNotes notes={item.notes} />
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="size-11 shrink-0" aria-label={`Actions for ${item.message}`} />}>
           <MoreHorizontal className="size-4" />
@@ -436,18 +500,16 @@ function ReminderRow({ item, separated, onEdit, onSnooze, onCustomSnooze, onSkip
 
 function RecentLedger({ items, onDelete }: { items: ReminderHistoryItem[]; onDelete: (item: ReminderHistoryItem) => void }) {
   return (
-    <div className="mt-2 overflow-hidden rounded-[22px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+    <div className="mt-2 flex flex-col gap-0.5">
       {items.map((item, index) => (
-        <div key={item.id} className={cn('flex min-h-14 items-center gap-3 px-4 py-2.5', index > 0 && 'border-t border-[hsl(var(--outline-variant)/0.55)]')}>
-          <Bell className="size-4 shrink-0 text-muted-foreground" />
+        <div key={item.id} className={cn('flex min-h-14 items-start gap-3 bg-[hsl(var(--surface-container-low))] px-4 py-2.5', tileCorners(index, items.length))}>
+          <Bell className="mt-3 size-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium">{item.message}</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               {item.status === 'skipped' ? 'Skipped' : 'Delivered'} · {format(new Date(item.delivered_at ?? item.skipped_at ?? item.fire_at), 'MMM d · h:mm a')}
             </div>
-            {item.notes.trim() && (
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.notes}</p>
-            )}
+            <ReminderNotes notes={item.notes} />
           </div>
           <Button
             variant="destructive-ghost"
