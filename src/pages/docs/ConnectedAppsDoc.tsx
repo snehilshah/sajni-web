@@ -58,11 +58,12 @@ export default function ConnectedAppsDoc() {
           its own account, so its answers and costs are its own.
         </p>
         <p>
-          Apps sometimes send a change twice when Sajni is slow to reply. The
-          same change from the same app within 30 seconds runs once: ask for
-          “₹240 lunch on cash” and a resend won’t log a second lunch. To log
-          two identical things on purpose, make them differ a little, such as a
-          note or the time.
+          Apps sometimes send a change again when Sajni is slow to reply. Adding
+          the very same thing twice within 90 seconds of the first finishing
+          runs once: ask for “₹240 lunch on cash” and a resend won’t log a
+          second lunch. The app is told why, so to add two identical things on
+          purpose it makes them differ a little, such as a note or the time.
+          Edits and deletes aren’t affected.
         </p>
         <p>
           Apps can read any one item in full by its reference, say a note’s
