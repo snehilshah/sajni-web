@@ -13,7 +13,18 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { repeats } from './RepeatPicker';
-import { STATUSES, STATUS_LABELS, PRIORITY_COLORS } from './helpers';
+import { STATUSES, STATUS_LABELS } from './helpers';
+
+// The status box's ring carries priority, as in the list (DESIGN.md:
+// "Priority ring"); no separate dot.
+const PRIORITY_RING: Record<string, string> = {
+  high: 'border-destructive',
+  medium: 'border-amber-500',
+  low: 'border-[hsl(var(--outline))]',
+};
+
+// Lanes in the order work flows; Blocked, the exception, comes last.
+const LANES: Task['status'][] = ['todo', 'in_progress', 'done', 'blocked'];
 
 // The Tasks board (desktop): one tonal lane per status; a card is its title
 // (up to two lines) and, when it has any, one badge row (DESIGN.md → Board).
@@ -144,7 +155,7 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
         className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
         aria-label="Tasks board"
       >
-        {STATUSES.map((status) => (
+        {LANES.map((status) => (
           <BoardLane
             key={status}
             status={status}
@@ -379,11 +390,14 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
       onClick={onClick}
       onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
       className={cn(
-        'group flex flex-col gap-2 rounded-[14px] bg-[hsl(var(--surface-container-lowest))] px-3 py-2.5 text-left outline-none',
+        'group flex flex-col gap-2 rounded-[14px] px-3 py-2.5 text-left outline-none',
+        !task.color && 'bg-[hsl(var(--surface-container-lowest))]',
         'transition-shadow duration-150 focus-visible:ring-2 focus-visible:ring-ring/45',
         // State layer, not a new surface: a faint wash on hover.
         lifted ? 'cursor-grabbing' : 'cursor-pointer hover:shadow-[inset_0_0_0_100vmax_hsl(var(--on-surface)/0.035)]',
       )}
+      // A coloured task is tinted with its colour (a wash, not a stripe).
+      style={task.color ? { backgroundColor: `color-mix(in srgb, ${task.color} 10%, hsl(var(--surface-container-lowest)))` } : undefined}
     >
       <div className="flex min-w-0 items-start gap-2">
         <button
@@ -396,8 +410,11 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
             'flex size-5 items-center justify-center rounded-[32%] border-2 transition-colors',
             done ? 'rounded-full border-primary bg-primary text-primary-foreground'
               : task.status === 'blocked' ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
-                : 'border-[hsl(var(--outline))] group-hover:border-primary',
-          )}>
+                : !task.color && PRIORITY_RING[task.priority],
+          )}
+          // The task's own colour, when it has one, rings it instead.
+          style={!done && task.status !== 'blocked' && task.color ? { borderColor: task.color } : undefined}
+          >
             {done && (
               <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
@@ -405,10 +422,6 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
             )}
           </span>
         </button>
-        <span
-          className={cn('mt-[7px] size-2 shrink-0 rounded-full', !task.color && PRIORITY_COLORS[task.priority])}
-          style={task.color ? { backgroundColor: task.color } : undefined}
-        />
         <span className={cn(
           'line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-5',
           done && 'text-muted-foreground line-through',

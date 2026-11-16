@@ -369,10 +369,12 @@ export default function TasksDoc() {
         <p>
           Desktop offers two projections of the same data: <strong>List</strong>{' '}
           (grouped Overdue / Today / This week / Later / No date) and{' '}
-          <strong>Board</strong> (a lane per status: To do, In progress,
-          Blocked, Done). A card shows the title on up to two lines, with
-          one row of badges under it when it has any (date, repeat, steps,
-          subtasks, what blocks it).
+          <strong>Board</strong> (a lane per status: To do, In progress, Done,
+          and Blocked last, since it's the exception). A card shows the title
+          on up to two lines, with one row of badges under it when it has any
+          (date, repeat, steps, subtasks, what blocks it). The ring of its box
+          shows priority (red high, amber medium, grey low); a task with its
+          own colour is ringed and lightly tinted in it.
         </p>
         <ul>
           <li>
