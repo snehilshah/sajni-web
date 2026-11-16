@@ -1155,9 +1155,10 @@ export default function FinanceDoc() {
                 Papa captured?”). Message text is kept for 30 days.
               </li>
               <li>
-                A capture Sajni can't guess a category for is left
-                uncategorised for you to sort, rather than filed under{' '}
-                <em>Others</em>.
+                Sajni picks the category while it reads the message, from your
+                own categories (a merchant you've filed before keeps its
+                category). One it can't place is left uncategorised for you to
+                sort, rather than filed under <em>Others</em>.
               </li>
               <li>
                 Your bank's message about an RD or SIP instalment Sajni already
