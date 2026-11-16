@@ -383,8 +383,8 @@ export default function TasksDoc() {
             <strong>Done</strong> is refused with a note: finish them first.
           </li>
           <li>
-            <strong>Done</strong> shows the five most recent; “Show 37
-            more”. Each lane scrolls on its own; “Add a task” at its foot adds
+            <strong>Done</strong> shows the five most recent; the rest wait
+            behind “Show 37 more”. Each lane scrolls on its own; “Add a task” at its foot adds
             one straight into that lane.
           </li>
         </ul>
