@@ -61,6 +61,8 @@ export interface Task {
   important: boolean;
   steps?: TaskStep[];
   sort_order: number;
+  /** Place in its Board lane, smaller first; null until placed (then by updated_at). */
+  board_rank?: number | null;
   subtask_count?: number;
   subtasks_done?: number;
   /** Brief children embedded by the list endpoint so subtasks expand
@@ -140,6 +142,7 @@ export type TaskPatch = Partial<Pick<
   | 'important'
   | 'steps'
   | 'recurrence'
+  | 'board_rank'
 >> & {
   clear_plan?: boolean;
   clear_due?: boolean;

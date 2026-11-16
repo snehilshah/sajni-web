@@ -376,14 +376,17 @@ export default function TasksDoc() {
         </p>
         <ul>
           <li>
-            <strong>Drag a card</strong> to another lane to change its status.
-            It lifts as you drag, its place stays held, and it lands at the top
-            of the new lane, since lanes list the latest change first.
+            <strong>Drag a card</strong> anywhere: up or down to reorder a lane,
+            or into another lane to change its status. The cards make room
+            where it will go, and it stays exactly where you drop it. A task
+            you haven't placed yet (a new one) starts at the top. Reordering
+            doesn't count as an edit, so the List keeps its own order.
           </li>
           <li>
             Dropping on <strong>Blocked</strong> opens the task so you can pick
-            what blocks it. Dropping a task with open subtasks on{' '}
-            <strong>Done</strong> is refused with a note: finish them first.
+            what blocks it. A task with open subtasks can't go into{' '}
+            <strong>Done</strong>: the lane says so while you drag, and the
+            card goes back if you let go there.
           </li>
           <li>
             <strong>Done</strong> shows the five most recent; the rest wait

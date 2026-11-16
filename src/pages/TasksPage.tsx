@@ -12,7 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import type { Task } from '@/types';
 import {
   useTasks, useTaskLists, useMissedTasks,
-  useCreateTask, useToggleTaskStatus, useToggleTaskImportant,
+  useCreateTask, useToggleTaskStatus, useToggleTaskImportant, useMoveOnBoard,
   useCreateTaskList, useUpdateTaskList, useDeleteTaskList,
   type TaskListParams,
 } from '@/queries/tasks';
@@ -78,6 +78,7 @@ export default function TasksPage() {
 
   const createTask = useCreateTask();
   const moveStatus = useToggleTaskStatus();
+  const moveOnBoard = useMoveOnBoard();
   const toggleImportant = useToggleTaskImportant();
   const createList = useCreateTaskList();
   const updateList = useUpdateTaskList();
@@ -344,15 +345,15 @@ export default function TasksPage() {
             <BoardView
               grouped={grouped}
               onClick={openEdit}
-              onMove={(id, status) => {
+              onMove={(id, status, rank) => {
                 const t = tasksList.find((x) => x.id === id);
-                if (!t || t.status === status) return;
+                if (!t) return;
                 if (status === 'blocked') {
                   setEditingTask({ ...t, status: 'blocked', blocked_by_task_id: null, blocked_by_task_title: null });
                   setShowForm(true);
                   return;
                 }
-                moveStatus.mutate({ id, status });
+                moveOnBoard.mutate({ id, status, board_rank: rank });
               }}
               onQuickAdd={async (status, title) => {
                 if (status === 'blocked') {

@@ -1,12 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable,
+  DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useDragOperation,
 } from '@dnd-kit/react';
+import { useSortable, isSortable } from '@dnd-kit/react/sortable';
 import { PointerActivationConstraints } from '@dnd-kit/dom';
 import { format, parseISO, isPast, isToday } from 'date-fns';
-import { toast } from 'sonner';
 
 import type { Task } from '@/types';
 import { Plus, Star, ListChecks, GitBranch, Repeat, CornerDownRight } from '@/components/ui/icons';
@@ -17,34 +16,60 @@ import { repeats } from './RepeatPicker';
 import { STATUSES, STATUS_LABELS, PRIORITY_COLORS } from './helpers';
 
 // The Tasks board (desktop): one tonal lane per status; a card is its title
-// (up to two lines) and, when it has any, one badge row (DESIGN.md → Board). Order in a lane
-// is the app's order, last updated first, so a dropped card lands at the top
-// of its lane. Drag lifts the card into an overlay and leaves a same-sized
-// slot, so nothing under the pointer moves; on drop the card flies from where
-// it was let go to its new place (FLIP), and the lanes close and open around
-// it with layout springs.
+// (up to two lines) and, when it has any, one badge row (DESIGN.md → Board).
+//
+// Lanes keep the order the owner gives them. Each task carries a board_rank
+// (smaller is higher); one never placed sorts as -updated_at in ms, so new
+// and edited tasks come first until moved. Dragging is sortable: the cards
+// make room where the card would go, and it drops exactly there; the rank is
+// the midpoint of its new neighbours'. A move is applied in the same frame
+// (local override) and saved optimistically, so nothing re-sorts after.
 
 const DONE_PREVIEW = 5;
-const spring = { type: 'spring' as const, stiffness: 520, damping: 42, mass: 0.9 };
+const EASE = 'cubic-bezier(0.2, 0, 0, 1)';
+const SHIFT = { duration: 220, easing: EASE };
+const GAP_MS = 60_000;
 
 type Lane = Task['status'];
 
 interface Props {
   grouped: Record<Lane, Task[]>;
   onClick: (t: Task) => void;
-  onMove: (id: number, status: Lane) => void;
+  /** status is set only when the lane changed. */
+  onMove: (id: number, status: Lane | undefined, rank: number) => void;
   onQuickAdd: (status: Lane, title: string) => Promise<void>;
   onToggleImportant: (id: number, important: boolean) => void;
   onToggleDone: (task: Task) => void;
 }
 
-const stamp = (t: Task) => Date.parse(t.updated_at ?? '') || 0;
-const byUpdated = (a: Task, b: Task) => stamp(b) - stamp(a);
+/** A task's place in its lane: its rank, else newest first. */
+export const boardRank = (t: Task) => t.board_rank ?? -(Date.parse(t.updated_at ?? '') || 0);
+
+/** The rank for a card dropped at index in list (which no longer holds it). */
+export function rankAt(list: Task[], index: number): number {
+  const prev = index > 0 ? list[index - 1] : undefined;
+  const next = index < list.length ? list[index] : undefined;
+  if (prev && next) return (boardRank(prev) + boardRank(next)) / 2;
+  if (next) return boardRank(next) - GAP_MS;
+  if (prev) return boardRank(prev) + GAP_MS;
+  return -Date.now();
+}
 
 export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onToggleImportant, onToggleDone }: Props) {
-  // A drop moves the card at once, in this frame; the query cache catches up
-  // a moment later (optimistic patch), and then the override is dropped.
-  const [moved, setMoved] = useState<Record<number, { status: Lane; at: string }>>({});
+  // A drop shows in this frame; the query cache catches up a moment later
+  // (optimistic patch), and then the override is dropped.
+  const [moved, setMoved] = useState<Record<number, { status: Lane; rank: number }>>({});
+  // Bumped on every drop: dnd-kit moves the dragged card's element between
+  // lanes while sorting, which React can't reconcile, so the lanes redraw
+  // from data (in the same frame; scroll and the Done fold carry over).
+  const [epoch, setEpoch] = useState(0);
+  const scroll = useRef<Partial<Record<Lane, HTMLDivElement | null>>>({});
+  const savedScroll = useRef<Partial<Record<Lane, number>>>({});
+  const [doneOpen, setDoneOpen] = useState(false);
+  const redraw = () => {
+    for (const s of STATUSES) savedScroll.current[s] = scroll.current[s]?.scrollTop ?? 0;
+    setEpoch((e) => e + 1);
+  };
   useEffect(() => {
     setMoved((cur) => {
       const ids = Object.keys(cur).map(Number);
@@ -52,7 +77,7 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
       const next = { ...cur };
       for (const id of ids) {
         const t = STATUSES.flatMap((s) => grouped[s]).find((x) => x.id === id);
-        if (!t || t.status === cur[id].status) delete next[id];
+        if (!t || (t.status === cur[id].status && t.board_rank === cur[id].rank)) delete next[id];
       }
       return next;
     });
@@ -64,19 +89,13 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
     for (const s of STATUSES) {
       for (const t of grouped[s]) {
         const m = moved[t.id];
-        if (m) out[m.status].push({ ...t, status: m.status, updated_at: m.at });
+        if (m) out[m.status].push({ ...t, status: m.status, board_rank: m.rank });
         else out[s].push(t);
       }
     }
-    for (const s of STATUSES) out[s].sort(byUpdated);
+    for (const s of STATUSES) out[s].sort((a, b) => boardRank(a) - boardRank(b));
     return out;
   }, [grouped, moved]);
-
-  // Where the lifted card was let go, so it can fly from there to its place.
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const lastRect = useRef<DOMRect | null>(null);
-  // status: the lane it lands in; only the card there flies.
-  const [landing, setLanding] = useState<{ id: number; rect: DOMRect; status: Lane } | null>(null);
 
   const sensors = useMemo(() => [
     PointerSensor.configure({
@@ -90,36 +109,38 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
   return (
     <DragDropProvider
       sensors={sensors}
-      // The overlay may be gone by the time the drag ends: keep its last spot.
-      onDragMove={() => {
-        const r = overlayRef.current?.getBoundingClientRect();
-        if (r) lastRect.current = r;
-      }}
       onDragEnd={(event) => {
-        const task = event.operation.source?.data?.task as Task | undefined;
-        if (!task) return;
-        const shape = event.operation.shape?.current as { boundingRectangle?: { left: number; top: number; width: number; height: number } } | undefined;
-        const box = shape?.boundingRectangle;
-        const rect = overlayRef.current?.getBoundingClientRect() ?? lastRect.current
-          ?? (box ? new DOMRect(box.left, box.top, box.width, box.height) : null);
-        lastRect.current = null;
-        const target = event.operation.target?.data?.status as Lane | undefined;
-        const moving = !event.canceled && target && target !== task.status && !boardMoveRefusal(task, target)
-          // Blocked needs a blocker: the dialog opens and the card stays put.
-          && target !== 'blocked';
-        // Move and land in one update, so the card never shows in its old
-        // lane for a frame.
+        const source = event.operation.source;
+        if (event.canceled || !source || !isSortable(source)) {
+          if (event.canceled) flushSync(redraw);
+          return;
+        }
+        const task = source.data?.task as Task | undefined;
+        const lane = source.group as Lane | undefined;
+        if (!task || !lane) return;
+        // Let go over a lane that refused it (Done with open subtasks), the
+        // card goes home: its slot may have been left in a lane it crossed.
+        if (!event.operation.target) { flushSync(redraw); return; }
+        if (lane === 'blocked' && task.status !== 'blocked') {
+          // Blocked needs a blocker: the task opens; the card returns until saved.
+          flushSync(redraw);
+          onMove(task.id, 'blocked', boardRank(task));
+          return;
+        }
+        const list = lanes[lane].filter((t) => t.id !== task.id);
+        const index = Math.max(0, Math.min(source.index, list.length));
+        const before = lanes[task.status].findIndex((t) => t.id === task.id);
+        if (lane === task.status && index === before) { flushSync(redraw); return; }
+        const rank = rankAt(list, index);
         flushSync(() => {
-          if (rect) setLanding({ id: task.id, rect, status: moving ? target : task.status });
-          if (moving) setMoved((cur) => ({ ...cur, [task.id]: { status: target, at: new Date().toISOString() } }));
+          setMoved((cur) => ({ ...cur, [task.id]: { status: lane, rank } }));
+          redraw();
         });
-        if (event.canceled || !target || target === task.status) return;
-        const refusal = boardMoveRefusal(task, target);
-        if (refusal) { toast.info(refusal); return; }
-        onMove(task.id, target);
+        onMove(task.id, lane === task.status ? undefined : lane, rank);
       }}
     >
       <div
+        key={epoch}
         className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
         aria-label="Tasks board"
       >
@@ -128,8 +149,10 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
             key={status}
             status={status}
             tasks={lanes[status]}
-            landing={landing}
-            onLanded={() => setLanding(null)}
+            scrollRef={(el) => { scroll.current[status] = el; }}
+            savedScroll={savedScroll}
+            showAll={status === 'done' && doneOpen}
+            onShowAll={setDoneOpen}
             onClick={onClick}
             onQuickAdd={onQuickAdd}
             onToggleImportant={onToggleImportant}
@@ -137,13 +160,17 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
           />
         ))}
       </div>
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={{ duration: 220, easing: EASE }}>
         {(source) => {
           const task = source.data?.task as Task | undefined;
           if (!task) return null;
           return (
-            <div ref={overlayRef} className="cursor-grabbing">
-              <div className="rotate-[1.5deg] scale-[1.03] rounded-[14px] shadow-lg transition-transform duration-150">
+            <div className="cursor-grabbing">
+              {/* Lifted while dragging; settles flat as it drops into place. */}
+              <div className={cn(
+                'rounded-[14px] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
+                source.isDropping ? 'rotate-0 scale-100 shadow-none' : 'rotate-[1.5deg] scale-[1.03] shadow-lg',
+              )}>
                 <CardBody task={task} lifted />
               </div>
             </div>
@@ -154,20 +181,40 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
   );
 }
 
-function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onToggleImportant, onToggleDone }: {
+// Done refuses a task with open subtasks (the server would, with a 409), so
+// the cards there never make room for it.
+const acceptsInto = (lane: Lane) => (source: { data?: unknown }) => {
+  const task = (source.data as { task?: Task } | undefined)?.task;
+  return !task || !boardMoveRefusal(task, lane);
+};
+
+function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, onClick, onQuickAdd, onToggleImportant, onToggleDone }: {
   status: Lane;
   tasks: Task[];
-  landing: { id: number; rect: DOMRect; status: Lane } | null;
-  onLanded: () => void;
+  scrollRef: (el: HTMLDivElement | null) => void;
+  savedScroll: React.RefObject<Partial<Record<Lane, number>>>;
+  showAll: boolean;
+  onShowAll: (open: boolean) => void;
   onClick: (t: Task) => void;
   onQuickAdd: (status: Lane, title: string) => Promise<void>;
   onToggleImportant: (id: number, important: boolean) => void;
   onToggleDone: (task: Task) => void;
 }) {
-  const { ref, isDropTarget } = useDroppable({ id: `lane:${status}`, data: { status } });
+  const accept = useMemo(() => acceptsInto(status), [status]);
+  // The lane itself takes a drop below its cards (or when it's empty).
+  const { ref, isDropTarget } = useDroppable({ id: `lane:${status}`, type: 'lane', accept, collisionPriority: 1, data: { status } });
+  // While a card that can't go here is lifted, the lane says why.
+  const { source } = useDragOperation();
+  const dragged = (source?.data as { task?: Task } | undefined)?.task;
+  const refusal = dragged ? boardMoveRefusal(dragged, status) : null;
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const scroller = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (scroller.current) scroller.current.scrollTop = savedScroll.current[status] ?? 0;
+    // Only on mount: the redraw after a drop keeps the lane where it was.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const folded = status === 'done' && !showAll && tasks.length > DONE_PREVIEW;
   const shown = folded ? tasks.slice(0, DONE_PREVIEW) : tasks;
 
@@ -177,16 +224,20 @@ function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onTo
     setAdding(false);
     if (title) await onQuickAdd(status, title);
   };
-
   return (
     <section
       ref={ref as React.Ref<HTMLElement>}
       aria-label={STATUS_LABELS[status]}
       className={cn(
-        'snap-start flex max-h-[calc(100dvh-13rem)] min-h-40 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
+        'relative snap-start flex max-h-[calc(100dvh-13rem)] min-h-40 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
         isDropTarget && 'bg-[hsl(var(--surface-container-high))] shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.45)]',
       )}
     >
+      {refusal && (
+        <p role="status" className="pointer-events-none absolute inset-x-1.5 bottom-1.5 z-10 rounded-[14px] bg-[hsl(var(--surface-container-highest))] px-3 py-2.5 text-center text-xs text-muted-foreground">
+          {refusal}
+        </p>
+      )}
       <header className="flex h-12 shrink-0 items-center gap-2 pl-4 pr-2">
         <h3 className="text-sm font-semibold">{STATUS_LABELS[status]}</h3>
         <span className="text-xs tabular-nums text-muted-foreground">{tasks.length}</span>
@@ -199,7 +250,10 @@ function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onTo
         </Button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-1.5 pb-1.5">
+      <div
+        ref={(el) => { scroller.current = el; scrollRef(el); }}
+        className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-1.5 pb-1.5"
+      >
         {adding && (
           <div className="rounded-[14px] bg-[hsl(var(--surface-container-lowest))] p-2">
             <Input
@@ -216,19 +270,18 @@ function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onTo
             />
           </div>
         )}
-        <AnimatePresence initial={false} mode="popLayout">
-          {shown.map((task) => (
-            <BoardCard
-              key={task.id}
-              task={task}
-              landingFrom={landing?.id === task.id && landing.status === status ? landing.rect : null}
-              onLanded={onLanded}
-              onClick={() => onClick(task)}
-              onToggleImportant={onToggleImportant}
-              onToggleDone={onToggleDone}
-            />
-          ))}
-        </AnimatePresence>
+        {shown.map((task, index) => (
+          <BoardCard
+            key={task.id}
+            task={task}
+            index={index}
+            lane={status}
+            accept={accept}
+            onClick={() => onClick(task)}
+            onToggleImportant={onToggleImportant}
+            onToggleDone={onToggleDone}
+          />
+        ))}
         {tasks.length === 0 && !adding && (
           <p className="py-6 text-center text-xs text-muted-foreground">
             {status === 'done' ? 'Nothing finished yet' : 'Nothing here'}
@@ -240,7 +293,7 @@ function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onTo
         {folded ? (
           <button
             type="button"
-            onClick={() => setShowAll(true)}
+            onClick={() => onShowAll(true)}
             className="h-9 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground"
           >
             Show {tasks.length - DONE_PREVIEW} more
@@ -248,7 +301,7 @@ function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onTo
         ) : status === 'done' && showAll && tasks.length > DONE_PREVIEW ? (
           <button
             type="button"
-            onClick={() => setShowAll(false)}
+            onClick={() => onShowAll(false)}
             className="h-9 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground"
           >
             Show fewer
@@ -267,63 +320,27 @@ function BoardLane({ status, tasks, landing, onLanded, onClick, onQuickAdd, onTo
   );
 }
 
-function BoardCard({ task, landingFrom, onLanded, onClick, onToggleImportant, onToggleDone }: {
+function BoardCard({ task, index, lane, accept, onClick, onToggleImportant, onToggleDone }: {
   task: Task;
-  landingFrom: DOMRect | null;
-  onLanded: () => void;
+  index: number;
+  lane: Lane;
+  accept: (source: { data?: unknown }) => boolean;
   onClick: () => void;
   onToggleImportant: (id: number, important: boolean) => void;
   onToggleDone: (task: Task) => void;
 }) {
-  const { ref, isDragSource } = useDraggable({ id: `task:${task.id}`, data: { task } });
-  const inner = useRef<HTMLDivElement | null>(null);
-
-  // FLIP: start where the lifted card was let go, then settle into place.
-  useLayoutEffect(() => {
-    const el = inner.current;
-    if (!landingFrom || !el) return;
-    const to = el.getBoundingClientRect();
-    const dx = landingFrom.left - to.left;
-    const dy = landingFrom.top - to.top;
-    // Web Animations: runs on the compositor, so it stays smooth while the
-    // lanes re-render around it.
-    const anim = el.animate(
-      [
-        { transform: `translate(${dx}px, ${dy}px) rotate(1.5deg) scale(1.03)` },
-        { transform: 'translate(0, 0) rotate(0deg) scale(1)' },
-      ],
-      { duration: 300, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-    );
-    // Above the cards sliding aside for it while it settles.
-    const slot = el.parentElement?.parentElement as HTMLElement | null;
-    if (slot) { slot.style.position = 'relative'; slot.style.zIndex = '10'; }
-    const settle = () => { if (slot) slot.style.zIndex = ''; };
-    anim.onfinish = () => { settle(); onLanded(); };
-    anim.oncancel = settle;
-    return () => anim.cancel();
-    // Runs once per landing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landingFrom]);
-
+  const { ref, isDragSource } = useSortable({
+    id: task.id, index, group: lane, type: 'task', accept, transition: SHIFT, data: { task },
+  });
   return (
-    <motion.div
-      layout="position"
-      transition={spring}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      // A card leaving by drag is already shown in its new lane: no fade.
-      exit={{ opacity: 0, transition: { duration: isDragSource || landingFrom ? 0 : 0.12 } }}
-      className="shrink-0"
-    >
-      <div ref={ref as React.Ref<HTMLDivElement>} className="relative">
-        {isDragSource && (
-          <div aria-hidden className="absolute inset-0 rounded-[14px] border-2 border-dashed border-[hsl(var(--outline-variant))]" />
-        )}
-        <div ref={inner} className={cn('will-change-transform', isDragSource && 'invisible')}>
-          <CardBody task={task} onClick={onClick} onToggleImportant={onToggleImportant} onToggleDone={onToggleDone} />
-        </div>
+    <div ref={ref as React.Ref<HTMLDivElement>} className="relative shrink-0" data-board-slot={task.id}>
+      {isDragSource && (
+        <div aria-hidden className="absolute inset-0 rounded-[14px] border-2 border-dashed border-[hsl(var(--outline-variant))]" />
+      )}
+      <div className={cn(isDragSource && 'invisible')}>
+        <CardBody task={task} onClick={onClick} onToggleImportant={onToggleImportant} onToggleDone={onToggleDone} />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
