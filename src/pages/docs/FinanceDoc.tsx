@@ -1060,8 +1060,10 @@ export default function FinanceDoc() {
               <strong>Example.</strong> You put ₹1,50,000 into an RD and
               Kotak credits ₹1,57,420 on 12 Dec: ₹1,50,000 comes back as a
               transfer and ₹7,420 is Interest. If the phone captures the
-              bank's message within two days of the maturity date, and it's
-              at least what you put in, Sajni files it this way by itself.
+              bank's message from a day before the maturity date to a week
+              after (12 Dec is a Saturday; the bank may credit it on
+              Monday), and it's at least what you put in, Sajni files it this
+              way by itself.
             </p>
           </Feature>
         </FeatureList>
@@ -1073,7 +1075,11 @@ export default function FinanceDoc() {
             <p>
               Sajni can read bank SMS and payment-app notifications (GPay,
               PhonePe, bank apps) and add the transaction for you. Turn it on
-              in Settings and allow what it asks for.
+              in Settings and allow what it asks for. <em>Choose apps</em>{' '}
+              picks which apps' notifications are read; WhatsApp is off unless
+              you tick it, since its notifications are almost all chats. If
+              the phone is ever signed out of Sajni, one notification says
+              payments aren't being captured.
             </p>
             <ul>
               <li>
@@ -1084,7 +1090,27 @@ export default function FinanceDoc() {
                 If Sajni can't tell which account, the notification asks you.
                 For a wallet you don't keep in Sajni (Zomato Money, a meal
                 card), tap <em>Don't track Zomato Money</em> and it stops
-                asking; Settings → Finance lists them to undo.
+                asking; Settings → Finance lists them to undo. A message naming
+                a card number that isn't one of yours (Kotak's other card
+                ••9148) is asked about too, never filed on your Kotak savings
+                just because it says “Kotak”. Matching hints count as whole
+                words (“POP” doesn't match “Poptech”), and the most specific
+                one wins.
+              </li>
+              <li>
+                If the same payment arrives again later with its account (the
+                wallet's SMS after a message that didn't name it), Sajni files
+                it and clears the question from your notifications. Filing it
+                yourself from the notification links the two, so the message
+                isn't left waiting.
+              </li>
+              <li>
+                A shop's receipt (Google Play, Uber, an order email) never adds
+                a payment on its own: it names the shop well but how you paid
+                loosely (“UPI: Amazon”). It joins the bank or wallet message for
+                the same amount and gives the row the shop's name: the
+                ₹99 from Amazon Wallet becomes <em>Supercell</em>. If no bank
+                message comes, the receipt asks you instead.
               </li>
               <li>
                 Anything that mentions an amount and an account or a payment
@@ -1131,7 +1157,13 @@ export default function FinanceDoc() {
                 </ul>
                 One bank text seen twice (as the SMS itself and as your
                 messages app's notification of it, even an hour later) is the
-                same message, so it's read only once. A bank email that writes
+                same message, so it's read only once. A notification with no
+                reference that reads word for word like one from more than
+                half an hour ago is a new payment: the Kotak app words every
+                “₹22 sent to SALMAN” the same way. When copies arrive, the row
+                keeps the fuller name: the Kotak app cuts names at 14 letters
+                (“Himanshu Jiten”), its SMS doesn't. A name you gave the row is
+                never changed. A bank email that writes
                 “at 11:40” for 11:40 at night is read as night, so it still
                 matches the SMS.
               </li>
@@ -1140,6 +1172,14 @@ export default function FinanceDoc() {
                 spend and an income: ICICI's “debited ₹500; Amazon Pay balance
                 credited” and Amazon's “₹500 added to your Amazon Pay balance”
                 become <em>ICICI Savings → Amazon Wallet</em>.
+              </li>
+              <li>
+                A card bill paid from your bank is a transfer too: Kotak's
+                debit to “ICICI Credit Card” and the card's “payment received”
+                become <em>Salary → Amazon Pay CC</em>, even a day apart. When
+                the card got a little more than the bank paid (POP took ₹18 off
+                the ₹9,392.77 ICICI bill, so Kotak paid ₹9,374.77), the ₹18 is
+                filed as Cashback income on the card.
               </li>
               <li>
                 When a captured row was really a transfer (₹100 “sent to SNEHIL
