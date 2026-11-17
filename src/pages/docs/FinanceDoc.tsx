@@ -84,8 +84,21 @@ export default function FinanceDoc() {
               July, August and September had spent by their 16th, so rent on
               the 1st doesn't make the month look high. Comparisons use your{' '}
               <em>Plain</em> spending only, so a Goa trip in its own slate
-              never makes a month look unusual. It starts once there is an
-              earlier month to compare with.
+              never makes a month look unusual.
+            </p>
+            <p>
+              Only months you recorded in full count. If you started on 1
+              October, November's usual is October alone, and a note says so
+              (“Usual = October”); from January it is the Oct–Dec average. A
+              first part-month, or a month with nothing recorded, never counts
+              as a month of ₹0, and a debt from before Sajni doesn't count as
+              the start. Home Contrib paid ₹22,000 on 5 October has a usual of
+              ₹22,000, not half of it.
+            </p>
+            <p>
+              A month that's over compares whole months: looking back at
+              November, October counts all 31 days. Rows without a category
+              count under Others, so there is only one Others.
             </p>
           </Feature>
           <Feature name="How the month built up">
@@ -94,11 +107,13 @@ export default function FinanceDoc() {
               last month. Point at the chart to read any day.
             </p>
           </Feature>
-          <Feature name="Why it's higher">
+          <Feature name="Why it's higher (or lower)">
             <p>
-              The categories that are above their usual by this day, biggest
-              rise first. For example, Food at ₹4,800 against a usual ₹2,000
-              shows “+₹2,800.00”.
+              The categories that moved the month, biggest first: the rises
+              when you are above usual, the falls when you are below. For
+              example, Food at ₹4,800 against a usual ₹2,000 shows
+              “+₹2,800.00”; Smoke at ₹236 against a usual ₹810 shows
+              “−₹574.00”.
             </p>
           </Feature>
           <Feature name="Stood out">
@@ -115,8 +130,9 @@ export default function FinanceDoc() {
                 at least 15% of the month.
               </li>
               <li>
-                Something new: a title you haven't used in the last year, of
-                ₹1,000 or more.
+                Something new: a title you haven't used since you started (or in
+                the last year), of ₹1,000 or more. This waits until you have
+                three full months recorded; before that, most things are new.
               </li>
             </ul>
           </Feature>

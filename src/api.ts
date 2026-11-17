@@ -922,6 +922,8 @@ export interface FinAnalytics {
   daily_avg: number;
   /** Earlier months "usual" averages (0–3). */
   base_months: number;
+  /** What "usual" is made of: "October", "Aug–Oct average". */
+  usual_basis?: string;
   comparable: number;
   usual: number | null;
   vs_usual: number | null;

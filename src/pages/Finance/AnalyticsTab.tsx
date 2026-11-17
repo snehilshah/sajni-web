@@ -68,9 +68,17 @@ function Loading() {
 
 function Report({ data }: { data: FinAnalytics }) {
   const { formatPercent } = useFinanceFormatters();
-  const drivers = data.base_months > 0
-    ? data.categories.filter((c) => (c.change ?? 0) > 0.5).sort((a, b) => (b.change ?? 0) - (a.change ?? 0)).slice(0, 5)
+  // What moved the month: the rises when it's above usual, the falls when
+  // it's below.
+  const higher = (data.vs_usual ?? 0) >= 0;
+  const drivers = data.base_months > 0 && data.vs_usual !== null && Math.abs(data.vs_usual) >= 0.5
+    ? data.categories
+      .filter((c) => (higher ? (c.change ?? 0) > 0.5 : (c.change ?? 0) < -0.5))
+      .sort((a, b) => Math.abs(b.change ?? 0) - Math.abs(a.change ?? 0))
+      .slice(0, 5)
     : [];
+  // A month still running compares to the same day; a finished one whole.
+  const byDay = data.current ? ` by the ${ordinal(data.day)}` : '';
   const spentCats = data.categories.filter((c) => c.spent > 0);
 
   return (
@@ -83,14 +91,15 @@ function Report({ data }: { data: FinAnalytics }) {
           <Stat label="Savings rate" value={data.rate === null ? '—' : formatPercent(data.rate)} tone={(data.rate ?? 0) < 0 ? 'destructive' : 'default'} />
           <Stat label="Daily average" value={<AnimatedMoney value={data.daily_avg} />} />
           {data.projected !== null && <Stat label="Month end, at this pace" value={<AnimatedMoney value={data.projected} />} />}
-          {data.base_months > 0 && data.usual !== null && <Stat label={`Usual by the ${ordinal(data.day)}`} value={<AnimatedMoney value={data.usual} />} />}
+          {data.base_months > 0 && data.usual !== null && <Stat label={`Usual${byDay}`} value={<AnimatedMoney value={data.usual} />} />}
           {data.slate_spent > 0 && <Stat label="In slates" value={<AnimatedMoney value={data.slate_spent} />} />}
         </StatGroup>
         {data.vs_usual !== null && Math.abs(data.vs_usual) >= 0.5 && (
           <div className="flex flex-wrap gap-1.5">
             <DateBadge tone={data.vs_usual > 0 ? 'alert' : 'positive'}>
-              <Money value={Math.abs(data.vs_usual)} /> {data.vs_usual > 0 ? 'more' : 'less'} than usual by the {ordinal(data.day)}
+              <Money value={Math.abs(data.vs_usual)} /> {data.vs_usual > 0 ? 'more' : 'less'} than usual{byDay}
             </DateBadge>
+            {data.usual_basis && <DateBadge>Usual = {data.usual_basis}</DateBadge>}
             {data.slate_spent > 0 && <DateBadge>Slates left out of the comparison</DateBadge>}
           </div>
         )}
@@ -101,14 +110,16 @@ function Report({ data }: { data: FinAnalytics }) {
       </Section>
 
       {drivers.length > 0 && (
-        <Section title="Why it's higher">
+        <Section title={higher ? "Why it's higher" : "Why it's lower"}>
           <Rows>
             {drivers.map((c) => (
               <Row key={String(c.id) + c.name}
                 tile={<Tile name={c.name} color={c.color} />}
                 title={c.name}
-                meta={<>usually <Money value={c.usual ?? 0} /> by the {ordinal(data.day)}</>}
-                figure={<span className="text-[hsl(var(--error))]">+<Money value={c.change ?? 0} /></span>}
+                meta={<>usually <Money value={c.usual ?? 0} />{byDay}</>}
+                figure={higher
+                  ? <span className="text-[hsl(var(--error))]">+<Money value={c.change ?? 0} /></span>
+                  : <span className="text-[hsl(var(--color-complete))]">−<Money value={Math.abs(c.change ?? 0)} /></span>}
               />
             ))}
           </Rows>
