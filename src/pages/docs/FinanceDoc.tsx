@@ -1162,8 +1162,10 @@ export default function FinanceDoc() {
                 half an hour ago is a new payment: the Kotak app words every
                 “₹22 sent to SALMAN” the same way. When copies arrive, the row
                 keeps the fuller name: the Kotak app cuts names at 14 letters
-                (“Himanshu Jiten”), its SMS doesn't. A name you gave the row is
-                never changed. A bank email that writes
+                (“Himanshu Jiten”), its SMS doesn't. A row the first copy
+                couldn't name (the Kotak app's “₹8,850 debited” becomes
+                “Expense”) takes the next copy's name. A name you gave the row
+                is never changed. A bank email that writes
                 “at 11:40” for 11:40 at night is read as night, so it still
                 matches the SMS.
               </li>
@@ -1171,7 +1173,12 @@ export default function FinanceDoc() {
                 Money moving between your own accounts is one transfer, not a
                 spend and an income: ICICI's “debited ₹500; Amazon Pay balance
                 credited” and Amazon's “₹500 added to your Amazon Pay balance”
-                become <em>ICICI Savings → Amazon Wallet</em>.
+                become <em>ICICI Savings → Amazon Wallet</em>. Moving ₹8,850
+                to your trading account works the same way: Kotak Neo's “credited
+                to your Kotak Neo account” email also prints your bank's account
+                number (XXXXXX2851), but Salary already has the debit, so the
+                credit goes to Kotak Neo and the two become{' '}
+                <em>Salary → Kotak Neo</em>.
               </li>
               <li>
                 A card bill paid from your bank is a transfer too: Kotak's
