@@ -1166,7 +1166,8 @@ export default function FinanceDoc() {
                 If Sajni can't tell which account, the notification asks you.
                 For a wallet you don't keep in Sajni (Zomato Money, a meal
                 card), tap <em>Don't track Zomato Money</em> and it stops
-                asking; Settings → Finance lists them to undo. A message naming
+                asking; any other Zomato Money questions still waiting are
+                closed too. Settings → Finance lists them to undo. A message naming
                 a card number that isn't one of yours (Kotak's other card
                 ••9148) is asked about too, never filed on your Kotak savings
                 just because it says “Kotak”. Matching hints count as whole
