@@ -849,6 +849,8 @@ export interface FinCategory {
   kind: 'income' | 'expense';
   color: string;
   icon: string;
+  /** The kind's Unknown: where rows with no better category go; can't be deleted or renamed. */
+  fallback?: boolean;
 }
 
 export interface FinTransaction {
@@ -1158,7 +1160,7 @@ export interface FinSaving {
   created_at: string;
 }
 
-export type BillerFrequency = 'weekly' | 'fortnightly' | 'monthly' | 'bimonthly';
+export type BillerFrequency = 'weekly' | 'fortnightly' | 'monthly' | 'bimonthly' | 'quarterly' | 'yearly';
 
 export type BillerKind = 'subscription' | 'bill';
 
@@ -1184,6 +1186,8 @@ export interface FinBiller {
   color: string;
   notes: string;
   archived: boolean;
+  /** Money expected in (Salary), not a payment out. */
+  income?: boolean;
   last_paid_date: string | null;
   last_paid_amount: number | null;
   created_at: string;
@@ -1548,7 +1552,8 @@ export const finance = {
     request('/finance/billers/' + id, { method: 'DELETE' }),
   /** Record mode (default) posts a txn; attach mode (attach_txn_ids) links
    *  existing txns and posts nothing. already_paid=true = cycle recorded before. */
-  payBiller: (id: number, data?: { paid_date?: string; amount?: number; attach_txn_ids?: number[] }) =>
+  /** due_date: the cycle shown, so a second tap can't pay the next one too. */
+  payBiller: (id: number, data?: { paid_date?: string; due_date?: string; amount?: number; attach_txn_ids?: number[] }) =>
     request<{ status: string; txn_id: number; already_paid: boolean; next_due_date: string }>(
       '/finance/billers/' + id + '/pay',
       { method: 'POST', body: JSON.stringify(data || {}) },

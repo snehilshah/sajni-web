@@ -47,6 +47,8 @@ const FREQ_LABEL: Record<BillerFrequency, string> = {
   fortnightly: 'Every 2 weeks',
   monthly: 'Monthly',
   bimonthly: 'Every 2 months',
+  quarterly: 'Every 3 months',
+  yearly: 'Yearly',
 };
 
 // A bill's amount is only an estimate (may be 0 = unknown); the last actual
@@ -76,12 +78,15 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
 
   const monthlyOutflow = useMemo(() => {
     // Each biller's monthly share rounds to the paisa, then sums exactly.
-    return sumMoney(billers.filter((b) => !b.archived), (b) => {
+    // Money expected in (Salary) isn't outflow.
+    return sumMoney(billers.filter((b) => !b.archived && !b.income), (b) => {
       const amt = effectiveAmount(b);
       const f = b.frequency;
       return f === 'weekly' ? amt * 4.33 :
         f === 'fortnightly' ? amt * 2.17 :
         f === 'bimonthly' ? amt / 2 :
+        f === 'quarterly' ? amt / 3 :
+        f === 'yearly' ? amt / 12 :
         amt;
     });
   }, [billers]);
@@ -172,11 +177,13 @@ function BillerRow({
   const soon = daysAway >= 0 && daysAway <= biller.alert_days;
   const acct = accounts.find((a) => a.id === biller.account_id) || null;
 
+  // Money expected in (Salary) is "expected", not "due".
+  const word = biller.income ? 'Expected' : 'Due';
   const dueLabel =
-    overdue ? `Overdue · ${Math.abs(daysAway)}d` :
-    daysAway === 0 ? 'Due today' :
-    daysAway === 1 ? 'Due tomorrow' :
-    `Due in ${daysAway}d`;
+    overdue ? `${biller.income ? 'Not recorded' : 'Overdue'} · ${Math.abs(daysAway)}d` :
+    daysAway === 0 ? `${word} today` :
+    daysAway === 1 ? `${word} tomorrow` :
+    `${word} in ${daysAway}d`;
 
   return (
     <motion.li
@@ -206,7 +213,7 @@ function BillerRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium text-sm truncate">{biller.name}</span>
-            <KindBadge kind={biller.kind} />
+            {biller.income ? <DateBadge>Income</DateBadge> : <KindBadge kind={biller.kind} />}
             {biller.auto_renew ? <DateBadge tone="accent" icon={<Zap />}>Auto</DateBadge> : null}
           </div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -218,7 +225,7 @@ function BillerRow({
           <div className="whitespace-nowrap font-semibold tabular-nums text-sm">
             {biller.kind === 'bill' && !(biller.amount > 0)
               ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
-              : <Money value={biller.amount} />}
+              : <>{biller.income ? '+' : ''}<Money value={biller.amount} /></>}
           </div>
           <DateBadge className="mt-0.5" tone={overdue ? 'alert' : soon ? 'accent' : 'neutral'}>
             {dueLabel} · {format(due, 'd MMM')}
@@ -258,7 +265,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
     setAmount(guess > 0 ? String(guess) : '');
     setPaidDate(format(new Date(), 'yyyy-MM-dd'));
     setPicked(new Set());
-    finance.listTransactions({ type: 'expense', limit: 20 })
+    finance.listTransactions({ type: biller.income ? 'income' : 'expense', limit: 20 })
       .then(setRecent)
       .catch(() => setRecent([]));
   }, [open, biller]);
@@ -277,6 +284,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
     try {
       done(await finance.payBiller(biller.id, {
         paid_date: paidDate,
+        due_date: biller.next_due_date,
         ...(amt > 0 ? { amount: amt } : {}),
       }));
     } catch (e) { toast.error(failureText(e)); } finally { setBusy(false); }
@@ -288,6 +296,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
     try {
       done(await finance.payBiller(biller.id, {
         paid_date: paidDate,
+        due_date: biller.next_due_date,
         attach_txn_ids: Array.from(picked),
       }));
     } catch (e) { toast.error(failureText(e)); } finally { setBusy(false); }
@@ -453,7 +462,7 @@ function BillerDetailSheet({
                 <div className="min-w-0">
                   <SheetTitle className="truncate text-left">{biller.name}</SheetTitle>
                   <div className="flex items-center gap-2 mt-1">
-                    <KindBadge kind={biller.kind} />
+                    {biller.income ? <DateBadge>Income</DateBadge> : <KindBadge kind={biller.kind} />}
                     {biller.auto_renew && <DateBadge tone="accent" icon={<Zap />}>Auto-renews</DateBadge>}
                     {biller.archived && <DateBadge>Archived</DateBadge>}
                   </div>

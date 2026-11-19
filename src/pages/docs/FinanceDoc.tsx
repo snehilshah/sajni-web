@@ -97,8 +97,8 @@ export default function FinanceDoc() {
             </p>
             <p>
               A month that's over compares whole months: looking back at
-              November, October counts all 31 days. Rows without a category
-              count under Others, so there is only one Others.
+              November, October counts all 31 days. Rows still waiting for a
+              category show as one <em>Unknown</em> line.
             </p>
           </Feature>
           <Feature name="How the month built up">
@@ -309,8 +309,8 @@ export default function FinanceDoc() {
               Adjusted) or slate. Tick <strong>several accounts</strong> or{' '}
               <strong>several categories</strong> to see them together, say
               your two cards, or Food and Groceries.{' '}
-              <em>Uncategorised</em> finds expenses, income and refunds you
-              haven't given a category yet.{' '}In the category list ↗ marks a spending
+              <em>Unknown</em> finds expenses, income and refunds that still
+              need a category.{' '}In the category list ↗ marks a spending
               category and ↙ an income one. <em>Clear</em> removes every
               filter at once. Days are grouped with their totals; split bills count only
               your part as spent.
@@ -587,11 +587,11 @@ export default function FinanceDoc() {
           <Feature name="Adjusting their share of a cashback">
             <p>
               Alefiya paid ₹378 for a ₹398 order, keeping the ₹20 your card
-              will give back at month end. Adjust the ₹20 in your{' '}
-              <em>Cashback</em> category. It adds ₹20 to your spending for now;
-              when the month's cashback arrives as a refund in the same
-              category (see <a href="#cashback">Cashback</a>), it takes the ₹20
-              back off. You never split the month's cashback by order.
+              will give back at month end. <em>Adjust</em> the ₹20, in the
+              category of what she bought: you gave it up, so it counts as
+              your spending. The month's cashback still arrives in full as
+              your Cashback income (see <a href="#cashback">Cashback</a>). You
+              never split the month's cashback by order.
             </p>
           </Feature>
         </FeatureList>
@@ -695,10 +695,10 @@ export default function FinanceDoc() {
               never shows lends or bills that are already split.
             </p>
           </Feature>
-          <Feature name="Cashback is a refund too">
+          <Feature name="Cashback isn't a refund">
             <p>
-              Cashback is money back on what you spent, so file it as an
-              unlinked refund in a <em>Cashback</em> category; see{' '}
+              A refund is money back for one purchase. Your card's monthly
+              cashback is income, in a <em>Cashback</em> income category; see{' '}
               <a href="#cashback">Cashback</a>.
             </p>
           </Feature>
@@ -735,12 +735,13 @@ export default function FinanceDoc() {
             </li>
             <li>
               <strong>Month end, the card pays ₹500 cashback</strong> for all
-              your spending, hers included. Income ₹500 on the card →{' '}
-              <em>+ Refund</em>, not linked, category <em>Cashback</em>.
+              your spending, hers included. Income ₹500 on the card,
+              category <em>Cashback</em>.
             </li>
             <li>
-              <strong>You send her ₹74.95</strong> (5% of ₹1,499). Expense in{' '}
-              <em>Cashback</em>. Not a split: she doesn't owe it back.
+              <strong>You send her ₹74.95</strong> (5% of ₹1,499). An Expense
+              titled “Priya's share of cashback”. Not a split: she doesn't
+              owe it back.
             </li>
           </ul>
         </Callout>
@@ -753,8 +754,8 @@ export default function FinanceDoc() {
           <li>Your spending never counts the jacket.</li>
           <li>Priya's lend is settled; nobody owes anybody.</li>
           <li>
-            Cashback nets to −₹425.05 (₹74.95 passed on, ₹500 back): your
-            spending is ₹425.05 lower, exactly what you kept.
+            You keep ₹425.05: ₹500 Cashback income, ₹74.95 passed on as
+            spending.
           </li>
         </ul>
         <FeatureList>
@@ -762,9 +763,9 @@ export default function FinanceDoc() {
             <p>
               If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 −
               ₹200 − ₹74.95), mark it paid back as above. She still owes
-              ₹74.95; open her in People and <em>Adjust</em> it in{' '}
-              <em>Cashback</em>. Record the card's cashback as usual: the
-              adjustment and the refund cancel out in that category.
+              ₹74.95; open her in People and <em>Adjust</em> it. It counts as
+              your spending, like the ₹74.95 you'd otherwise send; the card's
+              cashback is recorded as usual.
             </p>
           </Feature>
           <Feature name="Two orders, one payment">
@@ -781,42 +782,36 @@ export default function FinanceDoc() {
               A credit that is <strong>all hers</strong>, like the order's ₹200
               offer, <em>settles a lend</em>. A credit that mixes hers with
               yours, like the card's monthly cashback, is yours: record it as
-              a Cashback refund, and pass her share on (or adjust it) in
-              Cashback. One credit can't be part repayment and part refund.
+              Cashback income, and pass her share on (or adjust it). One
+              credit can't be part repayment and part income.
             </p>
           </Feature>
         </FeatureList>
       </Section>
 
-      <Section id="cashback" title="Cashback" chip="refund">
+      <Section id="cashback" title="Cashback" chip="income">
         <p>
-          Cashback is money back on what you spent, so record it as a{' '}
-          <strong>refund</strong>: Income → <em>+ Refund</em>, not linked to a
-          purchase, in an expense category called <em>Cashback</em> (make it in
-          Categories in Transactions). Your spending then shows what things
-          really cost you, and nothing about cashback looks like a pay rise.
+          Cashback is <strong>income</strong>: an Income on the account it
+          lands in, in an income category called <em>Cashback</em>. One entry
+          for the month's total, as the card or app pays it; you never work
+          out which purchase earned what.
         </p>
         <Callout>
-          <strong>Example.</strong> Your card credits ₹500 cashback on the
-          30th. Add an Income of ₹500 on the card, tap <em>+ Refund</em>, leave
-          it <em>Not linked</em>, category Cashback. The card balance goes up
-          ₹500 and this month's spending goes down ₹500.
+          <strong>Example.</strong> Slice credits ₹50 Spark Cashback on the
+          12th. Add an Income of ₹50 on RuPay, category Cashback. The card
+          balance goes up ₹50 and this month's income goes up ₹50; your
+          spending is unchanged.
         </Callout>
         <ul>
           <li>
-            One refund for the month's total: you never break it down by
-            order.
+            A discount on a card bill counts too: when POP takes ₹18 off the
+            ₹9,392.77 Amazon card bill, Sajni files the bill as a transfer and
+            the ₹18 as Cashback income on the card by itself.
           </li>
           <li>
-            Part of it belongs to a friend whose orders earned it? Adjust (or
-            pay out) their share in <em>Cashback</em> too. Those add to
-            spending and the refund takes them off, so the category nets to
-            what you kept. See{' '}
+            Part of it belongs to a friend whose orders earned it? Pass it on
+            as an expense, or <em>Adjust</em> it if they paid you less. See{' '}
             <a href="#adjust">Adjusting their share of a cashback</a>.
-          </li>
-          <li>
-            If the cashback lands next month, the adjustment shows this month and
-            the refund next month; the two months even out.
           </li>
           <li>
             Cashback that is <strong>all</strong> someone else's (their
@@ -836,15 +831,18 @@ export default function FinanceDoc() {
           Categories group what you spend (Food, Transport, Bills) and what you
           earn (Salary, Interest). Manage them with the{' '}
           <em>Categories</em> button in Transactions, or from Budgets. Expense
-          and income categories are separate lists, and <em>Others</em> is
-          always there as the fallback. Deleting or merging duplicates moves
-          their history safely.
+          and income categories are separate lists. Each has{' '}
+          <em>Unknown</em>: where a transaction goes when nothing better fits,
+          so nothing is ever left without a category, and a row in Unknown is
+          one still to sort. It can't be deleted or renamed (its colour can
+          change). <em>Others</em> is an ordinary category you pick on
+          purpose. Delete a category and its transactions move to Unknown.
         </p>
         <p>
           Sajni learns from you: once you file “Swiggy” under Food, the next
           Swiggy transaction is filed there too. It learns only from what you
           choose or change, never from its own guesses, and never learns{' '}
-          <em>Others</em>. Rename a captured row (“Bhola Khan” → “Sewri”) and
+          <em>Others</em> or <em>Unknown</em>. Rename a captured row (“Bhola Khan” → “Sewri”) and
           set its category, and both names are filed that way from then on.
           Banks often cut long names short (“Salman Mohammad Isma”); those
           still match.
@@ -964,37 +962,85 @@ export default function FinanceDoc() {
       </Section>
 
       <Section id="billers" title="Billers" chip="tab">
-        <p>Payments that repeat come in two kinds:</p>
+        <p>
+          Money that repeats: payments (Home Contrib, Netflix, electricity)
+          and money you expect (Salary). Each one comes in two kinds:
+        </p>
         <RefTable
           head={['kind', 'behaviour']}
           rows={[
-            ['Subscription', 'fixed amount (Netflix, rent, EMI); can auto-pay from the linked account each cycle'],
-            ['Bill', 'amount varies (electricity); store an estimate if you like and enter the actual when paying; never auto-pays'],
+            ['Subscription', 'a fixed amount (Netflix, rent, Home Contrib); can post itself each cycle if you ask'],
+            ['Bill', 'the amount varies (electricity, Salary with a bonus); store an estimate and the real amount is what counts'],
           ]}
         />
+        <p>
+          They repeat weekly, every 2 weeks, monthly, every 2 or 3 months,
+          or yearly. The day you pick is kept: a biller due on the 31st is
+          due on the 30th in November and the 31st again in December.
+        </p>
+        <Callout>
+          <strong>Example.</strong> Home Contrib: a ₹22,000 subscription, monthly,
+          due 5 December, from Salary. On 6 December at 01:26 you send ₹22,000
+          to Papa. Kotak's SMS is captured, the payment fits Home Contrib, so
+          the row is titled Home Contrib, filed in its category, and the biller
+          moves to 5 January. A ₹2,724 payback to Papa the same week doesn't
+          fit (wrong amount) and stays a payment of its own.
+        </Callout>
         <FeatureList>
-          <Feature name="Paying a cycle">
+          <Feature name="It waits for the payment">
+            <p>
+              A biller doesn't add anything on its due date. When a payment
+              that fits is recorded, captured or typed by you, it ticks the
+              biller by itself: the same direction (out, or in for income), the
+              biller's account, the amount (a fixed one within 2%; one that
+              varies within half to double its estimate) and a day from 3 days
+              before the due date to 7 after. A captured row takes the biller's
+              name and category; a title you typed stays yours. It's a best
+              guess, so a payment that doesn't fit is simply left alone; tick
+              it by hand with Attach existing.
+            </p>
+          </Feature>
+          <Feature name="The 8 pm nudge">
+            <p>
+              Nothing recorded by 8 pm on the due day, one notification:
+              “Home Contrib isn't recorded yet. ₹22,000.00 was due today.” Pay
+              it and it ticks; it never nags twice for the same cycle.
+            </p>
+          </Feature>
+          <Feature name="Money you expect">
+            <p>
+              Salary is a biller marked <em>income</em>: expected ₹67,772 on the
+              5th, into Salary. Its amount is an estimate, so a month with
+              variable pay or a bonus still ticks it with the real figure. It
+              shows with a + and doesn't count in the monthly outflow.
+            </p>
+          </Feature>
+          <Feature name="Paying a cycle by hand">
             <p>The ✓ on a biller gives two choices:</p>
             <ul>
               <li>
-                <strong>Record payment</strong> adds the expense from the
-                linked account. Bills ask for the actual amount, prefilled from
-                last time.
+                <strong>Record payment</strong> adds the row on the linked
+                account. Bills ask for the actual amount, prefilled from last
+                time.
               </li>
               <li>
-                <strong>Attach existing</strong> links expenses already in
-                Sajni (say, captured from an SMS), so nothing is added twice.
+                <strong>Attach existing</strong> links rows already in Sajni,
+                so nothing is added twice.
               </li>
             </ul>
             <p>
-              Either way the due date moves on. A cycle can only be paid once,
-              even if you and auto-pay get there at the same moment.
+              Either way the due date moves on. A cycle is paid once: a second
+              tap on ✓ says it was already recorded instead of paying next
+              month too.
             </p>
           </Feature>
-          <Feature name="Auto-pay">
+          <Feature name="Posting by itself">
             <p>
-              Subscriptions can add their expense on each due date by
-              themselves, and tell you when they do.
+              A subscription can post itself on each due date (<em>Auto</em>),
+              for payments that send no message, like cash. It's off unless
+              you turn it on. It never adds cycles from before you made the
+              biller, and if the real payment is recorded too, the real one
+              replaces the posted one.
             </p>
           </Feature>
           <Feature name="Reminders">
@@ -1220,8 +1266,8 @@ export default function FinanceDoc() {
               <li>
                 Sajni picks the category while it reads the message, from your
                 own categories (a merchant you've filed before keeps its
-                category). One it can't place is left uncategorised for you to
-                sort, rather than filed under <em>Others</em>.
+                category). One it can't place goes to <em>Unknown</em> for you to
+                sort, rather than looking filed under <em>Others</em>.
               </li>
               <li>
                 Your bank's message about an RD or SIP instalment Sajni already

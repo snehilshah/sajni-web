@@ -30,7 +30,6 @@ import SlateDialog from './SlateDialog';
 import { EditLendDialog, EditRepaymentDialog, paymentFromTxn, type Payment } from './LendsTab';
 
 /** Types that take a category; the rest (transfers, lends) never do. */
-const CATEGORISED = new Set(['expense', 'income', 'refund', 'writeoff']);
 
 // The ledger is one surface, and its job beyond "what did I spend" is to show
 // which spending was NOT normal life. So: rows on a slate other than Plain
@@ -229,8 +228,8 @@ export default function TransactionsTab({
 
   const accountNameById = (id: number | null) => accounts.find((a) => a.id === id)?.name || '';
   const slateById = (id: number) => slates.find((s) => s.id === id);
-  // Spending categories first, then income, each by name. "Uncategorised"
-  // means a row that takes a category but has none (not transfers or lends).
+  // Spending categories first, then income, each by name. Rows waiting for
+  // a category are in Unknown, an ordinary entry here.
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'expense' ? -1 : 1) || a.name.localeCompare(b.name)),
     [categories],
@@ -249,7 +248,7 @@ export default function TransactionsTab({
       if (search && !t.description.toLowerCase().includes(search.toLowerCase()) &&
           !(t.category_name || '').toLowerCase().includes(search.toLowerCase())) return false;
       if (accountFilter.length && !accountFilter.includes(String(t.account_id))) return false;
-      if (categoryFilter.length && !categoryFilter.includes(t.category_id == null ? (CATEGORISED.has(t.type) ? 'none' : '') : String(t.category_id))) return false;
+      if (categoryFilter.length && !categoryFilter.includes(String(t.category_id ?? ''))) return false;
       if (typeFilter) {
         if (typeFilter === 'transfer_out' && t.type !== 'transfer_out' && !(t.type === 'transfer_in' && t.investment_id)) return false;
         if (typeFilter !== 'transfer_out' && t.type !== typeFilter) return false;
@@ -394,22 +393,17 @@ export default function TransactionsTab({
             </SelectContent>
           </Select>
           <Select multiple value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? [])}
-            items={[{ value: 'none', label: 'Uncategorised' }, ...sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))]}>
+            items={sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))}>
             <SelectTrigger size="sm" className="w-[150px] shrink-0">
               <SelectValue>
                 {(ids: string[]) => !ids.length ? 'All categories'
-                  : ids.length === 1 ? (ids[0] === 'none' ? 'Uncategorised' : categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category') : `${ids.length} categories`}
+                  : ids.length === 1 ? categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category' : `${ids.length} categories`}
               </SelectValue>
             </SelectTrigger>
             {/* Fixed width: long names end in "…" instead of widening the
                 menu. Out ↗ for spending, in ↙ for income, as on the rows, in
-                one leading column so they line up; Uncategorised keeps the
-                column empty. */}
+                one leading column so they line up. */}
             <SelectContent className="w-60">
-              <SelectItem value="none">
-                <span className="size-3.5 shrink-0" aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate">Uncategorised</span>
-              </SelectItem>
               {sortedCategories.map((c) => (
                 <SelectItem key={c.id} value={String(c.id)}>
                   {c.kind === 'expense'
@@ -858,7 +852,7 @@ function LedgerRow({
               </span>
             ) : (
               <span className="truncate">
-                {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : 'Uncategorized'}
+                {isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : 'Unknown'}
               </span>
             )}
           </span>

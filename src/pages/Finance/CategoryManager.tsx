@@ -15,8 +15,8 @@ import { CategoryPill } from './CategoryChips';
 /**
  * Shared add / rename / recolor / delete UI for transaction & budget
  * categories. Backed by the existing /finance/categories CRUD. Deleting a
- * category just unlinks it (FK ON DELETE SET NULL) — history stays, those
- * rows become uncategorized.
+ * category moves its transactions to Unknown (the server's fallback, which
+ * itself can only be recoloured).
  */
 export default function CategoryManager({
   open, categories, onClose, onChanged,
@@ -74,7 +74,7 @@ export default function CategoryManager({
   };
 
   const remove = async (c: FinCategory) => {
-    if (!(await confirmDialog(`Delete "${c.name}"? Past transactions stay but become uncategorized.`))) return;
+    if (!(await confirmDialog(`Delete "${c.name}"? Its transactions move to Unknown, to sort again.`))) return;
     try {
       await finance.deleteCategory(c.id);
       await refresh();
@@ -112,6 +112,8 @@ export default function CategoryManager({
                     onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); } }}
                     className="h-8 flex-1"
+                    readOnly={c.fallback}
+                    title={c.fallback ? 'Unknown keeps its name: it holds what still needs a category.' : undefined}
                     autoFocus
                   />
                   <Button size="icon-sm" variant="ghost" onClick={saveEdit}><Check className="size-4 text-primary" /></Button>
@@ -123,7 +125,9 @@ export default function CategoryManager({
                   <Button size="icon-sm" variant="ghost" onClick={() => startEdit(c)} className="text-muted-foreground">
                     <Pencil className="size-3.5" />
                   </Button>
-                  <Button size="icon-sm" variant="destructive-ghost" onClick={() => remove(c)} aria-label="Delete category">
+                  {/* Unknown can't go: an empty slot keeps the rows aligned. */}
+                  <Button size="icon-sm" variant="destructive-ghost" onClick={() => remove(c)} aria-label="Delete category"
+                    disabled={c.fallback} aria-hidden={c.fallback} className={c.fallback ? 'invisible' : undefined}>
                     <Trash2 className="size-3.5" />
                   </Button>
                 </>
