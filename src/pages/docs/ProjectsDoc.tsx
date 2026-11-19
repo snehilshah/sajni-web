@@ -135,7 +135,7 @@ export default function ProjectsDoc() {
           <Feature name="It acts, not just answers">
             <p>
               Chat has the full tool set, it can create tasks, log
-              transactions, pay billers, file pockets, search your notes.
+              transactions, mark recurring payments, file pockets, search your notes.
               When it changes data, the affected pages refresh themselves;
               action cards deep-link to what it touched.
             </p>

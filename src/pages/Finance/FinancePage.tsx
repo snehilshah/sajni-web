@@ -48,7 +48,7 @@ const financeTabs = [
   { id: 'lends', label: 'People', icon: Coins },
   { id: 'slates', label: 'Slates', icon: Wallet },
   { id: 'budgets', label: 'Budgets', icon: PiggyBank },
-  { id: 'billers', label: 'Billers', icon: Receipt },
+  { id: 'billers', label: 'Recurring', icon: Receipt },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
   { id: 'cards', label: 'Cards', icon: CreditCard },
 ] as const;
@@ -81,7 +81,7 @@ export default function FinancePage() {
   const navigate = useNavigate();
   const active: TabId = useMemo(
     // The People tab keeps its old id, so /finance/lends links still work.
-    () => (financeTabs.find((t) => t.id === (tab === 'people' ? 'lends' : tab))?.id as TabId) || 'analytics',
+    () => (financeTabs.find((t) => t.id === (tab === 'people' ? 'lends' : tab === 'recurring' ? 'billers' : tab))?.id as TabId) || 'analytics',
     [tab],
   );
 

@@ -1188,9 +1188,26 @@ export interface FinBiller {
   archived: boolean;
   /** Money expected in (Salary), not a payment out. */
   income?: boolean;
+  /** How the row reads: due (or expected), paid (this cycle is done; state_date = when), not_recorded (its day passed). */
+  state?: 'due' | 'paid' | 'not_recorded';
+  state_date?: string;
   last_paid_date: string | null;
   last_paid_amount: number | null;
   created_at: string;
+}
+
+export interface FinRecurringSuggestion {
+  key: string;
+  title: string;
+  income: boolean;
+  amount: number;
+  account_id: number;
+  account_name: string;
+  category_id: number | null;
+  day: number;
+  /** "2026-10", oldest first. */
+  months: string[];
+  next_due_date: string;
 }
 
 export interface FinBillerPaymentTxn {
@@ -1560,6 +1577,13 @@ export const finance = {
     ),
   listBillerPayments: (id: number) =>
     request<FinBillerPayment[]>('/finance/billers/' + id + '/payments'),
+  /** Undo one recorded cycle: it's due again; its transactions stay. */
+  unlinkBillerPayment: (id: number, paymentId: number) =>
+    request<{ status: string; next_due_date: string }>('/finance/billers/' + id + '/payments/' + paymentId, { method: 'DELETE' }),
+  /** Things paid (or received) monthly that aren't recurring items yet. */
+  recurringSuggestions: () => request<FinRecurringSuggestion[]>('/finance/billers/suggestions'),
+  dismissRecurringSuggestion: (key: string) =>
+    request('/finance/billers/suggestions/dismiss', { method: 'POST', body: JSON.stringify({ key }) }),
   listBillerAlerts: (unseenOnly = false) =>
     request<FinBillerAlert[]>('/finance/billers/alerts' + (unseenOnly ? '?unseen=true' : '')),
   markBillerAlertSeen: (id: number) =>

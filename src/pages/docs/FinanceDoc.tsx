@@ -26,7 +26,7 @@ export const financeMeta = {
     { id: 'slates', label: 'Slates' },
     { id: 'budgets', label: 'Budgets' },
     { id: 'cards', label: 'Cards' },
-    { id: 'billers', label: 'Billers' },
+    { id: 'billers', label: 'Recurring' },
     { id: 'investments', label: 'Investments' },
     { id: 'capture', label: 'Automatic capture' },
     { id: 'ask', label: 'Asking Sajni' },
@@ -961,67 +961,96 @@ export default function FinanceDoc() {
         </p>
       </Section>
 
-      <Section id="billers" title="Billers" chip="tab">
+      <Section id="billers" title="Recurring" chip="tab">
         <p>
           Money that repeats: payments (Home Contrib, Netflix, electricity)
-          and money you expect (Salary). Each one comes in two kinds:
+          and money you expect (Salary). You add each one yourself, as
+          <em> Money out</em> or <em>Money in</em>, with an amount that is:
         </p>
         <RefTable
-          head={['kind', 'behaviour']}
+          head={['amount', 'behaviour']}
           rows={[
-            ['Subscription', 'a fixed amount (Netflix, rent, Home Contrib); can post itself each cycle if you ask'],
-            ['Bill', 'the amount varies (electricity, Salary with a bonus); store an estimate and the real amount is what counts'],
+            ['Fixed', 'the same every time (Netflix, rent, Home Contrib); can post itself each cycle if you ask'],
+            ['Varies', 'a guess (electricity, Salary with a bonus); the real payment is what counts'],
           ]}
         />
         <p>
           They repeat weekly, every 2 weeks, monthly, every 2 or 3 months,
-          or yearly. The day you pick is kept: a biller due on the 31st is
+          or yearly. The day you pick is kept: an item due on the 31st is
           due on the 30th in November and the 31st again in December.
         </p>
         <Callout>
-          <strong>Example.</strong> Home Contrib: a ₹22,000 subscription, monthly,
+          <strong>Example.</strong> Home Contrib: ₹22,000, fixed, monthly,
           due 5 December, from Salary. On 6 December at 01:26 you send ₹22,000
           to Papa. Kotak's SMS is captured, the payment fits Home Contrib, so
-          the row is titled Home Contrib, filed in its category, and the biller
-          moves to 5 January. A ₹2,724 payback to Papa the same week doesn't
-          fit (wrong amount) and stays a payment of its own.
+          the row is titled Home Contrib, filed in its category, the phone's
+          notification adds “Home Contrib ✓ for December”, and the item moves
+          to 5 January. A ₹2,724 payback to Papa the same week doesn't fit
+          (wrong amount) and stays a payment of its own.
         </Callout>
         <FeatureList>
+          <Feature name="Each row says where it stands">
+            <ul>
+              <li><strong>Paid ✓ 6 Nov</strong> (or <em>Came ✓</em> for money in): this cycle is done.</li>
+              <li><strong>Due in 3d · 5 Dec</strong> (or <em>Expected</em>): waiting for the payment.</li>
+              <li><strong>Not recorded · 5 Dec</strong>: its day has passed (or it's after 8 pm on it) with nothing recorded.</li>
+            </ul>
+            <p>
+              The header adds up what goes out and what comes in each month,
+              across every frequency, using a varying item's last real payment
+              once there is one.
+            </p>
+          </Feature>
           <Feature name="It waits for the payment">
             <p>
-              A biller doesn't add anything on its due date. When a payment
+              An item doesn't add anything on its due date. When a payment
               that fits is recorded, captured or typed by you, it ticks the
-              biller by itself: the same direction (out, or in for income), the
-              biller's account, the amount (a fixed one within 2%; one that
-              varies within half to double its estimate) and a day from 3 days
-              before the due date to 7 after. A captured row takes the biller's
-              name and category; a title you typed stays yours. It's a best
-              guess, so a payment that doesn't fit is simply left alone; tick
-              it by hand with Attach existing.
+              item by itself: the same direction, the item's account, the
+              amount (a fixed one within 2%; one that varies within half to
+              double its guess) and a day from 3 days before the due date to 7
+              after. A captured row takes the item's name and category; a
+              title you typed stays yours. It's a best guess, so a payment that
+              doesn't fit is simply left alone; tick it by hand with Attach
+              existing.
             </p>
           </Feature>
           <Feature name="The 8 pm nudge">
             <p>
               Nothing recorded by 8 pm on the due day, one notification:
-              “Home Contrib isn't recorded yet. ₹22,000.00 was due today.” Pay
-              it and it ticks; it never nags twice for the same cycle.
+              “Home Contrib isn't recorded yet. ₹22,000.00 was due today.” On
+              the phone it has a button, <em>Add ₹22,000</em> (<em>Add
+              salary</em> for money in), that opens the transaction sheet
+              already filled in; saving it ticks the item. It never nags twice
+              for the same cycle.
             </p>
           </Feature>
           <Feature name="Money you expect">
             <p>
-              Salary is a biller marked <em>income</em>: expected ₹67,772 on the
-              5th, into Salary. Its amount is an estimate, so a month with
-              variable pay or a bonus still ticks it with the real figure. It
-              shows with a + and doesn't count in the monthly outflow.
+              Salary is <em>Money in</em>, varies: expected ₹67,772 on the
+              5th, into Salary. A month with variable pay or a bonus still
+              ticks it with the real figure. It shows with a + and counts in
+              the header's <em>In</em>, not <em>Out</em>.
             </p>
           </Feature>
-          <Feature name="Paying a cycle by hand">
-            <p>The ✓ on a biller gives two choices:</p>
+          <Feature name="Sajni suggests new ones">
+            <p>
+              Something paid once a month for two months running, on one
+              account, about the same amount (within 10%) and day (within 5
+              days), shows at the top as <em>Looks like it repeats</em>:
+              “ChatGPT Plus · ₹1,950 on RuPay. Paid around the 23rd in October
+              and November.” <em>Make it recurring</em> opens the form filled
+              in; <em>It doesn't repeat</em> hides it for good. Anything paid
+              more than once a month (a daily ₹22 ride) is never suggested,
+              and nothing is created without you.
+            </p>
+          </Feature>
+          <Feature name="Marking a cycle by hand">
+            <p>The ✓ on an item gives two choices:</p>
             <ul>
               <li>
                 <strong>Record payment</strong> adds the row on the linked
-                account. Bills ask for the actual amount, prefilled from last
-                time.
+                account. A varying amount asks for the real figure, prefilled
+                from last time.
               </li>
               <li>
                 <strong>Attach existing</strong> links rows already in Sajni,
@@ -1029,33 +1058,34 @@ export default function FinanceDoc() {
               </li>
             </ul>
             <p>
-              Either way the due date moves on. A cycle is paid once: a second
-              tap on ✓ says it was already recorded instead of paying next
-              month too.
+              Either way the due date moves on. A cycle is marked once: a
+              second tap on ✓ says it was already recorded instead of paying
+              next month too.
+            </p>
+          </Feature>
+          <Feature name="Undoing a wrong match">
+            <p>
+              Tap an item for every cycle and the transactions under each.
+              <em> Unlink</em> on a cycle undoes it: if Sajni ticked Netflix
+              with a ₹649 payment that was something else, unlink it and that
+              cycle is due again. The transaction itself stays as it is.
             </p>
           </Feature>
           <Feature name="Posting by itself">
             <p>
-              A subscription can post itself on each due date (<em>Auto</em>),
-              for payments that send no message, like cash. It's off unless
-              you turn it on. It never adds cycles from before you made the
-              biller, and if the real payment is recorded too, the real one
-              replaces the posted one.
+              A fixed item can post itself on each due date (<em>Sajni adds it
+              itself</em>), for payments that send no message, like cash. It's
+              off unless you turn it on. It never adds cycles from before you
+              made the item, and if the real payment is recorded too, the real
+              one replaces the posted one.
             </p>
           </Feature>
-          <Feature name="Reminders">
+          <Feature name="Heads-up and tasks">
             <p>
-              <em>Remind me</em> adds a “Pay …” task near each due date (not
-              needed with auto-pay, so it's off there). Alert days set how
-              early the due-soon notification comes.
-            </p>
-          </Feature>
-          <Feature name="History and monthly estimate">
-            <p>
-              Tap a biller for every paid cycle and the transactions under
-              each. The header estimates your monthly outflow across all
-              frequencies, using a bill's last actual payment once there is
-              one.
+              <em>Heads-up</em> sets how many days before the due date a
+              notification comes (0 = the morning of; never before 9 am).
+              <em> Make a task</em> adds a “Pay …” task near each due date.
+              Money you expect gets no heads-up, only the 8 pm nudge.
             </p>
           </Feature>
         </FeatureList>

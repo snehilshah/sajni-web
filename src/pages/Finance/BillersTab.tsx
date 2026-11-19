@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Receipt, Plus, Trash2, Zap, CheckCircle2, Pencil, Archive,
 } from '@/components/ui/icons';
@@ -9,7 +9,7 @@ import {
 import {
   finance,
   type FinAccount, type FinCategory, type FinBiller, type FinTransaction,
-  type BillerFrequency, type BillerKind,
+  type BillerFrequency, type BillerKind, type FinRecurringSuggestion,
 } from '@/api';
 import { useFinBillers, useBillerPayments } from '@/queries/finance';
 import { qk } from '@/queries/keys';
@@ -75,20 +75,29 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
   const refreshAfterPayment = () => qc.invalidateQueries({ queryKey: qk.finance.all });
 
   const detail = billers.find((b) => b.id === detailId) || null;
+  // "Looks like it repeats": monthly payments that aren't items yet.
+  const suggestionsQ = useQuery({
+    queryKey: ['finance', 'billers', 'suggestions'],
+    queryFn: () => finance.recurringSuggestions(),
+    enabled,
+  });
+  const suggestions = suggestionsQ.data ?? [];
+  const [fromSuggestion, setFromSuggestion] = useState<FinRecurringSuggestion | null>(null);
+  const dismiss = async (s: FinRecurringSuggestion) => {
+    try {
+      await finance.dismissRecurringSuggestion(s.key);
+      qc.invalidateQueries({ queryKey: ['finance', 'billers', 'suggestions'] });
+    } catch (e) { toast.error(failureText(e)); }
+  };
+  const monthlyIn = useMemo(
+    () => sumMoney(billers.filter((b) => !b.archived && b.income), (b) => effectiveAmount(b) / perMonthDivisor(b.frequency)),
+    [billers],
+  );
 
   const monthlyOutflow = useMemo(() => {
     // Each biller's monthly share rounds to the paisa, then sums exactly.
     // Money expected in (Salary) isn't outflow.
-    return sumMoney(billers.filter((b) => !b.archived && !b.income), (b) => {
-      const amt = effectiveAmount(b);
-      const f = b.frequency;
-      return f === 'weekly' ? amt * 4.33 :
-        f === 'fortnightly' ? amt * 2.17 :
-        f === 'bimonthly' ? amt / 2 :
-        f === 'quarterly' ? amt / 3 :
-        f === 'yearly' ? amt / 12 :
-        amt;
-    });
+    return sumMoney(billers.filter((b) => !b.archived && !b.income), (b) => effectiveAmount(b) / perMonthDivisor(b.frequency));
   }, [billers]);
 
   return (
@@ -96,9 +105,10 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
       <header className="flex items-end justify-between gap-3 flex-wrap">
         {/* The monthly outflow is the one figure this list adds up to; it
             sits beside the title as a badge instead of a sentence under it. */}
-        <div className="flex items-baseline gap-2">
-          <h2 className="font-serif text-lg font-semibold">Billers</h2>
-          <DateBadge><span><Money value={monthlyOutflow} />/mo</span></DateBadge>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <h2 className="font-serif text-lg font-semibold">Recurring</h2>
+          <DateBadge><span>Out <Money value={monthlyOutflow} /> a month</span></DateBadge>
+          {monthlyIn > 0 && <DateBadge tone="positive"><span>In <Money value={monthlyIn} /> a month</span></DateBadge>}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -115,12 +125,30 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
         </div>
       </header>
 
+      {suggestions.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Looks like it repeats</h3>
+          {suggestions.map((s) => (
+            <div key={s.key} className="rounded-xl border border-dashed border-border bg-card p-3 md:p-4">
+              <div className="text-sm font-medium">
+                {s.title} · {s.income ? '+' : ''}<Money value={s.amount} /> {s.income ? 'into' : 'on'} {s.account_name}
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">{suggestionWhy(s)}</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => setFromSuggestion(s)}>Make it recurring</Button>
+                <Button size="sm" variant="outline" onClick={() => dismiss(s)}>It doesn't repeat</Button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="flex flex-col gap-2">
         {billers.length === 0 ? (
           isLoading ? (
             <div className="text-xs text-muted-foreground text-center py-8">Loading…</div>
           ) : (
-            <p className="py-2 text-sm text-muted-foreground">No subscriptions or bills yet</p>
+            <p className="py-2 text-sm text-muted-foreground">Nothing recurring yet</p>
           )
         ) : (
           <ul className="flex flex-col gap-2">
@@ -140,12 +168,16 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
       </section>
 
       <BillerDialog
-        open={creating || !!editing}
+        open={creating || !!editing || !!fromSuggestion}
         biller={editing}
+        initial={fromSuggestion}
         accounts={accounts}
         categories={categories}
-        onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); refreshBillers(); }}
+        onClose={() => { setCreating(false); setEditing(null); setFromSuggestion(null); }}
+        onSaved={() => {
+          setCreating(false); setEditing(null); setFromSuggestion(null); refreshBillers();
+          qc.invalidateQueries({ queryKey: ['finance', 'billers', 'suggestions'] });
+        }}
       />
 
       <BillerDetailSheet
@@ -177,13 +209,16 @@ function BillerRow({
   const soon = daysAway >= 0 && daysAway <= biller.alert_days;
   const acct = accounts.find((a) => a.id === biller.account_id) || null;
 
-  // Money expected in (Salary) is "expected", not "due".
+  // Money expected in (Salary) is "expected", not "due". The server says
+  // when this cycle is done (paid) or its day passed with nothing recorded.
   const word = biller.income ? 'Expected' : 'Due';
+  const state = biller.state ?? (overdue ? 'not_recorded' : 'due');
   const dueLabel =
-    overdue ? `${biller.income ? 'Not recorded' : 'Overdue'} · ${Math.abs(daysAway)}d` :
+    state === 'paid' ? `${biller.income ? 'Came' : 'Paid'} ✓ · ${format(parseISO(biller.state_date || biller.next_due_date), 'd MMM')}` :
+    state === 'not_recorded' ? `Not recorded · ${format(due, 'd MMM')}` :
     daysAway === 0 ? `${word} today` :
     daysAway === 1 ? `${word} tomorrow` :
-    `${word} in ${daysAway}d`;
+    `${word} in ${daysAway}d · ${format(due, 'd MMM')}`;
 
   return (
     <motion.li
@@ -213,11 +248,10 @@ function BillerRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium text-sm truncate">{biller.name}</span>
-            {biller.income ? <DateBadge>Income</DateBadge> : <KindBadge kind={biller.kind} />}
             {biller.auto_renew ? <DateBadge tone="accent" icon={<Zap />}>Auto</DateBadge> : null}
           </div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">
-            {FREQ_LABEL[biller.frequency]}{acct ? ` · ${acct.name}` : ''}
+            {FREQ_LABEL[biller.frequency]}{acct ? ` · ${biller.income ? 'into' : 'from'} ${acct.name}` : ''} · {biller.kind === 'bill' ? 'varies' : 'fixed'}
           </div>
         </div>
 
@@ -227,8 +261,8 @@ function BillerRow({
               ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
               : <>{biller.income ? '+' : ''}<Money value={biller.amount} /></>}
           </div>
-          <DateBadge className="mt-0.5" tone={overdue ? 'alert' : soon ? 'accent' : 'neutral'}>
-            {dueLabel} · {format(due, 'd MMM')}
+          <DateBadge className="mt-0.5" tone={state === 'paid' ? 'positive' : state === 'not_recorded' ? 'alert' : soon ? 'accent' : 'neutral'}>
+            {dueLabel}
           </DateBadge>
         </div>
       </button>
@@ -239,7 +273,25 @@ function BillerRow({
 }
 
 function KindBadge({ kind }: { kind: BillerKind }) {
-  return <DateBadge>{kind === 'subscription' ? 'Sub' : 'Bill'}</DateBadge>;
+  return <DateBadge>{kind === 'subscription' ? 'Fixed' : 'Varies'}</DateBadge>;
+}
+
+// How many of a frequency make a month (weekly ≈ 4.33 a month).
+function perMonthDivisor(f: BillerFrequency): number {
+  return f === 'weekly' ? 1 / 4.33 : f === 'fortnightly' ? 1 / 2.17 : f === 'bimonthly' ? 2 : f === 'quarterly' ? 3 : f === 'yearly' ? 12 : 1;
+}
+
+// "Paid around the 23rd in October and November, the same amount each time."
+function suggestionWhy(s: FinRecurringSuggestion): string {
+  const months = s.months.map((m) => format(parseISO(m + '-01'), 'MMMM'));
+  const list = months.length <= 2 ? months.join(' and ') : `${months.slice(0, -1).join(', ')} and ${months[months.length - 1]}`;
+  return `${s.income ? 'Came' : 'Paid'} around the ${ordinal(s.day)} in ${list}.`;
+}
+
+function ordinal(n: number): string {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
 }
 
 // ─── Pay popover: record a payment OR attach existing transactions ─────────
@@ -424,6 +476,18 @@ function BillerDetailSheet({
 }) {
   const open = biller !== null;
   const { data: payments = [], isLoading } = useBillerPayments(biller?.id ?? 0, open);
+  const qc = useQueryClient();
+  // Undo a cycle Sajni (or a tap) recorded on the wrong item: due again,
+  // its transactions untouched.
+  const unlink = async (paymentId: number) => {
+    if (!biller) return;
+    if (!(await confirmDialog('Undo this cycle? It becomes due again; its transactions stay as they are.'))) return;
+    try {
+      await finance.unlinkBillerPayment(biller.id, paymentId);
+      qc.invalidateQueries({ queryKey: qk.finance.billerPayments(biller.id) });
+      onChanged();
+    } catch (e) { toast.error(failureText(e)); }
+  };
 
   const acct = biller ? accounts.find((a) => a.id === biller.account_id) : null;
   const cat = biller ? categories.find((c) => c.id === biller.category_id) : null;
@@ -438,7 +502,7 @@ function BillerDetailSheet({
 
   const remove = async () => {
     if (!biller) return;
-    if (!(await confirmDialog('Delete this biller? Its payment history and posted transactions stay.'))) return;
+    if (!(await confirmDialog('Delete this recurring item? Its transactions stay.'))) return;
     try {
       await finance.deleteBiller(biller.id);
       onGone();
@@ -476,13 +540,10 @@ function BillerDetailSheet({
                 <div className="font-serif text-2xl font-semibold tabular-nums">
                   {biller.kind === 'bill' && !(biller.amount > 0)
                     ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
-                    : <Money value={biller.amount} />}
-                  {biller.kind === 'bill' && (
-                    <DateBadge className="ml-2 align-middle font-sans">Varies</DateBadge>
-                  )}
+                    : <>{biller.income ? '+' : ''}<Money value={biller.amount} /></>}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {FREQ_LABEL[biller.frequency]} · due {format(parseISO(biller.next_due_date), 'd MMM yyyy')}
+                  {FREQ_LABEL[biller.frequency]} · {biller.income ? 'expected' : 'due'} {format(parseISO(biller.next_due_date), 'd MMM yyyy')}
                 </div>
               </div>
 
@@ -490,17 +551,19 @@ function BillerDetailSheet({
               <section>
                 <h3 className="text-sm font-medium text-muted-foreground mb-2">Details</h3>
                 <dl className="flex flex-col gap-0.5 overflow-hidden rounded-xl text-sm">
-                  <DetailRow label="Paid from" value={acct?.name || '–'} />
+                  <DetailRow label={biller.income ? 'Into' : 'Paid from'} value={acct?.name || '–'} />
                   <DetailRow label="Category" value={cat?.name || '–'} />
-                  <DetailRow label="Reminder task" value={biller.remind_task ? 'On' : 'Off'} />
-                  <DetailRow label="Alert" value={`${biller.alert_days}d before due`} />
+                  <DetailRow label="Make a task" value={biller.remind_task ? 'On' : 'Off'} />
+                  {!biller.income && (
+                    <DetailRow label="Heads-up" value={biller.alert_days === 0 ? 'The morning of' : `${biller.alert_days} day${biller.alert_days === 1 ? '' : 's'} before`} />
+                  )}
                   {biller.notes && <DetailRow label="Notes" value={biller.notes} />}
                 </dl>
               </section>
 
               {/* Payment history */}
               <section>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Payments</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Cycles</h3>
                 {isLoading ? (
                   <div className="text-xs text-muted-foreground py-4 text-center">Loading…</div>
                 ) : payments.length === 0 ? (
@@ -516,8 +579,12 @@ function BillerDetailSheet({
                           </span>
                           <span className="whitespace-nowrap text-sm tabular-nums"><Money value={p.amount} /></span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          For {format(parseISO(p.due_date), 'd MMM')}
+                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-0.5">
+                          <span>For {format(parseISO(p.due_date), 'd MMM')}</span>
+                          <button type="button" onClick={() => unlink(p.id)}
+                            className="rounded px-1 text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] outline-none">
+                            Unlink
+                          </button>
                         </div>
                         {p.txns.length > 0 && (
                           <ul className="mt-1.5 flex flex-col gap-1">
@@ -573,7 +640,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 interface BillerValues {
   name: string; kind: BillerKind; amount: string; frequency: BillerFrequency; nextDueDate: string;
   accountID: number | null; categoryID: number | null; autoRenew: boolean; remindTask: boolean;
-  alertDays: number; notes: string;
+  alertDays: number; notes: string; income: boolean;
 }
 
 function billerValues(b: FinBiller): BillerValues {
@@ -581,6 +648,7 @@ function billerValues(b: FinBiller): BillerValues {
     name: b.name, kind: b.kind, amount: b.amount > 0 ? String(b.amount) : '', frequency: b.frequency,
     nextDueDate: b.next_due_date, accountID: b.account_id, categoryID: b.category_id,
     autoRenew: b.auto_renew, remindTask: b.remind_task, alertDays: b.alert_days, notes: b.notes,
+    income: !!b.income,
   };
 }
 
@@ -599,14 +667,17 @@ function billerPayload(v: BillerValues): Partial<FinBiller> {
     remind_task: v.remindTask && !(v.kind === 'subscription' && v.autoRenew),
     alert_days: v.alertDays,
     notes: v.notes,
+    income: v.income,
   };
 }
 
 function BillerDialog({
-  open, biller, accounts, categories, onClose, onSaved,
+  open, biller, initial, accounts, categories, onClose, onSaved,
 }: {
   open: boolean;
   biller: FinBiller | null;
+  /** A "make it recurring" suggestion to start from. */
+  initial?: FinRecurringSuggestion | null;
   accounts: FinAccount[];
   categories: FinCategory[];
   onClose: () => void;
@@ -623,18 +694,20 @@ function BillerDialog({
   const [remindTask, setRemindTask] = useState(false);
   const [alertDays, setAlertDays] = useState(3);
   const [notes, setNotes] = useState('');
+  const [income, setIncome] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const values: BillerValues = {
-    name, kind, amount, frequency, nextDueDate, accountID, categoryID, autoRenew, remindTask, alertDays, notes,
+    name, kind, amount, frequency, nextDueDate, accountID, categoryID, autoRenew, remindTask, alertDays, notes, income,
   };
   const apply = (v: BillerValues) => {
     setName(v.name); setKind(v.kind); setAmount(v.amount); setFrequency(v.frequency);
     setNextDueDate(v.nextDueDate); setAccountID(v.accountID); setCategoryID(v.categoryID);
     setAutoRenew(v.autoRenew); setRemindTask(v.remindTask); setAlertDays(v.alertDays); setNotes(v.notes);
+    setIncome(v.income);
   };
-  const invalid = !name.trim() ? 'a biller needs a name.'
-    : kind === 'subscription' && !(parseFloat(amount) > 0) ? 'a subscription needs a fixed amount.' : null;
+  const invalid = !name.trim() ? 'it needs a name.'
+    : kind === 'subscription' && !(parseFloat(amount) > 0) ? 'a fixed amount is needed (or pick Varies).' : null;
   // Nothing saves until Save; a new biller is created explicitly.
   const editor = useEditorDraft({
     open: open,
@@ -651,15 +724,19 @@ function BillerDialog({
 
   useEffect(() => {
     if (!open) return;
-    const v: BillerValues = biller ? billerValues(biller) : {
+    const v: BillerValues = biller ? billerValues(biller) : initial ? {
+      name: initial.title, kind: 'subscription', amount: String(initial.amount), frequency: 'monthly', nextDueDate: initial.next_due_date,
+      accountID: initial.account_id, categoryID: initial.category_id, autoRenew: false, remindTask: false,
+      alertDays: initial.income ? 0 : 3, notes: '', income: initial.income,
+    } : {
       name: '', kind: 'subscription', amount: '', frequency: 'monthly', nextDueDate: format(new Date(), 'yyyy-MM-dd'),
-      accountID: null, categoryID: null, autoRenew: false, remindTask: false, alertDays: 3, notes: '',
+      accountID: null, categoryID: null, autoRenew: false, remindTask: false, alertDays: 3, notes: '', income: false,
     };
     apply(v);
     loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, biller]);
+  }, [open, biller, initial]);
 
   const canSubmit = !invalid;
 
@@ -682,39 +759,35 @@ function BillerDialog({
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent showCloseButton={false} className="max-w-lg">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
-          <DialogTitle>{biller ? 'Edit biller' : 'New biller'}</DialogTitle>
+          <DialogTitle>{biller ? 'Edit recurring item' : 'New recurring item'}</DialogTitle>
         </DialogHeader>
 
         {/* Tall form — cap height and scroll the fields so the modal never
             runs off-screen; header + footer stay pinned. */}
         <div className="flex flex-col gap-3 mt-2 max-h-[62vh] overflow-y-auto overscroll-contain -mx-1 px-1">
           <SegmentedButton
-            value={kind}
-            onChange={(k) => setKind(k)}
+            value={income ? 'in' : 'out'}
+            onChange={(v) => { setIncome(v === 'in'); setCategoryID(null); }}
             stretch
-            aria-label="Biller kind"
+            className="shrink-0"
+            aria-label="Direction"
             options={[
-              { value: 'subscription', label: 'Subscription' },
-              { value: 'bill', label: 'Bill' },
+              { value: 'out', label: 'Money out' },
+              { value: 'in', label: 'Money in' },
             ]}
           />
-          <p className="text-xs text-muted-foreground -mt-1">
-            {kind === 'subscription'
-              ? 'Fixed amount each cycle: Netflix, rent, EMI. Can auto-pay itself.'
-              : 'Amount varies each cycle: electricity, water. You enter the actual when you pay.'}
-          </p>
 
           <Field label="Name">
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={kind === 'subscription' ? 'Netflix' : 'Electricity'}
+              placeholder={income ? 'Salary' : kind === 'subscription' ? 'Netflix' : 'Electricity'}
               autoFocus
             />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label={kind === 'subscription' ? 'Amount' : 'Estimate (optional)'}>
+            <Field label={kind === 'subscription' ? 'Amount' : 'About (optional)'}>
               <Input
                 inputMode="decimal"
                 value={amount}
@@ -736,11 +809,23 @@ function BillerDialog({
               </Select>
             </Field>
           </div>
-          {kind === 'bill' && (
-            <p className="text-xs text-muted-foreground -mt-1.5">
-              Used for the monthly-outflow estimate until a real payment sets the baseline.
-            </p>
-          )}
+          <SegmentedButton
+            value={kind}
+            onChange={(k) => setKind(k)}
+            stretch
+            className="shrink-0"
+            size="sm"
+            aria-label="Amount"
+            options={[
+              { value: 'subscription', label: 'Fixed' },
+              { value: 'bill', label: 'Varies' },
+            ]}
+          />
+          <p className="text-xs text-muted-foreground -mt-1.5">
+            {kind === 'subscription'
+              ? 'The same amount every time: Netflix, rent, Home Contrib.'
+              : 'The amount is a guess (electricity, Salary with a bonus); the real payment is what counts.'}
+          </p>
 
           <Field label="Next due date">
             <DatePicker
@@ -750,7 +835,7 @@ function BillerDialog({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Paid from">
+            <Field label={income ? 'Into' : 'Paid from'}>
               <Select
                 value={accountID == null ? 'none' : String(accountID)}
                 onValueChange={(v) => setAccountID(v === 'none' ? null : Number(v))}
@@ -771,14 +856,14 @@ function BillerDialog({
               <Select
                 value={categoryID == null ? 'none' : String(categoryID)}
                 onValueChange={(v) => setCategoryID(v === 'none' ? null : Number(v))}
-                items={[{ value: 'none', label: '–' }, ...categories.filter((c) => c.kind === 'expense').map((c) => ({ value: String(c.id), label: c.name }))]}
+                items={[{ value: 'none', label: '–' }, ...categories.filter((c) => c.kind === (income ? 'income' : 'expense')).map((c) => ({ value: String(c.id), label: c.name }))]}
               >
                 <SelectTrigger size="sm">
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">–</SelectItem>
-                  {categories.filter((c) => c.kind === 'expense').map((c) => (
+                  {categories.filter((c) => c.kind === (income ? 'income' : 'expense')).map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -789,8 +874,8 @@ function BillerDialog({
           <div className="rounded-xl border border-border divide-y divide-border">
             {kind === 'subscription' && (
               <CheckRow
-                label="Auto-pay"
-                desc="Post the expense automatically each cycle. Renews on its own without manual payment."
+                label="Sajni adds it itself"
+                desc="Only for payments that send no message (cash). Otherwise Sajni waits for the real payment, ticks it, and nudges at 8 pm on the due day if nothing came."
                 checked={autoRenew}
                 onChange={setAutoRenew}
                 disabled={accountID == null}
@@ -798,7 +883,7 @@ function BillerDialog({
               />
             )}
             <CheckRow
-              label="Remind me to pay"
+              label="Make a task"
               desc="Each cycle, create a 'Pay …' task + email near the due date."
               checked={remindTask && !(kind === 'subscription' && autoRenew)}
               onChange={setRemindTask}
@@ -807,7 +892,7 @@ function BillerDialog({
             />
           </div>
 
-          <Field label="Alert days · days before due to notify" className="max-w-[260px]">
+          <Field label="Heads-up · days before (0 = the morning of)" className="max-w-[260px]">
             <IntInput min={0} max={30} value={alertDays} onChange={setAlertDays} />
           </Field>
 
@@ -822,7 +907,7 @@ function BillerDialog({
         </div>
 
         <DialogFooter className="mt-3">
-          <EditActions draft={editor} onCancel={onClose} onSave={submit} saveLabel={biller ? 'Save' : saving ? 'Saving…' : 'Create biller'}
+          <EditActions draft={editor} onCancel={onClose} onSave={submit} saveLabel={biller ? 'Save' : saving ? 'Saving…' : 'Create'}
             disabled={!biller && (saving || !canSubmit)} />
         </DialogFooter>
       </DialogContent>

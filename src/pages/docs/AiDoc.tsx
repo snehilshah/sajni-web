@@ -65,7 +65,7 @@ export default function AiDoc() {
           <li><strong>Media</strong>: add/search the library, move statuses, advance episodes.</li>
           <li>
             <strong>Finance</strong>: add/edit transactions (they file into
-            Plain like any direct entry), pay billers (record or
+            Plain like any direct entry), mark recurring payments (record or
             attach), create slates and sweep existing transactions into them,
             read and create budgets, toggle investment auto-debit.
           </li>
