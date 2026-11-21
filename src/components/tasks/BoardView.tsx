@@ -120,6 +120,36 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
   return (
     <DragDropProvider
       sensors={sensors}
+      // dnd-kit only re-slots a card over another card. Over a lane's own
+      // space (an empty lane, below its last card, the gaps) nothing moved,
+      // so the drop read as "no move" and the card sprang back. Here the slot
+      // goes into that lane where the pointer is, the same DOM move the
+      // library makes over a card; the redraw after the drop resets the DOM.
+      onDragOver={(event, manager) => {
+        const { source, target, position } = event.operation;
+        if (!source || !isSortable(source) || !target || isSortable(target)) return;
+        const lane = (target.data as { status?: Lane } | undefined)?.status;
+        const el = source.element;
+        const box = document.querySelector<HTMLElement>(`[data-board-lane="${lane}"]`);
+        if (!lane || lane === source.group || !el || !box) return;
+        const slots = [...box.querySelectorAll<HTMLElement>(':scope > [data-board-slot]')].filter((x) => x !== el);
+        const y = position.current.y;
+        const at = slots.findIndex((x) => { const r = x.getBoundingClientRect(); return r.top + r.height / 2 > y; });
+        const index = at === -1 ? slots.length : at;
+        const from = source.group;
+        const fromIndex = source.index;
+        if (at === -1) {
+          if (slots.length) slots[slots.length - 1].after(el);
+          else box.prepend(el);
+        } else box.insertBefore(el, slots[at]);
+        for (const d of manager.registry.draggables) {
+          if (!isSortable(d) || d === source) continue;
+          if (d.sortable.group === from && d.sortable.index > fromIndex) d.sortable.index -= 1;
+          else if (d.sortable.group === lane && d.sortable.index >= index) d.sortable.index += 1;
+        }
+        source.sortable.group = lane;
+        source.sortable.index = index;
+      }}
       onDragEnd={(event) => {
         const source = event.operation.source;
         if (event.canceled || !source || !isSortable(source)) {
@@ -263,6 +293,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
 
       <div
         ref={(el) => { scroller.current = el; scrollRef(el); }}
+        data-board-lane={status}
         className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-1.5 pb-1.5"
       >
         {adding && (
@@ -294,7 +325,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
           />
         ))}
         {tasks.length === 0 && !adding && (
-          <p className="py-6 text-center text-xs text-muted-foreground">
+          <p className="py-6 text-center text-xs text-muted-foreground [[data-board-slot]~&]:hidden">
             {status === 'done' ? 'Nothing finished yet' : 'Nothing here'}
           </p>
         )}
@@ -444,7 +475,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
       {hasBadges && (
       <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
         {task.parent_task_id != null && task.parent_task_title && (
-          <span className={cn(chip, neutral, 'min-w-0 max-w-32')} title={`Subtask of ${task.parent_task_title}`}>
+          <span className={cn(chip, neutral, 'min-w-0 max-w-32 shrink')} title={`Subtask of ${task.parent_task_title}`}>
             <CornerDownRight className="size-3 shrink-0" /><span className="truncate">{task.parent_task_title}</span>
           </span>
         )}
@@ -467,7 +498,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
           <span className={cn(chip, neutral)} title="Subtasks"><CornerDownRight className="size-3" /><span className="tabular-nums">{task.subtasks_done ?? 0}/{subs}</span></span>
         )}
         {task.status === 'blocked' && (
-          <span className={cn(chip, 'min-w-0 bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}>
+          <span className={cn(chip, 'min-w-0 shrink bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}>
             <GitBranch className="size-3 shrink-0" />
             <span className="truncate">Blocked{task.blocked_by_task_title ? ` by ${task.blocked_by_task_title}` : ''}</span>
           </span>
