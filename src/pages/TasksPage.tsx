@@ -302,7 +302,8 @@ export default function TasksPage() {
               )}
             </div>
 
-            {!isMobile && (
+            {/* The Board has an Add in every lane, so it skips this bar. */}
+            {!isMobile && viewMode !== 'board' && (
               <div className="flex h-12 items-center gap-3 rounded-xl bg-card px-4 transition-shadow focus-within:shadow-[inset_0_0_0_1px_hsl(var(--outline))]">
                 <Plus className="size-4 shrink-0 text-muted-foreground" />
                 <Input

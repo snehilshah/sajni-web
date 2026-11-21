@@ -63,6 +63,8 @@ export interface Task {
   sort_order: number;
   /** Place in its Board lane, smaller first; null until placed (then by updated_at). */
   board_rank?: number | null;
+  /** Images in its Images section (list and single task). */
+  attachment_count?: number;
   subtask_count?: number;
   subtasks_done?: number;
   /** Brief children embedded by the list endpoint so subtasks expand

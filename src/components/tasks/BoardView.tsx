@@ -8,7 +8,7 @@ import { PointerActivationConstraints } from '@dnd-kit/dom';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 
 import type { Task } from '@/types';
-import { Plus, Star, ListChecks, GitBranch, Repeat, CornerDownRight } from '@/components/ui/icons';
+import { Plus, Star, ListChecks, Repeat, CornerDownRight, Ban, Bell, AlignLeft, Image as ImageIcon } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -182,7 +182,7 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
     >
       <div
         key={epoch}
-        className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
+        className="grid grid-flow-col auto-cols-[minmax(15.5rem,1fr)] gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
         aria-label="Tasks board"
       >
         {LANES.map((status) => (
@@ -270,7 +270,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
       ref={ref as React.Ref<HTMLElement>}
       aria-label={STATUS_LABELS[status]}
       className={cn(
-        'relative snap-start flex max-h-[calc(100dvh-13rem)] min-h-40 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
+        'relative snap-start flex h-[calc(100dvh-15rem)] min-h-80 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
         isDropTarget && 'bg-[hsl(var(--surface-container-high))] shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.45)]',
       )}
     >
@@ -279,8 +279,8 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
           {refusal}
         </p>
       )}
-      <header className="flex h-12 shrink-0 items-center gap-2 pl-4 pr-2">
-        <h3 className="text-sm font-semibold">{STATUS_LABELS[status]}</h3>
+      <header className="flex h-13 shrink-0 items-center gap-2 pl-4 pr-2">
+        <h3 className="text-[15px] font-semibold">{STATUS_LABELS[status]}</h3>
         <span className="text-xs tabular-nums text-muted-foreground">{tasks.length}</span>
         <Button
           variant="ghost" size="icon-sm" className="ml-auto rounded-full"
@@ -294,7 +294,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
       <div
         ref={(el) => { scroller.current = el; scrollRef(el); }}
         data-board-lane={status}
-        className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-1.5 pb-1.5"
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-2 pb-2"
       >
         {adding && (
           <div className="rounded-[14px] bg-[hsl(var(--surface-container-lowest))] p-2">
@@ -331,7 +331,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
         )}
       </div>
 
-      <footer className="flex h-11 shrink-0 items-center px-1.5 pb-1.5">
+      <footer className="flex h-12 shrink-0 items-center px-2 pb-2">
         {folded ? (
           <button
             type="button"
@@ -406,12 +406,20 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
   const subs = task.subtask_count ?? 0;
   // Badges sit right under the title, from the card's edge; a card with
   // none is just its title, so no card carries an empty row.
+  const blocked = task.status === 'blocked';
+  const dueToday = Boolean(task.due_date && !done && isToday(parseISO(task.due_date)));
+  const hasNotes = Boolean(task.description?.trim());
+  const images = task.attachment_count ?? 0;
+  const reminder = Boolean(task.remind && task.scheduled_at && !task.reminded_at && !done);
   const hasBadges = Boolean(
     (task.parent_task_id != null && task.parent_task_title) || task.due_date || task.week_of || task.month_of
-    || repeats(task.recurrence) || steps > 0 || subs > 0 || task.status === 'blocked',
+    || repeats(task.recurrence) || steps > 0 || subs > 0 || hasNotes || images > 0 || reminder,
   );
-  const chip = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs leading-none';
+  // Only the date is a pill (its colour means overdue or today); the rest
+  // are quiet icons with counts, as on Trello.
+  const pill = 'inline-flex h-6 shrink-0 items-center rounded-full px-2 text-xs leading-none';
   const neutral = 'bg-[hsl(var(--on-surface)/0.06)] text-muted-foreground';
+  const mark = 'inline-flex shrink-0 items-center gap-1 text-xs tabular-nums text-muted-foreground';
 
   return (
     <div
@@ -421,7 +429,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
       onClick={onClick}
       onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
       className={cn(
-        'group flex flex-col gap-2 rounded-[14px] px-3 py-2.5 text-left outline-none',
+        'group flex flex-col gap-2.5 rounded-[14px] px-3.5 py-3 text-left outline-none',
         !task.color && 'bg-[hsl(var(--surface-container-lowest))]',
         'transition-shadow duration-150 focus-visible:ring-2 focus-visible:ring-ring/45',
         // State layer, not a new surface: a faint wash on hover.
@@ -440,12 +448,14 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
           <span className={cn(
             'flex size-5 items-center justify-center rounded-[32%] border-2 transition-colors',
             done ? 'rounded-full border-primary bg-primary text-primary-foreground'
-              : task.status === 'blocked' ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
+              : blocked ? 'border-destructive/70 bg-[hsl(var(--error-container))] text-destructive'
                 : !task.color && PRIORITY_RING[task.priority],
           )}
           // The task's own colour, when it has one, rings it instead.
-          style={!done && task.status !== 'blocked' && task.color ? { borderColor: task.color } : undefined}
+          style={!done && !blocked && task.color ? { borderColor: task.color } : undefined}
           >
+            {/* Blocked: the box itself says so; the lane already does too. */}
+            {blocked && <Ban className="size-3" />}
             {done && (
               <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
@@ -454,7 +464,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
           </span>
         </button>
         <span className={cn(
-          'line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-5',
+          'line-clamp-4 min-w-0 flex-1 text-sm font-medium leading-5 [overflow-wrap:anywhere]',
           done && 'text-muted-foreground line-through',
         )}>
           {task.title}
@@ -462,9 +472,11 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleImportant?.(task.id, !task.important); }}
+          // Shown on starred tasks; on the rest only on hover or focus.
           className={cn(
             '-m-1 shrink-0 rounded-full p-1 transition-[opacity,color]',
-            task.important ? 'text-[hsl(var(--tertiary))]' : 'text-muted-foreground opacity-50 hover:opacity-100',
+            task.important ? 'text-[hsl(var(--tertiary))]'
+              : 'text-muted-foreground opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-60 group-focus-visible:opacity-60',
           )}
           aria-label={task.important ? 'Remove from Important' : 'Mark important'}
         >
@@ -472,37 +484,36 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
         </button>
       </div>
 
+      {blocked && task.blocked_by_task_title && (
+        <p className="flex items-start gap-1.5 rounded-[10px] bg-[hsl(var(--error-container)/0.7)] px-2 py-1.5 text-xs leading-4 text-[hsl(var(--on-error-container))]">
+          <Ban className="mt-px size-3.5 shrink-0 text-destructive" />
+          <span className="min-w-0 [overflow-wrap:anywhere]">Waiting on <strong className="font-semibold">{task.blocked_by_task_title}</strong></span>
+        </p>
+      )}
+
       {hasBadges && (
-      <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
         {task.parent_task_id != null && task.parent_task_title && (
-          <span className={cn(chip, neutral, 'min-w-0 max-w-32 shrink')} title={`Subtask of ${task.parent_task_title}`}>
-            <CornerDownRight className="size-3 shrink-0" /><span className="truncate">{task.parent_task_title}</span>
+          <span className={cn(mark, 'min-w-0 max-w-36 shrink')} title={`Subtask of ${task.parent_task_title}`}>
+            <CornerDownRight className="size-3.5 shrink-0" /><span className="truncate">{task.parent_task_title}</span>
           </span>
         )}
         {task.due_date ? (
-          <span className={cn(chip, overdue ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]' : neutral)}>
-            {format(parseISO(task.due_date), 'MMM d')}
+          <span className={cn(pill, overdue ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]'
+            : dueToday ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : neutral)}>
+            {dueToday ? 'Today' : format(parseISO(task.due_date), 'MMM d')}
           </span>
         ) : task.week_of ? (
-          <span className={cn(chip, neutral)}>Wk {format(parseISO(task.week_of), 'MMM d')}</span>
+          <span className={cn(pill, neutral)}>Wk {format(parseISO(task.week_of), 'MMM d')}</span>
         ) : task.month_of ? (
-          <span className={cn(chip, neutral)}>{format(parseISO(task.month_of), 'MMMM')}</span>
+          <span className={cn(pill, neutral)}>{format(parseISO(task.month_of), 'MMMM')}</span>
         ) : null}
-        {repeats(task.recurrence) && (
-          <span className={cn(chip, neutral)} title="Repeats"><Repeat className="size-3" /></span>
-        )}
-        {steps > 0 && (
-          <span className={cn(chip, neutral)} title="Steps"><ListChecks className="size-3" /><span className="tabular-nums">{stepsDone}/{steps}</span></span>
-        )}
-        {subs > 0 && (
-          <span className={cn(chip, neutral)} title="Subtasks"><CornerDownRight className="size-3" /><span className="tabular-nums">{task.subtasks_done ?? 0}/{subs}</span></span>
-        )}
-        {task.status === 'blocked' && (
-          <span className={cn(chip, 'min-w-0 shrink bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}>
-            <GitBranch className="size-3 shrink-0" />
-            <span className="truncate">Blocked{task.blocked_by_task_title ? ` by ${task.blocked_by_task_title}` : ''}</span>
-          </span>
-        )}
+        {repeats(task.recurrence) && <span className={mark} title="Repeats"><Repeat className="size-3.5" /></span>}
+        {steps > 0 && <span className={mark} title="Steps"><ListChecks className="size-3.5" />{stepsDone}/{steps}</span>}
+        {subs > 0 && <span className={mark} title="Subtasks"><CornerDownRight className="size-3.5" />{task.subtasks_done ?? 0}/{subs}</span>}
+        {reminder && <span className={mark} title="Reminder set"><Bell className="size-3.5" /></span>}
+        {hasNotes && <span className={mark} title="Has notes"><AlignLeft className="size-3.5" /></span>}
+        {images > 0 && <span className={mark} title={`${images} image${images === 1 ? '' : 's'}`}><ImageIcon className="size-3.5" />{images}</span>}
       </div>
       )}
     </div>
