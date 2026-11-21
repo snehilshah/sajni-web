@@ -373,7 +373,11 @@ export default function TasksDoc() {
           and Blocked last, since it's the exception). The Board uses the
           whole width of the window (up to a limit on very wide screens), its
           lanes reach down to the foot of the screen, and each has its own Add
-          a task, so the Board hides the page's add bar. A card shows the title on up to four lines and grows downward.
+          a task, so the Board hides the page's add bar. Views that list only
+          open tasks (My Day, Planned, Important…) show <strong>Done
+          today</strong> as their last-but-one lane: what you finished today,
+          so a card you drop there stays in sight. All and your own lists show
+          every finished task under Done. A card shows the title on up to four lines and grows downward.
           Under it, only the date is a pill (red when overdue, blue for
           today); the rest are small marks: repeats, steps (1/4), subtasks
           (0/3), a bell for a reminder, lines when it has notes, and a picture

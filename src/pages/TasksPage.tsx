@@ -64,11 +64,17 @@ export default function TasksPage() {
 
   // Selection -> list query params. Smart filters carry a `smart` key; a user
   // list filters by id and only shows top-level tasks.
+  // On the Board, views that list only open tasks (My Day, Planned…) also
+  // fetch what was finished today, so Done isn't an empty lane that eats
+  // whatever is dropped on it.
+  const isMobile = useIsMobile();
+  const onBoard = viewMode === 'board' && !isMobile;
+  const doneToday = onBoard && selection.kind === 'smart' && selection.smart !== 'all';
   const params: TaskListParams = useMemo(() => (
     selection.kind === 'smart'
-      ? { smart: selection.smart }
+      ? (doneToday ? { smart: selection.smart, done_today: true } : { smart: selection.smart })
       : { list: selection.id, parent: 'null' }
-  ), [selection]);
+  ), [selection, doneToday]);
 
   const { data: lists = [] } = useTaskLists();
   const { data: tasksList = [], isLoading: loading } = useTasks(params);
@@ -190,7 +196,6 @@ export default function TasksPage() {
   };
 
   // Reactive mobile detection — kanban board is forced to list on phone.
-  const isMobile = useIsMobile();
   const effectiveView = isMobile ? 'list' : viewMode;
 
   const switchTab = (tab: 'tasks' | 'planner' | 'reminders') => {
@@ -351,6 +356,7 @@ export default function TasksPage() {
           ) : (
             <BoardView
               grouped={grouped}
+              doneToday={doneToday}
               onClick={openEdit}
               onMove={(id, status, rank) => {
                 const t = tasksList.find((x) => x.id === id);

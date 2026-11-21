@@ -52,6 +52,8 @@ interface Props {
   onQuickAdd: (status: Lane, title: string) => Promise<void>;
   onToggleImportant: (id: number, important: boolean) => void;
   onToggleDone: (task: Task) => void;
+  /** This view lists open tasks only; its Done lane holds today's. */
+  doneToday?: boolean;
 }
 
 /** The lane's card slots (minus the dragged one) and the first whose middle
@@ -75,7 +77,7 @@ export function rankAt(list: Task[], index: number): number {
   return -Date.now();
 }
 
-export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onToggleImportant, onToggleDone }: Props) {
+export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onToggleImportant, onToggleDone, doneToday = false }: Props) {
   // A drop shows in this frame; the query cache catches up a moment later
   // (optimistic patch), and then the override is dropped.
   const [moved, setMoved] = useState<Record<number, { status: Lane; rank: number }>>({});
@@ -244,6 +246,7 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
             scrollRef={(el) => { scroll.current[status] = el; }}
             savedScroll={savedScroll}
             showAll={status === 'done' && doneOpen}
+            label={status === 'done' && doneToday ? 'Done today' : STATUS_LABELS[status]}
             onShowAll={setDoneOpen}
             onClick={onClick}
             onQuickAdd={onQuickAdd}
@@ -280,13 +283,14 @@ const acceptsInto = (lane: Lane) => (source: { data?: unknown }) => {
   return !task || !boardMoveRefusal(task, lane);
 };
 
-function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, onClick, onQuickAdd, onToggleImportant, onToggleDone }: {
+function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, label, onClick, onQuickAdd, onToggleImportant, onToggleDone }: {
   status: Lane;
   tasks: Task[];
   scrollRef: (el: HTMLDivElement | null) => void;
   savedScroll: React.RefObject<Partial<Record<Lane, number>>>;
   showAll: boolean;
   onShowAll: (open: boolean) => void;
+  label: string;
   onClick: (t: Task) => void;
   onQuickAdd: (status: Lane, title: string) => Promise<void>;
   onToggleImportant: (id: number, important: boolean) => void;
@@ -331,7 +335,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
         </p>
       )}
       <header className="flex h-13 shrink-0 items-center gap-2 pl-4 pr-2">
-        <h3 className="text-[15px] font-semibold">{STATUS_LABELS[status]}</h3>
+        <h3 className="text-[15px] font-semibold">{label}</h3>
         <span className="text-xs tabular-nums text-muted-foreground">{tasks.length}</span>
         <Button
           variant="ghost" size="icon-sm" className="ml-auto rounded-full"

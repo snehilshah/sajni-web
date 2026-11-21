@@ -161,6 +161,8 @@ export const tasks = {
     list?: number | 'none';
     parent?: number | 'null';
     smart?: SmartList;
+    /** Board: views of open tasks also keep what was finished today. */
+    done_today?: boolean;
   }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
@@ -171,6 +173,7 @@ export const tasks = {
     if (params?.list !== undefined) q.set('list', String(params.list));
     if (params?.parent !== undefined) q.set('parent', String(params.parent));
     if (params?.smart) q.set('smart', params.smart);
+    if (params?.done_today) q.set('done_today', '1');
     const qs = q.toString();
     return request<Task[]>('/tasks' + (qs ? '?' + qs : ''));
   },
