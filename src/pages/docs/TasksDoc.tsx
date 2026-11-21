@@ -370,9 +370,10 @@ export default function TasksDoc() {
           Desktop offers two projections of the same data: <strong>List</strong>{' '}
           (grouped Overdue / Today / This week / Later / No date) and{' '}
           <strong>Board</strong> (a lane per status: To do, In progress, Done,
-          and Blocked last, since it's the exception). Lanes fill the screen
-          and each has its own Add a task, so the Board hides the page's add
-          bar. A card shows the title on up to four lines and grows downward.
+          and Blocked last, since it's the exception). The Board uses the
+          whole width of the window (up to a limit on very wide screens), its
+          lanes reach down to the foot of the screen, and each has its own Add
+          a task, so the Board hides the page's add bar. A card shows the title on up to four lines and grows downward.
           Under it, only the date is a pill (red when overdue, blue for
           today); the rest are small marks: repeats, steps (1/4), subtasks
           (0/3), a bell for a reminder, lines when it has notes, and a picture

@@ -12,6 +12,7 @@ import { Plus, Star, ListChecks, Repeat, CornerDownRight, Ban, Bell, AlignLeft, 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { track } from '@/lib/telemetry';
 import { repeats } from './RepeatPicker';
 import { STATUSES, STATUS_LABELS } from './helpers';
 
@@ -53,6 +54,14 @@ interface Props {
   onToggleDone: (task: Task) => void;
 }
 
+/** The lane's card slots (minus the dragged one) and the first whose middle
+ *  is below y: the card goes before it (-1 = at the end). */
+function slotsAt(box: HTMLElement, dragged: Element | null, y: number) {
+  const slots = [...box.querySelectorAll<HTMLElement>(':scope > [data-board-slot]')].filter((x) => x !== dragged);
+  const at = slots.findIndex((x) => { const r = x.getBoundingClientRect(); return r.top + r.height / 2 > y; });
+  return { slots, at };
+}
+
 /** A task's place in its lane: its rank, else newest first. */
 export const boardRank = (t: Task) => t.board_rank ?? -(Date.parse(t.updated_at ?? '') || 0);
 
@@ -77,6 +86,23 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
   const scroll = useRef<Partial<Record<Lane, HTMLDivElement | null>>>({});
   const savedScroll = useRef<Partial<Record<Lane, number>>>({});
   const [doneOpen, setDoneOpen] = useState(false);
+  // Lanes run from where the board starts to just above the screen's foot,
+  // whatever sits above them (the missed-tasks banner comes and goes).
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [laneH, setLaneH] = useState('calc(100dvh - 16rem)');
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = gridRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      setLaneH(`calc(100dvh - ${Math.round(top)}px - 1.5rem)`);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
   const redraw = () => {
     for (const s of STATUSES) savedScroll.current[s] = scroll.current[s]?.scrollTop ?? 0;
     setEpoch((e) => e + 1);
@@ -132,9 +158,7 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
         const el = source.element;
         const box = document.querySelector<HTMLElement>(`[data-board-lane="${lane}"]`);
         if (!lane || lane === source.group || !el || !box) return;
-        const slots = [...box.querySelectorAll<HTMLElement>(':scope > [data-board-slot]')].filter((x) => x !== el);
-        const y = position.current.y;
-        const at = slots.findIndex((x) => { const r = x.getBoundingClientRect(); return r.top + r.height / 2 > y; });
+        const { slots, at } = slotsAt(box, el, position.current.y);
         const index = at === -1 ? slots.length : at;
         const from = source.group;
         const fromIndex = source.index;
@@ -157,11 +181,33 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
           return;
         }
         const task = source.data?.task as Task | undefined;
-        const lane = source.group as Lane | undefined;
-        if (!task || !lane) return;
+        const slotLane = source.group as Lane | undefined;
+        const target = event.operation.target;
+        if (!task || !slotLane) return;
         // Let go over a lane that refused it (Done with open subtasks), the
         // card goes home: its slot may have been left in a lane it crossed.
-        if (!event.operation.target) { flushSync(redraw); return; }
+        if (!target) { flushSync(redraw); return; }
+        // The lane under the pointer decides, not the slot: dnd-kit re-slots
+        // a card a frame or two after it enters a lane, so a quick drop
+        // (In progress → Done in one flick) still had its slot at home and
+        // read as "no move". Then place it by the pointer ourselves.
+        const targetLane = (isSortable(target) ? target.group : (target.data as { status?: Lane } | undefined)?.status) as Lane | undefined;
+        let lane = slotLane;
+        let slotIndex = source.index;
+        if (targetLane && targetLane !== slotLane) {
+          const box = document.querySelector<HTMLElement>(`[data-board-lane="${targetLane}"]`);
+          if (box) {
+            const { slots, at } = slotsAt(box, source.element ?? null, event.operation.position.current.y);
+            lane = targetLane;
+            slotIndex = at === -1 ? slots.length : at;
+          }
+        }
+        // Diagnostics (2026-11): every drop goes to the server log, so a
+        // drop that doesn't do what the owner meant can be traced.
+        track('board_drop', {
+          task: task.id, from: task.status, slot: slotLane, over: targetLane ?? '', lane,
+          idx: slotIndex, fixed: lane !== slotLane, kind: isSortable(target) ? 'card' : 'lane',
+        }, true);
         if (lane === 'blocked' && task.status !== 'blocked') {
           // Blocked needs a blocker: the task opens; the card returns until saved.
           flushSync(redraw);
@@ -169,7 +215,10 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
           return;
         }
         const list = lanes[lane].filter((t) => t.id !== task.id);
-        const index = Math.max(0, Math.min(source.index, list.length));
+        // Done shows five until opened; a card dropped below them stays in
+        // sight as the fifth rather than vanishing behind "Show N more".
+        const shown = lane === 'done' && !doneOpen ? DONE_PREVIEW - 1 : list.length;
+        const index = Math.max(0, Math.min(slotIndex, list.length, shown));
         const before = lanes[task.status].findIndex((t) => t.id === task.id);
         if (lane === task.status && index === before) { flushSync(redraw); return; }
         const rank = rankAt(list, index);
@@ -182,6 +231,8 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
     >
       <div
         key={epoch}
+        ref={gridRef}
+        style={{ '--lane-h': laneH } as React.CSSProperties}
         className="grid grid-flow-col auto-cols-[minmax(15.5rem,1fr)] gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
         aria-label="Tasks board"
       >
@@ -270,7 +321,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
       ref={ref as React.Ref<HTMLElement>}
       aria-label={STATUS_LABELS[status]}
       className={cn(
-        'relative snap-start flex h-[calc(100dvh-15rem)] min-h-80 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
+        'relative snap-start flex h-(--lane-h) min-h-80 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
         isDropTarget && 'bg-[hsl(var(--surface-container-high))] shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.45)]',
       )}
     >

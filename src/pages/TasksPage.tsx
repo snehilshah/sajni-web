@@ -203,12 +203,18 @@ export default function TasksPage() {
     setSearchParams(next, { replace: true });
   };
 
+  const boardWide = activeTab === 'tasks' && viewMode === 'board' && !isMobile;
+
   return (
     <PageShell
       title="Tasks"
-      columnClassName={activeTab === 'planner' ? 'max-w-[1600px] px-4 md:px-6 xl:px-8' : undefined}
+      // The Board runs (almost) edge to edge, capped for very wide screens,
+      // so lanes get room instead of the reading column's 6xl.
+      columnClassName={activeTab === 'planner' ? 'max-w-[1600px] px-4 md:px-6 xl:px-8'
+        : boardWide ? 'max-w-[2000px] px-4 md:px-6' : undefined}
       contentClassName={activeTab === 'planner'
         ? 'mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 pb-28 pt-5 md:px-6 md:pb-20 md:pt-6 xl:px-8'
+        : boardWide ? 'mx-auto flex w-full max-w-[2000px] flex-col gap-6 px-4 pb-6 pt-5 md:px-6 md:pt-6'
         : undefined}
       actions={
         !isMobile ? (
