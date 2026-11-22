@@ -29,9 +29,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "hsl(var(--inverse-surface))",
-          "--normal-text": "hsl(var(--inverse-on-surface))",
-          "--normal-border": "transparent",
+          // The theme's own surface, in its own mode: a dark card on a dark
+          // page, tinted by the active theme (not Material's inverted snackbar).
+          "--normal-bg": "hsl(var(--surface-container-high))",
+          "--normal-text": "hsl(var(--on-surface))",
+          "--normal-border": "hsl(var(--outline-variant))",
           "--border-radius": "12px",
         } as React.CSSProperties
       }

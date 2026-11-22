@@ -689,3 +689,11 @@ button, [role="button"], a {
 /* Resizing docked Sajni: the nav pill and page header track its edge
    exactly instead of easing behind it (AIChat ChatDock). */
 html[data-dock-drag] [data-dock-chrome] { transition: none; }
+
+/* Toasts (components/ui/sonner.tsx): the app's font (sonner's own stack
+   starts at system-ui, which some desktops map to a monospace face), the
+   description a step quieter and the action button in the theme's primary.
+   Success/error toasts keep their rich colours. */
+.toaster[data-sonner-toaster] { font-family: inherit; }
+.cn-toast[data-sonner-toast][data-styled="true"]:not([data-type]) [data-description] { color: hsl(var(--on-surface-variant)); }
+.cn-toast[data-sonner-toast] [data-button][data-action] { background: hsl(var(--primary)); color: hsl(var(--on-primary)); }
