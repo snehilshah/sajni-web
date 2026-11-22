@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Landmark, CreditCard, TrendingUp, Coins, Wallet,
-  Plus, Pencil, Trash2, Target, ArrowDownToLine,
+  Landmark,
+  CreditCard,
+  TrendingUp,
+  Coins,
+  Wallet,
+  Plus,
+  Pencil,
+  Trash2,
+  Target,
+  ArrowDownToLine,
 } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
@@ -26,12 +34,17 @@ import { EditActions } from '@/components/editor-actions';
 
 const typeIcon = (type: string) => {
   switch (type) {
-    case 'credit_card': return CreditCard;
-    case 'investment': return TrendingUp;
-    case 'cash': return Coins;
-    case 'salary': return Wallet;
+    case 'credit_card':
+      return CreditCard;
+    case 'investment':
+      return TrendingUp;
+    case 'cash':
+      return Coins;
+    case 'salary':
+      return Wallet;
     case 'savings':
-    default: return Landmark;
+    default:
+      return Landmark;
   }
 };
 
@@ -54,16 +67,15 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
   const [creating, setCreating] = useState(false);
   // Local copy so the bucket dialog can mutate without round-tripping every keystroke.
   const [savings, setSavings] = useState<FinSaving[]>(parentSavings);
-  useEffect(() => { setSavings(parentSavings); }, [parentSavings]);
+  useEffect(() => {
+    setSavings(parentSavings);
+  }, [parentSavings]);
 
   const [savingsAcct, setSavingsAcct] = useState<FinAccount | null>(null);
   const [crediting, setCrediting] = useState<FinAccount | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  const visible = useMemo(
-    () => accounts.filter((a) => showArchived || !a.archived),
-    [accounts, showArchived],
-  );
+  const visible = useMemo(() => accounts.filter((a) => showArchived || !a.archived), [accounts, showArchived]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,7 +95,7 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
             </button>
           )}
           <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus className="size-4 mr-1" /> Add account
+            <Plus className="mr-1 size-4" /> Add account
           </Button>
         </div>
       </div>
@@ -93,7 +105,7 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
       ) : visible.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">No accounts yet</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {visible.map((a) => {
             const Icon = typeIcon(a.type);
             const acctSavings = savings.filter((s) => s.account_id === a.id);
@@ -112,12 +124,15 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
               >
                 <CardAccent color={a.color} />
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="size-9 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: a.color + '20', color: a.color }}>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div
+                      className="flex size-9 shrink-0 items-center justify-center rounded-md"
+                      style={{ backgroundColor: a.color + '20', color: a.color }}
+                    >
                       <Icon className="size-4" />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{a.name}</div>
+                      <div className="truncate font-medium">{a.name}</div>
                       <div className="truncate text-xs text-muted-foreground">
                         {ACCOUNT_TYPES.find((t) => t.value === a.type)?.label}
                         {a.institution && ' · ' + a.institution}
@@ -125,18 +140,36 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
                     </div>
                   </div>
                   {/* Actions end on the card's trailing edge, glyph-aligned. */}
-                  <div className="-mr-2 -mt-1 flex shrink-0">
+                  <div className="-mt-1 -mr-2 flex shrink-0">
                     {a.type === 'salary' && (
-                      <Button variant="ghost" size="icon-sm" aria-label={`Credit salary or bonus to ${a.name}`} title="Credit salary / bonus" onClick={() => setCrediting(a)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Credit salary or bonus to ${a.name}`}
+                        title="Credit salary / bonus"
+                        onClick={() => setCrediting(a)}
+                      >
                         <ArrowDownToLine className="size-4" />
                       </Button>
                     )}
                     {!isCC && (
-                      <Button variant="ghost" size="icon-sm" aria-label={`Buckets on ${a.name}`} title="Buckets" onClick={() => setSavingsAcct(a)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Buckets on ${a.name}`}
+                        title="Buckets"
+                        onClick={() => setSavingsAcct(a)}
+                      >
                         <Target className="size-4" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon-sm" aria-label={`Edit ${a.name}`} title="Edit" onClick={() => setEditingAcct(a)}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Edit ${a.name}`}
+                      title="Edit"
+                      onClick={() => setEditingAcct(a)}
+                    >
                       <Pencil className="size-4" />
                     </Button>
                   </div>
@@ -148,7 +181,9 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
                     the grid stays even. */}
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <span className="flex min-w-0 items-baseline gap-2">
-                    <span className={`whitespace-nowrap font-serif text-2xl font-semibold tabular-nums ${!isCC && a.balance < 0 ? 'text-destructive' : ''}`}>
+                    <span
+                      className={`font-serif text-2xl font-semibold whitespace-nowrap tabular-nums ${!isCC && a.balance < 0 ? 'text-destructive' : ''}`}
+                    >
                       <Money value={isCC ? owed : a.balance} />
                     </span>
                     {isCC && <span className="text-xs text-muted-foreground">owed</span>}
@@ -158,10 +193,21 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
                       {formatPercent(utilization)} of <Money value={a.credit_limit} />
                     </DateBadge>
                   ) : a.type === 'salary' && a.salary_amount > 0 ? (
-                    <DateBadge><span><Money value={a.salary_amount} />/mo{a.salary_day ? ` · day ${a.salary_day}` : ''}</span></DateBadge>
+                    <DateBadge>
+                      <span>
+                        <Money value={a.salary_amount} />
+                        /mo{a.salary_day ? ` · day ${a.salary_day}` : ''}
+                      </span>
+                    </DateBadge>
                   ) : acctSavings.length > 0 ? (
-                    <button type="button" onClick={() => setSavingsAcct(a)} className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]">
-                      <DateBadge tone={reservedTotal > a.balance ? 'alert' : 'neutral'}><Money value={reservedTotal} /> reserved</DateBadge>
+                    <button
+                      type="button"
+                      onClick={() => setSavingsAcct(a)}
+                      className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                    >
+                      <DateBadge tone={reservedTotal > a.balance ? 'alert' : 'neutral'}>
+                        <Money value={reservedTotal} /> reserved
+                      </DateBadge>
                     </button>
                   ) : null}
                 </div>
@@ -174,8 +220,15 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
       <AccountDialog
         open={creating || editingAcct !== null}
         account={editingAcct}
-        onClose={() => { setCreating(false); setEditingAcct(null); }}
-        onSaved={() => { reload(); setCreating(false); setEditingAcct(null); }}
+        onClose={() => {
+          setCreating(false);
+          setEditingAcct(null);
+        }}
+        onSaved={() => {
+          reload();
+          setCreating(false);
+          setEditingAcct(null);
+        }}
       />
       {crediting && (
         <SalaryDialog account={crediting} categories={categories} onClose={() => setCrediting(null)} onDone={reload} />
@@ -183,7 +236,13 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
       <SavingsDialog
         account={savingsAcct}
         savings={savings.filter((s) => savingsAcct && s.account_id === savingsAcct.id)}
-        onClose={() => { setSavingsAcct(null); finance.listSavings().then(setSavings).catch(() => {}); }}
+        onClose={() => {
+          setSavingsAcct(null);
+          finance
+            .listSavings()
+            .then(setSavings)
+            .catch(() => {});
+        }}
       />
     </div>
   );
@@ -191,10 +250,20 @@ export default function AccountsTab({ enabled, accounts, categories, savings: pa
 
 // The account editor's fields as one value: the draft compares it to tell what's unsaved.
 interface AccountValues {
-  name: string; type: AcctType; institution: string; openingBalance: string;
-  creditLimit: string; statementDay: string; dueDay: string;
-  cashbackType: CashType; cashbackValue: string; salaryAmount: string; salaryDay: string;
-  matchHints: string; color: string; archived: boolean;
+  name: string;
+  type: AcctType;
+  institution: string;
+  openingBalance: string;
+  creditLimit: string;
+  statementDay: string;
+  dueDay: string;
+  cashbackType: CashType;
+  cashbackValue: string;
+  salaryAmount: string;
+  salaryDay: string;
+  matchHints: string;
+  color: string;
+  archived: boolean;
 }
 
 function accountValues(account: FinAccount): AccountValues {
@@ -239,7 +308,12 @@ function accountDraft(v: AccountValues): AccountDraft {
   return data;
 }
 
-function AccountDialog({ open, account, onClose, onSaved }: {
+function AccountDialog({
+  open,
+  account,
+  onClose,
+  onSaved,
+}: {
   open: boolean;
   account: FinAccount | null;
   onClose: () => void;
@@ -261,15 +335,36 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   const [archived, setArchived] = useState(false);
 
   const values: AccountValues = {
-    name, type, institution, openingBalance, creditLimit, statementDay, dueDay,
-    cashbackType, cashbackValue, salaryAmount, salaryDay, matchHints, color, archived,
+    name,
+    type,
+    institution,
+    openingBalance,
+    creditLimit,
+    statementDay,
+    dueDay,
+    cashbackType,
+    cashbackValue,
+    salaryAmount,
+    salaryDay,
+    matchHints,
+    color,
+    archived,
   };
   const apply = (v: AccountValues) => {
-    setName(v.name); setType(v.type); setInstitution(v.institution); setOpeningBalance(v.openingBalance);
-    setCreditLimit(v.creditLimit); setStatementDay(v.statementDay); setDueDay(v.dueDay);
-    setCashbackType(v.cashbackType); setCashbackValue(v.cashbackValue);
-    setSalaryAmount(v.salaryAmount); setSalaryDay(v.salaryDay); setMatchHints(v.matchHints);
-    setColor(v.color); setArchived(v.archived);
+    setName(v.name);
+    setType(v.type);
+    setInstitution(v.institution);
+    setOpeningBalance(v.openingBalance);
+    setCreditLimit(v.creditLimit);
+    setStatementDay(v.statementDay);
+    setDueDay(v.dueDay);
+    setCashbackType(v.cashbackType);
+    setCashbackValue(v.cashbackValue);
+    setSalaryAmount(v.salaryAmount);
+    setSalaryDay(v.salaryDay);
+    setMatchHints(v.matchHints);
+    setColor(v.color);
+    setArchived(v.archived);
   };
   // Nothing saves until Save (or Create); closing with changes asks twice.
   const draft = useEditorDraft({
@@ -286,11 +381,24 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   const requestClose = () => draft.close(onClose);
 
   useEffect(() => {
-    const v: AccountValues = account ? accountValues(account) : {
-      name: '', type: 'savings', institution: '', openingBalance: '0', creditLimit: '', statementDay: '', dueDay: '',
-      cashbackType: 'none', cashbackValue: '0', salaryAmount: '0', salaryDay: '', matchHints: '',
-      color: ACCOUNT_COLORS[0], archived: false,
-    };
+    const v: AccountValues = account
+      ? accountValues(account)
+      : {
+          name: '',
+          type: 'savings',
+          institution: '',
+          openingBalance: '0',
+          creditLimit: '',
+          statementDay: '',
+          dueDay: '',
+          cashbackType: 'none',
+          cashbackValue: '0',
+          salaryAmount: '0',
+          salaryDay: '',
+          matchHints: '',
+          color: ACCOUNT_COLORS[0],
+          archived: false,
+        };
     apply(v);
     loadDraft(v);
     // Keyed on the dialog opening, not on the setters (stable) or loadDraft.
@@ -298,7 +406,10 @@ function AccountDialog({ open, account, onClose, onSaved }: {
   }, [account, open]);
 
   const save = async () => {
-    if (account) { await draft.save(onSaved); return; }
+    if (account) {
+      await draft.save(onSaved);
+      return;
+    }
     if (!name.trim()) return;
     await finance.createAccount(accountDraft(values));
     onSaved();
@@ -314,11 +425,11 @@ function AccountDialog({ open, account, onClose, onSaved }: {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{account ? 'Edit account' : 'New account'}</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Name" className="sm:col-span-2">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. HDFC Savings" />
           </Field>
@@ -329,7 +440,9 @@ function AccountDialog({ open, account, onClose, onSaved }: {
               </SelectTrigger>
               <SelectContent>
                 {ACCOUNT_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -338,7 +451,12 @@ function AccountDialog({ open, account, onClose, onSaved }: {
             <Input value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="e.g. HDFC" />
           </Field>
           <Field label="Opening balance">
-            <Input type="number" inputMode="decimal" value={openingBalance} onChange={(e) => setOpeningBalance(e.target.value)} />
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={openingBalance}
+              onChange={(e) => setOpeningBalance(e.target.value)}
+            />
           </Field>
           <Field label="Color">
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -347,16 +465,16 @@ function AccountDialog({ open, account, onClose, onSaved }: {
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`size-7 rounded-md transition-transform ${color === c ? 'ring-2 ring-ring scale-110' : ''}`}
+                  className={`size-7 rounded-md transition-transform ${color === c ? 'scale-110 ring-2 ring-ring' : ''}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
               {/* Custom color — native picker, gives full freedom beyond the presets. */}
               <label
-                className={`relative size-7 rounded-md cursor-pointer grid place-items-center transition-transform ${
+                className={`relative grid size-7 cursor-pointer place-items-center rounded-md transition-transform ${
                   ACCOUNT_COLORS.includes(color)
                     ? 'border border-dashed border-[hsl(var(--outline))]'
-                    : 'ring-2 ring-ring scale-110'
+                    : 'scale-110 ring-2 ring-ring'
                 }`}
                 style={!ACCOUNT_COLORS.includes(color) ? { backgroundColor: color } : undefined}
                 title="Custom color"
@@ -366,18 +484,14 @@ function AccountDialog({ open, account, onClose, onSaved }: {
                   type="color"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  className="absolute inset-0 size-full opacity-0 cursor-pointer"
+                  className="absolute inset-0 size-full cursor-pointer opacity-0"
                 />
               </label>
             </div>
           </Field>
 
           <Field label="SMS match (for shared messages)" className="sm:col-span-2">
-            <Input
-              value={matchHints}
-              onChange={(e) => setMatchHints(e.target.value)}
-              placeholder="e.g. 7744, HDFC"
-            />
+            <Input value={matchHints} onChange={(e) => setMatchHints(e.target.value)} placeholder="e.g. 7744, HDFC" />
             <p className="text-xs text-muted-foreground">
               Last 4 digits / bank name from this account's bank &amp; UPI SMS, comma-separated. When you share a
               transaction message, Sajni auto-selects this account if the text mentions any of these.
@@ -387,17 +501,42 @@ function AccountDialog({ open, account, onClose, onSaved }: {
           {type === 'credit_card' && (
             <>
               <Field label="Credit limit" className="sm:col-span-2">
-                <Input type="number" inputMode="decimal" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} placeholder="e.g. 200000" />
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={creditLimit}
+                  onChange={(e) => setCreditLimit(e.target.value)}
+                  placeholder="e.g. 200000"
+                />
               </Field>
               <Field label="Statement day">
-                <Input type="number" inputMode="numeric" value={statementDay} onChange={(e) => setStatementDay(e.target.value)} placeholder="e.g. 25" />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={statementDay}
+                  onChange={(e) => setStatementDay(e.target.value)}
+                  placeholder="e.g. 25"
+                />
               </Field>
               <Field label="Due day">
-                <Input type="number" inputMode="numeric" value={dueDay} onChange={(e) => setDueDay(e.target.value)} placeholder="e.g. 15" />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={dueDay}
+                  onChange={(e) => setDueDay(e.target.value)}
+                  placeholder="e.g. 15"
+                />
               </Field>
               <Field label="Cashback type">
-                <Select value={cashbackType} onValueChange={(v) => setCashbackType((v as CashType) || 'none')}
-                  items={[{ value: 'none', label: 'None' }, { value: 'percentage', label: 'Percentage' }, { value: 'fixed', label: 'Fixed' }]}>
+                <Select
+                  value={cashbackType}
+                  onValueChange={(v) => setCashbackType((v as CashType) || 'none')}
+                  items={[
+                    { value: 'none', label: 'None' },
+                    { value: 'percentage', label: 'Percentage' },
+                    { value: 'fixed', label: 'Fixed' },
+                  ]}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -410,7 +549,12 @@ function AccountDialog({ open, account, onClose, onSaved }: {
               </Field>
               {cashbackType !== 'none' && (
                 <Field label={cashbackType === 'percentage' ? 'Cashback %' : 'Cashback amount'}>
-                  <Input type="number" inputMode="decimal" value={cashbackValue} onChange={(e) => setCashbackValue(e.target.value)} />
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    value={cashbackValue}
+                    onChange={(e) => setCashbackValue(e.target.value)}
+                  />
                 </Field>
               )}
             </>
@@ -418,18 +562,34 @@ function AccountDialog({ open, account, onClose, onSaved }: {
           {type === 'salary' && (
             <>
               <Field label="Monthly salary">
-                <Input type="number" inputMode="decimal" value={salaryAmount} onChange={(e) => setSalaryAmount(e.target.value)} placeholder="e.g. 90000" />
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={salaryAmount}
+                  onChange={(e) => setSalaryAmount(e.target.value)}
+                  placeholder="e.g. 90000"
+                />
               </Field>
               <Field label="Salary day">
-                <Input type="number" inputMode="numeric" min={1} max={31} value={salaryDay} onChange={(e) => setSalaryDay(e.target.value)} placeholder="e.g. 1" />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={31}
+                  value={salaryDay}
+                  onChange={(e) => setSalaryDay(e.target.value)}
+                  placeholder="e.g. 1"
+                />
               </Field>
             </>
           )}
           {account && (
-            <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl p-3">
+            <div className="flex items-center justify-between gap-3 rounded-xl p-3 sm:col-span-2">
               <div className="min-w-0">
                 <div className="text-sm font-medium">Archived</div>
-                <div className="text-xs text-muted-foreground">Hide from the active view. Balance &amp; history stay intact.</div>
+                <div className="text-xs text-muted-foreground">
+                  Hide from the active view. Balance &amp; history stay intact.
+                </div>
               </div>
               <Switch checked={archived} onCheckedChange={(c) => setArchived(c)} />
             </div>
@@ -438,9 +598,11 @@ function AccountDialog({ open, account, onClose, onSaved }: {
         <DialogFooter className="flex-row items-center justify-between">
           {account ? (
             <Button variant="destructive-quiet" onClick={remove}>
-              <Trash2 className="size-4 mr-1" /> Delete
+              <Trash2 className="mr-1 size-4" /> Delete
             </Button>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
           <div className="flex gap-2">
             <EditActions draft={draft} onCancel={onClose} onSave={save} saveLabel={account ? 'Save' : 'Create'} />
           </div>
@@ -453,7 +615,7 @@ function AccountDialog({ open, account, onClose, onSaved }: {
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>}
+      {label && <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>}
       {children}
     </div>
   );
@@ -463,7 +625,12 @@ function Field({ label, className = '', children }: { label: string; className?:
 // salary" posts the stored monthly amount as income (categorized Salary),
 // and "Bonus" posts an ad-hoc amount. Both are plain income transactions —
 // no cron, deterministic, matches the manual-credit decision.
-function SalaryDialog({ account, categories, onClose, onDone }: {
+function SalaryDialog({
+  account,
+  categories,
+  onClose,
+  onDone,
+}: {
   account: FinAccount;
   categories: FinCategory[];
   onClose: () => void;
@@ -502,7 +669,9 @@ function SalaryDialog({ account, categories, onClose, onDone }: {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-sm">
-        <DialogHeader><DialogTitle>Credit {account.name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Credit {account.name}</DialogTitle>
+        </DialogHeader>
         <div className="flex gap-2">
           {(['Salary', 'Bonus'] as const).map((k) => (
             <button
@@ -510,7 +679,10 @@ function SalaryDialog({ account, categories, onClose, onDone }: {
               type="button"
               aria-pressed={kind === k}
               className={`chip ${kind === k ? 'chip-selected' : ''}`}
-              onClick={() => { setKind(k); setAmount(k === 'Salary' && salary > 0 ? String(salary) : ''); }}
+              onClick={() => {
+                setKind(k);
+                setAmount(k === 'Salary' && salary > 0 ? String(salary) : '');
+              }}
             >
               {k}
             </button>
@@ -521,21 +693,34 @@ function SalaryDialog({ account, categories, onClose, onDone }: {
           inputMode="decimal"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              submit();
+            }
+          }}
           placeholder="Amount"
           aria-label="Amount"
           autoFocus
         />
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={busy || !(value > 0)}>Credit {kind.toLowerCase()}</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={busy || !(value > 0)}>
+            Credit {kind.toLowerCase()}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function SavingsDialog({ account, savings, onClose }: {
+function SavingsDialog({
+  account,
+  savings,
+  onClose,
+}: {
   account: FinAccount | null;
   savings: FinSaving[];
   onClose: () => void;
@@ -547,12 +732,24 @@ function SavingsDialog({ account, savings, onClose }: {
   const [editing, setEditing] = useState<FinSaving | null>(null);
   const [list, setList] = useState<FinSaving[]>(savings);
 
-  useEffect(() => { setList(savings); }, [savings]);
+  useEffect(() => {
+    setList(savings);
+  }, [savings]);
 
   if (!account) return null;
 
-  const reset = () => { setName(''); setTarget(''); setCurrent(''); setEditing(null); setColor(ACCOUNT_COLORS[0]); };
-  const reload = () => finance.listSavings(account.id).then(setList).catch(() => {});
+  const reset = () => {
+    setName('');
+    setTarget('');
+    setCurrent('');
+    setEditing(null);
+    setColor(ACCOUNT_COLORS[0]);
+  };
+  const reload = () =>
+    finance
+      .listSavings(account.id)
+      .then(setList)
+      .catch(() => {});
 
   const save = async () => {
     if (!name.trim()) return;
@@ -591,67 +788,112 @@ function SavingsDialog({ account, savings, onClose }: {
 
   return (
     <Dialog open={!!account} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Reserved on {account.name}</DialogTitle>
         </DialogHeader>
-        <div className="text-xs text-muted-foreground -mt-2">
-          Buckets are virtual. Money stays in the account. Reserved <Money value={reservedTotal} /> of <Money value={account.balance} /> balance.
+        <div className="-mt-2 text-xs text-muted-foreground">
+          Buckets are virtual. Money stays in the account. Reserved <Money value={reservedTotal} /> of{' '}
+          <Money value={account.balance} /> balance.
         </div>
         {overReserved && (
-          <div className="text-xs rounded-md bg-destructive/10 text-destructive px-3 py-2">
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
             Reserved exceeds the account balance.
           </div>
         )}
 
         <div className="flex flex-col gap-2">
           {list.length === 0 ? (
-            <div className="text-sm text-muted-foreground italic py-2">No buckets yet.</div>
-          ) : list.map((s) => {
-            const pct = s.target_amount > 0 ? Math.min((s.current_amount / s.target_amount) * 100, 100) : 0;
-            return (
-              <div key={s.id} className="border border-border rounded-md p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                    <span className="font-medium text-sm truncate">{s.name}</span>
+            <div className="py-2 text-sm text-muted-foreground italic">No buckets yet.</div>
+          ) : (
+            list.map((s) => {
+              const pct = s.target_amount > 0 ? Math.min((s.current_amount / s.target_amount) * 100, 100) : 0;
+              return (
+                <div key={s.id} className="rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="truncate text-sm font-medium">{s.name}</span>
+                    </div>
+                    <div className="flex gap-0.5">
+                      <Button variant="ghost" size="icon-sm" onClick={() => startEdit(s)}>
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        variant="destructive-ghost"
+                        size="icon-sm"
+                        onClick={() => remove(s.id)}
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-0.5">
-                    <Button variant="ghost" size="icon-sm" onClick={() => startEdit(s)}><Pencil className="size-3.5" /></Button>
-                    <Button variant="destructive-ghost" size="icon-sm" onClick={() => remove(s.id)} aria-label="Delete"><Trash2 className="size-3.5" /></Button>
+                  <div className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">
+                    <Money value={s.current_amount} />
+                    {s.target_amount > 0 && (
+                      <>
+                        {' '}
+                        / <Money value={s.target_amount} />
+                      </>
+                    )}
                   </div>
+                  {s.target_amount > 0 && (
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full" style={{ width: pct + '%', backgroundColor: s.color }} />
+                    </div>
+                  )}
                 </div>
-                <div className="font-mono text-xs tabular-nums text-muted-foreground mt-1">
-                  <Money value={s.current_amount} />{s.target_amount > 0 && <> / <Money value={s.target_amount} /></>}
-                </div>
-                {s.target_amount > 0 && (
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
-                    <div className="h-full" style={{ width: pct + '%', backgroundColor: s.color }} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
-        <div className="border-t border-border pt-3 mt-1">
-          <div className="font-mono text-xs label-kicker text-muted-foreground mb-2">
+        <div className="mt-1 border-t border-border pt-3">
+          <div className="label-kicker mb-2 font-mono text-xs text-muted-foreground">
             {editing ? 'Edit bucket' : 'Add bucket'}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Input className="col-span-2" placeholder="Name (e.g. Emergency)" value={name} onChange={(e) => setName(e.target.value)} />
-            <Input type="number" inputMode="decimal" placeholder="Reserved" value={current} onChange={(e) => setCurrent(e.target.value)} />
-            <Input type="number" inputMode="decimal" placeholder="Target (optional)" value={target} onChange={(e) => setTarget(e.target.value)} />
+            <Input
+              className="col-span-2"
+              placeholder="Name (e.g. Emergency)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              type="number"
+              inputMode="decimal"
+              placeholder="Reserved"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+            />
+            <Input
+              type="number"
+              inputMode="decimal"
+              placeholder="Target (optional)"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+            />
             <div className="col-span-2 flex flex-wrap gap-1.5">
               {ACCOUNT_COLORS.map((c) => (
-                <button key={c} type="button" onClick={() => setColor(c)}
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
                   className={`size-6 rounded-md ${color === c ? 'ring-2 ring-ring' : ''}`}
-                  style={{ backgroundColor: c }} />
+                  style={{ backgroundColor: c }}
+                />
               ))}
             </div>
-            <div className="col-span-2 flex gap-2 mt-1">
-              {editing && <Button variant="outline" size="sm" onClick={reset}>Cancel</Button>}
-              <Button size="sm" onClick={save} disabled={!name.trim()}>{editing ? 'Save' : 'Add'}</Button>
+            <div className="col-span-2 mt-1 flex gap-2">
+              {editing && (
+                <Button variant="outline" size="sm" onClick={reset}>
+                  Cancel
+                </Button>
+              )}
+              <Button size="sm" onClick={save} disabled={!name.trim()}>
+                {editing ? 'Save' : 'Add'}
+              </Button>
             </div>
           </div>
         </div>

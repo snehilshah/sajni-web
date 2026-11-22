@@ -17,9 +17,7 @@ export const NAV_ITEMS: { path: string; label: string; icon: PixelIconName }[] =
 ];
 
 export function isActivePath(pathname: string, path: string): boolean {
-  return path === '/'
-    ? pathname === '/'
-    : pathname === path || pathname.startsWith(path + '/');
+  return path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(path + '/');
 }
 
 // Coordination between the Layout chrome (primary icon pill) and the

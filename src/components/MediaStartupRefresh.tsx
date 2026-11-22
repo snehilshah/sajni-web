@@ -39,16 +39,16 @@ export default function MediaStartupRefresh() {
         const first = result.titles[0] || 'a saved show';
         const rest = result.changed - 1;
         toast.success(
-          rest > 0
-            ? `New seasons detected for ${first} and ${rest} more`
-            : `New season detected for ${first}`,
+          rest > 0 ? `New seasons detected for ${first} and ${rest} more` : `New season detected for ${first}`,
         );
       })
       .catch(() => {
         // Best-effort startup freshness. The existing library remains usable,
         // and unsuccessful rows stay eligible for the next app launch.
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [queryClient, user]);
 
   return null;

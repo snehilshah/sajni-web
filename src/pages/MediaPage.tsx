@@ -26,7 +26,33 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Star, Trash2, Search, Film, Tv, BookOpen, ImageIcon, X, LayoutGrid, ListChecks, ArrowUpDown, MonitorPlay, Globe, ChevronRight, Settings, Play, Sparkles, CalendarClock, Hourglass, Clock, CheckCircle2, Archive, Ban, type LucideIcon } from '@/components/ui/icons';
+import {
+  Plus,
+  Star,
+  Trash2,
+  Search,
+  Film,
+  Tv,
+  BookOpen,
+  ImageIcon,
+  X,
+  LayoutGrid,
+  ListChecks,
+  ArrowUpDown,
+  MonitorPlay,
+  Globe,
+  ChevronRight,
+  Settings,
+  Play,
+  Sparkles,
+  CalendarClock,
+  Hourglass,
+  Clock,
+  CheckCircle2,
+  Archive,
+  Ban,
+  type LucideIcon,
+} from '@/components/ui/icons';
 import { HuePill } from '@/components/ui/hue-pill';
 // No pixel match for these two — straight lucide (same as the shim's passthroughs).
 import { GalleryHorizontalEnd, Table2 } from 'lucide-react';
@@ -57,8 +83,8 @@ type ViewMode = 'grid' | 'list' | 'shelves' | 'table';
 const VIEW_MODES: ViewMode[] = ['grid', 'list', 'shelves', 'table'];
 
 type SortKey =
-  | 'updated_desc'   // last touched (existing default)
-  | 'added_desc'     // newest add first
+  | 'updated_desc' // last touched (existing default)
+  | 'added_desc' // newest add first
   | 'added_asc'
   | 'completed_desc' // most recently finished
   | 'rating_desc'
@@ -68,15 +94,15 @@ type SortKey =
   | 'status';
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'updated_desc',   label: 'Recently updated' },
-  { value: 'added_desc',     label: 'Recently added' },
-  { value: 'added_asc',      label: 'Oldest added' },
+  { value: 'updated_desc', label: 'Recently updated' },
+  { value: 'added_desc', label: 'Recently added' },
+  { value: 'added_asc', label: 'Oldest added' },
   { value: 'completed_desc', label: 'Recently completed' },
-  { value: 'rating_desc',    label: 'Highest rated' },
-  { value: 'year_desc',      label: 'Year (new → old)' },
-  { value: 'year_asc',       label: 'Year (old → new)' },
-  { value: 'title_asc',      label: 'Title (A → Z)' },
-  { value: 'status',         label: 'Status' },
+  { value: 'rating_desc', label: 'Highest rated' },
+  { value: 'year_desc', label: 'Year (new → old)' },
+  { value: 'year_asc', label: 'Year (old → new)' },
+  { value: 'title_asc', label: 'Title (A → Z)' },
+  { value: 'status', label: 'Status' },
 ];
 
 // STATUS_ORDER groups items by lifecycle when sortBy = 'status' so
@@ -160,11 +186,13 @@ type MediaKind = MediaEntry['type'];
 
 // `?tab=` ↔ activeType. The share-capture flow deep-links here.
 const TAB_TO_TYPE: Record<string, string> = {
-  movies: 'movie', shows: 'show', books: 'book', videos: 'video', sites: 'site',
+  movies: 'movie',
+  shows: 'show',
+  books: 'book',
+  videos: 'video',
+  sites: 'site',
 };
-const TYPE_TO_TAB: Record<string, string> = Object.fromEntries(
-  Object.entries(TAB_TO_TYPE).map(([tab, t]) => [t, tab]),
-);
+const TYPE_TO_TAB: Record<string, string> = Object.fromEntries(Object.entries(TAB_TO_TYPE).map(([tab, t]) => [t, tab]));
 
 const statusMeta = (s: MediaStatus) => STATUS_OPTIONS.find((o) => o.value === s);
 const platformLabel = (p: string) => PLATFORM_OPTIONS.find((o) => o.value === p)?.label || p;
@@ -233,9 +261,11 @@ function mediaStatusDisplay(item: MediaEntry): { label: string; shortLabel: stri
 }
 
 function nextUpcomingMember(members: MediaEntry[]): MediaEntry | null {
-  return members
-    .filter(isUpcomingRelease)
-    .sort((a, b) => dateOnly(a.release_date).localeCompare(dateOnly(b.release_date)))[0] || null;
+  return (
+    members
+      .filter(isUpcomingRelease)
+      .sort((a, b) => dateOnly(a.release_date).localeCompare(dateOnly(b.release_date)))[0] || null
+  );
 }
 
 // Per-platform pixel glyph (distinct each) + brand-color tint. The pixel set
@@ -243,22 +273,31 @@ function nextUpcomingMember(members: MediaEntry[]): MediaEntry | null {
 // Colour is an intentional exception to the theme-token rule so a platform
 // reads as itself; `currentColor` ones inherit the surrounding text colour.
 const PIXEL_SVGS: Record<string, string> = {
-  tv: pxTv, video: pxVideo, castle: pxCastle, monitor: pxMonitor, airplay: pxAirplay,
-  sparkle: pxSparkle, sparkles: pxSparkles, play: pxPlay, building: pxBuilding, download: pxDownload, image: pxImage,
+  tv: pxTv,
+  video: pxVideo,
+  castle: pxCastle,
+  monitor: pxMonitor,
+  airplay: pxAirplay,
+  sparkle: pxSparkle,
+  sparkles: pxSparkles,
+  play: pxPlay,
+  building: pxBuilding,
+  download: pxDownload,
+  image: pxImage,
 };
 
 const PLATFORM_PIXEL: Record<string, { glyph: keyof typeof PIXEL_SVGS; color: string }> = {
-  netflix: { glyph: 'tv',       color: '#E50914' },
-  amazon:  { glyph: 'video',    color: '#00A8E1' },
-  disney:  { glyph: 'castle',   color: '#113CCF' },
-  hotstar: { glyph: 'sparkle',  color: '#00AEEF' },
-  hbo:     { glyph: 'monitor',  color: '#9D4EDD' },
-  apple:   { glyph: 'airplay',  color: 'currentColor' },
-  hulu:    { glyph: 'sparkles', color: '#1CE783' },
-  youtube: { glyph: 'play',     color: '#FF0000' },
-  cinema:  { glyph: 'building', color: 'currentColor' },
+  netflix: { glyph: 'tv', color: '#E50914' },
+  amazon: { glyph: 'video', color: '#00A8E1' },
+  disney: { glyph: 'castle', color: '#113CCF' },
+  hotstar: { glyph: 'sparkle', color: '#00AEEF' },
+  hbo: { glyph: 'monitor', color: '#9D4EDD' },
+  apple: { glyph: 'airplay', color: 'currentColor' },
+  hulu: { glyph: 'sparkles', color: '#1CE783' },
+  youtube: { glyph: 'play', color: '#FF0000' },
+  cinema: { glyph: 'building', color: 'currentColor' },
   torrent: { glyph: 'download', color: 'currentColor' },
-  other:   { glyph: 'image',    color: 'currentColor' },
+  other: { glyph: 'image', color: 'currentColor' },
 };
 
 // Renders a raw pixelarticons SVG string at a FIXED size. The source SVG uses
@@ -270,7 +309,7 @@ function PixelIcon({ glyph, className, style }: { glyph: string; className?: str
   return (
     <span
       aria-hidden
-      className={cn('inline-grid place-items-center shrink-0 size-4 [&>svg]:size-full', className)}
+      className={cn('inline-grid size-4 shrink-0 place-items-center [&>svg]:size-full', className)}
       style={style}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
@@ -280,7 +319,10 @@ function PixelIcon({ glyph, className, style }: { glyph: string; className?: str
 // Pixel glyph + label for a media entry's platform. `showLabel=false` renders
 // the mark alone (tight rows / dropdown trigger). Fixed-size glyph throughout.
 function PlatformLogo({
-  platform, showLabel = true, className, iconClassName,
+  platform,
+  showLabel = true,
+  className,
+  iconClassName,
 }: {
   platform: string;
   showLabel?: boolean;
@@ -289,7 +331,7 @@ function PlatformLogo({
 }) {
   const meta = PLATFORM_PIXEL[platform] || PLATFORM_PIXEL.other;
   return (
-    <span className={cn('inline-flex items-center gap-1.5 align-middle min-w-0', className)}>
+    <span className={cn('inline-flex min-w-0 items-center gap-1.5 align-middle', className)}>
       <PixelIcon glyph={meta.glyph} className={iconClassName} style={{ color: meta.color }} />
       {showLabel && <span className="truncate">{platformLabel(platform)}</span>}
     </span>
@@ -299,15 +341,23 @@ function PlatformLogo({
 // Returns the accent color for status-colored UI elements (poster pill, etc.)
 function statusPillColor(status: MediaStatus): string {
   switch (status) {
-    case 'in_progress': return 'hsl(var(--secondary))';
-    case 'new_season': return 'hsl(var(--secondary))';
-    case 'complete':    return 'hsl(var(--color-complete))';
+    case 'in_progress':
+      return 'hsl(var(--secondary))';
+    case 'new_season':
+      return 'hsl(var(--secondary))';
+    case 'complete':
+      return 'hsl(var(--color-complete))';
     case 'dropped':
-    case 'scratched':   return 'hsl(var(--destructive))';
-    case 'waiting':     return 'hsl(var(--color-waiting))';
-    case 'pending':     return 'hsl(var(--muted-foreground))';
-    case 'upcoming':    return 'hsl(var(--tertiary))';
-    default:            return 'hsl(var(--muted-foreground))';
+    case 'scratched':
+      return 'hsl(var(--destructive))';
+    case 'waiting':
+      return 'hsl(var(--color-waiting))';
+    case 'pending':
+      return 'hsl(var(--muted-foreground))';
+    case 'upcoming':
+      return 'hsl(var(--tertiary))';
+    default:
+      return 'hsl(var(--muted-foreground))';
   }
 }
 
@@ -335,14 +385,16 @@ function findDuplicateMedia(pool: MediaEntry[], draft: FormState, skipId?: numbe
   const ext = draft.external_id.trim();
   const draftYear = yearFromMedia(draft);
   if (!title && !ext) return null;
-  return pool.find((item) => {
-    if (skipId && item.id === skipId) return false;
-    if (item.type !== draft.type) return false;
-    if (ext && item.external_id === ext) return true;
-    if (normalizeMediaTitle(item.title) !== title) return false;
-    const itemYear = yearFromMedia(item);
-    return !draftYear || !itemYear || draftYear === itemYear;
-  }) || null;
+  return (
+    pool.find((item) => {
+      if (skipId && item.id === skipId) return false;
+      if (item.type !== draft.type) return false;
+      if (ext && item.external_id === ext) return true;
+      if (normalizeMediaTitle(item.title) !== title) return false;
+      const itemYear = yearFromMedia(item);
+      return !draftYear || !itemYear || draftYear === itemYear;
+    }) || null
+  );
 }
 
 function duplicateMediaDescription(item: MediaEntry): string {
@@ -352,11 +404,14 @@ function duplicateMediaDescription(item: MediaEntry): string {
   return `${type}${year ? ` · ${year}` : ''} · ${status}`;
 }
 
-
-
 function SegmentedBar({
-  watched, total, status, units,
-  showLabel = false, label = '', variant = 'row',
+  watched,
+  total,
+  status,
+  units,
+  showLabel = false,
+  label = '',
+  variant = 'row',
   boxH = 6,
 }: {
   watched: number;
@@ -385,19 +440,42 @@ function SegmentedBar({
 }
 
 // ProgressBar — kept as alias for SegmentedBar for backward compat.
-function ProgressBar({ watched, total, label, itemStatus = 'in_progress' }: {
-  watched: number; total: number; label: string; itemStatus?: MediaStatus; color?: string;
+function ProgressBar({
+  watched,
+  total,
+  label,
+  itemStatus = 'in_progress',
+}: {
+  watched: number;
+  total: number;
+  label: string;
+  itemStatus?: MediaStatus;
+  color?: string;
 }) {
   return (
     <SegmentedBar
-      watched={watched} total={total} status={itemStatus}
-      boxH={10} variant="wrap"
-      showLabel label={label}
+      watched={watched}
+      total={total}
+      status={itemStatus}
+      boxH={10}
+      variant="wrap"
+      showLabel
+      label={label}
     />
   );
 }
 
-function StarRating({ value, interactive = false, onChange, size = 'sm' }: { value: number; interactive?: boolean; onChange?: (v: number) => void; size?: 'sm' | 'md' }) {
+function StarRating({
+  value,
+  interactive = false,
+  onChange,
+  size = 'sm',
+}: {
+  value: number;
+  interactive?: boolean;
+  onChange?: (v: number) => void;
+  size?: 'sm' | 'md';
+}) {
   const sizeCls = size === 'md' ? 'size-5' : 'size-3.5';
   return (
     <div className="inline-flex gap-0.5">
@@ -428,7 +506,12 @@ function tmdbKindLabel(ext: string): 'Movie' | 'Show' | null {
  * pick a suggestion or just commit the free-text title.
  */
 function TitleAutocomplete({
-  value, type, onChange, onSelect, autoFocus, source,
+  value,
+  type,
+  onChange,
+  onSelect,
+  autoFocus,
+  source,
 }: {
   value: string;
   type: string;
@@ -478,34 +561,40 @@ function TitleAutocomplete({
     setText(value);
   }, [value]);
 
-  const doSearch = useCallback(async (q: string) => {
-    if (q.length < 2) { startTransition(() => setResults([])); return; }
-    abortRef.current?.abort();
-    const ac = new AbortController();
-    abortRef.current = ac;
-    startTransition(() => setLoading(true));
-    try {
-      const res = await mediaApi.search(q, type, ac.signal);
-      if (!ac.signal.aborted) {
-        startTransition(() => {
-          setResults(res);
-          setLoading(false);
-        });
+  const doSearch = useCallback(
+    async (q: string) => {
+      if (q.length < 2) {
+        startTransition(() => setResults([]));
+        return;
       }
-    } catch {
-      // A superseded request rejects with AbortError — ignore it; the
-      // newer request now owns the spinner + results.
-      if (!ac.signal.aborted) {
-        startTransition(() => {
-          setResults([]);
-          setLoading(false);
-        });
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      startTransition(() => setLoading(true));
+      try {
+        const res = await mediaApi.search(q, type, ac.signal);
+        if (!ac.signal.aborted) {
+          startTransition(() => {
+            setResults(res);
+            setLoading(false);
+          });
+        }
+      } catch {
+        // A superseded request rejects with AbortError — ignore it; the
+        // newer request now owns the spinner + results.
+        if (!ac.signal.aborted) {
+          startTransition(() => {
+            setResults([]);
+            setLoading(false);
+          });
+        }
       }
-    }
-  }, [type]);
+    },
+    [type],
+  );
 
   const handleChange = (val: string) => {
-    setText(val);            // instant, local — does NOT touch MediaPage
+    setText(val); // instant, local — does NOT touch MediaPage
     setHighlight(0);
     setOpen(true);
     if (timer.current) clearTimeout(timer.current);
@@ -521,7 +610,10 @@ function TitleAutocomplete({
   // Push the locally-typed text to the parent immediately — used on blur so a
   // Save click (which blurs first) always sees the latest title.
   const flush = () => {
-    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     emittedValue.current = text;
     onChange(text);
   };
@@ -529,7 +621,10 @@ function TitleAutocomplete({
   // Commit a picked suggestion: cancel any pending debounce, hand the row to
   // the parent, mirror the title locally, and close.
   const pick = (r: MediaSearchResult) => {
-    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     emittedValue.current = null;
     onSelect(r);
     setText(r.title);
@@ -537,38 +632,52 @@ function TitleAutocomplete({
     setResults([]);
   };
 
-  const placeholder = type === 'book'
-    ? 'Title: search Open Library or type manually'
-    : 'Title: search movies & shows on TMDB or type manually';
+  const placeholder =
+    type === 'book'
+      ? 'Title: search Open Library or type manually'
+      : 'Title: search movies & shows on TMDB or type manually';
 
   return (
-    <div className="relative group" ref={wrapRef}>
-      <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10" />
+    <div className="group relative" ref={wrapRef}>
+      <Search className="pointer-events-none absolute top-1/2 left-4 z-10 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary sm:left-5" />
       <Input
         value={text}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={flush}
-        onFocus={() => { if (results.length > 0) setOpen(true); }}
+        onFocus={() => {
+          if (results.length > 0) setOpen(true);
+        }}
         // With suggestions showing, Escape closes them, not the editor.
         data-own-escape={open && results.length > 0 ? '' : undefined}
         onKeyDown={(e) => {
           if (!open || results.length === 0) return;
-          if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => Math.min(h + 1, results.length - 1)); }
-          else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
-          else if (e.key === 'Enter')   { e.preventDefault(); const r = results[highlight]; if (r) pick(r); }
-          else if (e.key === 'Escape')  { setOpen(false); }
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setHighlight((h) => Math.min(h + 1, results.length - 1));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlight((h) => Math.max(h - 1, 0));
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const r = results[highlight];
+            if (r) pick(r);
+          } else if (e.key === 'Escape') {
+            setOpen(false);
+          }
         }}
         autoFocus={autoFocus}
         placeholder={placeholder}
         required
         aria-required="true"
-        className="w-full h-14 pl-12 pr-12 sm:pl-14 sm:pr-14 rounded-full bg-[hsl(var(--surface-container-highest))] font-serif text-lg font-medium tracking-tight outline-none placeholder:text-muted-foreground/55 border-0 focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))] transition-[background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+        className="h-14 w-full rounded-full border-0 bg-[hsl(var(--surface-container-highest))] pr-12 pl-12 font-serif text-lg font-medium tracking-tight transition-[background-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)] outline-none placeholder:text-muted-foreground/55 focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))] sm:pr-14 sm:pl-14"
       />
       {loading && (
-        <span className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2"><M3CookieLoader size="sm" tone="primary" /></span>
+        <span className="absolute top-1/2 right-4 -translate-y-1/2 sm:right-5">
+          <M3CookieLoader size="sm" tone="primary" />
+        </span>
       )}
       {source && !loading && (
-        <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 chip chip-sage h-7 px-2.5 text-xs">
+        <span className="chip chip-sage absolute top-1/2 right-3 h-7 -translate-y-1/2 px-2.5 text-xs sm:right-4">
           {source.startsWith('tmdb') ? 'TMDB' : 'Open Library'}
         </span>
       )}
@@ -579,53 +688,61 @@ function TitleAutocomplete({
             animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
             exit={{ opacity: 0, transform: 'translateY(-4px) scale(0.98)' }}
             transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-            className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 rounded-[28px] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-3)] max-h-[min(55vh,26rem)] overflow-y-auto overscroll-contain p-2 origin-top"
+            className="absolute top-[calc(100%+10px)] right-0 left-0 z-30 max-h-[min(55vh,26rem)] origin-top overflow-y-auto overscroll-contain rounded-[28px] bg-[hsl(var(--surface-container-high))] p-2 shadow-[var(--m3-elev-3)]"
           >
             {results.map((r, i) => {
               const kind = tmdbKindLabel(r.external_id);
               return (
-              <button
-                key={r.external_id + i}
-                type="button"
-                className={cn(
-                  'w-full flex items-start gap-3 p-3 rounded-2xl transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] text-left active:scale-[0.99]',
-                  highlight === i ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
-                )}
-                onMouseEnter={() => setHighlight(i)}
-                onClick={() => pick(r)}
-              >
-                <div className="w-11 aspect-[2/3] rounded-lg bg-[hsl(var(--surface-container-highest))] shrink-0 overflow-hidden">
-                  {r.poster_url ? (
-                    <img src={r.poster_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      <ImageIcon className="size-4" />
-                    </div>
+                <button
+                  key={r.external_id + i}
+                  type="button"
+                  className={cn(
+                    'flex w-full items-start gap-3 rounded-2xl p-3 text-left transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.99]',
+                    highlight === i
+                      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                      : 'hover:bg-[hsl(var(--on-surface)/0.06)]',
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{r.title}</div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {kind && (
-                      <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md border border-current text-xs font-medium label-kicker opacity-60 shrink-0">
-                        {kind === 'Show' ? <Tv className="size-2.5" /> : <Film className="size-2.5" />}
-                        {kind}
-                      </span>
-                    )}
-                    {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
-                    {r.release_state === 'upcoming' && (
-                      <span className="chip chip-upcoming h-5 px-1.5 text-xs label-kicker">
-                        Upcoming{r.release_date ? ` ${formatReleaseDate(r.release_date)}` : ''}
-                      </span>
+                  onMouseEnter={() => setHighlight(i)}
+                  onClick={() => pick(r)}
+                >
+                  <div className="aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-lg bg-[hsl(var(--surface-container-highest))]">
+                    {r.poster_url ? (
+                      <img
+                        src={r.poster_url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <ImageIcon className="size-4" />
+                      </div>
                     )}
                   </div>
-                  {r.overview && <div className="text-xs opacity-75 line-clamp-2 mt-0.5">{r.overview}</div>}
-                </div>
-              </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{r.title}</div>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      {kind && (
+                        <span className="label-kicker inline-flex h-5 shrink-0 items-center gap-1 rounded-md border border-current px-1.5 text-xs font-medium opacity-60">
+                          {kind === 'Show' ? <Tv className="size-2.5" /> : <Film className="size-2.5" />}
+                          {kind}
+                        </span>
+                      )}
+                      {r.year && <span className="font-mono text-xs opacity-70">{r.year}</span>}
+                      {r.release_state === 'upcoming' && (
+                        <span className="chip chip-upcoming label-kicker h-5 px-1.5 text-xs">
+                          Upcoming{r.release_date ? ` ${formatReleaseDate(r.release_date)}` : ''}
+                        </span>
+                      )}
+                    </div>
+                    {r.overview && <div className="mt-0.5 line-clamp-2 text-xs opacity-75">{r.overview}</div>}
+                  </div>
+                </button>
               );
             })}
             {/* Keyboard hint — pointless on touch, so hover-capable devices only. */}
-            <div className="hidden [@media(hover:hover)]:block px-3 pt-2.5 pb-1 mono text-xs label-kicker text-muted-foreground border-t border-[hsl(var(--outline-variant))] mt-1">
+            <div className="mono label-kicker mt-1 hidden border-t border-[hsl(var(--outline-variant))] px-3 pt-2.5 pb-1 text-xs text-muted-foreground [@media(hover:hover)]:block">
               Enter to pick · Esc to close
             </div>
           </motion.div>
@@ -665,12 +782,21 @@ interface FormState {
 
 function mediaFormOf(item: MediaEntry): FormState {
   return {
-    title: item.title, type: item.type, status: item.status,
-    rating: item.rating || 0, notes: item.notes, platform: item.platform,
-    poster_url: item.poster_url, year: item.year || null, release_date: item.release_date || '', genre: item.genre,
+    title: item.title,
+    type: item.type,
+    status: item.status,
+    rating: item.rating || 0,
+    notes: item.notes,
+    platform: item.platform,
+    poster_url: item.poster_url,
+    year: item.year || null,
+    release_date: item.release_date || '',
+    genre: item.genre,
     external_id: item.external_id,
-    episodes_watched: item.episodes_watched, episodes_total: item.episodes_total,
-    seasons_watched: item.seasons_watched, seasons_total: item.seasons_total,
+    episodes_watched: item.episodes_watched,
+    episodes_total: item.episodes_total,
+    seasons_watched: item.seasons_watched,
+    seasons_total: item.seasons_total,
     season_episodes: item.season_episodes || [],
     collection_id: item.collection_id || '',
     collection_name: item.collection_name || '',
@@ -688,9 +814,8 @@ function mediaPayload(form: FormState): MediaPatch {
     rating: form.rating || null,
   };
   if (form.status === 'complete') {
-    const totalEps = form.season_episodes.length > 0
-      ? form.season_episodes.reduce((s, n) => s + n, 0)
-      : form.episodes_total;
+    const totalEps =
+      form.season_episodes.length > 0 ? form.season_episodes.reduce((s, n) => s + n, 0) : form.episodes_total;
     if (totalEps > 0) payload.episodes_watched = totalEps;
     if (form.type === 'show') {
       const totalSeasons = form.season_episodes.length > 0 ? form.season_episodes.length : form.seasons_total;
@@ -702,9 +827,7 @@ function mediaPayload(form: FormState): MediaPatch {
 
 export default function MediaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeType, setActiveType] = useState(
-    () => TAB_TO_TYPE[searchParams.get('tab') ?? ''] || 'movie',
-  );
+  const [activeType, setActiveType] = useState(() => TAB_TO_TYPE[searchParams.get('tab') ?? ''] || 'movie');
   const isBookmarkTab = BOOKMARK_TYPES.has(activeType);
   // Page-level Add button → bookmark panel's dialog (see BookmarksPanel).
   const [bookmarkAddSignal, setBookmarkAddSignal] = useState(0);
@@ -717,34 +840,52 @@ export default function MediaPage() {
     try {
       const stored = localStorage.getItem(MEDIA_VIEW_KEY) as ViewMode;
       return VIEW_MODES.includes(stored) ? stored : 'list';
-    } catch { return 'list'; }
+    } catch {
+      return 'list';
+    }
   });
   const [sortBy, setSortBy] = useState<SortKey>(() => {
-    try { return (localStorage.getItem(MEDIA_SORT_KEY) as SortKey) || 'updated_desc'; }
-    catch { return 'updated_desc'; }
+    try {
+      return (localStorage.getItem(MEDIA_SORT_KEY) as SortKey) || 'updated_desc';
+    } catch {
+      return 'updated_desc';
+    }
   });
   // Series grouping is only meaningful for movies — TMDB collection
   // metadata only attaches to those. We default it on for the movie tab.
   const [groupSeries, setGroupSeries] = useState<boolean>(() => {
-    try { return localStorage.getItem('sajni:media:group') !== '0'; }
-    catch { return true; }
+    try {
+      return localStorage.getItem('sajni:media:group') !== '0';
+    } catch {
+      return true;
+    }
   });
   useEffect(() => {
-    try { localStorage.setItem('sajni:media:group', groupSeries ? '1' : '0'); } catch {}
+    try {
+      localStorage.setItem('sajni:media:group', groupSeries ? '1' : '0');
+    } catch {}
   }, [groupSeries]);
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
   const [seriesDialog, setSeriesDialog] = useState<Extract<SeriesRow, { kind: 'series' }> | null>(null);
-  const toggleSeries = useCallback((id: string) =>
-    setExpandedSeries((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    }), []);
+  const toggleSeries = useCallback(
+    (id: string) =>
+      setExpandedSeries((s) => {
+        const next = new Set(s);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    [],
+  );
   useEffect(() => {
-    try { localStorage.setItem(MEDIA_VIEW_KEY, viewMode); } catch {}
+    try {
+      localStorage.setItem(MEDIA_VIEW_KEY, viewMode);
+    } catch {}
   }, [viewMode]);
   useEffect(() => {
-    try { localStorage.setItem(MEDIA_SORT_KEY, sortBy); } catch {}
+    try {
+      localStorage.setItem(MEDIA_SORT_KEY, sortBy);
+    } catch {}
   }, [sortBy]);
 
   const [showForm, setShowForm] = useState(false);
@@ -759,13 +900,29 @@ export default function MediaPage() {
   // viewport so the sticky footer + focused field stay above the keyboard.
   const vvBox = useVisualViewportBox(showForm && isMobileMedia);
 
-  const blankForm = useCallback((): FormState => ({
-    title: '', type: mediaKind(activeType), status: 'pending', rating: 0, notes: '',
-    platform: '', poster_url: '', year: null as number | null, release_date: '', genre: '',
-    external_id: '', episodes_watched: 0, episodes_total: 0,
-    seasons_watched: 0, seasons_total: 0,
-    season_episodes: [], collection_id: '', collection_name: '',
-  }), [activeType]);
+  const blankForm = useCallback(
+    (): FormState => ({
+      title: '',
+      type: mediaKind(activeType),
+      status: 'pending',
+      rating: 0,
+      notes: '',
+      platform: '',
+      poster_url: '',
+      year: null as number | null,
+      release_date: '',
+      genre: '',
+      external_id: '',
+      episodes_watched: 0,
+      episodes_total: 0,
+      seasons_watched: 0,
+      seasons_total: 0,
+      season_episodes: [],
+      collection_id: '',
+      collection_name: '',
+    }),
+    [activeType],
+  );
 
   const [form, setForm] = useState<FormState>(blankForm());
   const formIsUpcoming = hasFutureRelease(form.type, form.release_date);
@@ -774,12 +931,10 @@ export default function MediaPage() {
   // visible while a tab switch refetches; bookmark tabs load their own data
   // so the media query is disabled there. Status filtering happens client-
   // side (multi-select) so chip counts stay honest while filters are lit.
-  const mediaParams = useMemo(
-    () => ({ type: activeType }),
-    [activeType],
-  );
+  const mediaParams = useMemo(() => ({ type: activeType }), [activeType]);
   const { data: items = [], isLoading: loading } = useMedia(mediaParams, !isBookmarkTab) as {
-    data: MediaEntry[]; isLoading: boolean;
+    data: MediaEntry[];
+    isLoading: boolean;
   };
   const createMedia = useCreateMedia();
   const writeMedia = useSaveMedia();
@@ -793,31 +948,34 @@ export default function MediaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const switchType = useCallback((key: string) => {
-    setActiveType(key);
-    setStatusFilters(new Set());
-    setSearchQuery('');
-    setSearchParams(key === 'movie' ? {} : { tab: TYPE_TO_TAB[key] }, { replace: true });
-  }, [setSearchParams]);
+  const switchType = useCallback(
+    (key: string) => {
+      setActiveType(key);
+      setStatusFilters(new Set());
+      setSearchQuery('');
+      setSearchParams(key === 'movie' ? {} : { tab: TYPE_TO_TAB[key] }, { replace: true });
+    },
+    [setSearchParams],
+  );
 
   const toggleStatusFilter = useCallback((status: MediaStatus) => {
     setStatusFilters((prev) => {
       const next = new Set(prev);
-      if (next.has(status)) next.delete(status); else next.add(status);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
       return next;
     });
   }, []);
 
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    let matched = statusFilters.size > 0
-      ? items.filter((i) => statusFilters.has(i.status))
-      : items;
+    let matched = statusFilters.size > 0 ? items.filter((i) => statusFilters.has(i.status)) : items;
     if (q) {
-      matched = matched.filter((i) =>
-        i.title.toLowerCase().includes(q) ||
-        i.genre.toLowerCase().includes(q) ||
-        i.platform.toLowerCase().includes(q),
+      matched = matched.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.genre.toLowerCase().includes(q) ||
+          i.platform.toLowerCase().includes(q),
       );
     }
     return sortMedia(matched, sortBy);
@@ -831,10 +989,13 @@ export default function MediaPage() {
       return filteredItems.map((item) => ({ kind: 'single', item }));
     }
     const groups = new Map<string, MediaEntry[]>();
-    const order: string[] = [];           // first-seen order (after sortMedia)
+    const order: string[] = []; // first-seen order (after sortMedia)
     const standalone: MediaEntry[] = [];
     for (const it of filteredItems) {
-      if (!it.collection_id) { standalone.push(it); continue; }
+      if (!it.collection_id) {
+        standalone.push(it);
+        continue;
+      }
       if (!groups.has(it.collection_id)) {
         groups.set(it.collection_id, []);
         order.push(it.collection_id);
@@ -850,8 +1011,9 @@ export default function MediaPage() {
       if (it.collection_id) {
         if (emitted.has(it.collection_id)) continue;
         emitted.add(it.collection_id);
-        const members = [...(groups.get(it.collection_id) || [])]
-          .sort((a, b) => (a.year || 9999) - (b.year || 9999) || a.title.localeCompare(b.title));
+        const members = [...(groups.get(it.collection_id) || [])].sort(
+          (a, b) => (a.year || 9999) - (b.year || 9999) || a.title.localeCompare(b.title),
+        );
         if (members.length === 1) {
           rows.push({ kind: 'single', item: members[0] });
         } else {
@@ -884,7 +1046,9 @@ export default function MediaPage() {
     const pool = candidate.type === activeType ? items : await mediaApi.list({ type: candidate.type });
     const duplicate = findDuplicateMedia(pool, candidate, selfId);
     if (duplicate) {
-      throw new Error(`${TYPE_META[candidate.type]?.label || 'Item'} already in library: ${duplicateMediaDescription(duplicate)}`);
+      throw new Error(
+        `${TYPE_META[candidate.type]?.label || 'Item'} already in library: ${duplicateMediaDescription(duplicate)}`,
+      );
     }
   };
 
@@ -903,23 +1067,26 @@ export default function MediaPage() {
   const loadDraft = editor.load;
   const closeForm = () => editor.close(() => setShowForm(false));
 
-  const openForm = useCallback((item?: MediaEntry, morph?: 'card' | 'add', sourceEl?: Element | null) => {
-    const rect = sourceEl?.getBoundingClientRect();
-    setMorphSource(morph ?? null);
-    setMorphRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : undefined);
-    if (item) {
-      const loaded = mediaFormOf(item);
-      setEditItem(item);
-      setForm(loaded);
-      loadDraft(loaded);
-    } else {
-      const blank = blankForm();
-      setEditItem(null);
-      setForm(blank);
-      loadDraft(blank);
-    }
-    setShowForm(true);
-  }, [blankForm, loadDraft]);
+  const openForm = useCallback(
+    (item?: MediaEntry, morph?: 'card' | 'add', sourceEl?: Element | null) => {
+      const rect = sourceEl?.getBoundingClientRect();
+      setMorphSource(morph ?? null);
+      setMorphRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : undefined);
+      if (item) {
+        const loaded = mediaFormOf(item);
+        setEditItem(item);
+        setForm(loaded);
+        loadDraft(loaded);
+      } else {
+        const blank = blankForm();
+        setEditItem(null);
+        setForm(blank);
+        loadDraft(blank);
+      }
+      setShowForm(true);
+    },
+    [blankForm, loadDraft],
+  );
 
   // `?id=` (from a tag reference) opens that entry once its shelf loads.
   const deepLinkId = Number(searchParams.get('id')) || null;
@@ -934,13 +1101,16 @@ export default function MediaPage() {
   }, [deepLinkId, loading, items]);
 
   const mediaAddLabel = `Add ${(TYPE_META[activeType]?.label || 'entry').toLowerCase()}`;
-  const handleAdd = useCallback((sourceEl?: Element | null) => {
-    if (isBookmarkTab) {
-      setBookmarkAddSignal((s) => s + 1);
-      return;
-    }
-    openForm(undefined, 'add', sourceEl);
-  }, [isBookmarkTab, openForm]);
+  const handleAdd = useCallback(
+    (sourceEl?: Element | null) => {
+      if (isBookmarkTab) {
+        setBookmarkAddSignal((s) => s + 1);
+        return;
+      }
+      openForm(undefined, 'add', sourceEl);
+    },
+    [isBookmarkTab, openForm],
+  );
 
   const handleExternalSelect = async (r: MediaSearchResult) => {
     // Combined movie+show search: the picked row's kind (carried in its
@@ -977,16 +1147,16 @@ export default function MediaPage() {
           type: detailedType,
           status: hasFutureRelease(detailedType, releaseDate)
             ? 'upcoming'
-            : f.status === 'upcoming' ? 'pending' : f.status,
+            : f.status === 'upcoming'
+              ? 'pending'
+              : f.status,
           poster_url: f.poster_url || d.poster_url,
           year: f.year || (d.year ? parseInt(d.year) : null),
           release_date: releaseDate,
           genre: f.genre || d.genre,
           seasons_total: d.seasons_total || f.seasons_total,
           episodes_total: d.episodes_total || f.episodes_total,
-          season_episodes: d.season_episodes && d.season_episodes.length > 0
-            ? d.season_episodes
-            : f.season_episodes,
+          season_episodes: d.season_episodes && d.season_episodes.length > 0 ? d.season_episodes : f.season_episodes,
           collection_id: d.collection_id || f.collection_id,
           collection_name: d.collection_name || f.collection_name,
         };
@@ -998,7 +1168,10 @@ export default function MediaPage() {
   };
 
   const handleSave = async () => {
-    if (editItem) { await editor.save(() => setShowForm(false)); return; }
+    if (editItem) {
+      await editor.save(() => setShowForm(false));
+      return;
+    }
     if (!form.title.trim()) return;
     setSaving(true);
     try {
@@ -1010,7 +1183,9 @@ export default function MediaPage() {
       }
       await createMedia.mutateAsync(mediaPayload(form));
       setShowForm(false);
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -1027,23 +1202,29 @@ export default function MediaPage() {
   const gridEl = useMemo(() => {
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
           <M3CookieLoader size="lg" tone="primary" />
-          <span className="mono text-xs tracking-[0.22em] label-kicker text-muted-foreground">
-            opening library…
-          </span>
+          <span className="mono label-kicker text-xs tracking-[0.22em] text-muted-foreground">opening library…</span>
         </div>
       );
     }
     if (filteredItems.length === 0) {
       return (
-        <EmptyState type={activeType} hasFilter={statusFilters.size > 0 || !!searchQuery} onAdd={() => openForm()} onClear={() => { setStatusFilters(new Set()); setSearchQuery(''); }} />
+        <EmptyState
+          type={activeType}
+          hasFilter={statusFilters.size > 0 || !!searchQuery}
+          onAdd={() => openForm()}
+          onClear={() => {
+            setStatusFilters(new Set());
+            setSearchQuery('');
+          }}
+        />
       );
     }
     if (viewMode === 'grid') {
       return (
-        <div className="grid grid-cols-2 min-[480px]:grid-cols-3 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3 min-[480px]:gap-4 md:gap-5">
-          {seriesRows.map((row) => (
+        <div className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 min-[480px]:gap-4 md:[grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] md:gap-5">
+          {seriesRows.map((row) =>
             row.kind === 'single' ? (
               <PosterCard
                 key={'item-' + row.item.id}
@@ -1052,13 +1233,9 @@ export default function MediaPage() {
                 morphOpen={showForm && morphSource === 'card' && editItem?.id === row.item.id}
               />
             ) : (
-              <SeriesPosterCard
-                key={'series-' + row.collectionId}
-                row={row}
-                onOpen={() => setSeriesDialog(row)}
-              />
-            )
-          ))}
+              <SeriesPosterCard key={'series-' + row.collectionId} row={row} onOpen={() => setSeriesDialog(row)} />
+            ),
+          )}
         </div>
       );
     }
@@ -1067,7 +1244,7 @@ export default function MediaPage() {
         <MediaShelves
           items={filteredItems}
           onPick={(item, source) => openForm(item, 'card', source)}
-          openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
+          openItemId={showForm && morphSource === 'card' ? (editItem?.id ?? null) : null}
         />
       );
     }
@@ -1077,7 +1254,7 @@ export default function MediaPage() {
           items={filteredItems}
           showPlatform={activeType === 'movie'}
           onPick={(item, source) => openForm(item, 'card', source)}
-          openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
+          openItemId={showForm && morphSource === 'card' ? (editItem?.id ?? null) : null}
         />
       );
     }
@@ -1088,69 +1265,83 @@ export default function MediaPage() {
       const i = STATUS_OPTIONS.findIndex((o) => o.value === s);
       return i === -1 ? STATUS_OPTIONS.length : i;
     };
-    const rowStatus = (row: SeriesRow): MediaStatus => (
+    const rowStatus = (row: SeriesRow): MediaStatus =>
       row.kind === 'single'
         ? row.item.status
         : row.members.reduce(
-          (best, m) => (statusIdx(m.status) < statusIdx(best) ? m.status : best),
-          row.members[0].status,
-        )
-    );
+            (best, m) => (statusIdx(m.status) < statusIdx(best) ? m.status : best),
+            row.members[0].status,
+          );
     const sectionMap = new Map<MediaStatus, SeriesRow[]>();
     for (const row of seriesRows) {
       const s = rowStatus(row);
       if (!sectionMap.has(s)) sectionMap.set(s, []);
       sectionMap.get(s)!.push(row);
     }
-    const sections = STATUS_OPTIONS
-      .filter((s) => sectionMap.has(s.value))
-      .map((s) => ({ meta: s, rows: sectionMap.get(s.value)! }));
+    const sections = STATUS_OPTIONS.filter((s) => sectionMap.has(s.value)).map((s) => ({
+      meta: s,
+      rows: sectionMap.get(s.value)!,
+    }));
     const showSectionHeaders = sections.length > 1;
 
-    const renderRows = (rows: SeriesRow[]) => rows.map((row, idx) => (
-      row.kind === 'single' ? (
-        <MediaListRow
-          key={'item-' + row.item.id}
-          item={row.item}
-          index={idx}
-          attached
-          first={idx === 0}
-          morphOpen={showForm && morphSource === 'card' && editItem?.id === row.item.id}
-          onClick={(source) => openForm(row.item, 'card', source)}
-        />
-      ) : (
-        <SeriesListRow
-          key={'series-' + row.collectionId}
-          row={row}
-          attached
-          first={idx === 0}
-          expanded={expandedSeries.has(row.collectionId)}
-          onToggle={() => toggleSeries(row.collectionId)}
-          onPickItem={(item, source) => openForm(item, 'card', source)}
-          openItemId={showForm && morphSource === 'card' ? editItem?.id ?? null : null}
-        />
-      )
-    ));
+    const renderRows = (rows: SeriesRow[]) =>
+      rows.map((row, idx) =>
+        row.kind === 'single' ? (
+          <MediaListRow
+            key={'item-' + row.item.id}
+            item={row.item}
+            index={idx}
+            attached
+            first={idx === 0}
+            morphOpen={showForm && morphSource === 'card' && editItem?.id === row.item.id}
+            onClick={(source) => openForm(row.item, 'card', source)}
+          />
+        ) : (
+          <SeriesListRow
+            key={'series-' + row.collectionId}
+            row={row}
+            attached
+            first={idx === 0}
+            expanded={expandedSeries.has(row.collectionId)}
+            onToggle={() => toggleSeries(row.collectionId)}
+            onPickItem={(item, source) => openForm(item, 'card', source)}
+            openItemId={showForm && morphSource === 'card' ? (editItem?.id ?? null) : null}
+          />
+        ),
+      );
 
     return (
       <div className="flex flex-col gap-5">
         {sections.map(({ meta, rows }) => (
           <section key={meta.value} aria-label={meta.label}>
             {showSectionHeaders && (
-              <header className="flex items-baseline gap-2 mb-2 px-0.5">
-                <span className={cn('size-2 rounded-full self-center shrink-0', meta.dot)} />
+              <header className="mb-2 flex items-baseline gap-2 px-0.5">
+                <span className={cn('size-2 shrink-0 self-center rounded-full', meta.dot)} />
                 <h3 className="serif text-sm font-semibold tracking-tight">{meta.label}</h3>
-                <span className="mono text-xs tabular-nums text-muted-foreground">{rows.length}</span>
+                <span className="mono text-xs text-muted-foreground tabular-nums">{rows.length}</span>
               </header>
             )}
-            <div className="overflow-hidden rounded-[20px] bg-card">
-              {renderRows(rows)}
-            </div>
+            <div className="overflow-hidden rounded-[20px] bg-card">{renderRows(rows)}</div>
           </section>
         ))}
       </div>
     );
-  }, [loading, filteredItems, seriesRows, viewMode, statusFilters, searchQuery, activeType, expandedSeries, openForm, toggleSeries, setSeriesDialog, editItem?.id, morphSource, showForm]);
+  }, [
+    loading,
+    filteredItems,
+    seriesRows,
+    viewMode,
+    statusFilters,
+    searchQuery,
+    activeType,
+    expandedSeries,
+    openForm,
+    toggleSeries,
+    setSeriesDialog,
+    editItem?.id,
+    morphSource,
+    showForm,
+  ]);
 
   // ---- Add/Edit form: shared title + body + footer, hosted in a centered
   // Dialog on desktop and a full-height, keyboard-safe bottom Sheet on phones.
@@ -1170,19 +1361,19 @@ export default function MediaPage() {
           header backdrop instead of a column (restore grid-cols-[96px_1fr]
           to bring the mobile column back). Desktop keeps the 120px poster
           column exactly as before. */}
-      <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[120px_1fr] sm:gap-5">
         {/* Poster preview — desktop column */}
-        <div className="hidden sm:flex aspect-[2/3] w-full rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] overflow-hidden items-center justify-center text-muted-foreground">
+        <div className="hidden aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-muted-foreground sm:flex">
           {form.poster_url ? (
-            <img src={form.poster_url} alt="" className="w-full h-full object-cover" />
+            <img src={form.poster_url} alt="" className="h-full w-full object-cover" />
           ) : (
             <ImageIcon className="size-8 opacity-30" />
           )}
         </div>
 
-        <div className="flex flex-col gap-3 min-w-0">
+        <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-mono label-kicker text-muted-foreground">
+            <Label className="label-kicker font-mono text-xs text-muted-foreground">
               Title <span className="text-destructive">*</span>
             </Label>
             <TitleAutocomplete
@@ -1190,16 +1381,21 @@ export default function MediaPage() {
               type={form.type}
               autoFocus={!editItem}
               source={form.external_id}
-              onChange={(v) => setForm((f) => {
-                const changedExternalTitle = !!f.external_id && v !== f.title;
-                return {
-                  ...f,
-                  title: v,
-                  external_id: changedExternalTitle ? '' : f.external_id,
-                  release_date: changedExternalTitle ? '' : f.release_date,
-                  status: changedExternalTitle && (f.status === 'upcoming' || f.status === 'new_season') ? 'pending' : f.status,
-                };
-              })}
+              onChange={(v) =>
+                setForm((f) => {
+                  const changedExternalTitle = !!f.external_id && v !== f.title;
+                  return {
+                    ...f,
+                    title: v,
+                    external_id: changedExternalTitle ? '' : f.external_id,
+                    release_date: changedExternalTitle ? '' : f.release_date,
+                    status:
+                      changedExternalTitle && (f.status === 'upcoming' || f.status === 'new_season')
+                        ? 'pending'
+                        : f.status,
+                  };
+                })
+              }
               onSelect={handleExternalSelect}
             />
           </div>
@@ -1208,17 +1404,21 @@ export default function MediaPage() {
               <YearField value={form.year} onChange={(y) => setForm({ ...form, year: y })} />
             </FieldSimple>
             <FieldSimple label="Genre">
-              <Input value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} placeholder="Action, Drama" />
+              <Input
+                value={form.genre}
+                onChange={(e) => setForm({ ...form, genre: e.target.value })}
+                placeholder="Action, Drama"
+              />
             </FieldSimple>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-mono label-kicker text-muted-foreground">Rating</Label>
+            <Label className="label-kicker font-mono text-xs text-muted-foreground">Rating</Label>
             <StarRating value={form.rating} interactive size="md" onChange={(v) => setForm({ ...form, rating: v })} />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <FieldSelect
           label="Type"
           value={form.type}
@@ -1229,7 +1429,9 @@ export default function MediaPage() {
               type,
               status: hasFutureRelease(type, form.release_date)
                 ? 'upcoming'
-                : form.status === 'upcoming' || form.status === 'new_season' ? 'pending' : form.status,
+                : form.status === 'upcoming' || form.status === 'new_season'
+                  ? 'pending'
+                  : form.status,
             });
           }}
           options={Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))}
@@ -1255,26 +1457,47 @@ export default function MediaPage() {
           value={form.platform || 'none'}
           onChange={(v) => setForm({ ...form, platform: !v || v === 'none' ? '' : v })}
           options={[{ value: 'none', label: 'Not specified' }, ...PLATFORM_OPTIONS]}
-          renderValue={(v) => (v && v !== 'none'
-            ? <PlatformLogo platform={v} />
-            : <span className="text-muted-foreground">Not specified</span>)}
-          renderOption={(o) => (o.value === 'none'
-            ? <span className="text-muted-foreground">Not specified</span>
-            : <PlatformLogo platform={o.value} />)}
+          renderValue={(v) =>
+            v && v !== 'none' ? (
+              <PlatformLogo platform={v} />
+            ) : (
+              <span className="text-muted-foreground">Not specified</span>
+            )
+          }
+          renderOption={(o) =>
+            o.value === 'none' ? (
+              <span className="text-muted-foreground">Not specified</span>
+            ) : (
+              <PlatformLogo platform={o.value} />
+            )
+          }
         />
       </div>
 
-      {form.type === 'show' && (
-        <ShowProgressSection form={form} setForm={setForm} />
-      )}
+      {form.type === 'show' && <ShowProgressSection form={form} setForm={setForm} />}
 
       {form.type === 'book' && (
         <Section title="Reading progress">
           <div className="grid grid-cols-2 gap-3">
-            <NumberField label="Pages read" value={form.episodes_watched} onChange={(n) => setForm({ ...form, episodes_watched: n })} />
-            <NumberField label="Total pages" value={form.episodes_total} onChange={(n) => setForm({ ...form, episodes_total: n })} />
+            <NumberField
+              label="Pages read"
+              value={form.episodes_watched}
+              onChange={(n) => setForm({ ...form, episodes_watched: n })}
+            />
+            <NumberField
+              label="Total pages"
+              value={form.episodes_total}
+              onChange={(n) => setForm({ ...form, episodes_total: n })}
+            />
           </div>
-          {form.episodes_total > 0 && <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Pages" itemStatus={form.status} />}
+          {form.episodes_total > 0 && (
+            <ProgressBar
+              watched={form.episodes_watched}
+              total={form.episodes_total}
+              label="Pages"
+              itemStatus={form.status}
+            />
+          )}
         </Section>
       )}
 
@@ -1289,11 +1512,20 @@ export default function MediaPage() {
       )}
 
       <FieldSimple label="Poster URL">
-        <Input value={form.poster_url} onChange={(e) => setForm({ ...form, poster_url: e.target.value })} placeholder="https://…" />
+        <Input
+          value={form.poster_url}
+          onChange={(e) => setForm({ ...form, poster_url: e.target.value })}
+          placeholder="https://…"
+        />
       </FieldSimple>
 
       <FieldSimple label="Notes">
-        <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder="Your thoughts…" />
+        <Textarea
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          rows={3}
+          placeholder="Your thoughts…"
+        />
       </FieldSimple>
 
       {editItem && <ActivityTimeline mediaId={editItem.id} type={editItem.type} />}
@@ -1307,8 +1539,13 @@ export default function MediaPage() {
           <Trash2 className="size-3.5" /> Delete
         </Button>
       )}
-      <EditActions draft={editor} onCancel={() => setShowForm(false)} onSave={() => void handleSave()}
-        saveLabel={editItem ? 'Save' : saving ? 'Adding…' : 'Add to library'} disabled={saving || !form.title.trim()} />
+      <EditActions
+        draft={editor}
+        onCancel={() => setShowForm(false)}
+        onSave={() => void handleSave()}
+        saveLabel={editItem ? 'Save' : saving ? 'Adding…' : 'Add to library'}
+        disabled={saving || !form.title.trim()}
+      />
     </>
   );
 
@@ -1325,7 +1562,7 @@ export default function MediaPage() {
               size="sm"
               onClick={(e) => handleAdd(e.currentTarget)}
               aria-label={mediaAddLabel}
-              className="h-10 gap-2 pl-3.5 pr-4 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:brightness-[0.97]"
+              className="h-10 gap-2 bg-[hsl(var(--primary-container))] pr-4 pl-3.5 text-[hsl(var(--on-primary-container))] hover:brightness-[0.97]"
             >
               <Plus className="size-4" />
               {mediaAddLabel}
@@ -1350,17 +1587,10 @@ export default function MediaPage() {
       {isBookmarkTab ? (
         <BookmarksPanel kind={activeType as 'video' | 'site'} addSignal={bookmarkAddSignal} />
       ) : (
-        <div className="flex flex-col gap-4 min-w-0">
-          <section
-            aria-label="Library controls"
-            className="flex flex-col gap-2.5"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <MediaSearchField
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onClear={() => setSearchQuery('')}
-              />
+        <div className="flex min-w-0 flex-col gap-4">
+          <section aria-label="Library controls" className="flex flex-col gap-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <MediaSearchField value={searchQuery} onChange={setSearchQuery} onClear={() => setSearchQuery('')} />
               <MediaControlCluster
                 activeType={activeType}
                 sortBy={sortBy}
@@ -1417,7 +1647,7 @@ export default function MediaPage() {
             side="bottom"
             showCloseButton={false}
             style={vvBox ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' } : { height: '100dvh' }}
-            className="max-w-full p-0 gap-0 rounded-t-[28px]"
+            className="max-w-full gap-0 rounded-t-[28px] p-0"
           >
             {/* EXPERIMENTAL poster header: when the entry has art, the title
                 bar shows it full-bleed under a gradient scrim that resolves
@@ -1439,17 +1669,15 @@ export default function MediaPage() {
                 <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
                   {mediaFormTitle}
                 </SheetTitle>
-                <SheetDescription className="mt-0 font-mono text-xs label-kicker text-muted-foreground">
+                <SheetDescription className="label-kicker mt-0 font-mono text-xs text-muted-foreground">
                   {mediaFormSubtitle}
                 </SheetDescription>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
-              {mediaFormFields}
-            </div>
+            <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">{mediaFormFields}</div>
 
-            <div className="shrink-0 flex items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               {mediaFormFooter}
             </div>
           </SheetContent>
@@ -1469,24 +1697,18 @@ export default function MediaPage() {
           }}
           sourceRect={morphRect}
           ariaLabel={typeof mediaFormTitle === 'string' ? mediaFormTitle : 'Edit media'}
-          className="left-0 right-0 top-[6vh] mx-auto w-[min(48rem,92vw)] max-h-[88vh]"
+          className="top-[6vh] right-0 left-0 mx-auto max-h-[88vh] w-[min(48rem,92vw)]"
         >
           <div className="shrink-0 px-6 pt-6 pb-4">
             <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
               {mediaFormTitle}
             </div>
-            <p className="font-mono text-xs label-kicker text-muted-foreground mt-0.5">
-              {mediaFormSubtitle}
-            </p>
+            <p className="label-kicker mt-0.5 font-mono text-xs text-muted-foreground">{mediaFormSubtitle}</p>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-            {mediaFormFields}
-          </div>
+          <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">{mediaFormFields}</div>
 
-          <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4">
-            {mediaFormFooter}
-          </div>
+          <div className="flex shrink-0 items-center justify-end gap-2 px-6 py-4">{mediaFormFooter}</div>
         </MorphingDialog>
       )}
       <SeriesDialog
@@ -1501,7 +1723,7 @@ export default function MediaPage() {
           size="fab"
           onClick={(e) => handleAdd(e.currentTarget)}
           aria-label={mediaAddLabel}
-          className="md:hidden fixed right-4 z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
+          className="fixed right-4 z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97] md:hidden"
           style={{
             bottom: 'calc(env(safe-area-inset-bottom) + 84px)',
           }}
@@ -1509,7 +1731,6 @@ export default function MediaPage() {
           <Plus className="size-6" />
         </Button>
       )}
-
     </PageShell>
   );
 }
@@ -1517,7 +1738,9 @@ export default function MediaPage() {
 /* ---------------- Helpers ---------------- */
 
 function MediaSearchField({
-  value, onChange, onClear,
+  value,
+  onChange,
+  onClear,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -1525,12 +1748,12 @@ function MediaSearchField({
 }) {
   return (
     <div className="relative min-w-0 flex-1">
-      <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+      <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Filter library..."
-        className="h-12 pl-12 pr-11 w-full rounded-[28px] border-transparent bg-[hsl(var(--surface-container-high))] hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-[28px] focus-visible:pl-12 focus-visible:pr-11 focus-visible:bg-[hsl(var(--surface-container-highest))] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+        className="h-12 w-full rounded-[28px] border-transparent bg-[hsl(var(--surface-container-high))] pr-11 pl-12 transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:border-transparent hover:bg-[hsl(var(--surface-container-highest))] focus-visible:rounded-[28px] focus-visible:bg-[hsl(var(--surface-container-highest))] focus-visible:pr-11 focus-visible:pl-12"
       />
       {value && (
         <Button
@@ -1539,7 +1762,7 @@ function MediaSearchField({
           size="icon-xs"
           onClick={onClear}
           aria-label="Clear search"
-          className="absolute right-2 top-1/2 -translate-y-1/2 size-8 text-muted-foreground hover:text-foreground"
+          className="absolute top-1/2 right-2 size-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
         >
           <X className="size-3.5" />
         </Button>
@@ -1576,16 +1799,21 @@ function MediaControlCluster({
 
   return (
     <>
-      <div className="hidden lg:flex items-center gap-2 shrink-0">
+      <div className="hidden shrink-0 items-center gap-2 lg:flex">
         <div className="w-[190px] min-w-0">
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)} items={SORT_OPTIONS}>
-            <SelectTrigger size="sm" className="h-10 w-full min-w-0 gap-2 rounded-full border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-xs">
+            <SelectTrigger
+              size="sm"
+              className="h-10 w-full min-w-0 gap-2 rounded-full border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-xs"
+            >
               <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="start" alignItemWithTrigger={false} sideOffset={6}>
               {SORT_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
+                <SelectItem key={o.value} value={o.value} className="text-xs">
+                  {o.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -1614,10 +1842,10 @@ function MediaControlCluster({
         />
       </div>
 
-      <div className="relative lg:hidden shrink-0">
+      <div className="relative shrink-0 lg:hidden">
         <button
           type="button"
-          className="size-12 inline-flex items-center justify-center rounded-[22px] bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] shadow-none transition-[background-color,box-shadow,transform,color] duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:brightness-[0.97] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none"
+          className="inline-flex size-12 items-center justify-center rounded-[22px] bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] shadow-none transition-[background-color,box-shadow,transform,color] duration-150 ease-[cubic-bezier(0.2,0,0,1)] outline-none hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
           aria-label="Library controls"
           aria-expanded={compactOpen}
           title={currentSort}
@@ -1626,16 +1854,22 @@ function MediaControlCluster({
           <Settings className="size-4" />
         </button>
         {compactOpen && (
-          <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-1.5 shadow-[var(--m3-elev-2)]">
-            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground label-kicker">Sort</div>
+          <div className="absolute top-[calc(100%+0.5rem)] right-0 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-1.5 shadow-[var(--m3-elev-2)]">
+            <div className="label-kicker px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground">
+              Sort
+            </div>
             {SORT_OPTIONS.map((o) => (
               <button
                 type="button"
                 key={o.value}
-                onClick={() => { setSortBy(o.value); setCompactOpen(false); }}
+                onClick={() => {
+                  setSortBy(o.value);
+                  setCompactOpen(false);
+                }}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]',
-                  o.value === sortBy && 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
+                  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]',
+                  o.value === sortBy &&
+                    'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
                 )}
               >
                 <ArrowUpDown className="size-3.5 opacity-75" />
@@ -1644,17 +1878,23 @@ function MediaControlCluster({
               </button>
             ))}
             <div className="mx-1.5 my-1.5 h-px bg-border/50" />
-            <div className="px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground label-kicker">View</div>
+            <div className="label-kicker px-3 py-2 text-xs font-semibold tracking-[0.08em] text-muted-foreground">
+              View
+            </div>
             {viewOptions.map((o) => {
               const Icon = o.icon;
               return (
                 <button
                   type="button"
                   key={o.value}
-                  onClick={() => { setViewMode(o.value); setCompactOpen(false); }}
+                  onClick={() => {
+                    setViewMode(o.value);
+                    setCompactOpen(false);
+                  }}
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]',
-                    o.value === viewMode && 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
+                    'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]',
+                    o.value === viewMode &&
+                      'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]',
                   )}
                 >
                   <Icon className="size-3.5 opacity-75" />
@@ -1668,8 +1908,11 @@ function MediaControlCluster({
                 <div className="mx-1.5 my-1.5 h-px bg-border/50" />
                 <button
                   type="button"
-                  onClick={() => { setGroupSeries((v) => !v); setCompactOpen(false); }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]"
+                  onClick={() => {
+                    setGroupSeries((v) => !v);
+                    setCompactOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[hsl(var(--on-surface)/0.08)]"
                 >
                   <Film className="size-3.5 opacity-75" />
                   <span className="flex-1">Group series</span>
@@ -1684,7 +1927,19 @@ function MediaControlCluster({
   );
 }
 
-function FilterChip({ active, onClick, children, count, status }: { active: boolean; onClick: () => void; children: React.ReactNode; count: number; status?: MediaStatus }) {
+function FilterChip({
+  active,
+  onClick,
+  children,
+  count,
+  status,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  count: number;
+  status?: MediaStatus;
+}) {
   const look = status ? STATUS_LOOK[status] : null;
   return (
     <HuePill selected={active} onClick={onClick} count={count} icon={look?.icon ?? ListChecks} hue={look?.hue}>
@@ -1695,7 +1950,15 @@ function FilterChip({ active, onClick, children, count, status }: { active: bool
 
 function CheckIconCircle() {
   return (
-    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className="size-3.5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );
@@ -1703,14 +1966,22 @@ function CheckIconCircle() {
 
 function FieldSimple({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5 min-w-0">
-      <Label className="text-xs font-mono label-kicker text-muted-foreground">{label}</Label>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
 }
 
-function FieldSelect({ label, value, onChange, options, renderValue, renderOption, disabled = false }: {
+function FieldSelect({
+  label,
+  value,
+  onChange,
+  options,
+  renderValue,
+  renderOption,
+  disabled = false,
+}: {
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -1720,8 +1991,8 @@ function FieldSelect({ label, value, onChange, options, renderValue, renderOptio
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 min-w-0">
-      <Label className="text-xs font-mono label-kicker text-muted-foreground">{label}</Label>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
       <Select value={value} onValueChange={(v) => onChange(v ?? '')} disabled={disabled}>
         <SelectTrigger className="h-9 text-sm" aria-label={disabled ? `${label}: ${value}` : undefined}>
           <SelectValue>{renderValue ? renderValue(value) : options.find((o) => o.value === value)?.label}</SelectValue>
@@ -1729,7 +2000,9 @@ function FieldSelect({ label, value, onChange, options, renderValue, renderOptio
         <SelectContent>
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
-              {renderOption ? renderOption(o) : (
+              {renderOption ? (
+                renderOption(o)
+              ) : (
                 <span className="flex items-center gap-2">
                   {o.dot && <span className={`size-2 rounded-full ${o.dot}`} />}
                   {o.label}
@@ -1745,25 +2018,35 @@ function FieldSelect({ label, value, onChange, options, renderValue, renderOptio
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-card p-3 flex flex-col gap-3">
-      <h4 className="font-mono text-xs label-kicker text-muted-foreground">{title}</h4>
+    <div className="flex flex-col gap-3 rounded-lg bg-card p-3">
+      <h4 className="label-kicker font-mono text-xs text-muted-foreground">{title}</h4>
       {children}
     </div>
   );
 }
 
-function EmptyState({ type, hasFilter, onAdd, onClear }: { type: string; hasFilter: boolean; onAdd: () => void; onClear: () => void }) {
+function EmptyState({
+  type,
+  hasFilter,
+  onAdd,
+  onClear,
+}: {
+  type: string;
+  hasFilter: boolean;
+  onAdd: () => void;
+  onClear: () => void;
+}) {
   const meta = TYPE_META[type];
   const Icon = meta?.icon || Film;
   return (
-    <div className="flex flex-col items-center justify-center text-center py-20 border border-dashed border-border rounded-xl">
-      <Icon className="size-10 mb-3 text-muted-foreground/40" />
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
+      <Icon className="mb-3 size-10 text-muted-foreground/40" />
       <p className="text-sm text-muted-foreground">
         {hasFilter
           ? `No ${meta?.plural.toLowerCase()} match the current filter.`
           : `No ${meta?.plural.toLowerCase()} tracked yet.`}
       </p>
-      <div className="flex gap-2 mt-4">
+      <div className="mt-4 flex gap-2">
         {hasFilter && (
           <Button variant="ghost" size="sm" onClick={onClear}>
             <X className="size-3.5" /> Clear filter
@@ -1777,7 +2060,15 @@ function EmptyState({ type, hasFilter, onAdd, onClear }: { type: string; hasFilt
   );
 }
 
-function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; onClick: (source: HTMLElement) => void; morphOpen?: boolean }) {
+function PosterCard({
+  item,
+  onClick,
+  morphOpen = false,
+}: {
+  item: MediaEntry;
+  onClick: (source: HTMLElement) => void;
+  morphOpen?: boolean;
+}) {
   const statusDisplay = mediaStatusDisplay(item);
   const Icon = TYPE_META[item.type]?.icon || Film;
   const showProgress = item.episodes_total > 0;
@@ -1788,10 +2079,10 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
   // silently no-ops. Close remounts it and the dialog shrinks back in.
   if (morphOpen) {
     return (
-      <button className="group flex flex-col gap-2 text-left w-full" title={item.title} aria-hidden>
-        <div className="relative w-full aspect-[2/3] rounded-2xl bg-[hsl(var(--surface-container)/0.5)]" />
+      <button className="group flex w-full flex-col gap-2 text-left" title={item.title} aria-hidden>
+        <div className="relative aspect-[2/3] w-full rounded-2xl bg-[hsl(var(--surface-container)/0.5)]" />
         <div className="flex flex-col px-0.5 opacity-40">
-          <div className="font-medium text-sm leading-snug line-clamp-2">{item.title}</div>
+          <div className="line-clamp-2 text-sm leading-snug font-medium">{item.title}</div>
         </div>
       </button>
     );
@@ -1803,43 +2094,40 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
         const source = e.currentTarget.querySelector<HTMLElement>('[data-media-morph-source]');
         onClick(source ?? e.currentTarget);
       }}
-      className="group flex flex-col gap-2 text-left w-full"
+      className="group flex w-full flex-col gap-2 text-left"
       title={item.title}
     >
       <div
         data-media-morph-source
-        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]"
+        className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]"
       >
         {item.poster_url ? (
-          <img
-            src={item.poster_url}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover"
-          />
+          <img src={item.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-muted-foreground">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-muted-foreground">
             <Icon className="size-7 opacity-40" />
-            <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{item.title}</span>
+            <span className="line-clamp-3 text-center font-serif text-sm leading-tight opacity-80">{item.title}</span>
           </div>
         )}
 
         {/* Status pill — dot + sentence-case short label. Sentence case at
             normal tracking keeps every status ("In progress", "Complete")
             inside a 2-col phone grid tile without truncating to COMPL…. */}
-        {item.status !== 'pending' && <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
-          <span
-            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-background/95 pl-2 pr-2.5 h-6 text-xs font-medium shadow-sm ring-1 ring-foreground/10"
-            title={statusDisplay.label}
-          >
-            <span className="size-1.5 rounded-full shrink-0" style={{ background: statusDisplay.color }} />
-            <span className="truncate">{statusDisplay.shortLabel}</span>
-          </span>
-        </div>}
+        {item.status !== 'pending' && (
+          <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
+            <span
+              className="inline-flex h-6 max-w-full items-center gap-1.5 rounded-full bg-background/95 pr-2.5 pl-2 text-xs font-medium shadow-sm ring-1 ring-foreground/10"
+              title={statusDisplay.label}
+            >
+              <span className="size-1.5 shrink-0 rounded-full" style={{ background: statusDisplay.color }} />
+              <span className="truncate">{statusDisplay.shortLabel}</span>
+            </span>
+          </div>
+        )}
 
         {/* Rating */}
         {item.rating ? (
-          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-background px-1.5 py-0.5 text-xs font-mono shadow-sm ring-1 ring-foreground/5">
+          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-background px-1.5 py-0.5 font-mono text-xs shadow-sm ring-1 ring-foreground/5">
             <Star className="size-2.5 fill-amber-400 text-amber-400" />
             <span>{item.rating}</span>
           </div>
@@ -1849,7 +2137,7 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
             Shows for all shows/books regardless of complete status:
             complete = all green, dropped = red/muted, etc. */}
         {showProgress && (
-          <div className="absolute bottom-0 inset-x-0">
+          <div className="absolute inset-x-0 bottom-0">
             <SegmentedBar
               watched={item.episodes_watched}
               total={item.episodes_total}
@@ -1862,12 +2150,12 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
       </div>
 
       <div className="flex flex-col px-0.5">
-        <div className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+        <div className="line-clamp-2 text-sm leading-snug font-medium transition-colors group-hover:text-primary">
           {item.title}
         </div>
         {/* Both meta rows keep a fixed line height even when empty so
             neighbouring tiles in a grid row don't ripple vertically. */}
-        <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground mt-0.5 min-h-4">
+        <div className="mt-0.5 flex min-h-4 items-center gap-1.5 font-mono text-xs text-muted-foreground">
           {item.year && <span>{item.year}</span>}
           {item.platform && (
             <>
@@ -1884,33 +2172,28 @@ function PosterCard({ item, onClick, morphOpen = false }: { item: MediaEntry; on
 // MediaThumb — small thumbnail used in the design's list view. Uses the
 // real poster when available, otherwise an index-derived gradient panel
 // matching the redesign aesthetic.
-function MediaThumb({ item, index, variant = 'sm', className }: {
+function MediaThumb({
+  item,
+  index,
+  variant = 'sm',
+  className,
+}: {
   item: MediaEntry;
   index: number;
   variant?: 'sm' | 'card';
   className?: string;
 }) {
-  const sizeClass = variant === 'card'
-    ? 'w-[52px] h-[76px] rounded-xl'
-    : 'w-12 h-[66px] rounded-lg';
-  const classes = cn(sizeClass, 'object-cover ring-1 ring-border/60 shrink-0', className);
+  const sizeClass = variant === 'card' ? 'w-[52px] h-[76px] rounded-xl' : 'w-12 h-[66px] rounded-lg';
+  const classes = cn(sizeClass, 'shrink-0 object-cover ring-1 ring-border/60', className);
   if (item.poster_url) {
-    return (
-      <img
-        data-media-morph-source
-        src={item.poster_url}
-        alt=""
-        loading="lazy"
-        className={classes}
-      />
-    );
+    return <img data-media-morph-source src={item.poster_url} alt="" loading="lazy" className={classes} />;
   }
   const a = (index % 5) + 1;
   const b = ((index + 2) % 5) + 1;
   return (
     <div
       data-media-morph-source
-      className={cn(sizeClass, 'ring-1 ring-border/60 shrink-0', className)}
+      className={cn(sizeClass, 'shrink-0 ring-1 ring-border/60', className)}
       style={{ background: `linear-gradient(135deg, hsl(var(--m${a})), hsl(var(--m${b})))` }}
     />
   );
@@ -1924,34 +2207,52 @@ function MediaThumb({ item, index, variant = 'sm', className }: {
 function sortMedia(items: MediaEntry[], by: SortKey): MediaEntry[] {
   const cmpStr = (a: string, b: string) => a.localeCompare(b);
   // Helper: descending date — empty pushes to end.
-  const byDateDesc = (key: 'created_at' | 'updated_at' | 'last_completed_at') =>
-    (a: MediaEntry, b: MediaEntry) => {
-      const ax = a[key] || ''; const bx = b[key] || '';
-      if (!ax && !bx) return 0;
-      if (!ax) return 1;
-      if (!bx) return -1;
-      return bx.localeCompare(ax);
-    };
+  const byDateDesc = (key: 'created_at' | 'updated_at' | 'last_completed_at') => (a: MediaEntry, b: MediaEntry) => {
+    const ax = a[key] || '';
+    const bx = b[key] || '';
+    if (!ax && !bx) return 0;
+    if (!ax) return 1;
+    if (!bx) return -1;
+    return bx.localeCompare(ax);
+  };
   // Helper: ascending date — empty pushes to end.
-  const byDateAsc = (key: 'created_at' | 'updated_at' | 'last_completed_at') =>
-    (a: MediaEntry, b: MediaEntry) => {
-      const ax = a[key] || ''; const bx = b[key] || '';
-      if (!ax && !bx) return 0;
-      if (!ax) return 1;
-      if (!bx) return -1;
-      return ax.localeCompare(bx);
-    };
+  const byDateAsc = (key: 'created_at' | 'updated_at' | 'last_completed_at') => (a: MediaEntry, b: MediaEntry) => {
+    const ax = a[key] || '';
+    const bx = b[key] || '';
+    if (!ax && !bx) return 0;
+    if (!ax) return 1;
+    if (!bx) return -1;
+    return ax.localeCompare(bx);
+  };
   const out = [...items];
   switch (by) {
-    case 'updated_desc':   out.sort(byDateDesc('updated_at')); break;
-    case 'added_desc':     out.sort(byDateDesc('created_at')); break;
-    case 'added_asc':      out.sort(byDateAsc('created_at')); break;
-    case 'completed_desc': out.sort(byDateDesc('last_completed_at')); break;
-    case 'rating_desc':    out.sort((a, b) => (b.rating || 0) - (a.rating || 0) || byDateDesc('updated_at')(a, b)); break;
-    case 'year_desc':      out.sort((a, b) => (b.year || 0) - (a.year || 0) || cmpStr(a.title, b.title)); break;
-    case 'year_asc':       out.sort((a, b) => (a.year || 9999) - (b.year || 9999) || cmpStr(a.title, b.title)); break;
-    case 'title_asc':      out.sort((a, b) => cmpStr(a.title, b.title)); break;
-    case 'status':         out.sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99) || cmpStr(a.title, b.title)); break;
+    case 'updated_desc':
+      out.sort(byDateDesc('updated_at'));
+      break;
+    case 'added_desc':
+      out.sort(byDateDesc('created_at'));
+      break;
+    case 'added_asc':
+      out.sort(byDateAsc('created_at'));
+      break;
+    case 'completed_desc':
+      out.sort(byDateDesc('last_completed_at'));
+      break;
+    case 'rating_desc':
+      out.sort((a, b) => (b.rating || 0) - (a.rating || 0) || byDateDesc('updated_at')(a, b));
+      break;
+    case 'year_desc':
+      out.sort((a, b) => (b.year || 0) - (a.year || 0) || cmpStr(a.title, b.title));
+      break;
+    case 'year_asc':
+      out.sort((a, b) => (a.year || 9999) - (b.year || 9999) || cmpStr(a.title, b.title));
+      break;
+    case 'title_asc':
+      out.sort((a, b) => cmpStr(a.title, b.title));
+      break;
+    case 'status':
+      out.sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99) || cmpStr(a.title, b.title));
+      break;
   }
   return out;
 }
@@ -1976,7 +2277,6 @@ function relativeShort(iso: string): string {
     return iso;
   }
 }
-
 
 function relativeTiny(iso: string): string {
   let long: string;
@@ -2030,14 +2330,21 @@ function progressLabel(item: MediaEntry): string {
 
 function chipClassFor(status: MediaStatus): string {
   switch (status) {
-    case 'in_progress': return 'chip-amber';
-    case 'new_season':  return 'chip-sky';
-    case 'complete':    return 'chip-olive';   // green — done
-    case 'waiting':     return 'chip-sky';     // slate — on hold
+    case 'in_progress':
+      return 'chip-amber';
+    case 'new_season':
+      return 'chip-sky';
+    case 'complete':
+      return 'chip-olive'; // green — done
+    case 'waiting':
+      return 'chip-sky'; // slate — on hold
     case 'dropped':
-    case 'scratched':   return 'chip-rose';
-    case 'upcoming':    return 'chip-upcoming';
-    default:            return '';
+    case 'scratched':
+      return 'chip-rose';
+    case 'upcoming':
+      return 'chip-upcoming';
+    default:
+      return '';
   }
 }
 
@@ -2046,21 +2353,17 @@ function chipClassFor(status: MediaStatus): string {
 // when data is missing (blank ghost, dim empty stars) so the columns line
 // up row after row — no ragged right edge when TMDB has no year or the
 // entry is unrated.
-function RowRail({ rating, chip }: {
-  ghost?: React.ReactNode;
-  rating: number;
-  chip: React.ReactNode;
-}) {
+function RowRail({ rating, chip }: { ghost?: React.ReactNode; rating: number; chip: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 shrink-0 self-center">
+    <div className="flex shrink-0 items-center gap-2 self-center">
       <span
-        className="hidden md:inline-flex w-[84px] justify-center"
+        className="hidden w-[84px] justify-center md:inline-flex"
         title={rating ? `Rated ${rating}/5` : 'Not rated'}
       >
         {/* Slot stays reserved for column alignment; stars only once rated. */}
         {rating > 0 ? <StarRating value={rating} /> : null}
       </span>
-      <span className="flex w-auto md:w-28 justify-end">{chip}</span>
+      <span className="flex w-auto justify-end md:w-28">{chip}</span>
     </div>
   );
 }
@@ -2070,7 +2373,13 @@ function RowRail({ rating, chip }: {
 // The old three-column grid reserved a wide right column that read as
 // empty space; everything now hugs the content.
 function MediaListRow({
-  item, index, onClick, compact = false, attached = false, first = false, morphOpen: _morphOpen = false,
+  item,
+  index,
+  onClick,
+  compact = false,
+  attached = false,
+  first = false,
+  morphOpen: _morphOpen = false,
 }: {
   item: MediaEntry;
   index: number;
@@ -2100,12 +2409,12 @@ function MediaListRow({
       {/* Ambient art: the poster's own colors bleed in from the left and
           dissolve — every row carries its artwork's temperature. */}
       {item.poster_url && (
-        <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <img
             src={item.poster_url}
             alt=""
             loading="lazy"
-            className="w-full h-full object-cover blur-xl scale-125 opacity-[0.32] dark:opacity-[0.42] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:group-hover:opacity-[0.55]"
+            className="h-full w-full scale-125 object-cover opacity-[0.32] blur-xl saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:opacity-[0.42] dark:group-hover:opacity-[0.55]"
             style={{
               maskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
               WebkitMaskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
@@ -2114,7 +2423,7 @@ function MediaListRow({
         </div>
       )}
 
-      <div className="relative flex items-center gap-3 min-w-0">
+      <div className="relative flex min-w-0 items-center gap-3">
         <MediaThumb
           item={item}
           index={index}
@@ -2122,24 +2431,33 @@ function MediaListRow({
           className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
         />
 
-        <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className={cn('serif min-w-0 font-medium leading-snug truncate', compact ? 'text-[14px]' : 'text-[15px]')}>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className={cn('serif min-w-0 truncate leading-snug font-medium', compact ? 'text-[14px]' : 'text-[15px]')}
+            >
               {item.title || 'Untitled'}
             </span>
             {item.rating ? (
-              <span className={cn('inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary', !hasProgress && 'md:hidden')}>
+              <span
+                className={cn(
+                  'inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary',
+                  !hasProgress && 'md:hidden',
+                )}
+              >
                 <Star className="size-3 fill-current" />
                 <span className="tabular-nums">{item.rating}</span>
               </span>
             ) : null}
           </div>
-          <div className="flex min-w-0 items-center gap-x-2 mono text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
+          <div className="mono flex min-w-0 items-center gap-x-2 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">
             {item.year ? <span className="shrink-0">{item.year}</span> : null}
             {item.platform ? (
-              <PlatformLogo platform={item.platform} className="shrink-0 min-w-0" iconClassName="size-[15px]" />
+              <PlatformLogo platform={item.platform} className="min-w-0 shrink-0" iconClassName="size-[15px]" />
             ) : null}
-            {progressLabel(item) ? <span className="shrink-0 hidden min-[420px]:inline">· {progressLabel(item)}</span> : null}
+            {progressLabel(item) ? (
+              <span className="hidden shrink-0 min-[420px]:inline">· {progressLabel(item)}</span>
+            ) : null}
           </div>
           {hasProgress && (
             <div className="mt-1.5 flex items-center gap-2.5">
@@ -2150,14 +2468,14 @@ function MediaListRow({
                 label={`${pct}% watched`}
                 className="flex-1"
               />
-              <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">{pct}%</span>
+              <span className="mono shrink-0 text-xs text-muted-foreground tabular-nums">{pct}%</span>
             </div>
           )}
         </div>
 
         {hasProgress ? (
           <span
-            className={cn('chip h-6 shrink-0 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
+            className={cn('chip h-6 max-w-[9rem] shrink-0 px-2.5 text-xs leading-none', statusDisplay.chipClass)}
             title={statusDisplay.label}
           >
             <span className="truncate">{statusDisplay.shortLabel}</span>
@@ -2165,14 +2483,16 @@ function MediaListRow({
         ) : (
           <RowRail
             rating={item.rating || 0}
-            chip={item.status === 'pending' ? null : (
-              <span
-                className={cn('chip h-6 px-2.5 text-xs leading-none max-w-[9rem]', statusDisplay.chipClass)}
-                title={statusDisplay.label}
-              >
-                <span className="truncate">{statusDisplay.shortLabel}</span>
-              </span>
-            )}
+            chip={
+              item.status === 'pending' ? null : (
+                <span
+                  className={cn('chip h-6 max-w-[9rem] px-2.5 text-xs leading-none', statusDisplay.chipClass)}
+                  title={statusDisplay.label}
+                >
+                  <span className="truncate">{statusDisplay.shortLabel}</span>
+                </span>
+              )
+            }
           />
         )}
       </div>
@@ -2184,30 +2504,36 @@ function MediaListRow({
 // Streaming-app scan pattern: each lifecycle bucket gets its own shelf so
 // "what am I watching" and "what's queued" separate at a glance. Series
 // grouping is intentionally ignored here; every entry stands alone.
-function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[]; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
+function MediaShelves({
+  items,
+  onPick,
+  openItemId = null,
+}: {
+  items: MediaEntry[];
+  onPick: (item: MediaEntry, source: HTMLElement) => void;
+  openItemId?: number | null;
+}) {
   const shelves = useMemo(() => {
     const buckets = new Map<MediaStatus, MediaEntry[]>();
     for (const it of items) {
       if (!buckets.has(it.status)) buckets.set(it.status, []);
       buckets.get(it.status)!.push(it);
     }
-    return STATUS_OPTIONS
-      .filter((s) => buckets.has(s.value))
-      .map((s) => ({ meta: s, items: buckets.get(s.value)! }));
+    return STATUS_OPTIONS.filter((s) => buckets.has(s.value)).map((s) => ({ meta: s, items: buckets.get(s.value)! }));
   }, [items]);
 
   return (
     <div className="flex flex-col gap-6">
       {shelves.map(({ meta, items: shelfItems }) => (
         <section key={meta.value} aria-label={meta.label}>
-          <header className="flex items-baseline gap-2 mb-2.5 px-0.5">
-            <span className={cn('size-2 rounded-full self-center shrink-0', meta.dot)} />
+          <header className="mb-2.5 flex items-baseline gap-2 px-0.5">
+            <span className={cn('size-2 shrink-0 self-center rounded-full', meta.dot)} />
             <h3 className="serif text-sm font-semibold tracking-tight">{meta.label}</h3>
-            <span className="mono text-xs tabular-nums text-muted-foreground">{shelfItems.length}</span>
+            <span className="mono text-xs text-muted-foreground tabular-nums">{shelfItems.length}</span>
           </header>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 snap-x snap-proximity">
+          <div className="no-scrollbar -mx-1 flex snap-x snap-proximity gap-3 overflow-x-auto px-1 pb-1">
             {shelfItems.map((item) => (
-              <div key={item.id} className="w-[124px] sm:w-[148px] shrink-0 snap-start">
+              <div key={item.id} className="w-[124px] shrink-0 snap-start sm:w-[148px]">
                 <PosterCard item={item} onClick={(source) => onPick(item, source)} morphOpen={openItemId === item.id} />
               </div>
             ))}
@@ -2220,20 +2546,30 @@ function MediaShelves({ items, onPick, openItemId = null }: { items: MediaEntry[
 
 // ─── Table view — maximum density ────────────────────────────────────────
 // Sorting stays in the toolbar's sort control; the table is a flat readout.
-function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = null }: { items: MediaEntry[]; showPlatform: boolean; onPick: (item: MediaEntry, source: HTMLElement) => void; openItemId?: number | null }) {
+function MediaTable({
+  items,
+  showPlatform,
+  onPick,
+  openItemId: _openItemId = null,
+}: {
+  items: MediaEntry[];
+  showPlatform: boolean;
+  onPick: (item: MediaEntry, source: HTMLElement) => void;
+  openItemId?: number | null;
+}) {
   return (
     <div className="overflow-x-auto rounded-[20px] bg-card">
-      <table className="w-full min-w-[560px] text-sm border-collapse">
+      <table className="w-full min-w-[560px] border-collapse text-sm">
         <thead>
-          <tr className="mono text-xs label-kicker text-muted-foreground text-left">
-            <th className="font-medium px-4 py-3">Title</th>
-            <th className="font-medium px-3 py-3 w-16">Year</th>
-            <th className="font-medium px-3 py-3 w-32">Status</th>
-            <th className="font-medium px-3 py-3 w-16">Rating</th>
-            <th className={cn('font-medium px-3 py-3', showPlatform ? 'w-36' : 'w-24')}>
+          <tr className="mono label-kicker text-left text-xs text-muted-foreground">
+            <th className="px-4 py-3 font-medium">Title</th>
+            <th className="w-16 px-3 py-3 font-medium">Year</th>
+            <th className="w-32 px-3 py-3 font-medium">Status</th>
+            <th className="w-16 px-3 py-3 font-medium">Rating</th>
+            <th className={cn('px-3 py-3 font-medium', showPlatform ? 'w-36' : 'w-24')}>
               {showPlatform ? 'Platform' : 'Progress'}
             </th>
-            <th className="font-medium px-3 py-3 w-28 text-right pr-4">Updated</th>
+            <th className="w-28 px-3 py-3 pr-4 text-right font-medium">Updated</th>
           </tr>
         </thead>
         <tbody>
@@ -2253,12 +2589,12 @@ function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = nul
                   {/* Ambient art — same poster bleed as the list rows,
                       scoped to the title cell (tr can't anchor absolutes). */}
                   {item.poster_url && (
-                    <span aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
                       <img
                         src={item.poster_url}
                         alt=""
                         loading="lazy"
-                        className="w-full h-full object-cover blur-lg scale-125 opacity-[0.26] dark:opacity-[0.36] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.4] dark:group-hover:opacity-[0.5]"
+                        className="h-full w-full scale-125 object-cover opacity-[0.26] blur-lg saturate-150 transition-opacity duration-300 group-hover:opacity-[0.4] dark:opacity-[0.36] dark:group-hover:opacity-[0.5]"
                         style={{
                           maskImage: 'linear-gradient(to right, black 40%, transparent 98%)',
                           WebkitMaskImage: 'linear-gradient(to right, black 40%, transparent 98%)',
@@ -2266,19 +2602,17 @@ function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = nul
                       />
                     </span>
                   )}
-                  <span className="relative flex items-center gap-2.5 min-w-0">
-                    <MediaThumb
-                      item={item}
-                      index={idx}
-                      variant="sm"
-                      className="!w-7 !h-10 !rounded"
-                    />
-                    <span className="serif font-medium truncate max-w-[18rem]">{item.title || 'Untitled'}</span>
+                  <span className="relative flex min-w-0 items-center gap-2.5">
+                    <MediaThumb item={item} index={idx} variant="sm" className="!h-10 !w-7 !rounded" />
+                    <span className="serif max-w-[18rem] truncate font-medium">{item.title || 'Untitled'}</span>
                   </span>
                 </td>
-                <td className="px-3 py-2 mono text-xs tabular-nums text-muted-foreground">{item.year || '–'}</td>
+                <td className="mono px-3 py-2 text-xs text-muted-foreground tabular-nums">{item.year || '–'}</td>
                 <td className="px-3 py-2">
-                  <span className={cn('chip h-6 px-2.5 text-xs leading-none max-w-full', statusDisplay.chipClass)} title={statusDisplay.label}>
+                  <span
+                    className={cn('chip h-6 max-w-full px-2.5 text-xs leading-none', statusDisplay.chipClass)}
+                    title={statusDisplay.label}
+                  >
                     <span className="truncate">{statusDisplay.shortLabel}</span>
                   </span>
                 </td>
@@ -2288,18 +2622,22 @@ function MediaTable({ items, showPlatform, onPick, openItemId: _openItemId = nul
                       <Star className="size-3 fill-current" />
                       <span className="tabular-nums">{item.rating}</span>
                     </span>
-                  ) : <span className="text-muted-foreground/50">–</span>}
+                  ) : (
+                    <span className="text-muted-foreground/50">–</span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {showPlatform ? (
-                    item.platform
-                      ? <PlatformLogo platform={item.platform} iconClassName="size-[15px]" />
-                      : <span className="text-muted-foreground/50">–</span>
+                    item.platform ? (
+                      <PlatformLogo platform={item.platform} iconClassName="size-[15px]" />
+                    ) : (
+                      <span className="text-muted-foreground/50">–</span>
+                    )
                   ) : (
                     <span className="mono tabular-nums">{pct !== null ? `${pct}%` : '–'}</span>
                   )}
                 </td>
-                <td className="px-3 py-2 mono text-xs text-muted-foreground text-right pr-4 whitespace-nowrap">
+                <td className="mono px-3 py-2 pr-4 text-right text-xs whitespace-nowrap text-muted-foreground">
                   {item.updated_at ? relativeTiny(item.updated_at) : '–'}
                 </td>
               </tr>
@@ -2321,13 +2659,7 @@ function listProgressPct(item: MediaEntry): number | null {
   return pct;
 }
 
-
-function SeriesPosterCard({
-  row, onOpen,
-}: {
-  row: Extract<SeriesRow, { kind: 'series' }>;
-  onOpen: () => void;
-}) {
+function SeriesPosterCard({ row, onOpen }: { row: Extract<SeriesRow, { kind: 'series' }>; onOpen: () => void }) {
   const cover = row.members[0];
   const watched = row.members.filter((m) => m.status === 'complete').length;
   const upcoming = nextUpcomingMember(row.members);
@@ -2335,7 +2667,7 @@ function SeriesPosterCard({
   return (
     <button
       onClick={onOpen}
-      className="group relative text-left flex flex-col gap-2 w-full"
+      className="group relative flex w-full flex-col gap-2 text-left"
       title={`${row.collectionName}, ${watched}/${row.members.length} watched`}
     >
       {/* Identical size to PosterCard — aspect-[2/3] wrapper, real poster
@@ -2343,37 +2675,38 @@ function SeriesPosterCard({
           only; on mobile the offsets visually shrink the poster relative
           to single-movie tiles, so the series card matches PosterCard's
           plain border on small screens. */}
-      <div
-        className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]"
-      >
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]">
         {cover.poster_url ? (
-          <img src={cover.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={cover.poster_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-muted-foreground">
             <Film className="size-7 opacity-40" />
-            <span className="font-serif text-sm text-center line-clamp-3 leading-tight opacity-80">{row.collectionName}</span>
+            <span className="line-clamp-3 text-center font-serif text-sm leading-tight opacity-80">
+              {row.collectionName}
+            </span>
           </div>
         )}
-        <span className="absolute top-2 left-2 chip chip-sage h-6 px-2.5 text-xs">
+        <span className="chip chip-sage absolute top-2 left-2 h-6 px-2.5 text-xs">
           <Film className="size-3" /> Series
         </span>
         {upcoming && (
-          <span className="absolute top-2 right-2 chip chip-upcoming h-6 max-w-[calc(100%-5.75rem)] px-2.5 text-xs" title={`Upcoming ${upcomingDate}`}>
+          <span
+            className="chip chip-upcoming absolute top-2 right-2 h-6 max-w-[calc(100%-5.75rem)] px-2.5 text-xs"
+            title={`Upcoming ${upcomingDate}`}
+          >
             <span className="truncate">Upcoming</span>
           </span>
         )}
-        <span className="absolute bottom-2 right-2 mono text-xs px-2 py-0.5 rounded-full bg-[hsl(var(--inverse-surface))] text-[hsl(var(--inverse-on-surface))]">
+        <span className="mono absolute right-2 bottom-2 rounded-full bg-[hsl(var(--inverse-surface))] px-2 py-0.5 text-xs text-[hsl(var(--inverse-on-surface))]">
           {watched}/{row.members.length}
         </span>
       </div>
       <div className="mt-2 px-0.5">
-        <div className="font-medium text-sm leading-snug line-clamp-2">{row.collectionName}</div>
+        <div className="line-clamp-2 text-sm leading-snug font-medium">{row.collectionName}</div>
         {/* Two meta rows to mirror PosterCard's block, so series tiles and
             movie tiles keep the same text-zone height in a grid row. */}
-        <div className="mono text-xs text-muted-foreground mt-0.5 truncate min-h-4">
-          {row.members.length} movies
-        </div>
-        <div className="mono text-xs text-muted-foreground mt-0.5 truncate min-h-4">
+        <div className="mono mt-0.5 min-h-4 truncate text-xs text-muted-foreground">{row.members.length} movies</div>
+        <div className="mono mt-0.5 min-h-4 truncate text-xs text-muted-foreground">
           {upcomingDate ? `Next ${upcomingDate}` : ''}
         </div>
       </div>
@@ -2382,7 +2715,9 @@ function SeriesPosterCard({
 }
 
 function SeriesDialog({
-  row, onClose, onPickItem,
+  row,
+  onClose,
+  onPickItem,
 }: {
   row: Extract<SeriesRow, { kind: 'series' }> | null;
   onClose: () => void;
@@ -2394,18 +2729,28 @@ function SeriesDialog({
   const upcoming = nextUpcomingMember(row.members);
   const upcomingDate = upcoming ? formatReleaseDate(upcoming.release_date) : '';
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-2xl w-full max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
-        <DialogHeader className="shrink-0 p-5 flex flex-row items-center gap-4">
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="flex max-h-[85vh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="flex shrink-0 flex-row items-center gap-4 p-5">
           {cover.poster_url ? (
-            <img src={cover.poster_url} alt="" className="w-12 h-[68px] rounded object-cover ring-1 ring-border/60 shrink-0" />
+            <img
+              src={cover.poster_url}
+              alt=""
+              className="h-[68px] w-12 shrink-0 rounded object-cover ring-1 ring-border/60"
+            />
           ) : (
-            <div className="w-12 h-[68px] rounded bg-muted shrink-0" />
+            <div className="h-[68px] w-12 shrink-0 rounded bg-muted" />
           )}
-          <div className="flex-1 min-w-0 text-left">
-            <DialogTitle className="serif text-lg font-medium truncate">{row.collectionName}</DialogTitle>
-            <div className="mono text-xs text-muted-foreground mt-0.5">
-              {row.members.length} movies · {watched}/{row.members.length} watched{upcomingDate ? ` · upcoming ${upcomingDate}` : ''}
+          <div className="min-w-0 flex-1 text-left">
+            <DialogTitle className="serif truncate text-lg font-medium">{row.collectionName}</DialogTitle>
+            <div className="mono mt-0.5 text-xs text-muted-foreground">
+              {row.members.length} movies · {watched}/{row.members.length} watched
+              {upcomingDate ? ` · upcoming ${upcomingDate}` : ''}
             </div>
             <div className="mt-2 w-48">
               <SegmentedBar
@@ -2422,28 +2767,32 @@ function SeriesDialog({
           {row.members.map((m, mi) => {
             const statusDisplay = mediaStatusDisplay(m);
             return (
-            <button
-              key={m.id}
-              onClick={() => { onPickItem(m); onClose(); }}
-              className={`m3-state w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${mi === 0 ? '' : 'border-t border-border/40'}`}
-            >
-              <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right shrink-0">
-                {mi + 1}
-              </span>
-              <MediaThumb item={m} index={mi} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <div className="text-[14px] font-medium truncate">{m.title}</div>
-                  {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
+              <button
+                key={m.id}
+                onClick={() => {
+                  onPickItem(m);
+                  onClose();
+                }}
+                className={`m3-state flex w-full items-center gap-3 px-5 py-3 text-left transition-colors ${mi === 0 ? '' : 'border-t border-border/40'}`}
+              >
+                <span className="mono w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                  {mi + 1}
+                </span>
+                <MediaThumb item={m} index={mi} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <div className="truncate text-[14px] font-medium">{m.title}</div>
+                    {m.year ? <span className="mono text-xs text-muted-foreground">{m.year}</span> : null}
+                  </div>
+                  <div className="mono mt-0.5 truncate text-xs text-muted-foreground">{watchAgeLabel(m)}</div>
                 </div>
-                <div className="mono text-xs text-muted-foreground mt-0.5 truncate">
-                  {watchAgeLabel(m)}
-                </div>
-              </div>
-              <span className={cn('chip max-w-[11rem] shrink-0 px-2.5 text-xs leading-none h-6', statusDisplay.chipClass)} title={statusDisplay.label}>
-                <span className="truncate">{statusDisplay.label}</span>
-              </span>
-            </button>
+                <span
+                  className={cn('chip h-6 max-w-[11rem] shrink-0 px-2.5 text-xs leading-none', statusDisplay.chipClass)}
+                  title={statusDisplay.label}
+                >
+                  <span className="truncate">{statusDisplay.label}</span>
+                </span>
+              </button>
             );
           })}
         </div>
@@ -2455,7 +2804,14 @@ function SeriesDialog({
 // SeriesListRow shares Today’s compact review-disclosure pattern. It spans a
 // grid row when needed, so a collection expands without moving poster tiles.
 function SeriesListRow({
-  row, expanded, onToggle, onPickItem, openItemId = null, className, attached = false, first = false,
+  row,
+  expanded,
+  onToggle,
+  onPickItem,
+  openItemId = null,
+  className,
+  attached = false,
+  first = false,
 }: {
   row: Extract<SeriesRow, { kind: 'series' }>;
   expanded: boolean;
@@ -2478,27 +2834,29 @@ function SeriesListRow({
   const pct = Math.round((watched / row.members.length) * 100);
 
   return (
-    <div className={cn(
-      'overflow-hidden bg-[hsl(var(--surface-container-low))]',
-      attached
-        ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
-        : 'rounded-2xl border border-[hsl(var(--outline-variant))]',
-      className,
-    )}>
+    <div
+      className={cn(
+        'overflow-hidden bg-[hsl(var(--surface-container-low))]',
+        attached
+          ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
+          : 'rounded-2xl border border-[hsl(var(--outline-variant))]',
+        className,
+      )}
+    >
       {/* Header — the exact MediaListRow anatomy (thumb · text block ·
           RowRail) so series rows sit flush with single movies. */}
       <button
         onClick={onToggle}
         aria-expanded={expanded}
-        className="m3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] p-2.5 sm:px-3 text-left transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]"
+        className="m3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] p-2.5 text-left transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995] sm:px-3"
       >
         {cover?.poster_url && (
-          <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
             <img
               src={cover.poster_url}
               alt=""
               loading="lazy"
-              className="w-full h-full object-cover blur-xl scale-125 opacity-[0.32] dark:opacity-[0.42] saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:group-hover:opacity-[0.55]"
+              className="h-full w-full scale-125 object-cover opacity-[0.32] blur-xl saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:opacity-[0.42] dark:group-hover:opacity-[0.55]"
               style={{
                 maskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
                 WebkitMaskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
@@ -2507,7 +2865,7 @@ function SeriesListRow({
           </div>
         )}
 
-        <div className="relative flex items-center gap-3 min-w-0">
+        <div className="relative flex min-w-0 items-center gap-3">
           <MediaThumb
             item={cover}
             index={0}
@@ -2515,15 +2873,13 @@ function SeriesListRow({
             className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
           />
 
-          <div className="flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="serif min-w-0 text-[15px] font-medium leading-snug truncate">
-                {row.collectionName}
-              </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="serif min-w-0 truncate text-[15px] leading-snug font-medium">{row.collectionName}</span>
             </div>
-            <div className="flex min-w-0 items-center gap-x-2 mono text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
+            <div className="mono flex min-w-0 items-center gap-x-2 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">
               {yearLabel && <span className="shrink-0">{yearLabel}</span>}
-              {upcoming && <span className="min-w-0 truncate hidden sm:inline">· next {upcomingDate}</span>}
+              {upcoming && <span className="hidden min-w-0 truncate sm:inline">· next {upcomingDate}</span>}
             </div>
             <div className="mt-1.5 flex items-center gap-2.5">
               <WavyProgress
@@ -2533,7 +2889,7 @@ function SeriesListRow({
                 label={`${watched} of ${row.members.length} watched`}
                 className="flex-1"
               />
-              <span className="shrink-0 mono text-xs tabular-nums text-muted-foreground">
+              <span className="mono shrink-0 text-xs text-muted-foreground tabular-nums">
                 {watched}/{row.members.length}
               </span>
             </div>
@@ -2542,7 +2898,7 @@ function SeriesListRow({
           <RowRail
             rating={seriesRating}
             chip={
-              <span className="chip chip-sage h-6 px-2.5 text-xs leading-none gap-1">
+              <span className="chip chip-sage h-6 gap-1 px-2.5 text-xs leading-none">
                 <Film className="size-3" /> Series
                 <ChevronRight className={cn('size-3 transition-transform duration-200', expanded && 'rotate-90')} />
               </span>
@@ -2587,40 +2943,45 @@ function ActivityTimeline({ mediaId, type }: { mediaId: number; type: MediaKind 
   useEffect(() => {
     let cancel = false;
     setLoading(true);
-    mediaApi.events(mediaId)
-      .then((rows) => { if (!cancel) setEvents(rows); })
-      .catch(() => { if (!cancel) setEvents([]); })
-      .finally(() => { if (!cancel) setLoading(false); });
-    return () => { cancel = true; };
+    mediaApi
+      .events(mediaId)
+      .then((rows) => {
+        if (!cancel) setEvents(rows);
+      })
+      .catch(() => {
+        if (!cancel) setEvents([]);
+      })
+      .finally(() => {
+        if (!cancel) setLoading(false);
+      });
+    return () => {
+      cancel = true;
+    };
   }, [mediaId]);
 
   return (
     <Section title="Activity">
       {loading && (
-        <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+        <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
           <M3CookieLoader size="sm" tone="secondary" /> Loading…
         </div>
       )}
       {!loading && events && events.length === 0 && (
-        <div className="text-xs text-muted-foreground">
-          No events yet. They're recorded as you update progress.
-        </div>
+        <div className="text-xs text-muted-foreground">No events yet. They're recorded as you update progress.</div>
       )}
       {!loading && events && events.length > 0 && (
-        <ol className="relative ml-2 border-l border-border/60 pl-4 flex flex-col gap-3 text-sm">
+        <ol className="relative ml-2 flex flex-col gap-3 border-l border-border/60 pl-4 text-sm">
           {events.map((e) => (
             <li key={e.id} className="relative">
               <span
-                className="absolute -left-[21px] top-[6px] size-2 rounded-full"
+                className="absolute top-[6px] -left-[21px] size-2 rounded-full"
                 style={{ background: dotColorFor(e.kind) }}
               />
-              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className="min-w-0">
                   <span className="font-medium">{eventLabel(e, type)}</span>
                   {eventSublabel(e) && (
-                    <span className="ml-1.5 mono text-xs text-muted-foreground">
-                      {eventSublabel(e)}
-                    </span>
+                    <span className="mono ml-1.5 text-xs text-muted-foreground">{eventSublabel(e)}</span>
                   )}
                 </div>
                 <span className="mono text-xs text-muted-foreground" title={e.created_at}>
@@ -2637,32 +2998,48 @@ function ActivityTimeline({ mediaId, type }: { mediaId: number; type: MediaKind 
 
 function dotColorFor(kind: MediaEventRow['kind']): string {
   switch (kind) {
-    case 'completed': return 'hsl(var(--primary))';
-    case 'started': return 'hsl(var(--secondary))';
-    case 'progress': return 'hsl(var(--secondary) / 0.6)';
-    case 'released': return 'hsl(var(--tertiary))';
-    case 'new_season': return 'hsl(var(--secondary))';
-    case 'dropped': return 'hsl(var(--destructive))';
-    case 'rating': return 'hsl(var(--secondary))';
-    default: return 'hsl(var(--muted-foreground) / 0.6)';
+    case 'completed':
+      return 'hsl(var(--primary))';
+    case 'started':
+      return 'hsl(var(--secondary))';
+    case 'progress':
+      return 'hsl(var(--secondary) / 0.6)';
+    case 'released':
+      return 'hsl(var(--tertiary))';
+    case 'new_season':
+      return 'hsl(var(--secondary))';
+    case 'dropped':
+      return 'hsl(var(--destructive))';
+    case 'rating':
+      return 'hsl(var(--secondary))';
+    default:
+      return 'hsl(var(--muted-foreground) / 0.6)';
   }
 }
 
 function eventLabel(e: MediaEventRow, type: MediaKind): string {
   const verb = type === 'book' ? 'reading' : 'watching';
   switch (e.kind) {
-    case 'added': return 'Added to library';
-    case 'started': return `Started ${verb}`;
+    case 'added':
+      return 'Added to library';
+    case 'started':
+      return `Started ${verb}`;
     case 'progress': {
       const n = watchedInRun(e);
       return type === 'show' && n > 0 ? `Watched ${n} episode${n === 1 ? '' : 's'}` : 'Progress';
     }
-    case 'released': return 'Released · moved to Pending';
-    case 'new_season': return 'New season detected';
-    case 'completed': return 'Completed';
-    case 'dropped': return 'Dropped';
-    case 'rating': return `Rated ${e.meta.rating ?? '?'}/5`;
-    default: return e.kind;
+    case 'released':
+      return 'Released · moved to Pending';
+    case 'new_season':
+      return 'New season detected';
+    case 'completed':
+      return 'Completed';
+    case 'dropped':
+      return 'Dropped';
+    case 'rating':
+      return `Rated ${e.meta.rating ?? '?'}/5`;
+    default:
+      return e.kind;
   }
 }
 
@@ -2694,16 +3071,18 @@ function formatTimelineDate(iso: string): string {
   try {
     const d = parseISO(iso);
     const ageDays = (Date.now() - d.getTime()) / 86400000;
-    return ageDays < 7
-      ? formatDistanceToNow(d, { addSuffix: true })
-      : format(d, 'MMM d, yyyy');
+    return ageDays < 7 ? formatDistanceToNow(d, { addSuffix: true }) : format(d, 'MMM d, yyyy');
   } catch {
     return iso;
   }
 }
 
 function NumberField({
-  label, value, min = 0, max, onChange,
+  label,
+  value,
+  min = 0,
+  max,
+  onChange,
 }: {
   label: string;
   value: number;
@@ -2720,7 +3099,9 @@ function NumberField({
 
 function YearField({ value, onChange }: { value: number | null; onChange: (y: number | null) => void }) {
   const [draft, setDraft] = useState(value ? String(value) : '');
-  useEffect(() => { setDraft(value ? String(value) : ''); }, [value]);
+  useEffect(() => {
+    setDraft(value ? String(value) : '');
+  }, [value]);
   return (
     <Input
       type="number"
@@ -2730,7 +3111,10 @@ function YearField({ value, onChange }: { value: number | null; onChange: (y: nu
       onChange={(e) => {
         const next = e.target.value;
         setDraft(next);
-        if (next === '') { onChange(null); return; }
+        if (next === '') {
+          onChange(null);
+          return;
+        }
         const n = parseInt(next, 10);
         if (!Number.isNaN(n)) onChange(n);
       }}
@@ -2744,17 +3128,10 @@ function YearField({ value, onChange }: { value: number | null; onChange: (y: nu
 // cumulative `episodes_watched`. This makes the progress bar accurate
 // even on the final season — being "on season 12 episode 5" of a
 // 100-episode show is 95%, not 100%.
-function ShowProgressSection({
-  form, setForm,
-}: {
-  form: FormState;
-  setForm: (next: FormState) => void;
-}) {
+function ShowProgressSection({ form, setForm }: { form: FormState; setForm: (next: FormState) => void }) {
   const knownSeasons = form.season_episodes.length > 0;
   const totalSeasons = knownSeasons ? form.season_episodes.length : form.seasons_total;
-  const totalEpisodes = knownSeasons
-    ? form.season_episodes.reduce((s, n) => s + n, 0)
-    : form.episodes_total;
+  const totalEpisodes = knownSeasons ? form.season_episodes.reduce((s, n) => s + n, 0) : form.episodes_total;
 
   // Current position. `seasons_watched` is the canonical "I'm on
   // season N" value — we derive only when it's missing (legacy rows
@@ -2792,9 +3169,7 @@ function ShowProgressSection({
     };
   }, [knownSeasons, form.season_episodes, form.episodes_watched, form.seasons_watched, form.episodes_total]);
 
-  const currentEpisode = knownSeasons
-    ? Math.max(0, form.episodes_watched - episodesBefore)
-    : form.episodes_watched;
+  const currentEpisode = knownSeasons ? Math.max(0, form.episodes_watched - episodesBefore) : form.episodes_watched;
 
   const setSeason = (s: number) => {
     if (!knownSeasons) {
@@ -2835,7 +3210,7 @@ function ShowProgressSection({
     <Section title="Watch progress">
       {knownSeasons ? (
         <>
-          <div className="text-xs font-mono label-kicker text-muted-foreground">
+          <div className="label-kicker font-mono text-xs text-muted-foreground">
             {totalSeasons} {totalSeasons === 1 ? 'season' : 'seasons'} · {totalEpisodes} total episodes
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -2860,7 +3235,12 @@ function ShowProgressSection({
             {form.episodes_watched} of {totalEpisodes} episodes watched
           </div>
           {totalEpisodes > 0 && (
-            <ProgressBar watched={form.episodes_watched} total={totalEpisodes} label="Episodes" itemStatus={form.status} />
+            <ProgressBar
+              watched={form.episodes_watched}
+              total={totalEpisodes}
+              label="Episodes"
+              itemStatus={form.status}
+            />
           )}
         </>
       ) : (
@@ -2891,7 +3271,12 @@ function ShowProgressSection({
             />
           </div>
           {form.episodes_total > 0 && (
-            <ProgressBar watched={form.episodes_watched} total={form.episodes_total} label="Episodes" itemStatus={form.status} />
+            <ProgressBar
+              watched={form.episodes_watched}
+              total={form.episodes_total}
+              label="Episodes"
+              itemStatus={form.status}
+            />
           )}
         </>
       )}
@@ -2904,7 +3289,9 @@ function ShowProgressSection({
 // full collection and shows how many of its parts the user has already
 // added. Click expands to show the part list with year + poster.
 function CollectionBadge({
-  collectionId, collectionName, currentExternalID,
+  collectionId,
+  collectionName,
+  currentExternalID,
 }: {
   collectionId: string;
   collectionName: string;
@@ -2939,35 +3326,29 @@ function CollectionBadge({
         if (!cancel) setLoading(false);
       }
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [open, collectionId, parts]);
 
   return (
     <Section title="Series">
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="chip chip-sage">
           <Film className="size-3" /> {collectionName || 'Movie series'}
         </span>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="text-xs text-primary hover:underline"
-        >
+        <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs text-primary hover:underline">
           {open ? 'Hide' : 'Show'} parts
         </button>
       </div>
       {open && (
-        <div className="rounded-md border border-border/60 bg-background/40 mt-2">
+        <div className="mt-2 rounded-md border border-border/60 bg-background/40">
           {loading && (
-            <div className="p-3 text-xs text-muted-foreground inline-flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 p-3 text-xs text-muted-foreground">
               <M3CookieLoader size="sm" tone="secondary" /> Loading collection…
             </div>
           )}
-          {!loading && error && (
-            <div className="p-3 text-xs text-destructive">
-              {error}
-            </div>
-          )}
+          {!loading && error && <div className="p-3 text-xs text-destructive">{error}</div>}
           {!loading && parts && parts.length === 0 && (
             <div className="p-3 text-xs text-muted-foreground">No additional parts found.</div>
           )}
@@ -2983,31 +3364,26 @@ function CollectionBadge({
                     key={p.external_id}
                     className={`flex items-center gap-3 px-3 py-2 text-sm ${i === 0 ? '' : 'border-t border-border/40'}`}
                   >
-                    <span className="mono text-xs text-muted-foreground w-5 tabular-nums text-right">
-                      {i + 1}
-                    </span>
+                    <span className="mono w-5 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</span>
                     {p.poster_url ? (
-                      <img src={p.poster_url} alt="" className="w-7 h-10 object-cover rounded shrink-0" />
+                      <img src={p.poster_url} alt="" className="h-10 w-7 shrink-0 rounded object-cover" />
                     ) : (
-                      <div className="w-7 h-10 rounded bg-muted shrink-0" />
+                      <div className="h-10 w-7 shrink-0 rounded bg-muted" />
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className={`truncate ${isCurrent ? 'font-medium' : ''}`}>{p.title}</div>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {releaseLabel || p.year}
-                      </div>
+                      <div className="font-mono text-xs text-muted-foreground">{releaseLabel || p.year}</div>
                     </div>
                     {upcoming && (
-                      <span className="chip chip-upcoming text-xs" title={releaseLabel ? `Upcoming ${releaseLabel}` : 'Upcoming'}>
+                      <span
+                        className="chip chip-upcoming text-xs"
+                        title={releaseLabel ? `Upcoming ${releaseLabel}` : 'Upcoming'}
+                      >
                         Upcoming
                       </span>
                     )}
-                    {isCurrent && (
-                      <span className="chip chip-amber text-xs">This movie</span>
-                    )}
-                    {!isCurrent && owned && (
-                      <span className="chip chip-sage text-xs">In library</span>
-                    )}
+                    {isCurrent && <span className="chip chip-amber text-xs">This movie</span>}
+                    {!isCurrent && owned && <span className="chip chip-sage text-xs">In library</span>}
                   </div>
                 );
               })}
@@ -3016,7 +3392,7 @@ function CollectionBadge({
         </div>
       )}
       {mine && parts && (
-        <div className="text-xs text-muted-foreground mt-1">
+        <div className="mt-1 text-xs text-muted-foreground">
           {mine.length} of {parts.length} in your library
         </div>
       )}

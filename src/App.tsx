@@ -42,10 +42,10 @@ import MediaStartupRefresh from '@/components/MediaStartupRefresh';
 
 // Redirects already-authenticated users away from /signin.
 function PublicOnly({ children }: { children: React.ReactNode }) {
-	const { user, loading } = useAuth();
-	if (loading) return null;
-	if (user) return <Navigate to="/" replace />;
-	return <>{children}</>;
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
 }
 
 // One shell for every signed-in page, Today included, so moving between
@@ -54,56 +54,59 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 // sign-in (LandingPage intentionally renders no Outlet); every other page
 // sends a signed-out visitor to /signin.
 function AppShell() {
-	const { user, loading } = useAuth();
-	const location = useLocation();
-	const home = location.pathname === '/';
-	if (loading) return home ? <AppLoader /> : <RequireAuth>{null}</RequireAuth>;
-	if (!user) return home ? <LandingPage /> : <Navigate to="/signin" state={{ from: location }} replace />;
-	return <Layout />;
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const home = location.pathname === '/';
+  if (loading) return home ? <AppLoader /> : <RequireAuth>{null}</RequireAuth>;
+  if (!user) return home ? <LandingPage /> : <Navigate to="/signin" state={{ from: location }} replace />;
+  return <Layout />;
 }
 
 // Memos is a first-class destination again. Keep the old combined Notes URL
 // as a compatibility redirect for bookmarks and installed shortcuts.
 function NotesRoute() {
-	const { search } = useLocation();
-	return new URLSearchParams(search).get('tab') === 'memos'
-		? <Navigate to="/memos" replace />
-		: <NotesPage />;
+  const { search } = useLocation();
+  return new URLSearchParams(search).get('tab') === 'memos' ? <Navigate to="/memos" replace /> : <NotesPage />;
 }
 function HabitsHub() {
-	const { search } = useLocation();
-	return new URLSearchParams(search).get('tab') === 'events' ? <EventsPage /> : <HabitsPage />;
+  const { search } = useLocation();
+  return new URLSearchParams(search).get('tab') === 'events' ? <EventsPage /> : <HabitsPage />;
 }
 function ThinkingRedirect() {
-	const { id } = useParams();
-	return <Navigate to={id ? `/projects/${id}` : '/projects'} replace />;
+  const { id } = useParams();
+  return <Navigate to={id ? `/projects/${id}` : '/projects'} replace />;
 }
 function TagRedirect() {
-	const { tag } = useParams();
-	return <Navigate to={tag ? `/analytics?tab=tags&tag=${encodeURIComponent(tag)}` : '/analytics?tab=tags'} replace />;
+  const { tag } = useParams();
+  return <Navigate to={tag ? `/analytics?tab=tags&tag=${encodeURIComponent(tag)}` : '/analytics?tab=tags'} replace />;
 }
 
 function AppLoader() {
-	return (
-		<div className="flex h-dvh items-center justify-center text-muted-foreground">
-			<M3CookieLoader size="xl" tone="primary" />
-		</div>
-	);
+  return (
+    <div className="flex h-dvh items-center justify-center text-muted-foreground">
+      <M3CookieLoader size="xl" tone="primary" />
+    </div>
+  );
 }
 
 export default function App() {
-	return (
-		<AuthProvider>
-			<ThemeProvider>
-			<TooltipProvider>
-			<TaskDetailProvider>
-				<M3Shapes />
-				<Toaster richColors closeButton position="bottom-right" offset={{ right: 'calc(var(--dock-inset, 0px) + 24px)' }} />
-				<MediaStartupRefresh />
-				<ConfirmRoot />
-				<TweaksPanel />
-				{/* prettier-ignore */}
-				<ErrorBoundary>
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <TaskDetailProvider>
+            <M3Shapes />
+            <Toaster
+              richColors
+              closeButton
+              position="bottom-right"
+              offset={{ right: 'calc(var(--dock-inset, 0px) + 24px)' }}
+            />
+            <MediaStartupRefresh />
+            <ConfirmRoot />
+            <TweaksPanel />
+            {/* prettier-ignore */}
+            <ErrorBoundary>
 				<Suspense fallback={<AppLoader />}>
 				<Routes>
           <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
@@ -150,11 +153,11 @@ export default function App() {
         </Routes>
 				</Suspense>
 				</ErrorBoundary>
-      <Analytics />
-      <SpeedInsights />
-			</TaskDetailProvider>
-			</TooltipProvider>
-			</ThemeProvider>
-		</AuthProvider>
-	);
+            <Analytics />
+            <SpeedInsights />
+          </TaskDetailProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  );
 }

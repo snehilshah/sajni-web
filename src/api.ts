@@ -72,14 +72,32 @@ export interface ThinkingProject {
 }
 
 export type ThinkingKind =
-  | 'note' | 'entity' | 'question' | 'idea' | 'reflection'
-  | 'claim' | 'fact' | 'hypothesis' | 'evidence'
-  | 'contradiction' | 'decision' | 'todo';
+  | 'note'
+  | 'entity'
+  | 'question'
+  | 'idea'
+  | 'reflection'
+  | 'claim'
+  | 'fact'
+  | 'hypothesis'
+  | 'evidence'
+  | 'contradiction'
+  | 'decision'
+  | 'todo';
 
 export type ThinkingRelation =
-  | 'supports' | 'contradicts' | 'extends' | 'depends_on' | 'refines'
-  | 'fixes' | 'refs' | 'points' | 'questions'
-  | 'exemplifies' | 'generalizes' | 'related';
+  | 'supports'
+  | 'contradicts'
+  | 'extends'
+  | 'depends_on'
+  | 'refines'
+  | 'fixes'
+  | 'refs'
+  | 'points'
+  | 'questions'
+  | 'exemplifies'
+  | 'generalizes'
+  | 'related';
 
 export interface ThinkingConnection {
   card_id: number;
@@ -120,26 +138,26 @@ export const thinking = {
   listProjects: () => request<ThinkingProject[]>('/thinking/projects'),
   createProject: (data: { title: string; description?: string }) =>
     request<{ id: number }>('/thinking/projects', { method: 'POST', body: JSON.stringify(data) }),
-  getProject: (id: number) =>
-    request<{ project: ThinkingProject; cards: ThinkingCard[] }>('/thinking/projects/' + id),
+  getProject: (id: number) => request<{ project: ThinkingProject; cards: ThinkingCard[] }>('/thinking/projects/' + id),
   updateProject: (id: number, data: { title?: string; description?: string }) =>
     request('/thinking/projects/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteProject: (id: number) =>
-    request('/thinking/projects/' + id, { method: 'DELETE' }),
+  deleteProject: (id: number) => request('/thinking/projects/' + id, { method: 'DELETE' }),
   synthesize: (id: number) =>
-    request<{ thesis: string; gap_questions: string[] }>('/thinking/projects/' + id + '/synthesize', { method: 'POST' }),
+    request<{ thesis: string; gap_questions: string[] }>('/thinking/projects/' + id + '/synthesize', {
+      method: 'POST',
+    }),
   addCard: (projectId: number, data: { kind: ThinkingKind; content: string }) =>
-    request<{ id: number }>('/thinking/projects/' + projectId + '/cards', { method: 'POST', body: JSON.stringify(data) }),
+    request<{ id: number }>('/thinking/projects/' + projectId + '/cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   updateCard: (id: number, data: { kind?: ThinkingKind; content?: string }) =>
     request('/thinking/cards/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteCard: (id: number) =>
-    request('/thinking/cards/' + id, { method: 'DELETE' }),
-  enrichCard: (id: number) =>
-    request('/thinking/cards/' + id + '/enrich', { method: 'POST' }),
+  deleteCard: (id: number) => request('/thinking/cards/' + id, { method: 'DELETE' }),
+  enrichCard: (id: number) => request('/thinking/cards/' + id + '/enrich', { method: 'POST' }),
   saveEnrichment: (id: number, enrichment: ThinkingEnrichment) =>
     request('/thinking/cards/' + id + '/enrichment', { method: 'PUT', body: JSON.stringify(enrichment) }),
-  cardEvents: (id: number) =>
-    request<ThinkingCardEvent[]>('/thinking/cards/' + id + '/events'),
+  cardEvents: (id: number) => request<ThinkingCardEvent[]>('/thinking/cards/' + id + '/events'),
   commentOnCard: (id: number, comment: string) =>
     request('/thinking/cards/' + id + '/events', { method: 'POST', body: JSON.stringify({ comment }) }),
   updateCardComment: (cardId: number, eventId: number, comment: string) =>
@@ -211,8 +229,7 @@ export const tasks = {
     recurrence?: ReminderRecurrence;
   }) => request<{ id: number }>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   get: (id: number) => request<Task>('/tasks/' + id),
-  update: (id: number, data: TaskPatch) =>
-    request('/tasks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  update: (id: number, data: TaskPatch) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/tasks/' + id, { method: 'DELETE' }),
   // Scratch = abandon-but-keep (reversible). Distinct from delete.
   scratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'scratched' }) }),
@@ -221,44 +238,42 @@ export const tasks = {
   unscratch: (id: number) => request('/tasks/' + id, { method: 'PUT', body: JSON.stringify({ status: 'todo' }) }),
   // Reschedule a (usually overdue) task. Server records the move off a past
   // day as a 'rescheduled' lifecycle entry, not a miss.
-  reschedule: (id: number, data: { target_date: string; schedule_mode?: 'preserve' | 'set' | 'clear'; scheduled_at?: string }) =>
-    request<{ id: number; due_date: string; scheduled_at: string | null }>('/tasks/' + id + '/reschedule', { method: 'POST', body: JSON.stringify(data) }),
-  reorder: (ids: number[]) =>
-    request('/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
-  subtasks: (id: number) =>
-    request<Task[]>('/tasks/' + id + '/subtasks'),
-  missed: (date: string) =>
-    request<MissedTask[]>('/tasks/missed?date=' + encodeURIComponent(date)),
-  history: (id: number) =>
-    request<TaskHistoryEntry[]>('/tasks/' + id + '/history'),
-  events: (id: number) =>
-    request<TaskEvent[]>('/tasks/' + id + '/events'),
+  reschedule: (
+    id: number,
+    data: { target_date: string; schedule_mode?: 'preserve' | 'set' | 'clear'; scheduled_at?: string },
+  ) =>
+    request<{ id: number; due_date: string; scheduled_at: string | null }>('/tasks/' + id + '/reschedule', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  reorder: (ids: number[]) => request('/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  subtasks: (id: number) => request<Task[]>('/tasks/' + id + '/subtasks'),
+  missed: (date: string) => request<MissedTask[]>('/tasks/missed?date=' + encodeURIComponent(date)),
+  history: (id: number) => request<TaskHistoryEntry[]>('/tasks/' + id + '/history'),
+  events: (id: number) => request<TaskEvent[]>('/tasks/' + id + '/events'),
   // Multiple reminders: arbitrary instants, independent of the task's time.
-  reminders: (id: number) =>
-    request<TaskReminder[]>('/tasks/' + id + '/reminders'),
+  reminders: (id: number) => request<TaskReminder[]>('/tasks/' + id + '/reminders'),
   addReminder: (id: number, remind_at: string) =>
     request<{ id: number }>('/tasks/' + id + '/reminders', { method: 'POST', body: JSON.stringify({ remind_at }) }),
-  deleteReminder: (id: number, rid: number) =>
-    request('/tasks/' + id + '/reminders/' + rid, { method: 'DELETE' }),
+  deleteReminder: (id: number, rid: number) => request('/tasks/' + id + '/reminders/' + rid, { method: 'DELETE' }),
   // Images attached to the task (the API takes images only).
-  attachments: (id: number) =>
-    request<TaskAttachment[]>('/tasks/' + id + '/attachments'),
+  attachments: (id: number) => request<TaskAttachment[]>('/tasks/' + id + '/attachments'),
   attach: async (id: number, file: File): Promise<TaskAttachment> => {
     const form = new FormData();
     form.append('file', file);
     const res = await authFetch('/tasks/' + id + '/attachments', { method: 'POST', body: form });
     if (!res.ok) {
-      const body = await res.json().catch(() => null) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(body?.error || "Couldn't attach the image");
     }
     return res.json();
   },
-  removeAttachment: (id: number, aid: number) =>
-    request('/tasks/' + id + '/attachments/' + aid, { method: 'DELETE' }),
+  removeAttachment: (id: number, aid: number) => request('/tasks/' + id + '/attachments/' + aid, { method: 'DELETE' }),
 };
 
 export const planner = {
-  range: (from: string, to: string) => request<PlannerResponse>(`/planner?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  range: (from: string, to: string) =>
+    request<PlannerResponse>(`/planner?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
 };
 
 export const reminders = {
@@ -273,8 +288,7 @@ export const reminders = {
   recent: (limit = 30, offset = 0) =>
     request<ReminderHistoryItem[]>(`/reminders/recent?limit=${limit}&offset=${offset}`),
   get: (id: number) => request<Reminder>(`/reminders/${id}`),
-  create: (data: ReminderInput) =>
-    request<Reminder>('/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: ReminderInput) => request<Reminder>('/reminders', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: number, data: ReminderInput) =>
     request<Reminder>(`/reminders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request(`/reminders/${id}`, { method: 'DELETE' }),
@@ -292,7 +306,10 @@ export const plans = {
     request<PlanCandidateGroup[]>(`/plans/${id}/candidates?date=${encodeURIComponent(date)}`),
   /** Pulls an existing task into the plan's occurrence on date. */
   addTask: (id: number, taskId: number, date: string) =>
-    request<{ date: string }>(`/plans/${id}/tasks`, { method: 'POST', body: JSON.stringify({ task_id: taskId, date }) }),
+    request<{ date: string }>(`/plans/${id}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({ task_id: taskId, date }),
+    }),
   create: (data: PlanInput) => request<Plan>('/plans', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: number, data: PlanInput) => request<Plan>(`/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request(`/plans/${id}`, { method: 'DELETE' }),
@@ -327,8 +344,7 @@ export const taskLists = {
   update: (id: number, data: { name?: string; color?: string; icon?: string }) =>
     request('/task-lists/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/task-lists/' + id, { method: 'DELETE' }),
-  reorder: (ids: number[]) =>
-    request('/task-lists/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  reorder: (ids: number[]) => request('/task-lists/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
 };
 
 export interface MissedTask {
@@ -352,19 +368,17 @@ export const habits = {
   list: () => request<Habit[]>('/habits'),
   create: (data: { name: string; frequency?: string; color?: string }) =>
     request<{ id: number }>('/habits', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: HabitPatch) =>
-    request('/habits/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  update: (id: number, data: HabitPatch) => request('/habits/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/habits/' + id, { method: 'DELETE' }),
   toggleLog: (id: number) => request<{ logged: boolean }>('/habits/' + id + '/log', { method: 'POST' }),
-  toggleLogForDate: (id: number, date: string) => request<{ logged: boolean }>('/habits/' + id + '/log/' + date, { method: 'POST' }),
+  toggleLogForDate: (id: number, date: string) =>
+    request<{ logged: boolean }>('/habits/' + id + '/log/' + date, { method: 'POST' }),
   togglePeriod: (id: number, date: string) =>
-    request<{ logged: boolean; period_start: string; period_end: string }>(
-      '/habits/' + id + '/period/' + date,
-      { method: 'POST' },
-    ),
+    request<{ logged: boolean; period_start: string; period_end: string }>('/habits/' + id + '/period/' + date, {
+      method: 'POST',
+    }),
   statusForDate: (date: string) => request<HabitStatus[]>('/habits/status?date=' + date),
-  periodStatusForDate: (date: string) =>
-    request<HabitStatus[]>('/habits/period-status?date=' + date),
+  periodStatusForDate: (date: string) => request<HabitStatus[]>('/habits/period-status?date=' + date),
   getLogs: (id: number, days = 30) => request<string[]>('/habits/' + id + '/logs?days=' + days),
   // All habits' logged dates in one call, keyed by habit id. Avoids the
   // per-habit N+1 on the Today page.
@@ -404,14 +418,11 @@ export const events = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateVariable: (
-    eventId: number,
-    variableId: number,
-    data: { name?: string; unit?: string; sort_order?: number },
-  ) => request<TrackedEventVariable>(`/events/${eventId}/variables/${variableId}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+  updateVariable: (eventId: number, variableId: number, data: { name?: string; unit?: string; sort_order?: number }) =>
+    request<TrackedEventVariable>(`/events/${eventId}/variables/${variableId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   deleteVariable: (eventId: number, variableId: number) =>
     request(`/events/${eventId}/variables/${variableId}`, { method: 'DELETE' }),
   entries: (
@@ -442,8 +453,7 @@ export const events = {
   deleteEntry: (eventId: number, entryId: number) =>
     request(`/events/${eventId}/entries/${entryId}`, { method: 'DELETE' }),
   trends: (eventId: number) => request<TrackedEventTrends>(`/events/${eventId}/trends`),
-  entriesForDate: (date: string) =>
-    request<TrackedEventDayEntry[]>(`/events/entries?date=${encodeURIComponent(date)}`),
+  entriesForDate: (date: string) => request<TrackedEventDayEntry[]>(`/events/entries?date=${encodeURIComponent(date)}`),
 };
 
 // --- Media ---
@@ -495,10 +505,8 @@ export const media = {
     const qs = q.toString();
     return request<MediaEntry[]>('/media' + (qs ? '?' + qs : ''));
   },
-  create: (data: MediaPatch) =>
-    request<{ id: number }>('/media', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: MediaPatch) =>
-    request('/media/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  create: (data: MediaPatch) => request<{ id: number }>('/media', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: MediaPatch) => request('/media/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number) => request('/media/' + id, { method: 'DELETE' }),
   refresh: () => request<MediaRefreshResult>('/media/refresh', { method: 'POST' }),
   search: (query: string, type: string, signal?: AbortSignal) => {
@@ -507,10 +515,8 @@ export const media = {
   },
   details: (externalId: string) =>
     request<MediaDetails>('/media/details?external_id=' + encodeURIComponent(externalId)),
-  collection: (id: string) =>
-    request<CollectionPayload>('/media/collection?id=' + encodeURIComponent(id)),
-  events: (id: number) =>
-    request<MediaEventRow[]>('/media/' + id + '/events'),
+  collection: (id: string) => request<CollectionPayload>('/media/collection?id=' + encodeURIComponent(id)),
+  events: (id: number) => request<MediaEventRow[]>('/media/' + id + '/events'),
 };
 
 // --- Bookmarks ---
@@ -647,11 +653,7 @@ export interface MonthlySummary {
 export const journal = {
   list: () => request<JournalEntry[]>('/journal'),
   get: (date: string) => request<JournalEntry>('/journal/' + date),
-  save: (
-    date: string,
-    content: string,
-    location?: JournalLocation | null,
-  ) =>
+  save: (date: string, content: string, location?: JournalLocation | null) =>
     request('/journal/' + date, {
       method: 'PUT',
       body: JSON.stringify({
@@ -666,33 +668,27 @@ export const journal = {
   // --- Weekly entry. Same shape as daily but keyed by ISO year + week. ---
   week: {
     list: () => request<WeeklyEntry[]>('/journal/weeks'),
-    get: (year: number, week: number) =>
-      request<WeeklyEntry>(`/journal/week/${year}/${week}`),
+    get: (year: number, week: number) => request<WeeklyEntry>(`/journal/week/${year}/${week}`),
     save: (year: number, week: number, content: string) =>
       request(`/journal/week/${year}/${week}`, {
         method: 'PUT',
         body: JSON.stringify({ content }),
       }),
-    delete: (year: number, week: number) =>
-      request(`/journal/week/${year}/${week}`, { method: 'DELETE' }),
-    summary: (year: number, week: number) =>
-      request<WeeklySummary>(`/journal/week/${year}/${week}/summary`),
+    delete: (year: number, week: number) => request(`/journal/week/${year}/${week}`, { method: 'DELETE' }),
+    summary: (year: number, week: number) => request<WeeklySummary>(`/journal/week/${year}/${week}/summary`),
   },
 
   // --- Monthly entry. Same shape as weekly but keyed by calendar year + month. ---
   month: {
     list: () => request<MonthlyEntry[]>('/journal/months'),
-    get: (year: number, month: number) =>
-      request<MonthlyEntry>(`/journal/month/${year}/${month}`),
+    get: (year: number, month: number) => request<MonthlyEntry>(`/journal/month/${year}/${month}`),
     save: (year: number, month: number, content: string) =>
       request(`/journal/month/${year}/${month}`, {
         method: 'PUT',
         body: JSON.stringify({ content }),
       }),
-    delete: (year: number, month: number) =>
-      request(`/journal/month/${year}/${month}`, { method: 'DELETE' }),
-    summary: (year: number, month: number) =>
-      request<MonthlySummary>(`/journal/month/${year}/${month}/summary`),
+    delete: (year: number, month: number) => request(`/journal/month/${year}/${month}`, { method: 'DELETE' }),
+    summary: (year: number, month: number) => request<MonthlySummary>(`/journal/month/${year}/${month}/summary`),
   },
 };
 
@@ -708,21 +704,35 @@ export const notes = {
   },
   get: (id: number) => request<Note>('/notes/' + id),
   create: (title: string, content: string, folder?: string, description?: string) =>
-    request<{ id: number; folder: string; title: string; tags: string[]; created_at: string; updated_at: string }>('/notes', { method: 'POST', body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }) }),
+    request<{ id: number; folder: string; title: string; tags: string[]; created_at: string; updated_at: string }>(
+      '/notes',
+      {
+        method: 'POST',
+        body: JSON.stringify({ title, content, folder: folder || '', description: description || '' }),
+      },
+    ),
   /** `tags` comes back only when the content was sent. */
-  update: (id: number, data: { title?: string; content?: string; folder?: string; description?: string; pinned?: boolean }) =>
-    request<{ folder: string; title: string; updated_at?: string; tags?: string[] }>('/notes/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  update: (
+    id: number,
+    data: { title?: string; content?: string; folder?: string; description?: string; pinned?: boolean },
+  ) =>
+    request<{ folder: string; title: string; updated_at?: string; tags?: string[] }>('/notes/' + id, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   delete: (id: number) => request('/notes/' + id, { method: 'DELETE' }),
   // Folders
   listFolders: () => request<NoteFolder[]>('/notes/folders'),
   createFolder: (path: string) =>
     request<{ path: string }>('/notes/folders', { method: 'POST', body: JSON.stringify({ path }) }),
-  deleteFolder: (path: string) =>
-    request('/notes/folders', { method: 'DELETE', body: JSON.stringify({ path }) }),
+  deleteFolder: (path: string) => request('/notes/folders', { method: 'DELETE', body: JSON.stringify({ path }) }),
   renameFolder: (from: string, to: string) =>
     request('/notes/folders/rename', { method: 'POST', body: JSON.stringify({ from, to }) }),
   pinFolder: (path: string, pinned: boolean) =>
-    request<{ path: string; pinned: boolean }>('/notes/folders/pin', { method: 'POST', body: JSON.stringify({ path, pinned }) }),
+    request<{ path: string; pinned: boolean }>('/notes/folders/pin', {
+      method: 'POST',
+      body: JSON.stringify({ path, pinned }),
+    }),
 };
 
 // --- Uploads ---
@@ -732,7 +742,7 @@ export const uploads = {
     form.append('file', file);
     const res = await authFetch('/uploads', { method: 'POST', body: form });
     if (!res.ok) {
-      const body = await res.json().catch(() => null) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(body?.error || "Couldn't upload the image");
     }
     return res.json();
@@ -770,7 +780,8 @@ export interface ConnectRequest {
 }
 export const connectedApps = {
   list: () => request<ConnectedApp[]>('/connected-apps'),
-  remove: (id: string) => request<{ status: string }>(`/connected-apps/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  remove: (id: string) =>
+    request<{ status: string }>(`/connected-apps/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   /** `query` is the authorize page's own query string, passed through as is. */
   check: (query: string) => request<ConnectRequest>(`/oauth/request${query}`),
   decide: (query: string, allow: boolean, write: boolean) =>
@@ -805,13 +816,10 @@ export const account = {
     return res.json();
   },
   scheduleDelete: () =>
-    request<{ status: string; purge_after: string; grace_duration: string }>(
-      '/account/delete', { method: 'POST' }),
-  cancelDelete: () =>
-    request<{ status: string }>('/account/cancel-delete', { method: 'POST' }),
+    request<{ status: string; purge_after: string; grace_duration: string }>('/account/delete', { method: 'POST' }),
+  cancelDelete: () => request<{ status: string }>('/account/cancel-delete', { method: 'POST' }),
   deletionStatus: () =>
-    request<{ scheduled: boolean; deleted_at?: string; purge_after?: string }>(
-      '/account/deletion-status'),
+    request<{ scheduled: boolean; deleted_at?: string; purge_after?: string }>('/account/deletion-status'),
 };
 
 // --- Links ---
@@ -819,8 +827,7 @@ export const links = {
   // Server-side title fetch (CORS blocks the browser). Returns the page
   // title so the editor can turn a bare URL into a [title](url) link.
   preview: (url: string) =>
-    request<{ url: string; title: string; host: string }>(
-      '/links/preview?url=' + encodeURIComponent(url)),
+    request<{ url: string; title: string; host: string }>('/links/preview?url=' + encodeURIComponent(url)),
 };
 
 // --- Tags ---
@@ -880,8 +887,19 @@ export interface FinTransaction {
    *  borrow = money in the user owes back (not income); borrow_repayment =
    *  paying it back (not spending); owed = a debt from before Sajni (no money
    *  moved, either way); netoff = two debts closed against each other. */
-  type: 'expense' | 'income' | 'transfer_in' | 'transfer_out' | 'lend' | 'lend_repayment' | 'refund' | 'writeoff'
-    | 'borrow' | 'borrow_repayment' | 'owed' | 'netoff';
+  type:
+    | 'expense'
+    | 'income'
+    | 'transfer_in'
+    | 'transfer_out'
+    | 'lend'
+    | 'lend_repayment'
+    | 'refund'
+    | 'writeoff'
+    | 'borrow'
+    | 'borrow_repayment'
+    | 'owed'
+    | 'netoff';
   /** On a split bill, the user's own part; the charge is amount + split.share. */
   amount: number;
   description: string;
@@ -948,7 +966,16 @@ export interface FinAnalytics {
   projected: number | null;
   cumulative: { day: number; this: number | null; last: number; usual: number | null }[];
   daily: { day: number; spent: number }[];
-  categories: { id: number | null; name: string; color: string; spent: number; count: number; share: number; usual: number | null; change: number | null }[];
+  categories: {
+    id: number | null;
+    name: string;
+    color: string;
+    spent: number;
+    count: number;
+    share: number;
+    usual: number | null;
+    change: number | null;
+  }[];
   merchants: { name: string; spent: number; count: number; avg: number }[];
   largest: FinAnalyticsTxn[];
   unusual: FinAnalyticsTxn[];
@@ -956,8 +983,14 @@ export interface FinAnalytics {
 }
 
 export interface FinAnalyticsTxn {
-  id: number; title: string; amount: number; date: string;
-  category: string; color: string; slate?: string; reason?: string;
+  id: number;
+  title: string;
+  amount: number;
+  date: string;
+  category: string;
+  color: string;
+  slate?: string;
+  reason?: string;
 }
 
 export interface FinTxnSettlement {
@@ -1270,24 +1303,26 @@ export interface FinStatement {
   paid_at: string | null;
 }
 
-export type AccountDraft = Partial<Pick<
-  FinAccount,
-  | 'name'
-  | 'type'
-  | 'institution'
-  | 'currency'
-  | 'opening_balance'
-  | 'credit_limit'
-  | 'statement_day'
-  | 'due_day'
-  | 'cashback_type'
-  | 'cashback_value'
-  | 'salary_amount'
-  | 'salary_day'
-  | 'match_hints'
-  | 'color'
-  | 'archived'
->>;
+export type AccountDraft = Partial<
+  Pick<
+    FinAccount,
+    | 'name'
+    | 'type'
+    | 'institution'
+    | 'currency'
+    | 'opening_balance'
+    | 'credit_limit'
+    | 'statement_day'
+    | 'due_day'
+    | 'cashback_type'
+    | 'cashback_value'
+    | 'salary_amount'
+    | 'salary_day'
+    | 'match_hints'
+    | 'color'
+    | 'archived'
+  >
+>;
 
 /** The three kinds the transaction sheet toggles between. A lend is an
  *  expense split with someone for all of it; a refund is income marked so. */
@@ -1330,10 +1365,9 @@ export interface TxnDraft {
   pay_back_to?: string;
 }
 
-export type TxnPatch = Partial<Pick<
-  FinTransaction,
-  'account_id' | 'category_id' | 'amount' | 'description' | 'note' | 'txn_at'
->> & {
+export type TxnPatch = Partial<
+  Pick<FinTransaction, 'account_id' | 'category_id' | 'amount' | 'description' | 'note' | 'txn_at'>
+> & {
   /** 0 → Plain; N → that slate; omitted → untouched. */
   slate_id?: number;
   /** Refund only: 0 clears. */
@@ -1358,22 +1392,24 @@ export interface BudgetDraft {
 
 export type BudgetPatch = Partial<BudgetDraft>;
 
-export type InvDraft = Partial<Pick<
-  FinInvestment,
-  | 'name'
-  | 'type'
-  | 'account_id'
-  | 'invested_amount'
-  | 'current_value'
-  | 'monthly_amount'
-  | 'frequency'
-  | 'start_date'
-  | 'maturity_date'
-  | 'expected_return'
-  | 'notes'
-  | 'auto_debit'
-  | 'next_debit_date'
->>;
+export type InvDraft = Partial<
+  Pick<
+    FinInvestment,
+    | 'name'
+    | 'type'
+    | 'account_id'
+    | 'invested_amount'
+    | 'current_value'
+    | 'monthly_amount'
+    | 'frequency'
+    | 'start_date'
+    | 'maturity_date'
+    | 'expected_return'
+    | 'notes'
+    | 'auto_debit'
+    | 'next_debit_date'
+  >
+>;
 
 export interface StmtDraft {
   statement_date: string;
@@ -1394,8 +1430,7 @@ export const finance = {
     request<{ id: number }>('/finance/accounts', { method: 'POST', body: JSON.stringify(data) }),
   updateAccount: (id: number, data: AccountDraft) =>
     request('/finance/accounts/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteAccount: (id: number) =>
-    request('/finance/accounts/' + id, { method: 'DELETE' }),
+  deleteAccount: (id: number) => request('/finance/accounts/' + id, { method: 'DELETE' }),
 
   // Categories
   listCategories: (kind?: 'income' | 'expense') =>
@@ -1404,11 +1439,19 @@ export const finance = {
     request<{ id: number }>('/finance/categories', { method: 'POST', body: JSON.stringify(data) }),
   updateCategory: (id: number, data: Partial<FinCategory>) =>
     request('/finance/categories/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteCategory: (id: number) =>
-    request('/finance/categories/' + id, { method: 'DELETE' }),
+  deleteCategory: (id: number) => request('/finance/categories/' + id, { method: 'DELETE' }),
 
   // Transactions
-  listTransactions: (params?: { account_id?: number; category_id?: number; type?: string; from?: string; to?: string; search?: string; limit?: number; slate_id?: number }) => {
+  listTransactions: (params?: {
+    account_id?: number;
+    category_id?: number;
+    type?: string;
+    from?: string;
+    to?: string;
+    search?: string;
+    limit?: number;
+    slate_id?: number;
+  }) => {
     const q = new URLSearchParams();
     if (params?.account_id) q.set('account_id', String(params.account_id));
     if (params?.category_id) q.set('category_id', String(params.category_id));
@@ -1425,8 +1468,7 @@ export const finance = {
     request<{ id: number }>('/finance/transactions', { method: 'POST', body: JSON.stringify(data) }),
   updateTransaction: (id: number, data: TxnPatch) =>
     request('/finance/transactions/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteTransaction: (id: number) =>
-    request('/finance/transactions/' + id, { method: 'DELETE' }),
+  deleteTransaction: (id: number) => request('/finance/transactions/' + id, { method: 'DELETE' }),
   // Titles used before that start with q (or have a word that does), most
   // used first, each with its latest account, category and amount.
   suggestTitles: (q: string, type: 'expense' | 'income', signal?: AbortSignal) =>
@@ -1435,7 +1477,8 @@ export const finance = {
   // (an Amazon Pay top-up, cash handed back by UPI): make it a transfer.
   makeTransfer: (id: number, accountId: number, description?: string) =>
     request<{ id: number; pair_id: number }>('/finance/transactions/' + id + '/transfer', {
-      method: 'POST', body: JSON.stringify({ account_id: accountId, ...(description ? { description } : {}) }),
+      method: 'POST',
+      body: JSON.stringify({ account_id: accountId, ...(description ? { description } : {}) }),
     }),
 
   // Lending receivables. Principal moves out of/in to real accounts while
@@ -1443,10 +1486,15 @@ export const finance = {
   listLends: () => request<FinLend[]>('/finance/lends'),
   createLend: (data: LendDraft) =>
     request<{ id: number; transaction_id: number }>('/finance/lends', { method: 'POST', body: JSON.stringify(data) }),
-  updateLend: (id: number, data: Pick<FinLend, 'borrower' | 'description' | 'note' | 'remind' | 'source_account_id'> & { amount: number; lent_at: string; due_date: string }) =>
-    request('/finance/lends/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteLend: (id: number) =>
-    request('/finance/lends/' + id, { method: 'DELETE' }),
+  updateLend: (
+    id: number,
+    data: Pick<FinLend, 'borrower' | 'description' | 'note' | 'remind' | 'source_account_id'> & {
+      amount: number;
+      lent_at: string;
+      due_date: string;
+    },
+  ) => request('/finance/lends/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteLend: (id: number) => request('/finance/lends/' + id, { method: 'DELETE' }),
   listLendPeople: () => request<FinLendPerson[]>('/finance/lends/people'),
   /** Keyset-paged pickers: paid_for = plain expenses, settle = plain credits. */
   lendCandidates: (kind: 'paid_for' | 'settle', p: { q?: string; account_id?: number; cursor?: string }) => {
@@ -1458,20 +1506,33 @@ export const finance = {
   },
   /** due_date omitted → card-cycle due date (cards only). */
   /** share (one transaction): their part of the bill; the rest stays the user's. */
-  markPaidFor: (data: { borrower?: string; transaction_ids: number[]; due_date?: string; remind?: boolean; share?: number; shares?: { borrower: string; share: number }[] }) =>
-    request<{ lend_ids: number[] }>('/finance/lends/paid-for', { method: 'POST', body: JSON.stringify(data) }),
+  markPaidFor: (data: {
+    borrower?: string;
+    transaction_ids: number[];
+    due_date?: string;
+    remind?: boolean;
+    share?: number;
+    shares?: { borrower: string; share: number }[];
+  }) => request<{ lend_ids: number[] }>('/finance/lends/paid-for', { method: 'POST', body: JSON.stringify(data) }),
   /** lend_id: the lend these were for; omitted = the person's overall total. */
   settleLends: (data: { borrower: string; transaction_ids: number[]; lend_id?: number }) =>
     request('/finance/lends/settle', { method: 'POST', body: JSON.stringify(data) }),
   /** Re-point a payment: toward a lend, or null for the overall total. */
   setSettlementLend: (id: number, lendId: number | null) =>
     request('/finance/lends/settlements/' + id, { method: 'PUT', body: JSON.stringify({ lend_id: lendId }) }),
-  deleteLendSettlement: (id: number) =>
-    request('/finance/lends/settlements/' + id, { method: 'DELETE' }),
+  deleteLendSettlement: (id: number) => request('/finance/lends/settlements/' + id, { method: 'DELETE' }),
   /** Money the user owes: a new debt (borrowed into an account, or owed from
    *  before Sajni with no_money_moved). */
-  createOwed: (data: { person: string; account_id: number; amount: number; description?: string; note?: string; at?: string; due_date?: string; no_money_moved?: boolean }) =>
-    request<{ transaction_id: number }>('/finance/owed', { method: 'POST', body: JSON.stringify(data) }),
+  createOwed: (data: {
+    person: string;
+    account_id: number;
+    amount: number;
+    description?: string;
+    note?: string;
+    at?: string;
+    due_date?: string;
+    no_money_moved?: boolean;
+  }) => request<{ transaction_id: number }>('/finance/owed', { method: 'POST', body: JSON.stringify(data) }),
   /** Existing income → money owed back to person. */
   markBorrow: (data: { transaction_id: number; person: string; due_date?: string }) =>
     request('/finance/owed/borrow', { method: 'POST', body: JSON.stringify(data) }),
@@ -1484,25 +1545,37 @@ export const finance = {
   setOwedDue: (id: number, dueDate: string) =>
     request('/finance/owed/' + id, { method: 'PUT', body: JSON.stringify({ due_date: dueDate }) }),
   /** Undo: a borrow → income, a payment → expense; owed rows and net-offs go. */
-  deleteOwed: (id: number) =>
-    request('/finance/owed/' + id, { method: 'DELETE' }),
+  deleteOwed: (id: number) => request('/finance/owed/' + id, { method: 'DELETE' }),
   /** Write off up to what a person owes: spending on that day, no money moves. */
-  forgiveLends: (data: { borrower: string; amount: number; category_id?: number | null; forgiven_at?: string; note?: string; lend_id?: number }) =>
-    request<{ transaction_id: number }>('/finance/lends/forgive', { method: 'POST', body: JSON.stringify(data) }),
+  forgiveLends: (data: {
+    borrower: string;
+    amount: number;
+    category_id?: number | null;
+    forgiven_at?: string;
+    note?: string;
+    lend_id?: number;
+  }) => request<{ transaction_id: number }>('/finance/lends/forgive', { method: 'POST', body: JSON.stringify(data) }),
   // AI category inference. Returns { category_id, category_name } where
   // category_id is null when no existing category matched (falls back
   // to "Others"). 429 means the user has exhausted their AI quota.
   // Parse a shared bank/UPI message into transaction fields (PWA share target).
   parseMessage: (text: string) =>
-    request<{ amount: number; type: 'expense' | 'income'; description: string; note: string; txn_at: string; account_hint: string; account_id: number | null; category_id: number | null; category_name: string }>(
-      '/finance/parse-message',
-      { method: 'POST', body: JSON.stringify({ text }) },
-    ),
+    request<{
+      amount: number;
+      type: 'expense' | 'income';
+      description: string;
+      note: string;
+      txn_at: string;
+      account_hint: string;
+      account_id: number | null;
+      category_id: number | null;
+      category_name: string;
+    }>('/finance/parse-message', { method: 'POST', body: JSON.stringify({ text }) }),
   categorizeTransaction: (data: { title: string; kind: 'expense' | 'income' }) =>
-    request<{ category_id: number | null; category_name: string }>(
-      '/finance/categorize',
-      { method: 'POST', body: JSON.stringify(data) },
-    ),
+    request<{ category_id: number | null; category_name: string }>('/finance/categorize', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // Slates
   /** Always includes archived slates. There are only ever a handful, so the
@@ -1522,10 +1595,10 @@ export const finance = {
   /** The retroactive sweep. `slateId` 0 = Plain (back to normal life). Transfer
    *  legs follow their partner, so `moved` can exceed `ids.length`. */
   moveTransactionsToSlate: (ids: number[], slateId: number) =>
-    request<{ moved: number; slate_id: number; slate_name: string }>(
-      '/finance/transactions/move-slate',
-      { method: 'POST', body: JSON.stringify({ transaction_ids: ids, slate_id: slateId }) },
-    ),
+    request<{ moved: number; slate_id: number; slate_name: string }>('/finance/transactions/move-slate', {
+      method: 'POST',
+      body: JSON.stringify({ transaction_ids: ids, slate_id: slateId }),
+    }),
 
   // Budgets
   listBudgets: () => request<FinBudget[]>('/finance/budgets'),
@@ -1533,8 +1606,7 @@ export const finance = {
     request<{ id: number }>('/finance/budgets', { method: 'POST', body: JSON.stringify(data) }),
   updateBudget: (id: number, data: BudgetPatch) =>
     request('/finance/budgets/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteBudget: (id: number) =>
-    request('/finance/budgets/' + id, { method: 'DELETE' }),
+  deleteBudget: (id: number) => request('/finance/budgets/' + id, { method: 'DELETE' }),
 
   // Investments
   listInvestments: () => request<FinInvestment[]>('/finance/investments'),
@@ -1542,8 +1614,7 @@ export const finance = {
     request<{ id: number }>('/finance/investments', { method: 'POST', body: JSON.stringify(data) }),
   updateInvestment: (id: number, data: InvDraft) =>
     request('/finance/investments/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteInvestment: (id: number) =>
-    request('/finance/investments/' + id, { method: 'DELETE' }),
+  deleteInvestment: (id: number) => request('/finance/investments/' + id, { method: 'DELETE' }),
 
   // Virtual savings
   listSavings: (account_id?: number) =>
@@ -1552,26 +1623,38 @@ export const finance = {
     request<{ id: number }>('/finance/savings', { method: 'POST', body: JSON.stringify(data) }),
   updateSaving: (id: number, data: Partial<FinSaving>) =>
     request('/finance/savings/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteSaving: (id: number) =>
-    request('/finance/savings/' + id, { method: 'DELETE' }),
+  deleteSaving: (id: number) => request('/finance/savings/' + id, { method: 'DELETE' }),
 
   // Card statements
   listStatements: (account_id?: number) =>
     request<FinStatement[]>('/finance/cards/statements' + (account_id ? '?account_id=' + account_id : '')),
-  previewStatement: (account_id: number, data: Pick<StmtDraft, 'statement_date'> & Partial<Pick<StmtDraft, 'amount_due' | 'new_charges' | 'cashback_earned'>>) =>
-    request<{ statement_date: string; due_date: string; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; payments: number; lend_charges: number }>(
-      '/finance/cards/' + account_id + '/statement-preview',
-      { method: 'POST', body: JSON.stringify(data) },
-    ),
+  previewStatement: (
+    account_id: number,
+    data: Pick<StmtDraft, 'statement_date'> &
+      Partial<Pick<StmtDraft, 'amount_due' | 'new_charges' | 'cashback_earned'>>,
+  ) =>
+    request<{
+      statement_date: string;
+      due_date: string;
+      amount_due: number;
+      new_charges: number;
+      previous_balance: number;
+      cashback_earned: number;
+      payments: number;
+      lend_charges: number;
+    }>('/finance/cards/' + account_id + '/statement-preview', { method: 'POST', body: JSON.stringify(data) }),
   createStatement: (account_id: number, data: StmtDraft) =>
-    request<{ id: number; amount_due: number; new_charges: number; previous_balance: number; cashback_earned: number; lend_charges: number }>(
-      '/finance/cards/' + account_id + '/statements',
-      { method: 'POST', body: JSON.stringify(data) },
-    ),
+    request<{
+      id: number;
+      amount_due: number;
+      new_charges: number;
+      previous_balance: number;
+      cashback_earned: number;
+      lend_charges: number;
+    }>('/finance/cards/' + account_id + '/statements', { method: 'POST', body: JSON.stringify(data) }),
   updateStatement: (id: number, data: StmtPatch) =>
     request('/finance/cards/statements/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteStatement: (id: number) =>
-    request('/finance/cards/statements/' + id, { method: 'DELETE' }),
+  deleteStatement: (id: number) => request('/finance/cards/statements/' + id, { method: 'DELETE' }),
 
   // Billers / subscriptions
   listBillers: (includeArchived = false) =>
@@ -1580,68 +1663,76 @@ export const finance = {
     request<{ id: number }>('/finance/billers', { method: 'POST', body: JSON.stringify(data) }),
   updateBiller: (id: number, data: Partial<FinBiller>) =>
     request('/finance/billers/' + id, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteBiller: (id: number) =>
-    request('/finance/billers/' + id, { method: 'DELETE' }),
+  deleteBiller: (id: number) => request('/finance/billers/' + id, { method: 'DELETE' }),
   /** Record mode (default) posts a txn; attach mode (attach_txn_ids) links
    *  existing txns and posts nothing. already_paid=true = cycle recorded before. */
   /** due_date: the cycle shown, so a second tap can't pay the next one too. */
-  payBiller: (id: number, data?: { paid_date?: string; due_date?: string; amount?: number; attach_txn_ids?: number[] }) =>
+  payBiller: (
+    id: number,
+    data?: { paid_date?: string; due_date?: string; amount?: number; attach_txn_ids?: number[] },
+  ) =>
     request<{ status: string; txn_id: number; already_paid: boolean; next_due_date: string }>(
       '/finance/billers/' + id + '/pay',
       { method: 'POST', body: JSON.stringify(data || {}) },
     ),
-  listBillerPayments: (id: number) =>
-    request<FinBillerPayment[]>('/finance/billers/' + id + '/payments'),
+  listBillerPayments: (id: number) => request<FinBillerPayment[]>('/finance/billers/' + id + '/payments'),
   /** Undo one recorded cycle: it's due again; its transactions stay. */
   unlinkBillerPayment: (id: number, paymentId: number) =>
-    request<{ status: string; next_due_date: string }>('/finance/billers/' + id + '/payments/' + paymentId, { method: 'DELETE' }),
+    request<{ status: string; next_due_date: string }>('/finance/billers/' + id + '/payments/' + paymentId, {
+      method: 'DELETE',
+    }),
   /** Things paid (or received) monthly that aren't recurring items yet. */
   recurringSuggestions: () => request<FinRecurringSuggestion[]>('/finance/billers/suggestions'),
   dismissRecurringSuggestion: (key: string) =>
     request('/finance/billers/suggestions/dismiss', { method: 'POST', body: JSON.stringify({ key }) }),
   listBillerAlerts: (unseenOnly = false) =>
     request<FinBillerAlert[]>('/finance/billers/alerts' + (unseenOnly ? '?unseen=true' : '')),
-  markBillerAlertSeen: (id: number) =>
-    request('/finance/billers/alerts/' + id + '/seen', { method: 'POST' }),
+  markBillerAlertSeen: (id: number) => request('/finance/billers/alerts/' + id + '/seen', { method: 'POST' }),
 
   // Overview
-  overview: () => request<{
-    net_worth: number;
-    total_assets: number;
-    total_liabilities: number;
-    investments_total: number;
-    money_lent_total: number;
-    month_income: number;
-    month_expense: number;
-    month_savings: number;
-    month_recurring_invest: number;
-    accounts: { account_id: number; name: string; type: string; balance: number; color: string }[];
-    top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
-    daily_trend: { date: string; income: number; expense: number }[];
-    upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
-    upcoming_bills: { id: number; name: string; amount: number; due_date: string; account_name: string | null; kind: BillerKind; auto_renew: boolean }[];
-    investments_breakdown: { type: string; amount: number }[];
-    investment_assets?: { id: number; name: string; type: string; amount: number }[];
-    lends_breakdown?: { id: number; borrower: string; description: string; outstanding: number }[];
-    money_owed_total?: number;
-    owed_breakdown?: { person: string; amount: number }[];
-  }>('/finance/overview'),
+  overview: () =>
+    request<{
+      net_worth: number;
+      total_assets: number;
+      total_liabilities: number;
+      investments_total: number;
+      money_lent_total: number;
+      month_income: number;
+      month_expense: number;
+      month_savings: number;
+      month_recurring_invest: number;
+      accounts: { account_id: number; name: string; type: string; balance: number; color: string }[];
+      top_expense_categories: { id: number | null; name: string; color: string; amount: number }[];
+      daily_trend: { date: string; income: number; expense: number }[];
+      upcoming_dues: { id: number; account_name: string; due_date: string; amount_due: number; paid: boolean }[];
+      upcoming_bills: {
+        id: number;
+        name: string;
+        amount: number;
+        due_date: string;
+        account_name: string | null;
+        kind: BillerKind;
+        auto_renew: boolean;
+      }[];
+      investments_breakdown: { type: string; amount: number }[];
+      investment_assets?: { id: number; name: string; type: string; amount: number }[];
+      lends_breakdown?: { id: number; borrower: string; description: string; outstanding: number }[];
+      money_owed_total?: number;
+      owed_breakdown?: { person: string; amount: number }[];
+    }>('/finance/overview'),
 
   /** Finance → Analytics for a month (YYYY-MM; default this month). */
-  analytics: (month?: string) =>
-    request<FinAnalytics>('/finance/analytics' + (month ? '?month=' + month : '')),
+  analytics: (month?: string) => request<FinAnalytics>('/finance/analytics' + (month ? '?month=' + month : '')),
 
   networthHistory: () =>
     request<{ date: string; assets: number; liabilities: number; net_worth: number }[]>('/finance/networth/history'),
   takeSnapshot: () =>
-    request<{ date: string; assets: number; liabilities: number; net_worth: number }>(
-      '/finance/networth/snapshot',
-      { method: 'POST' },
-    ),
+    request<{ date: string; assets: number; liabilities: number; net_worth: number }>('/finance/networth/snapshot', {
+      method: 'POST',
+    }),
 
   // Export URLs (download via authFetch + blob)
-  exportUrl: (kind: 'transactions' | 'budgets' | 'networth') =>
-    '/finance/export/' + kind + '.csv',
+  exportUrl: (kind: 'transactions' | 'budgets' | 'networth') => '/finance/export/' + kind + '.csv',
 };
 
 // --- Themes (AI-generated M3 palettes) ---
@@ -1670,10 +1761,8 @@ export const themes = {
       body: JSON.stringify({ prompt }),
     }),
   delete: (id: number) => request('/themes/' + id, { method: 'DELETE' }),
-  activate: (id: number) =>
-    request<UserTheme>('/themes/' + id + '/activate', { method: 'POST' }),
-  deactivate: () =>
-    request<unknown>('/themes/deactivate', { method: 'POST' }),
+  activate: (id: number) => request<UserTheme>('/themes/' + id + '/activate', { method: 'POST' }),
+  deactivate: () => request<unknown>('/themes/deactivate', { method: 'POST' }),
 };
 
 // --- Insights (cross-module correlation engine) ---
@@ -1692,13 +1781,9 @@ export interface Insight {
 }
 
 export const insights = {
-  list: (window?: InsightWindow) =>
-    request<Insight[]>('/insights' + (window ? '?window=' + window : '')),
+  list: (window?: InsightWindow) => request<Insight[]>('/insights' + (window ? '?window=' + window : '')),
   run: (window: InsightWindow) =>
-    request<{ window: InsightWindow; generated: number }>(
-      '/insights/run?window=' + window,
-      { method: 'POST' },
-    ),
+    request<{ window: InsightWindow; generated: number }>('/insights/run?window=' + window, { method: 'POST' }),
   pin: (id: number) => request('/insights/' + id + '/pin', { method: 'POST' }),
   unpin: (id: number) => request('/insights/' + id + '/unpin', { method: 'POST' }),
   dismiss: (id: number) => request('/insights/' + id + '/dismiss', { method: 'POST' }),
@@ -1723,9 +1808,7 @@ export const timeTravel = {
     if (opts?.date_to) params.set('to', opts.date_to);
     if (opts?.limit) params.set('limit', String(opts.limit));
     if (opts?.types?.length) params.set('types', opts.types.join(','));
-    return request<{ items: TimeTravelHit[]; count: number; query: string }>(
-      '/time-travel?' + params.toString(),
-    );
+    return request<{ items: TimeTravelHit[]; count: number; query: string }>('/time-travel?' + params.toString());
   },
 };
 
@@ -1742,8 +1825,8 @@ export interface SearchHit {
 export const search = {
   query: (q: string) => {
     const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    return request<{ results: SearchHit[] }>("/search" + (params.toString() ? "?" + params.toString() : ""));
+    if (q) params.set('q', q);
+    return request<{ results: SearchHit[] }>('/search' + (params.toString() ? '?' + params.toString() : ''));
   },
 };
 
@@ -1835,7 +1918,11 @@ export const ai = {
     });
     if (!resp.ok) {
       let detail = '';
-      try { detail = (await resp.json()).error; } catch { /* ignore */ }
+      try {
+        detail = (await resp.json()).error;
+      } catch {
+        /* ignore */
+      }
       throw new Error(detail || `AI request failed: ${resp.status}`);
     }
     if (!resp.body) throw new Error('No stream');

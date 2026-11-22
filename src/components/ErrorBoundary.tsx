@@ -21,7 +21,10 @@ function Recovering() {
     return () => window.clearTimeout(timer);
   }, []);
   return (
-    <div role="status" className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground">
+    <div
+      role="status"
+      className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground"
+    >
       <span>{slow ? 'Still loading. The connection looks slow.' : 'Loading Sajni…'}</span>
       {slow && (
         <Button size="sm" onClick={() => window.location.reload()} className="gap-1.5">
@@ -92,14 +95,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex min-h-[50vh] w-full flex-col items-center justify-center p-6 text-center">
-          <div className="flex max-w-md flex-col items-center gap-4 rounded-3xl bg-[hsl(var(--surface-container))] p-6 sm:p-8 shadow-sm">
+          <div className="flex max-w-md flex-col items-center gap-4 rounded-3xl bg-[hsl(var(--surface-container))] p-6 shadow-sm sm:p-8">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]">
               <AlertTriangle className="size-6" />
             </div>
             <div className="flex flex-col gap-1">
-              <h3 className="font-sans text-lg font-semibold tracking-tight text-foreground">
-                Something Went Wrong
-              </h3>
+              <h3 className="font-sans text-lg font-semibold tracking-tight text-foreground">Something Went Wrong</h3>
               <p className="text-sm text-muted-foreground">
                 An unexpected error occurred while rendering this section.
               </p>

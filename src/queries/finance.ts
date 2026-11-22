@@ -40,7 +40,8 @@ export function useFinLendPeople(enabled = true) {
 export function useLendCandidates(kind: 'paid_for' | 'settle', q: string, accountId: number, enabled: boolean) {
   return useInfiniteQuery({
     queryKey: qk.finance.lendCandidates(kind, q, accountId),
-    queryFn: ({ pageParam }) => finance.lendCandidates(kind, { q, account_id: accountId || undefined, cursor: pageParam || undefined }),
+    queryFn: ({ pageParam }) =>
+      finance.lendCandidates(kind, { q, account_id: accountId || undefined, cursor: pageParam || undefined }),
     initialPageParam: '',
     getNextPageParam: (last) => last.next ?? undefined,
     enabled,

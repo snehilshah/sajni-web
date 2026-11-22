@@ -1,4 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Ref,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -12,12 +22,26 @@ import { languages } from '@codemirror/language-data';
 import { acceptCompletion, completionKeymap } from '@codemirror/autocomplete';
 import { classHighlighter } from '@lezer/highlight';
 
-import { notes as notesApi, tags as tagsApi, tasks as tasksApi, taskLists as listsApi, uploads, links as linksApi } from '@/api';
+import {
+  notes as notesApi,
+  tags as tagsApi,
+  tasks as tasksApi,
+  taskLists as listsApi,
+  uploads,
+  links as linksApi,
+} from '@/api';
 import type { Note, Task, TaskList as TaskListModel } from '@/types';
 import { qk } from '@/queries/keys';
 import { msg } from '@/lib/errors';
 import { cn } from '@/lib/utils';
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -72,8 +96,22 @@ export interface MarkdownEditorProps {
 const BARE_URL = /^https?:\/\/\S+$/i;
 
 export default function MarkdownEditor({
-  value, onChange, mode = 'live', placeholder, className, autoFocus, minHeight, fill, contextDate,
-  toolbar = 'touch', onImageFiles, ariaLabel, vim = false, onSave, vimStatus = null, ref,
+  value,
+  onChange,
+  mode = 'live',
+  placeholder,
+  className,
+  autoFocus,
+  minHeight,
+  fill,
+  contextDate,
+  toolbar = 'touch',
+  onImageFiles,
+  ariaLabel,
+  vim = false,
+  onSave,
+  vimStatus = null,
+  ref,
 }: MarkdownEditorProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -88,13 +126,20 @@ export default function MarkdownEditor({
   const extensionsRef = useRef<Extension[]>([]);
   const modeRef = useRef(mode);
   const placeholderRef = useRef(placeholder);
-  useLayoutEffect(() => { modeRef.current = mode; placeholderRef.current = placeholder; });
+  useLayoutEffect(() => {
+    modeRef.current = mode;
+    placeholderRef.current = placeholder;
+  });
 
   // Latest props, read from CodeMirror callbacks that are bound once.
   const onChangeRef = useRef(onChange);
   const onImageFilesRef = useRef(onImageFiles);
   const onSaveRef = useRef(onSave);
-  useLayoutEffect(() => { onChangeRef.current = onChange; onImageFilesRef.current = onImageFiles; onSaveRef.current = onSave; });
+  useLayoutEffect(() => {
+    onChangeRef.current = onChange;
+    onImageFilesRef.current = onImageFiles;
+    onSaveRef.current = onSave;
+  });
 
   // /task picker + create dialog
   const [taskPicker, setTaskPicker] = useState(false);
@@ -115,36 +160,51 @@ export default function MarkdownEditor({
     return list ? list.map((n) => n.title).filter(Boolean) : null;
   }, [qc]);
 
-  const openWiki = useCallback(async (target: string) => {
-    const t = target.trim();
-    if (!t) return;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { navigate(`/journal?date=${t}`); return; }
-    try {
-      const list = await qc.fetchQuery({ queryKey: qk.notes.list(), queryFn: () => notesApi.list(), staleTime: 30_000 });
-      const hit = list.find((n) => (n.title || '').toLowerCase() === t.toLowerCase());
-      if (hit) { navigate(`/notes?id=${hit.id}`); return; }
-      const created = await notesApi.create(t, '');
-      void qc.invalidateQueries({ queryKey: qk.notes.all });
-      navigate(`/notes?id=${created.id}`);
-    } catch (err) {
-      toast.error(msg(err, `Couldn't open “${t}”`));
-    }
-  }, [navigate, qc]);
+  const openWiki = useCallback(
+    async (target: string) => {
+      const t = target.trim();
+      if (!t) return;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+        navigate(`/journal?date=${t}`);
+        return;
+      }
+      try {
+        const list = await qc.fetchQuery({
+          queryKey: qk.notes.list(),
+          queryFn: () => notesApi.list(),
+          staleTime: 30_000,
+        });
+        const hit = list.find((n) => (n.title || '').toLowerCase() === t.toLowerCase());
+        if (hit) {
+          navigate(`/notes?id=${hit.id}`);
+          return;
+        }
+        const created = await notesApi.create(t, '');
+        void qc.invalidateQueries({ queryKey: qk.notes.all });
+        navigate(`/notes?id=${created.id}`);
+      } catch (err) {
+        toast.error(msg(err, `Couldn't open “${t}”`));
+      }
+    },
+    [navigate, qc],
+  );
 
   // ── Hooks the rendered pieces call ──────────────────────────────────────
   const hooks = useRef<EditorHooks>({} as EditorHooks);
   useLayoutEffect(() => {
-   hooks.current = {
-    openWiki: (target) => { void openWiki(target); },
-    openTask: (id) => window.dispatchEvent(new CustomEvent('task:open', { detail: { id } })),
-    openTag: (tag) => navigate(`/analytics?tab=tags&tag=${encodeURIComponent(tag)}`),
-    wikiExists: (target) => {
-      const titles = noteTitles();
-      if (!titles) return true;
-      const t = target.toLowerCase();
-      return titles.some((x) => x.toLowerCase() === t);
-    },
-   };
+    hooks.current = {
+      openWiki: (target) => {
+        void openWiki(target);
+      },
+      openTask: (id) => window.dispatchEvent(new CustomEvent('task:open', { detail: { id } })),
+      openTag: (tag) => navigate(`/analytics?tab=tags&tag=${encodeURIComponent(tag)}`),
+      wikiExists: (target) => {
+        const titles = noteTitles();
+        if (!titles) return true;
+        const t = target.toLowerCase();
+        return titles.some((x) => x.toLowerCase() === t);
+      },
+    };
   });
 
   const uploadImages = useCallback(async (files: File[]) => {
@@ -230,7 +290,9 @@ export default function MarkdownEditor({
     try {
       const res = await linksApi.preview(/^https?:\/\//i.test(u) ? u : `https://${u}`);
       if (res?.title && res.title !== res.host) setLinkTitle(res.title);
-    } catch { /* type a title instead */ } finally {
+    } catch {
+      /* type a title instead */
+    } finally {
       setLinkFetching(false);
     }
   }, [linkUrl]);
@@ -257,7 +319,11 @@ export default function MarkdownEditor({
   const openLinkRef = useRef(openLink);
   const pickImageRef = useRef(pickImage);
   const openTaskPickerRef = useRef(openTaskPicker);
-  useLayoutEffect(() => { openLinkRef.current = openLink; pickImageRef.current = pickImage; openTaskPickerRef.current = openTaskPicker; });
+  useLayoutEffect(() => {
+    openLinkRef.current = openLink;
+    pickImageRef.current = pickImage;
+    openTaskPickerRef.current = openTaskPicker;
+  });
 
   const modeExtension = (m: EditorMode): Extension => [
     editorMode.of(m),
@@ -288,24 +354,32 @@ export default function MarkdownEditor({
           return true;
         }
         insertText(view, text);
-        linksApi.preview(text).then((res) => {
-          if (!res?.title || res.title === text || res.title === res.host) return;
-          toast('Found the page title', {
-            description: res.title,
-            action: {
-              label: 'Use title',
-              onClick: () => {
-                const v = viewRef.current;
-                if (!v) return;
-                const doc = v.state.doc.toString();
-                const at = doc.indexOf(text);
-                if (at < 0) return;
-                const label = res.title.replace(/[[\]]/g, '');
-                v.dispatch({ changes: { from: at, to: at + text.length, insert: `[${label}](${text})` }, userEvent: 'input' });
+        linksApi
+          .preview(text)
+          .then((res) => {
+            if (!res?.title || res.title === text || res.title === res.host) return;
+            toast('Found the page title', {
+              description: res.title,
+              action: {
+                label: 'Use title',
+                onClick: () => {
+                  const v = viewRef.current;
+                  if (!v) return;
+                  const doc = v.state.doc.toString();
+                  const at = doc.indexOf(text);
+                  if (at < 0) return;
+                  const label = res.title.replace(/[[\]]/g, '');
+                  v.dispatch({
+                    changes: { from: at, to: at + text.length, insert: `[${label}](${text})` },
+                    userEvent: 'input',
+                  });
+                },
               },
-            },
+            });
+          })
+          .catch(() => {
+            /* keep the raw URL */
           });
-        }).catch(() => { /* keep the raw URL */ });
         return true;
       },
       drop(event, view) {
@@ -321,42 +395,47 @@ export default function MarkdownEditor({
     });
 
     const extensions: Extension[] = [
-        markdown({ base: markdownLanguage, codeLanguages: languages, extensions: sajniMarkdown, addKeymap: true }),
-        history(),
-        keymap.of([
-          ...formattingKeymap(() => openLinkRef.current()),
-          ...completionKeymap,
-          // Tab takes an open suggestion (like Enter); otherwise it indents.
-          { key: 'Tab', run: acceptCompletion },
-          { key: 'Tab', run: indentMore, shift: indentLess },
-          ...historyKeymap,
-          // ⌘/Ctrl+Enter is left unhandled so it reaches the dialog around the
-          // editor and saves it (lib/enter-submit), instead of inserting a line.
-          ...defaultKeymap.filter((b) => b.key !== 'Mod-Enter'),
-        ]),
-        EditorView.lineWrapping,
-        syntaxHighlighting(classHighlighter),
-        livePreview(),
-        sajniCompletion(completionHooks.current),
-        editorHooks.of(hooks),
-        paste,
-        EditorView.contentAttributes.of({
-          'aria-label': ariaLabel ?? 'Text',
-          spellcheck: 'true',
-          autocorrect: 'on',
-          autocapitalize: 'sentences',
-        }),
-        EditorView.updateListener.of((u) => {
-          if (u.focusChanged) setFocused(u.view.hasFocus);
-          if (!u.docChanged) return;
-          onChangeRef.current(u.state.doc.toString());
-        }),
+      markdown({ base: markdownLanguage, codeLanguages: languages, extensions: sajniMarkdown, addKeymap: true }),
+      history(),
+      keymap.of([
+        ...formattingKeymap(() => openLinkRef.current()),
+        ...completionKeymap,
+        // Tab takes an open suggestion (like Enter); otherwise it indents.
+        { key: 'Tab', run: acceptCompletion },
+        { key: 'Tab', run: indentMore, shift: indentLess },
+        ...historyKeymap,
+        // ⌘/Ctrl+Enter is left unhandled so it reaches the dialog around the
+        // editor and saves it (lib/enter-submit), instead of inserting a line.
+        ...defaultKeymap.filter((b) => b.key !== 'Mod-Enter'),
+      ]),
+      EditorView.lineWrapping,
+      syntaxHighlighting(classHighlighter),
+      livePreview(),
+      sajniCompletion(completionHooks.current),
+      editorHooks.of(hooks),
+      paste,
+      EditorView.contentAttributes.of({
+        'aria-label': ariaLabel ?? 'Text',
+        spellcheck: 'true',
+        autocorrect: 'on',
+        autocapitalize: 'sentences',
+      }),
+      EditorView.updateListener.of((u) => {
+        if (u.focusChanged) setFocused(u.view.hasFocus);
+        if (!u.docChanged) return;
+        onChangeRef.current(u.state.doc.toString());
+      }),
     ];
     extensionsRef.current = extensions;
     const view = new EditorView({
       state: EditorState.create({
         doc: value,
-        extensions: [vimComp.current.of(vimExtRef.current), ...extensions, modeComp.current.of(modeExtension(mode)), placeholderComp.current.of(placeholder ? cmPlaceholder(placeholder) : [])],
+        extensions: [
+          vimComp.current.of(vimExtRef.current),
+          ...extensions,
+          modeComp.current.of(modeExtension(mode)),
+          placeholderComp.current.of(placeholder ? cmPlaceholder(placeholder) : []),
+        ],
       }),
       parent,
     });
@@ -387,7 +466,17 @@ export default function MarkdownEditor({
     const view = viewRef.current;
     if (!view || value === view.state.doc.toString()) return;
     const hadFocus = view.hasFocus;
-    view.setState(EditorState.create({ doc: value, extensions: [vimComp.current.of(vimExtRef.current), ...extensionsRef.current, modeComp.current.of(modeExtension(modeRef.current)), placeholderComp.current.of(placeholderRef.current ? cmPlaceholder(placeholderRef.current) : [])] }));
+    view.setState(
+      EditorState.create({
+        doc: value,
+        extensions: [
+          vimComp.current.of(vimExtRef.current),
+          ...extensionsRef.current,
+          modeComp.current.of(modeExtension(modeRef.current)),
+          placeholderComp.current.of(placeholderRef.current ? cmPlaceholder(placeholderRef.current) : []),
+        ],
+      }),
+    );
     if (hadFocus) view.focus();
   }, [value]);
 
@@ -396,7 +485,9 @@ export default function MarkdownEditor({
   }, [mode]);
 
   useEffect(() => {
-    viewRef.current?.dispatch({ effects: placeholderComp.current.reconfigure(placeholder ? cmPlaceholder(placeholder) : []) });
+    viewRef.current?.dispatch({
+      effects: placeholderComp.current.reconfigure(placeholder ? cmPlaceholder(placeholder) : []),
+    });
   }, [placeholder]);
 
   const vimOn = vim && mode !== 'read';
@@ -408,37 +499,48 @@ export default function MarkdownEditor({
       viewRef.current?.dispatch({ effects: vimComp.current.reconfigure(ext) });
     };
     if (vimOn) {
-      vimExtension(() => onSaveRef.current?.(), vimStatus).then(apply).catch(() => toast.error("Couldn't load Vim keys"));
+      vimExtension(() => onSaveRef.current?.(), vimStatus)
+        .then(apply)
+        .catch(() => toast.error("Couldn't load Vim keys"));
     } else apply([]);
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [vimOn, vimStatus]);
 
-  useImperativeHandle(ref, () => ({
-    focus: (at = 'end') => {
-      const view = viewRef.current;
-      if (!view) return;
-      view.focus();
-      view.dispatch({ selection: { anchor: at === 'start' ? 0 : view.state.doc.length }, scrollIntoView: at === 'end' });
-    },
-    revealHeading: (index) => {
-      const view = viewRef.current;
-      if (!view) return;
-      let i = 0;
-      let pos = -1;
-      syntaxTree(view.state).iterate({
-        enter(n) {
-          if (pos >= 0) return false;
-          if (/^(ATX|Setext)Heading\d$/.test(n.name)) {
-            if (i === index) pos = n.from;
-            i += 1;
-            return false;
-          }
-          return undefined;
-        },
-      });
-      if (pos >= 0) view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: 'start', yMargin: 24 }) });
-    },
-  }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: (at = 'end') => {
+        const view = viewRef.current;
+        if (!view) return;
+        view.focus();
+        view.dispatch({
+          selection: { anchor: at === 'start' ? 0 : view.state.doc.length },
+          scrollIntoView: at === 'end',
+        });
+      },
+      revealHeading: (index) => {
+        const view = viewRef.current;
+        if (!view) return;
+        let i = 0;
+        let pos = -1;
+        syntaxTree(view.state).iterate({
+          enter(n) {
+            if (pos >= 0) return false;
+            if (/^(ATX|Setext)Heading\d$/.test(n.name)) {
+              if (i === index) pos = n.from;
+              i += 1;
+              return false;
+            }
+            return undefined;
+          },
+        });
+        if (pos >= 0) view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: 'start', yMargin: 24 }) });
+      },
+    }),
+    [],
+  );
 
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const showToolbar = mode !== 'read' && (toolbar === 'compact' || (toolbar === 'touch' && coarse && focused));
@@ -453,13 +555,27 @@ export default function MarkdownEditor({
       )}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <ToolButton label="Heading" view={viewRef} action={(v) => setLineKind(v, 'h2')}><Heading2 className="size-4" /></ToolButton>
-      <ToolButton label="Bold" view={viewRef} action={(v) => toggleWrap(v, '**')}><Bold className="size-4" /></ToolButton>
-      <ToolButton label="Italic" view={viewRef} action={(v) => toggleWrap(v, '*')}><Italic className="size-4" /></ToolButton>
-      <ToolButton label="List" view={viewRef} action={(v) => setLineKind(v, 'bullet')}><List className="size-4" /></ToolButton>
-      <ToolButton label="Checklist" view={viewRef} action={(v) => setLineKind(v, 'todo')}><ListChecks className="size-4" /></ToolButton>
-      <ToolButton label="Link" view={viewRef} action={() => openLink()}><Link2 className="size-4" /></ToolButton>
-      <ToolButton label="Image" view={viewRef} action={() => pickImage()}><ImageIcon className="size-4" /></ToolButton>
+      <ToolButton label="Heading" view={viewRef} action={(v) => setLineKind(v, 'h2')}>
+        <Heading2 className="size-4" />
+      </ToolButton>
+      <ToolButton label="Bold" view={viewRef} action={(v) => toggleWrap(v, '**')}>
+        <Bold className="size-4" />
+      </ToolButton>
+      <ToolButton label="Italic" view={viewRef} action={(v) => toggleWrap(v, '*')}>
+        <Italic className="size-4" />
+      </ToolButton>
+      <ToolButton label="List" view={viewRef} action={(v) => setLineKind(v, 'bullet')}>
+        <List className="size-4" />
+      </ToolButton>
+      <ToolButton label="Checklist" view={viewRef} action={(v) => setLineKind(v, 'todo')}>
+        <ListChecks className="size-4" />
+      </ToolButton>
+      <ToolButton label="Link" view={viewRef} action={() => openLink()}>
+        <Link2 className="size-4" />
+      </ToolButton>
+      <ToolButton label="Image" view={viewRef} action={() => pickImage()}>
+        <ImageIcon className="size-4" />
+      </ToolButton>
     </div>
   );
 
@@ -478,7 +594,7 @@ export default function MarkdownEditor({
       }}
     >
       {toolbar === 'compact' && toolbarRow}
-      <div ref={host} data-mode={mode} className={cn(fill && 'flex flex-1 flex-col min-h-0')} />
+      <div ref={host} data-mode={mode} className={cn(fill && 'flex min-h-0 flex-1 flex-col')} />
       {toolbar === 'touch' && toolbarRow}
 
       <CommandDialog
@@ -500,7 +616,9 @@ export default function MarkdownEditor({
                 {taskList.map((t) => (
                   <CommandItem key={t.id} value={`${t.title}__${t.id}`} onSelect={() => insertTaskChip(t)}>
                     <span className="flex-1 truncate">{t.title}</span>
-                    {t.due_date && <span className="text-xs tabular-nums text-muted-foreground">{t.due_date.slice(0, 10)}</span>}
+                    {t.due_date && (
+                      <span className="text-xs text-muted-foreground tabular-nums">{t.due_date.slice(0, 10)}</span>
+                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -514,12 +632,24 @@ export default function MarkdownEditor({
               setTaskPicker(false);
               setCreateDefaults({ title: taskQuery.trim(), ...(contextDate ? { due_date: contextDate } : {}) });
               setCreateOpen(true);
-              qc.fetchQuery({ queryKey: qk.taskLists.list(), queryFn: () => listsApi.list() }).then(setCreateLists).catch(() => setCreateLists([]));
+              qc.fetchQuery({ queryKey: qk.taskLists.list(), queryFn: () => listsApi.list() })
+                .then(setCreateLists)
+                .catch(() => setCreateLists([]));
             }}
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--secondary-container))] hover:text-[hsl(var(--on-secondary-container))]"
           >
-            <span className="grid size-5 place-items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><Plus className="size-3.5" /></span>
-            <span className="flex-1 truncate">{taskQuery.trim() ? <>Create “<span className="font-medium">{taskQuery.trim()}</span>”</> : 'Create a task'}</span>
+            <span className="grid size-5 place-items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+              <Plus className="size-3.5" />
+            </span>
+            <span className="flex-1 truncate">
+              {taskQuery.trim() ? (
+                <>
+                  Create “<span className="font-medium">{taskQuery.trim()}</span>”
+                </>
+              ) : (
+                'Create a task'
+              )}
+            </span>
           </button>
         </div>
       </CommandDialog>
@@ -540,39 +670,67 @@ export default function MarkdownEditor({
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent showCloseButton={false} className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Add a link</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add a link</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="md-link-url" className="text-xs text-muted-foreground">Address</Label>
+              <Label htmlFor="md-link-url" className="text-xs text-muted-foreground">
+                Address
+              </Label>
               <div className="flex gap-2">
                 <Input
                   id="md-link-url"
                   autoFocus
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLink(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      commitLink();
+                    }
+                  }}
                   placeholder="https://"
                   className="flex-1"
                 />
-                <Button type="button" variant="outline" onClick={() => { void fetchLinkTitle(); }} disabled={!linkUrl.trim() || linkFetching} className="h-11 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void fetchLinkTitle();
+                  }}
+                  disabled={!linkUrl.trim() || linkFetching}
+                  className="h-11 shrink-0"
+                >
                   {linkFetching ? 'Fetching…' : 'Get title'}
                 </Button>
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="md-link-title" className="text-xs text-muted-foreground">Text</Label>
+              <Label htmlFor="md-link-title" className="text-xs text-muted-foreground">
+                Text
+              </Label>
               <Input
                 id="md-link-title"
                 value={linkTitle}
                 onChange={(e) => setLinkTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLink(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitLink();
+                  }
+                }}
                 placeholder="Shown instead of the address"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setLinkOpen(false)}>Cancel</Button>
-            <Button onClick={commitLink} disabled={!linkUrl.trim()}>Add link</Button>
+            <Button variant="ghost" onClick={() => setLinkOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={commitLink} disabled={!linkUrl.trim()}>
+              Add link
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -580,7 +738,12 @@ export default function MarkdownEditor({
   );
 }
 
-function ToolButton({ label, view, action, children }: {
+function ToolButton({
+  label,
+  view,
+  action,
+  children,
+}: {
   label: string;
   view: React.RefObject<EditorView | null>;
   action: (v: EditorView) => void;

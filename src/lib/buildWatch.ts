@@ -36,7 +36,9 @@ export function BuildWatcher() {
   const first = useRef(true);
 
   useEffect(() => {
-    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check();
+    };
     document.addEventListener('visibilitychange', onVisible);
     // A desktop PWA window stays "visible" behind other windows; focus is
     // the moment you come back to it.
@@ -52,7 +54,10 @@ export function BuildWatcher() {
   }, []);
 
   useEffect(() => {
-    if (first.current) { first.current = false; return; }
+    if (first.current) {
+      first.current = false;
+      return;
+    }
     check();
   }, [pathname]);
 

@@ -21,10 +21,14 @@ export function usePlannerReschedule() {
     onMutate: async ({ id, targetDate }) => {
       await qc.cancelQueries({ queryKey: qk.planner.all });
       const previous = qc.getQueriesData<PlannerResponse>({ queryKey: qk.planner.all });
-      qc.setQueriesData<PlannerResponse>({ queryKey: qk.planner.all }, (old) => old ? {
-        ...old,
-        tasks: old.tasks.map((task) => task.id === id ? { ...task, due_date: targetDate } : task),
-      } : old);
+      qc.setQueriesData<PlannerResponse>({ queryKey: qk.planner.all }, (old) =>
+        old
+          ? {
+              ...old,
+              tasks: old.tasks.map((task) => (task.id === id ? { ...task, due_date: targetDate } : task)),
+            }
+          : old,
+      );
       return { previous };
     },
     onError: (_error, _variables, context) => {

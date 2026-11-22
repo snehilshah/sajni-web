@@ -23,9 +23,7 @@ export default function OAuthDone() {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    const fragment = window.location.hash.startsWith('#')
-      ? window.location.hash.slice(1)
-      : window.location.hash;
+    const fragment = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
     const params = new URLSearchParams(fragment);
     const token = params.get('access');
     const linked = new URLSearchParams(window.location.search).get('linked');
@@ -45,9 +43,7 @@ export default function OAuthDone() {
         sessionStorage.removeItem(AFTER_LOGIN_KEY);
         navigate(next && next.startsWith('/') && !next.startsWith('//') ? next : '/', { replace: true });
       })
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Sign-in failed'),
-      );
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Sign-in failed'));
   }, [hydrateFromAccessToken, navigate]);
 
   return (
@@ -57,7 +53,7 @@ export default function OAuthDone() {
           <div className="serif text-base text-destructive">{error}</div>
           <button
             onClick={() => navigate('/signin', { replace: true })}
-            className="mono text-xs label-kicker underline"
+            className="mono label-kicker text-xs underline"
           >
             try again
           </button>

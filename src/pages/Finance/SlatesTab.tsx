@@ -2,9 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import {
-  Plus, MoreVertical, Pencil, Trash2, Archive, ArchiveRestore, ChevronRight,
-} from '@/components/ui/icons';
+import { Plus, MoreVertical, Pencil, Trash2, Archive, ArchiveRestore, ChevronRight } from '@/components/ui/icons';
 
 import { finance, type FinSlate } from '@/api';
 import { qk } from '@/queries/keys';
@@ -12,8 +10,11 @@ import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { CardsSkeleton } from './Skeletons';
@@ -65,11 +66,11 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
       // Archiving only hides a slate from the pickers; its transactions stay put
       // and its budgets keep counting them. Say so, because "archive" elsewhere
       // in the app usually means "out of the way and out of the numbers".
-      toast.success(archived
-        ? `"${s.name}" archived, its transactions stay where they are`
-        : `"${s.name}" is back`);
+      toast.success(archived ? `"${s.name}" archived, its transactions stay where they are` : `"${s.name}" is back`);
       refreshSlates();
-    } catch (e) { toast.error(failureText(e)); }
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
 
   const remove = async (s: FinSlate) => {
@@ -91,7 +92,9 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
     try {
       await finance.deleteSlate(s.id, n > 0);
       refreshAfterDelete();
-    } catch (e) { toast.error(failureText(e)); }
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
 
   if (!loaded) return <CardsSkeleton count={4} />;
@@ -103,7 +106,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="slates-plain" className="flex flex-col gap-2">
-        <h2 id="slates-plain" className="font-mono text-xs label-kicker text-muted-foreground">
+        <h2 id="slates-plain" className="label-kicker font-mono text-xs text-muted-foreground">
           Normal life
         </h2>
         {/* Plain is the baseline everything else is measured against, so it gets
@@ -119,7 +122,7 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
 
       <section aria-labelledby="slates-outliers" className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 id="slates-outliers" className="font-mono text-xs label-kicker text-muted-foreground">
+          <h2 id="slates-outliers" className="label-kicker font-mono text-xs text-muted-foreground">
             Outliers
           </h2>
           <div className="flex items-center gap-1">
@@ -132,18 +135,16 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
               Archived
             </button>
             <Button size="sm" onClick={() => setCreating(true)}>
-              <Plus className="size-4 mr-1" /> New slate
+              <Plus className="mr-1 size-4" /> New slate
             </Button>
           </div>
         </div>
 
         {outliers.length === 0 ? (
           // One line, not a paragraph: what goes here and what it buys you.
-          <p className="py-2 text-sm text-muted-foreground">
-            Trips, weddings, one-off buys. Kept out of your budgets.
-          </p>
+          <p className="py-2 text-sm text-muted-foreground">Trips, weddings, one-off buys. Kept out of your budgets.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {outliers.map((s) => (
               <SlateTile
                 key={s.id}
@@ -163,13 +164,13 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
 
       {showArchived && (
         <section aria-labelledby="slates-archived" className="flex flex-col gap-2">
-          <h2 id="slates-archived" className="font-mono text-xs label-kicker text-muted-foreground">
+          <h2 id="slates-archived" className="label-kicker font-mono text-xs text-muted-foreground">
             Archived
           </h2>
           {archived.length === 0 ? (
             <p className="py-2 text-sm text-muted-foreground">Nothing archived</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {archived.map((s) => (
                 <SlateTile
                   key={s.id}
@@ -192,16 +193,31 @@ export default function SlatesTab({ slates, loaded, onOpenSlate }: Props) {
       <SlateDialog
         open={creating || editing !== null}
         slate={editing}
-        onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); refreshSlates(); }}
+        onClose={() => {
+          setCreating(false);
+          setEditing(null);
+        }}
+        onSaved={() => {
+          setCreating(false);
+          setEditing(null);
+          refreshSlates();
+        }}
       />
     </div>
   );
 }
 
 function SlateTile({
-  slate: s, dimmed, headline, headlineLabel, meta,
-  onOpen, onEdit, onArchive, onUnarchive, onDelete,
+  slate: s,
+  dimmed,
+  headline,
+  headlineLabel,
+  meta,
+  onOpen,
+  onEdit,
+  onArchive,
+  onUnarchive,
+  onDelete,
 }: {
   slate?: FinSlate;
   dimmed?: boolean;
@@ -231,7 +247,10 @@ function SlateTile({
       aria-label={s ? `Open ${s.name} transactions` : undefined}
       onClick={onOpen}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
       }}
       className={cardClass(
         { interactive: true, accent },
@@ -254,11 +273,11 @@ function SlateTile({
             className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
           />
         </div>
-        <div className="font-mono text-xs text-muted-foreground truncate">{meta}</div>
+        <div className="truncate font-mono text-xs text-muted-foreground">{meta}</div>
       </div>
 
       <div className={cn('shrink-0 text-right', hasMenu && 'mr-9')}>
-        <div className="font-serif text-lg font-semibold tabular-nums leading-tight">{headline}</div>
+        <div className="font-serif text-lg leading-tight font-semibold tabular-nums">{headline}</div>
         <div className="font-mono text-xs text-muted-foreground">{headlineLabel}</div>
       </div>
 
@@ -267,20 +286,34 @@ function SlateTile({
           <DropdownMenuTrigger
             aria-label={`Options for ${s?.name ?? 'slate'}`}
             onClick={(e) => e.stopPropagation()}
-            className="absolute right-0.5 top-1/2 -translate-y-1/2 grid size-11 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+            className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
           >
             <MoreVertical className="size-4" />
           </DropdownMenuTrigger>
           {/* Portaled, so item clicks never reach the tile — only the trigger
               needs to stop propagation. */}
           <DropdownMenuContent align="end">
-            {onEdit && <DropdownMenuItem onClick={onEdit}><Pencil /> Rename</DropdownMenuItem>}
-            {onArchive && <DropdownMenuItem onClick={onArchive}><Archive /> Archive</DropdownMenuItem>}
-            {onUnarchive && <DropdownMenuItem onClick={onUnarchive}><ArchiveRestore /> Unarchive</DropdownMenuItem>}
+            {onEdit && (
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil /> Rename
+              </DropdownMenuItem>
+            )}
+            {onArchive && (
+              <DropdownMenuItem onClick={onArchive}>
+                <Archive /> Archive
+              </DropdownMenuItem>
+            )}
+            {onUnarchive && (
+              <DropdownMenuItem onClick={onUnarchive}>
+                <ArchiveRestore /> Unarchive
+              </DropdownMenuItem>
+            )}
             {onDelete && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={onDelete}><Trash2 /> Delete</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                  <Trash2 /> Delete
+                </DropdownMenuItem>
               </>
             )}
           </DropdownMenuContent>

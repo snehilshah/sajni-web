@@ -32,9 +32,16 @@ const LIST_KEY = ['notes', 'list'] as const;
 
 function fromNote(n: Note): NoteDoc {
   return {
-    key: `note:${n.id}`, id: n.id, title: n.title, content: n.content ?? '', description: n.description ?? '',
-    folder: n.folder ?? '', tags: n.tags ?? [], backlinks: n.backlinks ?? [],
-    created_at: n.created_at, updated_at: n.updated_at,
+    key: `note:${n.id}`,
+    id: n.id,
+    title: n.title,
+    content: n.content ?? '',
+    description: n.description ?? '',
+    folder: n.folder ?? '',
+    tags: n.tags ?? [],
+    backlinks: n.backlinks ?? [],
+    created_at: n.created_at,
+    updated_at: n.updated_at,
   };
 }
 
@@ -63,13 +70,21 @@ export function useNoteDoc() {
     setDocState(next);
   }, []);
 
-  const patchList = useCallback((id: number, patch: Partial<NoteListItem>) => {
-    qc.setQueriesData<NoteListItem[]>({ queryKey: LIST_KEY }, (old) => old?.map((n) => (n.id === id ? { ...n, ...patch } : n)));
-  }, [qc]);
+  const patchList = useCallback(
+    (id: number, patch: Partial<NoteListItem>) => {
+      qc.setQueriesData<NoteListItem[]>({ queryKey: LIST_KEY }, (old) =>
+        old?.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+      );
+    },
+    [qc],
+  );
 
-  const patchDetail = useCallback((id: number, patch: Partial<Note>) => {
-    qc.setQueryData<Note>(qk.notes.detail(id), (old) => (old ? { ...old, ...patch } : old));
-  }, [qc]);
+  const patchDetail = useCallback(
+    (id: number, patch: Partial<Note>) => {
+      qc.setQueryData<Note>(qk.notes.detail(id), (old) => (old ? { ...old, ...patch } : old));
+    },
+    [qc],
+  );
 
   const isDirty = useCallback(() => {
     const d = docRef.current;
@@ -91,16 +106,32 @@ export function useNoteDoc() {
       setStatus('saving');
       const res = await notesApi.create(title, content, d.folder, description);
       const item: NoteListItem = {
-        id: res.id, title, folder: res.folder, description, pinned: false, tags: res.tags ?? [],
-        created_at: res.created_at, updated_at: res.updated_at,
+        id: res.id,
+        title,
+        folder: res.folder,
+        description,
+        pinned: false,
+        tags: res.tags ?? [],
+        created_at: res.created_at,
+        updated_at: res.updated_at,
       };
-      qc.setQueriesData<NoteListItem[]>({ queryKey: LIST_KEY }, (old) => (old ? [item, ...old.filter((n) => n.id !== res.id)] : old));
+      qc.setQueriesData<NoteListItem[]>({ queryKey: LIST_KEY }, (old) =>
+        old ? [item, ...old.filter((n) => n.id !== res.id)] : old,
+      );
       qc.setQueryData<Note>(qk.notes.detail(res.id), { ...item, content, backlinks: [] });
       if (item.tags.length) void qc.invalidateQueries({ queryKey: qk.tags.all });
       const cur = docRef.current;
       if (cur?.key === d.key) {
         savedRef.current = { title, content, description };
-        apply({ ...cur, key: `note:${res.id}`, id: res.id, folder: res.folder, tags: item.tags, created_at: res.created_at, updated_at: res.updated_at });
+        apply({
+          ...cur,
+          key: `note:${res.id}`,
+          id: res.id,
+          folder: res.folder,
+          tags: item.tags,
+          created_at: res.created_at,
+          updated_at: res.updated_at,
+        });
       }
       return;
     }
@@ -119,7 +150,10 @@ export function useNoteDoc() {
     const res = await notesApi.update(id, body);
     const cur = docRef.current;
     if (cur?.id === id) savedRef.current = { ...s, ...body };
-    const patch: Partial<NoteListItem> = { ...(body.title !== undefined && { title }), ...(body.description !== undefined && { description }) };
+    const patch: Partial<NoteListItem> = {
+      ...(body.title !== undefined && { title }),
+      ...(body.description !== undefined && { description }),
+    };
     if (res.updated_at) patch.updated_at = res.updated_at;
     if (res.tags) patch.tags = res.tags;
     patchList(id, patch);
@@ -132,7 +166,10 @@ export function useNoteDoc() {
 
   /** Saves now (after any save already running). Resolves when done. */
   const flush = useCallback((): Promise<void> => {
-    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     chain.current = chain.current.then(async () => {
       if (!isDirty()) return;
       try {
@@ -150,75 +187,102 @@ export function useNoteDoc() {
 
   const schedule = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => { void flush(); }, SAVE_DELAY);
+    timer.current = setTimeout(() => {
+      void flush();
+    }, SAVE_DELAY);
   }, [flush]);
 
   /** Applies a local edit; the library title updates on the same frame. */
-  const edit = useCallback((patch: Partial<Pick<NoteDoc, 'title' | 'content' | 'description'>>) => {
-    const cur = docRef.current;
-    if (!cur) return;
-    const next = { ...cur, ...patch };
-    if (next.title === cur.title && next.content === cur.content && next.description === cur.description) return;
-    apply(next);
-    if (cur.id != null && (patch.title !== undefined || (!next.title.trim() && patch.content !== undefined))) {
-      const t = effectiveTitle(next.title, next.content);
-      if (t !== effectiveTitle(cur.title, cur.content)) patchList(cur.id, { title: t });
-    }
-    schedule();
-  }, [apply, patchList, schedule]);
+  const edit = useCallback(
+    (patch: Partial<Pick<NoteDoc, 'title' | 'content' | 'description'>>) => {
+      const cur = docRef.current;
+      if (!cur) return;
+      const next = { ...cur, ...patch };
+      if (next.title === cur.title && next.content === cur.content && next.description === cur.description) return;
+      apply(next);
+      if (cur.id != null && (patch.title !== undefined || (!next.title.trim() && patch.content !== undefined))) {
+        const t = effectiveTitle(next.title, next.content);
+        if (t !== effectiveTitle(cur.title, cur.content)) patchList(cur.id, { title: t });
+      }
+      schedule();
+    },
+    [apply, patchList, schedule],
+  );
 
   /** Opens a note; resolves with it (null if it couldn't be opened or another open won). */
-  const open = useCallback(async (id: number): Promise<NoteDoc | null> => {
-    if (docRef.current?.id === id) return docRef.current;
-    const seq = ++openSeq.current;
-    await flush();
-    if (seq !== openSeq.current) return null;
-    const cached = qc.getQueryData<Note>(qk.notes.detail(id));
-    if (cached) {
-      apply(fromNote(cached));
-      savedRef.current = { title: cached.title, content: cached.content ?? '', description: cached.description ?? '' };
-    } else {
-      const item = qc.getQueryData<NoteListItem[]>(qk.notes.list())?.find((n) => n.id === id);
-      apply(item ? { ...fromNote({ ...item, content: '', backlinks: [] }), content: '' } : null);
-      savedRef.current = null;
-      setLoading(true);
-    }
-    try {
-      const fresh = await notesApi.get(id);
-      qc.setQueryData(qk.notes.detail(id), fresh);
+  const open = useCallback(
+    async (id: number): Promise<NoteDoc | null> => {
+      if (docRef.current?.id === id) return docRef.current;
+      const seq = ++openSeq.current;
+      await flush();
       if (seq !== openSeq.current) return null;
-      const cur = docRef.current;
-      // Don't replace text the user has started typing over.
-      if (cached && cur?.id === id && isDirty()) {
-        apply({ ...cur, backlinks: fresh.backlinks ?? [], tags: fresh.tags ?? [] });
-        return docRef.current;
+      const cached = qc.getQueryData<Note>(qk.notes.detail(id));
+      if (cached) {
+        apply(fromNote(cached));
+        savedRef.current = {
+          title: cached.title,
+          content: cached.content ?? '',
+          description: cached.description ?? '',
+        };
+      } else {
+        const item = qc.getQueryData<NoteListItem[]>(qk.notes.list())?.find((n) => n.id === id);
+        apply(item ? { ...fromNote({ ...item, content: '', backlinks: [] }), content: '' } : null);
+        savedRef.current = null;
+        setLoading(true);
       }
-      apply(fromNote(fresh));
-      savedRef.current = { title: fresh.title, content: fresh.content ?? '', description: fresh.description ?? '' };
-      return docRef.current;
-    } catch (err) {
-      if (seq !== openSeq.current) return null;
-      if (!cached) apply(null);
-      toast.error(failureText(err, "Couldn't open the note"));
-      return null;
-    } finally {
-      if (seq === openSeq.current) setLoading(false);
-    }
-  }, [qc, apply, flush, isDirty]);
+      try {
+        const fresh = await notesApi.get(id);
+        qc.setQueryData(qk.notes.detail(id), fresh);
+        if (seq !== openSeq.current) return null;
+        const cur = docRef.current;
+        // Don't replace text the user has started typing over.
+        if (cached && cur?.id === id && isDirty()) {
+          apply({ ...cur, backlinks: fresh.backlinks ?? [], tags: fresh.tags ?? [] });
+          return docRef.current;
+        }
+        apply(fromNote(fresh));
+        savedRef.current = { title: fresh.title, content: fresh.content ?? '', description: fresh.description ?? '' };
+        return docRef.current;
+      } catch (err) {
+        if (seq !== openSeq.current) return null;
+        if (!cached) apply(null);
+        toast.error(failureText(err, "Couldn't open the note"));
+        return null;
+      } finally {
+        if (seq === openSeq.current) setLoading(false);
+      }
+    },
+    [qc, apply, flush, isDirty],
+  );
 
   /** Warms the cache so opening is instant (library hover). */
-  const prefetch = useCallback((id: number) => {
-    void qc.prefetchQuery({ queryKey: qk.notes.detail(id), queryFn: () => notesApi.get(id), staleTime: 30_000 });
-  }, [qc]);
+  const prefetch = useCallback(
+    (id: number) => {
+      void qc.prefetchQuery({ queryKey: qk.notes.detail(id), queryFn: () => notesApi.get(id), staleTime: 30_000 });
+    },
+    [qc],
+  );
 
-  const newDraft = useCallback(async (folder: string) => {
-    const seq = ++openSeq.current;
-    await flush();
-    if (seq !== openSeq.current) return;
-    setLoading(false);
-    savedRef.current = null;
-    apply({ key: `draft:${++draftSeq.current}`, id: null, title: '', content: '', description: '', folder, tags: [], backlinks: [] });
-  }, [apply, flush]);
+  const newDraft = useCallback(
+    async (folder: string) => {
+      const seq = ++openSeq.current;
+      await flush();
+      if (seq !== openSeq.current) return;
+      setLoading(false);
+      savedRef.current = null;
+      apply({
+        key: `draft:${++draftSeq.current}`,
+        id: null,
+        title: '',
+        content: '',
+        description: '',
+        folder,
+        tags: [],
+        backlinks: [],
+      });
+    },
+    [apply, flush],
+  );
 
   const close = useCallback(async () => {
     ++openSeq.current;
@@ -229,59 +293,73 @@ export function useNoteDoc() {
   }, [apply, flush]);
 
   /** Moves a note (or retargets the draft) to a folder. */
-  const move = useCallback(async (id: number | null, folder: string) => {
-    const cur = docRef.current;
-    if (id == null) {
-      if (cur && cur.id == null) apply({ ...cur, folder });
-      return;
-    }
-    const list = qc.getQueryData<NoteListItem[]>(qk.notes.list());
-    const before = list?.find((n) => n.id === id)?.folder;
-    patchList(id, { folder });
-    if (cur?.id === id) apply({ ...cur, folder });
-    try {
-      await notesApi.update(id, { folder });
-      patchDetail(id, { folder });
-    } catch (err) {
-      if (before !== undefined) patchList(id, { folder: before });
-      const now = docRef.current;
-      if (now?.id === id && before !== undefined) apply({ ...now, folder: before });
-      toast.error(failureText(err, "Couldn't move the note"));
-    }
-  }, [qc, apply, patchList, patchDetail]);
+  const move = useCallback(
+    async (id: number | null, folder: string) => {
+      const cur = docRef.current;
+      if (id == null) {
+        if (cur && cur.id == null) apply({ ...cur, folder });
+        return;
+      }
+      const list = qc.getQueryData<NoteListItem[]>(qk.notes.list());
+      const before = list?.find((n) => n.id === id)?.folder;
+      patchList(id, { folder });
+      if (cur?.id === id) apply({ ...cur, folder });
+      try {
+        await notesApi.update(id, { folder });
+        patchDetail(id, { folder });
+      } catch (err) {
+        if (before !== undefined) patchList(id, { folder: before });
+        const now = docRef.current;
+        if (now?.id === id && before !== undefined) apply({ ...now, folder: before });
+        toast.error(failureText(err, "Couldn't move the note"));
+      }
+    },
+    [qc, apply, patchList, patchDetail],
+  );
 
-  const setPinned = useCallback(async (id: number, pinned: boolean) => {
-    patchList(id, { pinned });
-    try {
-      await notesApi.update(id, { pinned });
-    } catch (err) {
-      patchList(id, { pinned: !pinned });
-      toast.error(failureText(err, "Couldn't pin the note"));
-    }
-  }, [patchList]);
+  const setPinned = useCallback(
+    async (id: number, pinned: boolean) => {
+      patchList(id, { pinned });
+      try {
+        await notesApi.update(id, { pinned });
+      } catch (err) {
+        patchList(id, { pinned: !pinned });
+        toast.error(failureText(err, "Couldn't pin the note"));
+      }
+    },
+    [patchList],
+  );
 
-  const remove = useCallback(async (id: number) => {
-    if (docRef.current?.id === id) {
-      if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-      ++openSeq.current;
-      savedRef.current = null;
-      apply(null);
-    }
-    const prev = qc.getQueryData<NoteListItem[]>(qk.notes.list());
-    qc.setQueriesData<NoteListItem[]>({ queryKey: LIST_KEY }, (old) => old?.filter((n) => n.id !== id));
-    try {
-      await notesApi.delete(id);
-      qc.removeQueries({ queryKey: qk.notes.detail(id) });
-      void qc.invalidateQueries({ queryKey: qk.tags.all });
-    } catch (err) {
-      if (prev) qc.setQueryData(qk.notes.list(), prev);
-      toast.error(failureText(err, "Couldn't delete the note"));
-    }
-  }, [qc, apply]);
+  const remove = useCallback(
+    async (id: number) => {
+      if (docRef.current?.id === id) {
+        if (timer.current) {
+          clearTimeout(timer.current);
+          timer.current = null;
+        }
+        ++openSeq.current;
+        savedRef.current = null;
+        apply(null);
+      }
+      const prev = qc.getQueryData<NoteListItem[]>(qk.notes.list());
+      qc.setQueriesData<NoteListItem[]>({ queryKey: LIST_KEY }, (old) => old?.filter((n) => n.id !== id));
+      try {
+        await notesApi.delete(id);
+        qc.removeQueries({ queryKey: qk.notes.detail(id) });
+        void qc.invalidateQueries({ queryKey: qk.tags.all });
+      } catch (err) {
+        if (prev) qc.setQueryData(qk.notes.list(), prev);
+        toast.error(failureText(err, "Couldn't delete the note"));
+      }
+    },
+    [qc, apply],
+  );
 
   // Leaving: save on hide, warn if a save can't finish.
   useEffect(() => {
-    const onHide = () => { if (document.visibilityState === 'hidden') void flush(); };
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') void flush();
+    };
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!isDirty()) return;
       void flush();
@@ -296,7 +374,12 @@ export function useNoteDoc() {
   }, [flush, isDirty]);
 
   // Unmount (route change): save what's pending.
-  useEffect(() => () => { void flush(); }, [flush]);
+  useEffect(
+    () => () => {
+      void flush();
+    },
+    [flush],
+  );
 
   return { doc, loading, status, edit, open, prefetch, newDraft, close, move, setPinned, remove, flush };
 }

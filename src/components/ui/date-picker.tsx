@@ -1,10 +1,10 @@
-import * as React from "react"
-import { CalendarIcon } from "@/components/ui/icons"
-import { format, parseISO } from "date-fns"
+import * as React from 'react';
+import { CalendarIcon } from '@/components/ui/icons';
+import { format, parseISO } from 'date-fns';
 
-import { cn } from "@/lib/utils"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 /**
  * M3 outlined date field. Drop-in replacement for `<Input type="date" />`.
@@ -12,41 +12,41 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  *  value / onChange use ISO `YYYY-MM-DD` strings (matches HTML date input contract).
  */
 export interface DatePickerProps {
-  value?: string
-  onChange?: (value: string) => void
-  placeholder?: string
-  className?: string
-  disabled?: boolean
-  id?: string
-  name?: string
-  showWeekday?: boolean
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+  id?: string;
+  name?: string;
+  showWeekday?: boolean;
   /** Muted lead-in inside the field ("Due"), so it reads without a label. */
-  prefix?: React.ReactNode
+  prefix?: React.ReactNode;
   /** Always show the year ("Sat, 14 Nov 2026"); otherwise only when it isn't this year. */
-  withYear?: boolean
+  withYear?: boolean;
 }
 
 function isoToDate(iso?: string): Date | undefined {
-  if (!iso) return undefined
+  if (!iso) return undefined;
   try {
-    return parseISO(iso)
+    return parseISO(iso);
   } catch {
-    return undefined
+    return undefined;
   }
 }
 
 function dateToIso(d?: Date): string {
-  if (!d) return ""
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const dd = String(d.getDate()).padStart(2, "0")
-  return `${yyyy}-${mm}-${dd}`
+  if (!d) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Pick a date",
+  placeholder = 'Pick a date',
   className,
   disabled,
   id,
@@ -55,28 +55,28 @@ export function DatePicker({
   prefix,
   withYear = false,
 }: DatePickerProps) {
-  const generatedId = React.useId()
-  const fieldId = id ?? generatedId
-  const [open, setOpen] = React.useState(false)
-  const selected = isoToDate(value)
-  const year = withYear || (selected && selected.getFullYear() !== new Date().getFullYear()) ? " yyyy" : ""
-  const display = selected ? format(selected, showWeekday ? "EEE, d MMM" + year : "d MMM yyyy") : placeholder
+  const generatedId = React.useId();
+  const fieldId = id ?? generatedId;
+  const [open, setOpen] = React.useState(false);
+  const selected = isoToDate(value);
+  const year = withYear || (selected && selected.getFullYear() !== new Date().getFullYear()) ? ' yyyy' : '';
+  const display = selected ? format(selected, showWeekday ? 'EEE, d MMM' + year : 'd MMM yyyy') : placeholder;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <input type="hidden" name={name ?? fieldId} value={value ?? ""} />
+      <input type="hidden" name={name ?? fieldId} value={value ?? ''} />
       <PopoverTrigger
         id={fieldId}
         disabled={disabled}
         className={cn(
-          "group inline-flex h-11 w-full items-center justify-between gap-2",
-          "rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] px-3.5 py-2.5 text-sm",
-          "text-foreground transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
-          "hover:border-transparent",
-          "data-[popup-open]:border-transparent data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
-          "disabled:opacity-50 disabled:pointer-events-none",
-          !selected && "text-muted-foreground",
-          className
+          'group inline-flex h-11 w-full items-center justify-between gap-2',
+          'rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] px-3.5 py-2.5 text-sm',
+          'text-foreground transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]',
+          'hover:border-transparent',
+          'data-[popup-open]:border-transparent data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+          'disabled:pointer-events-none disabled:opacity-50',
+          !selected && 'text-muted-foreground',
+          className,
         )}
       >
         <span className="min-w-0 flex-1 truncate text-left">
@@ -91,8 +91,8 @@ export function DatePicker({
           selected={selected}
           defaultMonth={selected}
           onSelect={(d) => {
-            onChange?.(dateToIso(d))
-            setOpen(false)
+            onChange?.(dateToIso(d));
+            setOpen(false);
           }}
           // `dropdown` gives editable month AND year selects (not just month).
           captionLayout="dropdown"
@@ -104,5 +104,5 @@ export function DatePicker({
         />
       </PopoverContent>
     </Popover>
-  )
+  );
 }

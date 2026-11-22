@@ -21,7 +21,12 @@ import { focusManager, onlineManager, type QueryClient } from '@tanstack/react-q
 // a stuck request can be matched with the server's view of it.
 
 type Fields = Record<string, unknown>;
-interface Ev extends Fields { k: string; q: number; at: number; t: number }
+interface Ev extends Fields {
+  k: string;
+  q: number;
+  at: number;
+  t: number;
+}
 
 const SID = Math.random().toString(36).slice(2, 10);
 const LEGACY_PREFIX = 'sajni:tm:'; // old localStorage buffers, moved into IndexedDB
@@ -44,7 +49,11 @@ const TELEMETRY_URL = '/api/telemetry';
 const BUILD = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
 const origFetch: typeof fetch = window.fetch.bind(window);
 
-interface Rec { s: string; b: string; e: Ev }
+interface Rec {
+  s: string;
+  b: string;
+  e: Ev;
+}
 
 let seq = 0;
 let recent: Ev[] = [];
@@ -97,13 +106,18 @@ function openDb(): Promise<IDBDatabase> {
       req.onupgradeneeded = () => req.result.createObjectStore(STORE, { autoIncrement: true });
       req.onsuccess = () => {
         const db = req.result;
-        db.onversionchange = () => { db.close(); dbp = null; };
+        db.onversionchange = () => {
+          db.close();
+          dbp = null;
+        };
         resolve(db);
       };
       req.onerror = () => reject(req.error);
       req.onblocked = () => reject(new Error('blocked'));
     });
-    dbp.catch(() => { dbp = null; });
+    dbp.catch(() => {
+      dbp = null;
+    });
   }
   return dbp;
 }
@@ -145,7 +159,10 @@ async function writeOut() {
     for (const r of batch) st.add(r);
     await done(tx);
     written += batch.length;
-    if (written >= 2_000) { written = 0; void prune(); }
+    if (written >= 2_000) {
+      written = 0;
+      void prune();
+    }
   } catch {
     // Storage unavailable or full: these events stay only in memory.
   }
@@ -163,7 +180,9 @@ async function prune() {
       if (keys.length) st.delete(IDBKeyRange.upperBound(keys[keys.length - 1]));
     }
     await done(tx);
-  } catch { /* storage unavailable */ }
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 // Buffers from builds that kept them in localStorage move into the store.
@@ -174,16 +193,27 @@ function adoptLegacy() {
       if (!key?.startsWith(LEGACY_PREFIX)) continue;
       try {
         const parsed = JSON.parse(localStorage.getItem(key) ?? 'null') as { build?: string; ev?: Ev[] } | null;
-        for (const e of parsed?.ev ?? []) toWrite.push({ s: key.slice(LEGACY_PREFIX.length), b: parsed?.build ?? '?', e });
-      } catch { /* corrupt */ }
+        for (const e of parsed?.ev ?? [])
+          toWrite.push({ s: key.slice(LEGACY_PREFIX.length), b: parsed?.build ?? '?', e });
+      } catch {
+        /* corrupt */
+      }
       localStorage.removeItem(key);
     }
-  } catch { /* storage unavailable */ }
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 // ─── Upload ─────────────────────────────────────────────────────────────
 
-async function post(sid: string, build: string, events: Ev[], session: Fields | null, timeoutMs = 20_000): Promise<boolean | 'drop'> {
+async function post(
+  sid: string,
+  build: string,
+  events: Ev[],
+  session: Fields | null,
+  timeoutMs = 20_000,
+): Promise<boolean | 'drop'> {
   const body = JSON.stringify({ sid, build, session, events });
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = getToken();
@@ -231,14 +261,20 @@ async function sendRecent(sinceMs: number, reason: string) {
 
 // What Settings has uploaded: everything up to `upTo`, plus key ranges above
 // it (sends go newest first, so an interrupted send leaves a sent range on top).
-interface SentState { upTo: number; ranges: [number, number][] }
+interface SentState {
+  upTo: number;
+  ranges: [number, number][];
+}
 
 function sentState(): SentState {
   try {
     const upTo = Number(localStorage.getItem(SENT_KEY)) || 0;
     const raw: unknown = JSON.parse(localStorage.getItem(SENT_RANGES_KEY) ?? '[]');
     const ranges = Array.isArray(raw)
-      ? raw.filter((r): r is [number, number] => Array.isArray(r) && r.length === 2 && typeof r[0] === 'number' && typeof r[1] === 'number' && r[1] > upTo)
+      ? raw.filter(
+          (r): r is [number, number] =>
+            Array.isArray(r) && r.length === 2 && typeof r[0] === 'number' && typeof r[1] === 'number' && r[1] > upTo,
+        )
       : [];
     return { upTo, ranges };
   } catch {
@@ -260,12 +296,18 @@ function saveSent(st: SentState) {
     localStorage.setItem(SENT_KEY, String(upTo));
     if (merged.length) localStorage.setItem(SENT_RANGES_KEY, JSON.stringify(merged));
     else localStorage.removeItem(SENT_RANGES_KEY);
-  } catch { /* storage unavailable */ }
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 const isSent = (st: SentState, key: number) => key <= st.upTo || st.ranges.some(([lo, hi]) => key >= lo && key <= hi);
 
-export interface DiagStats { total: number; unsent: number; oldestAt: number | null }
+export interface DiagStats {
+  total: number;
+  unsent: number;
+  oldestAt: number | null;
+}
 
 /** Settings → Diagnostics: what's stored on this device. */
 export async function diagStats(): Promise<DiagStats> {
@@ -293,15 +335,28 @@ async function readSince(after: number): Promise<{ keys: number[]; recs: Rec[] }
 /** One Settings batch, retried when Sajni can't be reached. */
 async function postRetrying(rec: Rec, events: Ev[], onRetry: () => void): Promise<boolean | 'drop'> {
   for (let attempt = 0; ; attempt++) {
-    const ok = await post(rec.s, rec.b, events, { reason: 'settings', sentBy: SID, ua: navigator.userAgent }, SEND_TIMEOUT_MS);
+    const ok = await post(
+      rec.s,
+      rec.b,
+      events,
+      { reason: 'settings', sentBy: SID, ua: navigator.userAgent },
+      SEND_TIMEOUT_MS,
+    );
     if (ok !== false || attempt >= SEND_RETRY_WAITS.length) return ok;
     onRetry();
     await new Promise((r) => setTimeout(r, SEND_RETRY_WAITS[attempt]));
   }
 }
 
-export interface DiagSendProgress { sent: number; total: number; retrying: boolean }
-export interface DiagSendResult { sent: number; left: number }
+export interface DiagSendProgress {
+  sent: number;
+  total: number;
+  retrying: boolean;
+}
+export interface DiagSendResult {
+  sent: number;
+  left: number;
+}
 
 /** Upload everything not sent yet, newest first, so the latest problem lands
  *  even if the backlog is cut short. `left` > 0: Sajni couldn't be reached
@@ -312,7 +367,12 @@ export async function sendDiagnostics(progress?: (p: DiagSendProgress) => void):
   const all = await readSince(state.upTo);
   const keys: number[] = [];
   const recs: Rec[] = [];
-  all.keys.forEach((k, n) => { if (!isSent(state, k)) { keys.push(k); recs.push(all.recs[n]); } });
+  all.keys.forEach((k, n) => {
+    if (!isSent(state, k)) {
+      keys.push(k);
+      recs.push(all.recs[n]);
+    }
+  });
   const total = recs.length;
   let sent = 0;
   let j = recs.length;
@@ -320,7 +380,11 @@ export async function sendDiagnostics(progress?: (p: DiagSendProgress) => void):
     // One batch per tab session, events in order within it.
     let i = j - 1;
     while (i > 0 && j - i < BATCH && recs[i - 1].s === recs[j - 1].s) i--;
-    const ok = await postRetrying(recs[i], recs.slice(i, j).map((r) => r.e), () => progress?.({ sent, total, retrying: true }));
+    const ok = await postRetrying(
+      recs[i],
+      recs.slice(i, j).map((r) => r.e),
+      () => progress?.({ sent, total, retrying: true }),
+    );
     if (ok === false) return { sent, left: total - sent };
     sent += j - i;
     state.ranges.push([keys[i], keys[j - 1]]);
@@ -330,7 +394,8 @@ export async function sendDiagnostics(progress?: (p: DiagSendProgress) => void):
   }
   // All caught up: everything read is sent, whatever gaps pruning left.
   const top = all.keys[all.keys.length - 1];
-  if (top !== undefined) saveSent({ upTo: Math.max(state.upTo, top), ranges: state.ranges.filter(([, hi]) => hi > top) });
+  if (top !== undefined)
+    saveSent({ upTo: Math.max(state.upTo, top), ranges: state.ranges.filter(([, hi]) => hi > top) });
   return { sent, left: 0 };
 }
 
@@ -338,7 +403,9 @@ export async function sendDiagnostics(progress?: (p: DiagSendProgress) => void):
 export async function downloadDiagnostics() {
   await writeOut();
   const { recs } = await readSince(0);
-  const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), events: recs })], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), events: recs })], {
+    type: 'application/json',
+  });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `sajni-diagnostics-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
@@ -421,7 +488,11 @@ function finishFetch(p: PendingFetch, extra: Fields) {
   p.done = true;
   pending.delete(p.id);
   track('fetch', {
-    id: p.id, m: p.m, u: p.u, ...p.start, ...p.res,
+    id: p.id,
+    m: p.m,
+    u: p.u,
+    ...p.start,
+    ...p.res,
     h: p.headersAt !== undefined ? Math.round(p.headersAt - p.t0) : undefined,
     ms: now() - Math.round(p.t0),
     ...extra,
@@ -429,8 +500,8 @@ function finishFetch(p: PendingFetch, extra: Fields) {
 }
 
 window.fetch = async function sajniFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const abs = typeof input === 'string' ? new URL(input, location.href).href
-    : input instanceof URL ? input.href : input.url;
+  const abs =
+    typeof input === 'string' ? new URL(input, location.href).href : input instanceof URL ? input.href : input.url;
   if (abs.endsWith(TELEMETRY_URL) || abs.includes('/_vercel/')) return origFetch(input, init);
 
   const m = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
@@ -443,9 +514,15 @@ window.fetch = async function sajniFetch(input: RequestInfo | URL, init?: Reques
     nextInit = { ...init, headers };
   }
   const p: PendingFetch = {
-    id, m, u: shortUrl(abs), abs, t0: performance.now(), wall: Date.now(),
+    id,
+    m,
+    u: shortUrl(abs),
+    abs,
+    t0: performance.now(),
+    wall: Date.now(),
     start: { ...visState(), inflight: pending.size },
-    phase: 'headers', step: 0,
+    phase: 'headers',
+    step: 0,
   };
   pending.set(id, p);
   try {
@@ -456,7 +533,10 @@ window.fetch = async function sajniFetch(input: RequestInfo | URL, init?: Reques
     p.res = {
       st: res.status,
       xv: res.headers.get('x-vercel-id') ?? undefined,
-      srv: st.app, inst: st.inst, iseq: st.seq, iup: st.up,
+      srv: st.app,
+      inst: st.inst,
+      iseq: st.seq,
+      iup: st.up,
       vis1: document.visibilityState[0],
     };
     // The resource-timing entry (when the body has fully arrived) finishes
@@ -474,7 +554,8 @@ function onResource(entry: PerformanceResourceTiming) {
   if (entry.initiatorType !== 'fetch') return;
   let match: PendingFetch | undefined;
   for (const p of pending.values()) {
-    if (p.abs === entry.name && p.phase === 'body' && entry.startTime >= p.t0 - 5 && (!match || p.t0 < match.t0)) match = p;
+    if (p.abs === entry.name && p.phase === 'body' && entry.startTime >= p.t0 - 5 && (!match || p.t0 < match.t0))
+      match = p;
   }
   if (!match) return;
   const r = (a: number, b: number) => (a > 0 && b > 0 ? Math.round(a - b) : undefined);
@@ -520,17 +601,27 @@ export function routeCommitted(pathname: string) {
 }
 
 function checkNav() {
-  if (committedPath === urlPath) { navStep = 0; return; }
+  if (committedPath === urlPath) {
+    navStep = 0;
+    return;
+  }
   const age = performance.now() - urlChangedAt;
   while (navStep < STUCK_STEPS.length && age >= STUCK_STEPS[navStep]) {
     const step = STUCK_STEPS[navStep++];
-    track('nav_stuck', { url: urlPath, shown: committedPath, step, age: Math.round(age), ...visState(), fetches: pendingSummary() }, true);
+    track(
+      'nav_stuck',
+      { url: urlPath, shown: committedPath, step, age: Math.round(age), ...visState(), fetches: pendingSummary() },
+      true,
+    );
   }
 }
 
 // ─── Watchdogs ──────────────────────────────────────────────────────────
 
-interface QueryWatch { since: number; step: number }
+interface QueryWatch {
+  since: number;
+  step: number;
+}
 const queryWatch = new Map<string, QueryWatch>();
 let client: QueryClient | null = null;
 
@@ -547,10 +638,22 @@ function checkFetches() {
     const age = t - p.t0;
     while (p.step < STUCK_STEPS.length && age >= STUCK_STEPS[p.step]) {
       const step = STUCK_STEPS[p.step++];
-      track('fetch_stuck', {
-        id: p.id, m: p.m, u: p.u, ph: p.phase, step, age: Math.round(age),
-        ...p.start, now: visState(), inflight: pending.size, ...(p.res ?? {}),
-      }, step >= 10_000);
+      track(
+        'fetch_stuck',
+        {
+          id: p.id,
+          m: p.m,
+          u: p.u,
+          ph: p.phase,
+          step,
+          age: Math.round(age),
+          ...p.start,
+          now: visState(),
+          inflight: pending.size,
+          ...(p.res ?? {}),
+        },
+        step >= 10_000,
+      );
     }
   }
 }
@@ -565,21 +668,30 @@ function checkQueries() {
     const hash = query.queryHash;
     seen.add(hash);
     let w = queryWatch.get(hash);
-    if (!w) { w = { since: t, step: 0 }; queryWatch.set(hash, w); }
+    if (!w) {
+      w = { since: t, step: 0 };
+      queryWatch.set(hash, w);
+    }
     const age = t - w.since;
     while (w.step < STUCK_STEPS.length && age >= STUCK_STEPS[w.step]) {
       const step = STUCK_STEPS[w.step++];
-      track('query_stuck', {
-        key: trim(hash, 160), step, age: Math.round(age),
-        fs: query.state.fetchStatus,
-        fc: query.state.fetchFailureCount,
-        fr: query.state.fetchFailureReason ? errText(query.state.fetchFailureReason) : undefined,
-        disabled: query.isDisabled(),
-        qOnline: onlineManager.isOnline(),
-        qFocus: focusManager.isFocused(),
-        ...visState(),
-        fetches: pendingSummary(),
-      }, step >= 10_000);
+      track(
+        'query_stuck',
+        {
+          key: trim(hash, 160),
+          step,
+          age: Math.round(age),
+          fs: query.state.fetchStatus,
+          fc: query.state.fetchFailureCount,
+          fr: query.state.fetchFailureReason ? errText(query.state.fetchFailureReason) : undefined,
+          disabled: query.isDisabled(),
+          qOnline: onlineManager.isOnline(),
+          qFocus: focusManager.isFocused(),
+          ...visState(),
+          fetches: pendingSummary(),
+        },
+        step >= 10_000,
+      );
     }
   }
   for (const [hash, w] of queryWatch) {
@@ -612,7 +724,11 @@ function tick() {
   checkNav();
   if (document.visibilityState === 'visible' && t - lastHeartbeat > 60_000) {
     lastHeartbeat = t;
-    const active = client?.getQueryCache().getAll().filter((q) => q.getObserversCount() > 0) ?? [];
+    const active =
+      client
+        ?.getQueryCache()
+        .getAll()
+        .filter((q) => q.getObserversCount() > 0) ?? [];
     track('hb', {
       pend: pending.size,
       qActive: active.length,
@@ -642,21 +758,33 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
 
   for (const method of ['pushState', 'replaceState'] as const) {
     const orig = history[method].bind(history);
-    history[method] = (...args: Parameters<History['pushState']>) => { orig(...args); urlChanged(); };
+    history[method] = (...args: Parameters<History['pushState']>) => {
+      orig(...args);
+      urlChanged();
+    };
   }
   window.addEventListener('popstate', urlChanged);
 
-  const lifecycle = (name: string, extra?: (e: Event) => Fields) =>
-    (e: Event) => track(name, { ...(extra?.(e) ?? {}), ...visState() });
+  const lifecycle = (name: string, extra?: (e: Event) => Fields) => (e: Event) =>
+    track(name, { ...(extra?.(e) ?? {}), ...visState() });
 
   document.addEventListener('visibilitychange', () => {
     const visible = document.visibilityState === 'visible';
     const hidFor = hiddenSince >= 0 ? now() - Math.round(hiddenSince) : 0;
-    if (visible) { lastVisibleAt = performance.now(); hiddenSince = -1; } else { hiddenSince = performance.now(); }
+    if (visible) {
+      lastVisibleAt = performance.now();
+      hiddenSince = -1;
+    } else {
+      hiddenSince = performance.now();
+    }
     track(visible ? 'visible' : 'hidden', { hidFor: visible ? hidFor : undefined, pend: pending.size, ...visState() });
-    if (visible) void sendOutbox(); else void writeOut();
+    if (visible) void sendOutbox();
+    else void writeOut();
   });
-  window.addEventListener('pagehide', (e) => { track('pagehide', { persisted: e.persisted }); void writeOut(); });
+  window.addEventListener('pagehide', (e) => {
+    track('pagehide', { persisted: e.persisted });
+    void writeOut();
+  });
   window.addEventListener('pageshow', (e) => track('pageshow', { persisted: e.persisted, ...visState() }));
   document.addEventListener('freeze', lifecycle('freeze'));
   document.addEventListener('resume', lifecycle('resume'));
@@ -668,14 +796,29 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
   conn?.addEventListener('change', () => track('net', { net: netInfo(), ...visState() }));
   navigator.serviceWorker?.addEventListener('controllerchange', () => track('sw_controller', {}));
 
-  window.addEventListener('error', (e) => track('error', {
-    msg: trim(String(e.message), 300), src: e.filename ? shortUrl(e.filename) : undefined, line: e.lineno,
-    stack: e.error instanceof Error ? trim(e.error.stack ?? '', 600) : undefined,
-  }, true));
-  window.addEventListener('unhandledrejection', (e) => track('error', {
-    rej: true, msg: errText(e.reason),
-    stack: e.reason instanceof Error ? trim(e.reason.stack ?? '', 600) : undefined,
-  }, true));
+  window.addEventListener('error', (e) =>
+    track(
+      'error',
+      {
+        msg: trim(String(e.message), 300),
+        src: e.filename ? shortUrl(e.filename) : undefined,
+        line: e.lineno,
+        stack: e.error instanceof Error ? trim(e.error.stack ?? '', 600) : undefined,
+      },
+      true,
+    ),
+  );
+  window.addEventListener('unhandledrejection', (e) =>
+    track(
+      'error',
+      {
+        rej: true,
+        msg: errText(e.reason),
+        stack: e.reason instanceof Error ? trim(e.reason.stack ?? '', 600) : undefined,
+      },
+      true,
+    ),
+  );
 
   onlineManager.subscribe((online) => track('q_online', { online, ...visState() }));
   focusManager.subscribe((focused) => track('q_focus', { focused }));
@@ -685,14 +828,18 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
     const a = event.action.type;
     if (a !== 'error' && a !== 'pause' && a !== 'continue' && a !== 'failed') return;
     const s = event.query.state;
-    track('q_' + a, {
-      key: trim(event.query.queryHash, 160),
-      fc: s.fetchFailureCount,
-      err: s.fetchFailureReason ? errText(s.fetchFailureReason) : undefined,
-      hasData: s.data !== undefined,
-      observers: event.query.getObserversCount(),
-      ...visState(),
-    }, a === 'error');
+    track(
+      'q_' + a,
+      {
+        key: trim(event.query.queryHash, 160),
+        fc: s.fetchFailureCount,
+        err: s.fetchFailureReason ? errText(s.fetchFailureReason) : undefined,
+        hasData: s.data !== undefined,
+        observers: event.query.getObserversCount(),
+        ...visState(),
+      },
+      a === 'error',
+    );
   });
   qc.getMutationCache().subscribe((event) => {
     if (event.type !== 'updated') return;
@@ -709,7 +856,9 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) onResource(entry as PerformanceResourceTiming);
     }).observe({ type: 'resource', buffered: true });
-  } catch { /* unsupported */ }
+  } catch {
+    /* unsupported */
+  }
 
   const loafSupported = PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame');
   try {
@@ -724,8 +873,14 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
           track('long_frame', {
             d: Math.round(e.duration),
             block: Math.round(loaf.blockingDuration ?? 0),
-            scripts: [...(loaf.scripts ?? [])].sort((a, b) => b.duration - a.duration).slice(0, 3)
-              .map((s) => ({ src: s.sourceURL ? shortUrl(s.sourceURL) : '', inv: trim(s.invoker ?? '', 80), d: Math.round(s.duration) })),
+            scripts: [...(loaf.scripts ?? [])]
+              .sort((a, b) => b.duration - a.duration)
+              .slice(0, 3)
+              .map((s) => ({
+                src: s.sourceURL ? shortUrl(s.sourceURL) : '',
+                inv: trim(s.invoker ?? '', 80),
+                d: Math.round(s.duration),
+              })),
             path: location.pathname,
           });
         }
@@ -737,14 +892,20 @@ export function installTelemetry(qc: QueryClient, tokenGetter: () => string | nu
         }
       }).observe({ type: 'longtask', buffered: true });
     }
-  } catch { /* unsupported */ }
+  } catch {
+    /* unsupported */
+  }
 
   setInterval(tick, 1000);
   adoptLegacy();
   void prune();
 
   (window as Window & { __sajniTelemetry?: unknown }).__sajniTelemetry = {
-    sid: SID, recent: () => recent, pending: () => [...pending.values()], report: reportHang, stats: diagStats,
+    sid: SID,
+    recent: () => recent,
+    pending: () => [...pending.values()],
+    report: reportHang,
+    stats: diagStats,
   };
 }
 
@@ -757,9 +918,27 @@ export function trackChunk(name: string, ms: number, err?: unknown) {
 
 /** "Report slow loading" from the command palette: snapshot what's pending. */
 export function reportHang() {
-  const stuck = client?.getQueryCache().getAll()
-    .filter((q) => q.getObserversCount() > 0 && (q.state.status === 'pending' || q.state.fetchStatus !== 'idle'))
-    .map((q) => ({ key: trim(q.queryHash, 160), st: q.state.status, fs: q.state.fetchStatus, fc: q.state.fetchFailureCount })) ?? [];
-  track('user_report', { path: location.pathname + location.search, fetches: pendingSummary(), queries: stuck, ...visState(), net: netInfo() }, true);
+  const stuck =
+    client
+      ?.getQueryCache()
+      .getAll()
+      .filter((q) => q.getObserversCount() > 0 && (q.state.status === 'pending' || q.state.fetchStatus !== 'idle'))
+      .map((q) => ({
+        key: trim(q.queryHash, 160),
+        st: q.state.status,
+        fs: q.state.fetchStatus,
+        fc: q.state.fetchFailureCount,
+      })) ?? [];
+  track(
+    'user_report',
+    {
+      path: location.pathname + location.search,
+      fetches: pendingSummary(),
+      queries: stuck,
+      ...visState(),
+      net: netInfo(),
+    },
+    true,
+  );
   void sendRecent(Date.now() - REPORT_WINDOW_MS, 'user_report');
 }

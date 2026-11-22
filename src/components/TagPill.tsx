@@ -8,7 +8,10 @@ interface Props {
 export default function TagPill({ tag }: Props) {
   return (
     <Link to={`/tags/${encodeURIComponent(tag)}`}>
-      <Badge variant="secondary" className="cursor-pointer bg-[hsl(var(--secondary-container))] hover:bg-[hsl(var(--secondary-container)/0.8)] text-[hsl(var(--on-secondary-container))] text-xs">
+      <Badge
+        variant="secondary"
+        className="cursor-pointer bg-[hsl(var(--secondary-container))] text-xs text-[hsl(var(--on-secondary-container))] hover:bg-[hsl(var(--secondary-container)/0.8)]"
+      >
         #{tag}
       </Badge>
     </Link>

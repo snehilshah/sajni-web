@@ -1,8 +1,16 @@
 // Lightweight fuzzy scorer + type-prefix parser for the global palette.
 
 export type SearchType =
-  | 'memo' | 'task' | 'note' | 'journal' | 'habit' | 'event'
-  | 'media' | 'tag' | 'account' | 'transaction';
+  | 'memo'
+  | 'task'
+  | 'note'
+  | 'journal'
+  | 'habit'
+  | 'event'
+  | 'media'
+  | 'tag'
+  | 'account'
+  | 'transaction';
 
 export const SEARCH_TYPE_LABELS: Record<SearchType, string> = {
   memo: 'Memo',
@@ -20,17 +28,35 @@ export const SEARCH_TYPE_LABELS: Record<SearchType, string> = {
 // Aliases the user can type at the start of the query to bias results.
 // Plurals and short forms are accepted.
 const TYPE_ALIASES: Record<string, SearchType> = {
-  memo: 'memo', memos: 'memo',
-  task: 'task', tasks: 'task', todo: 'task', todos: 'task',
-  note: 'note', notes: 'note',
-  journal: 'journal', journals: 'journal',
-  habit: 'habit', habits: 'habit',
-  event: 'event', events: 'event',
-  media: 'media', movie: 'media', movies: 'media',
-  show: 'media', shows: 'media', book: 'media', books: 'media',
-  tag: 'tag', tags: 'tag',
-  account: 'account', accounts: 'account', finance: 'account',
-  transaction: 'transaction', transactions: 'transaction', txn: 'transaction',
+  memo: 'memo',
+  memos: 'memo',
+  task: 'task',
+  tasks: 'task',
+  todo: 'task',
+  todos: 'task',
+  note: 'note',
+  notes: 'note',
+  journal: 'journal',
+  journals: 'journal',
+  habit: 'habit',
+  habits: 'habit',
+  event: 'event',
+  events: 'event',
+  media: 'media',
+  movie: 'media',
+  movies: 'media',
+  show: 'media',
+  shows: 'media',
+  book: 'media',
+  books: 'media',
+  tag: 'tag',
+  tags: 'tag',
+  account: 'account',
+  accounts: 'account',
+  finance: 'account',
+  transaction: 'transaction',
+  transactions: 'transaction',
+  txn: 'transaction',
 };
 
 export interface ParsedQuery {
@@ -126,12 +152,7 @@ function fuzzyScore(text: string, q: string): number {
 
 // Combined score for a hit against a parsed query.
 // Boosts hits whose type matches the explicit prefix (if any).
-export function rankHit(
-  title: string,
-  subtitle: string | undefined,
-  type: string,
-  parsed: ParsedQuery,
-): number {
+export function rankHit(title: string, subtitle: string | undefined, type: string, parsed: ParsedQuery): number {
   const titleScore = fuzzyScore(title, parsed.query);
   const subScore = subtitle ? 0.6 * fuzzyScore(subtitle, parsed.query) : 0;
   let score = Math.max(titleScore, subScore);

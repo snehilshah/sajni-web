@@ -16,7 +16,13 @@ export function UnsavedNotice({ draft, className }: { draft: Pick<EditorDraft, '
  * An editor's footer: Cancel · Save. Cancel goes through the draft's close,
  * so with changes it warns first and then reads "Discard".
  */
-export function EditActions({ draft, onCancel, onSave, saveLabel = 'Save', disabled = false }: {
+export function EditActions({
+  draft,
+  onCancel,
+  onSave,
+  saveLabel = 'Save',
+  disabled = false,
+}: {
   draft: Pick<EditorDraft, 'warning' | 'saving' | 'close'>;
   onCancel: () => void;
   onSave: () => void;
@@ -34,7 +40,9 @@ export function EditActions({ draft, onCancel, onSave, saveLabel = 'Save', disab
       >
         {draft.warning ? 'Discard' : 'Cancel'}
       </Button>
-      <Button onClick={onSave} disabled={disabled || draft.saving}>{draft.saving ? 'Saving…' : saveLabel}</Button>
+      <Button onClick={onSave} disabled={disabled || draft.saving}>
+        {draft.saving ? 'Saving…' : saveLabel}
+      </Button>
     </>
   );
 }

@@ -45,12 +45,8 @@ function solveCubicBezier(x1: number, y1: number, x2: number, y2: number) {
     if (x === 0 || x === 1) return x;
     let t = x;
     for (let i = 0; i < 8; i++) {
-      const currentX =
-        3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t;
-      const derivativeX =
-        3 * (1 - t) * (1 - t) * x1 +
-        6 * (1 - t) * t * (x2 - x1) +
-        3 * t * t * (1 - x2);
+      const currentX = 3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t;
+      const derivativeX = 3 * (1 - t) * (1 - t) * x1 + 6 * (1 - t) * t * (x2 - x1) + 3 * t * t * (1 - x2);
       if (Math.abs(currentX - x) < 1e-5 || Math.abs(derivativeX) < 1e-5) break;
       t -= (currentX - x) / derivativeX;
     }
@@ -72,10 +68,7 @@ function prefersReducedMotion() {
 
 function rotationKeyframes(shapeCount: number, rotationStyle: 'expressive' | 'linear') {
   if (rotationStyle === 'linear') {
-    return [
-      { transform: 'rotate(0deg)' },
-      { transform: 'rotate(540deg)' },
-    ];
+    return [{ transform: 'rotate(0deg)' }, { transform: 'rotate(540deg)' }];
   }
 
   const frames: Keyframe[] = [];
@@ -107,8 +100,7 @@ export function MorphLoader({
   className,
 }: MorphLoaderProps) {
   const px = typeof size === 'number' ? size : SIZE_PX[size] || SIZE_PX.md;
-  const colorVar =
-    tone === 'tertiary' ? '--tertiary' : tone === 'secondary' ? '--secondary' : '--primary';
+  const colorVar = tone === 'tertiary' ? '--tertiary' : tone === 'secondary' ? '--secondary' : '--primary';
   const activeShapes = shapes && shapes.length > 0 ? shapes : MORPH_PRESETS[preset] || MORPH_PRESETS.android16;
   const validShapes = activeShapes.filter((shape) => shape in M3_SHAPES_DATA);
   const shapeKey = (validShapes.length > 0 ? validShapes : ['square']).join('|');
@@ -121,11 +113,7 @@ export function MorphLoader({
   // Keep roughly 1.25 display pixels between interpolation points. Small
   // spinners no longer calculate thousands of sub-pixel path coordinates.
   const maxSegmentLength = Math.max(5, Math.min(24, Math.round(475 / Math.max(px, 1))));
-  const reducedMotion = useSyncExternalStore(
-    subscribeToReducedMotion,
-    prefersReducedMotion,
-    () => true,
-  );
+  const reducedMotion = useSyncExternalStore(subscribeToReducedMotion, prefersReducedMotion, () => true);
   const pathRef = useRef<SVGPathElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -153,59 +141,59 @@ export function MorphLoader({
     let holdTimer = 0;
     const startedAt = performance.now() - phaseOffsetMs;
 
-    void import('flubber').then(({ default: flubber }) => {
-      if (cancelled) return;
-
-      const interpolators = shapeList.map((shape, index) => {
-        const nextShape = shapeList[(index + 1) % shapeList.length];
-        const cacheKey = `${shape}>${nextShape}@${maxSegmentLength}`;
-        const cached = interpolatorCache.get(cacheKey);
-        if (cached) return cached;
-
-        try {
-          const compiled = flubber.interpolate(
-            M3_SHAPES_DATA[shape],
-            M3_SHAPES_DATA[nextShape],
-            { maxSegmentLength },
-          );
-          interpolatorCache.set(cacheKey, compiled);
-          return compiled;
-        } catch {
-          return () => M3_SHAPES_DATA[shape];
-        }
-      });
-
-      let lastHeldShape = -1;
-      const tick = (now: number) => {
+    void import('flubber')
+      .then(({ default: flubber }) => {
         if (cancelled) return;
-        const progress = ((now - startedAt) / 1000 % durSec) / durSec;
-        const shapeProgress = progress * shapeList.length;
-        const index = Math.floor(shapeProgress);
-        const fraction = shapeProgress - index;
 
-        if (fraction < HOLD_FRACTION) {
-          if (lastHeldShape !== index) {
-            pathRef.current?.setAttribute('d', M3_SHAPES_DATA[shapeList[index]]);
-            lastHeldShape = index;
+        const interpolators = shapeList.map((shape, index) => {
+          const nextShape = shapeList[(index + 1) % shapeList.length];
+          const cacheKey = `${shape}>${nextShape}@${maxSegmentLength}`;
+          const cached = interpolatorCache.get(cacheKey);
+          if (cached) return cached;
+
+          try {
+            const compiled = flubber.interpolate(M3_SHAPES_DATA[shape], M3_SHAPES_DATA[nextShape], {
+              maxSegmentLength,
+            });
+            interpolatorCache.set(cacheKey, compiled);
+            return compiled;
+          } catch {
+            return () => M3_SHAPES_DATA[shape];
           }
-          // The path is static during the hold; wake up when morphing resumes.
-          const remainingHoldMs = (HOLD_FRACTION - fraction) * cycleSec * 1000;
-          holdTimer = window.setTimeout(() => {
-            animId = requestAnimationFrame(tick);
-          }, remainingHoldMs);
-          return;
-        }
+        });
 
-        lastHeldShape = -1;
-        const morphProgress = (fraction - HOLD_FRACTION) / MORPH_FRACTION;
-        pathRef.current?.setAttribute('d', interpolators[index](easeExpressive(morphProgress)));
+        let lastHeldShape = -1;
+        const tick = (now: number) => {
+          if (cancelled) return;
+          const progress = (((now - startedAt) / 1000) % durSec) / durSec;
+          const shapeProgress = progress * shapeList.length;
+          const index = Math.floor(shapeProgress);
+          const fraction = shapeProgress - index;
+
+          if (fraction < HOLD_FRACTION) {
+            if (lastHeldShape !== index) {
+              pathRef.current?.setAttribute('d', M3_SHAPES_DATA[shapeList[index]]);
+              lastHeldShape = index;
+            }
+            // The path is static during the hold; wake up when morphing resumes.
+            const remainingHoldMs = (HOLD_FRACTION - fraction) * cycleSec * 1000;
+            holdTimer = window.setTimeout(() => {
+              animId = requestAnimationFrame(tick);
+            }, remainingHoldMs);
+            return;
+          }
+
+          lastHeldShape = -1;
+          const morphProgress = (fraction - HOLD_FRACTION) / MORPH_FRACTION;
+          pathRef.current?.setAttribute('d', interpolators[index](easeExpressive(morphProgress)));
+          animId = requestAnimationFrame(tick);
+        };
+
         animId = requestAnimationFrame(tick);
-      };
-
-      animId = requestAnimationFrame(tick);
-    }).catch(() => {
-      // Rotation remains a useful loader if the deferred morph chunk fails.
-    });
+      })
+      .catch(() => {
+        // Rotation remains a useful loader if the deferred morph chunk fails.
+      });
 
     return () => {
       cancelled = true;
@@ -243,11 +231,12 @@ export function MorphLoader({
           display: 'block',
           overflow: 'visible',
           transformOrigin: 'center',
-          transform: rotationStyle === 'none'
-            ? undefined
-            : rotationStyle === 'linear'
-              ? `rotate(${(HOLD_FRACTION / shapeList.length) * 540}deg)`
-              : 'rotate(12deg)',
+          transform:
+            rotationStyle === 'none'
+              ? undefined
+              : rotationStyle === 'linear'
+                ? `rotate(${(HOLD_FRACTION / shapeList.length) * 540}deg)`
+                : 'rotate(12deg)',
         }}
       >
         <g>

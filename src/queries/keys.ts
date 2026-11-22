@@ -110,7 +110,8 @@ export const qk = {
     lends: () => ['finance', 'lends'] as const,
     // Under the lends prefix so invalidating lends refreshes people + pickers too.
     lendPeople: () => ['finance', 'lends', 'people'] as const,
-    lendCandidates: (kind: string, q: string, accountId: number) => ['finance', 'lends', 'candidates', kind, q, accountId] as const,
+    lendCandidates: (kind: string, q: string, accountId: number) =>
+      ['finance', 'lends', 'candidates', kind, q, accountId] as const,
     budgets: () => ['finance', 'budgets'] as const,
     slates: () => ['finance', 'slates'] as const,
     investments: () => ['finance', 'investments'] as const,

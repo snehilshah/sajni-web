@@ -1,9 +1,9 @@
-import path from 'path'
-import { defineConfig, type Plugin } from 'vite'
-import { rolldown } from 'rolldown'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
-import tailwindcss from '@tailwindcss/vite'
+import path from 'path';
+import { defineConfig, type Plugin } from 'vite';
+import { rolldown } from 'rolldown';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
+import babel from '@rolldown/plugin-babel';
+import tailwindcss from '@tailwindcss/vite';
 
 // Built-in theme palettes are deterministic, so compile them at build time
 // into real CSS. It ships in the render-blocking stylesheet: first paint is
@@ -11,27 +11,25 @@ import tailwindcss from '@tailwindcss/vite'
 // presets.ts is bundled in memory with rolldown (the color library ships
 // extensionless ESM that plain Node can't import); addWatchFile makes edits
 // to the theme sources hot-reload the CSS in dev.
-const THEME_PRESETS_ID = 'virtual:theme-presets.css'
-const THEME_SOURCES = ['src/theme/presets.ts', 'src/theme/applyM3.ts'].map((f) =>
-  path.resolve(import.meta.dirname, f),
-)
+const THEME_PRESETS_ID = 'virtual:theme-presets.css';
+const THEME_SOURCES = ['src/theme/presets.ts', 'src/theme/applyM3.ts'].map((f) => path.resolve(import.meta.dirname, f));
 function themePresets(): Plugin {
-  const resolved = '\0' + THEME_PRESETS_ID
+  const resolved = '\0' + THEME_PRESETS_ID;
   return {
     name: 'sajni-theme-presets',
     resolveId: (id) => (id === THEME_PRESETS_ID ? resolved : undefined),
     async load(id) {
-      if (id !== resolved) return
-      THEME_SOURCES.forEach((f) => this.addWatchFile(f))
-      const bundle = await rolldown({ input: THEME_SOURCES[0], platform: 'node', logLevel: 'silent' })
-      const { output } = await bundle.generate({ format: 'esm' })
-      await bundle.close()
+      if (id !== resolved) return;
+      THEME_SOURCES.forEach((f) => this.addWatchFile(f));
+      const bundle = await rolldown({ input: THEME_SOURCES[0], platform: 'node', logLevel: 'silent' });
+      const { output } = await bundle.generate({ format: 'esm' });
+      await bundle.close();
       const mod: typeof import('./src/theme/presets') = await import(
         `data:text/javascript;base64,${Buffer.from(output[0].code).toString('base64')}`
-      )
-      return mod.presetStylesheet()
+      );
+      return mod.presetStylesheet();
     },
-  }
+  };
 }
 
 // One id per build, compiled in as __BUILD_ID__ and published as
@@ -40,25 +38,19 @@ function themePresets(): Plugin {
 // new deploy while idle (src/lib/buildWatch.ts). The commit sha keeps a
 // re-deploy of the same commit from looking like a new build.
 function buildVersion(): Plugin {
-  const id = process.env.GITHUB_SHA?.slice(0, 12) || Date.now().toString(36)
+  const id = process.env.GITHUB_SHA?.slice(0, 12) || Date.now().toString(36);
   return {
     name: 'sajni-build-version',
     config: () => ({ define: { __BUILD_ID__: JSON.stringify(id) } }),
     generateBundle() {
-      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: id }) })
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: id }) });
     },
-  }
+  };
 }
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    babel({ presets: [reactCompilerPreset()] }),
-    tailwindcss(),
-    themePresets(),
-    buildVersion(),
-  ],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss(), themePresets(), buildVersion()],
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
@@ -97,4 +89,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

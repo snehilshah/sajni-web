@@ -7,7 +7,13 @@ import { MONEY_MASK, moneyParts } from './utils';
  *  the ₹ a smaller muted glyph, paise a touch lighter (`.money` in index.css).
  *  Always formatMoney's exact two decimals. `sign` prefixes a +/− the caller
  *  derives from the transaction type; a negative value carries its own. */
-export function Money({ value, currency = 'INR', sign, className, privacy: privacyOverride }: {
+export function Money({
+  value,
+  currency = 'INR',
+  sign,
+  className,
+  privacy: privacyOverride,
+}: {
   value: number;
   currency?: string;
   sign?: string;
@@ -18,10 +24,17 @@ export function Money({ value, currency = 'INR', sign, className, privacy: priva
   const privacyMode = useFinancePrivacy();
   const privacy = privacyOverride ?? privacyMode;
   const parts = moneyParts(value, currency, privacy);
-  if (!parts) return <span className={cn('money', className)}>{sign}{MONEY_MASK}</span>;
+  if (!parts)
+    return (
+      <span className={cn('money', className)}>
+        {sign}
+        {MONEY_MASK}
+      </span>
+    );
   return (
     <span className={cn('money', className)}>
-      {sign}{parts.sign}
+      {sign}
+      {parts.sign}
       <span className="money-symbol">{parts.symbol}</span>
       {parts.whole}
       <span className="money-fraction">{parts.fraction}</span>

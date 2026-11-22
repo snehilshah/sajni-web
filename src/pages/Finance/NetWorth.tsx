@@ -29,7 +29,7 @@ export default function NetWorth({ enabled }: { enabled: boolean }) {
   const { data: history = [] } = useFinNetworthHistory(enabled);
   const [snapping, setSnapping] = useState(false);
 
-  if (!data) return <div className="h-48 rounded-xl bg-muted/40 animate-pulse" />;
+  if (!data) return <div className="h-48 animate-pulse rounded-xl bg-muted/40" />;
 
   const takeSnapshot = async () => {
     setSnapping(true);
@@ -52,17 +52,26 @@ export default function NetWorth({ enabled }: { enabled: boolean }) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Hero data={data} history={history} onSnapshot={takeSnapshot} snapping={snapping} />
       <section className="rounded-xl bg-card p-4 md:p-5">
         <h2 className="mb-3 font-serif text-base font-semibold">Asset distribution</h2>
-        <Distribution accounts={data.accounts} investments={data.investment_assets ?? []} lends={data.lends_breakdown ?? []} />
+        <Distribution
+          accounts={data.accounts}
+          investments={data.investment_assets ?? []}
+          lends={data.lends_breakdown ?? []}
+        />
       </section>
     </div>
   );
 }
 
-function Hero({ data, history, onSnapshot, snapping }: {
+function Hero({
+  data,
+  history,
+  onSnapshot,
+  snapping,
+}: {
   data: OverviewData;
   history: Snapshot[];
   onSnapshot: () => void;
@@ -82,33 +91,38 @@ function Hero({ data, history, onSnapshot, snapping }: {
     <motion.div
       initial={{ opacity: 0, transform: 'translateY(6px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
-      className="rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 md:p-6"
+      className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground md:p-6"
     >
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="font-mono text-xs label-kicker opacity-80">Net worth</div>
-          <div className="font-serif text-4xl md:text-5xl font-semibold tabular-nums mt-1">
+          <div className="label-kicker font-mono text-xs opacity-80">Net worth</div>
+          <div className="mt-1 font-serif text-4xl font-semibold tabular-nums md:text-5xl">
             <AnimatedMoney value={data.net_worth} />
           </div>
           {previous ? (
-            <div className="font-mono text-xs mt-2 inline-flex items-center gap-1 opacity-90">
+            <div className="mt-2 inline-flex items-center gap-1 font-mono text-xs opacity-90">
               {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-              {positive ? '+' : ''}<Money value={change} /> ({formatPercent(changePct, 1)}) since last snapshot
+              {positive ? '+' : ''}
+              <Money value={change} /> ({formatPercent(changePct, 1)}) since last snapshot
             </div>
           ) : (
-            <div className="font-mono text-xs mt-2 opacity-75">
-              {lastSnap ? `Last snapshot ${format(parseISO(lastSnap.date), 'MMM d, yyyy')}` : 'No snapshots yet. Take one to start the trend.'}
+            <div className="mt-2 font-mono text-xs opacity-75">
+              {lastSnap
+                ? `Last snapshot ${format(parseISO(lastSnap.date), 'MMM d, yyyy')}`
+                : 'No snapshots yet. Take one to start the trend.'}
             </div>
           )}
         </div>
         <Tooltip>
-          <TooltipTrigger render={
-            <Button variant="secondary" size="sm" onClick={onSnapshot} disabled={snapping || snappedToday}>
-              <Camera className="size-3.5 mr-1" />
-              {snapping ? 'Saving…' : snappedToday ? 'Snapped today' : 'Snapshot'}
-            </Button>
-          } />
-          <TooltipContent side="bottom" className="text-xs max-w-[220px] text-center">
+          <TooltipTrigger
+            render={
+              <Button variant="secondary" size="sm" onClick={onSnapshot} disabled={snapping || snappedToday}>
+                <Camera className="mr-1 size-3.5" />
+                {snapping ? 'Saving…' : snappedToday ? 'Snapped today' : 'Snapshot'}
+              </Button>
+            }
+          />
+          <TooltipContent side="bottom" className="max-w-[220px] text-center text-xs">
             {snappedToday
               ? "Today's net-worth snapshot is already saved."
               : 'Save today’s net worth as a daily data point. Powers the trend chart over time.'}
@@ -116,7 +130,7 @@ function Hero({ data, history, onSnapshot, snapping }: {
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 mt-6">
+      <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
         <HeroStat label="Assets" value={data.total_assets} />
         <HeroStat label="Liabilities" value={data.total_liabilities} />
         <HeroStat label="Investments" value={data.investments_total} />
@@ -134,7 +148,9 @@ function HeroStat({ label, value, className = '' }: { label: string; value: numb
     // Plain column in the hero — space separates, no card inside the card.
     <div className={className}>
       <div className="text-xs opacity-75">{label}</div>
-      <div className="font-serif text-lg font-semibold tabular-nums"><AnimatedMoney value={value} /></div>
+      <div className="font-serif text-lg font-semibold tabular-nums">
+        <AnimatedMoney value={value} />
+      </div>
     </div>
   );
 }
@@ -146,13 +162,15 @@ function Sparkline({ points }: { points: number[] }) {
   const w = 100;
   const h = 30;
   const step = points.length > 1 ? w / (points.length - 1) : 0;
-  const path = points.map((p, i) => {
-    const x = i * step;
-    const y = h - ((p - min) / range) * h;
-    return (i === 0 ? 'M' : 'L') + x.toFixed(2) + ',' + y.toFixed(2);
-  }).join(' ');
+  const path = points
+    .map((p, i) => {
+      const x = i * step;
+      const y = h - ((p - min) / range) * h;
+      return (i === 0 ? 'M' : 'L') + x.toFixed(2) + ',' + y.toFixed(2);
+    })
+    .join(' ');
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-10 mt-4 opacity-70" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-4 h-10 w-full opacity-70" preserveAspectRatio="none">
       <path d={path} fill="none" stroke="currentColor" strokeWidth={1.2} />
     </svg>
   );
@@ -163,7 +181,11 @@ type Group = { key: string; label: string; color: string; amount: number; member
 /** What the assets are made of, in three groups (bank and cash,
  *  investments, money lent per person), not one row per account. Tap a
  *  group to see what's in it. */
-function Distribution({ accounts, investments, lends }: {
+function Distribution({
+  accounts,
+  investments,
+  lends,
+}: {
   accounts: OverviewData['accounts'];
   investments: NonNullable<OverviewData['investment_assets']>;
   lends: NonNullable<OverviewData['lends_breakdown']>;
@@ -172,9 +194,13 @@ function Distribution({ accounts, investments, lends }: {
   const [open, setOpen] = useState<string | null>(null);
   const groups = useMemo(() => {
     const byAmount = (a: { amount: number }, b: { amount: number }) => b.amount - a.amount;
-    const bank = accounts.filter((a) => a.balance > 0 && a.type !== 'investment').map((a) => ({ name: a.name, amount: a.balance }));
+    const bank = accounts
+      .filter((a) => a.balance > 0 && a.type !== 'investment')
+      .map((a) => ({ name: a.name, amount: a.balance }));
     const invested = [
-      ...accounts.filter((a) => a.balance > 0 && a.type === 'investment').map((a) => ({ name: a.name, amount: a.balance })),
+      ...accounts
+        .filter((a) => a.balance > 0 && a.type === 'investment')
+        .map((a) => ({ name: a.name, amount: a.balance })),
       ...investments.filter((i) => i.amount > 0).map((i) => ({ name: i.name, amount: i.amount })),
     ];
     // One line per person, not per lend.
@@ -187,9 +213,27 @@ function Distribution({ accounts, investments, lends }: {
       else people.set(k, { name: l.borrower.trim(), amount: l.outstanding });
     }
     const list: Group[] = [
-      { key: 'bank', label: 'Bank and cash', color: 'hsl(var(--chart-1))', members: bank.sort(byAmount), amount: sumMoney(bank, (m) => m.amount) },
-      { key: 'invested', label: 'Investments', color: 'hsl(var(--chart-3))', members: invested.sort(byAmount), amount: sumMoney(invested, (m) => m.amount) },
-      { key: 'lent', label: 'Lent', color: 'hsl(var(--chart-2))', members: [...people.values()].sort(byAmount), amount: sumMoney([...people.values()], (m) => m.amount) },
+      {
+        key: 'bank',
+        label: 'Bank and cash',
+        color: 'hsl(var(--chart-1))',
+        members: bank.sort(byAmount),
+        amount: sumMoney(bank, (m) => m.amount),
+      },
+      {
+        key: 'invested',
+        label: 'Investments',
+        color: 'hsl(var(--chart-3))',
+        members: invested.sort(byAmount),
+        amount: sumMoney(invested, (m) => m.amount),
+      },
+      {
+        key: 'lent',
+        label: 'Lent',
+        color: 'hsl(var(--chart-2))',
+        members: [...people.values()].sort(byAmount),
+        amount: sumMoney([...people.values()], (m) => m.amount),
+      },
     ];
     return list.filter((g) => g.amount > 0).sort(byAmount);
   }, [accounts, investments, lends]);
@@ -205,31 +249,50 @@ function Distribution({ accounts, investments, lends }: {
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3">
         {groups.map((g) => {
           const expanded = open === g.key;
-          const summary = g.key === 'lent'
-            ? g.members.map((m) => `${m.name} ${formatMoney(m.amount)}`).join(' · ')
-            : g.members.map((m) => m.name).join(' · ');
+          const summary =
+            g.key === 'lent'
+              ? g.members.map((m) => `${m.name} ${formatMoney(m.amount)}`).join(' · ')
+              : g.members.map((m) => m.name).join(' · ');
           return (
-            <div key={g.key} className="col-span-full grid grid-cols-subgrid [&+&]:border-t [&+&]:border-[hsl(var(--outline-variant)/0.5)]">
-              <button type="button" onClick={() => setOpen(expanded ? null : g.key)} aria-expanded={expanded}
-                className="col-span-full grid grid-cols-subgrid items-start py-3 text-left">
+            <div
+              key={g.key}
+              className="col-span-full grid grid-cols-subgrid [&+&]:border-t [&+&]:border-[hsl(var(--outline-variant)/0.5)]"
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(expanded ? null : g.key)}
+                aria-expanded={expanded}
+                className="col-span-full grid grid-cols-subgrid items-start py-3 text-left"
+              >
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="flex items-center gap-2 text-sm font-medium leading-5">
+                  <span className="flex items-center gap-2 text-sm leading-5 font-medium">
                     <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: g.color }} />
                     {g.label}
-                    <ChevronRight className={cn('size-3.5 text-muted-foreground transition-transform', expanded && 'rotate-90')} />
+                    <ChevronRight
+                      className={cn('size-3.5 text-muted-foreground transition-transform', expanded && 'rotate-90')}
+                    />
                   </span>
-                  {!expanded && <span className="truncate pl-[18px] text-xs leading-4 text-muted-foreground">{summary}</span>}
+                  {!expanded && (
+                    <span className="truncate pl-[18px] text-xs leading-4 text-muted-foreground">{summary}</span>
+                  )}
                 </span>
-                <span className="pt-px text-right text-xs leading-5 text-muted-foreground tabular-nums">{formatPercent((g.amount / total) * 100)}</span>
-                <span className="whitespace-nowrap pt-px text-right text-sm leading-5 tabular-nums"><Money value={g.amount} /></span>
+                <span className="pt-px text-right text-xs leading-5 text-muted-foreground tabular-nums">
+                  {formatPercent((g.amount / total) * 100)}
+                </span>
+                <span className="pt-px text-right text-sm leading-5 whitespace-nowrap tabular-nums">
+                  <Money value={g.amount} />
+                </span>
               </button>
-              {expanded && g.members.map((m) => (
-                <div key={m.name} className="col-span-full grid grid-cols-subgrid pb-2 text-xs text-muted-foreground">
-                  <span className="truncate pl-[18px]">{m.name}</span>
-                  <span className="text-right tabular-nums">{formatPercent((m.amount / total) * 100)}</span>
-                  <span className="whitespace-nowrap text-right tabular-nums"><Money value={m.amount} /></span>
-                </div>
-              ))}
+              {expanded &&
+                g.members.map((m) => (
+                  <div key={m.name} className="col-span-full grid grid-cols-subgrid pb-2 text-xs text-muted-foreground">
+                    <span className="truncate pl-[18px]">{m.name}</span>
+                    <span className="text-right tabular-nums">{formatPercent((m.amount / total) * 100)}</span>
+                    <span className="text-right whitespace-nowrap tabular-nums">
+                      <Money value={m.amount} />
+                    </span>
+                  </div>
+                ))}
             </div>
           );
         })}

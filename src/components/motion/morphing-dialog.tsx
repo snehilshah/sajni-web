@@ -26,7 +26,14 @@ export interface MorphSourceRect {
 }
 
 export function MorphingDialog({
-  open, onClose, onCloseComplete, layoutId, sourceRect, className, children, ariaLabel,
+  open,
+  onClose,
+  onCloseComplete,
+  layoutId,
+  sourceRect,
+  className,
+  children,
+  ariaLabel,
   showClose = true,
 }: {
   open: boolean;
@@ -46,7 +53,9 @@ export function MorphingDialog({
   // Callers pass inline closures; reading the latest through a ref keeps the
   // stack entry stable, so a re-render never moves a dialog to the top.
   const onCloseRef = useRef(onClose);
-  useLayoutEffect(() => { onCloseRef.current = onClose; });
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
   useEffect(() => {
     if (!open) return;
     openStack.push(id);
@@ -100,7 +109,7 @@ export function MorphingDialog({
             onKeyDown={submitOnEnter}
             aria-label={ariaLabel}
             className={cn(
-              'fixed z-50 flex flex-col gap-0 overflow-hidden rounded-[28px] outline-none border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-2xl',
+              'fixed z-50 flex flex-col gap-0 overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))] bg-popover text-popover-foreground shadow-2xl outline-none',
               className,
             )}
           >
@@ -109,7 +118,7 @@ export function MorphingDialog({
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="absolute top-4 right-4 z-10 size-8 inline-flex items-center justify-center rounded-full bg-secondary text-foreground/80 hover:text-foreground transition-colors"
+                className="absolute top-4 right-4 z-10 inline-flex size-8 items-center justify-center rounded-full bg-secondary text-foreground/80 transition-colors hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
@@ -123,17 +132,17 @@ export function MorphingDialog({
 }
 
 function MorphPanel({
-  sourceRect, layoutId, className, children, ...props
+  sourceRect,
+  layoutId,
+  className,
+  children,
+  ...props
 }: React.ComponentProps<typeof motion.div> & {
   sourceRect?: MorphSourceRect;
 }) {
   if (sourceRect) {
     return (
-      <RectMorphPanel
-        sourceRect={sourceRect}
-        className={className}
-        {...props}
-      >
+      <RectMorphPanel sourceRect={sourceRect} className={className} {...props}>
         {children}
       </RectMorphPanel>
     );
@@ -156,7 +165,10 @@ function MorphPanel({
 }
 
 function RectMorphPanel({
-  sourceRect, className, children, ...props
+  sourceRect,
+  className,
+  children,
+  ...props
 }: React.ComponentProps<typeof motion.div> & {
   sourceRect: MorphSourceRect;
 }) {
@@ -198,10 +210,14 @@ function RectMorphPanel({
     // deliberate settle rather than a quick snap.
     const animation = el.animate(
       reducedMotion
-        ? (isPresent ? [reducedFrom, reducedTo] : [reducedTo, reducedFrom])
-        : (isPresent ? [from, to] : [to, closeTo]),
+        ? isPresent
+          ? [reducedFrom, reducedTo]
+          : [reducedTo, reducedFrom]
+        : isPresent
+          ? [from, to]
+          : [to, closeTo],
       {
-        duration: reducedMotion ? 150 : (isPresent ? 320 : 420),
+        duration: reducedMotion ? 150 : isPresent ? 320 : 420,
         easing: isPresent ? 'cubic-bezier(0.23, 1, 0.32, 1)' : 'cubic-bezier(0.4, 0, 0.2, 1)',
         fill: 'both',
       },

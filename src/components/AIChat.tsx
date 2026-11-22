@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles, ArrowUp, Plus, Trash2, ChevronDown, AlertCircle,
-  CheckSquare, Target, BookOpen, Film, Wallet, ArrowRight, X,
+  Sparkles,
+  ArrowUp,
+  Plus,
+  Trash2,
+  ChevronDown,
+  AlertCircle,
+  CheckSquare,
+  Target,
+  BookOpen,
+  Film,
+  Wallet,
+  ArrowRight,
+  X,
 } from '@/components/ui/icons';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -100,19 +111,10 @@ export default function AIChat({ open, onOpenChange, openRequest, dock }: Props)
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="!w-full !max-w-full !rounded-none flex flex-col p-0 gap-0"
-        style={
-          isMobile && vvBox
-            ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' }
-            : undefined
-        }
+        className="flex !w-full !max-w-full flex-col gap-0 !rounded-none p-0"
+        style={isMobile && vvBox ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' } : undefined}
       >
-        <ChatPanel
-          active={open}
-          sheet
-          openRequest={openRequest}
-          onNavigate={() => onOpenChange(false)}
-        />
+        <ChatPanel active={open} sheet openRequest={openRequest} onNavigate={() => onOpenChange(false)} />
       </SheetContent>
     </Sheet>
   );
@@ -125,7 +127,13 @@ const DOCK_EASE = [0.2, 0, 0, 1] as const;
 // `overlay` sits over its right edge when there's no room to push. It's
 // set apart by tone, like the Notes rails. Drag its edge to resize
 // (double-click resets); Esc closes it while focus is inside.
-function ChatDock({ mode, width, onResize, onClose, openRequest }: {
+function ChatDock({
+  mode,
+  width,
+  onResize,
+  onClose,
+  openRequest,
+}: {
   mode: 'push' | 'overlay';
   width: number;
   onResize: (width: number) => void;
@@ -176,7 +184,7 @@ function ChatDock({ mode, width, onResize, onClose, openRequest }: {
         mode === 'overlay' ? 'absolute inset-y-0 right-0 z-50 shadow-[var(--m3-elev-3)]' : 'relative',
       )}
     >
-      <div className="h-full shrink-0 flex flex-col pt-[env(safe-area-inset-top)]" style={{ width }}>
+      <div className="flex h-full shrink-0 flex-col pt-[env(safe-area-inset-top)]" style={{ width }}>
         <ChatPanel active openRequest={openRequest} onClose={onClose} />
       </div>
       <div
@@ -186,12 +194,13 @@ function ChatDock({ mode, width, onResize, onClose, openRequest }: {
         title="Drag to resize · double-click to reset"
         onPointerDown={startDrag}
         onDoubleClick={() => onResize(DOCK_DEFAULT)}
-        className="group/resize absolute left-0 top-0 z-10 h-full w-1.5 cursor-col-resize"
+        className="group/resize absolute top-0 left-0 z-10 h-full w-1.5 cursor-col-resize"
       >
-        <span className={cn(
-          'absolute inset-y-0 left-0 w-0.5 transition-colors',
-          dragging ? 'bg-[hsl(var(--primary))]' : 'group-hover/resize:bg-[hsl(var(--primary)/0.5)]',
-        )}
+        <span
+          className={cn(
+            'absolute inset-y-0 left-0 w-0.5 transition-colors',
+            dragging ? 'bg-[hsl(var(--primary))]' : 'group-hover/resize:bg-[hsl(var(--primary)/0.5)]',
+          )}
         />
       </div>
     </motion.aside>
@@ -212,8 +221,13 @@ export interface ChatPanelHandle {
 // host renders New/History elsewhere and calls them via `ref`.
 // `onClose` adds a close button to the header (the docked panel).
 export function ChatPanel({
-  active, sheet = false, headerless = false, openRequest,
-  onNavigate, onClose, ref,
+  active,
+  sheet = false,
+  headerless = false,
+  openRequest,
+  onNavigate,
+  onClose,
+  ref,
 }: {
   active: boolean;
   sheet?: boolean;
@@ -247,17 +261,22 @@ export function ChatPanel({
     textarea.style.overflowY = 'hidden';
     const style = getComputedStyle(textarea);
     const lineHeight = parseFloat(style.lineHeight);
-    const chrome = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
-      + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+    const chrome =
+      parseFloat(style.paddingTop) +
+      parseFloat(style.paddingBottom) +
+      parseFloat(style.borderTopWidth) +
+      parseFloat(style.borderBottomWidth);
     const maxHeight = lineHeight * 4 + chrome;
-    const contentHeight = textarea.scrollHeight
-      + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+    const contentHeight =
+      textarea.scrollHeight + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
 
     textarea.style.height = `${Math.min(contentHeight, maxHeight)}px`;
     textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
   }, []);
 
-  useLayoutEffect(() => { resizeComposer(); }, [input, resizeComposer]);
+  useLayoutEffect(() => {
+    resizeComposer();
+  }, [input, resizeComposer]);
   useEffect(() => {
     window.addEventListener('resize', resizeComposer);
     return () => window.removeEventListener('resize', resizeComposer);
@@ -273,7 +292,9 @@ export function ChatPanel({
 
   useEffect(() => {
     if (!active || !enabled) return;
-    ai.listSessions().then(setSessions).catch(() => {});
+    ai.listSessions()
+      .then(setSessions)
+      .catch(() => {});
   }, [active, enabled]);
 
   // Autoscroll on new content.
@@ -292,7 +313,9 @@ export function ChatPanel({
     try {
       const r = await ai.createSession();
       setSessionId(r.id);
-      ai.listSessions().then(setSessions).catch(() => {});
+      ai.listSessions()
+        .then(setSessions)
+        .catch(() => {});
       return r.id;
     } catch {
       return null;
@@ -310,7 +333,10 @@ export function ChatPanel({
       const msgs: Message[] = [];
       for (const c of sess.messages) {
         if (!c?.parts) continue;
-        const text = c.parts.map((p) => p.text || '').filter(Boolean).join('');
+        const text = c.parts
+          .map((p) => p.text || '')
+          .filter(Boolean)
+          .join('');
         if (!text) continue;
         if (c.role === 'user') msgs.push({ role: 'user', text });
         else msgs.push({ role: 'assistant', text, tools: [], streaming: false });
@@ -397,11 +423,7 @@ export function ChatPanel({
       };
 
       try {
-        await ai.chat(
-          { session_id: sid ?? undefined, message: trimmed, mode: 'chat' },
-          onEvent,
-          ac.signal,
-        );
+        await ai.chat({ session_id: sid ?? undefined, message: trimmed, mode: 'chat' }, onEvent, ac.signal);
       } catch (e) {
         if (aborted(e)) return;
         const text = msg(e, 'AI error');
@@ -417,7 +439,9 @@ export function ChatPanel({
       } finally {
         setStreaming(false);
         // Refresh session list (title may have changed).
-        ai.listSessions().then(setSessions).catch(() => {});
+        ai.listSessions()
+          .then(setSessions)
+          .catch(() => {});
       }
     },
     [ensureSession, streaming],
@@ -432,7 +456,9 @@ export function ChatPanel({
     handledOpenRequestRef.current = openRequest.id;
     const { sessionId, seedMessage } = openRequest.detail;
     if (sessionId) {
-      setTimeout(() => { void loadSession(sessionId); }, 50);
+      setTimeout(() => {
+        void loadSession(sessionId);
+      }, 50);
     } else if (seedMessage) {
       setTimeout(() => {
         setInput(seedMessage);
@@ -453,16 +479,16 @@ export function ChatPanel({
   const sessionsList = (
     <>
       {sessions.length === 0 ? (
-        <div className="px-3 py-4 text-xs text-muted-foreground text-center">No previous chats.</div>
+        <div className="px-3 py-4 text-center text-xs text-muted-foreground">No previous chats.</div>
       ) : (
         sessions.map((s) => (
           <div
             key={s.id}
             onClick={() => loadSession(s.id)}
-            className={`group px-3 py-2 cursor-pointer flex items-center gap-2 hover:bg-accent ${s.id === sessionId ? 'bg-accent' : ''}`}
+            className={`group flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-accent ${s.id === sessionId ? 'bg-accent' : ''}`}
           >
-            <div className="flex-1 min-w-0">
-              <div className="text-sm truncate">{s.title || 'New chat'}</div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm">{s.title || 'New chat'}</div>
               <div className="font-mono text-xs text-muted-foreground">{s.updated_at?.slice(0, 10)}</div>
             </div>
             <Button
@@ -482,155 +508,161 @@ export function ChatPanel({
   );
 
   return (
-    <div className="relative flex-1 min-h-0 flex flex-col">
-        {!headerless && (
-          <div className="p-4 pb-3 border-b border-border">
-            {/* pr-10 clears the sheet's absolute close X (top-4 right-4) so
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {!headerless && (
+        <div className="border-b border-border p-4 pb-3">
+          {/* pr-10 clears the sheet's absolute close X (top-4 right-4) so
                 the New button never sits underneath it. */}
-            <div className={`flex items-center gap-2 ${sheet ? 'pr-10' : ''}`}>
-              <div className="size-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
-                <Sparkles className="size-4" />
-              </div>
-              <div className="font-serif text-base font-semibold flex-1">Sajni</div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowSessions((v) => !v)}
-                className="font-mono text-xs label-kicker"
-                title="Switch chat"
-              >
-                History <ChevronDown className={`size-3 ml-1 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={newChat}
-                title="Start a new chat"
-                className="font-mono text-xs label-kicker"
-              >
-                <Plus className="size-3 mr-1" /> New
-              </Button>
-              {onClose && (
-                <Button size="icon-sm" variant="ghost" onClick={onClose} title="Close · Esc" aria-label="Close Sajni">
-                  <X className="size-4" />
-                </Button>
-              )}
+          <div className={`flex items-center gap-2 ${sheet ? 'pr-10' : ''}`}>
+            <div className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <Sparkles className="size-4" />
             </div>
-
-            {showSessions && (
-              <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-border bg-background">
-                {sessionsList}
-              </div>
+            <div className="flex-1 font-serif text-base font-semibold">Sajni</div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowSessions((v) => !v)}
+              className="label-kicker font-mono text-xs"
+              title="Switch chat"
+            >
+              History <ChevronDown className={`ml-1 size-3 transition-transform ${showSessions ? 'rotate-180' : ''}`} />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={newChat}
+              title="Start a new chat"
+              className="label-kicker font-mono text-xs"
+            >
+              <Plus className="mr-1 size-3" /> New
+            </Button>
+            {onClose && (
+              <Button size="icon-sm" variant="ghost" onClick={onClose} title="Close · Esc" aria-label="Close Sajni">
+                <X className="size-4" />
+              </Button>
             )}
           </div>
-        )}
 
-        {/* Headerless history — floats over the transcript; the host's
-            pill History button toggles it through the imperative handle. */}
-        {headerless && showSessions && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[min(94%,380px)] max-h-64 overflow-y-auto rounded-2xl bg-popover shadow-lg">
-            {sessionsList}
-          </div>
-        )}
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-          {enabled === false && (
-            <div className="text-sm text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
-              AI is not configured on this server. Set <code className="font-mono text-xs">GEMINI_API_KEY</code> in the backend env to enable.
-            </div>
-          )}
-
-          {showEmptyState && enabled !== false && (
-            <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">
-                Your second brain. Ask anything about your data, or just describe what to capture.
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {SKILLS.map((sk) => {
-                  const Icon = sk.icon;
-                  return (
-                    <button
-                      key={sk.id}
-                      onClick={() => send(sk.prompt)}
-                      className="flex items-start gap-2 text-left bg-accent/30 hover:bg-accent rounded-md px-3 py-2 transition-colors"
-                    >
-                      <Icon className="size-3.5 mt-0.5 shrink-0 text-primary" />
-                      <span className="text-xs leading-snug">{sk.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {messages.map((m, i) =>
-            m.role === 'user' ? (
-              <div key={i} className="flex justify-end">
-                <div className="max-w-[85%] bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-3 py-2 text-sm whitespace-pre-wrap break-words">
-                  {m.text}
-                </div>
-              </div>
-            ) : (
-              <AssistantMessage
-                key={i}
-                msg={m}
-                onActionClick={(route) => {
-                  navigate(route);
-                  onNavigate?.();
-                  const [_, hash] = route.split('#');
-                  if (hash) {
-                    setTimeout(() => {
-                      document.getElementById(hash)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                    }, 100);
-                  }
-                }}
-              />
-            ),
-          )}
-
-          {error && (
-            <div className="flex items-start gap-2 text-sm bg-error-container text-on-error-container rounded-md px-3 py-2">
-              <AlertCircle className="size-4 mt-0.5 shrink-0" />
-              <div>{error}</div>
+          {showSessions && (
+            <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-border bg-background">
+              {sessionsList}
             </div>
           )}
         </div>
+      )}
 
-        {/* Composer — one floating tonal pill; no hairline, no footer
+      {/* Headerless history — floats over the transcript; the host's
+            pill History button toggles it through the imperative handle. */}
+      {headerless && showSessions && (
+        <div className="absolute top-2 left-1/2 z-20 max-h-64 w-[min(94%,380px)] -translate-x-1/2 overflow-y-auto rounded-2xl bg-popover shadow-lg">
+          {sessionsList}
+        </div>
+      )}
+
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+        {enabled === false && (
+          <div className="rounded-md bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            AI is not configured on this server. Set <code className="font-mono text-xs">GEMINI_API_KEY</code> in the
+            backend env to enable.
+          </div>
+        )}
+
+        {showEmptyState && enabled !== false && (
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Your second brain. Ask anything about your data, or just describe what to capture.
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {SKILLS.map((sk) => {
+                const Icon = sk.icon;
+                return (
+                  <button
+                    key={sk.id}
+                    onClick={() => send(sk.prompt)}
+                    className="flex items-start gap-2 rounded-md bg-accent/30 px-3 py-2 text-left transition-colors hover:bg-accent"
+                  >
+                    <Icon className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                    <span className="text-xs leading-snug">{sk.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {messages.map((m, i) =>
+          m.role === 'user' ? (
+            <div key={i} className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm break-words whitespace-pre-wrap text-primary-foreground">
+                {m.text}
+              </div>
+            </div>
+          ) : (
+            <AssistantMessage
+              key={i}
+              msg={m}
+              onActionClick={(route) => {
+                navigate(route);
+                onNavigate?.();
+                const [_, hash] = route.split('#');
+                if (hash) {
+                  setTimeout(() => {
+                    document.getElementById(hash)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                  }, 100);
+                }
+              }}
+            />
+          ),
+        )}
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-md bg-error-container px-3 py-2 text-sm text-on-error-container">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Composer — one floating tonal pill; no hairline, no footer
             text. Headerless-on-mobile pads clear of the bottom dock, and
             drops that padding while the keyboard is up (dock hides). */}
-        <div
-          className="p-3 pt-1.5"
-          style={{
-            paddingBottom: headerless && isMobilePanel && !keyboardOpen
+      <div
+        className="p-3 pt-1.5"
+        style={{
+          paddingBottom:
+            headerless && isMobilePanel && !keyboardOpen
               ? 'calc(env(safe-area-inset-bottom, 0px) + 82px)'
               : 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
-          }}
-        >
-          <div className="flex items-end gap-1 rounded-3xl bg-[hsl(var(--surface-container))] border border-[hsl(var(--outline-variant))] focus-within:border-[hsl(var(--outline))] transition-colors p-1.5 pl-4">
-            <Textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={enabled === false ? 'AI disabled' : 'Ask Sajni…'}
-              disabled={enabled === false}
-              rows={1}
-              className="min-h-0 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-2 text-sm leading-6 shadow-none hover:border-0 focus-visible:border-0 focus-visible:shadow-none placeholder:text-muted-foreground/70"
-              title="Shift+Enter for newline"
-            />
-            <Button
-              size="icon-sm"
-              onClick={() => void send(input)}
-              disabled={!input.trim() || streaming || enabled === false}
-              className="rounded-full shrink-0 mb-0.5"
-              title="Send"
-              aria-label="Send"
-            >
-              {streaming ? <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" /> : <ArrowUp className="size-4" />}
-            </Button>
-          </div>
+        }}
+      >
+        <div className="flex items-end gap-1 rounded-3xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] p-1.5 pl-4 transition-colors focus-within:border-[hsl(var(--outline))]">
+          <Textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={enabled === false ? 'AI disabled' : 'Ask Sajni…'}
+            disabled={enabled === false}
+            rows={1}
+            className="min-h-0 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-2 text-sm leading-6 shadow-none placeholder:text-muted-foreground/70 hover:border-0 focus-visible:border-0 focus-visible:shadow-none"
+            title="Shift+Enter for newline"
+          />
+          <Button
+            size="icon-sm"
+            onClick={() => void send(input)}
+            disabled={!input.trim() || streaming || enabled === false}
+            className="mb-0.5 shrink-0 rounded-full"
+            title="Send"
+            aria-label="Send"
+          >
+            {streaming ? (
+              <M3CookieLoader size="sm" tone="primary" className="!text-primary-foreground" />
+            ) : (
+              <ArrowUp className="size-4" />
+            )}
+          </Button>
         </div>
+      </div>
     </div>
   );
 }
@@ -647,16 +679,16 @@ function AssistantMessage({
 
   return (
     <div className="flex items-start gap-2">
-      <div className="size-6 rounded-md bg-primary/15 text-primary flex items-center justify-center mt-0.5 shrink-0">
+      <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
         <Sparkles className="size-3.5" />
       </div>
-      <div className="flex-1 min-w-0 space-y-2">
+      <div className="min-w-0 flex-1 space-y-2">
         {calls.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {calls.map((t, i) => (
               <span
                 key={i}
-                className={`font-mono text-xs label-kicker px-1.5 py-0.5 rounded ${
+                className={`label-kicker rounded px-1.5 py-0.5 font-mono text-xs ${
                   t.ok ? 'bg-muted text-muted-foreground' : 'bg-error-container text-on-error-container'
                 }`}
                 title={t.error || t.name}
@@ -668,7 +700,7 @@ function AssistantMessage({
         )}
 
         {msg.text ? (
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+          <div className="prose prose-sm max-w-none break-words dark:prose-invert">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -682,7 +714,7 @@ function AssistantMessage({
                           e.preventDefault();
                           onActionClick(href);
                         }}
-                        className="text-primary hover:underline cursor-pointer"
+                        className="cursor-pointer text-primary hover:underline"
                         {...props}
                       >
                         {children}
@@ -694,7 +726,7 @@ function AssistantMessage({
                       {children}
                     </a>
                   );
-                }
+                },
               }}
             >
               {msg.text}
@@ -707,7 +739,7 @@ function AssistantMessage({
         ) : null}
 
         {msg.streaming && msg.text && (
-          <span className="inline-block w-1.5 h-3.5 align-baseline bg-primary/70 animate-pulse" />
+          <span className="inline-block h-3.5 w-1.5 animate-pulse bg-primary/70 align-baseline" />
         )}
 
         {actions.length > 0 && (
@@ -721,11 +753,11 @@ function AssistantMessage({
                   key={i}
                   type="button"
                   onClick={() => route && onActionClick(route)}
-                  className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"
+                  className="flex items-center gap-2 rounded-md bg-accent/40 px-3 py-2 text-left transition-colors hover:bg-accent"
                 >
                   <Icon className="size-4 shrink-0 text-primary" />
-                  <span className="text-xs font-mono label-kicker text-muted-foreground">{label}</span>
-                  <span className="text-sm flex-1 truncate">{a.meta?.title}</span>
+                  <span className="label-kicker font-mono text-xs text-muted-foreground">{label}</span>
+                  <span className="flex-1 truncate text-sm">{a.meta?.title}</span>
                   {route && <ArrowRight className="size-3.5 text-muted-foreground" />}
                 </button>
               );
@@ -734,9 +766,7 @@ function AssistantMessage({
         )}
 
         {msg.error && (
-          <div className="text-xs bg-error-container text-on-error-container rounded px-2 py-1">
-            {msg.error}
-          </div>
+          <div className="rounded bg-error-container px-2 py-1 text-xs text-on-error-container">{msg.error}</div>
         )}
       </div>
     </div>

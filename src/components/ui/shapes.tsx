@@ -45,12 +45,16 @@ export const M3CookieLoader = MorphLoader;
 export { MorphLoader };
 
 export function M3LinearLoader({ className }: { className?: string }) {
-  return <div className={`m3-linear-indeterminate ${className || ''}`.trim()} role="progressbar" aria-label="Loading" />;
+  return (
+    <div className={`m3-linear-indeterminate ${className || ''}`.trim()} role="progressbar" aria-label="Loading" />
+  );
 }
 
 /** Decorative cookie blob — used for first-paint placeholders and accents. */
 export function CookieShape({
-  size = 64, tone = 'primary', className,
+  size = 64,
+  tone = 'primary',
+  className,
 }: {
   size?: number;
   tone?: CookieTone;

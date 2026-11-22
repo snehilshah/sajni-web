@@ -8,7 +8,8 @@ export const financeMeta = {
   id: 'finance',
   label: 'Finance',
   title: 'Finance',
-  blurb: 'Your money in one calm ledger: accounts, spending, people who owe you, cards, bills, budgets and investments.',
+  blurb:
+    'Your money in one calm ledger: accounts, spending, people who owe you, cards, bills, budgets and investments.',
   sections: [
     { id: 'privacy', label: 'Privacy mode' },
     { id: 'analytics', label: 'Analytics' },
@@ -40,30 +41,24 @@ export default function FinanceDoc() {
     <>
       <Section id="privacy" title="Privacy Mode" chip="header toggle">
         <p>
-          Amounts are <strong>hidden by default</strong>, so you can open
-          Finance in public. Hidden amounts show as stand-in digits of the same
-          length, so nothing jumps around when you reveal them.
+          Amounts are <strong>hidden by default</strong>, so you can open Finance in public. Hidden amounts show as
+          stand-in digits of the same length, so nothing jumps around when you reveal them.
         </p>
         <ul>
           <li>
-            Tap <em>Privacy</em> at the top of Finance to show the real
-            figures. They hide again by themselves after{' '}
+            Tap <em>Privacy</em> at the top of Finance to show the real figures. They hide again by themselves after{' '}
             <strong>30 minutes</strong>, even if the laptop slept in between.
           </li>
           <li>Tap it again to hide them straight away.</li>
           <li>Charts and names stay visible; only the numbers are hidden.</li>
         </ul>
-        <p>
-          When shown, every amount is exact to the paisa, for example
-          ₹1,200.00. Sajni never rounds money.
-        </p>
+        <p>When shown, every amount is exact to the paisa, for example ₹1,200.00. Sajni never rounds money.</p>
       </Section>
 
       <Section id="analytics" title="Analytics" chip="tab">
         <p>
-          Finance opens on Analytics: one month at a time, with ‹ and › to
-          step back through earlier months. It answers “how much went out,
-          and why”.
+          Finance opens on Analytics: one month at a time, with ‹ and › to step back through earlier months. It answers
+          “how much went out, and why”.
         </p>
         <RefTable
           head={['figure', 'what it means']}
@@ -73,75 +68,63 @@ export default function FinanceDoc() {
             ['Saved', 'income minus spent; negative when you spent more than came in'],
             ['Savings rate', 'saved as a share of income'],
             ['Daily average', 'spent divided by the days so far'],
-            ['Month end, at this pace', 'this month only: what you have spent, plus what usually goes out in the rest of the month'],
+            [
+              'Month end, at this pace',
+              'this month only: what you have spent, plus what usually goes out in the rest of the month',
+            ],
           ]}
         />
         <FeatureList>
           <Feature name="Usual">
             <p>
-              Your usual is the average of up to three earlier months, counted
-              to the <strong>same day</strong>. On 16 October, “usual” is what
-              July, August and September had spent by their 16th, so rent on
-              the 1st doesn't make the month look high. Comparisons use your{' '}
-              <em>Plain</em> spending only, so a Goa trip in its own slate
-              never makes a month look unusual.
+              Your usual is the average of up to three earlier months, counted to the <strong>same day</strong>. On 16
+              October, “usual” is what July, August and September had spent by their 16th, so rent on the 1st doesn't
+              make the month look high. Comparisons use your <em>Plain</em> spending only, so a Goa trip in its own
+              slate never makes a month look unusual.
             </p>
             <p>
-              Only months you recorded in full count. If you started on 1
-              October, November's usual is October alone, and a note says so
-              (“Usual = October”); from January it is the Oct–Dec average. A
-              first part-month, or a month with nothing recorded, never counts
-              as a month of ₹0, and a debt from before Sajni doesn't count as
-              the start. Home Contrib paid ₹22,000 on 5 October has a usual of
-              ₹22,000, not half of it.
+              Only months you recorded in full count. If you started on 1 October, November's usual is October alone,
+              and a note says so (“Usual = October”); from January it is the Oct–Dec average. A first part-month, or a
+              month with nothing recorded, never counts as a month of ₹0, and a debt from before Sajni doesn't count as
+              the start. Home Contrib paid ₹22,000 on 5 October has a usual of ₹22,000, not half of it.
             </p>
             <p>
-              A month that's over compares whole months: looking back at
-              November, October counts all 31 days. Rows still waiting for a
-              category show as one <em>Unknown</em> line.
+              A month that's over compares whole months: looking back at November, October counts all 31 days. Rows
+              still waiting for a category show as one <em>Unknown</em> line.
             </p>
           </Feature>
           <Feature name="How the month built up">
             <p>
-              The running total through the month, against your usual and
-              last month. Point at the chart to read any day.
+              The running total through the month, against your usual and last month. Point at the chart to read any
+              day.
             </p>
           </Feature>
           <Feature name="Why it's higher (or lower)">
             <p>
-              The categories that moved the month, biggest first: the rises
-              when you are above usual, the falls when you are below. For
-              example, Food at ₹4,800 against a usual ₹2,000 shows
-              “+₹2,800.00”; Smoke at ₹236 against a usual ₹810 shows
-              “−₹574.00”.
+              The categories that moved the month, biggest first: the rises when you are above usual, the falls when you
+              are below. For example, Food at ₹4,800 against a usual ₹2,000 shows “+₹2,800.00”; Smoke at ₹236 against a
+              usual ₹810 shows “−₹574.00”.
             </p>
           </Feature>
           <Feature name="Stood out">
             <p>Plain expenses that don't look like the rest:</p>
             <ul>
               <li>
-                At least 2.5× your usual spend in that category (its median over
-                the last six months), and ₹300 or more above it: a ₹4,000
-                dinner where lunch is usually ₹500 reads “8.0× your usual Food
-                spend”.
+                At least 2.5× your usual spend in that category (its median over the last six months), and ₹300 or more
+                above it: a ₹4,000 dinner where lunch is usually ₹500 reads “8.0× your usual Food spend”.
               </li>
+              <li>A big one-off in a category you rarely use: ₹1,000 or more and at least 15% of the month.</li>
               <li>
-                A big one-off in a category you rarely use: ₹1,000 or more and
-                at least 15% of the month.
-              </li>
-              <li>
-                Something new: a title you haven't used since you started (or in
-                the last year), of ₹1,000 or more. This waits until you have
-                three full months recorded; before that, most things are new.
+                Something new: a title you haven't used since you started (or in the last year), of ₹1,000 or more. This
+                waits until you have three full months recorded; before that, most things are new.
               </li>
             </ul>
           </Feature>
           <Feature name="Where it went">
             <p>
-              Day by day, the five largest, every category with its share of
-              the month (one bar for the whole month, then a bar per category,
-              all the same length), and the places you spent most. Places group by title, ignoring
-              capitals and spacing, so “Cafe X” and “cafe x” are one.
+              Day by day, the five largest, every category with its share of the month (one bar for the whole month,
+              then a bar per category, all the same length), and the places you spent most. Places group by title,
+              ignoring capitals and spacing, so “Cafe X” and “cafe x” are one.
             </p>
           </Feature>
           <Feature name="Saving, month by month">
@@ -152,13 +135,10 @@ export default function FinanceDoc() {
 
       <Section id="accounts" title="Accounts" chip="tab">
         <p>
-          The tab opens with your <strong>net worth</strong>: what you have
-          (accounts, investments, money owed to you) minus what you owe
-          (cards, and money you owe people), with its history and what it's
-          made of: bank and cash, investments, and money lent (one line per
-          person). Tap a group to see what's in it. Press{' '}
-          <em>Snapshot</em> to save today's figure; snapshots build the history
-          chart and are never rewritten.
+          The tab opens with your <strong>net worth</strong>: what you have (accounts, investments, money owed to you)
+          minus what you owe (cards, and money you owe people), with its history and what it's made of: bank and cash,
+          investments, and money lent (one line per person). Tap a group to see what's in it. Press <em>Snapshot</em> to
+          save today's figure; snapshots build the history chart and are never rewritten.
         </p>
         <p>An account is anywhere your money lives. Pick the type that fits:</p>
         <RefTable
@@ -172,38 +152,34 @@ export default function FinanceDoc() {
           ]}
         />
         <p>
-          When you add an account, enter its <strong>opening balance</strong>:
-          what it held on the day you started. From then on Sajni works the
-          balance out from your transactions; you never edit a balance by hand.
-          A card's balance is negative, because it is money you owe.
+          When you add an account, enter its <strong>opening balance</strong>: what it held on the day you started. From
+          then on Sajni works the balance out from your transactions; you never edit a balance by hand. A card's balance
+          is negative, because it is money you owe.
         </p>
         <FeatureList>
           <Feature name="Crediting salary">
             <p>
-              On a salary account, the credit button adds your salary (or a
-              bonus) with the amount and date already filled in. New income
-              also defaults to your salary account.
+              On a salary account, the credit button adds your salary (or a bonus) with the amount and date already
+              filled in. New income also defaults to your salary account.
             </p>
           </Feature>
           <Feature name="Matching hints">
             <p>
-              Add the card's or account's last four digits and the bank's name.
-              When a bank message is captured or shared, Sajni uses them to file
-              it under the right account without asking.
+              Add the card's or account's last four digits and the bank's name. When a bank message is captured or
+              shared, Sajni uses them to file it under the right account without asking.
             </p>
           </Feature>
           <Feature name="Buckets">
             <p>
-              Set money aside inside an account without moving it, such as
-              “Emergency fund: ₹3,00,000 of ₹5,00,000” inside savings. Open an
-              account's buckets with its bucket button. The account shows how
-              much of its balance is spoken for.
+              Set money aside inside an account without moving it, such as “Emergency fund: ₹3,00,000 of ₹5,00,000”
+              inside savings. Open an account's buckets with its bucket button. The account shows how much of its
+              balance is spoken for.
             </p>
           </Feature>
           <Feature name="Archive">
             <p>
-              An archived account leaves the pickers and totals but keeps its
-              history. “Show archived” brings it back into view.
+              An archived account leaves the pickers and totals but keeps its history. “Show archived” brings it back
+              into view.
             </p>
           </Feature>
         </FeatureList>
@@ -211,42 +187,30 @@ export default function FinanceDoc() {
 
       <Section id="transactions" title="Adding a transaction" chip="tab">
         <p>
-          Press <em>Add</em> in Transactions. On a computer it sits in the
-          page header, which stays at the top as you scroll; on a phone it's
-          the round button above the dock. The sheet always asks for the
-          same few things: whether it's an <strong>Expense</strong>,{' '}
-          <strong>Income</strong> or <strong>Transfer</strong>; the amount; a
-          title (“Lunch at Cafe X”); the account, date and time; and a
-          category. Sajni suggests a category as you type the title (marked{' '}
-          <em>auto</em>); pick one yourself and it stops guessing. On a
-          computer the sheet has two columns: what you type on the left,
-          category and extras on the right, and it keeps its size as you add
-          extras. Type the time straight in (“926” is 9:26), nudge it a
-          minute with ↑ ↓ or the mouse wheel (or drag a number up or down);{' '}
-          <em>Now</em> sets the current time.
+          Press <em>Add</em> in Transactions. On a computer it sits in the page header, which stays at the top as you
+          scroll; on a phone it's the round button above the dock. The sheet always asks for the same few things:
+          whether it's an <strong>Expense</strong>, <strong>Income</strong> or <strong>Transfer</strong>; the amount; a
+          title (“Lunch at Cafe X”); the account, date and time; and a category. Sajni suggests a category as you type
+          the title (marked <em>auto</em>); pick one yourself and it stops guessing. On a computer the sheet has two
+          columns: what you type on the left, category and extras on the right, and it keeps its size as you add extras.
+          Type the time straight in (“926” is 9:26), nudge it a minute with ↑ ↓ or the mouse wheel (or drag a number up
+          or down); <em>Now</em> sets the current time.
         </p>
         <p>
-          <strong>Sums.</strong> Amount takes a sum: a Zomato order paid
-          ₹552.91 from Amazon Pay and ₹6.38 from Zomato Money is{' '}
-          <em>552.91+6.38</em>, shown as = ₹559.29 and saved as that (on
-          the phone, tap the <em>+</em> at the end of the field).{' '}
-          <strong>Titles you've used</strong> come up as you type: “Sew” offers
-          Sewri with its account (RuPay) and category (Smoke), and picking it
-          fills all three on a new transaction. Under the fields, a new one
-          shows what it does to the account: “Salary ₹50,236.48 → ₹49,683.57
-          after this”.
+          <strong>Sums.</strong> Amount takes a sum: a Zomato order paid ₹552.91 from Amazon Pay and ₹6.38 from Zomato
+          Money is <em>552.91+6.38</em>, shown as = ₹559.29 and saved as that (on the phone, tap the <em>+</em> at the
+          end of the field). <strong>Titles you've used</strong> come up as you type: “Sew” offers Sewri with its
+          account (RuPay) and category (Smoke), and picking it fills all three on a new transaction. Under the fields, a
+          new one shows what it does to the account: “Salary ₹50,236.48 → ₹49,683.57 after this”.
         </p>
         <p>
-          Every transaction needs a <strong>title</strong>; the sheet won't
-          save without one. Something captured from an SMS that Sajni couldn't
-          name is titled after its category (or “Expense” / “Income”) so you
-          can rename it.
+          Every transaction needs a <strong>title</strong>; the sheet won't save without one. Something captured from an
+          SMS that Sajni couldn't name is titled after its category (or “Expense” / “Income”) so you can rename it.
         </p>
         <p>
-          Everything else is optional and sits under the form as small{' '}
-          <strong>+ chips</strong>. Tap one and it becomes part of the form,
-          with its name on the left and a × on the right to take it off again.
-          Slate only shows up once you have a slate to pick.
+          Everything else is optional and sits under the form as small <strong>+ chips</strong>. Tap one and it becomes
+          part of the form, with its name on the left and a × on the right to take it off again. Slate only shows up
+          once you have a slate to pick.
         </p>
         <RefTable
           head={['kind', 'optional extras']}
@@ -259,83 +223,65 @@ export default function FinanceDoc() {
         <FeatureList>
           <Feature name="Transfers">
             <p>
-              Moving money between your own accounts: savings to cash at an
-              ATM, or salary to pay a card. A transfer is neither spending nor
-              income, so it never changes your totals. Both sides stay in step
-              when you edit it.
+              Moving money between your own accounts: savings to cash at an ATM, or salary to pay a card. A transfer is
+              neither spending nor income, so it never changes your totals. Both sides stay in step when you edit it.
             </p>
             <p>
-              <strong>Example.</strong> You gave Rahul ₹200 in cash and he sent
-              it back by UPI, which Sajni filed as ₹200 income in Salary. Open
-              it, add <em>Transfer</em>, pick <em>From</em> Cash and press{' '}
-              <em>Make it a transfer</em>: Cash drops by ₹200, Salary keeps it,
-              and your income doesn't change.
+              <strong>Example.</strong> You gave Rahul ₹200 in cash and he sent it back by UPI, which Sajni filed as
+              ₹200 income in Salary. Open it, add <em>Transfer</em>, pick <em>From</em> Cash and press{' '}
+              <em>Make it a transfer</em>: Cash drops by ₹200, Salary keeps it, and your income doesn't change.
             </p>
           </Feature>
           <Feature name="Paying into an investment">
             <p>
-              An RD instalment or a SIP is just a transaction: a Transfer whose{' '}
-              <em>To</em> is the investment (the picker lists your investments
-              under your accounts). It leaves the account's balance and adds to
-              the investment's invested amount, and it's never spending.
+              An RD instalment or a SIP is just a transaction: a Transfer whose <em>To</em> is the investment (the
+              picker lists your investments under your accounts). It leaves the account's balance and adds to the
+              investment's invested amount, and it's never spending.
             </p>
             <p>
-              <strong>Example.</strong> ₹10,000 goes from Salary to your RD on
-              the 12th. Add a Transfer of ₹10,000 from Salary to “Savings RD”.
-              Salary drops by ₹10,000.00, the RD's invested amount rises by the
-              same, and your month's spending doesn't change. Edit the amount
-              or delete it and the RD follows.
+              <strong>Example.</strong> ₹10,000 goes from Salary to your RD on the 12th. Add a Transfer of ₹10,000 from
+              Salary to “Savings RD”. Salary drops by ₹10,000.00, the RD's invested amount rises by the same, and your
+              month's spending doesn't change. Edit the amount or delete it and the RD follows.
             </p>
           </Feature>
           <Feature name="Editing">
             <p>
-              Tap any transaction to edit it, then press <em>Save</em>.
-              Nothing changes until you do: close it with unsaved changes and
-              it asks once (<em>Unsaved changes</em>); close again to discard
-              them.
+              Tap any transaction to edit it, then press <em>Save</em>. Nothing changes until you do: close it with
+              unsaved changes and it asks once (<em>Unsaved changes</em>); close again to discard them.
             </p>
           </Feature>
           <Feature name="Notes and tags">
             <p>
-              Add a note for context (“with Priya, birthday”). Any{' '}
-              <Code>#tag</Code> in a note files the transaction under that tag,
-              alongside your notes and journal.
+              Add a note for context (“with Priya, birthday”). Any <Code>#tag</Code> in a note files the transaction
+              under that tag, alongside your notes and journal.
             </p>
           </Feature>
           <Feature name="Finding things">
             <p>
-              Search by title or category, and filter by account, category,
-              type (Expense, Income, Refund, Transfer, Lend, Repayment,
-              Adjusted) or slate. Tick <strong>several accounts</strong> or{' '}
-              <strong>several categories</strong> to see them together, say
-              your two cards, or Food and Groceries.{' '}
-              <em>Unknown</em> finds expenses, income and refunds that still
-              need a category.{' '}In the category list ↗ marks a spending
-              category and ↙ an income one. <em>Clear</em> removes every
-              filter at once. Days are grouped with their totals; split bills count only
-              your part as spent.
+              Search by title or category, and filter by account, category, type (Expense, Income, Refund, Transfer,
+              Lend, Repayment, Adjusted) or slate. Tick <strong>several accounts</strong> or{' '}
+              <strong>several categories</strong> to see them together, say your two cards, or Food and Groceries.{' '}
+              <em>Unknown</em> finds expenses, income and refunds that still need a category. In the category list ↗
+              marks a spending category and ↙ an income one. <em>Clear</em> removes every filter at once. Days are
+              grouped with their totals; split bills count only your part as spent.
             </p>
           </Feature>
         </FeatureList>
       </Section>
 
       <Section id="split" title="Splitting a bill" chip="split">
-        <p>
-          Use Split when you paid the whole bill but part of it belongs to
-          someone else, or to several people.
-        </p>
+        <p>Use Split when you paid the whole bill but part of it belongs to someone else, or to several people.</p>
         <Callout>
-          <strong>Example.</strong> On 1 October you pay ₹754.96 for dinner on
-          your RuPay card. Rahul will pay you back half.
+          <strong>Example.</strong> On 1 October you pay ₹754.96 for dinner on your RuPay card. Rahul will pay you back
+          half.
           <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
             <li>
-              Add the expense: ₹754.96, “Dinner”, RuPay card, Food. The
-              category is for <em>your</em> part, so pick what your half was.
+              Add the expense: ₹754.96, “Dinner”, RuPay card, Food. The category is for <em>your</em> part, so pick what
+              your half was.
             </li>
             <li>
-              Tap <em>+ Split</em>, type Rahul (or tap his name if he's owed you
-              before). <strong>Equally</strong> and <strong>Include me</strong>{' '}
-              are already on, so the bill is divided between the two of you.
+              Tap <em>+ Split</em>, type Rahul (or tap his name if he's owed you before). <strong>Equally</strong> and{' '}
+              <strong>Include me</strong> are already on, so the bill is divided between the two of you.
             </li>
             <li>
               Sajni shows <em>You ₹377.48 · Rahul owes ₹377.48</em>. Press Add.
@@ -345,214 +291,176 @@ export default function FinanceDoc() {
         <p>What happens:</p>
         <ul>
           <li>
-            Your card still shows the full <strong>₹754.96</strong>, so it
-            matches the bank's message and your card statement.
+            Your card still shows the full <strong>₹754.96</strong>, so it matches the bank's message and your card
+            statement.
           </li>
-          <li>Your Food spending goes up by only <strong>₹377.48</strong>, your half.</li>
+          <li>
+            Your Food spending goes up by only <strong>₹377.48</strong>, your half.
+          </li>
           <li>Rahul owes you ₹377.48, listed under Finance → People.</li>
           <li>
-            The transaction row reads ₹754.96 with <em>yours ₹377.48</em>{' '}
-            under it and a <em>Split · Rahul</em> tag.
+            The transaction row reads ₹754.96 with <em>yours ₹377.48</em> under it and a <em>Split · Rahul</em> tag.
           </li>
         </ul>
         <FeatureList>
           <Feature name="Splitting with several people">
             <p>
-              Add everyone to the same bill. A ₹900 dinner with Rahul and
-              Priya: type Rahul, press Enter (or tap his name), then add Priya.
-              Equally divides it three ways, you included:{' '}
-              <em>You ₹300 · Rahul owes ₹300 · Priya owes ₹300</em>. The card
-              shows one ₹900 charge, your spending is ₹300, and Rahul and Priya
-              each owe you ₹300 on their own, so each can pay you back
-              separately. Everyone you pick lights up in the row of names
-              under the box; tap a name again to take them out.
+              Add everyone to the same bill. A ₹900 dinner with Rahul and Priya: type Rahul, press Enter (or tap his
+              name), then add Priya. Equally divides it three ways, you included:{' '}
+              <em>You ₹300 · Rahul owes ₹300 · Priya owes ₹300</em>. The card shows one ₹900 charge, your spending is
+              ₹300, and Rahul and Priya each owe you ₹300 on their own, so each can pay you back separately. Everyone
+              you pick lights up in the row of names under the box; tap a name again to take them out.
             </p>
             <p>
-              Paid for them and none of it was yours (two movie tickets)? Turn
-              off <strong>Include me</strong> and the bill is divided between
-              them alone. When it doesn't divide evenly, the spare paise are
-              yours (or the first person's, without you).
+              Paid for them and none of it was yours (two movie tickets)? Turn off <strong>Include me</strong> and the
+              bill is divided between them alone. When it doesn't divide evenly, the spare paise are yours (or the first
+              person's, without you).
             </p>
           </Feature>
           <Feature name="Other shares">
             <p>
-              Tap <strong>Custom</strong> and type each person's share (Rahul
-              had the expensive dish and owes ₹500). Whatever is left is your
-              part. With one person, turning off <strong>Include me</strong>{' '}
-              makes the whole bill his.
+              Tap <strong>Custom</strong> and type each person's share (Rahul had the expensive dish and owes ₹500).
+              Whatever is left is your part. With one person, turning off <strong>Include me</strong> makes the whole
+              bill his.
             </p>
           </Feature>
           <Feature name="When it's due">
             <p>
-              For a card, the due date defaults to that card bill's due date,
-              so you know when you need the money back. Pick another date if
-              you like, and turn on <em>Remind</em> to get a nudge.
+              For a card, the due date defaults to that card bill's due date, so you know when you need the money back.
+              Pick another date if you like, and turn on <em>Remind</em> to get a nudge.
             </p>
           </Feature>
           <Feature name="A bill that's already in Sajni">
             <p>
-              Open it, tap <em>+ Split</em> and add the people; the sheet's Save
-              button becomes <em>Split this bill</em>. Press it. This is how you split card charges that
-              were captured automatically.
+              Open it, tap <em>+ Split</em> and add the people; the sheet's Save button becomes <em>Split this bill</em>
+              . Press it. This is how you split card charges that were captured automatically.
             </p>
           </Feature>
           <Feature name="Changing it later">
             <p>
-              Open the bill: it shows <em>Split with Rahul</em> and what each
-              of you owes. Change the bill amount there and your part changes
-              while his stays put. Everything about Rahul's part (who, his
-              share, when it's due, the reminder) lives in one place:{' '}
-              <em>Edit lend</em>, from the bill's <em>Edit lend</em> button or
-              by tapping the lend in People. Changing his share only moves the
-              line between your part and his; the bill stays ₹754.96.{' '}
-              <em>Remove split</em> there makes the whole bill yours again.
-              With several people, each one has their own <em>Edit lend</em>{' '}
-              on the bill: changing or removing one person's share only moves
-              money between them and your part.
+              Open the bill: it shows <em>Split with Rahul</em> and what each of you owes. Change the bill amount there
+              and your part changes while his stays put. Everything about Rahul's part (who, his share, when it's due,
+              the reminder) lives in one place: <em>Edit lend</em>, from the bill's <em>Edit lend</em> button or by
+              tapping the lend in People. Changing his share only moves the line between your part and his; the bill
+              stays ₹754.96. <em>Remove split</em> there makes the whole bill yours again. With several people, each one
+              has their own <em>Edit lend</em> on the bill: changing or removing one person's share only moves money
+              between them and your part.
             </p>
           </Feature>
         </FeatureList>
         <Callout tone="why">
-          The card was charged the full amount, so the card has to show the
-          full amount, or it will never match the statement. But only your
-          half is your spending. A split keeps the bill whole and moves the
-          other half out of your spending into what Rahul owes.
+          The card was charged the full amount, so the card has to show the full amount, or it will never match the
+          statement. But only your half is your spending. A split keeps the bill whole and moves the other half out of
+          your spending into what Rahul owes.
         </Callout>
       </Section>
 
       <Section id="lending" title="Lending money" chip="tab: People">
         <p>
-          Lending is an expense where <strong>all</strong> of it belongs to
-          someone else.
+          Lending is an expense where <strong>all</strong> of it belongs to someone else.
         </p>
         <Callout>
-          <strong>Example.</strong> You give Aman ₹500 in cash. Add an Expense
-          of ₹500 from Cash, tap <em>+ Split</em>, type Aman and turn off{' '}
-          <strong>Include me</strong>. No category is needed, because it isn't your
-          spending. Your cash goes down by ₹500 and Aman owes you ₹500.
+          <strong>Example.</strong> You give Aman ₹500 in cash. Add an Expense of ₹500 from Cash, tap <em>+ Split</em>,
+          type Aman and turn off <strong>Include me</strong>. No category is needed, because it isn't your spending.
+          Your cash goes down by ₹500 and Aman owes you ₹500.
         </Callout>
         <FeatureList>
           <Feature name="A friend's purchase on your card">
             <p>
-              Priya buys a ₹1,499 jacket on your card for its offers. None of
-              it is yours: Expense on the card → <em>+ Split</em> → Priya, with{' '}
-              <strong>Include me</strong> off. Category disappears, because none of it is
-              your spending, and it's due with that card bill. The whole
-              story, offers and cashback included, is in{' '}
+              Priya buys a ₹1,499 jacket on your card for its offers. None of it is yours: Expense on the card →{' '}
+              <em>+ Split</em> → Priya, with <strong>Include me</strong> off. Category disappears, because none of it is
+              your spending, and it's due with that card bill. The whole story, offers and cashback included, is in{' '}
               <a href="#card-offers">A friend uses your card</a>.
             </p>
           </Feature>
           <Feature name="Already recorded it">
             <p>
-              Something already in Sajni that was really for someone else, like
-              Dad's electricity bill on your card: open it, tap{' '}
-              <em>+ Split</em>, pick Dad and turn off <strong>Include me</strong>{' '}
-              (or type his part under Custom), then press <em>Split this bill</em>.
-              One transaction at a time.
+              Something already in Sajni that was really for someone else, like Dad's electricity bill on your card:
+              open it, tap <em>+ Split</em>, pick Dad and turn off <strong>Include me</strong> (or type his part under
+              Custom), then press <em>Split this bill</em>. One transaction at a time.
             </p>
           </Feature>
           <Feature name="The People tab">
             <p>
-              Everyone who owes you, and everyone you owe (see{' '}
-              <a href="#owe">Money you owe</a>), with the totals at the top.
-              When it runs both ways, a person shows the net and who it's on.
-              Tap a person to see their timeline: what you lent (↗), what came
-              back (↙) and anything adjusted (✓). What's still open comes first; everything
-              up to the last time they owed you nothing folds into one{' '}
-              <em>Earlier</em> line, which opens on tap. Tap any line to edit
-              it. People who have paid everything fold away under{' '}
-              <em>Settled</em>.
+              Everyone who owes you, and everyone you owe (see <a href="#owe">Money you owe</a>), with the totals at the
+              top. When it runs both ways, a person shows the net and who it's on. Tap a person to see their timeline:
+              what you lent (↗), what came back (↙) and anything adjusted (✓). What's still open comes first; everything
+              up to the last time they owed you nothing folds into one <em>Earlier</em> line, which opens on tap. Tap
+              any line to edit it. People who have paid everything fold away under <em>Settled</em>.
             </p>
             <p>
-              <em>Lend</em>, and a person's <em>Settle</em>, open the same
-              transaction sheet already filled in (Expense → Split → them, Include me off, or
-              Income → Settles a lend → them). There is one way to record a
-              lend and one way to record a payment back: the sheet.
+              <em>Lend</em>, and a person's <em>Settle</em>, open the same transaction sheet already filled in (Expense
+              → Split → them, Include me off, or Income → Settles a lend → them). There is one way to record a lend and
+              one way to record a payment back: the sheet.
             </p>
           </Feature>
           <Feature name="Editing or deleting a lend">
             <p>
-              Tap the lend (in People, or its row in Transactions) to open{' '}
-              <em>Edit lend</em>: who, the amount or their share, when it's
-              due, the reminder. <em>Delete</em> (a cash lend) or{' '}
-              <em>Unmark</em> (a bill you marked) is at the bottom of the same
-              sheet.
+              Tap the lend (in People, or its row in Transactions) to open <em>Edit lend</em>: who, the amount or their
+              share, when it's due, the reminder. <em>Delete</em> (a cash lend) or <em>Unmark</em> (a bill you marked)
+              is at the bottom of the same sheet.
             </p>
           </Feature>
         </FeatureList>
-        <p>
-          Lent money isn't spending. It stays in your net worth, as money owed
-          to you, until it comes back.
-        </p>
+        <p>Lent money isn't spending. It stays in your net worth, as money owed to you, until it comes back.</p>
       </Section>
 
       <Section id="paid-back" title="Getting paid back" chip="from a person">
         <p>
-          When someone pays you back, mark the money you received as theirs,
-          and say which lend it was for if it was for one.
+          When someone pays you back, mark the money you received as theirs, and say which lend it was for if it was for
+          one.
         </p>
         <Callout>
-          <strong>Example.</strong> Alefiya owes you for an order on 3 October
-          (₹398) and one on 11 October (₹1,836). The 11 October order's ₹200
-          instant cashback lands in your Amazon Pay balance. Add an Income of
-          ₹200 on that account, tap <em>+ Settles a lend</em>, pick Alefiya,
-          and set <strong>Toward</strong> to the 11 October order. That order
-          now shows <em>₹1,636 left</em>, and she owes ₹2,034 in total.
+          <strong>Example.</strong> Alefiya owes you for an order on 3 October (₹398) and one on 11 October (₹1,836).
+          The 11 October order's ₹200 instant cashback lands in your Amazon Pay balance. Add an Income of ₹200 on that
+          account, tap <em>+ Settles a lend</em>, pick Alefiya, and set <strong>Toward</strong> to the 11 October order.
+          That order now shows <em>₹1,636 left</em>, and she owes ₹2,034 in total.
         </Callout>
         <ul>
           <li>
-            <strong>Toward a lend</strong>: the payment pays that lend off. If
-            it's more than the lend, the extra still lowers their total.
+            <strong>Toward a lend</strong>: the payment pays that lend off. If it's more than the lend, the extra still
+            lowers their total.
           </li>
           <li>
-            <strong>Overall</strong> (the default): the payment lowers their
-            total, and no single lend shows it. Use it for a lump sum (“₹3,000
-            for everything”) or when you don't know what it was for.
+            <strong>Overall</strong> (the default): the payment lowers their total, and no single lend shows it. Use it
+            for a lump sum (“₹3,000 for everything”) or when you don't know what it was for.
           </li>
           <li>
-            When their total reaches ₹0, every lend of theirs is settled. A lend
-            never shows more left than their total.
+            When their total reaches ₹0, every lend of theirs is settled. A lend never shows more left than their total.
           </li>
           <li>
-            The money can land in <strong>any</strong> account. It doesn't
-            have to be the one you lent from.
+            The money can land in <strong>any</strong> account. It doesn't have to be the one you lent from.
           </li>
           <li>
-            Paying more than they owe keeps the extra <em>held</em> for them;
-            it nets off their next lend.
+            Paying more than they owe keeps the extra <em>held</em> for them; it nets off their next lend.
           </li>
           <li>
-            A payment can't be dated before what it pays back: the lend it's
-            Toward, or for Overall, their first lend. Paid back on 3 October
-            for a coffee on the 15th? Sajni says so and saves nothing, so fix
-            whichever date is wrong. The same day at an earlier time is fine.
-            Moving a lend or a split bill after its payments is refused the
-            same way.
+            A payment can't be dated before what it pays back: the lend it's Toward, or for Overall, their first lend.
+            Paid back on 3 October for a coffee on the 15th? Sajni says so and saves nothing, so fix whichever date is
+            wrong. The same day at an earlier time is fine. Moving a lend or a split bill after its payments is refused
+            the same way.
           </li>
         </ul>
         <FeatureList>
           <Feature name="Money that's already in Sajni">
             <p>
-              The repayment was usually captured from a UPI message. Open it,
-              tap <em>+ Settles a lend</em>, pick the person (and Toward), then
-              press <em>Mark as paid back</em> (the sheet's Save button takes
-              that name once a person is picked).
+              The repayment was usually captured from a UPI message. Open it, tap <em>+ Settles a lend</em>, pick the
+              person (and Toward), then press <em>Mark as paid back</em> (the sheet's Save button takes that name once a
+              person is picked).
             </p>
           </Feature>
           <Feature name="Money that isn't in Sajni yet">
             <p>
-              Cash, or a transfer that was never captured: add it as an Income
-              with its real date and time and <em>+ Settles a lend</em>. In
-              People, the person's <em>Settle</em> button opens exactly that.
-              Don't add it again if the SMS already did; settle that one.
+              Cash, or a transfer that was never captured: add it as an Income with its real date and time and{' '}
+              <em>+ Settles a lend</em>. In People, the person's <em>Settle</em> button opens exactly that. Don't add it
+              again if the SMS already did; settle that one.
             </p>
           </Feature>
           <Feature name="Changing it later">
             <p>
-              Tap the payment (in Transactions, or in the person's timeline) to
-              open <em>Edit repayment</em>. Change its title, its note, or{' '}
-              <em>Toward</em>. Its amount, account and date stay put.{' '}
-              <em>Unmark</em> at the bottom turns it back into ordinary income.
+              Tap the payment (in Transactions, or in the person's timeline) to open <em>Edit repayment</em>. Change its
+              title, its note, or <em>Toward</em>. Its amount, account and date stay put. <em>Unmark</em> at the bottom
+              turns it back into ordinary income.
             </p>
           </Feature>
         </FeatureList>
@@ -560,38 +468,32 @@ export default function FinanceDoc() {
 
       <Section id="adjust" title="Adjusting what someone owes" chip="adjust">
         <Callout>
-          <strong>Example.</strong> Rahul still owes ₹317.48 and you tell him
-          to leave it. Open Rahul in People and press <em>Adjust</em>. The
-          amount starts at everything he owes; lower it to adjust only part.
-          Choose what it counts as (say, Gifts) and the date and time.
+          <strong>Example.</strong> Rahul still owes ₹317.48 and you tell him to leave it. Open Rahul in People and
+          press <em>Adjust</em>. The amount starts at everything he owes; lower it to adjust only part. Choose what it
+          counts as (say, Gifts) and the date and time.
         </Callout>
         <ul>
           <li>Rahul then owes ₹0.00, or whatever you didn't adjust.</li>
           <li>
-            The adjusted amount <strong>counts as your spending</strong> on
-            that date, in the category you chose. You did give that money
-            away.
+            The adjusted amount <strong>counts as your spending</strong> on that date, in the category you chose. You
+            did give that money away.
           </li>
           <li>
-            No money moves: balances and card bills don't change, because the
-            money already left when you lent it.
+            No money moves: balances and card bills don't change, because the money already left when you lent it.
           </li>
         </ul>
         <p>
-          Like a payment, an adjustment can go <em>Toward</em> one lend or
-          their overall total. Tap the <em>Adjusted</em> line in the timeline
-          to change its amount, what it counts as, or its date and time (up to
+          Like a payment, an adjustment can go <em>Toward</em> one lend or their overall total. Tap the{' '}
+          <em>Adjusted</em> line in the timeline to change its amount, what it counts as, or its date and time (up to
           what they'd owe without it), or press <em>Undo adjustment</em>.
         </p>
         <FeatureList>
           <Feature name="Adjusting their share of a cashback">
             <p>
-              Alefiya paid ₹378 for a ₹398 order, keeping the ₹20 your card
-              will give back at month end. <em>Adjust</em> the ₹20, in the
-              category of what she bought: you gave it up, so it counts as
-              your spending. The month's cashback still arrives in full as
-              your Cashback income (see <a href="#cashback">Cashback</a>). You
-              never split the month's cashback by order.
+              Alefiya paid ₹378 for a ₹398 order, keeping the ₹20 your card will give back at month end. <em>Adjust</em>{' '}
+              the ₹20, in the category of what she bought: you gave it up, so it counts as your spending. The month's
+              cashback still arrives in full as your Cashback income (see <a href="#cashback">Cashback</a>). You never
+              split the month's cashback by order.
             </p>
           </Feature>
         </FeatureList>
@@ -599,107 +501,82 @@ export default function FinanceDoc() {
 
       <Section id="owe" title="Money you owe" chip="tab: People">
         <p>
-          The other way round: someone gives you money you'll pay back. It
-          lands in your account but isn't income, and paying it back isn't
-          spending.
+          The other way round: someone gives you money you'll pay back. It lands in your account but isn't income, and
+          paying it back isn't spending.
         </p>
         <Callout>
-          <strong>Example.</strong> Papa sends ₹2,723.33 to your Kotak Neo
-          account, and you'll return it. Open that credit, tap{' '}
-          <em>+ To pay back</em>, pick Papa (and a date to pay by, if you
-          like), then press <em>Mark as owed back</em>. People now shows{' '}
-          <em>You owe ₹2,723.33</em> under Papa. In November you send him
-          ₹1,000: open that debit, tap <em>+ Pays back</em>, pick Papa and
-          press <em>Mark as paying back</em>. You owe ₹1,723.33.
+          <strong>Example.</strong> Papa sends ₹2,723.33 to your Kotak Neo account, and you'll return it. Open that
+          credit, tap <em>+ To pay back</em>, pick Papa (and a date to pay by, if you like), then press{' '}
+          <em>Mark as owed back</em>. People now shows <em>You owe ₹2,723.33</em> under Papa. In November you send him
+          ₹1,000: open that debit, tap <em>+ Pays back</em>, pick Papa and press <em>Mark as paying back</em>. You owe
+          ₹1,723.33.
         </Callout>
         <ul>
           <li>
-            <em>Borrow</em> in People opens the sheet as an Income with{' '}
-            <em>To pay back</em> on, for money not in Sajni yet. A person's{' '}
-            <em>Pay back</em> opens an Expense with <em>Pays back</em> them.
+            <em>Borrow</em> in People opens the sheet as an Income with <em>To pay back</em> on, for money not in Sajni
+            yet. A person's <em>Pay back</em> opens an Expense with <em>Pays back</em> them.
           </li>
+          <li>You can't pay back more than you owe, or pay back someone you never borrowed from.</li>
+          <li>Balances move as usual; your net worth counts what you owe against you.</li>
           <li>
-            You can't pay back more than you owe, or pay back someone you
-            never borrowed from.
-          </li>
-          <li>
-            Balances move as usual; your net worth counts what you owe against
-            you.
-          </li>
-          <li>
-            Tap a line under <em>You owe them</em> to undo it: the money goes
-            back to plain income or a plain expense.
+            Tap a line under <em>You owe them</em> to undo it: the money goes back to plain income or a plain expense.
           </li>
         </ul>
         <FeatureList>
           <Feature name="Net off">
             <p>
-              When you owe Rahul ₹300 and he owes you ₹120, press{' '}
-              <em>Net off</em> on Rahul. Both sides drop by ₹120: he owes ₹0,
-              you owe ₹180. No money moves and nothing counts as spending or
-              income. The <em>Netted off</em> line on either side undoes both.
+              When you owe Rahul ₹300 and he owes you ₹120, press <em>Net off</em> on Rahul. Both sides drop by ₹120: he
+              owes ₹0, you owe ₹180. No money moves and nothing counts as spending or income. The <em>Netted off</em>{' '}
+              line on either side undoes both.
             </p>
           </Feature>
           <Feature name="From before Sajni">
             <p>
-              A debt older than your records, either way: press{' '}
-              <em>From before Sajni</em> in People. Pick <em>They owe
-              me</em> or <em>I owe them</em>, the person, the amount and since
-              when. No money moves and no balance changes; payments later
-              settle it like any other.
+              A debt older than your records, either way: press <em>From before Sajni</em> in People. Pick{' '}
+              <em>They owe me</em> or <em>I owe them</em>, the person, the amount and since when. No money moves and no
+              balance changes; payments later settle it like any other.
             </p>
           </Feature>
         </FeatureList>
       </Section>
 
       <Section id="refunds" title="Refunds" chip="refund">
-        <p>
-          A refund is money back on something you bought. It isn't income, so
-          Sajni treats it differently.
-        </p>
+        <p>A refund is money back on something you bought. It isn't income, so Sajni treats it differently.</p>
         <Callout>
-          <strong>Example.</strong> You returned a ₹1,299 order and Amazon
-          refunded it to your card. Add an Income of ₹1,299 to the card, tap{' '}
-          <em>+ Refund</em> and, if you like, pick the original purchase. Sajni
-          fills in its category, Shopping.
+          <strong>Example.</strong> You returned a ₹1,299 order and Amazon refunded it to your card. Add an Income of
+          ₹1,299 to the card, tap <em>+ Refund</em> and, if you like, pick the original purchase. Sajni fills in its
+          category, Shopping.
         </Callout>
         <ul>
           <li>Your card balance goes up by ₹1,299, like any money coming in.</li>
           <li>
-            Your <strong>Shopping spending goes down</strong> by ₹1,299, and so
-            do budgets that count it.
+            Your <strong>Shopping spending goes down</strong> by ₹1,299, and so do budgets that count it.
           </li>
           <li>
-            It is <strong>not</strong> income, so a month of returns won't look
-            like a pay rise.
+            It is <strong>not</strong> income, so a month of returns won't look like a pay rise.
           </li>
         </ul>
         <p>
-          A refund that arrived as income (automatic capture records them that
-          way): open it and tap <em>+ Refund</em>. Tap × on the Refund pill to
-          turn it back into income.
+          A refund that arrived as income (automatic capture records them that way): open it and tap <em>+ Refund</em>.
+          Tap × on the Refund pill to turn it back into income.
         </p>
         <FeatureList>
           <Feature name="Why it says “Not linked”">
             <p>
-              Linking a refund to its purchase is optional. “Not linked” just
-              means it isn't tied to one; the refund still lowers spending in
-              the category you pick. Linking only copies the purchase's
-              category and slate for you.
+              Linking a refund to its purchase is optional. “Not linked” just means it isn't tied to one; the refund
+              still lowers spending in the category you pick. Linking only copies the purchase's category and slate for
+              you.
             </p>
             <p>
-              The list offers your 30 newest ordinary expenses{' '}
-              <strong>on the account the refund lands in</strong>. So it's
-              empty when that account has no purchases (Income switches to your
-              salary account; switch it to the card you bought on), and it
-              never shows lends or bills that are already split.
+              The list offers your 30 newest ordinary expenses <strong>on the account the refund lands in</strong>. So
+              it's empty when that account has no purchases (Income switches to your salary account; switch it to the
+              card you bought on), and it never shows lends or bills that are already split.
             </p>
           </Feature>
           <Feature name="Cashback isn't a refund">
             <p>
-              A refund is money back for one purchase. Your card's monthly
-              cashback is income, in a <em>Cashback</em> income category; see{' '}
-              <a href="#cashback">Cashback</a>.
+              A refund is money back for one purchase. Your card's monthly cashback is income, in a <em>Cashback</em>{' '}
+              income category; see <a href="#cashback">Cashback</a>.
             </p>
           </Feature>
         </FeatureList>
@@ -707,83 +584,66 @@ export default function FinanceDoc() {
 
       <Section id="card-offers" title="A friend uses your card for its offers" chip="worked example">
         <p>
-          A friend buys something on your card because your card gets a
-          better deal. None of it is your spending: it's a lend, and every
-          offer that comes back is settled between you.
+          A friend buys something on your card because your card gets a better deal. None of it is your spending: it's a
+          lend, and every offer that comes back is settled between you.
         </p>
         <Callout>
-          <strong>Example.</strong> Priya orders a ₹1,499 jacket on your
-          Amazon Pay card. Amazon gives ₹200 instant cashback into your Amazon
-          Pay balance, and the card pays 5% cashback at month end. You ask
-          Priya for the full amount minus the ₹200, and pass the 5% on to her
-          once it arrives.
+          <strong>Example.</strong> Priya orders a ₹1,499 jacket on your Amazon Pay card. Amazon gives ₹200 instant
+          cashback into your Amazon Pay balance, and the card pays 5% cashback at month end. You ask Priya for the full
+          amount minus the ₹200, and pass the 5% on to her once it arrives.
           <ul className="mt-2 flex flex-col gap-1 pl-5 [&>li]:list-decimal">
             <li>
-              <strong>Order day.</strong> Expense ₹1,499 on the card →{' '}
-              <em>+ Split</em> → Priya, <strong>Include me</strong> off. No category.
-              Priya owes ₹1,499.
+              <strong>Order day.</strong> Expense ₹1,499 on the card → <em>+ Split</em> → Priya,{' '}
+              <strong>Include me</strong> off. No category. Priya owes ₹1,499.
             </li>
             <li>
-              <strong>The ₹200 lands in Amazon Pay balance.</strong> It's hers:
-              Income ₹200 on that account → <em>+ Settles a lend</em> → Priya,
-              Toward the jacket. No category. She owes ₹1,299.
+              <strong>The ₹200 lands in Amazon Pay balance.</strong> It's hers: Income ₹200 on that account →{' '}
+              <em>+ Settles a lend</em> → Priya, Toward the jacket. No category. She owes ₹1,299.
             </li>
             <li>
-              <strong>She sends ₹1,299.</strong> Income →{' '}
-              <em>+ Settles a lend</em> → Priya. She owes ₹0.00 and the lend is
-              settled.
+              <strong>She sends ₹1,299.</strong> Income → <em>+ Settles a lend</em> → Priya. She owes ₹0.00 and the lend
+              is settled.
             </li>
             <li>
-              <strong>Month end, the card pays ₹500 cashback</strong> for all
-              your spending, hers included. Income ₹500 on the card,
-              category <em>Cashback</em>.
+              <strong>Month end, the card pays ₹500 cashback</strong> for all your spending, hers included. Income ₹500
+              on the card, category <em>Cashback</em>.
             </li>
             <li>
-              <strong>You send her ₹74.95</strong> (5% of ₹1,499). An Expense
-              titled “Priya's share of cashback”. Not a split: she doesn't
-              owe it back.
+              <strong>You send her ₹74.95</strong> (5% of ₹1,499). An Expense titled “Priya's share of cashback”. Not a
+              split: she doesn't owe it back.
             </li>
           </ul>
         </Callout>
         <p>What happens:</p>
         <ul>
           <li>
-            The card shows the ₹1,499 charge and the ₹500 cashback, so it
-            matches the statement. Amazon Pay balance is up ₹200.
+            The card shows the ₹1,499 charge and the ₹500 cashback, so it matches the statement. Amazon Pay balance is
+            up ₹200.
           </li>
           <li>Your spending never counts the jacket.</li>
           <li>Priya's lend is settled; nobody owes anybody.</li>
-          <li>
-            You keep ₹425.05: ₹500 Cashback income, ₹74.95 passed on as
-            spending.
-          </li>
+          <li>You keep ₹425.05: ₹500 Cashback income, ₹74.95 passed on as spending.</li>
         </ul>
         <FeatureList>
           <Feature name="She pays you less instead">
             <p>
-              If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 −
-              ₹200 − ₹74.95), mark it paid back as above. She still owes
-              ₹74.95; open her in People and <em>Adjust</em> it. It counts as
-              your spending, like the ₹74.95 you'd otherwise send; the card's
-              cashback is recorded as usual.
+              If Priya keeps the 5% up front and sends ₹1,224.05 (₹1,499 − ₹200 − ₹74.95), mark it paid back as above.
+              She still owes ₹74.95; open her in People and <em>Adjust</em> it. It counts as your spending, like the
+              ₹74.95 you'd otherwise send; the card's cashback is recorded as usual.
             </p>
           </Feature>
           <Feature name="Two orders, one payment">
             <p>
-              Priya owes ₹1,499 and ₹2,000 and sends ₹3,499 in one go. Mark it
-              paid back once, Toward <em>Overall</em>: her total reaches ₹0,
-              so both lends are settled, and you never split her payment by
-              hand. Whatever is still short (her 5% on both, if she kept it) is
-              one adjustment.
+              Priya owes ₹1,499 and ₹2,000 and sends ₹3,499 in one go. Mark it paid back once, Toward <em>Overall</em>:
+              her total reaches ₹0, so both lends are settled, and you never split her payment by hand. Whatever is
+              still short (her 5% on both, if she kept it) is one adjustment.
             </p>
           </Feature>
           <Feature name="Which credit is whose">
             <p>
-              A credit that is <strong>all hers</strong>, like the order's ₹200
-              offer, <em>settles a lend</em>. A credit that mixes hers with
-              yours, like the card's monthly cashback, is yours: record it as
-              Cashback income, and pass her share on (or adjust it). One
-              credit can't be part repayment and part income.
+              A credit that is <strong>all hers</strong>, like the order's ₹200 offer, <em>settles a lend</em>. A credit
+              that mixes hers with yours, like the card's monthly cashback, is yours: record it as Cashback income, and
+              pass her share on (or adjust it). One credit can't be part repayment and part income.
             </p>
           </Feature>
         </FeatureList>
@@ -791,82 +651,66 @@ export default function FinanceDoc() {
 
       <Section id="cashback" title="Cashback" chip="income">
         <p>
-          Cashback is <strong>income</strong>: an Income on the account it
-          lands in, in an income category called <em>Cashback</em>. One entry
-          for the month's total, as the card or app pays it; you never work
-          out which purchase earned what.
+          Cashback is <strong>income</strong>: an Income on the account it lands in, in an income category called{' '}
+          <em>Cashback</em>. One entry for the month's total, as the card or app pays it; you never work out which
+          purchase earned what.
         </p>
         <Callout>
-          <strong>Example.</strong> Slice credits ₹50 Spark Cashback on the
-          12th. Add an Income of ₹50 on RuPay, category Cashback. The card
-          balance goes up ₹50 and this month's income goes up ₹50; your
-          spending is unchanged.
+          <strong>Example.</strong> Slice credits ₹50 Spark Cashback on the 12th. Add an Income of ₹50 on RuPay,
+          category Cashback. The card balance goes up ₹50 and this month's income goes up ₹50; your spending is
+          unchanged.
         </Callout>
         <ul>
           <li>
-            A discount on a card bill counts too: when POP takes ₹18 off the
-            ₹9,392.77 Amazon card bill, Sajni files the bill as a transfer and
-            the ₹18 as Cashback income on the card by itself.
+            A discount on a card bill counts too: when POP takes ₹18 off the ₹9,392.77 Amazon card bill, Sajni files the
+            bill as a transfer and the ₹18 as Cashback income on the card by itself.
           </li>
           <li>
-            Part of it belongs to a friend whose orders earned it? Pass it on
-            as an expense, or <em>Adjust</em> it if they paid you less. See{' '}
-            <a href="#adjust">Adjusting their share of a cashback</a>.
+            Part of it belongs to a friend whose orders earned it? Pass it on as an expense, or <em>Adjust</em> it if
+            they paid you less. See <a href="#adjust">Adjusting their share of a cashback</a>.
           </li>
           <li>
-            Cashback that is <strong>all</strong> someone else's (their
-            order's instant offer) goes toward what they owe instead:{' '}
-            <em>+ Settles a lend</em>, with an honest title like “Amazon
-            instant cashback”. See <a href="#card-offers">A friend uses your card</a>.
+            Cashback that is <strong>all</strong> someone else's (their order's instant offer) goes toward what they owe
+            instead: <em>+ Settles a lend</em>, with an honest title like “Amazon instant cashback”. See{' '}
+            <a href="#card-offers">A friend uses your card</a>.
           </li>
           <li>
-            The Cards tab estimates the cashback a cycle should earn from the
-            card's rate; the credit you record is the real figure.
+            The Cards tab estimates the cashback a cycle should earn from the card's rate; the credit you record is the
+            real figure.
           </li>
         </ul>
       </Section>
 
       <Section id="categories" title="Categories" chip="tab: Transactions">
         <p>
-          Categories group what you spend (Food, Transport, Bills) and what you
-          earn (Salary, Interest). Manage them with the{' '}
-          <em>Categories</em> button in Transactions, or from Budgets. Expense
-          and income categories are separate lists. Each has{' '}
-          <em>Unknown</em>: where a transaction goes when nothing better fits,
-          so nothing is ever left without a category, and a row in Unknown is
-          one still to sort. It can't be deleted or renamed (its colour can
-          change). <em>Others</em> is an ordinary category you pick on
-          purpose. Rename a category and every transaction in it shows the new
-          name (Food &amp; Dining → Food keeps one category, not two). Delete a
-          category and its transactions move to Unknown.
+          Categories group what you spend (Food, Transport, Bills) and what you earn (Salary, Interest). Manage them
+          with the <em>Categories</em> button in Transactions, or from Budgets. Expense and income categories are
+          separate lists. Each has <em>Unknown</em>: where a transaction goes when nothing better fits, so nothing is
+          ever left without a category, and a row in Unknown is one still to sort. It can't be deleted or renamed (its
+          colour can change). <em>Others</em> is an ordinary category you pick on purpose. Rename a category and every
+          transaction in it shows the new name (Food &amp; Dining → Food keeps one category, not two). Delete a category
+          and its transactions move to Unknown.
         </p>
         <p>
-          Sajni learns from you: once you file “Swiggy” under Food, the next
-          Swiggy transaction is filed there too. It learns only from what you
-          choose or change, never from its own guesses, and never learns{' '}
-          <em>Others</em> or <em>Unknown</em>. Rename a captured row (“Bhola Khan” → “Sewri”) and
-          set its category, and both names are filed that way from then on.
-          Banks often cut long names short (“Salman Mohammad Isma”); those
-          still match.
+          Sajni learns from you: once you file “Swiggy” under Food, the next Swiggy transaction is filed there too. It
+          learns only from what you choose or change, never from its own guesses, and never learns <em>Others</em> or{' '}
+          <em>Unknown</em>. Rename a captured row (“Bhola Khan” → “Sewri”) and set its category, and both names are
+          filed that way from then on. Banks often cut long names short (“Salman Mohammad Isma”); those still match.
         </p>
         <p>
-          Names too: give a captured payment the same name twice (“Bhola Khan”
-          → “Sewri” on two different days) and the next payment to Bhola Khan
-          arrives as “Sewri”, in Sewri's category. One person can be more
-          than one thing by amount: if Salman's ₹22 payments are “Office
-          Smoke” and his ₹60 ones “Salman's shop”, a ₹25 one comes in as
-          Office Smoke and a ₹55 one as Salman's shop. A name you use once
-          (“Chai with Ronak”) stays on that payment only.
+          Names too: give a captured payment the same name twice (“Bhola Khan” → “Sewri” on two different days) and the
+          next payment to Bhola Khan arrives as “Sewri”, in Sewri's category. One person can be more than one thing by
+          amount: if Salman's ₹22 payments are “Office Smoke” and his ₹60 ones “Salman's shop”, a ₹25 one comes in as
+          Office Smoke and a ₹55 one as Salman's shop. A name you use once (“Chai with Ronak”) stays on that payment
+          only.
         </p>
       </Section>
 
       <Section id="slates" title="Slates" chip="tab">
         <p>
-          A slate answers one question: <strong>is this normal life, or
-          not?</strong> Every transaction is on exactly one.{' '}
-          <strong>Plain</strong> is normal life and where everything lands by
-          default; every other slate is something unusual you named: “Goa
-          Trip”, “Wedding”, “Fridge”.
+          A slate answers one question: <strong>is this normal life, or not?</strong> Every transaction is on exactly
+          one. <strong>Plain</strong> is normal life and where everything lands by default; every other slate is
+          something unusual you named: “Goa Trip”, “Wedding”, “Fridge”.
         </p>
         <RefTable
           head={['rule', 'behaviour']}
@@ -883,90 +727,81 @@ export default function FinanceDoc() {
           ]}
         />
         <Callout tone="why">
-          One trip inflates a month and you can no longer tell normal spending
-          from unusual spending. Categories can't fix that: dinner in Goa is
-          Food whether you're on holiday or at home. A slate is a separate
-          label, so a budget on Plain simply never sees the trip. You usually
-          notice something was unusual only afterwards, which is why you can
-          file it later.
+          One trip inflates a month and you can no longer tell normal spending from unusual spending. Categories can't
+          fix that: dinner in Goa is Food whether you're on holiday or at home. A slate is a separate label, so a budget
+          on Plain simply never sees the trip. You usually notice something was unusual only afterwards, which is why
+          you can file it later.
         </Callout>
       </Section>
 
       <Section id="budgets" title="Budgets" chip="tab">
         <p>
-          A budget is an overall spending limit, with optional{' '}
-          <strong>caps per category</strong> that warn but never block, and a
-          choice of <strong>which slates it counts</strong>. Each budget is
-          separate: July and August are two budgets, and editing one never
-          rewrites the other.
+          A budget is an overall spending limit, with optional <strong>caps per category</strong> that warn but never
+          block, and a choice of <strong>which slates it counts</strong>. Each budget is separate: July and August are
+          two budgets, and editing one never rewrites the other.
         </p>
         <FeatureList>
           <Feature name="Dates (optional)">
             <p>
-              Start and end dates limit what the budget counts; leave them off
-              for no limit, as with a budget for a slate. Presets fill this
-              week, this month or this year. When the end date passes, the
-              budget moves to <em>Closed</em>.
+              Start and end dates limit what the budget counts; leave them off for no limit, as with a budget for a
+              slate. Presets fill this week, this month or this year. When the end date passes, the budget moves to{' '}
+              <em>Closed</em>.
             </p>
           </Feature>
           <Feature name="Which slates it counts">
             <p>
-              Leave it empty and the budget counts <strong>Plain only</strong>,
-              your normal life. Name a slate and it counts that instead, so
-              “Goa Trip · ₹40,000” tracks just the trip. Name several and they
-              share one limit.
+              Leave it empty and the budget counts <strong>Plain only</strong>, your normal life. Name a slate and it
+              counts that instead, so “Goa Trip · ₹40,000” tracks just the trip. Name several and they share one limit.
             </p>
           </Feature>
           <Feature name="What counts as spent">
             <p>
-              Expenses and adjusted lends count; refunds take away; your share
-              of a split bill counts, not the whole bill. Category caps follow
-              the budget's slates.
+              Expenses and adjusted lends count; refunds take away; your share of a split bill counts, not the whole
+              bill. Category caps follow the budget's slates.
             </p>
           </Feature>
           <Feature name="Next month">
             <p>
-              Nothing resets on its own. Duplicate a budget to get the next one
-              with the same limit, caps and slates, and its dates moved forward.
+              Nothing resets on its own. Duplicate a budget to get the next one with the same limit, caps and slates,
+              and its dates moved forward.
             </p>
           </Feature>
         </FeatureList>
         <Callout>
-          <strong>Example.</strong> “August” ₹10,000 with a Food cap of ₹3,000,
-          and “Goa Trip” ₹5,000 on the Goa slate. A ₹400 beach dinner filed on
-          the Goa slate counts only toward the trip; a ₹600 grocery order at
-          home counts only toward August. Bars go from calm to attention (above
-          80%) to over.
+          <strong>Example.</strong> “August” ₹10,000 with a Food cap of ₹3,000, and “Goa Trip” ₹5,000 on the Goa slate.
+          A ₹400 beach dinner filed on the Goa slate counts only toward the trip; a ₹600 grocery order at home counts
+          only toward August. Bars go from calm to attention (above 80%) to over.
         </Callout>
       </Section>
 
       <Section id="cards" title="Credit cards and statements" chip="tab">
         <p>
-          Add a card as a <em>Credit card</em> account with its statement day
-          (when the bill is made) and due day (when it must be paid), and
-          optionally its limit and cashback (a percentage or a fixed amount).
-          The Cards tab keeps one statement per billing cycle. Sajni works out:
+          Add a card as a <em>Credit card</em> account with its statement day (when the bill is made) and due day (when
+          it must be paid), and optionally its limit and cashback (a percentage or a fixed amount). The Cards tab keeps
+          one statement per billing cycle. Sajni works out:
         </p>
         <ul>
-          <li><strong>Previous balance</strong>: the last statement, less payments since.</li>
           <li>
-            <strong>New charges</strong>: what the card was charged in the
-            cycle, including bills you split or paid for others, less refunds
-            and other credits.
+            <strong>Previous balance</strong>: the last statement, less payments since.
           </li>
-          <li><strong>Amount due</strong> and <strong>cashback earned</strong>.</li>
+          <li>
+            <strong>New charges</strong>: what the card was charged in the cycle, including bills you split or paid for
+            others, less refunds and other credits.
+          </li>
+          <li>
+            <strong>Amount due</strong> and <strong>cashback earned</strong>.
+          </li>
         </ul>
         <p>
-          Preview it, and overwrite any figure with the one on the real
-          statement. Press <em>Mark paid</em> and choose the account it's paid from: Sajni
-          records the transfer to the card and closes the cycle.
+          Preview it, and overwrite any figure with the one on the real statement. Press <em>Mark paid</em> and choose
+          the account it's paid from: Sajni records the transfer to the card and closes the cycle.
         </p>
       </Section>
 
       <Section id="billers" title="Recurring" chip="tab">
         <p>
-          Money that repeats: payments (Home Contrib, Netflix, electricity)
-          and money you expect (Salary). You add each one yourself, as
+          Money that repeats: payments (Home Contrib, Netflix, electricity) and money you expect (Salary). You add each
+          one yourself, as
           <em> Money out</em> or <em>Money in</em>, with an amount that is:
         </p>
         <RefTable
@@ -977,117 +812,104 @@ export default function FinanceDoc() {
           ]}
         />
         <p>
-          They repeat weekly, every 2 weeks, monthly, every 2 or 3 months,
-          or yearly. The day you pick is kept: an item due on the 31st is
-          due on the 30th in November and the 31st again in December.
+          They repeat weekly, every 2 weeks, monthly, every 2 or 3 months, or yearly. The day you pick is kept: an item
+          due on the 31st is due on the 30th in November and the 31st again in December.
         </p>
         <Callout>
-          <strong>Example.</strong> Home Contrib: ₹22,000, fixed, monthly,
-          due 5 December, from Salary. On 6 December at 01:26 you send ₹22,000
-          to Papa. Kotak's SMS is captured, the payment fits Home Contrib, so
-          the row is titled Home Contrib, filed in its category, the phone's
-          notification adds “Home Contrib ✓ for December”, and the item moves
-          to 5 January. A ₹2,724 payback to Papa the same week doesn't fit
-          (wrong amount) and stays a payment of its own.
+          <strong>Example.</strong> Home Contrib: ₹22,000, fixed, monthly, due 5 December, from Salary. On 6 December at
+          01:26 you send ₹22,000 to Papa. Kotak's SMS is captured, the payment fits Home Contrib, so the row is titled
+          Home Contrib, filed in its category, the phone's notification adds “Home Contrib ✓ for December”, and the item
+          moves to 5 January. A ₹2,724 payback to Papa the same week doesn't fit (wrong amount) and stays a payment of
+          its own.
         </Callout>
         <FeatureList>
           <Feature name="Each row says where it stands">
             <ul>
-              <li><strong>Paid ✓ 6 Nov</strong> (or <em>Came ✓</em> for money in): this cycle is done.</li>
-              <li><strong>Due in 3d · 5 Dec</strong> (or <em>Expected</em>): waiting for the payment.</li>
-              <li><strong>Not recorded · 5 Dec</strong>: its day has passed (or it's after 8 pm on it) with nothing recorded.</li>
+              <li>
+                <strong>Paid ✓ 6 Nov</strong> (or <em>Came ✓</em> for money in): this cycle is done.
+              </li>
+              <li>
+                <strong>Due in 3d · 5 Dec</strong> (or <em>Expected</em>): waiting for the payment.
+              </li>
+              <li>
+                <strong>Not recorded · 5 Dec</strong>: its day has passed (or it's after 8 pm on it) with nothing
+                recorded.
+              </li>
             </ul>
             <p>
-              The header adds up what goes out and what comes in each month,
-              across every frequency, using a varying item's last real payment
-              once there is one.
+              The header adds up what goes out and what comes in each month, across every frequency, using a varying
+              item's last real payment once there is one.
             </p>
           </Feature>
           <Feature name="It waits for the payment">
             <p>
-              An item doesn't add anything on its due date. When a payment
-              that fits is recorded, captured or typed by you, it ticks the
-              item by itself: the same direction, the item's account, the
-              amount (a fixed one within 2%; one that varies within half to
-              double its guess) and a day from 3 days before the due date to 7
-              after. A captured row takes the item's name and category; a
-              title you typed stays yours. It's a best guess, so a payment that
-              doesn't fit is simply left alone; tick it by hand with Attach
-              existing.
+              An item doesn't add anything on its due date. When a payment that fits is recorded, captured or typed by
+              you, it ticks the item by itself: the same direction, the item's account, the amount (a fixed one within
+              2%; one that varies within half to double its guess) and a day from 3 days before the due date to 7 after.
+              A captured row takes the item's name and category; a title you typed stays yours. It's a best guess, so a
+              payment that doesn't fit is simply left alone; tick it by hand with Attach existing.
             </p>
           </Feature>
           <Feature name="The 8 pm nudge">
             <p>
-              Nothing recorded by 8 pm on the due day, one notification:
-              “Home Contrib isn't recorded yet. ₹22,000.00 was due today.” On
-              the phone it has a button, <em>Add ₹22,000</em> (<em>Add
-              salary</em> for money in), that opens the transaction sheet
-              already filled in; saving it ticks the item. It never nags twice
-              for the same cycle.
+              Nothing recorded by 8 pm on the due day, one notification: “Home Contrib isn't recorded yet. ₹22,000.00
+              was due today.” On the phone it has a button, <em>Add ₹22,000</em> (<em>Add salary</em> for money in),
+              that opens the transaction sheet already filled in; saving it ticks the item. It never nags twice for the
+              same cycle.
             </p>
           </Feature>
           <Feature name="Money you expect">
             <p>
-              Salary is <em>Money in</em>, varies: expected ₹67,772 on the
-              5th, into Salary. A month with variable pay or a bonus still
-              ticks it with the real figure. It shows with a + and counts in
-              the header's <em>In</em>, not <em>Out</em>.
+              Salary is <em>Money in</em>, varies: expected ₹67,772 on the 5th, into Salary. A month with variable pay
+              or a bonus still ticks it with the real figure. It shows with a + and counts in the header's <em>In</em>,
+              not <em>Out</em>.
             </p>
           </Feature>
           <Feature name="Sajni suggests new ones">
             <p>
-              Something paid once a month for two months running, on one
-              account, about the same amount (within 10%) and day (within 5
-              days), shows at the top as <em>Looks like it repeats</em>:
-              “ChatGPT Plus · ₹1,950 on RuPay. Paid around the 23rd in October
-              and November.” <em>Make it recurring</em> opens the form filled
-              in; <em>It doesn't repeat</em> hides it for good. Anything paid
-              more than once a month (a daily ₹22 ride) is never suggested,
-              and nothing is created without you.
+              Something paid once a month for two months running, on one account, about the same amount (within 10%) and
+              day (within 5 days), shows at the top as <em>Looks like it repeats</em>: “ChatGPT Plus · ₹1,950 on RuPay.
+              Paid around the 23rd in October and November.” <em>Make it recurring</em> opens the form filled in;{' '}
+              <em>It doesn't repeat</em> hides it for good. Anything paid more than once a month (a daily ₹22 ride) is
+              never suggested, and nothing is created without you.
             </p>
           </Feature>
           <Feature name="Marking a cycle by hand">
             <p>The ✓ on an item gives two choices:</p>
             <ul>
               <li>
-                <strong>Record payment</strong> adds the row on the linked
-                account. A varying amount asks for the real figure, prefilled
-                from last time.
+                <strong>Record payment</strong> adds the row on the linked account. A varying amount asks for the real
+                figure, prefilled from last time.
               </li>
               <li>
-                <strong>Attach existing</strong> links rows already in Sajni,
-                so nothing is added twice.
+                <strong>Attach existing</strong> links rows already in Sajni, so nothing is added twice.
               </li>
             </ul>
             <p>
-              Either way the due date moves on. A cycle is marked once: a
-              second tap on ✓ says it was already recorded instead of paying
-              next month too.
+              Either way the due date moves on. A cycle is marked once: a second tap on ✓ says it was already recorded
+              instead of paying next month too.
             </p>
           </Feature>
           <Feature name="Undoing a wrong match">
             <p>
               Tap an item for every cycle and the transactions under each.
-              <em> Unlink</em> on a cycle undoes it: if Sajni ticked Netflix
-              with a ₹649 payment that was something else, unlink it and that
-              cycle is due again. The transaction itself stays as it is.
+              <em> Unlink</em> on a cycle undoes it: if Sajni ticked Netflix with a ₹649 payment that was something
+              else, unlink it and that cycle is due again. The transaction itself stays as it is.
             </p>
           </Feature>
           <Feature name="Posting by itself">
             <p>
-              A fixed item can post itself on each due date (<em>Sajni adds it
-              itself</em>), for payments that send no message, like cash. It's
-              off unless you turn it on. It never adds cycles from before you
-              made the item, and if the real payment is recorded too, the real
-              one replaces the posted one.
+              A fixed item can post itself on each due date (<em>Sajni adds it itself</em>), for payments that send no
+              message, like cash. It's off unless you turn it on. It never adds cycles from before you made the item,
+              and if the real payment is recorded too, the real one replaces the posted one.
             </p>
           </Feature>
           <Feature name="Heads-up and tasks">
             <p>
-              <em>Heads-up</em> sets how many days before the due date a
-              notification comes (0 = the morning of; never before 9 am).
-              <em> Make a task</em> adds a “Pay …” task near each due date.
-              Money you expect gets no heads-up, only the 8 pm nudge.
+              <em>Heads-up</em> sets how many days before the due date a notification comes (0 = the morning of; never
+              before 9 am).
+              <em> Make a task</em> adds a “Pay …” task near each due date. Money you expect gets no heads-up, only the
+              8 pm nudge.
             </p>
           </Feature>
         </FeatureList>
@@ -1095,53 +917,41 @@ export default function FinanceDoc() {
 
       <Section id="investments" title="Investments" chip="tab">
         <p>
-          Track SIPs, mutual funds, recurring and fixed deposits, and anything
-          else. Each has an invested amount and a current value, so you see
-          your gain or loss. RD and FD values are estimated to today from the
-          amount, dates and annual rate (quarterly compounding); for SIPs and
-          other market-linked ones, update the value from your statement.
+          Track SIPs, mutual funds, recurring and fixed deposits, and anything else. Each has an invested amount and a
+          current value, so you see your gain or loss. RD and FD values are estimated to today from the amount, dates
+          and annual rate (quarterly compounding); for SIPs and other market-linked ones, update the value from your
+          statement.
         </p>
         <FeatureList>
           <Feature name="Auto-debit">
             <p>
-              For something paid every month, quarter or year, set the amount
-              per cycle and link the paying account. Each cycle Sajni records
-              the payment as a transfer from that account into the investment
-              (see <em>Paying into an investment</em>), so it adds to the
-              invested amount, never to your spending, and tells you. If
-              cycles were missed, each one is caught up exactly once. Pay one
-              by hand instead and you add that same transfer yourself.
+              For something paid every month, quarter or year, set the amount per cycle and link the paying account.
+              Each cycle Sajni records the payment as a transfer from that account into the investment (see{' '}
+              <em>Paying into an investment</em>), so it adds to the invested amount, never to your spending, and tells
+              you. If cycles were missed, each one is caught up exactly once. Pay one by hand instead and you add that
+              same transfer yourself.
             </p>
           </Feature>
           <Feature name="Maturity">
             <p>
-              FDs and RDs carry a maturity date and count down to it (“45d to
-              maturity”). The estimate stops growing at maturity; the bank's
-              final figure may round differently. Auto-debit stops there too:
-              an RD maturing on 12 Dec takes its last instalment on 12 Nov,
-              and auto-debit then switches itself off.
+              FDs and RDs carry a maturity date and count down to it (“45d to maturity”). The estimate stops growing at
+              maturity; the bank's final figure may round differently. Auto-debit stops there too: an RD maturing on 12
+              Dec takes its last instalment on 12 Nov, and auto-debit then switches itself off.
             </p>
           </Feature>
           <Feature name="Money back">
             <p>
-              When an RD matures (or you break an FD or redeem a SIP), add a
-              Transfer whose <em>From</em> is the investment and whose{' '}
-              <em>To</em> is the account the money landed in, for the whole
-              amount you got. Up to what you put in is your own money coming
-              back: a transfer, not income. Anything above it is filed under
-              Interest. The sheet shows the split before you save. Once
-              nothing is left invested the investment shows as closed, with
-              what you put in, got back and earned. Deleting the transfer
-              puts it all back.
+              When an RD matures (or you break an FD or redeem a SIP), add a Transfer whose <em>From</em> is the
+              investment and whose <em>To</em> is the account the money landed in, for the whole amount you got. Up to
+              what you put in is your own money coming back: a transfer, not income. Anything above it is filed under
+              Interest. The sheet shows the split before you save. Once nothing is left invested the investment shows as
+              closed, with what you put in, got back and earned. Deleting the transfer puts it all back.
             </p>
             <p>
-              <strong>Example.</strong> You put ₹1,50,000 into an RD and
-              Kotak credits ₹1,57,420 on 12 Dec: ₹1,50,000 comes back as a
-              transfer and ₹7,420 is Interest. If the phone captures the
-              bank's message from a day before the maturity date to a week
-              after (12 Dec is a Saturday; the bank may credit it on
-              Monday), and it's at least what you put in, Sajni files it this
-              way by itself.
+              <strong>Example.</strong> You put ₹1,50,000 into an RD and Kotak credits ₹1,57,420 on 12 Dec: ₹1,50,000
+              comes back as a transfer and ₹7,420 is Interest. If the phone captures the bank's message from a day
+              before the maturity date to a week after (12 Dec is a Saturday; the bank may credit it on Monday), and
+              it's at least what you put in, Sajni files it this way by itself.
             </p>
           </Feature>
         </FeatureList>
@@ -1151,183 +961,136 @@ export default function FinanceDoc() {
         <FeatureList>
           <Feature name="On Android">
             <p>
-              Sajni can read bank SMS and payment-app notifications (GPay,
-              PhonePe, bank apps) and add the transaction for you. Turn it on
-              in Settings and allow what it asks for. <em>Choose apps</em>{' '}
-              picks which apps' notifications are read; WhatsApp is off unless
-              you tick it, since its notifications are almost all chats. If
-              the phone is ever signed out of Sajni, one notification says
-              payments aren't being captured.
+              Sajni can read bank SMS and payment-app notifications (GPay, PhonePe, bank apps) and add the transaction
+              for you. Turn it on in Settings and allow what it asks for. <em>Choose apps</em> picks which apps'
+              notifications are read; WhatsApp is off unless you tick it, since its notifications are almost all chats.
+              If the phone is ever signed out of Sajni, one notification says payments aren't being captured.
             </p>
             <ul>
               <li>
-                If the account is matched (see matching hints), it's added
-                straight away, with an <em>Undo</em> in the notification.
+                If the account is matched (see matching hints), it's added straight away, with an <em>Undo</em> in the
+                notification.
               </li>
               <li>
-                If Sajni can't tell which account, the notification asks you.
-                For a wallet you don't keep in Sajni (Zomato Money, a meal
-                card), tap <em>Don't track Zomato Money</em> and it stops
-                asking; any other Zomato Money questions still waiting are
-                closed too. Settings → Finance lists them to undo. A message naming
-                a card number that isn't one of yours (Kotak's other card
-                ••9148) is asked about too, never filed on your Kotak savings
-                just because it says “Kotak”. Matching hints count as whole
-                words (“POP” doesn't match “Poptech”), and the most specific
-                one wins.
+                If Sajni can't tell which account, the notification asks you. For a wallet you don't keep in Sajni
+                (Zomato Money, a meal card), tap <em>Don't track Zomato Money</em> and it stops asking; any other Zomato
+                Money questions still waiting are closed too. Settings → Finance lists them to undo. A message naming a
+                card number that isn't one of yours (Kotak's other card ••9148) is asked about too, never filed on your
+                Kotak savings just because it says “Kotak”. Matching hints count as whole words (“POP” doesn't match
+                “Poptech”), and the most specific one wins.
               </li>
               <li>
-                If the same payment arrives again later with its account (the
-                wallet's SMS after a message that didn't name it), Sajni files
-                it and clears the question from your notifications. Filing it
-                yourself from the notification links the two, so the message
-                isn't left waiting.
+                If the same payment arrives again later with its account (the wallet's SMS after a message that didn't
+                name it), Sajni files it and clears the question from your notifications. Filing it yourself from the
+                notification links the two, so the message isn't left waiting.
               </li>
               <li>
-                A shop's receipt (Google Play, Uber, an order email) never adds
-                a payment on its own: it names the shop well but how you paid
-                loosely (“UPI: Amazon”). It joins the bank or wallet message for
-                the same amount and gives the row the shop's name: the
-                ₹99 from Amazon Wallet becomes <em>Supercell</em>. If no bank
+                A shop's receipt (Google Play, Uber, an order email) never adds a payment on its own: it names the shop
+                well but how you paid loosely (“UPI: Amazon”). It joins the bank or wallet message for the same amount
+                and gives the row the shop's name: the ₹99 from Amazon Wallet becomes <em>Supercell</em>. If no bank
                 message comes, the receipt asks you instead.
               </li>
               <li>
-                Anything that mentions an amount and an account or a payment
-                is read, however it's worded. Only money that has already
-                moved is added: failed payments, requests, "will be debited"
-                notices, bill reminders and offers are skipped. OTP messages
-                never leave your phone.
+                Anything that mentions an amount and an account or a payment is read, however it's worded. Only money
+                that has already moved is added: failed payments, requests, "will be debited" notices, bill reminders
+                and offers are skipped. OTP messages never leave your phone.
               </li>
               <li>
-                For an email, Sajni sees only what Gmail's notification shows
-                (the subject and first lines). If the amount is further down,
-                it can't be captured; add it yourself.
+                For an email, Sajni sees only what Gmail's notification shows (the subject and first lines). If the
+                amount is further down, it can't be captured; add it yourself.
               </li>
               <li>
-                The same payment often arrives more than once: an SMS, a UPI
-                notification, and sometimes a bank email up to an hour later.
-                Sajni remembers every message it has heard for two weeks and
-                treats each sender as one reporter: your bank's SMS, GPay, and
-                each kind of bank email (Kotak's “Fund transfer” mail and its
-                later “Credit Alert” mail are two reporters). Each reporter
-                tells about a payment once. So:
+                The same payment often arrives more than once: an SMS, a UPI notification, and sometimes a bank email up
+                to an hour later. Sajni remembers every message it has heard for two weeks and treats each sender as one
+                reporter: your bank's SMS, GPay, and each kind of bank email (Kotak's “Fund transfer” mail and its later
+                “Credit Alert” mail are two reporters). Each reporter tells about a payment once. So:
                 <ul>
                   <li>
-                    The same reference number and amount as a payment already
-                    added: dropped quietly, even if you've since deleted that
-                    payment.
+                    The same reference number and amount as a payment already added: dropped quietly, even if you've
+                    since deleted that payment.
                   </li>
                   <li>
-                    Different reference numbers: always two payments, never
-                    asked about. Two ₹22 teas at Sewri minutes apart are two
-                    rows.
+                    Different reference numbers: always two payments, never asked about. Two ₹22 teas at Sewri minutes
+                    apart are two rows.
                   </li>
                   <li>
-                    No reference, same amount, within three hours: if another
-                    reporter already told about it (GPay's “Alefiya paid you
-                    ₹1,322” after Kotak's SMS), it's the same payment and is
-                    dropped quietly. If the same reporter tells again (a second
-                    bank SMS), it's a second payment.
+                    No reference, same amount, within three hours: if another reporter already told about it (GPay's
+                    “Alefiya paid you ₹1,322” after Kotak's SMS), it's the same payment and is dropped quietly. If the
+                    same reporter tells again (a second bank SMS), it's a second payment.
                   </li>
                   <li>
-                    The same reference with a different amount is the only case
-                    Sajni asks about: <em>Add anyway?</em>
+                    The same reference with a different amount is the only case Sajni asks about: <em>Add anyway?</em>
                   </li>
                 </ul>
-                One bank text seen twice (as the SMS itself and as your
-                messages app's notification of it, even an hour later) is the
-                same message, so it's read only once. A notification with no
-                reference that reads word for word like one from more than
-                half an hour ago is a new payment: the Kotak app words every
-                “₹22 sent to SALMAN” the same way. When copies arrive, the row
-                keeps the fuller name: the Kotak app cuts names at 14 letters
-                (“Himanshu Jiten”), its SMS doesn't. A row the first copy
-                couldn't name (the Kotak app's “₹8,850 debited” becomes
-                “Expense”) takes the next copy's name. A name you gave the row
-                is never changed. A bank email that writes
-                “at 11:40” for 11:40 at night is read as night, so it still
-                matches the SMS.
+                One bank text seen twice (as the SMS itself and as your messages app's notification of it, even an hour
+                later) is the same message, so it's read only once. A notification with no reference that reads word for
+                word like one from more than half an hour ago is a new payment: the Kotak app words every “₹22 sent to
+                SALMAN” the same way. When copies arrive, the row keeps the fuller name: the Kotak app cuts names at 14
+                letters (“Himanshu Jiten”), its SMS doesn't. A row the first copy couldn't name (the Kotak app's “₹8,850
+                debited” becomes “Expense”) takes the next copy's name. A name you gave the row is never changed. A bank
+                email that writes “at 11:40” for 11:40 at night is read as night, so it still matches the SMS.
               </li>
               <li>
-                Money moving between your own accounts is one transfer, not a
-                spend and an income: ICICI's “debited ₹500; Amazon Pay balance
-                credited” and Amazon's “₹500 added to your Amazon Pay balance”
-                become <em>ICICI Savings → Amazon Wallet</em>. Moving ₹8,850
-                to your trading account works the same way: Kotak Neo's “credited
-                to your Kotak Neo account” email also prints your bank's account
-                number (XXXXXX2851), but Salary already has the debit, so the
-                credit goes to Kotak Neo and the two become{' '}
+                Money moving between your own accounts is one transfer, not a spend and an income: ICICI's “debited
+                ₹500; Amazon Pay balance credited” and Amazon's “₹500 added to your Amazon Pay balance” become{' '}
+                <em>ICICI Savings → Amazon Wallet</em>. Moving ₹8,850 to your trading account works the same way: Kotak
+                Neo's “credited to your Kotak Neo account” email also prints your bank's account number (XXXXXX2851),
+                but Salary already has the debit, so the credit goes to Kotak Neo and the two become{' '}
                 <em>Salary → Kotak Neo</em>.
               </li>
               <li>
-                A card bill paid from your bank is a transfer too: Kotak's
-                debit to “ICICI Credit Card” and the card's “payment received”
-                become <em>Salary → Amazon Pay CC</em>, even a day apart. When
-                the card got a little more than the bank paid (POP took ₹18 off
-                the ₹9,392.77 ICICI bill, so Kotak paid ₹9,374.77), the ₹18 is
+                A card bill paid from your bank is a transfer too: Kotak's debit to “ICICI Credit Card” and the card's
+                “payment received” become <em>Salary → Amazon Pay CC</em>, even a day apart. When the card got a little
+                more than the bank paid (POP took ₹18 off the ₹9,392.77 ICICI bill, so Kotak paid ₹9,374.77), the ₹18 is
                 filed as Cashback income on the card.
               </li>
               <li>
-                When a captured row was really a transfer (₹100 “sent to SNEHIL
-                RONAK SHAH” is you loading UPI Lite), open it and add{' '}
-                <em>Transfer</em>. Sajni remembers: money to your own name goes
-                to UPI Lite from then on; anyone else needs it done twice.
+                When a captured row was really a transfer (₹100 “sent to SNEHIL RONAK SHAH” is you loading UPI Lite),
+                open it and add <em>Transfer</em>. Sajni remembers: money to your own name goes to UPI Lite from then
+                on; anyone else needs it done twice.
               </li>
               <li>
-                An FD maturing that Sajni doesn't track (Kotak's ActivMoney
-                sweep) isn't ₹20,493 of income: the swept ₹20,000 is your own
-                money coming back, so only ₹493 is filed, as FD interest.
+                An FD maturing that Sajni doesn't track (Kotak's ActivMoney sweep) isn't ₹20,493 of income: the swept
+                ₹20,000 is your own money coming back, so only ₹493 is filed, as FD interest.
               </li>
               <li>
-                Money in from someone who owes you comes with a{' '}
-                <em>Paid back · Papa</em> button on its notification: one tap
-                counts it toward what they owe overall (pin it to one lend from
-                People afterwards if you like). Sajni offers it when the
-                sender's name is the person's name (“Alefiya Abbas Rampur” for
-                Alefiya), or once you've marked a payment from that name as
-                theirs before (“Ronak Arvind Shah” is Papa). It only offers
-                when they still owe you something, and never files it without
-                the tap.
+                Money in from someone who owes you comes with a <em>Paid back · Papa</em> button on its notification:
+                one tap counts it toward what they owe overall (pin it to one lend from People afterwards if you like).
+                Sajni offers it when the sender's name is the person's name (“Alefiya Abbas Rampur” for Alefiya), or
+                once you've marked a payment from that name as theirs before (“Ronak Arvind Shah” is Papa). It only
+                offers when they still owe you something, and never files it without the tap.
               </li>
               <li>
-                Open a captured transaction to see where it came from:{' '}
-                <em>Captured from bank SMS · GPay</em> lists every reporter that
-                told about it. @sajni can also tell you what the phone heard
-                lately and what it did with each message (“why wasn't my NEFT to
-                Papa captured?”). Message text is kept for 30 days.
+                Open a captured transaction to see where it came from: <em>Captured from bank SMS · GPay</em> lists
+                every reporter that told about it. @sajni can also tell you what the phone heard lately and what it did
+                with each message (“why wasn't my NEFT to Papa captured?”). Message text is kept for 30 days.
               </li>
               <li>
-                Sajni picks the category while it reads the message, from your
-                own categories (a merchant you've filed before keeps its
-                category). One it can't place goes to <em>Unknown</em> for you to
-                sort, rather than looking filed under <em>Others</em>.
+                Sajni picks the category while it reads the message, from your own categories (a merchant you've filed
+                before keeps its category). One it can't place goes to <em>Unknown</em> for you to sort, rather than
+                looking filed under <em>Others</em>.
               </li>
               <li>
-                Your bank's message about an RD or SIP instalment Sajni already
-                recorded (“Standing Instruction processed”) just confirms it;
-                nothing is added twice.
+                Your bank's message about an RD or SIP instalment Sajni already recorded (“Standing Instruction
+                processed”) just confirms it; nothing is added twice.
               </li>
               <li>
-                If Sajni can't read a message (its AI is busy or down), it
-                tries again and then shows you the text to add yourself, so
-                nothing slips by unseen.
+                If Sajni can't read a message (its AI is busy or down), it tries again and then shows you the text to
+                add yourself, so nothing slips by unseen.
               </li>
             </ul>
           </Feature>
           <Feature name="From the share menu">
             <p>
-              Share a bank or UPI message to Sajni from your phone. It reads
-              the amount, direction, title and time, picks the account from
-              your matching hints, and opens one screen to check and save. A
-              shared link that isn't a payment is saved as a bookmark instead.
+              Share a bank or UPI message to Sajni from your phone. It reads the amount, direction, title and time,
+              picks the account from your matching hints, and opens one screen to check and save. A shared link that
+              isn't a payment is saved as a bookmark instead.
             </p>
           </Feature>
           <Feature name="Someone else's charge">
             <p>
-              The check screen (shared, or when Sajni asks which account) has
-              the same <em>+ Split</em> as a new expense: add the people, split
-              it equally or type their shares, and it's filed split or lent in
-              one go.
+              The check screen (shared, or when Sajni asks which account) has the same <em>+ Split</em> as a new
+              expense: add the people, split it equally or type their shares, and it's filed split or lent in one go.
             </p>
           </Feature>
         </FeatureList>
@@ -1336,14 +1099,14 @@ export default function FinanceDoc() {
 
       <Section id="ask" title="Asking Sajni" chip="@sajni">
         <p>
-          In the command palette, type <Code>@sajni</Code> and say what you
-          want. It makes the change and shows you what it did.
+          In the command palette, type <Code>@sajni</Code> and say what you want. It makes the change and shows you what
+          it did.
         </p>
         <RefTable
           head={['you type', 'it does']}
           rows={[
             ['spent 450 on lunch, card', 'adds the expense'],
-            ['the 754.96 dinner on Oct 1 was half Rahul\'s', 'splits that bill ½ with Rahul'],
+            ["the 754.96 dinner on Oct 1 was half Rahul's", 'splits that bill ½ with Rahul'],
             ['split the 900 dinner equally with Rahul and Priya', 'splits it three ways, ₹300 each'],
             ['Rahul sent me 100 for the cab, mark it paid back', 'settles it toward the cab lend'],
             ['the Amazon credit yesterday was a refund', 'turns that income into a refund'],
@@ -1356,10 +1119,8 @@ export default function FinanceDoc() {
 
       <Section id="exports" title="Exports" chip="header">
         <p>
-          The export button downloads CSV files of transactions, budgets (with
-          their dates, slates and caps) and net-worth history. They open in
-          Sheets or Excel. <Code>Takeout</Code> in Settings covers everything
-          else.
+          The export button downloads CSV files of transactions, budgets (with their dates, slates and caps) and
+          net-worth history. They open in Sheets or Excel. <Code>Takeout</Code> in Settings covers everything else.
         </p>
       </Section>
 
@@ -1367,39 +1128,34 @@ export default function FinanceDoc() {
         <FeatureList>
           <Feature name="I paid a group dinner and three friends owe me">
             <p>
-              One bill, three people. Add the ₹1,000 expense, tap{' '}
-              <em>+ Split</em> and add Rahul, Priya and Aman; Equally with you
-              included makes it ₹250 each. The card shows ₹1,000, your spending
-              is ₹250, and each friend owes ₹250 separately.
+              One bill, three people. Add the ₹1,000 expense, tap <em>+ Split</em> and add Rahul, Priya and Aman;
+              Equally with you included makes it ₹250 each. The card shows ₹1,000, your spending is ₹250, and each
+              friend owes ₹250 separately.
             </p>
           </Feature>
           <Feature name="A friend paid for me">
             <p>
-              Sajni tracks money owed <em>to</em> you. Record your expense when
-              you pay them back.
+              Sajni tracks money owed <em>to</em> you. Record your expense when you pay them back.
             </p>
           </Feature>
           <Feature name="Is a split bill counted twice?">
             <p>
-              No. The card counts the whole bill once, your spending counts
-              your part, and their part is money owed to you.
+              No. The card counts the whole bill once, your spending counts your part, and their part is money owed to
+              you.
             </p>
           </Feature>
           <Feature name="My card doesn't match the statement">
             <p>
-              Look for a charge captured twice, or a refund still recorded as
-              income. You can also type the real statement figures over
-              Sajni's.
+              Look for a charge captured twice, or a refund still recorded as income. You can also type the real
+              statement figures over Sajni's.
             </p>
           </Feature>
           <Feature name="Can I delete a lend?">
             <p>
-              Yes, from <em>Edit lend</em>. A cash lend (Split, Include me off) is
-              deleted along with its transaction. A bill you marked, or a
-              split, is <em>unmarked</em> instead, which hands the whole bill
-              back to you as an expense. To delete a split bill itself, remove
-              its split first. Payments that were toward it go back to the
-              person's overall total.
+              Yes, from <em>Edit lend</em>. A cash lend (Split, Include me off) is deleted along with its transaction. A
+              bill you marked, or a split, is <em>unmarked</em> instead, which hands the whole bill back to you as an
+              expense. To delete a split bill itself, remove its split first. Payments that were toward it go back to
+              the person's overall total.
             </p>
           </Feature>
         </FeatureList>

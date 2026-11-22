@@ -21,21 +21,17 @@ export default function SettingsDoc() {
         <FeatureList>
           <Feature name="Light / Dark / System">
             <p>
-              System follows the OS live, flip your OS at sunset and Sajni
-              follows without a reload. The choice applies before first paint,
-              so there's no flash on load.
+              System follows the OS live, flip your OS at sunset and Sajni follows without a reload. The choice applies
+              before first paint, so there's no flash on load.
             </p>
           </Feature>
           <Feature name="Density">
-            <p>
-              Compact / Comfortable / Cozy scales the entire type ramp, one
-              knob, no per-page settings.
-            </p>
+            <p>Compact / Comfortable / Cozy scales the entire type ramp, one knob, no per-page settings.</p>
           </Feature>
           <Feature name="Editor keys">
             <p>
-              Standard or Vim, for the Notes and Journal editors on this
-              computer (it isn't offered on phones). See Notes → Vim keys.
+              Standard or Vim, for the Notes and Journal editors on this computer (it isn't offered on phones). See
+              Notes → Vim keys.
             </p>
           </Feature>
         </FeatureList>
@@ -45,17 +41,15 @@ export default function SettingsDoc() {
         <FeatureList>
           <Feature name="Preset themes">
             <p>
-              Marine, PowerPuff, Gruvbox, Peach, Mauve. Each is just a set of
-              Material 3 seed colors, the full light <em>and</em> dark token
-              families derive from the seeds, which is why every theme
-              respects the Appearance toggle.
+              Marine, PowerPuff, Gruvbox, Peach, Mauve. Each is just a set of Material 3 seed colors, the full light{' '}
+              <em>and</em> dark token families derive from the seeds, which is why every theme respects the Appearance
+              toggle.
             </p>
           </Feature>
           <Feature name="AI themes">
             <p>
-              Describe a vibe, <Code>“forest morning, calm,
-              dark-leaning”</Code>, and Sajni mixes seed colors and derives
-              the same token set. Behavior:
+              Describe a vibe, <Code>“forest morning, calm, dark-leaning”</Code>, and Sajni mixes seed colors and
+              derives the same token set. Behavior:
             </p>
             <ul>
               <li>Generated themes save to your list; activate or delete them any time.</li>
@@ -72,27 +66,23 @@ export default function SettingsDoc() {
         <FeatureList>
           <Feature name="Profile and voxel avatar">
             <p>
-              The profile card keeps your larger voxel character beside your
-              editable display name, email and linked sign-in methods. Reroll
-              changes the character without uploading or storing an image,
-              it is generated locally from your account and revision. Theme
-              swatches tint it, motion follows reduced-motion preferences,
+              The profile card keeps your larger voxel character beside your editable display name, email and linked
+              sign-in methods. Reroll changes the character without uploading or storing an image, it is generated
+              locally from your account and revision. Theme swatches tint it, motion follows reduced-motion preferences,
               and navigation uses a calmer close crop at its compact size.
             </p>
           </Feature>
           <Feature name="Sign-in and sessions">
             <p>
-              Email, Google and GitHub sign-in methods land in the same
-              account. Sessions refresh silently and end on sign-out; the
-              guided tour can be replayed from Settings.
+              Email, Google and GitHub sign-in methods land in the same account. Sessions refresh silently and end on
+              sign-out; the guided tour can be replayed from Settings.
             </p>
           </Feature>
           <Feature name="Reminder delivery">
             <p>
-              Android Settings offers one account-level choice for Email,
-              Push or Both. It applies to personal reminders, task reminders,
-              digests and other timed notices instead of adding channel knobs
-              to every reminder.
+              Android Settings offers one account-level choice for Email, Push or Both. It applies to personal
+              reminders, task reminders, digests and other timed notices instead of adding channel knobs to every
+              reminder.
             </p>
           </Feature>
         </FeatureList>
@@ -102,47 +92,38 @@ export default function SettingsDoc() {
         <FeatureList>
           <Feature name="Takeout">
             <p>
-              One button downloads a .zip of everything you own. The same
-              section imports a takeout back, the import reports exactly
-              what it restored, per module.
+              One button downloads a .zip of everything you own. The same section imports a takeout back, the import
+              reports exactly what it restored, per module.
             </p>
           </Feature>
           <Feature name="Diagnostics">
             <p>
-              Sajni keeps a log of how each page and save went (how long
-              requests took, anything that got stuck) on this device only.
-              Nothing is uploaded on a timer. When something does get stuck,
-              or you pick <Code>Report slow loading</Code> in the command
-              palette, that moment is sent so it can be looked into.
+              Sajni keeps a log of how each page and save went (how long requests took, anything that got stuck) on this
+              device only. Nothing is uploaded on a timer. When something does get stuck, or you pick{' '}
+              <Code>Report slow loading</Code> in the command palette, that moment is sent so it can be looked into.
             </p>
             <p>
-              Settings → Diagnostics shows how much is stored. <strong>Send
-              to Sajni</strong> uploads what hasn't been sent yet, newest
-              first, so today's hiccup arrives even if the upload is cut
-              short. If the connection stalls it says so and tries again; if
-              it still can't get through, it tells you how much went up, and
+              Settings → Diagnostics shows how much is stored. <strong>Send to Sajni</strong> uploads what hasn't been
+              sent yet, newest first, so today's hiccup arrives even if the upload is cut short. If the connection
+              stalls it says so and tries again; if it still can't get through, it tells you how much went up, and
               pressing Send again carries on from there.
-              <strong> Download</strong> saves it as a file. The newest
-              100,000 events are kept.
+              <strong> Download</strong> saves it as a file. The newest 100,000 events are kept.
             </p>
           </Feature>
           <Feature name="Delete account">
             <p>
-              Type-to-confirm, and deletion is <em>scheduled</em> with a
-              purge date rather than instant, a cooling-off window during
-              which you can cancel from the same screen. After the purge
-              date, it's gone server-side.
+              Type-to-confirm, and deletion is <em>scheduled</em> with a purge date rather than instant, a cooling-off
+              window during which you can cancel from the same screen. After the purge date, it's gone server-side.
             </p>
           </Feature>
         </FeatureList>
         <Callout>
-          Finance has its own CSV exports (transactions, budgets, net-worth)
-          under Finance → Export, spreadsheet-shaped, no lock-in.
+          Finance has its own CSV exports (transactions, budgets, net-worth) under Finance → Export, spreadsheet-shaped,
+          no lock-in.
         </Callout>
         <p>
-          <strong>Connected apps</strong> lists the assistants (ChatGPT,
-          Gemini, Claude) you let use Sajni, with a copy button for the address
-          they need. See <Link to="/docs/connected-apps">Connected apps</Link>.
+          <strong>Connected apps</strong> lists the assistants (ChatGPT, Gemini, Claude) you let use Sajni, with a copy
+          button for the address they need. See <Link to="/docs/connected-apps">Connected apps</Link>.
         </p>
       </Section>
     </>

@@ -3,9 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
-import {
-  useBookmarks, useCreateBookmark, useUpdateBookmark, useDeleteBookmark,
-} from '@/queries/bookmarks';
+import { useBookmarks, useCreateBookmark, useUpdateBookmark, useDeleteBookmark } from '@/queries/bookmarks';
 import type { Bookmark } from '@/types';
 import { cn } from '@/lib/utils';
 import { huePillBase, huePillOn, huePillOff, hueVar } from '@/components/ui/hue-pill';
@@ -15,32 +13,58 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { M3CookieLoader } from '@/components/ui/shapes';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
-  Globe, Search, X, MoreVertical, Archive, ArchiveRestore,
-  CircleCheck, Circle, Trash2, ExternalLink, Pencil, MonitorPlay, BookmarkPlus,
+  Globe,
+  Search,
+  X,
+  MoreVertical,
+  Archive,
+  ArchiveRestore,
+  CircleCheck,
+  Circle,
+  Trash2,
+  ExternalLink,
+  Pencil,
+  MonitorPlay,
+  BookmarkPlus,
 } from '@/components/ui/icons';
 
 // Pretty names for hosts whose favicon alone isn't label enough. Everything
 // else shows its fetched site_name or bare host — the favicon carries the
 // brand.
 const HOST_NAMES: Record<string, string> = {
-  'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'vimeo.com': 'Vimeo',
-  'twitch.tv': 'Twitch', 'medium.com': 'Medium', 'github.com': 'GitHub',
-  'reddit.com': 'Reddit', 'x.com': 'X', 'twitter.com': 'X',
-  'news.ycombinator.com': 'Hacker News', 'substack.com': 'Substack',
-  'wikipedia.org': 'Wikipedia', 'stackoverflow.com': 'Stack Overflow',
-  'google.com': 'Google', 'dev.to': 'DEV', 'linkedin.com': 'LinkedIn',
+  'youtube.com': 'YouTube',
+  'youtu.be': 'YouTube',
+  'vimeo.com': 'Vimeo',
+  'twitch.tv': 'Twitch',
+  'medium.com': 'Medium',
+  'github.com': 'GitHub',
+  'reddit.com': 'Reddit',
+  'x.com': 'X',
+  'twitter.com': 'X',
+  'news.ycombinator.com': 'Hacker News',
+  'substack.com': 'Substack',
+  'wikipedia.org': 'Wikipedia',
+  'stackoverflow.com': 'Stack Overflow',
+  'google.com': 'Google',
+  'dev.to': 'DEV',
+  'linkedin.com': 'LinkedIn',
 };
 
 function hostOf(raw: string): string {
-  try { return new URL(raw).hostname.replace(/^(www|m)\./, ''); } catch { return ''; }
+  try {
+    return new URL(raw).hostname.replace(/^(www|m)\./, '');
+  } catch {
+    return '';
+  }
 }
 
 function siteLabel(b: Bookmark): string {
@@ -59,9 +83,10 @@ function displayTitle(b: Bookmark): string {
 
 function agoShort(iso: string): string {
   try {
-    return formatDistanceToNowStrict(parseISO(iso), { addSuffix: false })
-      .replace(/ (\w)\w* ?(\w*)$/, '$1'); // "3 days" → "3d"
-  } catch { return ''; }
+    return formatDistanceToNowStrict(parseISO(iso), { addSuffix: false }).replace(/ (\w)\w* ?(\w*)$/, '$1'); // "3 days" → "3d"
+  } catch {
+    return '';
+  }
 }
 
 function Favicon({ b, className }: { b: Bookmark; className?: string }) {
@@ -69,21 +94,35 @@ function Favicon({ b, className }: { b: Bookmark; className?: string }) {
   const Fallback = b.kind === 'video' ? MonitorPlay : Globe;
   if (failed || !b.favicon_url) {
     return (
-      <span className={cn('grid place-items-center bg-[hsl(var(--surface-container-high))] text-muted-foreground', className)}>
+      <span
+        className={cn(
+          'grid place-items-center bg-[hsl(var(--surface-container-high))] text-muted-foreground',
+          className,
+        )}
+      >
         <Fallback className="size-[55%]" strokeWidth={1.6} />
       </span>
     );
   }
   return (
-    <span className={cn('grid place-items-center bg-[hsl(var(--surface-container-high))] overflow-hidden', className)}>
-      <img src={b.favicon_url} alt="" className="size-[62%] object-contain" onError={() => setFailed(true)} loading="lazy" />
+    <span className={cn('grid place-items-center overflow-hidden bg-[hsl(var(--surface-container-high))]', className)}>
+      <img
+        src={b.favicon_url}
+        alt=""
+        className="size-[62%] object-contain"
+        onError={() => setFailed(true)}
+        loading="lazy"
+      />
     </span>
   );
 }
 
 type Shelf = 'all' | 'unread' | 'archived';
 
-export default function BookmarksPanel({ kind, addSignal }: {
+export default function BookmarksPanel({
+  kind,
+  addSignal,
+}: {
   kind: 'video' | 'site';
   /** Increments when the page-level Add button is pressed on this tab. */
   addSignal: number;
@@ -126,11 +165,13 @@ export default function BookmarksPanel({ kind, addSignal }: {
     if (shelf === 'unread') out = out.filter((b) => b.unread);
     const q = search.trim().toLowerCase();
     if (q) {
-      out = out.filter((b) =>
-        b.title.toLowerCase().includes(q) ||
-        b.url.toLowerCase().includes(q) ||
-        b.note.toLowerCase().includes(q) ||
-        siteLabel(b).toLowerCase().includes(q));
+      out = out.filter(
+        (b) =>
+          b.title.toLowerCase().includes(q) ||
+          b.url.toLowerCase().includes(q) ||
+          b.note.toLowerCase().includes(q) ||
+          siteLabel(b).toLowerCase().includes(q),
+      );
     }
     return out;
   }, [items, shelf, search]);
@@ -164,13 +205,19 @@ export default function BookmarksPanel({ kind, addSignal }: {
       if (editItem) {
         await updateBookmark.mutateAsync({ id: editItem.id, data: { title: formTitle.trim(), note: formNote.trim() } });
       } else {
-        const created = await createBookmark.mutateAsync({ url: formUrl.trim(), title: formTitle.trim(), note: formNote.trim() });
+        const created = await createBookmark.mutateAsync({
+          url: formUrl.trim(),
+          title: formTitle.trim(),
+          note: formNote.trim(),
+        });
         if (created.kind !== kind) toast.success(`Saved under ${created.kind === 'video' ? 'Videos' : 'Sites'}`);
       }
       setShowForm(false);
     } catch (e) {
       toast.error('Could not save: ' + (e as Error).message);
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const shelves: { value: Shelf; label: string; count?: number }[] = [
@@ -180,7 +227,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
   ];
 
   return (
-    <div className="flex flex-col gap-4 min-w-0">
+    <div className="flex min-w-0 flex-col gap-4">
       {/* Toolbar: shelf chips + search */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex gap-1">
@@ -200,15 +247,19 @@ export default function BookmarksPanel({ kind, addSignal }: {
           ))}
         </div>
         <div className="relative ml-auto w-full sm:w-64">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={kind === 'video' ? 'Filter videos…' : 'Filter sites…'}
-            className="h-10 pl-11 pr-9 w-full rounded-full bg-[hsl(var(--surface-container-high))] border-transparent hover:bg-[hsl(var(--surface-container-highest))] hover:border-transparent focus-visible:rounded-full focus-visible:pl-11 focus-visible:border-2 focus-visible:border-primary focus-visible:bg-[hsl(var(--surface-container-highest))] transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
+            className="h-10 w-full rounded-full border-transparent bg-[hsl(var(--surface-container-high))] pr-9 pl-11 transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:border-transparent hover:bg-[hsl(var(--surface-container-highest))] focus-visible:rounded-full focus-visible:border-2 focus-visible:border-primary focus-visible:bg-[hsl(var(--surface-container-highest))] focus-visible:pl-11"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
+            <button
+              onClick={() => setSearch('')}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
               <X className="size-3.5" />
             </button>
           )}
@@ -216,16 +267,14 @@ export default function BookmarksPanel({ kind, addSignal }: {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
           <M3CookieLoader size="lg" tone="primary" />
-          <span className="mono text-xs label-kicker text-muted-foreground">
-            opening bookmarks…
-          </span>
+          <span className="mono label-kicker text-xs text-muted-foreground">opening bookmarks…</span>
         </div>
       ) : visible.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
           <BookmarkPlus className="size-8 text-muted-foreground" strokeWidth={1.4} />
-          <p className="text-sm text-muted-foreground max-w-[36ch]">
+          <p className="max-w-[36ch] text-sm text-muted-foreground">
             {search || shelf !== 'all'
               ? 'Nothing here matches the current filter.'
               : kind === 'video'
@@ -241,7 +290,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
       ) : kind === 'video' && !isMobile ? (
         /* Videos, desktop: thumbnail grid — YouTube og:images are 16:9 and
            carry the card. Mobile falls through to the denser list. */
-        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <motion.div layout className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
           <AnimatePresence initial={false}>
             {visible.map((b) => (
               <motion.div
@@ -252,15 +301,26 @@ export default function BookmarksPanel({ kind, addSignal }: {
                 exit={{ opacity: 0, transform: 'scale(0.9)', transition: { duration: 0.16 } }}
                 transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.6 }}
               >
-                <VideoCard b={b} onOpen={() => open(b)} menu={
-                  <RowMenu b={b} shelf={shelf} onEdit={() => openForm(b)} onToggleRead={() => toggleRead(b)} onArchive={setArchived} onDelete={() => remove(b)} />
-                } />
+                <VideoCard
+                  b={b}
+                  onOpen={() => open(b)}
+                  menu={
+                    <RowMenu
+                      b={b}
+                      shelf={shelf}
+                      onEdit={() => openForm(b)}
+                      onToggleRead={() => toggleRead(b)}
+                      onArchive={setArchived}
+                      onDelete={() => remove(b)}
+                    />
+                  }
+                />
               </motion.div>
             ))}
           </AnimatePresence>
         </motion.div>
       ) : (
-        <div className="rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] ">
+        <div className="overflow-hidden rounded-xl bg-[hsl(var(--surface-container))]">
           <AnimatePresence initial={false}>
             {visible.map((b, i) => (
               <motion.div
@@ -274,7 +334,14 @@ export default function BookmarksPanel({ kind, addSignal }: {
                   first={i === 0}
                   onOpen={() => open(b)}
                   menu={
-                    <RowMenu b={b} shelf={shelf} onEdit={() => openForm(b)} onToggleRead={() => toggleRead(b)} onArchive={setArchived} onDelete={() => remove(b)} />
+                    <RowMenu
+                      b={b}
+                      shelf={shelf}
+                      onEdit={() => openForm(b)}
+                      onToggleRead={() => toggleRead(b)}
+                      onArchive={setArchived}
+                      onDelete={() => remove(b)}
+                    />
                   }
                 />
               </motion.div>
@@ -284,7 +351,13 @@ export default function BookmarksPanel({ kind, addSignal }: {
       )}
 
       {/* Add / edit */}
-      <Dialog open={showForm} onOpenChange={setShowForm} onOpenChangeComplete={(o) => { if (!o) setEditItem(null); }}>
+      <Dialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        onOpenChangeComplete={(o) => {
+          if (!o) setEditItem(null);
+        }}
+      >
         <DialogContent showCloseButton={false} className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -295,7 +368,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
           <div className="grid gap-4 py-1">
             {!editItem && (
               <div className="grid gap-1.5">
-                <Label className="font-mono text-xs label-kicker text-muted-foreground">Link</Label>
+                <Label className="label-kicker font-mono text-xs text-muted-foreground">Link</Label>
                 <Input
                   value={formUrl}
                   onChange={(e) => setFormUrl(e.target.value)}
@@ -306,7 +379,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
               </div>
             )}
             <div className="grid gap-1.5">
-              <Label className="font-mono text-xs label-kicker text-muted-foreground">Title</Label>
+              <Label className="label-kicker font-mono text-xs text-muted-foreground">Title</Label>
               <Input
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
@@ -315,7 +388,7 @@ export default function BookmarksPanel({ kind, addSignal }: {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label className="font-mono text-xs label-kicker text-muted-foreground">Note</Label>
+              <Label className="label-kicker font-mono text-xs text-muted-foreground">Note</Label>
               <Textarea
                 value={formNote}
                 onChange={(e) => setFormNote(e.target.value)}
@@ -326,7 +399,9 @@ export default function BookmarksPanel({ kind, addSignal }: {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowForm(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)} disabled={saving}>
+              Cancel
+            </Button>
             <Button onClick={save} disabled={saving || (!editItem && !formUrl.trim())} className="gap-1.5">
               {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
               Save
@@ -338,7 +413,14 @@ export default function BookmarksPanel({ kind, addSignal }: {
   );
 }
 
-function RowMenu({ b, shelf, onEdit, onToggleRead, onArchive, onDelete }: {
+function RowMenu({
+  b,
+  shelf,
+  onEdit,
+  onToggleRead,
+  onArchive,
+  onDelete,
+}: {
   b: Bookmark;
   shelf: Shelf;
   onEdit: () => void;
@@ -349,7 +431,7 @@ function RowMenu({ b, shelf, onEdit, onToggleRead, onArchive, onDelete }: {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="size-8 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors shrink-0"
+        className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
         aria-label="Bookmark actions"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
@@ -384,7 +466,12 @@ function RowMenu({ b, shelf, onEdit, onToggleRead, onArchive, onDelete }: {
   );
 }
 
-function BookmarkRow({ b, first, onOpen, menu }: {
+function BookmarkRow({
+  b,
+  first,
+  onOpen,
+  menu,
+}: {
   b: Bookmark;
   first: boolean;
   onOpen: () => void;
@@ -395,24 +482,34 @@ function BookmarkRow({ b, first, onOpen, menu }: {
       role="link"
       tabIndex={0}
       onClick={onOpen}
-      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onOpen();
+      }}
       className={cn(
-        'group flex items-center gap-3 px-3.5 py-3 cursor-pointer min-w-0',
-        'hover:bg-[hsl(var(--on-surface)/0.04)] transition-colors',
+        'group flex min-w-0 cursor-pointer items-center gap-3 px-3.5 py-3',
+        'transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]',
         !first && 'border-t border-border/60',
       )}
     >
       <span className="relative shrink-0">
         <Favicon b={b} className="size-10 rounded-lg" />
         {b.unread && (
-          <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-[hsl(var(--surface-container))]" aria-label="Unread" />
+          <span
+            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-[hsl(var(--surface-container))]"
+            aria-label="Unread"
+          />
         )}
       </span>
       <div className="min-w-0 flex-1">
-        <p className={cn('text-sm truncate leading-snug', b.unread ? 'font-medium text-foreground' : 'text-foreground/80')}>
+        <p
+          className={cn(
+            'truncate text-sm leading-snug',
+            b.unread ? 'font-medium text-foreground' : 'text-foreground/80',
+          )}
+        >
           {displayTitle(b)}
         </p>
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="truncate text-xs text-muted-foreground">
           {siteLabel(b)} · {agoShort(b.created_at)}
           {b.note ? <> · {b.note}</> : null}
         </p>
@@ -429,8 +526,10 @@ function VideoCard({ b, onOpen, menu }: { b: Bookmark; onOpen: () => void; menu:
       role="link"
       tabIndex={0}
       onClick={onOpen}
-      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-[hsl(var(--surface-container))] hover:border-[hsl(var(--outline))] transition-colors"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onOpen();
+      }}
+      className="group cursor-pointer overflow-hidden rounded-xl bg-[hsl(var(--surface-container))] transition-colors hover:border-[hsl(var(--outline))]"
     >
       <div className="relative aspect-video bg-[hsl(var(--surface-container-high))]">
         {b.image_url && !imgFailed ? (
@@ -447,18 +546,20 @@ function VideoCard({ b, onOpen, menu }: { b: Bookmark; onOpen: () => void; menu:
           </div>
         )}
         {b.unread && (
-          <span className="absolute top-2 left-2 h-5 px-2 inline-flex items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-xs font-medium tracking-wide">
+          <span className="absolute top-2 left-2 inline-flex h-5 items-center rounded-full bg-[hsl(var(--primary))] px-2 text-xs font-medium tracking-wide text-[hsl(var(--primary-foreground))]">
             unread
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2.5 p-2.5 min-w-0">
-        <Favicon b={b} className="size-7 rounded-md shrink-0" />
+      <div className="flex min-w-0 items-center gap-2.5 p-2.5">
+        <Favicon b={b} className="size-7 shrink-0 rounded-md" />
         <div className="min-w-0 flex-1">
-          <p className={cn('text-[13px] leading-snug line-clamp-2', b.unread ? 'font-medium' : 'text-foreground/80')}>
+          <p className={cn('line-clamp-2 text-[13px] leading-snug', b.unread ? 'font-medium' : 'text-foreground/80')}>
             {displayTitle(b)}
           </p>
-          <p className="text-xs text-muted-foreground truncate">{siteLabel(b)} · {agoShort(b.created_at)}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {siteLabel(b)} · {agoShort(b.created_at)}
+          </p>
         </div>
         <span onClick={(e) => e.stopPropagation()}>{menu}</span>
       </div>

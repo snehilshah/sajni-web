@@ -81,9 +81,9 @@ export function ConfirmRoot() {
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
           <AlertDialogMedia
-            className={destructive
-              ? undefined
-              : 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'}
+            className={
+              destructive ? undefined : 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+            }
           >
             {destructive ? <AlertTriangle /> : <CircleHelp />}
           </AlertDialogMedia>
@@ -91,13 +91,8 @@ export function ConfirmRoot() {
           <AlertDialogDescription>{req?.description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => settle(false)}>
-            {req?.cancelText ?? 'Cancel'}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            variant={destructive ? 'destructive' : 'default'}
-            onClick={() => settle(true)}
-          >
+          <AlertDialogCancel onClick={() => settle(false)}>{req?.cancelText ?? 'Cancel'}</AlertDialogCancel>
+          <AlertDialogAction variant={destructive ? 'destructive' : 'default'} onClick={() => settle(true)}>
             {req?.confirmText ?? 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>

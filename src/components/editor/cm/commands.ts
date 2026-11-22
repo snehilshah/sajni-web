@@ -9,7 +9,10 @@ export function toggleWrap(view: EditorView, mark: string, close = mark): boolea
     const after = state.sliceDoc(range.to, range.to + close.length);
     if (before === mark && after === close) {
       return {
-        changes: [{ from: range.from - mark.length, to: range.from }, { from: range.to, to: range.to + close.length }],
+        changes: [
+          { from: range.from - mark.length, to: range.from },
+          { from: range.to, to: range.to + close.length },
+        ],
         range: EditorSelection.range(range.from - mark.length, range.to - mark.length),
       };
     }
@@ -21,7 +24,10 @@ export function toggleWrap(view: EditorView, mark: string, close = mark): boolea
       };
     }
     return {
-      changes: [{ from: range.from, insert: mark }, { from: range.to, insert: close }],
+      changes: [
+        { from: range.from, insert: mark },
+        { from: range.to, insert: close },
+      ],
       range: EditorSelection.range(range.from + mark.length, range.to + mark.length),
     };
   });
@@ -35,7 +41,14 @@ const BLOCK_PREFIX = /^(\s*)(#{1,6}\s+|>\s?|[-*+]\s+\[[ xX]\]\s+|[-*+]\s+|\d+[.)
 export type LineKind = 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'todo' | 'quote' | 'paragraph';
 
 const PREFIX: Record<LineKind, string> = {
-  h1: '# ', h2: '## ', h3: '### ', bullet: '- ', number: '1. ', todo: '- [ ] ', quote: '> ', paragraph: '',
+  h1: '# ',
+  h2: '## ',
+  h3: '### ',
+  bullet: '- ',
+  number: '1. ',
+  todo: '- [ ] ',
+  quote: '> ',
+  paragraph: '',
 };
 
 /** Turns the selected lines into a heading/list/quote; again turns them back to text. */
@@ -47,11 +60,13 @@ export function setLineKind(view: EditorView, kind: LineKind): boolean {
   }
   const want = PREFIX[kind];
   const all = [...lines].map((n) => state.doc.line(n));
-  const already = kind !== 'paragraph' && all.every((l) => {
-    const m = BLOCK_PREFIX.exec(l.text);
-    const p = (m?.[2] ?? '').replace(/\d+/, '1');
-    return p.trimEnd() === want.trimEnd();
-  });
+  const already =
+    kind !== 'paragraph' &&
+    all.every((l) => {
+      const m = BLOCK_PREFIX.exec(l.text);
+      const p = (m?.[2] ?? '').replace(/\d+/, '1');
+      return p.trimEnd() === want.trimEnd();
+    });
   const changes: ChangeSpec[] = [];
   let i = 0;
   for (const line of all) {
@@ -92,13 +107,21 @@ export function insertText(view: EditorView, text: string, from?: number, to?: n
   const sel = view.state.selection.main;
   const a = from ?? sel.from;
   const b = to ?? sel.to;
-  view.dispatch({ changes: { from: a, to: b, insert: text }, selection: { anchor: a + text.length }, scrollIntoView: true, userEvent: 'input' });
+  view.dispatch({
+    changes: { from: a, to: b, insert: text },
+    selection: { anchor: a + text.length },
+    scrollIntoView: true,
+    userEvent: 'input',
+  });
 }
 
 /** Mod-k: wrap the selection as a link and put the cursor in the URL. */
 export function linkSelection(view: EditorView, openDialog: () => void): boolean {
   const sel = view.state.selection.main;
-  if (sel.empty) { openDialog(); return true; }
+  if (sel.empty) {
+    openDialog();
+    return true;
+  }
   const text = view.state.sliceDoc(sel.from, sel.to);
   view.dispatch({
     changes: { from: sel.from, to: sel.to, insert: `[${text}]()` },

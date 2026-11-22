@@ -53,29 +53,29 @@ const RELEASES: Release[] = [
     version: '0.49.0',
     date: '2026-08-21',
     summary:
-      'Reminders become a lightweight space of their own, with recurring schedules, snooze, '
-      + 'Android actions, and full Sajni parity without turning every nudge into a task.',
+      'Reminders become a lightweight space of their own, with recurring schedules, snooze, ' +
+      'Android actions, and full Sajni parity without turning every nudge into a task.',
     entries: [
       {
         kind: 'feature',
         area: 'Reminders',
         title: 'Lightweight Reminders, Separate from Tasks',
         detail:
-          'Tasks now has a Reminders tab for message-and-time nudges with optional notes. Upcoming '
-          + 'reminders form one chronological ledger grouped into Today, Tomorrow, Later and '
-          + 'Recurring, while delivered and skipped occurrences settle into Recent. Recurrence '
-          + 'supports intervals, selected weekdays, monthly date or weekday patterns, and date or '
-          + 'count limits. Snoozing changes only the current occurrence; future cadence stays put. '
-          + 'Android notifications include a one-tap “Snooze 10 min” action, and Sajni can create, '
-          + 'list, edit, snooze, skip or delete the same reminders from natural language.',
+          'Tasks now has a Reminders tab for message-and-time nudges with optional notes. Upcoming ' +
+          'reminders form one chronological ledger grouped into Today, Tomorrow, Later and ' +
+          'Recurring, while delivered and skipped occurrences settle into Recent. Recurrence ' +
+          'supports intervals, selected weekdays, monthly date or weekday patterns, and date or ' +
+          'count limits. Snoozing changes only the current occurrence; future cadence stays put. ' +
+          'Android notifications include a one-tap “Snooze 10 min” action, and Sajni can create, ' +
+          'list, edit, snooze, skip or delete the same reminders from natural language.',
       },
       {
         kind: 'improvement',
         area: 'Profile',
         title: 'A Gentler Navigation Avatar Crop',
         detail:
-          'The small voxel avatar keeps its close, recognisable head crop without feeling as '
-          + 'zoomed-in in the navigation profile slot.',
+          'The small voxel avatar keeps its close, recognisable head crop without feeling as ' +
+          'zoomed-in in the navigation profile slot.',
       },
     ],
   },
@@ -83,78 +83,76 @@ const RELEASES: Release[] = [
     version: '0.48.0',
     date: '2026-08-21',
     summary:
-      'You have a face now, a deterministic voxel-art character that lives in the nav dock, '
-      + 'the user menu, and a new profile card on Settings.',
+      'You have a face now, a deterministic voxel-art character that lives in the nav dock, ' +
+      'the user menu, and a new profile card on Settings.',
     entries: [
       {
         kind: 'feature',
         area: 'Profile',
         title: 'Voxel-Art Avatars',
         detail:
-          'Every account gets a deterministic animated character generated from your user id '
-          + 'and a revision counter. The avatar appears in the navigation dock (head crop), '
-          + 'the account dropdown, and a new hero card at the top of Settings that also shows '
-          + 'your name, email, and linked sign-in methods. Hit "Reroll avatar" to get a '
-          + 'different character, or ask Sajni to do it. No image is stored; the API only '
-          + 'persists a single integer.',
+          'Every account gets a deterministic animated character generated from your user id ' +
+          'and a revision counter. The avatar appears in the navigation dock (head crop), ' +
+          'the account dropdown, and a new hero card at the top of Settings that also shows ' +
+          'your name, email, and linked sign-in methods. Hit "Reroll avatar" to get a ' +
+          'different character, or ask Sajni to do it. No image is stored; the API only ' +
+          'persists a single integer.',
       },
       {
         kind: 'improvement',
         area: 'Settings',
         title: 'Profile Hero Card Replaces Account Section',
         detail:
-          'The old grid-based Account section has been replaced by a compact profile card '
-          + 'with your avatar, display-name editor, email, provider badges, reroll and '
-          + 'sign-out actions all in one surface.',
+          'The old grid-based Account section has been replaced by a compact profile card ' +
+          'with your avatar, display-name editor, email, provider badges, reroll and ' +
+          'sign-out actions all in one surface.',
       },
       {
         kind: 'improvement',
         area: 'Notes',
         title: 'Tree Keyboard Navigation and Tighter Spacing',
         detail:
-          'Folder and note rows in the sidebar now carry proper ARIA tree roles, keyboard '
-          + 'navigation (Enter / Space), and visible focus rings. Row height, indent, and '
-          + 'icon sizing are tightened for a denser, more consistent feel. The active-folder '
-          + 'highlight is replaced by M3 secondary-container selection tokens.',
+          'Folder and note rows in the sidebar now carry proper ARIA tree roles, keyboard ' +
+          'navigation (Enter / Space), and visible focus rings. Row height, indent, and ' +
+          'icon sizing are tightened for a denser, more consistent feel. The active-folder ' +
+          'highlight is replaced by M3 secondary-container selection tokens.',
       },
     ],
   },
   {
     version: '0.47.0',
     date: '2026-07-30',
-    summary:
-      'Events remember when irregular parts of life happened without turning them into habits.',
+    summary: 'Events remember when irregular parts of life happened without turning them into habits.',
     entries: [
       {
         kind: 'feature',
         area: 'Events',
         title: 'Track When Life Happened',
         detail:
-          'Events now live beside Habits for haircuts, beard trims, leave, maintenance, '
-          + 'appointments, or anything else measured by elapsed time instead of a streak. '
-          + 'Each event has a fast backdated log, its own chronological spine, optional notes, '
-          + 'and up to six numeric variables with units. Trends chart the interval between '
-          + 'occurrences and changes in recorded values; event entries also appear on their '
-          + 'Journal day and participate in global search, data takeout, and Sajni.',
+          'Events now live beside Habits for haircuts, beard trims, leave, maintenance, ' +
+          'appointments, or anything else measured by elapsed time instead of a streak. ' +
+          'Each event has a fast backdated log, its own chronological spine, optional notes, ' +
+          'and up to six numeric variables with units. Trends chart the interval between ' +
+          'occurrences and changes in recorded values; event entries also appear on their ' +
+          'Journal day and participate in global search, data takeout, and Sajni.',
       },
     ],
   },
   {
     version: '0.46.0',
     date: '2026-07-30',
-    summary:
-      'Habits now follow daily, weekly, fortnightly, or monthly rhythms in one continuous ledger.',
+    summary: 'Habits now follow daily, weekly, fortnightly, or monthly rhythms in one continuous ledger.',
     entries: [
       {
         kind: 'feature',
         area: 'Habits',
         title: 'Track Habits at the Rhythm They Happen',
         detail:
-          'Daily habits keep their Monday–Sunday week, weekly and fortnightly habits move through '
-          + 'stable twelve-period pages, and monthly habits run JAN–DEC. Month bands and W1–W5 '
-          + 'labels keep the compact ledger readable, the current marker advances with each cadence, '
-          + 'and page navigation preserves every period for backfill. Today, Journal, Analytics and '
-          + 'Sajni now use the same completion and streak rules.',
+          'Daily habits keep their Monday–Sunday week, weekly and fortnightly habits move through ' +
+          'stable twelve-period pages, and monthly habits run JAN–DEC. Month bands and W1–W5 ' +
+          'labels keep the compact ledger readable, the current marker advances with each cadence, ' +
+          'and page navigation preserves every period for backfill. Today, Journal, Analytics and ' +
+          'Sajni now use the same completion and streak rules.',
       },
     ],
   },
@@ -162,8 +160,8 @@ const RELEASES: Release[] = [
     version: '0.42.0',
     date: '2026-07-26',
     summary:
-      'Pockets become slates, the journal drops its mood scale for good, the notes index folds '
-      + 'by folder, and a run of fixes to overlapping ledger rows and jumpy memo cards.',
+      'Pockets become slates, the journal drops its mood scale for good, the notes index folds ' +
+      'by folder, and a run of fixes to overlapping ledger rows and jumpy memo cards.',
     entries: [
       // ── Features ──────────────────────────────────────────────────────
       {
@@ -171,22 +169,22 @@ const RELEASES: Release[] = [
         area: 'Finance',
         title: 'Slates Replace Pockets',
         detail:
-          'Every transaction now sits in exactly one slate, and slates answer a single question: '
-          + 'is this normal life, or not? “Plain” is normal life and is where everything lands '
-          + 'unless you say otherwise; every other slate is an outlier you named, a trip, a move, '
-          + 'a one-off. Budgets ignore any slate they do not explicitly name, so a fortnight in Goa '
-          + 'no longer wrecks your baseline. Sharing and splitting a pocket across transactions is '
-          + 'gone with them; a transaction belongs to one slate or to Plain.',
+          'Every transaction now sits in exactly one slate, and slates answer a single question: ' +
+          'is this normal life, or not? “Plain” is normal life and is where everything lands ' +
+          'unless you say otherwise; every other slate is an outlier you named, a trip, a move, ' +
+          'a one-off. Budgets ignore any slate they do not explicitly name, so a fortnight in Goa ' +
+          'no longer wrecks your baseline. Sharing and splitting a pocket across transactions is ' +
+          'gone with them; a transaction belongs to one slate or to Plain.',
       },
       {
         kind: 'feature',
         area: 'Notes',
         title: 'Fold Folders on the Notes Index',
         detail:
-          'Each folder section on the notes index now has a toggle, a chevron and a folder icon, '
-          + 'that folds that folder’s notes away and back. It reveals in place rather than '
-          + 'navigating: you never end up “inside” a folder, and the other sections stay put. '
-          + 'What you fold is remembered; anything you haven’t touched stays open.',
+          'Each folder section on the notes index now has a toggle, a chevron and a folder icon, ' +
+          'that folds that folder’s notes away and back. It reveals in place rather than ' +
+          'navigating: you never end up “inside” a folder, and the other sections stay put. ' +
+          'What you fold is remembered; anything you haven’t touched stays open.',
       },
 
       // ── Improvements ──────────────────────────────────────────────────
@@ -195,21 +193,21 @@ const RELEASES: Release[] = [
         area: 'Journal',
         title: 'The Mood Scale Is Gone',
         detail:
-          'The emoji mood picker has been removed from daily, weekly and monthly entries, along '
-          + 'with the mood glyph beside each day in the sidebar, the weekly stat tiles, the '
-          + 'keyboard shortcut that cycled it, and the mood-versus-tasks insight. Moods recorded '
-          + 'previously have been deleted rather than hidden. Nothing else in the journal changed, '
-          + 'entries, locations and attachments are untouched, and older exports that still carry a '
-          + 'mood line import fine.',
+          'The emoji mood picker has been removed from daily, weekly and monthly entries, along ' +
+          'with the mood glyph beside each day in the sidebar, the weekly stat tiles, the ' +
+          'keyboard shortcut that cycled it, and the mood-versus-tasks insight. Moods recorded ' +
+          'previously have been deleted rather than hidden. Nothing else in the journal changed, ' +
+          'entries, locations and attachments are untouched, and older exports that still carry a ' +
+          'mood line import fine.',
       },
       {
         kind: 'improvement',
         area: 'Memos',
         title: 'Memo Cards Read as Cards Again',
         detail:
-          'Memo cards were rounded to nearly a capsule, on a short one-line memo the corners met '
-          + 'in the middle. They now use the standard card corner, so a one-liner and a long memo '
-          + 'look like the same object at different heights.',
+          'Memo cards were rounded to nearly a capsule, on a short one-line memo the corners met ' +
+          'in the middle. They now use the standard card corner, so a one-liner and a long memo ' +
+          'look like the same object at different heights.',
       },
 
       // ── Fixes ─────────────────────────────────────────────────────────
@@ -218,29 +216,29 @@ const RELEASES: Release[] = [
         area: 'Finance',
         title: 'Transactions No Longer Overlap Each Other',
         detail:
-          'On the Transactions tab each day’s header sat on top of its own first rows, so entries '
-          + 'and the date ran into one another. The header now scrolls with the rows it belongs to '
-          + 'and every row keeps its own line.',
+          'On the Transactions tab each day’s header sat on top of its own first rows, so entries ' +
+          'and the date ran into one another. The header now scrolls with the rows it belongs to ' +
+          'and every row keeps its own line.',
       },
       {
         kind: 'fix',
         area: 'Finance',
         title: 'Showing Archived Slates Stops Redrawing the Page',
         detail:
-          'Turning on “show archived” in Slates rebuilt the whole Finance page, every tab '
-          + 'refetched and the screen blanked for a moment to reveal a few extra tiles. Archived '
-          + 'slates now come down with the rest and the toggle simply filters what is already '
-          + 'loaded. Renaming, recolouring or archiving a slate also stops refetching accounts, '
-          + 'categories and the ledger.',
+          'Turning on “show archived” in Slates rebuilt the whole Finance page, every tab ' +
+          'refetched and the screen blanked for a moment to reveal a few extra tiles. Archived ' +
+          'slates now come down with the rest and the toggle simply filters what is already ' +
+          'loaded. Renaming, recolouring or archiving a slate also stops refetching accounts, ' +
+          'categories and the ledger.',
       },
       {
         kind: 'fix',
         area: 'Memos',
         title: 'New Memos Settle Instead of Bouncing',
         detail:
-          'A memo saved from the composer used to overshoot its position and snap back, and could '
-          + 'flicker out of view mid-flight while the feed reflowed around it. It now eases into '
-          + 'place in one motion, and deleting one fades out instead of vanishing.',
+          'A memo saved from the composer used to overshoot its position and snap back, and could ' +
+          'flicker out of view mid-flight while the feed reflowed around it. It now eases into ' +
+          'place in one motion, and deleting one fades out instead of vanishing.',
       },
     ],
   },
@@ -248,49 +246,48 @@ const RELEASES: Release[] = [
     version: '0.41.0',
     date: '2026-07-15',
     summary:
-      'Finance gets a clearer place in navigation, calm motion for important totals, and privacy '
-      + 'that hides figures honestly without refreshing their data.',
+      'Finance gets a clearer place in navigation, calm motion for important totals, and privacy ' +
+      'that hides figures honestly without refreshing their data.',
     entries: [
       {
         kind: 'improvement',
         area: 'Navigation',
         title: 'A Rupee Coin for Finance',
         detail:
-          'Finance now uses a custom pixel rupee printed inside a coin. It keeps the navigation’s '
-          + 'outline-to-solid selected state while making the destination easier to recognise.',
+          'Finance now uses a custom pixel rupee printed inside a coin. It keeps the navigation’s ' +
+          'outline-to-solid selected state while making the destination easier to recognise.',
       },
       {
         kind: 'improvement',
         area: 'Finance',
         title: 'Important Totals Count Into Place',
         detail:
-          'Net worth and summary totals now settle into their values with a brief count-up. Dense '
-          + 'lists stay still, surrounding content keeps its width, and reduced-motion preferences '
-          + 'skip the animation.',
+          'Net worth and summary totals now settle into their values with a brief count-up. Dense ' +
+          'lists stay still, surrounding content keeps its width, and reduced-motion preferences ' +
+          'skip the animation.',
       },
       {
         kind: 'fix',
         area: 'Privacy',
         title: 'Private Figures Look Private',
         detail:
-          'Privacy mode now shows *** for money and %%% for percentages instead of plausible fake '
-          + 'numbers. Toggling it changes only rendered text, so Finance tabs keep their state and '
-          + 'cached data without making fresh API requests. Revealed summary figures still count in.',
+          'Privacy mode now shows *** for money and %%% for percentages instead of plausible fake ' +
+          'numbers. Toggling it changes only rendered text, so Finance tabs keep their state and ' +
+          'cached data without making fresh API requests. Revealed summary figures still count in.',
       },
       {
         kind: 'fix',
         area: 'Navigation',
         title: 'A Smoother Compact Secondary Bar',
         detail:
-          'The secondary bar now reduces into a slimmer, steady shape in one continuous motion, '
-          + 'without blinking, staggered labels, icon jitter, or a colour change.',
+          'The secondary bar now reduces into a slimmer, steady shape in one continuous motion, ' +
+          'without blinking, staggered labels, icon jitter, or a colour change.',
       },
       {
         kind: 'fix',
         area: 'Habits',
         title: 'Habit Checks Finish Their Motion',
-        detail:
-          'Checking or unchecking a day now flows cleanly to its final state instead of briefly going blank.',
+        detail: 'Checking or unchecking a day now flows cleanly to its final state instead of briefly going blank.',
       },
     ],
   },
@@ -298,8 +295,8 @@ const RELEASES: Release[] = [
     version: '0.40.0',
     date: '2026-07-14',
     summary:
-      'The first tracked release. A new sliding hover highlight across the navigation, a friendlier '
-      + 'media library, and a sweep of layout and polish fixes.',
+      'The first tracked release. A new sliding hover highlight across the navigation, a friendlier ' +
+      'media library, and a sweep of layout and polish fixes.',
     entries: [
       // ── Features ──────────────────────────────────────────────────────
       {
@@ -307,12 +304,12 @@ const RELEASES: Release[] = [
         area: 'Navigation',
         title: 'Sliding Hover Highlight on the Bars',
         detail:
-          'The primary icon bar and the page tabs now show a faint highlight that glides to whatever '
-          + 'you hover, separate from the solid marker on the page you are actually on. It appears in '
-          + 'place when your cursor enters a bar, travels only when you move between items, and '
-          + 'disappears in place when you leave, never flying in from the edge. On the primary bar the '
-          + 'highlight is a circle that stays centred under the magnifying dock icons and is sized to '
-          + 'frame the enlarged icon. It respects the reduced-motion setting.',
+          'The primary icon bar and the page tabs now show a faint highlight that glides to whatever ' +
+          'you hover, separate from the solid marker on the page you are actually on. It appears in ' +
+          'place when your cursor enters a bar, travels only when you move between items, and ' +
+          'disappears in place when you leave, never flying in from the edge. On the primary bar the ' +
+          'highlight is a circle that stays centred under the magnifying dock icons and is sized to ' +
+          'frame the enlarged icon. It respects the reduced-motion setting.',
       },
 
       // ── Improvements ──────────────────────────────────────────────────
@@ -321,18 +318,18 @@ const RELEASES: Release[] = [
         area: 'Library',
         title: 'Completed Progress Bars Turn Green',
         detail:
-          'When a show, a movie series, or a task with subtasks/steps reaches 100%, its wavy progress '
-          + 'bar flattens into a calm line, and now that line is green to signify completion, instead '
-          + 'of staying the in-progress accent colour.',
+          'When a show, a movie series, or a task with subtasks/steps reaches 100%, its wavy progress ' +
+          'bar flattens into a calm line, and now that line is green to signify completion, instead ' +
+          'of staying the in-progress accent colour.',
       },
       {
         kind: 'improvement',
         area: 'Library',
         title: 'Gentler Close for the Media Card',
         detail:
-          'Closing a movie or show card eases back into its poster over a slightly longer, softer curve '
-          + '(about 420ms, Material standard easing) so it reads as a deliberate settle rather than a '
-          + 'quick snap. Opening is unchanged.',
+          'Closing a movie or show card eases back into its poster over a slightly longer, softer curve ' +
+          '(about 420ms, Material standard easing) so it reads as a deliberate settle rather than a ' +
+          'quick snap. Opening is unchanged.',
       },
 
       // ── Fixes ─────────────────────────────────────────────────────────
@@ -341,53 +338,53 @@ const RELEASES: Release[] = [
         area: 'Library',
         title: 'Poster No Longer Flashes When a Card Closes',
         detail:
-          'The edit dialog used to disappear while still almost fully opaque as it shrank, hard-cutting '
-          + 'to the poster underneath it. It now fades to fully transparent as it shrinks into the '
-          + 'poster, so the panel and poster crossfade cleanly with no flash.',
+          'The edit dialog used to disappear while still almost fully opaque as it shrank, hard-cutting ' +
+          'to the poster underneath it. It now fades to fully transparent as it shrinks into the ' +
+          'poster, so the panel and poster crossfade cleanly with no flash.',
       },
       {
         kind: 'fix',
         area: 'Library',
         title: 'Editing a Book No Longer Errors on Save',
         detail:
-          'Saving an edit to a book, or any entry without a release date, failed with '
-          + '“invalid release_date”, because an empty date was being rejected. Empty dates now clear the '
-          + 'field correctly, the same way creating an entry already did.',
+          'Saving an edit to a book, or any entry without a release date, failed with ' +
+          '“invalid release_date”, because an empty date was being rejected. Empty dates now clear the ' +
+          'field correctly, the same way creating an entry already did.',
       },
       {
         kind: 'fix',
         area: 'Library',
         title: 'Books Say “Started reading”',
         detail:
-          'A book’s activity timeline showed “Started watching” when you began it. Books now read '
-          + '“Started reading”; movies and shows keep “Started watching”.',
+          'A book’s activity timeline showed “Started watching” when you began it. Books now read ' +
+          '“Started reading”; movies and shows keep “Started watching”.',
       },
       {
         kind: 'fix',
         area: 'Navigation',
         title: 'Visible Hover in the Page Switcher',
         detail:
-          'In the compact “all pages” dropdown, the one that appears once the top bars merge as you '
-          + 'scroll, each tile’s hover colour matched the panel background, so hovering did nothing '
-          + 'visible. Tiles now shift to a clearly distinct shade on hover in both light and dark themes.',
+          'In the compact “all pages” dropdown, the one that appears once the top bars merge as you ' +
+          'scroll, each tile’s hover colour matched the panel background, so hovering did nothing ' +
+          'visible. Tiles now shift to a clearly distinct shade on hover in both light and dark themes.',
       },
       {
         kind: 'fix',
         area: 'Tasks',
         title: 'No Sideways Jump When Opening “missed” Review',
         detail:
-          'Expanding the missed-tasks review grew the page tall enough to summon the scrollbar, which '
-          + 'pushed all the content sideways. The scrollbar’s space is now permanently reserved (on '
-          + 'every page), so nothing shifts when it appears.',
+          'Expanding the missed-tasks review grew the page tall enough to summon the scrollbar, which ' +
+          'pushed all the content sideways. The scrollbar’s space is now permanently reserved (on ' +
+          'every page), so nothing shifts when it appears.',
       },
       {
         kind: 'fix',
         area: 'Habits',
         title: 'Steady Arrows When Changing Weeks',
         detail:
-          'Stepping through weeks nudged the ‹ › arrows left and right because the date-range label '
-          + 'changed width between months and single- vs double-digit days. The label now has a fixed '
-          + 'width, so the arrows stay put as you cycle.',
+          'Stepping through weeks nudged the ‹ › arrows left and right because the date-range label ' +
+          'changed width between months and single- vs double-digit days. The label now has a fixed ' +
+          'width, so the arrows stay put as you cycle.',
       },
     ],
   },
@@ -398,7 +395,7 @@ function Tag({ kind }: { kind: Kind }) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 font-mono text-xs font-medium label-kicker',
+        'label-kicker inline-flex shrink-0 items-center rounded-full px-2 py-0.5 font-mono text-xs font-medium',
         meta.tag,
       )}
     >
@@ -412,36 +409,26 @@ function EntryCard({ entry }: { entry: Entry }) {
     <div className="rounded-xl bg-[hsl(var(--surface-container-low))] px-4 py-3.5">
       <div className="flex flex-wrap items-center gap-2">
         <Tag kind={entry.kind} />
-        <span className="font-mono text-xs label-kicker text-muted-foreground">
-          {entry.area}
-        </span>
+        <span className="label-kicker font-mono text-xs text-muted-foreground">{entry.area}</span>
       </div>
-      <h4 className="mt-1.5 font-serif text-[15px] font-semibold tracking-tight text-foreground">
-        {entry.title}
-      </h4>
+      <h4 className="mt-1.5 font-serif text-[15px] font-semibold tracking-tight text-foreground">{entry.title}</h4>
       <p className="mt-1 text-sm leading-relaxed text-foreground/80">{entry.detail}</p>
     </div>
   );
 }
 
 function ReleaseBlock({ release }: { release: Release }) {
-  const groups = GROUP_ORDER
-    .map((kind) => ({ kind, entries: release.entries.filter((e) => e.kind === kind) }))
-    .filter((g) => g.entries.length > 0);
+  const groups = GROUP_ORDER.map((kind) => ({ kind, entries: release.entries.filter((e) => e.kind === kind) })).filter(
+    (g) => g.entries.length > 0,
+  );
 
   return (
     <section id={release.version} className="scroll-mt-24 border-b border-border/60 py-10 first:pt-2 last:border-0">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight md:text-3xl">
-          v{release.version}
-        </h2>
-        <time className="font-mono text-xs label-kicker text-muted-foreground">
-          {release.date}
-        </time>
+        <h2 className="font-serif text-2xl font-semibold tracking-tight md:text-3xl">v{release.version}</h2>
+        <time className="label-kicker font-mono text-xs text-muted-foreground">{release.date}</time>
       </div>
-      <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-        {release.summary}
-      </p>
+      <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{release.summary}</p>
 
       <div className="mt-6 flex flex-col gap-7">
         {groups.map(({ kind, entries }) => {
@@ -451,7 +438,7 @@ function ReleaseBlock({ release }: { release: Release }) {
               <div className="mb-2.5 flex items-center gap-2">
                 <span className={cn('size-2 rounded-full', meta.dot)} />
                 <h3 className="font-serif text-base font-semibold tracking-tight">{meta.group}</h3>
-                <span className="font-mono text-xs tabular-nums text-muted-foreground">{entries.length}</span>
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">{entries.length}</span>
               </div>
               <div className="flex flex-col gap-2.5">
                 {entries.map((entry) => (
@@ -482,20 +469,18 @@ export default function ChangelogPage() {
             <span className="font-serif text-lg font-semibold tracking-tight transition-colors group-hover:text-[hsl(var(--primary))]">
               Sajni
             </span>
-            <span className="font-mono text-xs label-kicker text-muted-foreground">
-              changelog
-            </span>
+            <span className="label-kicker font-mono text-xs text-muted-foreground">changelog</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link
               to="/docs"
-              className="hidden h-9 items-center rounded-full border border-border px-4 text-sm font-medium text-muted-foreground outline-none transition-colors hover:border-[hsl(var(--primary))] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] sm:inline-flex"
+              className="hidden h-9 items-center rounded-full border border-border px-4 text-sm font-medium text-muted-foreground transition-colors outline-none hover:border-[hsl(var(--primary))] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] sm:inline-flex"
             >
               Field guide
             </Link>
             <Link
               to="/"
-              className="inline-flex h-9 items-center rounded-full bg-[hsl(var(--primary))] px-4 text-sm font-medium text-[hsl(var(--on-primary))] outline-none transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2"
+              className="inline-flex h-9 items-center rounded-full bg-[hsl(var(--primary))] px-4 text-sm font-medium text-[hsl(var(--on-primary))] transition-colors outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2"
             >
               Open Sajni
             </Link>
@@ -507,8 +492,7 @@ export default function ChangelogPage() {
         <header>
           <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">Changelog</h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-            Everything that changes in Sajni, newest first, features, improvements, and fixes, down to
-            the small stuff.
+            Everything that changes in Sajni, newest first, features, improvements, and fixes, down to the small stuff.
           </p>
         </header>
 

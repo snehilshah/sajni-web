@@ -1,41 +1,38 @@
-import * as React from "react"
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+import * as React from 'react';
+import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 
-import { cn } from "@/lib/utils"
-import { submitOnEnter } from "@/lib/enter-submit"
-import { Button } from "@/components/ui/button"
-import { XIcon } from "@/components/ui/icons"
+import { cn } from '@/lib/utils';
+import { submitOnEnter } from '@/lib/enter-submit';
+import { Button } from '@/components/ui/button';
+import { XIcon } from '@/components/ui/icons';
 
-function Dialog({ modal = "trap-focus", ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />
+function Dialog({ modal = 'trap-focus', ...props }: DialogPrimitive.Root.Props) {
+  return <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />;
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
 function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
 function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: DialogPrimitive.Backdrop.Props) {
+function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) {
   return (
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-scrim/35 opacity-100 transition-opacity duration-200 ease-[var(--motion-ease-out)] supports-backdrop-filter:backdrop-blur-sm data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:duration-150",
-        className
+        'fixed inset-0 isolate z-50 bg-scrim/35 opacity-100 transition-opacity duration-200 ease-[var(--motion-ease-out)] data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-sm motion-reduce:duration-150',
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function DialogContent({
@@ -47,10 +44,10 @@ function DialogContent({
   onKeyDown,
   ...props
 }: DialogPrimitive.Popup.Props & {
-  showCloseButton?: boolean
-  showOverlay?: boolean
+  showCloseButton?: boolean;
+  showOverlay?: boolean;
   /** Enter in a field presses the primary action (lib/enter-submit). */
-  enterSubmits?: boolean
+  enterSubmits?: boolean;
 }) {
   return (
     <DialogPortal>
@@ -58,12 +55,12 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] grid-cols-[minmax(0,1fr)] -translate-x-1/2 -translate-y-1/2 scale-100 gap-5 rounded-[28px] bg-[hsl(var(--surface-container-high))] p-6 text-sm text-popover-foreground opacity-100 shadow-[var(--m3-elev-3)] outline-none transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.96] data-ending-style:opacity-0 motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100 motion-reduce:duration-150 sm:max-w-lg",
-          className
+          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 scale-100 grid-cols-[minmax(0,1fr)] gap-5 rounded-[28px] bg-[hsl(var(--surface-container-high))] p-6 text-sm text-popover-foreground opacity-100 shadow-[var(--m3-elev-3)] transition-[opacity,transform] duration-200 ease-[var(--motion-ease-out)] outline-none data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-starting-style:scale-[0.96] data-starting-style:opacity-0 motion-reduce:duration-150 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100 sm:max-w-lg',
+          className,
         )}
         onKeyDown={(e) => {
-          onKeyDown?.(e)
-          if (enterSubmits) submitOnEnter(e)
+          onKeyDown?.(e);
+          if (enterSubmits) submitOnEnter(e);
         }}
         {...props}
       >
@@ -85,17 +82,11 @@ function DialogContent({
         )}
       </DialogPrimitive.Popup>
     </DialogPortal>
-  )
+  );
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
-      {...props}
-    />
-  )
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />;
 }
 
 function DialogFooter({
@@ -103,55 +94,42 @@ function DialogFooter({
   showCloseButton = false,
   children,
   ...props
-}: React.ComponentProps<"div"> & {
-  showCloseButton?: boolean
+}: React.ComponentProps<'div'> & {
+  showCloseButton?: boolean;
 }) {
   return (
     <div
       data-slot="dialog-footer"
-      className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
-        className
-      )}
+      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
       {...props}
     >
       {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
-        </DialogPrimitive.Close>
-      )}
+      {showCloseButton && <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>}
     </div>
-  )
+  );
 }
 
 function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn(
-        "font-serif text-xl leading-tight font-semibold tracking-tight",
-        className
-      )}
+      className={cn('font-serif text-xl leading-tight font-semibold tracking-tight', className)}
       {...props}
     />
-  )
+  );
 }
 
-function DialogDescription({
-  className,
-  ...props
-}: DialogPrimitive.Description.Props) {
+function DialogDescription({ className, ...props }: DialogPrimitive.Description.Props) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
       className={cn(
-        "mt-0.5 text-sm leading-relaxed text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
-        className
+        'mt-0.5 text-sm leading-relaxed text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground',
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -165,4 +143,4 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
-}
+};

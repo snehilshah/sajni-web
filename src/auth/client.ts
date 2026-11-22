@@ -43,13 +43,21 @@ export async function refreshSession(): Promise<RefreshResult | null> {
     refreshInflight = (async () => {
       const started = performance.now();
       const done = (outcome: string, status?: number) =>
-        track('auth_refresh', { outcome, status, ms: Math.round(performance.now() - started), hadToken: !!accessToken });
+        track('auth_refresh', {
+          outcome,
+          status,
+          ms: Math.round(performance.now() - started),
+          hadToken: !!accessToken,
+        });
       try {
         const res = await fetch(`${API_BASE}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
         });
-        if (!res.ok) { done('rejected', res.status); return null; }
+        if (!res.ok) {
+          done('rejected', res.status);
+          return null;
+        }
         const data = (await res.json()) as RefreshResult;
         accessToken = data.access_token;
         done('ok', res.status);
@@ -79,13 +87,20 @@ interface AuthFetchOptions extends Omit<RequestInit, 'headers'> {
 // A pin gives the requests started inside `fn` (synchronously, before their
 // first await) a fixed Idempotency-Key and an abort signal. Retrying a change
 // under the same key is safe: the API runs it once.
-interface Pin { key?: string; signal?: AbortSignal }
+interface Pin {
+  key?: string;
+  signal?: AbortSignal;
+}
 let pinned: Pin | null = null;
 
 export function withPin<T>(pin: Pin, fn: () => T): T {
   const prev = pinned;
   pinned = pin;
-  try { return fn(); } finally { pinned = prev; }
+  try {
+    return fn();
+  } finally {
+    pinned = prev;
+  }
 }
 
 // authFetch is the canonical entry point for backend requests.
@@ -93,10 +108,7 @@ export function withPin<T>(pin: Pin, fn: () => T): T {
 //   - sends `Authorization: Bearer` if we have one
 //   - on 401 it tries to refresh once and retries
 //   - sets Content-Type: application/json by default (callers can override)
-export async function authFetch(
-  path: string,
-  options: AuthFetchOptions = {},
-): Promise<Response> {
+export async function authFetch(path: string, options: AuthFetchOptions = {}): Promise<Response> {
   const pin = pinned;
   const { skipRefresh, headers: callerHeaders, ...rest } = options;
   const headers: Record<string, string> = { ...(callerHeaders || {}) };
@@ -135,10 +147,7 @@ export async function authFetch(
 }
 
 // requestJSON is the JSON convenience wrapper used by api.ts.
-export async function requestJSON<T>(
-  path: string,
-  options?: AuthFetchOptions,
-): Promise<T> {
+export async function requestJSON<T>(path: string, options?: AuthFetchOptions): Promise<T> {
   const res = await authFetch(path, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -147,7 +156,10 @@ export async function requestJSON<T>(
       log.error({ path, status: res.status }, `api error: ${msg}`);
     }
     // `pending`: the same change is still running on the server; try again soon.
-    throw Object.assign(new Error(msg), { status: res.status, pending: res.headers.get('X-Idempotency-Pending') === '1' });
+    throw Object.assign(new Error(msg), {
+      status: res.status,
+      pending: res.headers.get('X-Idempotency-Pending') === '1',
+    });
   }
   return res.json();
 }

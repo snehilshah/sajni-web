@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import { themes as themesApi, type UserTheme } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
@@ -51,7 +44,9 @@ const ThemeCtx = createContext<Ctx>({
   action: null,
   setPreset: async () => {},
   activateTheme: async (theme) => theme,
-  generateTheme: async () => { throw new Error('ThemeProvider is unavailable'); },
+  generateTheme: async () => {
+    throw new Error('ThemeProvider is unavailable');
+  },
   deleteTheme: async () => {},
   mode: 'light',
   modePref: 'system',
@@ -85,9 +80,7 @@ function readModePref(): ModePref {
 function readDensity(): Density {
   try {
     const value = localStorage.getItem(DENSITY_KEY);
-    return value === 'compact' || value === 'cozy' || value === 'comfortable'
-      ? value
-      : 'comfortable';
+    return value === 'compact' || value === 'cozy' || value === 'comfortable' ? value : 'comfortable';
   } catch {
     return 'comfortable';
   }
@@ -132,13 +125,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const resolved = resolveMode(next);
     document.documentElement.dataset.mode = resolved;
     setResolvedMode(resolved);
-    try { localStorage.setItem(MODE_KEY, next); } catch {}
+    try {
+      localStorage.setItem(MODE_KEY, next);
+    } catch {}
   }, []);
 
   const setDensity = useCallback((next: Density) => {
     setDensityState(next);
     document.documentElement.dataset.density = next;
-    try { localStorage.setItem(DENSITY_KEY, next); } catch {}
+    try {
+      localStorage.setItem(DENSITY_KEY, next);
+    } catch {}
   }, []);
 
   // This is the only effect that paints a theme. Preset CSS is static (built
@@ -154,15 +151,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
       const css = customThemeStylesheet(active.seeds);
       style.textContent = css;
-      try { localStorage.setItem(CUSTOM_CSS_KEY, css); } catch {}
+      try {
+        localStorage.setItem(CUSTOM_CSS_KEY, css);
+      } catch {}
       document.documentElement.dataset.theme = 'custom';
       return;
     }
 
     document.getElementById(CUSTOM_STYLE_ID)?.remove();
-    try { localStorage.removeItem(CUSTOM_CSS_KEY); } catch {}
+    try {
+      localStorage.removeItem(CUSTOM_CSS_KEY);
+    } catch {}
     document.documentElement.dataset.theme = preset;
-    try { localStorage.setItem(THEME_KEY, preset); } catch {}
+    try {
+      localStorage.setItem(THEME_KEY, preset);
+    } catch {}
   }, [active, preset]);
 
   const beginAction = useCallback((next: ThemeAction): number => {
@@ -179,63 +182,75 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setAction(null);
   }, []);
 
-  const setPreset = useCallback(async (id: PresetId) => {
-    const version = beginAction({ kind: 'preset', preset: id });
-    const previousPreset = preset;
-    const previousActive = active;
-    setPresetState(id);
-    setActive(null);
-    try {
-      if (userID) await themesApi.deactivate();
-    } catch (error) {
-      if (selectionVersion.current === version) {
-        setPresetState(previousPreset);
-        setActive(previousActive);
+  const setPreset = useCallback(
+    async (id: PresetId) => {
+      const version = beginAction({ kind: 'preset', preset: id });
+      const previousPreset = preset;
+      const previousActive = active;
+      setPresetState(id);
+      setActive(null);
+      try {
+        if (userID) await themesApi.deactivate();
+      } catch (error) {
+        if (selectionVersion.current === version) {
+          setPresetState(previousPreset);
+          setActive(previousActive);
+        }
+        throw error;
+      } finally {
+        finishAction(version);
       }
-      throw error;
-    } finally {
-      finishAction(version);
-    }
-  }, [active, beginAction, finishAction, preset, userID]);
+    },
+    [active, beginAction, finishAction, preset, userID],
+  );
 
-  const activateTheme = useCallback(async (theme: UserTheme) => {
-    const version = beginAction({ kind: 'activate', id: theme.id });
-    const previous = active;
-    setActive(theme);
-    try {
-      const confirmed = await themesApi.activate(theme.id);
-      if (selectionVersion.current === version) setActive(confirmed);
-      return confirmed;
-    } catch (error) {
-      if (selectionVersion.current === version) setActive(previous);
-      throw error;
-    } finally {
-      finishAction(version);
-    }
-  }, [active, beginAction, finishAction]);
-
-  const generateTheme = useCallback(async (prompt: string) => {
-    const version = beginAction({ kind: 'generate' });
-    try {
-      const generated = await themesApi.generate(prompt);
-      if (selectionVersion.current === version) setActive(generated);
-      return generated;
-    } finally {
-      finishAction(version);
-    }
-  }, [beginAction, finishAction]);
-
-  const deleteTheme = useCallback(async (theme: UserTheme) => {
-    const version = beginAction({ kind: 'delete', id: theme.id });
-    try {
-      await themesApi.delete(theme.id);
-      if (selectionVersion.current === version && active?.id === theme.id) {
-        setActive(null);
+  const activateTheme = useCallback(
+    async (theme: UserTheme) => {
+      const version = beginAction({ kind: 'activate', id: theme.id });
+      const previous = active;
+      setActive(theme);
+      try {
+        const confirmed = await themesApi.activate(theme.id);
+        if (selectionVersion.current === version) setActive(confirmed);
+        return confirmed;
+      } catch (error) {
+        if (selectionVersion.current === version) setActive(previous);
+        throw error;
+      } finally {
+        finishAction(version);
       }
-    } finally {
-      finishAction(version);
-    }
-  }, [active?.id, beginAction, finishAction]);
+    },
+    [active, beginAction, finishAction],
+  );
+
+  const generateTheme = useCallback(
+    async (prompt: string) => {
+      const version = beginAction({ kind: 'generate' });
+      try {
+        const generated = await themesApi.generate(prompt);
+        if (selectionVersion.current === version) setActive(generated);
+        return generated;
+      } finally {
+        finishAction(version);
+      }
+    },
+    [beginAction, finishAction],
+  );
+
+  const deleteTheme = useCallback(
+    async (theme: UserTheme) => {
+      const version = beginAction({ kind: 'delete', id: theme.id });
+      try {
+        await themesApi.delete(theme.id);
+        if (selectionVersion.current === version && active?.id === theme.id) {
+          setActive(null);
+        }
+      } finally {
+        finishAction(version);
+      }
+    },
+    [active?.id, beginAction, finishAction],
+  );
 
   const refresh = useCallback(async () => {
     if (actionLock.current) return;
@@ -270,21 +285,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   return (
-    <ThemeCtx.Provider value={{
-      active,
-      preset,
-      action,
-      setPreset,
-      activateTheme,
-      generateTheme,
-      deleteTheme,
-      mode,
-      modePref,
-      setMode,
-      density,
-      setDensity,
-      refresh,
-    }}>
+    <ThemeCtx.Provider
+      value={{
+        active,
+        preset,
+        action,
+        setPreset,
+        activateTheme,
+        generateTheme,
+        deleteTheme,
+        mode,
+        modePref,
+        setMode,
+        density,
+        setDensity,
+        refresh,
+      }}
+    >
       {children}
     </ThemeCtx.Provider>
   );

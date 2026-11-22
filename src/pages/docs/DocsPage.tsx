@@ -89,16 +89,14 @@ export default function DocsPage() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <Link to="/docs" className="group flex items-baseline gap-2.5 outline-none">
-            <span className="font-serif text-lg font-semibold tracking-tight group-hover:text-[hsl(var(--primary))] transition-colors">
+            <span className="font-serif text-lg font-semibold tracking-tight transition-colors group-hover:text-[hsl(var(--primary))]">
               Sajni
             </span>
-            <span className="font-mono text-xs label-kicker text-muted-foreground">
-              field guide
-            </span>
+            <span className="label-kicker font-mono text-xs text-muted-foreground">field guide</span>
           </Link>
           <Link
             to="/"
-            className="inline-flex h-9 items-center rounded-full bg-[hsl(var(--primary))] px-4 text-sm font-medium text-[hsl(var(--on-primary))] transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2 outline-none"
+            className="inline-flex h-9 items-center rounded-full bg-[hsl(var(--primary))] px-4 text-sm font-medium text-[hsl(var(--on-primary))] transition-colors outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2"
           >
             Open Sajni
           </Link>
@@ -107,7 +105,7 @@ export default function DocsPage() {
 
       {/* Mobile page picker — horizontal chip row */}
       <nav aria-label="Docs pages" className="border-b border-border md:hidden">
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-4 py-2.5">
+        <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 py-2.5">
           {PAGES.map((p) => (
             <Link
               key={p.meta.id}
@@ -133,9 +131,7 @@ export default function DocsPage() {
           <div className="sticky top-8 flex flex-col gap-5">
             {GROUPS.map((g) => (
               <div key={g.name}>
-                <div className="mb-1.5 px-2.5 font-mono text-xs label-kicker text-muted-foreground">
-                  {g.name}
-                </div>
+                <div className="label-kicker mb-1.5 px-2.5 font-mono text-xs text-muted-foreground">{g.name}</div>
                 <ul className="flex flex-col gap-0.5">
                   {g.pages.map((p) => (
                     <li key={p.meta.id}>
@@ -163,12 +159,8 @@ export default function DocsPage() {
         {/* Content */}
         <main className="min-w-0 flex-1 pb-16">
           <header>
-            <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
-              {meta.title}
-            </h1>
-            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              {meta.blurb}
-            </p>
+            <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">{meta.title}</h1>
+            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{meta.blurb}</p>
             {/* On-this-page: one chip per section (the space's secondary bar) */}
             {meta.sections.length > 1 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
@@ -194,21 +186,25 @@ export default function DocsPage() {
             {prev ? (
               <Link
                 to={pathFor(prev.meta.id)}
-                className="group flex min-h-11 flex-col justify-center rounded-xl px-4 py-2.5 outline-none transition-colors hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                className="group flex min-h-11 flex-col justify-center rounded-xl px-4 py-2.5 transition-colors outline-none hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
               >
-                <span className="font-mono text-xs label-kicker text-muted-foreground">‹ previous</span>
+                <span className="label-kicker font-mono text-xs text-muted-foreground">‹ previous</span>
                 <span className="text-sm font-medium group-hover:text-[hsl(var(--primary))]">{prev.meta.label}</span>
               </Link>
-            ) : <span />}
+            ) : (
+              <span />
+            )}
             {next ? (
               <Link
                 to={pathFor(next.meta.id)}
-                className="group flex min-h-11 flex-col items-end justify-center rounded-xl px-4 py-2.5 text-right outline-none transition-colors hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                className="group flex min-h-11 flex-col items-end justify-center rounded-xl px-4 py-2.5 text-right transition-colors outline-none hover:border-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
               >
-                <span className="font-mono text-xs label-kicker text-muted-foreground">next ›</span>
+                <span className="label-kicker font-mono text-xs text-muted-foreground">next ›</span>
                 <span className="text-sm font-medium group-hover:text-[hsl(var(--primary))]">{next.meta.label}</span>
               </Link>
-            ) : <span />}
+            ) : (
+              <span />
+            )}
           </footer>
         </main>
       </div>

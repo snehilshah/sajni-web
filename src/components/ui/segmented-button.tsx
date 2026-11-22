@@ -37,7 +37,14 @@ export interface SegmentedButtonProps<V extends string = string> {
 }
 
 export function SegmentedButton<V extends string = string>({
-  value, options, onChange, size = 'md', showCheck = true, stretch = false, className, ...props
+  value,
+  options,
+  onChange,
+  size = 'md',
+  showCheck = true,
+  stretch = false,
+  className,
+  ...props
 }: SegmentedButtonProps<V>) {
   const compact = size === 'sm';
   const iconSize = compact ? 'size-3' : 'size-4';
@@ -48,7 +55,7 @@ export function SegmentedButton<V extends string = string>({
         // Tonal track, no outline or dividers: the selected segment is the
         // only fill that changes (secondary-container), like Android's
         // connected toggle row.
-        'items-stretch overflow-hidden rounded-full bg-[hsl(var(--surface-container-high))] p-0.5 gap-0.5',
+        'items-stretch gap-0.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-high))] p-0.5',
         stretch ? 'flex w-full' : 'inline-flex shrink-0',
         className,
       )}
@@ -65,7 +72,7 @@ export function SegmentedButton<V extends string = string>({
             aria-pressed={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              'inline-flex items-center justify-center gap-1.5 whitespace-nowrap font-medium',
+              'inline-flex items-center justify-center gap-1.5 font-medium whitespace-nowrap',
               'transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] outline-none',
               'focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
               'rounded-full',
@@ -73,12 +80,14 @@ export function SegmentedButton<V extends string = string>({
               compact ? 'h-6 px-2.5 text-[11px]' : 'h-9 px-4 text-sm',
               active
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
+                : 'bg-transparent text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground',
             )}
           >
-            {showLeading
-              ? <Check className={iconSize} strokeWidth={2.5} />
-              : Icon ? <Icon className={iconSize} /> : null}
+            {showLeading ? (
+              <Check className={iconSize} strokeWidth={2.5} />
+            ) : Icon ? (
+              <Icon className={iconSize} />
+            ) : null}
             {opt.label}
           </button>
         );

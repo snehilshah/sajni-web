@@ -1,6 +1,12 @@
 import {
-  useCallback, useEffect, useId, useLayoutEffect, useRef, useState,
-  type CSSProperties, type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -12,8 +18,14 @@ import { cn } from '@/lib/utils';
 // close. Kept deliberately small: no focus trap, no portal — panels stay
 // near their trigger inside the same stacking context.
 export function MorphingPopover({
-  open, onOpenChange, trigger, children,
-  panelClassName, panelStyle, className, viewportPadding,
+  open,
+  onOpenChange,
+  trigger,
+  children,
+  panelClassName,
+  panelStyle,
+  className,
+  viewportPadding,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,7 +91,9 @@ export function MorphingPopover({
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
     const onDown = (e: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) close();
     };
@@ -95,7 +109,11 @@ export function MorphingPopover({
     <div ref={rootRef} className={cn('relative', className)}>
       {/* Invisible trigger placeholder while open — holds the host row's
           layout steady so the pill doesn't reflow during the morph. */}
-      {open && <div className="invisible" aria-hidden="true">{trigger}</div>}
+      {open && (
+        <div className="invisible" aria-hidden="true">
+          {trigger}
+        </div>
+      )}
       <AnimatePresence initial={false} mode="popLayout">
         {open ? (
           <motion.div
@@ -104,7 +122,7 @@ export function MorphingPopover({
             layoutId={morphId}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
             className={cn(
-              'absolute top-0 left-0 z-50 rounded-3xl bg-popover text-popover-foreground shadow-[var(--m3-elev-3)] overflow-hidden',
+              'absolute top-0 left-0 z-50 overflow-hidden rounded-3xl bg-popover text-popover-foreground shadow-[var(--m3-elev-3)]',
               panelClassName,
             )}
             style={{

@@ -17,8 +17,11 @@ function load(id: number) {
   if (e.loading) return;
   e.loading = true;
   entries.set(id, e);
-  tasksApi.get(id)
-    .then((t) => { entries.set(id, { data: { id: t.id, title: t.title, status: t.status, due_date: t.due_date }, at: Date.now() }); })
+  tasksApi
+    .get(id)
+    .then((t) => {
+      entries.set(id, { data: { id: t.id, title: t.title, status: t.status, due_date: t.due_date }, at: Date.now() });
+    })
     .catch((err: unknown) => {
       const gone = /not found|404/i.test(String((err as Error)?.message ?? err));
       entries.set(id, { data: gone ? { id, title: '', status: 'todo', missing: true } : e.data, at: Date.now() });
@@ -37,7 +40,9 @@ export function onChipTask(id: number, fn: () => void): () => void {
   let set = listeners.get(id);
   if (!set) listeners.set(id, (set = new Set()));
   set.add(fn);
-  return () => { set.delete(fn); };
+  return () => {
+    set.delete(fn);
+  };
 }
 
 // A task saved anywhere in the app refreshes every chip on screen.

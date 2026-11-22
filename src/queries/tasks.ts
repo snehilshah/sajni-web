@@ -26,7 +26,7 @@ const ARCHIVE_PAGE = 50;
 export function useTaskArchiveCount(scope: number | 'all' | null) {
   return useQuery({
     queryKey: qk.tasks.archiveCount(scope ?? 'all'),
-    queryFn: () => tasksApi.archive({ list: scope === 'all' ? undefined : scope ?? undefined, limit: 0 }),
+    queryFn: () => tasksApi.archive({ list: scope === 'all' ? undefined : (scope ?? undefined), limit: 0 }),
     select: (page) => page.count,
     enabled: scope !== null,
   });
@@ -35,9 +35,12 @@ export function useTaskArchiveCount(scope: number | 'all' | null) {
 export function useTaskArchive(scope: number | 'all', enabled: boolean) {
   return useInfiniteQuery({
     queryKey: qk.tasks.archive(scope),
-    queryFn: ({ pageParam }) => tasksApi.archive({
-      list: scope === 'all' ? undefined : scope, limit: ARCHIVE_PAGE, cursor: pageParam,
-    }),
+    queryFn: ({ pageParam }) =>
+      tasksApi.archive({
+        list: scope === 'all' ? undefined : scope,
+        limit: ARCHIVE_PAGE,
+        cursor: pageParam,
+      }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => (last.has_more ? last.next_cursor : null),
     enabled,
@@ -80,11 +83,15 @@ export function useSubtasks(id: number, enabled: boolean) {
 // then consumed by useSubtasks, so opening is immediate without a second call.
 export function usePrefetchSubtasks() {
   const qc = useQueryClient();
-  return useCallback((id: number) => qc.prefetchQuery({
-    queryKey: qk.tasks.subtasks(id),
-    queryFn: () => tasksApi.subtasks(id),
-    staleTime: 30_000,
-  }), [qc]);
+  return useCallback(
+    (id: number) =>
+      qc.prefetchQuery({
+        queryKey: qk.tasks.subtasks(id),
+        queryFn: () => tasksApi.subtasks(id),
+        staleTime: 30_000,
+      }),
+    [qc],
+  );
 }
 
 // --- Cache helpers ---
@@ -92,11 +99,7 @@ export function usePrefetchSubtasks() {
 // Patch a task across every cached *list* query (My Day, a user list, board,
 // subtasks...) without touching detail/missed shapes. Used by optimistic
 // toggles so the change shows in whatever view is mounted.
-export function patchTaskInLists(
-  qc: ReturnType<typeof useQueryClient>,
-  id: number,
-  patch: Partial<Task>,
-) {
+export function patchTaskInLists(qc: ReturnType<typeof useQueryClient>, id: number, patch: Partial<Task>) {
   qc.setQueriesData<Task[]>({ queryKey: ['tasks', 'list'] }, (old) =>
     Array.isArray(old)
       ? old.map((t) => {
@@ -116,10 +119,12 @@ export function patchTaskInLists(
   );
   // An archived task unticked in the Archive fold.
   qc.setQueriesData<InfiniteData<TaskArchivePage>>({ queryKey: ['tasks', 'archive', 'pages'] }, (old) =>
-    old?.pages ? {
-      ...old,
-      pages: old.pages.map((p) => ({ ...p, items: p.items.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
-    } : old,
+    old?.pages
+      ? {
+          ...old,
+          pages: old.pages.map((p) => ({ ...p, items: p.items.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
+        }
+      : old,
   );
 }
 
@@ -128,7 +133,8 @@ export function patchTaskInLists(
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Parameters<typeof tasksApi.create>[0]) => sendReliably(() => tasksApi.create(data), undefined, 'create'),
+    mutationFn: (data: Parameters<typeof tasksApi.create>[0]) =>
+      sendReliably(() => tasksApi.create(data), undefined, 'create'),
     onError: () => toast.error('Could not create task'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
@@ -194,7 +200,11 @@ export function useMoveOnBoard() {
     onMutate: async ({ id, patch, board_rank }) => {
       await qc.cancelQueries({ queryKey: qk.tasks.all });
       const prev = qc.getQueriesData({ queryKey: ['tasks', 'list'] });
-      patchTaskInLists(qc, id, patch ? { ...patchFields(patch), board_rank, updated_at: new Date().toISOString() } : { board_rank });
+      patchTaskInLists(
+        qc,
+        id,
+        patch ? { ...patchFields(patch), board_rank, updated_at: new Date().toISOString() } : { board_rank },
+      );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
@@ -239,7 +249,11 @@ export function useRescheduleTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, date }: { id: number; date: string }) =>
-      sendReliably(() => tasksApi.reschedule(id, { target_date: date, schedule_mode: 'preserve' }), undefined, 'reschedule'),
+      sendReliably(
+        () => tasksApi.reschedule(id, { target_date: date, schedule_mode: 'preserve' }),
+        undefined,
+        'reschedule',
+      ),
     onError: () => toast.error('Could not reschedule'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });

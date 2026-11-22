@@ -11,7 +11,10 @@ export function useVisualViewportBox(active: boolean) {
   const [box, setBox] = useState<{ height: number; top: number } | null>(null);
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!active || !vv) { setBox(null); return; }
+    if (!active || !vv) {
+      setBox(null);
+      return;
+    }
     const update = () => setBox({ height: Math.round(vv.height), top: Math.round(vv.offsetTop) });
     update();
     vv.addEventListener('resize', update);

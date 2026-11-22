@@ -5,7 +5,15 @@ import { ArrowUpRight, Bell, Check, ChevronDown, Receipt, RotateCcw, Trash2 } fr
 import { DateBadge } from '@/components/ui/state-chip';
 import { cn } from '@/lib/utils';
 
-import { finance, type FinAccount, type FinTransaction, type FinLend, type FinLendPerson, type FinLendSettlement, type FinOwedEntry } from '@/api';
+import {
+  finance,
+  type FinAccount,
+  type FinTransaction,
+  type FinLend,
+  type FinLendPerson,
+  type FinLendSettlement,
+  type FinOwedEntry,
+} from '@/api';
 import { confirmDialog } from '@/lib/confirm';
 import { failureText } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -70,14 +78,23 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
     }
     return map;
   }, [lends]);
-  const totals = useMemo(() => ({
-    owed: sumMoney(people, (p) => p.outstanding),
-    iOwe: sumMoney(people, (p) => p.you_owe ?? 0),
-    held: sumMoney(people, (p) => p.credit),
-    returned: sumMoney(people.flatMap((p) => p.settlements.filter((s) => !s.forgiven)), (s) => s.amount),
-  }), [people]);
+  const totals = useMemo(
+    () => ({
+      owed: sumMoney(people, (p) => p.outstanding),
+      iOwe: sumMoney(people, (p) => p.you_owe ?? 0),
+      held: sumMoney(people, (p) => p.credit),
+      returned: sumMoney(
+        people.flatMap((p) => p.settlements.filter((s) => !s.forgiven)),
+        (s) => s.amount,
+      ),
+    }),
+    [people],
+  );
 
-  const done = () => { reload(); peopleQ.refetch(); };
+  const done = () => {
+    reload();
+    peopleQ.refetch();
+  };
 
   // Anyone with nothing open either way is settled (a held surplus included).
   const isOpen = (p: FinLendPerson) => p.outstanding > 0.005 || (p.you_owe ?? 0) > 0.005;
@@ -85,20 +102,44 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
   const settled = people.filter((p) => !isOpen(p));
   const netOff = async (person: FinLendPerson) => {
     const amount = Math.min(person.outstanding, person.you_owe ?? 0);
-    if (!(await confirmDialog(`Net off ₹${amount.toLocaleString('en-IN')} with ${person.borrower}? What each of you owes drops by that much. No money moves.`))) return;
-    try { await finance.netOff(person.borrower); done(); } catch (e) { toast.error(failureText(e)); }
+    if (
+      !(await confirmDialog(
+        `Net off ₹${amount.toLocaleString('en-IN')} with ${person.borrower}? What each of you owes drops by that much. No money moves.`,
+      ))
+    )
+      return;
+    try {
+      await finance.netOff(person.borrower);
+      done();
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
   const undoOwed = async (e: FinOwedEntry) => {
-    const msg = e.type === 'netoff' ? 'Undo this net-off? Both debts come back.'
-      : e.type === 'owed' ? 'Delete this debt?'
-        : e.kind === 'debt' ? 'Undo this? It goes back to plain income.'
-          : 'Undo this payment back? It goes back to a plain expense.';
+    const msg =
+      e.type === 'netoff'
+        ? 'Undo this net-off? Both debts come back.'
+        : e.type === 'owed'
+          ? 'Delete this debt?'
+          : e.kind === 'debt'
+            ? 'Undo this? It goes back to plain income.'
+            : 'Undo this payment back? It goes back to a plain expense.';
     if (!(await confirmDialog(msg))) return;
-    try { await finance.deleteOwed(e.id); done(); } catch (err) { toast.error(failureText(err)); }
+    try {
+      await finance.deleteOwed(e.id);
+      done();
+    } catch (err) {
+      toast.error(failureText(err));
+    }
   };
   const undoNetted = async (s: FinLendSettlement) => {
     if (!(await confirmDialog('Undo this net-off? Both debts come back.'))) return;
-    try { await finance.deleteLendSettlement(s.id); done(); } catch (err) { toast.error(failureText(err)); }
+    try {
+      await finance.deleteLendSettlement(s.id);
+      done();
+    } catch (err) {
+      toast.error(failureText(err));
+    }
   };
 
   const renderPerson = (person: FinLendPerson) => {
@@ -118,7 +159,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
           type="button"
           onClick={() => setOpenKey(open ? null : key)}
           aria-expanded={open}
-          className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-left outline-none hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-left outline-none hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >
           <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[hsl(var(--surface-container-high))] text-sm font-semibold text-muted-foreground">
             {person.borrower.trim().charAt(0).toUpperCase()}
@@ -129,24 +170,41 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
               {nextDue && (
                 <DateBadge tone={overdue ? 'alert' : 'neutral'}>Due {format(parseISO(nextDue), 'd MMM')}</DateBadge>
               )}
-              {person.credit > 0 && <DateBadge tone="positive"><Money value={person.credit} /> held</DateBadge>}
-              {youOwe > 0 && person.outstanding > 0 && <DateBadge>You owe <Money value={youOwe} /></DateBadge>}
+              {person.credit > 0 && (
+                <DateBadge tone="positive">
+                  <Money value={person.credit} /> held
+                </DateBadge>
+              )}
+              {youOwe > 0 && person.outstanding > 0 && (
+                <DateBadge>
+                  You owe <Money value={youOwe} />
+                </DateBadge>
+              )}
             </span>
           </span>
           {person.outstanding > 0 || youOwe > 0 ? (
             // Both open: the net, and who it's on. Only one side: that side.
             <span className="flex flex-col items-end">
-              <span className={cn('whitespace-nowrap font-serif text-xl font-semibold tabular-nums', net >= 0 ? 'text-primary' : 'text-foreground')}>
+              <span
+                className={cn(
+                  'font-serif text-xl font-semibold whitespace-nowrap tabular-nums',
+                  net >= 0 ? 'text-primary' : 'text-foreground',
+                )}
+              >
                 <Money value={Math.abs(net)} />
               </span>
               {youOwe > 0 && (
-                <span className="text-xs text-muted-foreground">{person.outstanding > 0 ? (net >= 0 ? 'net, they owe' : 'net, you owe') : 'you owe'}</span>
+                <span className="text-xs text-muted-foreground">
+                  {person.outstanding > 0 ? (net >= 0 ? 'net, they owe' : 'net, you owe') : 'you owe'}
+                </span>
               )}
             </span>
           ) : (
             <DateBadge tone="positive">Settled</DateBadge>
           )}
-          <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+          <ChevronDown
+            className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+          />
         </button>
 
         {open && (
@@ -156,7 +214,7 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
             onSettle={() => onSettle(person.borrower)}
             onForgive={() => setForgiving(person)}
             onEdit={setEditing}
-            onPayment={(s) => s.netted ? void undoNetted(s) : setPayment(paymentFromSettlement(s, person.borrower))}
+            onPayment={(s) => (s.netted ? void undoNetted(s) : setPayment(paymentFromSettlement(s, person.borrower)))}
             onPayBack={() => onPayBack(person.borrower)}
             onNetOff={() => void netOff(person)}
             onUndoOwed={(e) => void undoOwed(e)}
@@ -168,7 +226,13 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
 
   return (
     <div className="flex flex-col gap-4">
-      <StatGroup className={cn('grid-cols-2', [totals.iOwe > 0, totals.held > 0].filter(Boolean).length === 1 && 'md:grid-cols-3', totals.iOwe > 0 && totals.held > 0 && 'md:grid-cols-4')}>
+      <StatGroup
+        className={cn(
+          'grid-cols-2',
+          [totals.iOwe > 0, totals.held > 0].filter(Boolean).length === 1 && 'md:grid-cols-3',
+          totals.iOwe > 0 && totals.held > 0 && 'md:grid-cols-4',
+        )}
+      >
         <Stat label="Owed to me" value={<AnimatedMoney value={totals.owed} />} tone="primary" />
         {totals.iOwe > 0 && <Stat label="I owe" value={<AnimatedMoney value={totals.iOwe} />} />}
         <Stat label="Returned" value={<AnimatedMoney value={totals.returned} />} />
@@ -178,9 +242,15 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-semibold">Open</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setBefore(true)}>From before Sajni</Button>
-          <Button variant="outline" size="sm" onClick={onBorrow}><ArrowUpRight className="size-4 rotate-180" /> Borrow</Button>
-          <Button variant="outline" size="sm" onClick={onNewLend}><ArrowUpRight className="size-4" /> Lend</Button>
+          <Button variant="ghost" size="sm" onClick={() => setBefore(true)}>
+            From before Sajni
+          </Button>
+          <Button variant="outline" size="sm" onClick={onBorrow}>
+            <ArrowUpRight className="size-4 rotate-180" /> Borrow
+          </Button>
+          <Button variant="outline" size="sm" onClick={onNewLend}>
+            <ArrowUpRight className="size-4" /> Lend
+          </Button>
         </div>
       </div>
 
@@ -215,19 +285,45 @@ export default function LendsTab({ accounts, lends, loaded, reload, onNewLend, o
         </>
       )}
 
-      <OwedBeforeDialog open={before} accounts={accounts} people={people.map((p) => p.borrower)}
-        onClose={() => setBefore(false)} onDone={() => { setBefore(false); done(); }} />
+      <OwedBeforeDialog
+        open={before}
+        accounts={accounts}
+        people={people.map((p) => p.borrower)}
+        onClose={() => setBefore(false)}
+        onDone={() => {
+          setBefore(false);
+          done();
+        }}
+      />
       <ForgiveDialog
         person={forgiving}
         onClose={() => setForgiving(null)}
-        onDone={() => { setForgiving(null); done(); }}
+        onDone={() => {
+          setForgiving(null);
+          done();
+        }}
       />
-      <EditLendDialog lend={editing} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); done(); }} onRemoved={() => { setEditing(null); done(); }} />
+      <EditLendDialog
+        lend={editing}
+        accounts={accounts}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          done();
+        }}
+        onRemoved={() => {
+          setEditing(null);
+          done();
+        }}
+      />
       <EditRepaymentDialog
         payment={payment}
         onClose={() => setPayment(null)}
         onChanged={done}
-        onRemoved={() => { setPayment(null); done(); }}
+        onRemoved={() => {
+          setPayment(null);
+          done();
+        }}
       />
     </div>
   );
@@ -243,7 +339,17 @@ type Event =
   | { kind: 'lend'; at: string; lend: FinLend }
   | { kind: 'settlement'; at: string; settlement: FinLendSettlement };
 
-function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, onPayBack, onNetOff, onUndoOwed }: {
+function PersonDetail({
+  person,
+  lends,
+  onSettle,
+  onForgive,
+  onEdit,
+  onPayment,
+  onPayBack,
+  onNetOff,
+  onUndoOwed,
+}: {
   person: FinLendPerson;
   lends: FinLend[];
   onSettle: () => void;
@@ -269,10 +375,14 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
   const [showOwedHistory, setShowOwedHistory] = useState(false);
   const owedShown = showOwedHistory ? owedEntries : owedEntries.slice(owedCut + 1);
   const bothWays = owedEntries.length > 0 && lends.length > 0;
-  const events = useMemo<Event[]>(() => [
-    ...lends.map((lend) => ({ kind: 'lend' as const, at: lend.lent_at, lend })),
-    ...person.settlements.map((settlement) => ({ kind: 'settlement' as const, at: settlement.txn_at, settlement })),
-  ].sort((a, b) => a.at.localeCompare(b.at)), [lends, person.settlements]);
+  const events = useMemo<Event[]>(
+    () =>
+      [
+        ...lends.map((lend) => ({ kind: 'lend' as const, at: lend.lent_at, lend })),
+        ...person.settlements.map((settlement) => ({ kind: 'settlement' as const, at: settlement.txn_at, settlement })),
+      ].sort((a, b) => a.at.localeCompare(b.at)),
+    [lends, person.settlements],
+  );
 
   // Everything up to the last time the person owed nothing is history, folded
   // into one line so what's open now leads. A settled person shows it all.
@@ -295,7 +405,7 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
     <div className="flex flex-col px-4 pb-3">
       {bothWays && (
         <div className={cn(ROW, 'pt-1')}>
-          <span className="col-start-2 col-span-2 font-mono text-xs label-kicker text-muted-foreground">
+          <span className="label-kicker col-span-2 col-start-2 font-mono text-xs text-muted-foreground">
             They owe you · <Money value={person.outstanding} />
           </span>
         </div>
@@ -306,10 +416,12 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
             type="button"
             onClick={() => setShowHistory((v) => !v)}
             aria-expanded={showHistory}
-            className="col-start-2 col-span-2 -ml-2 inline-flex h-9 items-center gap-1.5 justify-self-start rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
+            className="col-span-2 col-start-2 -ml-2 inline-flex h-9 items-center gap-1.5 justify-self-start rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
           >
             <ChevronDown className={cn('size-3.5 transition-transform', !showHistory && '-rotate-90')} />
-            Earlier: {historyLends} {historyLends === 1 ? 'lend' : 'lends'}, {historyPayments} {historyPayments === 1 ? 'payment' : 'payments'}, settled by {format(parseISO(history[history.length - 1].at), 'd MMM')}
+            Earlier: {historyLends} {historyLends === 1 ? 'lend' : 'lends'}, {historyPayments}{' '}
+            {historyPayments === 1 ? 'payment' : 'payments'}, settled by{' '}
+            {format(parseISO(history[history.length - 1].at), 'd MMM')}
           </button>
         </div>
       )}
@@ -319,27 +431,49 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
           const { lend } = event;
           const overdue = lend.status === 'open' && !!lend.due_date && lend.due_date < today();
           return (
-            <button key={'l' + lend.id} type="button" onClick={() => onEdit(lend)}
-              className={cn(ROW, 'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+            <button
+              key={'l' + lend.id}
+              type="button"
+              onClick={() => onEdit(lend)}
+              className={cn(
+                ROW,
+                'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              )}
+            >
               <TimelineNode {...rail} tone={lend.status === 'settled' ? 'positive' : overdue ? 'alert' : 'neutral'}>
-                {lend.status === 'settled' ? <Check className="!size-3" /> : lend.origin === 'paid_for' ? <Receipt /> : <ArrowUpRight />}
+                {lend.status === 'settled' ? (
+                  <Check className="!size-3" />
+                ) : lend.origin === 'paid_for' ? (
+                  <Receipt />
+                ) : (
+                  <ArrowUpRight />
+                )}
               </TimelineNode>
               <span className="min-w-0 py-2">
                 <span className="block truncate text-sm font-medium">{lend.description}</span>
                 <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="truncate">{format(parseISO(lend.lent_at), 'd MMM')} · {lend.source_account}</span>
+                  <span className="truncate">
+                    {format(parseISO(lend.lent_at), 'd MMM')} · {lend.source_account}
+                  </span>
                   {lend.status === 'open' && lend.due_date && (
-                    <DateBadge tone={overdue ? 'alert' : 'neutral'} icon={lend.remind ? <Bell aria-label="Reminder on" /> : undefined}>
+                    <DateBadge
+                      tone={overdue ? 'alert' : 'neutral'}
+                      icon={lend.remind ? <Bell aria-label="Reminder on" /> : undefined}
+                    >
                       Due {format(parseISO(lend.due_date), 'd MMM')}
                     </DateBadge>
                   )}
                 </span>
               </span>
               <span className="text-right tabular-nums">
-                <span className="block whitespace-nowrap text-sm"><Money value={lend.principal} /></span>
+                <span className="block text-sm whitespace-nowrap">
+                  <Money value={lend.principal} />
+                </span>
                 {/* Only payments pinned to this lend show against it. */}
                 {lend.status === 'open' && lend.repaid > 0 && (
-                  <span className="block whitespace-nowrap text-xs text-muted-foreground"><Money value={lend.outstanding} /> left</span>
+                  <span className="block text-xs whitespace-nowrap text-muted-foreground">
+                    <Money value={lend.outstanding} /> left
+                  </span>
                 )}
               </span>
             </button>
@@ -349,19 +483,38 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
         // neutral ✓ node, no green, no account.
         const { settlement: s } = event;
         return (
-          <button key={'s' + s.id} type="button" onClick={() => onPayment(s)}
-            className={cn(ROW, 'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
-            <TimelineNode {...rail} tone={s.forgiven || s.netted ? 'neutral' : 'positive'}>{s.forgiven || s.netted ? <Check className="!size-3" /> : <ArrowUpRight className="rotate-180" />}</TimelineNode>
+          <button
+            key={'s' + s.id}
+            type="button"
+            onClick={() => onPayment(s)}
+            className={cn(
+              ROW,
+              'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            )}
+          >
+            <TimelineNode {...rail} tone={s.forgiven || s.netted ? 'neutral' : 'positive'}>
+              {s.forgiven || s.netted ? <Check className="!size-3" /> : <ArrowUpRight className="rotate-180" />}
+            </TimelineNode>
             <span className="min-w-0 py-2">
-              <span className="block truncate text-sm font-medium">{s.netted ? 'Netted off' : s.forgiven ? 'Adjusted' : s.description}</span>
+              <span className="block truncate text-sm font-medium">
+                {s.netted ? 'Netted off' : s.forgiven ? 'Adjusted' : s.description}
+              </span>
               <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                {format(parseISO(s.txn_at), 'd MMM')}{s.netted ? ' · against what you owe' : s.forgiven ? '' : ' · ' + s.account}{s.netted ? '' : ' · ' + (s.toward ? `Toward ${s.toward}` : 'Overall')}
+                {format(parseISO(s.txn_at), 'd MMM')}
+                {s.netted ? ' · against what you owe' : s.forgiven ? '' : ' · ' + s.account}
+                {s.netted ? '' : ' · ' + (s.toward ? `Toward ${s.toward}` : 'Overall')}
               </span>
             </span>
             <span className="text-right tabular-nums">
-              {s.forgiven || s.netted
-                ? <span className="block whitespace-nowrap text-sm"><Money value={s.amount} /></span>
-                : <span className="block whitespace-nowrap text-sm text-[hsl(var(--color-complete))]">+<Money value={s.amount} /></span>}
+              {s.forgiven || s.netted ? (
+                <span className="block text-sm whitespace-nowrap">
+                  <Money value={s.amount} />
+                </span>
+              ) : (
+                <span className="block text-sm whitespace-nowrap text-[hsl(var(--color-complete))]">
+                  +<Money value={s.amount} />
+                </span>
+              )}
             </span>
           </button>
         );
@@ -369,7 +522,7 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
       {owedEntries.length > 0 && (
         <>
           <div className={cn(ROW, 'pt-3')}>
-            <span className="col-start-2 col-span-2 font-mono text-xs label-kicker text-muted-foreground">
+            <span className="label-kicker col-span-2 col-start-2 font-mono text-xs text-muted-foreground">
               You owe them · <Money value={youOwe} />
             </span>
           </div>
@@ -379,7 +532,7 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
                 type="button"
                 onClick={() => setShowOwedHistory((v) => !v)}
                 aria-expanded={showOwedHistory}
-                className="col-start-2 col-span-2 -ml-2 inline-flex h-9 items-center gap-1.5 justify-self-start rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
+                className="col-span-2 col-start-2 -ml-2 inline-flex h-9 items-center gap-1.5 justify-self-start rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
               >
                 <ChevronDown className={cn('size-3.5 transition-transform', !showOwedHistory && '-rotate-90')} />
                 Earlier: paid back in full by {format(parseISO(owedEntries[owedCut].txn_at), 'd MMM')}
@@ -387,34 +540,78 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
             </div>
           )}
           {owedShown.map((e, i) => (
-            <button key={'o' + e.id} type="button" onClick={() => onUndoOwed(e)}
-              className={cn(ROW, 'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
-              <TimelineNode first={i === 0} last={i === owedShown.length - 1} tone={e.kind === 'debt' ? 'neutral' : 'positive'}>
-                {e.kind === 'debt' ? <ArrowUpRight className="rotate-180" /> : e.type === 'netoff' ? <Check className="!size-3" /> : <ArrowUpRight />}
+            <button
+              key={'o' + e.id}
+              type="button"
+              onClick={() => onUndoOwed(e)}
+              className={cn(
+                ROW,
+                'min-h-14 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              )}
+            >
+              <TimelineNode
+                first={i === 0}
+                last={i === owedShown.length - 1}
+                tone={e.kind === 'debt' ? 'neutral' : 'positive'}
+              >
+                {e.kind === 'debt' ? (
+                  <ArrowUpRight className="rotate-180" />
+                ) : e.type === 'netoff' ? (
+                  <Check className="!size-3" />
+                ) : (
+                  <ArrowUpRight />
+                )}
               </TimelineNode>
               <span className="min-w-0 py-2">
-                <span className="block truncate text-sm font-medium">{e.type === 'netoff' ? 'Netted off' : e.description}</span>
+                <span className="block truncate text-sm font-medium">
+                  {e.type === 'netoff' ? 'Netted off' : e.description}
+                </span>
                 <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                   <span className="truncate">
                     {format(parseISO(e.txn_at), 'd MMM')}
-                    {e.type === 'owed' ? ' · from before Sajni' : e.type === 'netoff' ? ' · against what they owe' : ' · ' + e.account}
+                    {e.type === 'owed'
+                      ? ' · from before Sajni'
+                      : e.type === 'netoff'
+                        ? ' · against what they owe'
+                        : ' · ' + e.account}
                   </span>
-                  {e.kind === 'debt' && e.due_date && youOwe > 0 && <DateBadge>By {format(parseISO(e.due_date), 'd MMM')}</DateBadge>}
+                  {e.kind === 'debt' && e.due_date && youOwe > 0 && (
+                    <DateBadge>By {format(parseISO(e.due_date), 'd MMM')}</DateBadge>
+                  )}
                 </span>
               </span>
               <span className="text-right tabular-nums">
-                <span className="block whitespace-nowrap text-sm">{e.kind === 'payment' ? '−' : ''}<Money value={e.amount} /></span>
+                <span className="block text-sm whitespace-nowrap">
+                  {e.kind === 'payment' ? '−' : ''}
+                  <Money value={e.amount} />
+                </span>
               </span>
             </button>
           ))}
         </>
       )}
       <div className={cn(ROW, 'pt-2')}>
-        <div className="col-start-2 col-span-2 flex flex-wrap items-center gap-2">
-          {person.outstanding > 0 && <Button variant="tonal" size="sm" onClick={onSettle}><ArrowUpRight className="size-4 rotate-180" /> Settle</Button>}
-          {youOwe > 0 && <Button variant="tonal" size="sm" onClick={onPayBack}><ArrowUpRight className="size-4" /> Pay back</Button>}
-          {person.outstanding > 0 && youOwe > 0 && <Button variant="outline" size="sm" onClick={onNetOff}>Net off</Button>}
-          {person.outstanding > 0 && <Button variant="outline" size="sm" onClick={onForgive}>Adjust</Button>}
+        <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-2">
+          {person.outstanding > 0 && (
+            <Button variant="tonal" size="sm" onClick={onSettle}>
+              <ArrowUpRight className="size-4 rotate-180" /> Settle
+            </Button>
+          )}
+          {youOwe > 0 && (
+            <Button variant="tonal" size="sm" onClick={onPayBack}>
+              <ArrowUpRight className="size-4" /> Pay back
+            </Button>
+          )}
+          {person.outstanding > 0 && youOwe > 0 && (
+            <Button variant="outline" size="sm" onClick={onNetOff}>
+              Net off
+            </Button>
+          )}
+          {person.outstanding > 0 && (
+            <Button variant="outline" size="sm" onClick={onForgive}>
+              Adjust
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -425,19 +622,42 @@ function PersonDetail({ person, lends, onSettle, onForgive, onEdit, onPayment, o
 // shows through a node.
 const NODE_TONE = {
   neutral: 'bg-[hsl(var(--surface-container-highest))] text-foreground',
-  positive: 'bg-[color-mix(in_oklab,hsl(var(--color-complete))_32%,hsl(var(--card)))] text-[color-mix(in_oklab,hsl(var(--color-complete))_70%,hsl(var(--on-surface)))]',
+  positive:
+    'bg-[color-mix(in_oklab,hsl(var(--color-complete))_32%,hsl(var(--card)))] text-[color-mix(in_oklab,hsl(var(--color-complete))_70%,hsl(var(--on-surface)))]',
   alert: 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]',
 };
 
 // The rail runs through every node; it starts at the first node's centre
 // and stops at the last one's, so a single item is just a node.
-function TimelineNode({ first, last, tone, children }: { first: boolean; last: boolean; tone: keyof typeof NODE_TONE; children: React.ReactNode }) {
+function TimelineNode({
+  first,
+  last,
+  tone,
+  children,
+}: {
+  first: boolean;
+  last: boolean;
+  tone: keyof typeof NODE_TONE;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="relative grid self-stretch place-items-center">
+    <span className="relative grid place-items-center self-stretch">
       {!(first && last) && (
-        <span aria-hidden className={cn('absolute left-1/2 w-0.5 -translate-x-1/2 rounded-full bg-[hsl(var(--outline))]', first ? 'top-1/2' : 'top-0', last ? 'bottom-1/2' : 'bottom-0')} />
+        <span
+          aria-hidden
+          className={cn(
+            'absolute left-1/2 w-0.5 -translate-x-1/2 rounded-full bg-[hsl(var(--outline))]',
+            first ? 'top-1/2' : 'top-0',
+            last ? 'bottom-1/2' : 'bottom-0',
+          )}
+        />
       )}
-      <span className={cn('relative grid size-8 place-items-center rounded-full ring-[3px] ring-[hsl(var(--card))] [&>svg]:size-4', NODE_TONE[tone])}>
+      <span
+        className={cn(
+          'relative grid size-8 place-items-center rounded-full ring-[3px] ring-[hsl(var(--card))] [&>svg]:size-4',
+          NODE_TONE[tone],
+        )}
+      >
         {children}
       </span>
     </span>
@@ -446,15 +666,20 @@ function TimelineNode({ first, last, tone, children }: { first: boolean; last: b
 
 // Write off what a person still owes (all by default, or part). It counts as
 // your spending in the chosen category on that day; no money moves.
-function ForgiveDialog({ person, onClose, onDone }: {
+function ForgiveDialog({
+  person,
+  onClose,
+  onDone,
+}: {
   person: FinLendPerson | null;
   onClose: () => void;
   onDone: () => void;
 }) {
   const categoriesQ = useFinCategories(!!person);
   const expenseCats = (categoriesQ.data ?? []).filter((c) => c.kind === 'expense');
-  const fallback = expenseCats.find((c) => /^gifts?\b/i.test(c.name.trim()))
-    ?? expenseCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
+  const fallback =
+    expenseCats.find((c) => /^gifts?\b/i.test(c.name.trim())) ??
+    expenseCats.find((c) => ['other', 'others'].includes(c.name.trim().toLowerCase()));
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [toward, setToward] = useState('');
@@ -465,7 +690,12 @@ function ForgiveDialog({ person, onClose, onDone }: {
   useEffect(() => {
     if (!person) return;
     const now = txnAtToParts(new Date().toISOString());
-    setAmount(String(person.outstanding)); setCategoryId(''); setToward(''); setDate(now.date); setTime(now.time); setNote('');
+    setAmount(String(person.outstanding));
+    setCategoryId('');
+    setToward('');
+    setDate(now.date);
+    setTime(now.time);
+    setNote('');
   }, [person]);
   const value = Number(amount) || 0;
   const owed = person?.outstanding ?? 0;
@@ -476,52 +706,108 @@ function ForgiveDialog({ person, onClose, onDone }: {
     setSaving(true);
     try {
       await finance.forgiveLends({
-        borrower: person.borrower, amount: value, category_id: picked ? Number(picked) : null,
-        forgiven_at: partsToTxnAt(date, time), note, ...(toward ? { lend_id: Number(toward) } : {}),
+        borrower: person.borrower,
+        amount: value,
+        category_id: picked ? Number(picked) : null,
+        forgiven_at: partsToTxnAt(date, time),
+        note,
+        ...(toward ? { lend_id: Number(toward) } : {}),
       });
       onDone();
-    } catch (error) { toast.error(failureText(error)); } finally { setSaving(false); }
+    } catch (error) {
+      toast.error(failureText(error));
+    } finally {
+      setSaving(false);
+    }
   };
-  return <Dialog open={!!person} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-      <DialogHeader><DialogTitle>Adjust what {person?.borrower} owes</DialogTitle></DialogHeader>
-      <div className="grid gap-3">
-        <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={bad} /></Field>
-        <div className="-mt-1 flex flex-wrap gap-1.5">
-          <DateBadge>Owes <Money value={owed} /></DateBadge>
-          {value > 0 && value <= owed && (subMoney(owed, value) > 0
-            ? <DateBadge><Money value={subMoney(owed, value)} /> still owed</DateBadge>
-            : <DateBadge tone="positive">Settled</DateBadge>)}
+  return (
+    <Dialog
+      open={!!person}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Adjust what {person?.borrower} owes</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <Field label="Amount">
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              aria-invalid={bad}
+            />
+          </Field>
+          <div className="-mt-1 flex flex-wrap gap-1.5">
+            <DateBadge>
+              Owes <Money value={owed} />
+            </DateBadge>
+            {value > 0 &&
+              value <= owed &&
+              (subMoney(owed, value) > 0 ? (
+                <DateBadge>
+                  <Money value={subMoney(owed, value)} /> still owed
+                </DateBadge>
+              ) : (
+                <DateBadge tone="positive">Settled</DateBadge>
+              ))}
+          </div>
+          {person && <TowardPicker person={person.borrower} value={toward} onChange={setToward} />}
+          <Field label="Counts as">
+            <CategoryChips categories={expenseCats} value={picked} onChange={setCategoryId} />
+          </Field>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+            <Field label="Date">
+              <DatePicker value={date} onChange={setDate} />
+            </Field>
+            <Field label="Time">
+              <TimePicker value={time} onChange={setTime} />
+            </Field>
+          </div>
+          <Field label="Note">
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+          </Field>
         </div>
-        {person && <TowardPicker person={person.borrower} value={toward} onChange={setToward} />}
-        <Field label="Counts as">
-          <CategoryChips categories={expenseCats} value={picked} onChange={setCategoryId} />
-        </Field>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-          <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
-          <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
-        </div>
-        <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} /></Field>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={save} disabled={saving || bad}>{saving ? 'Saving…' : 'Adjust'}</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>;
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={saving || bad}>
+            {saving ? 'Saving…' : 'Adjust'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 interface LendValues {
-  sourceAccountId: string; amount: string; borrower: string; description: string; note: string;
-  lentDate: string; lentTime: string; dueDate: string; remind: boolean;
+  sourceAccountId: string;
+  amount: string;
+  borrower: string;
+  description: string;
+  note: string;
+  lentDate: string;
+  lentTime: string;
+  dueDate: string;
+  remind: boolean;
 }
 
 function lendValues(lend: FinLend): LendValues {
   const lentAt = txnAtToParts(lend.lent_at);
   return {
-    sourceAccountId: String(lend.source_account_id), amount: String(lend.principal), borrower: lend.borrower,
-    description: lend.description, note: lend.note, lentDate: lentAt.date, lentTime: lentAt.time,
-    dueDate: lend.due_date ?? '', remind: lend.remind,
+    sourceAccountId: String(lend.source_account_id),
+    amount: String(lend.principal),
+    borrower: lend.borrower,
+    description: lend.description,
+    note: lend.note,
+    lentDate: lentAt.date,
+    lentTime: lentAt.time,
+    dueDate: lend.due_date ?? '',
+    remind: lend.remind,
   };
 }
 
@@ -529,7 +815,13 @@ function lendValues(lend: FinLend): LendValues {
 // share keeps only who, their share and the due date here: its title,
 // account, date and note are the bill's. Nothing saves until Save (the server
 // rebalances the person after it); undoing the lend lives here too.
-export function EditLendDialog({ lend, accounts, onClose, onSaved, onRemoved }: {
+export function EditLendDialog({
+  lend,
+  accounts,
+  onClose,
+  onSaved,
+  onRemoved,
+}: {
   lend: FinLend | null;
   accounts: FinAccount[];
   onClose: () => void;
@@ -550,19 +842,41 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved, onRemoved }: 
 
   const open = !!lend;
   const split = !!lend?.split;
-  const values: LendValues = { sourceAccountId, amount, borrower, description, note, lentDate, lentTime, dueDate, remind };
+  const values: LendValues = {
+    sourceAccountId,
+    amount,
+    borrower,
+    description,
+    note,
+    lentDate,
+    lentTime,
+    dueDate,
+    remind,
+  };
   const apply = (v: LendValues) => {
-    setSourceAccountId(v.sourceAccountId); setAmount(v.amount); setBorrower(v.borrower);
-    setDescription(v.description); setNote(v.note); setLentDate(v.lentDate); setLentTime(v.lentTime);
-    setDueDate(v.dueDate); setRemind(v.remind);
+    setSourceAccountId(v.sourceAccountId);
+    setAmount(v.amount);
+    setBorrower(v.borrower);
+    setDescription(v.description);
+    setNote(v.note);
+    setLentDate(v.lentDate);
+    setLentTime(v.lentTime);
+    setDueDate(v.dueDate);
+    setRemind(v.remind);
   };
   const principal = Number(amount);
-  const invalid = !borrower.trim() ? "enter who it's for."
-    : !Number.isFinite(principal) || principal <= 0 ? 'enter an amount above zero.'
-      : split ? null
-        : !sourceAccountId ? 'pick the account it came from.'
-          : !description.trim() ? 'add a title.'
-            : !lentDate || !lentTime ? 'pick when it was lent.'
+  const invalid = !borrower.trim()
+    ? "enter who it's for."
+    : !Number.isFinite(principal) || principal <= 0
+      ? 'enter an amount above zero.'
+      : split
+        ? null
+        : !sourceAccountId
+          ? 'pick the account it came from.'
+          : !description.trim()
+            ? 'add a title.'
+            : !lentDate || !lentTime
+              ? 'pick when it was lent.'
               : null;
   const editor = useEditorDraft({
     open,
@@ -572,10 +886,14 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved, onRemoved }: 
     save: async (v) => {
       if (!lend) return;
       await finance.updateLend(lend.id, {
-        source_account_id: Number(v.sourceAccountId), amount: Number(v.amount),
-        borrower: v.borrower.trim(), description: v.description.trim(), note: v.note,
+        source_account_id: Number(v.sourceAccountId),
+        amount: Number(v.amount),
+        borrower: v.borrower.trim(),
+        description: v.description.trim(),
+        note: v.note,
         lent_at: partsToTxnAt(v.lentDate, v.lentTime),
-        due_date: v.dueDate, remind: v.remind && !!v.dueDate,
+        due_date: v.dueDate,
+        remind: v.remind && !!v.dueDate,
       });
     },
   });
@@ -591,57 +909,123 @@ export function EditLendDialog({ lend, accounts, onClose, onSaved, onRemoved }: 
   }, [lend]);
   const remove = async () => {
     if (!lend) return;
-    const ask = lend.origin === 'paid_for'
-      ? split ? `Remove the split with ${lend.borrower}? The whole bill becomes your expense again.`
-        : `Unmark "${lend.description}"? It goes back to being your expense.`
-      : `Delete the lend to ${lend.borrower}? Its transaction is removed too.`;
+    const ask =
+      lend.origin === 'paid_for'
+        ? split
+          ? `Remove the split with ${lend.borrower}? The whole bill becomes your expense again.`
+          : `Unmark "${lend.description}"? It goes back to being your expense.`
+        : `Delete the lend to ${lend.borrower}? Its transaction is removed too.`;
     if (!(await confirmDialog(ask))) return;
     editor.cancel();
-    try { await finance.deleteLend(lend.id); onRemoved(); } catch (error) { toast.error(failureText(error)); }
+    try {
+      await finance.deleteLend(lend.id);
+      onRemoved();
+    } catch (error) {
+      toast.error(failureText(error));
+    }
   };
-  return <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
-    <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-      <DialogHeader className="flex-row items-baseline justify-between gap-3">
-        <DialogTitle>Edit lend</DialogTitle>
-      </DialogHeader>
-      <div className="grid gap-3">
-        {split ? (
-          <p className="text-xs text-muted-foreground">Part of “{lend?.description}”. The bill's title, account, date and note are edited on the bill.</p>
-        ) : (
-          <>
-            <Field label="Title"><Input value={description} onChange={(e) => setDescription(e.target.value)} aria-invalid={!description.trim()} maxLength={120} /></Field>
-            <Field label="From account">
-              <Select value={sourceAccountId} onValueChange={(value) => setSourceAccountId(value ?? '')} items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
-                <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
-                <SelectContent>{accounts.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
-          </>
-        )}
-        <Field label={lend?.origin === 'paid_for' ? 'Their share of the bill' : 'Amount'}><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
-        {lend?.origin === 'paid_for' && <p className="-mt-2 text-xs text-muted-foreground">The bill itself stays the same; the rest is your spending.</p>}
-        <Field label="Borrower"><Input value={borrower} onChange={(e) => setBorrower(e.target.value)} /></Field>
-        {!split && (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-            <Field label="Lent date"><DatePicker value={lentDate} onChange={setLentDate} /></Field>
-            <Field label="Time"><TimePicker value={lentTime} onChange={setLentTime} /></Field>
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) requestClose();
+      }}
+    >
+      <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>Edit lend</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          {split ? (
+            <p className="text-xs text-muted-foreground">
+              Part of “{lend?.description}”. The bill's title, account, date and note are edited on the bill.
+            </p>
+          ) : (
+            <>
+              <Field label="Title">
+                <Input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  aria-invalid={!description.trim()}
+                  maxLength={120}
+                />
+              </Field>
+              <Field label="From account">
+                <Select
+                  value={sourceAccountId}
+                  onValueChange={(value) => setSourceAccountId(value ?? '')}
+                  items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </>
+          )}
+          <Field label={lend?.origin === 'paid_for' ? 'Their share of the bill' : 'Amount'}>
+            <Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </Field>
+          {lend?.origin === 'paid_for' && (
+            <p className="-mt-2 text-xs text-muted-foreground">
+              The bill itself stays the same; the rest is your spending.
+            </p>
+          )}
+          <Field label="Borrower">
+            <Input value={borrower} onChange={(e) => setBorrower(e.target.value)} />
+          </Field>
+          {!split && (
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+              <Field label="Lent date">
+                <DatePicker value={lentDate} onChange={setLentDate} />
+              </Field>
+              <Field label="Time">
+                <TimePicker value={lentTime} onChange={setLentTime} />
+              </Field>
+            </div>
+          )}
+          <Field label="Due date">
+            <DatePicker value={dueDate} onChange={setDueDate} />
+          </Field>
+          <div className="flex items-center justify-between rounded-lg px-3 py-2">
+            <div>
+              <Label>Due reminder</Label>
+              <p className="text-xs text-muted-foreground">One notification when due.</p>
+            </div>
+            <Switch checked={remind && !!dueDate} disabled={!dueDate} onCheckedChange={setRemind} />
           </div>
-        )}
-        <Field label="Due date"><DatePicker value={dueDate} onChange={setDueDate} /></Field>
-        <div className="flex items-center justify-between rounded-lg px-3 py-2">
-          <div><Label>Due reminder</Label><p className="text-xs text-muted-foreground">One notification when due.</p></div>
-          <Switch checked={remind && !!dueDate} disabled={!dueDate} onCheckedChange={setRemind} />
+          {!split && (
+            <Field label="Note">
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
+            </Field>
+          )}
         </div>
-        {!split && <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} /></Field>}
-      </div>
-      <DialogFooter className="flex-row items-center justify-between">
-        <Button variant="destructive-quiet" onClick={remove}>
-          {lend?.origin === 'paid_for' ? <><RotateCcw className="size-4 mr-1" /> {split ? 'Remove split' : 'Unmark'}</> : <><Trash2 className="size-4 mr-1" /> Delete</>}
-        </Button>
-        <div className="flex gap-2"><EditActions draft={editor} onCancel={onClose} onSave={() => editor.save(onSaved)} /></div>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>;
+        <DialogFooter className="flex-row items-center justify-between">
+          <Button variant="destructive-quiet" onClick={remove}>
+            {lend?.origin === 'paid_for' ? (
+              <>
+                <RotateCcw className="mr-1 size-4" /> {split ? 'Remove split' : 'Unmark'}
+              </>
+            ) : (
+              <>
+                <Trash2 className="mr-1 size-4" /> Delete
+              </>
+            )}
+          </Button>
+          <div className="flex gap-2">
+            <EditActions draft={editor} onCancel={onClose} onSave={() => editor.save(onSaved)} />
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 /** A payment back (or a forgive), from a transaction row or a person's timeline. */
@@ -662,16 +1046,32 @@ export interface Payment {
 export function paymentFromTxn(txn: FinTransaction): Payment | null {
   if (!txn.settlement) return null;
   return {
-    settlementId: txn.settlement.id, transactionId: txn.id, borrower: txn.settlement.borrower,
-    amount: txn.amount, account: txn.account_name, at: txn.txn_at, description: txn.description,
-    note: txn.note || '', lendId: txn.settlement.lend_id, forgiven: txn.type === 'writeoff', categoryId: txn.category_id,
+    settlementId: txn.settlement.id,
+    transactionId: txn.id,
+    borrower: txn.settlement.borrower,
+    amount: txn.amount,
+    account: txn.account_name,
+    at: txn.txn_at,
+    description: txn.description,
+    note: txn.note || '',
+    lendId: txn.settlement.lend_id,
+    forgiven: txn.type === 'writeoff',
+    categoryId: txn.category_id,
   };
 }
 
 function paymentFromSettlement(s: FinLendSettlement, borrower: string): Payment {
   return {
-    settlementId: s.id, transactionId: s.transaction_id, borrower, amount: s.amount, account: s.account,
-    at: s.txn_at, description: s.description, note: s.note || '', lendId: s.lend_id, forgiven: s.forgiven,
+    settlementId: s.id,
+    transactionId: s.transaction_id,
+    borrower,
+    amount: s.amount,
+    account: s.account,
+    at: s.txn_at,
+    description: s.description,
+    note: s.note || '',
+    lendId: s.lend_id,
+    forgiven: s.forgiven,
     categoryId: s.category_id,
   };
 }
@@ -679,23 +1079,38 @@ function paymentFromSettlement(s: FinLendSettlement, borrower: string): Payment 
 // An adjustment moved no money, so its amount, category and time are the
 // user's too; a payment back keeps them blank.
 interface RepaymentValues {
-  description: string; note: string; amount: string; categoryId: string; date: string; time: string;
+  description: string;
+  note: string;
+  amount: string;
+  categoryId: string;
+  date: string;
+  time: string;
   /** The lend it counts toward; '' = Overall. */
   toward: string;
 }
 
 function repaymentValues(p: Payment): RepaymentValues {
   const at = txnAtToParts(p.at);
-  return { description: p.description, note: p.note, toward: p.lendId ? String(p.lendId) : '', ...(p.forgiven
-    ? { amount: String(p.amount), categoryId: p.categoryId ? String(p.categoryId) : '', date: at.date, time: at.time }
-    : { amount: '', categoryId: '', date: '', time: '' }) };
+  return {
+    description: p.description,
+    note: p.note,
+    toward: p.lendId ? String(p.lendId) : '',
+    ...(p.forgiven
+      ? { amount: String(p.amount), categoryId: p.categoryId ? String(p.categoryId) : '', date: at.date, time: at.time }
+      : { amount: '', categoryId: '', date: '', time: '' }),
+  };
 }
 
 // The one editor for a payment back (or an adjustment). A payment's amount,
 // account and date belong to the lends it settles; its title and note are the
 // user's words; Toward picks the lend it counts for. All save on Save.
 // Unmarking lives here too.
-export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: {
+export function EditRepaymentDialog({
+  payment,
+  onClose,
+  onChanged,
+  onRemoved,
+}: {
   payment: Payment | null;
   onClose: () => void;
   /** Saved: refresh what shows it. */
@@ -714,7 +1129,12 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   const expenseCats = (categoriesQ.data ?? []).filter((c) => c.kind === 'expense');
   const values: RepaymentValues = { description, note, amount, categoryId, date, time, toward };
   const apply = (v: RepaymentValues) => {
-    setDescription(v.description); setNote(v.note); setAmount(v.amount); setCategoryId(v.categoryId); setDate(v.date); setTime(v.time);
+    setDescription(v.description);
+    setNote(v.note);
+    setAmount(v.amount);
+    setCategoryId(v.categoryId);
+    setDate(v.date);
+    setTime(v.time);
     setToward(v.toward);
   };
   const badAmount = adjusted && !(Number(amount) > 0);
@@ -730,14 +1150,19 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
       const opened = repaymentValues(payment);
       if (JSON.stringify({ ...v, toward: opened.toward }) !== JSON.stringify(opened)) {
         await finance.updateTransaction(payment.transactionId, {
-          description: v.description.trim(), note: v.note,
-          ...(payment.forgiven ? {
-            amount: Number(v.amount), txn_at: partsToTxnAt(v.date, v.time),
-            ...(v.categoryId ? { category_id: Number(v.categoryId) } : {}),
-          } : {}),
+          description: v.description.trim(),
+          note: v.note,
+          ...(payment.forgiven
+            ? {
+                amount: Number(v.amount),
+                txn_at: partsToTxnAt(v.date, v.time),
+                ...(v.categoryId ? { category_id: Number(v.categoryId) } : {}),
+              }
+            : {}),
         });
       }
-      if (v.toward !== opened.toward) await finance.setSettlementLend(payment.settlementId, v.toward ? Number(v.toward) : null);
+      if (v.toward !== opened.toward)
+        await finance.setSettlementLend(payment.settlementId, v.toward ? Number(v.toward) : null);
       onChanged();
     },
   });
@@ -753,51 +1178,113 @@ export function EditRepaymentDialog({ payment, onClose, onChanged, onRemoved }: 
   }, [payment]);
   const unmark = async () => {
     if (!payment) return;
-    if (!(await confirmDialog(payment.forgiven
-      ? 'Undo this adjustment? They owe that amount again, and it leaves your spending.'
-      : 'Unmark this payment? It goes back to plain income.'))) return;
+    if (
+      !(await confirmDialog(
+        payment.forgiven
+          ? 'Undo this adjustment? They owe that amount again, and it leaves your spending.'
+          : 'Unmark this payment? It goes back to plain income.',
+      ))
+    )
+      return;
     editor.cancel();
-    try { await finance.deleteLendSettlement(payment.settlementId); onRemoved(); } catch (error) { toast.error(failureText(error)); }
+    try {
+      await finance.deleteLendSettlement(payment.settlementId);
+      onRemoved();
+    } catch (error) {
+      toast.error(failureText(error));
+    }
   };
-  return <Dialog open={!!payment} onOpenChange={(next) => { if (!next) requestClose(); }}>
-    <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-      <DialogHeader className="flex-row items-baseline justify-between gap-3">
-        <DialogTitle>{payment?.forgiven ? 'Edit adjustment' : 'Edit repayment'}</DialogTitle>
-      </DialogHeader>
-      {payment && (
-        <div className="flex flex-wrap gap-1.5">
-          {payment.forgiven
-            ? <DateBadge tone="positive">Settles · {payment.borrower}</DateBadge>
-            : <>
-              <DateBadge tone="positive">Settles · {payment.borrower} <Money value={payment.amount} /></DateBadge>
-              <DateBadge>{payment.account} · {format(parseISO(payment.at), 'd MMM')}</DateBadge>
-            </>}
-        </div>
-      )}
-      <div className="grid gap-3">
-        <Field label="Title"><Input value={description} onChange={(e) => setDescription(e.target.value)} aria-invalid={!description.trim()} placeholder="e.g. UPI from Monica" maxLength={120} autoFocus /></Field>
-        {adjusted && <Field label="Amount"><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={badAmount} /></Field>}
-        {payment && <TowardPicker person={payment.borrower} value={toward} onChange={setToward} />}
-        {adjusted && <>
-          <Field label="Counts as"><CategoryChips categories={expenseCats} value={categoryId} onChange={setCategoryId} /></Field>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-            <Field label="Date"><DatePicker value={date} onChange={setDate} /></Field>
-            <Field label="Time"><TimePicker value={time} onChange={setTime} /></Field>
+  return (
+    <Dialog
+      open={!!payment}
+      onOpenChange={(next) => {
+        if (!next) requestClose();
+      }}
+    >
+      <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader className="flex-row items-baseline justify-between gap-3">
+          <DialogTitle>{payment?.forgiven ? 'Edit adjustment' : 'Edit repayment'}</DialogTitle>
+        </DialogHeader>
+        {payment && (
+          <div className="flex flex-wrap gap-1.5">
+            {payment.forgiven ? (
+              <DateBadge tone="positive">Settles · {payment.borrower}</DateBadge>
+            ) : (
+              <>
+                <DateBadge tone="positive">
+                  Settles · {payment.borrower} <Money value={payment.amount} />
+                </DateBadge>
+                <DateBadge>
+                  {payment.account} · {format(parseISO(payment.at), 'd MMM')}
+                </DateBadge>
+              </>
+            )}
           </div>
-        </>}
-        <Field label="Note"><Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={1000} /></Field>
-      </div>
-      <DialogFooter className="flex-row items-center justify-between">
-        <Button variant="destructive-quiet" onClick={unmark}><RotateCcw className="size-4 mr-1" /> {payment?.forgiven ? 'Undo adjustment' : 'Unmark'}</Button>
-        <div className="flex gap-2"><EditActions draft={editor} onCancel={onClose} onSave={() => editor.save(onClose)} /></div>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>;
+        )}
+        <div className="grid gap-3">
+          <Field label="Title">
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              aria-invalid={!description.trim()}
+              placeholder="e.g. UPI from Monica"
+              maxLength={120}
+              autoFocus
+            />
+          </Field>
+          {adjusted && (
+            <Field label="Amount">
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                aria-invalid={badAmount}
+              />
+            </Field>
+          )}
+          {payment && <TowardPicker person={payment.borrower} value={toward} onChange={setToward} />}
+          {adjusted && (
+            <>
+              <Field label="Counts as">
+                <CategoryChips categories={expenseCats} value={categoryId} onChange={setCategoryId} />
+              </Field>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+                <Field label="Date">
+                  <DatePicker value={date} onChange={setDate} />
+                </Field>
+                <Field label="Time">
+                  <TimePicker value={time} onChange={setTime} />
+                </Field>
+              </div>
+            </>
+          )}
+          <Field label="Note">
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={1000} />
+          </Field>
+        </div>
+        <DialogFooter className="flex-row items-center justify-between">
+          <Button variant="destructive-quiet" onClick={unmark}>
+            <RotateCcw className="mr-1 size-4" /> {payment?.forgiven ? 'Undo adjustment' : 'Unmark'}
+          </Button>
+          <div className="flex gap-2">
+            <EditActions draft={editor} onCancel={onClose} onSave={() => editor.save(onClose)} />
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // A debt from before Sajni, either way: no money moves, so no balance
 // changes. It files under an account only because every row needs one.
-function OwedBeforeDialog({ open, accounts, people, onClose, onDone }: {
+function OwedBeforeDialog({
+  open,
+  accounts,
+  people,
+  onClose,
+  onDone,
+}: {
   open: boolean;
   accounts: FinAccount[];
   people: string[];
@@ -814,7 +1301,11 @@ function OwedBeforeDialog({ open, accounts, people, onClose, onDone }: {
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTheyOwe(true); setPerson(''); setAmount(''); setTitle(''); setDate(format(new Date(), 'yyyy-MM-dd'));
+    setTheyOwe(true);
+    setPerson('');
+    setAmount('');
+    setTitle('');
+    setDate(format(new Date(), 'yyyy-MM-dd'));
     setAccountId(accounts[0] ? String(accounts[0].id) : '');
   }, [open, accounts]);
   const value = Number(amount) || 0;
@@ -826,9 +1317,23 @@ function OwedBeforeDialog({ open, accounts, people, onClose, onDone }: {
     const description = title.trim() || 'Owed before Sajni';
     try {
       if (theyOwe) {
-        await finance.createLend({ source_account_id: Number(accountId), borrower: person.trim(), amount: value, description, lent_at: at, no_money_moved: true });
+        await finance.createLend({
+          source_account_id: Number(accountId),
+          borrower: person.trim(),
+          amount: value,
+          description,
+          lent_at: at,
+          no_money_moved: true,
+        });
       } else {
-        await finance.createOwed({ person: person.trim(), account_id: Number(accountId), amount: value, description, at, no_money_moved: true });
+        await finance.createOwed({
+          person: person.trim(),
+          account_id: Number(accountId),
+          amount: value,
+          description,
+          at,
+          no_money_moved: true,
+        });
       }
       onDone();
     } catch (e) {
@@ -837,41 +1342,99 @@ function OwedBeforeDialog({ open, accounts, people, onClose, onDone }: {
       setSaving(false);
     }
   };
-  return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
-      <DialogHeader><DialogTitle>From before Sajni</DialogTitle></DialogHeader>
-      <div className="grid gap-3">
-        <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
-          {([true, false] as const).map((v) => (
-            <button key={String(v)} type="button" onClick={() => setTheyOwe(v)}
-              className={cn('rounded-full py-1.5 text-xs font-medium transition-colors',
-                theyOwe === v ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'text-muted-foreground hover:text-foreground')}>
-              {v ? 'They owe me' : 'I owe them'}
-            </button>
-          ))}
-        </div>
-        <Field label="Who"><PersonField value={person} onChange={setPerson} suggestions={people} placeholder="Name" autoFocus /></Field>
-        <Field label="Amount"><Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} placeholder="0.00" /></Field>
-        <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Claude share, September" maxLength={120} /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Since"><DatePicker value={date} onChange={setDate} /></Field>
-          <Field label="File under">
-            <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v ?? '')} items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
-              <SelectTrigger><SelectValue placeholder="Account" /></SelectTrigger>
-              <SelectContent>{accounts.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent>
-            </Select>
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>From before Sajni</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+            {([true, false] as const).map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                onClick={() => setTheyOwe(v)}
+                className={cn(
+                  'rounded-full py-1.5 text-xs font-medium transition-colors',
+                  theyOwe === v
+                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {v ? 'They owe me' : 'I owe them'}
+              </button>
+            ))}
+          </div>
+          <Field label="Who">
+            <PersonField value={person} onChange={setPerson} suggestions={people} placeholder="Name" autoFocus />
           </Field>
+          <Field label="Amount">
+            <Input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
+              placeholder="0.00"
+            />
+          </Field>
+          <Field label="Title">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Claude share, September"
+              maxLength={120}
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Since">
+              <DatePicker value={date} onChange={setDate} />
+            </Field>
+            <Field label="File under">
+              <Select
+                value={accountId || undefined}
+                onValueChange={(v) => setAccountId(v ?? '')}
+                items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            No money moves, so no balance changes. Payments back later settle it like any other.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground">No money moves, so no balance changes. Payments back later settle it like any other.</p>
-      </div>
-      <DialogFooter className="flex-row justify-end gap-2">
-        <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-        <Button onClick={() => void save()} disabled={!ready || saving}>Add</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>;
+        <DialogFooter className="flex-row justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={() => void save()} disabled={!ready || saving}>
+            Add
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="grid gap-1.5"><Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>{children}</div>;
+  return (
+    <div className="grid gap-1.5">
+      <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
 }

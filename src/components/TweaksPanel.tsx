@@ -12,9 +12,7 @@ type Tweak = {
   initial?: number;
 };
 
-const TWEAKS: Tweak[] = [
-  { key: '--text-scale',         label: 'Text scale',         min: 0.8, max: 1.2, step: 0.02, initial: 1 },
-];
+const TWEAKS: Tweak[] = [{ key: '--text-scale', label: 'Text scale', min: 0.8, max: 1.2, step: 0.02, initial: 1 }];
 
 function useEnabled(): boolean {
   const [on, setOn] = useState(() => new URLSearchParams(window.location.search).get('tweaks') === '1');
@@ -29,8 +27,8 @@ function useEnabled(): boolean {
 export default function TweaksPanel() {
   const enabled = useEnabled();
   const [open, setOpen] = useState(true);
-  const [values, setValues] = useState<Record<string, number>>(
-    () => Object.fromEntries(TWEAKS.map((t) => [t.key, t.initial ?? t.min])),
+  const [values, setValues] = useState<Record<string, number>>(() =>
+    Object.fromEntries(TWEAKS.map((t) => [t.key, t.initial ?? t.min])),
   );
 
   useEffect(() => {
@@ -44,25 +42,28 @@ export default function TweaksPanel() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[80] w-72 bg-popover text-popover-foreground border border-border shadow-xl"
+      className="fixed right-4 bottom-4 z-[80] w-72 border border-border bg-popover text-popover-foreground shadow-xl"
       style={{ borderRadius: 0 }}
     >
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <div className="mono text-xs label-kicker">tweaks</div>
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <div className="mono label-kicker text-xs">tweaks</div>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="mono text-xs label-kicker text-muted-foreground hover:text-foreground"
+          className="mono label-kicker text-xs text-muted-foreground hover:text-foreground"
         >
           {open ? <X className="size-3.5" /> : 'open'}
         </button>
       </div>
       {open && (
-        <div className="p-3 flex flex-col gap-3">
+        <div className="flex flex-col gap-3 p-3">
           {TWEAKS.map((t) => (
             <label key={t.key} className="block">
-              <div className="flex items-center justify-between text-xs mb-1">
+              <div className="mb-1 flex items-center justify-between text-xs">
                 <span>{t.label}</span>
-                <span className="mono text-muted-foreground">{values[t.key].toFixed(2)}{t.unit ?? ''}</span>
+                <span className="mono text-muted-foreground">
+                  {values[t.key].toFixed(2)}
+                  {t.unit ?? ''}
+                </span>
               </div>
               <Input
                 type="range"
@@ -75,7 +76,7 @@ export default function TweaksPanel() {
               />
             </label>
           ))}
-          <div className="mono text-xs label-kicker text-muted-foreground pt-1 border-t border-border">
+          <div className="mono label-kicker border-t border-border pt-1 text-xs text-muted-foreground">
             ?tweaks=1 · runtime preview only
           </div>
         </div>

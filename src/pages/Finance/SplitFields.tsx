@@ -25,8 +25,13 @@ export interface SplitState {
   custom: Record<string, string>;
 }
 
-export const emptySplit = (people: string[] = [], includeMe = true): SplitState =>
-  ({ people, draft: '', mode: 'equal', includeMe, custom: {} });
+export const emptySplit = (people: string[] = [], includeMe = true): SplitState => ({
+  people,
+  draft: '',
+  mode: 'equal',
+  includeMe,
+  custom: {},
+});
 
 /** Everyone in the split: the chips, then a name still being typed. */
 export function splitNames(s: SplitState): string[] {
@@ -64,7 +69,11 @@ export function computeSplit(total: number, s: SplitState): SplitResult {
   const shares = names.map((borrower, i) => ({ borrower, share: fromPaise(shareP[i]) }));
   const mine = fromPaise(totalP - sumP);
   if (shareP.some((p) => p <= 0)) {
-    return { shares, mine, error: { share: names.length > 1 ? 'Every share has to be above zero.' : 'Their share has to be above zero.' } };
+    return {
+      shares,
+      mine,
+      error: { share: names.length > 1 ? 'Every share has to be above zero.' : 'Their share has to be above zero.' },
+    };
   }
   if (sumP > totalP) return { shares, mine, error: { share: 'The shares add up to more than the bill.' } };
   return { shares, mine, error: null };
@@ -73,7 +82,15 @@ export function computeSplit(total: number, s: SplitState): SplitResult {
 /** One person, the whole bill, by Equally with Include me off: money lent. */
 export const isAllTheirs = (s: SplitState) => s.mode === 'equal' && !s.includeMe && splitNames(s).length === 1;
 
-export function SplitFields({ value, onChange, total, suggestions, errors, autoFocus, children }: {
+export function SplitFields({
+  value,
+  onChange,
+  total,
+  suggestions,
+  errors,
+  autoFocus,
+  children,
+}: {
   value: SplitState;
   onChange: (next: SplitState) => void;
   total: number;
@@ -90,7 +107,10 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
   const set = (patch: Partial<SplitState>) => onChange({ ...s, ...patch });
   const add = (name: string) => {
     const n = name.trim();
-    if (!n || s.people.some((p) => personKey(p) === personKey(n))) { set({ draft: '' }); return; }
+    if (!n || s.people.some((p) => personKey(p) === personKey(n))) {
+      set({ draft: '' });
+      return;
+    }
     set({ people: [...s.people, n], draft: '' });
   };
   const remove = (name: string) => {
@@ -111,12 +131,18 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
         onChange={(e) => {
           const v = e.target.value;
           // A comma finishes a name.
-          if (v.endsWith(',')) add(v.slice(0, -1)); else set({ draft: v });
+          if (v.endsWith(',')) add(v.slice(0, -1));
+          else set({ draft: v });
         }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && s.draft.trim()) { e.preventDefault(); add(s.draft); }
+          if (e.key === 'Enter' && s.draft.trim()) {
+            e.preventDefault();
+            add(s.draft);
+          }
         }}
-        onBlur={() => { if (s.draft.trim()) add(s.draft); }}
+        onBlur={() => {
+          if (s.draft.trim()) add(s.draft);
+        }}
         placeholder={s.people.length ? 'Add someone' : 'Who owes this?'}
         aria-label="Who owes this"
         aria-invalid={!!errors?.person}
@@ -129,7 +155,12 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
             const picked = s.people.find((q) => personKey(q) === personKey(p));
             // One weight in both states, so picking doesn't widen the pill.
             return (
-              <HuePill key={personKey(p)} selected={!!picked} onClick={() => (picked ? remove(picked) : add(p))} className="h-8 font-medium">
+              <HuePill
+                key={personKey(p)}
+                selected={!!picked}
+                onClick={() => (picked ? remove(picked) : add(p))}
+                className="h-8 font-medium"
+              >
                 {p}
               </HuePill>
             );
@@ -143,7 +174,10 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
           aria-label="How to split"
           value={s.mode}
           onChange={(mode) => set({ mode })}
-          options={[{ value: 'equal', label: 'Equally' }, { value: 'custom', label: 'Custom' }]}
+          options={[
+            { value: 'equal', label: 'Equally' },
+            { value: 'custom', label: 'Custom' },
+          ]}
           showCheck={false}
           className="h-11 bg-[hsl(var(--surface-container-highest))] p-1"
         />
@@ -153,7 +187,7 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
             aria-pressed={s.includeMe}
             onClick={() => set({ includeMe: !s.includeMe })}
             className={cn(
-              'inline-flex h-11 items-center rounded-xl px-3.5 text-sm font-semibold outline-none transition-colors focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+              'inline-flex h-11 items-center rounded-xl px-3.5 text-sm font-semibold transition-colors outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
               s.includeMe
                 ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
                 : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground hover:text-foreground',
@@ -164,25 +198,34 @@ export function SplitFields({ value, onChange, total, suggestions, errors, autoF
         )}
       </div>
 
-      {s.mode === 'custom' && names.map((n) => (
-        <PrefixedInput
-          key={personKey(n)}
-          prefix={`${n} ₹`}
-          value={s.custom[personKey(n)] ?? ''}
-          onChange={(v) => set({ custom: { ...s.custom, [personKey(n)]: decimalOnly(v) } })}
-          invalid={!!errors?.share}
-        />
-      ))}
+      {s.mode === 'custom' &&
+        names.map((n) => (
+          <PrefixedInput
+            key={personKey(n)}
+            prefix={`${n} ₹`}
+            value={s.custom[personKey(n)] ?? ''}
+            onChange={(v) => set({ custom: { ...s.custom, [personKey(n)]: decimalOnly(v) } })}
+            invalid={!!errors?.share}
+          />
+        ))}
       {errors?.share && <p className="text-xs text-destructive">{errors.share}</p>}
       {children}
 
       <SummaryRow>
-        {total > 0 && names.length > 0 && !result.error && (<>
-          {result.mine > 0 && <DateBadge>You <Money value={result.mine} /></DateBadge>}
-          {result.shares.map((sh) => (
-            <DateBadge key={personKey(sh.borrower)} tone="accent">{sh.borrower} owes <Money value={sh.share} /></DateBadge>
-          ))}
-        </>)}
+        {total > 0 && names.length > 0 && !result.error && (
+          <>
+            {result.mine > 0 && (
+              <DateBadge>
+                You <Money value={result.mine} />
+              </DateBadge>
+            )}
+            {result.shares.map((sh) => (
+              <DateBadge key={personKey(sh.borrower)} tone="accent">
+                {sh.borrower} owes <Money value={sh.share} />
+              </DateBadge>
+            ))}
+          </>
+        )}
       </SummaryRow>
     </div>
   );

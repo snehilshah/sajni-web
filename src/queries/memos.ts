@@ -15,8 +15,7 @@ export function useMemos(params?: MemoListParams) {
 export function useCreateMemo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ content, pinned }: { content: string; pinned?: boolean }) =>
-      memosApi.create(content, pinned),
+    mutationFn: ({ content, pinned }: { content: string; pinned?: boolean }) => memosApi.create(content, pinned),
     onError: () => toast.error('Could not save memo'),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.memos.all }),
   });

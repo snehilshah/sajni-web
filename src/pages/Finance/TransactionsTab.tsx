@@ -6,18 +6,41 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, startOfWeek, endOfWeek, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import {
-  Plus, Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, X, Tags, Hash, Check, Wallet, Coins,
+  Plus,
+  Search,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  X,
+  Tags,
+  Hash,
+  Check,
+  Wallet,
+  Coins,
 } from '@/components/ui/icons';
 
-import { finance, type FinAccount, type FinCategory, type FinLend, type FinSlate, type FinTransaction, type TxnKind } from '@/api';
+import {
+  finance,
+  type FinAccount,
+  type FinCategory,
+  type FinLend,
+  type FinSlate,
+  type FinTransaction,
+  type TxnKind,
+} from '@/api';
 import { failureText } from '@/lib/errors';
 import { confirmDialog } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cardClass, CardAccent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -49,13 +72,23 @@ function extractHashtags(s: string): string[] {
   const seen = new Set<string>();
   for (const m of s.matchAll(HASHTAG_RE)) {
     const tag = m[1].toLowerCase().replace(/^[-/_]+|[-/_]+$/g, '');
-    if (tag && !seen.has(tag)) { seen.add(tag); out.push(tag); }
+    if (tag && !seen.has(tag)) {
+      seen.add(tag);
+      out.push(tag);
+    }
   }
   return out;
 }
 
-interface Tally { spent: number; earned: number; lent: number; returned: number }
-interface Bucket extends Tally { key: string }
+interface Tally {
+  spent: number;
+  earned: number;
+  lent: number;
+  returned: number;
+}
+interface Bucket extends Tally {
+  key: string;
+}
 interface DayBucket extends Bucket {
   items: FinTransaction[];
   /** Attached to the latest day of a week/month, and only once that period
@@ -63,8 +96,12 @@ interface DayBucket extends Bucket {
   week?: Tally;
   month?: Tally;
 }
-interface WeekBucket extends Bucket { days: DayBucket[] }
-interface MonthBucket extends Bucket { weeks: WeekBucket[] }
+interface WeekBucket extends Bucket {
+  days: DayBucket[];
+}
+interface MonthBucket extends Bucket {
+  weeks: WeekBucket[];
+}
 
 // Days, newest first. Week and month totals ride on the latest day of their
 // period rather than living in their own header bands — the periods nest, but
@@ -82,11 +119,20 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
     const monthKey = day.slice(0, 7);
 
     let m = months.get(monthKey);
-    if (!m) { m = { key: monthKey, spent: 0, earned: 0, lent: 0, returned: 0, weeks: [] }; months.set(monthKey, m); }
+    if (!m) {
+      m = { key: monthKey, spent: 0, earned: 0, lent: 0, returned: 0, weeks: [] };
+      months.set(monthKey, m);
+    }
     let w = m.weeks.find((x) => x.key === monday);
-    if (!w) { w = { key: monday, spent: 0, earned: 0, lent: 0, returned: 0, days: [] }; m.weeks.push(w); }
+    if (!w) {
+      w = { key: monday, spent: 0, earned: 0, lent: 0, returned: 0, days: [] };
+      m.weeks.push(w);
+    }
     let d = w.days.find((x) => x.key === day);
-    if (!d) { d = { key: day, spent: 0, earned: 0, lent: 0, returned: 0, items: [] }; w.days.push(d); }
+    if (!d) {
+      d = { key: day, spent: 0, earned: 0, lent: 0, returned: 0, items: [] };
+      w.days.push(d);
+    }
 
     d.items.push(t);
     // Tallies accumulate in paise (exact) and convert back below.
@@ -105,12 +151,17 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
   }
 
   const toRupees = (b: Tally) => {
-    b.spent = fromPaise(b.spent); b.earned = fromPaise(b.earned);
-    b.lent = fromPaise(b.lent); b.returned = fromPaise(b.returned);
+    b.spent = fromPaise(b.spent);
+    b.earned = fromPaise(b.earned);
+    b.lent = fromPaise(b.lent);
+    b.returned = fromPaise(b.returned);
   };
   for (const m of months.values()) {
     toRupees(m);
-    for (const w of m.weeks) { toRupees(w); w.days.forEach(toRupees); }
+    for (const w of m.weeks) {
+      toRupees(w);
+      w.days.forEach(toRupees);
+    }
   }
 
   const out: DayBucket[] = [];
@@ -125,7 +176,8 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
       let firstOfWeek = true;
       for (const d of w.days) {
         if (firstOfWeek && weekOver) d.week = { spent: w.spent, earned: w.earned, lent: w.lent, returned: w.returned };
-        if (firstOfMonth && monthOver) d.month = { spent: m.spent, earned: m.earned, lent: m.lent, returned: m.returned };
+        if (firstOfMonth && monthOver)
+          d.month = { spent: m.spent, earned: m.earned, lent: m.lent, returned: m.returned };
         firstOfWeek = false;
         firstOfMonth = false;
         out.push(d);
@@ -141,8 +193,7 @@ function buildLedger(txns: FinTransaction[], today: string): DayBucket[] {
 // every line and nothing reads as a table. LEAD matches the width of the
 // select control, which headers reserve as empty space so their labels start
 // exactly where descriptions do.
-const GRID =
-  'grid grid-cols-[minmax(0,1fr)_6.5rem] md:grid-cols-[minmax(0,1fr)_19rem_7.5rem] items-center gap-x-3';
+const GRID = 'grid grid-cols-[minmax(0,1fr)_6.5rem] md:grid-cols-[minmax(0,1fr)_19rem_7.5rem] items-center gap-x-3';
 const LEAD = 'pl-[3.25rem] md:pl-[3.75rem]';
 const TRAIL = 'pr-3 md:pr-4';
 
@@ -169,13 +220,28 @@ interface Props {
   active: boolean;
 }
 
-export interface SheetRequest { kind: 'expense' | 'lend' | 'settle' | 'borrow' | 'payback'; person: string; n: number }
+export interface SheetRequest {
+  kind: 'expense' | 'lend' | 'settle' | 'borrow' | 'payback';
+  person: string;
+  n: number;
+}
 
 export default function TransactionsTab({
-  accounts, categories, slates, transactions, lends, loaded,
-  slateFilter, onSlateFilter, reload, reloadCategories,
-  truncated, canLoadEarlier, onLoadEarlier,
-  sheetRequest, active,
+  accounts,
+  categories,
+  slates,
+  transactions,
+  lends,
+  loaded,
+  slateFilter,
+  onSlateFilter,
+  reload,
+  reloadCategories,
+  truncated,
+  canLoadEarlier,
+  onLoadEarlier,
+  sheetRequest,
+  active,
 }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -223,7 +289,10 @@ export default function TransactionsTab({
       const next = { ...prev };
       for (const t of transactions) {
         const ov = next[t.id];
-        if (ov && ov.account_id === t.account_id) { delete next[t.id]; changed = true; }
+        if (ov && ov.account_id === t.account_id) {
+          delete next[t.id];
+          changed = true;
+        }
       }
       return changed ? next : prev;
     });
@@ -234,7 +303,10 @@ export default function TransactionsTab({
   // Spending categories first, then income, each by name. Rows waiting for
   // a category are in Unknown, an ordinary entry here.
   const sortedCategories = useMemo(
-    () => [...categories].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'expense' ? -1 : 1) || a.name.localeCompare(b.name)),
+    () =>
+      [...categories].sort(
+        (a, b) => (a.kind === b.kind ? 0 : a.kind === 'expense' ? -1 : 1) || a.name.localeCompare(b.name),
+      ),
     [categories],
   );
 
@@ -243,17 +315,27 @@ export default function TransactionsTab({
     [transactions, overrides],
   );
 
-  const filtering = !!search || accountFilter.length > 0 || categoryFilter.length > 0 || !!typeFilter || slateFilter !== null;
+  const filtering =
+    !!search || accountFilter.length > 0 || categoryFilter.length > 0 || !!typeFilter || slateFilter !== null;
   // Filter client-side off the parent's cached list so changes are instant.
   // (Backend filtering kicks in only when reload() is called after a mutation.)
   const filtered = useMemo(() => {
     return merged.filter((t) => {
-      if (search && !t.description.toLowerCase().includes(search.toLowerCase()) &&
-          !(t.category_name || '').toLowerCase().includes(search.toLowerCase())) return false;
+      if (
+        search &&
+        !t.description.toLowerCase().includes(search.toLowerCase()) &&
+        !(t.category_name || '').toLowerCase().includes(search.toLowerCase())
+      )
+        return false;
       if (accountFilter.length && !accountFilter.includes(String(t.account_id))) return false;
       if (categoryFilter.length && !categoryFilter.includes(String(t.category_id ?? ''))) return false;
       if (typeFilter) {
-        if (typeFilter === 'transfer_out' && t.type !== 'transfer_out' && !(t.type === 'transfer_in' && t.investment_id)) return false;
+        if (
+          typeFilter === 'transfer_out' &&
+          t.type !== 'transfer_out' &&
+          !(t.type === 'transfer_in' && t.investment_id)
+        )
+          return false;
         if (typeFilter !== 'transfer_out' && t.type !== typeFilter) return false;
       }
       return true;
@@ -287,11 +369,13 @@ export default function TransactionsTab({
   }, [visibleIds]);
 
   const selecting = selected.size > 0;
-  const toggle = (id: number) => setSelected((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  const toggle = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const openTransaction = (txn: FinTransaction) => {
     if (txn.type === 'netoff') {
@@ -317,10 +401,13 @@ export default function TransactionsTab({
   };
 
   const selectedTotal = useMemo(
-    () => fromPaise(filtered
-      .filter((t) => selected.has(t.id))
-      .filter((t) => t.type === 'expense')
-      .reduce((s, t) => s + toPaise(t.amount), 0)),
+    () =>
+      fromPaise(
+        filtered
+          .filter((t) => selected.has(t.id))
+          .filter((t) => t.type === 'expense')
+          .reduce((s, t) => s + toPaise(t.amount), 0),
+      ),
     [filtered, selected],
   );
 
@@ -361,14 +448,19 @@ export default function TransactionsTab({
           second, horizontally scrollable so nothing clips on a phone. */}
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search description" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Search description"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             {search && (
               <button
                 onClick={() => setSearch('')}
                 aria-label="Clear search"
-                className="absolute right-1 top-1/2 -translate-y-1/2 grid size-8 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                className="absolute top-1/2 right-1 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
               >
                 <X className="size-4" />
               </button>
@@ -379,28 +471,48 @@ export default function TransactionsTab({
           </Button>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
+        <div className="-mb-0.5 flex gap-2 overflow-x-auto pb-0.5">
           {/* Several accounts at once: tick each; none ticked = all. */}
-          <Select multiple value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? [])}
-            items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}>
+          <Select
+            multiple
+            value={accountFilter}
+            onValueChange={(v) => setAccountFilter(v ?? [])}
+            items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
+          >
             <SelectTrigger size="sm" className="w-[150px] shrink-0">
               <SelectValue>
-                {(ids: string[]) => !ids.length ? 'All accounts'
-                  : ids.length === 1 ? accountNameById(Number(ids[0])) : `${ids.length} accounts`}
+                {(ids: string[]) =>
+                  !ids.length
+                    ? 'All accounts'
+                    : ids.length === 1
+                      ? accountNameById(Number(ids[0]))
+                      : `${ids.length} accounts`
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
-                <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                <SelectItem key={a.id} value={String(a.id)}>
+                  {a.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Select multiple value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? [])}
-            items={sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))}>
+          <Select
+            multiple
+            value={categoryFilter}
+            onValueChange={(v) => setCategoryFilter(v ?? [])}
+            items={sortedCategories.map((c) => ({ value: String(c.id), label: c.name }))}
+          >
             <SelectTrigger size="sm" className="w-[150px] shrink-0">
               <SelectValue>
-                {(ids: string[]) => !ids.length ? 'All categories'
-                  : ids.length === 1 ? categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category' : `${ids.length} categories`}
+                {(ids: string[]) =>
+                  !ids.length
+                    ? 'All categories'
+                    : ids.length === 1
+                      ? (categories.find((c) => String(c.id) === ids[0])?.name ?? '1 category')
+                      : `${ids.length} categories`
+                }
               </SelectValue>
             </SelectTrigger>
             {/* Fixed width: long names end in "…" instead of widening the
@@ -409,16 +521,32 @@ export default function TransactionsTab({
             <SelectContent className="w-60">
               {sortedCategories.map((c) => (
                 <SelectItem key={c.id} value={String(c.id)}>
-                  {c.kind === 'expense'
-                    ? <ArrowUpRight aria-label="Expense" className="size-3.5 text-destructive" />
-                    : <ArrowDownLeft aria-label="Income" className="size-3.5 text-[hsl(var(--color-complete))]" />}
+                  {c.kind === 'expense' ? (
+                    <ArrowUpRight aria-label="Expense" className="size-3.5 text-destructive" />
+                  ) : (
+                    <ArrowDownLeft aria-label="Income" className="size-3.5 text-[hsl(var(--color-complete))]" />
+                  )}
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
-            items={[{ value: 'all', label: 'All types' }, { value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }, { value: 'refund', label: 'Refund' }, { value: 'transfer_out', label: 'Transfer' }, { value: 'lend', label: 'Lend' }, { value: 'lend_repayment', label: 'Lend repayment' }, { value: 'writeoff', label: 'Adjusted' }, { value: 'borrow', label: 'Borrowed' }, { value: 'borrow_repayment', label: 'Paid back' }]}>
+          <Select
+            value={typeFilter || 'all'}
+            onValueChange={(v) => setTypeFilter(!v || v === 'all' ? '' : v)}
+            items={[
+              { value: 'all', label: 'All types' },
+              { value: 'expense', label: 'Expense' },
+              { value: 'income', label: 'Income' },
+              { value: 'refund', label: 'Refund' },
+              { value: 'transfer_out', label: 'Transfer' },
+              { value: 'lend', label: 'Lend' },
+              { value: 'lend_repayment', label: 'Lend repayment' },
+              { value: 'writeoff', label: 'Adjusted' },
+              { value: 'borrow', label: 'Borrowed' },
+              { value: 'borrow_repayment', label: 'Paid back' },
+            ]}
+          >
             <SelectTrigger size="sm" className="w-[130px] shrink-0">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
@@ -450,15 +578,26 @@ export default function TransactionsTab({
             <SelectContent>
               <SelectItem value="all">All slates</SelectItem>
               {activeSlates.map((s) => (
-                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                <SelectItem key={s.id} value={String(s.id)}>
+                  {s.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {filtering && (
-            <Button variant="ghost" size="sm" className="shrink-0" onClick={() => {
-              setSearch(''); setAccountFilter([]); setCategoryFilter([]); setTypeFilter(''); onSlateFilter(null);
-            }}>
-              <X className="size-4 mr-1" /> Clear
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setSearch('');
+                setAccountFilter([]);
+                setCategoryFilter([]);
+                setTypeFilter('');
+                onSlateFilter(null);
+              }}
+            >
+              <X className="mr-1 size-4" /> Clear
             </Button>
           )}
         </div>
@@ -469,15 +608,15 @@ export default function TransactionsTab({
       {viewing && (
         <div className={cardClass({ variant: 'filled', accent: viewing.color }, 'flex items-center gap-3 px-4 py-3')}>
           <CardAccent color={viewing.color} />
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium">{viewing.name}</div>
             <div className="font-mono text-xs text-muted-foreground">
               {viewing.is_plain
                 ? 'normal life · what your budgets count by default'
-                : "kept out of your ordinary budgets"}
+                : 'kept out of your ordinary budgets'}
             </div>
           </div>
-          <div className="text-right shrink-0">
+          <div className="shrink-0 text-right">
             <Money value={viewing.total_spend} className="block text-lg font-semibold" />
             <div className="font-mono text-xs text-muted-foreground">
               {viewing.txn_count === 1 ? '1 txn' : `${viewing.txn_count} txns`} · lifetime
@@ -510,7 +649,12 @@ export default function TransactionsTab({
                 {(d.week || d.month) && (
                   <div className="grid gap-0.5 overflow-hidden rounded-xl">
                     {d.month && <PeriodStats label={format(parseISO(d.key), 'MMMM')} t={d.month} />}
-                    {d.week && <PeriodStats label={`Week of ${format(startOfWeek(parseISO(d.key), { weekStartsOn: 1 }), 'd MMM')}`} t={d.week} />}
+                    {d.week && (
+                      <PeriodStats
+                        label={`Week of ${format(startOfWeek(parseISO(d.key), { weekStartsOn: 1 }), 'd MMM')}`}
+                        t={d.week}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -521,9 +665,7 @@ export default function TransactionsTab({
                       sync with the floating chrome island by hand. Not worth it
                       for a date the group is already sorted by. */}
                   <div className={cn(GRID, LEAD, TRAIL, 'py-2.5')}>
-                    <span className="text-sm font-semibold md:col-span-2">
-                      {format(parseISO(d.key), 'EEE, d MMM')}
-                    </span>
+                    <span className="text-sm font-semibold md:col-span-2">{format(parseISO(d.key), 'EEE, d MMM')}</span>
                     <DayFigures t={d} />
                   </div>
                   {d.items.map((t) => (
@@ -533,7 +675,7 @@ export default function TransactionsTab({
                       slate={slateById(t.slate_id)}
                       selecting={selecting}
                       checked={selected.has(t.id)}
-                      onToggle={() => peopleRow(t) ? openTransaction(t) : toggle(t.id)}
+                      onToggle={() => (peopleRow(t) ? openTransaction(t) : toggle(t.id))}
                       onOpen={() => openTransaction(t)}
                       accountName={accountNameById(t.account_id) || t.account_name}
                       linkedName={t.investment_name ?? linkedAccountName(t.linked_account)}
@@ -562,42 +704,46 @@ export default function TransactionsTab({
             animate={{ opacity: 1, transform: 'translateY(0)' }}
             exit={{ opacity: 0, transform: 'translateY(12px)' }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="sticky bottom-3 z-20 flex items-center gap-2 rounded-full border border-border bg-[hsl(var(--surface-container-high))] px-2 py-2 m3-elev-3"
+            className="m3-elev-3 sticky bottom-3 z-20 flex items-center gap-2 rounded-full border border-border bg-[hsl(var(--surface-container-high))] px-2 py-2"
           >
             <button
               type="button"
               onClick={() => setSelected(new Set())}
               aria-label="Clear selection"
-              className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+              className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
             >
               <X className="size-4" />
             </button>
-            <div className="flex-1 min-w-0 leading-tight">
+            <div className="min-w-0 flex-1 leading-tight">
               <div className="text-sm font-medium">{selected.size} selected</div>
               {selectedTotal > 0 && (
-                <div className="font-mono text-xs text-muted-foreground tabular-nums"><Money value={selectedTotal} /> spent</div>
+                <div className="font-mono text-xs text-muted-foreground tabular-nums">
+                  <Money value={selectedTotal} /> spent
+                </div>
               )}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger
                 disabled={sweeping}
-                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[hsl(var(--primary))] px-4 text-sm font-medium text-[hsl(var(--primary-foreground))] outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--primary))] disabled:opacity-50 tap-highlight-none"
+                className="tap-highlight-none inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[hsl(var(--primary))] px-4 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2 disabled:opacity-50"
               >
                 <Wallet className="size-4" /> {sweeping ? 'Moving…' : 'Move to slate'}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
                 <DropdownMenuGroup>
-                <DropdownMenuLabel>Move out of the budget baseline</DropdownMenuLabel>
-                {/* Never a sweep target: archiving a slate means it is finished. */}
-                {slates.filter((s) => !s.archived && !s.is_plain).map((s) => (
-                  <DropdownMenuItem key={s.id} onClick={() => sweep(s.id, s.name)}>
-                    <span aria-hidden className="size-2 rounded-full" style={{ backgroundColor: s.color }} />
-                    {s.name}
+                  <DropdownMenuLabel>Move out of the budget baseline</DropdownMenuLabel>
+                  {/* Never a sweep target: archiving a slate means it is finished. */}
+                  {slates
+                    .filter((s) => !s.archived && !s.is_plain)
+                    .map((s) => (
+                      <DropdownMenuItem key={s.id} onClick={() => sweep(s.id, s.name)}>
+                        <span aria-hidden className="size-2 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.name}
+                      </DropdownMenuItem>
+                    ))}
+                  <DropdownMenuItem onClick={() => setNewSlate(true)}>
+                    <Plus /> New slate…
                   </DropdownMenuItem>
-                ))}
-                <DropdownMenuItem onClick={() => setNewSlate(true)}>
-                  <Plus /> New slate…
-                </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => sweep(0, plain?.name ?? 'Plain')}>
@@ -613,17 +759,24 @@ export default function TransactionsTab({
           Desktop: it's in the page header, which stays pinned as you
           scroll. Portalled: the tab panel's transform would pin a fixed
           child to the panel. The sweep bar owns the bottom while selecting. */}
-      {active && isMobile && !selecting && createPortal(
-        <Button
-          size="fab"
-          aria-label="Add transaction"
-          onClick={() => { setCreateKind('expense'); setCreatePerson(''); setCreating(true); }}
-          className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+84px)] z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
-        >
-          <Plus />
-        </Button>,
-        document.body,
-      )}
+      {active &&
+        isMobile &&
+        !selecting &&
+        createPortal(
+          <Button
+            size="fab"
+            aria-label="Add transaction"
+            onClick={() => {
+              setCreateKind('expense');
+              setCreatePerson('');
+              setCreating(true);
+            }}
+            className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+84px)] z-40 bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] hover:bg-[hsl(var(--primary-container))] hover:brightness-[0.97]"
+          >
+            <Plus />
+          </Button>,
+          document.body,
+        )}
 
       <TransactionDialog
         open={creating || editing !== null}
@@ -639,7 +792,10 @@ export default function TransactionsTab({
           if (lend) setEditingLend(lend);
           else toast.error('Lend details are unavailable. Refresh and try again.');
         }}
-        onClose={() => { setCreating(false); setEditing(null); }}
+        onClose={() => {
+          setCreating(false);
+          setEditing(null);
+        }}
         onSaved={(patch) => {
           setCreating(false);
           setEditing(null);
@@ -652,14 +808,23 @@ export default function TransactionsTab({
         lend={editingLend}
         accounts={accounts}
         onClose={() => setEditingLend(null)}
-        onSaved={() => { setEditingLend(null); reload(); }}
-        onRemoved={() => { setEditingLend(null); reload(); }}
+        onSaved={() => {
+          setEditingLend(null);
+          reload();
+        }}
+        onRemoved={() => {
+          setEditingLend(null);
+          reload();
+        }}
       />
       <EditRepaymentDialog
         payment={editingRepayment}
         onClose={() => setEditingRepayment(null)}
         onChanged={reload}
-        onRemoved={() => { setEditingRepayment(null); reload(); }}
+        onRemoved={() => {
+          setEditingRepayment(null);
+          reload();
+        }}
       />
       {/* Create-then-sweep in one motion: back from a trip, select the rows,
           name the slate, done. */}
@@ -684,8 +849,15 @@ export default function TransactionsTab({
 }
 
 function LedgerRow({
-  txn: t, slate, selecting, checked, onToggle, onOpen,
-  accountName, linkedName, onTag,
+  txn: t,
+  slate,
+  selecting,
+  checked,
+  onToggle,
+  onOpen,
+  accountName,
+  linkedName,
+  onTag,
 }: {
   txn: FinTransaction;
   slate?: FinSlate;
@@ -710,22 +882,53 @@ function LedgerRow({
   const isBorrow = t.type === 'borrow';
   const isPayBack = t.type === 'borrow_repayment';
   const noMoney = t.type === 'owed' || t.type === 'netoff';
-  const owedPill = isBorrow && t.owed ? `Owe · ${t.owed.person}`
-    : isPayBack && t.owed ? `Pays back · ${t.owed.person}`
-      : t.type === 'owed' ? (t.owed ? `You owed · ${t.owed.person}` : t.lend_borrower ? `Owed you · ${t.lend_borrower}` : 'Owed')
-        : t.type === 'netoff' ? `Netted · ${t.lend_borrower ?? ''}` : null;
+  const owedPill =
+    isBorrow && t.owed
+      ? `Owe · ${t.owed.person}`
+      : isPayBack && t.owed
+        ? `Pays back · ${t.owed.person}`
+        : t.type === 'owed'
+          ? t.owed
+            ? `You owed · ${t.owed.person}`
+            : t.lend_borrower
+              ? `Owed you · ${t.lend_borrower}`
+              : 'Owed'
+          : t.type === 'netoff'
+            ? `Netted · ${t.lend_borrower ?? ''}`
+            : null;
   // A split bill shows the charge as it hit the account; the user's part
   // sits under it.
   const splits = txnSplits(t);
   const shown = splits.length ? sumMoney([t.amount, ...splits.map((sp) => sp.share)], (v) => v) : t.amount;
-  const marker = splits.length ? `Split · ${splits.map((sp) => sp.borrower).join(', ')}` : isRefund ? 'Refund' : t.type === 'writeoff' ? 'Adjusted' : null;
-  const Icon = isLend || isLendRepayment || owedPill ? Coins : isTransfer ? ArrowLeftRight : isExpense ? ArrowUpRight : ArrowDownLeft;
+  const marker = splits.length
+    ? `Split · ${splits.map((sp) => sp.borrower).join(', ')}`
+    : isRefund
+      ? 'Refund'
+      : t.type === 'writeoff'
+        ? 'Adjusted'
+        : null;
+  const Icon =
+    isLend || isLendRepayment || owedPill
+      ? Coins
+      : isTransfer
+        ? ArrowLeftRight
+        : isExpense
+          ? ArrowUpRight
+          : ArrowDownLeft;
   const isMove = isTransfer || isLend || isLendRepayment || !!owedPill;
-  const title = t.description || (isLend ? 'Lend' : isLendRepayment ? 'Lend repayment' : isTransfer ? 'Transfer' : owedPill || t.category_name || (isExpense ? 'Expense' : 'Income'));
+  const title =
+    t.description ||
+    (isLend
+      ? 'Lend'
+      : isLendRepayment
+        ? 'Lend repayment'
+        : isTransfer
+          ? 'Transfer'
+          : owedPill || t.category_name || (isExpense ? 'Expense' : 'Income'));
   // Identity tile, like a merchant logo: the payee's initial on a tint of
   // the category colour; moves get a neutral glyph. The corner arrow is the
   // type, so nothing on the row needs a badge.
-  const hue = isMove ? null : (t.category_color || '#6B7280');
+  const hue = isMove ? null : t.category_color || '#6B7280';
   const ink = hue ? `color-mix(in srgb, ${hue} 70%, hsl(var(--foreground)))` : undefined;
   const initial = (title.match(/[\p{L}\p{N}]/u)?.[0] ?? '•').toUpperCase();
   // Plain is silent: only an outlier earns a spine and a chip. `slate` can be
@@ -736,12 +939,12 @@ function LedgerRow({
 
   return (
     <div
-      className={`group relative flex min-h-12 items-stretch border-b border-border last:border-0 transition-colors ${
+      className={`group relative flex min-h-12 items-stretch border-b border-border transition-colors last:border-0 ${
         checked ? 'bg-[hsl(var(--secondary-container)/0.5)]' : 'hover:bg-accent/40'
       }`}
     >
       {outlier && (
-        <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: slate.color }} />
+        <span aria-hidden className="absolute top-0 bottom-0 left-0 w-[3px]" style={{ backgroundColor: slate.color }} />
       )}
       {/* Fixed to LEAD's width so descriptions line up with the header labels. */}
       <button
@@ -749,7 +952,7 @@ function LedgerRow({
         onClick={onToggle}
         aria-pressed={checked}
         aria-label={checked ? `Deselect ${t.description || 'transaction'}` : `Select ${t.description || 'transaction'}`}
-        className="relative grid w-[3.25rem] md:w-[3.75rem] shrink-0 place-items-center self-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] tap-highlight-none"
+        className="tap-highlight-none relative grid w-[3.25rem] shrink-0 place-items-center self-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] md:w-[3.75rem]"
       >
         {checked ? (
           <span className="grid size-8 place-items-center rounded-md bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
@@ -774,11 +977,15 @@ function LedgerRow({
                   className={cn(
                     // Filled in the direction's colour, ringed in the row's
                     // surface so it reads as a badge on the tile.
-                    'absolute -bottom-0.5 -right-1 grid size-4 place-items-center rounded-full ring-2 ring-[hsl(var(--card))] text-white',
+                    'absolute -right-1 -bottom-0.5 grid size-4 place-items-center rounded-full text-white ring-2 ring-[hsl(var(--card))]',
                     isExpense ? 'bg-destructive' : 'bg-[hsl(var(--color-complete))]',
                   )}
                 >
-                  {isExpense ? <ArrowUpRight className="size-2.5" strokeWidth={3.25} /> : <ArrowDownLeft className="size-2.5" strokeWidth={3.25} />}
+                  {isExpense ? (
+                    <ArrowUpRight className="size-2.5" strokeWidth={3.25} />
+                  ) : (
+                    <ArrowDownLeft className="size-2.5" strokeWidth={3.25} />
+                  )}
                 </span>
               )}
             </span>
@@ -796,12 +1003,16 @@ function LedgerRow({
       <button
         type="button"
         onClick={selecting ? onToggle : onOpen}
-        className={cn(GRID, TRAIL, 'flex-1 min-w-0 gap-y-0.5 py-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary))] active:bg-accent/60 tap-highlight-none')}
+        className={cn(
+          GRID,
+          TRAIL,
+          'tap-highlight-none min-w-0 flex-1 gap-y-0.5 py-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-inset active:bg-accent/60',
+        )}
       >
         <div className="min-w-0 md:col-start-1">
-          <div className="text-sm font-medium truncate">{title}</div>
+          <div className="truncate text-sm font-medium">{title}</div>
           {(outlier || tags.length > 0 || marker) && (
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="mt-1 flex flex-wrap gap-1">
               {marker && (
                 <span className="inline-flex items-center rounded-full bg-[hsl(var(--secondary-container))] px-1.5 py-0.5 text-xs font-medium text-[hsl(var(--on-secondary-container))]">
                   {marker}
@@ -820,10 +1031,14 @@ function LedgerRow({
                 <span
                   key={tag}
                   role="link"
-                  onClick={(e) => { e.stopPropagation(); onTag(tag); }}
-                  className="inline-flex items-center gap-0.5 rounded-full bg-secondary/40 hover:bg-secondary/70 px-1.5 py-0.5 font-mono text-xs text-foreground/80 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTag(tag);
+                  }}
+                  className="inline-flex items-center gap-0.5 rounded-full bg-secondary/40 px-1.5 py-0.5 font-mono text-xs text-foreground/80 transition-colors hover:bg-secondary/70"
                 >
-                  <Hash className="size-2.5 opacity-70" strokeWidth={2.5} />{tag}
+                  <Hash className="size-2.5 opacity-70" strokeWidth={2.5} />
+                  {tag}
                 </span>
               ))}
             </div>
@@ -832,9 +1047,11 @@ function LedgerRow({
 
         {/* Time · category · account. One line on a phone; three aligned
             sub-columns from md, so the eye can scan straight down each. */}
-        <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 font-mono text-xs text-muted-foreground md:col-start-2 md:row-start-1 md:grid md:grid-cols-[3.25rem_minmax(0,1fr)_minmax(0,1fr)] md:gap-x-3 md:gap-1.5 md:border-l md:border-border/60 md:pl-3">
+        <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 font-mono text-xs text-muted-foreground md:col-start-2 md:row-start-1 md:grid md:grid-cols-[3.25rem_minmax(0,1fr)_minmax(0,1fr)] md:gap-1.5 md:gap-x-3 md:border-l md:border-border/60 md:pl-3">
           <span className="shrink-0 tabular-nums">{formatTxnTime(t.txn_at)}</span>
-          <span aria-hidden className="md:hidden">·</span>
+          <span aria-hidden className="md:hidden">
+            ·
+          </span>
           <span className="flex min-w-0 items-center truncate md:justify-center">
             {!isMove && t.category_name ? (
               // Soft pill in the category's hue: the colour carries the
@@ -851,7 +1068,8 @@ function LedgerRow({
               </span>
             ) : (isLend || isLendRepayment) && t.lend_borrower ? (
               <span className="truncate rounded-full bg-[hsl(var(--surface-container-high))] px-2 py-0.5 font-sans font-medium text-[hsl(var(--on-surface-variant))]">
-                {isLend ? 'For ' : 'Settles · '}{t.lend_borrower}
+                {isLend ? 'For ' : 'Settles · '}
+                {t.lend_borrower}
               </span>
             ) : (
               <span className="truncate">
@@ -859,19 +1077,31 @@ function LedgerRow({
               </span>
             )}
           </span>
-          <span aria-hidden className="md:hidden">·</span>
+          <span aria-hidden className="md:hidden">
+            ·
+          </span>
           <span className="truncate">
             {fromInvestment ? `${linkedName} → ${accountName}` : accountName}
             {!fromInvestment && isTransfer && (t.linked_account || t.investment_id) && ' → ' + linkedName}
           </span>
         </div>
 
-        <div className={`col-start-2 row-start-1 row-span-2 self-center text-right text-sm font-medium md:col-start-3 md:row-span-1 md:border-l md:border-border/60 md:pl-3 md:h-full md:flex md:items-center md:justify-end ${
-          isExpense ? 'text-foreground' : isLend || isTransfer || owedPill ? 'text-muted-foreground' : 'text-[hsl(var(--color-complete))]'
-        }`}>
+        <div
+          className={`col-start-2 row-span-2 row-start-1 self-center text-right text-sm font-medium md:col-start-3 md:row-span-1 md:flex md:h-full md:items-center md:justify-end md:border-l md:border-border/60 md:pl-3 ${
+            isExpense
+              ? 'text-foreground'
+              : isLend || isTransfer || owedPill
+                ? 'text-muted-foreground'
+                : 'text-[hsl(var(--color-complete))]'
+          }`}
+        >
           <span className="flex flex-col items-end">
             <Money value={shown} sign={isExpense || isLend || isPayBack ? '−' : isTransfer || noMoney ? '' : '+'} />
-            {splits.length > 0 && <span className="text-xs font-normal text-muted-foreground">yours <Money value={t.amount} /></span>}
+            {splits.length > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">
+                yours <Money value={t.amount} />
+              </span>
+            )}
           </span>
         </div>
       </button>
@@ -884,11 +1114,19 @@ function LedgerRow({
 // rarer and keep a one-word tag. Zero sides are dropped.
 function DayFigures({ t }: { t: Tally }) {
   return (
-    <span className="flex items-baseline justify-end gap-3 whitespace-nowrap text-sm tabular-nums">
+    <span className="flex items-baseline justify-end gap-3 text-sm whitespace-nowrap tabular-nums">
       {t.earned > 0 && <Money value={t.earned} sign="+" className="text-[hsl(var(--color-complete))]" />}
       {t.spent > 0 && <Money value={t.spent} sign="−" className="text-foreground" />}
-      {t.lent > 0 && <span className="text-muted-foreground"><Money value={t.lent} sign="−" /> <span className="text-xs">lent</span></span>}
-      {t.returned > 0 && <span className="text-[hsl(var(--color-complete))]"><Money value={t.returned} sign="+" /> <span className="text-xs">back</span></span>}
+      {t.lent > 0 && (
+        <span className="text-muted-foreground">
+          <Money value={t.lent} sign="−" /> <span className="text-xs">lent</span>
+        </span>
+      )}
+      {t.returned > 0 && (
+        <span className="text-[hsl(var(--color-complete))]">
+          <Money value={t.returned} sign="+" /> <span className="text-xs">back</span>
+        </span>
+      )}
     </span>
   );
 }
@@ -911,25 +1149,29 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
       <div className="flex items-baseline gap-3 md:hidden">
         <span className="shrink-0 text-sm font-semibold">{label}</span>
         <span className="ml-auto flex min-w-0 flex-wrap items-baseline justify-end gap-x-2.5 gap-y-0.5 text-sm tabular-nums">
-          {figures.filter((f) => f.v > 0).map((f) => (
-            <span key={f.name} className={cn('whitespace-nowrap', f.cls)}>
-              <Money value={f.v} sign={f.sign} /> <span className="text-xs text-muted-foreground">{f.tag}</span>
-            </span>
-          ))}
+          {figures
+            .filter((f) => f.v > 0)
+            .map((f) => (
+              <span key={f.name} className={cn('whitespace-nowrap', f.cls)}>
+                <Money value={f.v} sign={f.sign} /> <span className="text-xs text-muted-foreground">{f.tag}</span>
+              </span>
+            ))}
         </span>
       </div>
       {/* Desktop: month and week share four aligned figure columns, so
           Income sits under Income; empty sides keep their (blank) column. */}
       <div className="hidden gap-x-6 md:grid md:grid-cols-[minmax(0,1fr)_repeat(4,8.5rem)] md:items-center">
         <span className="text-sm font-semibold">{label}</span>
-        {figures.map((f) => f.v > 0 ? (
-          <span key={f.name} className="flex flex-col items-end">
-            <span className="text-xs text-muted-foreground">{f.name}</span>
-            <Money value={f.v} sign={f.sign} className={cn('text-lg font-semibold leading-tight', f.cls)} />
-          </span>
-        ) : (
-          <span key={f.name} aria-hidden />
-        ))}
+        {figures.map((f) =>
+          f.v > 0 ? (
+            <span key={f.name} className="flex flex-col items-end">
+              <span className="text-xs text-muted-foreground">{f.name}</span>
+              <Money value={f.v} sign={f.sign} className={cn('text-lg leading-tight font-semibold', f.cls)} />
+            </span>
+          ) : (
+            <span key={f.name} aria-hidden />
+          ),
+        )}
       </div>
     </div>
   );
@@ -938,13 +1180,27 @@ function PeriodStats({ label, t }: { label: string; t: Tally }) {
 /** Rows People owns (lends, repayments, adjustments, net-offs, a lend from
  *  before Sajni): opened, never selected or moved in bulk. */
 function peopleRow(t: FinTransaction) {
-  return t.type === 'lend' || t.type === 'lend_repayment' || t.type === 'writeoff' || t.type === 'netoff' || (t.type === 'owed' && !!t.lend_id);
+  return (
+    t.type === 'lend' ||
+    t.type === 'lend_repayment' ||
+    t.type === 'writeoff' ||
+    t.type === 'netoff' ||
+    (t.type === 'owed' && !!t.lend_id)
+  );
 }
 
 /** A net-off is undone as a whole: both debts come back. */
-export async function undoNetOff(t: { settlement: FinTransaction['settlement']; lend_borrower: string | null; amount: number }, done: () => void) {
+export async function undoNetOff(
+  t: { settlement: FinTransaction['settlement']; lend_borrower: string | null; amount: number },
+  done: () => void,
+) {
   if (!t.settlement) return;
-  if (!(await confirmDialog(`Undo this net-off? You and ${t.lend_borrower ?? 'they'} both owe the ₹${t.amount.toLocaleString('en-IN')} again.`))) return;
+  if (
+    !(await confirmDialog(
+      `Undo this net-off? You and ${t.lend_borrower ?? 'they'} both owe the ₹${t.amount.toLocaleString('en-IN')} again.`,
+    ))
+  )
+    return;
   try {
     await finance.deleteLendSettlement(t.settlement.id);
     done();

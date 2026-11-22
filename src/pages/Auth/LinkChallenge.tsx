@@ -3,11 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import Backdrop from '@/components/Backdrop';
 
 // LinkChallenge handles the "provider returned an unverified email that
@@ -51,11 +47,11 @@ export default function LinkChallenge() {
   return (
     <>
       <Backdrop />
-      <div className="relative z-10 min-h-[100dvh] flex items-center justify-center px-5">
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-5">
         <div className="w-full max-w-sm">
           <div className="mb-6">
             <h2 className="serif text-3xl font-semibold tracking-tight">Confirm It's You.</h2>
-            <p className="serif italic text-base text-muted-foreground mt-1">
+            <p className="serif mt-1 text-base text-muted-foreground italic">
               {provider
                 ? `${provider[0].toUpperCase() + provider.slice(1)} couldn't confirm your email is verified. We sent a code to ${email} so we can link this sign-in safely.`
                 : `We sent a code to ${email}.`}
@@ -64,15 +60,8 @@ export default function LinkChallenge() {
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-3">
-              <Label className="mono text-xs label-kicker text-muted-foreground">
-                6-digit code
-              </Label>
-              <InputOTP
-                maxLength={6}
-                value={code}
-                onChange={setCode}
-                autoFocus
-              >
+              <Label className="mono label-kicker text-xs text-muted-foreground">6-digit code</Label>
+              <InputOTP maxLength={6} value={code} onChange={setCode} autoFocus>
                 <InputOTPGroup>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
                     <InputOTPSlot key={i} index={i} />
@@ -85,7 +74,7 @@ export default function LinkChallenge() {
                 {error}
               </div>
             )}
-            <Button type="submit" disabled={submitting || code.length !== 6} className="w-full h-11 rounded-full">
+            <Button type="submit" disabled={submitting || code.length !== 6} className="h-11 w-full rounded-full">
               {submitting ? 'Linking…' : 'Link account'}
             </Button>
             <button

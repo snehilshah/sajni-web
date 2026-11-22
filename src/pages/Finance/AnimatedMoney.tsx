@@ -14,12 +14,7 @@ interface AnimatedMoneyProps {
 // paise). Text is updated directly so animation frames do not trigger React
 // renders. The invisible final value reserves the full width up front,
 // preventing adjacent content from shifting as digits grow.
-export function AnimatedMoney({
-  value,
-  currency = 'INR',
-  duration = 520,
-  className = '',
-}: AnimatedMoneyProps) {
+export function AnimatedMoney({ value, currency = 'INR', duration = 520, className = '' }: AnimatedMoneyProps) {
   const valueRef = useRef(0);
   const signRef = useRef<HTMLSpanElement>(null);
   const wholeRef = useRef<HTMLSpanElement>(null);
@@ -34,9 +29,10 @@ export function AnimatedMoney({
   useLayoutEffect(() => {
     const nodes = [signRef.current, wholeRef.current, fracRef.current];
     if (nodes.some((node) => !node)) return;
-    const paint = (...texts: string[]) => texts.forEach((text, i) => {
-      if (nodes[i]!.textContent !== text) nodes[i]!.textContent = text;
-    });
+    const paint = (...texts: string[]) =>
+      texts.forEach((text, i) => {
+        if (nodes[i]!.textContent !== text) nodes[i]!.textContent = text;
+      });
     const paintValue = (v: number) => {
       const parts = moneyParts(v, currency, false);
       if (parts) paint(parts.sign, parts.whole, parts.fraction);
@@ -83,13 +79,18 @@ export function AnimatedMoney({
     <span className={`money inline-grid align-baseline ${className}`}>
       <span className="sr-only">{finalText}</span>
       <span aria-hidden className="invisible col-start-1 row-start-1">
-        {finalSign}{symbol}{finalWhole}<span className="money-fraction">{finalFrac}</span>
+        {finalSign}
+        {symbol}
+        {finalWhole}
+        <span className="money-fraction">{finalFrac}</span>
       </span>
       <span aria-hidden className="col-start-1 row-start-1">
         <span ref={signRef}>{finalSign}</span>
         {symbol}
         <span ref={wholeRef}>{finalWhole}</span>
-        <span ref={fracRef} className="money-fraction">{finalFrac}</span>
+        <span ref={fracRef} className="money-fraction">
+          {finalFrac}
+        </span>
       </span>
     </span>
   );

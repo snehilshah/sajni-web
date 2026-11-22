@@ -34,28 +34,10 @@ import type { Habit, HabitFrequency } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Trash2,
-} from '@/components/ui/icons';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Check, ChevronLeft, ChevronRight, Plus, Trash2 } from '@/components/ui/icons';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { useEditorDraft } from '@/hooks/use-editor-draft';
 import { EditActions } from '@/components/editor-actions';
@@ -91,21 +73,18 @@ export default function HabitsPage() {
   const todayKey = dateKey(today);
   const [offsets, setOffsets] = useState<Offsets>(INITIAL_OFFSETS);
 
-  const periods = useMemo<Record<HabitFrequency, HabitPeriod[]>>(() => ({
-    daily: dailyPeriods(today, offsets.daily),
-    weekly: weeklyPeriods(today, offsets.weekly),
-    fortnightly: fortnightlyPeriods(today, offsets.fortnightly),
-    monthly: monthlyPeriods(today, offsets.monthly),
-  }), [offsets, today]);
+  const periods = useMemo<Record<HabitFrequency, HabitPeriod[]>>(
+    () => ({
+      daily: dailyPeriods(today, offsets.daily),
+      weekly: weeklyPeriods(today, offsets.weekly),
+      fortnightly: fortnightlyPeriods(today, offsets.fortnightly),
+      monthly: monthlyPeriods(today, offsets.monthly),
+    }),
+    [offsets, today],
+  );
 
-  const visibleRange = useMemo(
-    () => visiblePeriodRange(Object.values(periods)),
-    [periods],
-  );
-  const { data: logsMap = {}, isLoading: logsLoading } = useHabitLogRange(
-    visibleRange.from,
-    visibleRange.to,
-  );
+  const visibleRange = useMemo(() => visiblePeriodRange(Object.values(periods)), [periods]);
+  const { data: logsMap = {}, isLoading: logsLoading } = useHabitLogRange(visibleRange.from, visibleRange.to);
 
   const togglePeriod = useToggleHabitPeriod();
   const createHabit = useCreateHabit();
@@ -132,13 +111,16 @@ export default function HabitsPage() {
   });
   const closeForm = () => editor.close(() => setShowForm(false));
   const loadDraft = editor.load;
-  const openEdit = useCallback((habit: Habit) => {
-    const v: HabitForm = { name: habit.name, frequency: habit.frequency, color: habit.color };
-    setEditing(habit);
-    setForm(v);
-    loadDraft(v);
-    setShowForm(true);
-  }, [loadDraft]);
+  const openEdit = useCallback(
+    (habit: Habit) => {
+      const v: HabitForm = { name: habit.name, frequency: habit.frequency, color: habit.color };
+      setEditing(habit);
+      setForm(v);
+      loadDraft(v);
+      setShowForm(true);
+    },
+    [loadDraft],
+  );
 
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get('focus');
@@ -155,7 +137,6 @@ export default function HabitsPage() {
     setSearchParams(next, { replace: true });
   }, [focusId, habitsList, openEdit, searchParams, setSearchParams]);
 
-
   const openCreate = () => {
     const v: HabitForm = { name: '', frequency: 'daily', color: SWATCHES[0] };
     setEditing(null);
@@ -165,7 +146,10 @@ export default function HabitsPage() {
   };
 
   const saveHabit = async () => {
-    if (editing) { await editor.save(() => setShowForm(false)); return; }
+    if (editing) {
+      await editor.save(() => setShowForm(false));
+      return;
+    }
     if (!form.name.trim()) return;
     setSaving(true);
     try {
@@ -186,15 +170,16 @@ export default function HabitsPage() {
   const changeWindow = (frequency: HabitFrequency, direction: -1 | 1 | 0) => {
     setOffsets((current) => ({
       ...current,
-      [frequency]: direction === 0
-        ? 0
-        : Math.min(0, current[frequency] + direction),
+      [frequency]: direction === 0 ? 0 : Math.min(0, current[frequency] + direction),
     }));
   };
 
   const groupedHabits = useMemo(() => {
     const grouped: Record<HabitFrequency, Habit[]> = {
-      daily: [], weekly: [], fortnightly: [], monthly: [],
+      daily: [],
+      weekly: [],
+      fortnightly: [],
+      monthly: [],
     };
     for (const habit of habitsList) grouped[habit.frequency].push(habit);
     return grouped;
@@ -203,7 +188,7 @@ export default function HabitsPage() {
   return (
     <PageShell
       title="Habits"
-      navigation={(
+      navigation={
         <PageShellTabs
           bare
           ariaLabel="Habits sections"
@@ -212,15 +197,17 @@ export default function HabitsPage() {
             { value: 'habits', label: 'Habits' },
             { value: 'events', label: 'Events' },
           ]}
-          onChange={(value) => { if (value === 'events') navigate('/habits?tab=events'); }}
+          onChange={(value) => {
+            if (value === 'events') navigate('/habits?tab=events');
+          }}
         />
-      )}
-      actions={(
+      }
+      actions={
         <Button size="sm" onClick={openCreate} className="gap-1.5">
           <Plus className="size-3.5" />
           New habit
         </Button>
-      )}
+      }
     >
       {isLoading ? (
         <div className="space-y-4">
@@ -253,12 +240,14 @@ export default function HabitsPage() {
                 onNext={() => changeWindow(frequency, 1)}
                 onCurrent={() => changeWindow(frequency, 0)}
                 onEdit={openEdit}
-                onToggle={(habit, period) => togglePeriod.mutate({
-                  id: habit.id,
-                  periodStart: period.key,
-                  periodEnd: dateKey(period.end),
-                  isCurrent: period.key === current.key,
-                })}
+                onToggle={(habit, period) =>
+                  togglePeriod.mutate({
+                    id: habit.id,
+                    periodStart: period.key,
+                    periodEnd: dateKey(period.end),
+                    isCurrent: period.key === current.key,
+                  })
+                }
               />
             );
           })}
@@ -289,10 +278,12 @@ export default function HabitsPage() {
                 <Label>Frequency</Label>
                 <Select
                   value={form.frequency}
-                  onValueChange={(value) => setForm({
-                    ...form,
-                    frequency: (value as HabitFrequency) || 'daily',
-                  })}
+                  onValueChange={(value) =>
+                    setForm({
+                      ...form,
+                      frequency: (value as HabitFrequency) || 'daily',
+                    })
+                  }
                   items={FREQUENCIES.map((frequency) => ({
                     value: frequency,
                     label: FREQUENCY_LABEL[frequency],
@@ -310,12 +301,16 @@ export default function HabitsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  One check per {{
-                    daily: 'day',
-                    weekly: 'week',
-                    fortnightly: 'two-week period',
-                    monthly: 'month',
-                  }[form.frequency]}.
+                  One check per{' '}
+                  {
+                    {
+                      daily: 'day',
+                      weekly: 'week',
+                      fortnightly: 'two-week period',
+                      monthly: 'month',
+                    }[form.frequency]
+                  }
+                  .
                 </p>
               </div>
 
@@ -329,7 +324,7 @@ export default function HabitsPage() {
                       onClick={() => setForm({ ...form, color })}
                       aria-label={`Use color ${color}`}
                       aria-pressed={form.color === color}
-                      className={`size-8 rounded-md border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      className={`size-8 rounded-md border-2 transition-transform focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${
                         form.color === color ? 'scale-110 border-background ring-2 ring-ring' : 'border-transparent'
                       }`}
                       style={{ backgroundColor: color }}
@@ -350,16 +345,17 @@ export default function HabitsPage() {
 
           <DialogFooter className={cn(editing && 'flex-row items-center')}>
             {editing && (
-              <Button
-                variant="destructive-quiet"
-                onClick={() => removeHabit(editing)}
-                className="mr-auto"
-              >
-                <Trash2 className="size-4 mr-1" /> Delete
+              <Button variant="destructive-quiet" onClick={() => removeHabit(editing)} className="mr-auto">
+                <Trash2 className="mr-1 size-4" /> Delete
               </Button>
             )}
-            <EditActions draft={editor} onCancel={() => setShowForm(false)} onSave={() => void saveHabit()}
-              saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create'} disabled={saving || !form.name.trim()} />
+            <EditActions
+              draft={editor}
+              onCancel={() => setShowForm(false)}
+              onSave={() => void saveHabit()}
+              saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create'}
+              disabled={saving || !form.name.trim()}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -433,16 +429,13 @@ function RhythmLedger({
   }, [currentPeriodKey, isCurrentWindow, reducedMotion]);
 
   return (
-    <section
-      aria-labelledby={`habit-${frequency}-heading`}
-      className="overflow-hidden rounded-xl bg-card"
-    >
+    <section aria-labelledby={`habit-${frequency}-heading`} className="overflow-hidden rounded-xl bg-card">
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5">
         <div className="flex min-w-0 flex-1 items-baseline gap-2">
           <h2 id={`habit-${frequency}-heading`} className="text-base font-semibold">
             {FREQUENCY_LABEL[frequency]}
           </h2>
-          <span className="text-sm tabular-nums text-muted-foreground">{habits.length}</span>
+          <span className="text-sm text-muted-foreground tabular-nums">{habits.length}</span>
         </div>
         <div className="-mr-1 flex items-center rounded-full bg-[hsl(var(--surface-container-high))] p-0.5">
           <Button
@@ -458,7 +451,7 @@ function RhythmLedger({
             type="button"
             onClick={onCurrent}
             disabled={isCurrentWindow}
-            className="h-9 min-w-32 rounded-full px-3 text-xs tabular-nums text-muted-foreground transition-colors enabled:text-primary enabled:hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 min-w-32 rounded-full px-3 text-xs text-muted-foreground tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none enabled:text-primary enabled:hover:bg-[hsl(var(--on-surface)/0.06)]"
             title={isCurrentWindow ? windowTitle : 'Return to current period'}
           >
             {windowTitle}
@@ -503,11 +496,13 @@ function RhythmLedger({
               >
                 {/* Today is marked once, in the header, with the selection
                     role; the cells below only get a neutral state ring. */}
-                <span className={`grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-xs font-semibold ${
-                  isCurrent
-                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                    : 'text-muted-foreground'
-                }`}>
+                <span
+                  className={`grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-xs font-semibold ${
+                    isCurrent
+                      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                      : 'text-muted-foreground'
+                  }`}
+                >
                   {period.label}
                 </span>
               </div>
@@ -520,9 +515,10 @@ function RhythmLedger({
             const logDates = logsMap[String(habit.id)] ?? [];
             const done = periods.map((period) => periodIsComplete(logDates, period));
             // The streak's newest tick carries the count (from 2 up).
-            const headKey = habit.current_streak >= 2
-              ? streakHeadKey(currentPeriodKey, habit.logged_current_period, frequency)
-              : null;
+            const headKey =
+              habit.current_streak >= 2
+                ? streakHeadKey(currentPeriodKey, habit.logged_current_period, frequency)
+                : null;
             return (
               <motion.div
                 key={habit.id}
@@ -537,7 +533,7 @@ function RhythmLedger({
                 <button
                   type="button"
                   onClick={() => onEdit(habit)}
-                  className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-card px-2 py-3 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  className="sticky left-0 z-20 flex min-w-0 items-center gap-3 bg-card px-2 py-3 text-left transition-colors outline-none hover:bg-[hsl(var(--surface-container-high))] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   title={`Edit ${habit.name}`}
                 >
                   {/* Name in the habit's colour (pills share the section's
@@ -560,7 +556,7 @@ function RhythmLedger({
                 {periods.map((period, index) => {
                   const complete = done[index];
                   const isCurrent = period.key === currentPeriodKey;
-                  const isFuture = period.key > currentPeriodKey || period.key > todayKey && frequency === 'daily';
+                  const isFuture = period.key > currentPeriodKey || (period.key > todayKey && frequency === 'daily');
                   // Ticks in a row are joined by a soft band in the habit's
                   // colour (it spans half the 4px column gap each side).
                   const joinLeft = complete && index > 0 && done[index - 1];
@@ -569,12 +565,12 @@ function RhythmLedger({
                     <div key={period.key} className="relative flex items-center justify-center py-2">
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute inset-y-2 -left-0.5 right-1/2 transition-opacity duration-200 motion-reduce:transition-none"
+                        className="pointer-events-none absolute inset-y-2 right-1/2 -left-0.5 transition-opacity duration-200 motion-reduce:transition-none"
                         style={{ backgroundColor: habit.color, opacity: joinLeft ? 0.4 : 0 }}
                       />
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute inset-y-2 left-1/2 -right-0.5 transition-opacity duration-200 motion-reduce:transition-none"
+                        className="pointer-events-none absolute inset-y-2 -right-0.5 left-1/2 transition-opacity duration-200 motion-reduce:transition-none"
                         style={{ backgroundColor: habit.color, opacity: joinRight ? 0.4 : 0 }}
                       />
                       <PeriodToggle
@@ -669,7 +665,7 @@ function PeriodToggle({
       aria-pressed={complete}
       aria-label={title}
       title={title}
-      className={`relative grid size-11 place-items-center overflow-hidden rounded-[18px] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+      className={`relative grid size-11 place-items-center overflow-hidden rounded-[18px] transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
         disabled ? 'cursor-default opacity-40' : 'active:scale-[0.96]'
       }`}
       style={{

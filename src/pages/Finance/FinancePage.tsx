@@ -5,19 +5,40 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import {
-  ChartColumn, Landmark, ArrowLeftRight, PiggyBank,
-  TrendingUp, CreditCard, Download, Receipt, Wallet, Coins,
-  Eye, VenetianMask, Plus,
+  ChartColumn,
+  Landmark,
+  ArrowLeftRight,
+  PiggyBank,
+  TrendingUp,
+  CreditCard,
+  Download,
+  Receipt,
+  Wallet,
+  Coins,
+  Eye,
+  VenetianMask,
+  Plus,
 } from '@/components/ui/icons';
 
 import {
   finance,
-  type FinAccount, type FinCategory, type FinTransaction,
-  type FinInvestment, type FinLend, type FinSaving, type FinStatement,
+  type FinAccount,
+  type FinCategory,
+  type FinTransaction,
+  type FinInvestment,
+  type FinLend,
+  type FinSaving,
+  type FinStatement,
 } from '@/api';
 import {
-  useFinAccounts, useFinCategories, useFinTransactions,
-  useFinInvestments, useFinLends, useFinSavings, useFinStatements, useFinSlates,
+  useFinAccounts,
+  useFinCategories,
+  useFinTransactions,
+  useFinInvestments,
+  useFinLends,
+  useFinSavings,
+  useFinStatements,
+  useFinSlates,
 } from '@/queries/finance';
 import { qk } from '@/queries/keys';
 import AnalyticsTab from './AnalyticsTab';
@@ -82,7 +103,9 @@ export default function FinancePage() {
   const navigate = useNavigate();
   const active: TabId = useMemo(
     // The People tab keeps its old id, so /finance/lends links still work.
-    () => (financeTabs.find((t) => t.id === (tab === 'people' ? 'lends' : tab === 'recurring' ? 'billers' : tab))?.id as TabId) || 'analytics',
+    () =>
+      (financeTabs.find((t) => t.id === (tab === 'people' ? 'lends' : tab === 'recurring' ? 'billers' : tab))
+        ?.id as TabId) || 'analytics',
     [tab],
   );
 
@@ -108,9 +131,7 @@ export default function FinancePage() {
   const [monthsBack, setMonthsBack] = useSessionState('fin:monthsBack', 2);
   const txnParams = useMemo(() => {
     const from = format(startOfMonth(subMonths(new Date(), monthsBack)), 'yyyy-MM-dd');
-    return slateFilter === null
-      ? { from, limit: TXN_LIMIT }
-      : { from, limit: TXN_LIMIT, slate_id: slateFilter };
+    return slateFilter === null ? { from, limit: TXN_LIMIT } : { from, limit: TXN_LIMIT, slate_id: slateFilter };
   }, [slateFilter, monthsBack]);
 
   const accountsQ = useFinAccounts(wantAny('accounts', 'transactions', 'lends', 'billers', 'investments', 'cards'));
@@ -181,9 +202,15 @@ export default function FinancePage() {
   // re-hide figures without disturbing tab state or cached data.
   useEffect(() => {
     if (privacy) return;
-    const rehide = () => { setPrivacyMode(true); setPrivacy(true); };
+    const rehide = () => {
+      setPrivacyMode(true);
+      setPrivacy(true);
+    };
     const until = revealExpiry();
-    if (until === null || Date.now() >= until) { rehide(); return; }
+    if (until === null || Date.now() >= until) {
+      rehide();
+      return;
+    }
     const timer = setTimeout(rehide, until - Date.now());
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
@@ -204,128 +231,148 @@ export default function FinancePage() {
   return (
     <FinancePrivacyProvider value={privacy}>
       <PageShell
-      title="Finance"
-      hideScrollbar
-      columnClassName="max-w-6xl px-3 md:px-8"
-      contentClassName="max-w-6xl w-full mx-auto px-3 md:px-8 py-5 pb-20 relative"
-      actions={
-        <FinanceHeaderActions
-          privacy={privacy}
-          onTogglePrivacy={togglePrivacy}
-          exportOpen={exportOpen}
-          setExportOpen={setExportOpen}
-          // Desktop keeps Add in the header, pinned while the list scrolls;
-          // phones get the FAB inside the tab.
-          onAdd={active === 'transactions' && !isMobile
-            ? () => setSheetRequest((r) => ({ kind: 'expense', person: '', n: (r?.n ?? 0) + 1 }))
-            : undefined}
-        />
-      }
-      navigation={
-        <PageShellTabs
-          bare
-          ariaLabel="Finance sections"
-          value={active}
-          options={financeTabs.map((t) => ({ value: t.id, label: t.label, icon: t.icon }))}
-          onChange={setActive}
-        />
-      }
+        title="Finance"
+        hideScrollbar
+        columnClassName="max-w-6xl px-3 md:px-8"
+        contentClassName="max-w-6xl w-full mx-auto px-3 md:px-8 py-5 pb-20 relative"
+        actions={
+          <FinanceHeaderActions
+            privacy={privacy}
+            onTogglePrivacy={togglePrivacy}
+            exportOpen={exportOpen}
+            setExportOpen={setExportOpen}
+            // Desktop keeps Add in the header, pinned while the list scrolls;
+            // phones get the FAB inside the tab.
+            onAdd={
+              active === 'transactions' && !isMobile
+                ? () => setSheetRequest((r) => ({ kind: 'expense', person: '', n: (r?.n ?? 0) + 1 }))
+                : undefined
+            }
+          />
+        }
+        navigation={
+          <PageShellTabs
+            bare
+            ariaLabel="Finance sections"
+            value={active}
+            options={financeTabs.map((t) => ({ value: t.id, label: t.label, icon: t.icon }))}
+            onChange={setActive}
+          />
+        }
       >
-      <div className="relative">
-        {/* Privacy is context-driven so this data-owning subtree stays mounted
+        <div className="relative">
+          {/* Privacy is context-driven so this data-owning subtree stays mounted
             and its fetch effects do not run again when figures are toggled. */}
 
-        {/* All tabs always mounted; only active is visible.
+          {/* All tabs always mounted; only active is visible.
             This eliminates the "wrong UI flash" entirely - content for every
             tab is already in the DOM by the time the user taps it. */}
-        <TabPanel active={active === 'analytics'}>
-          <AnalyticsTab enabled={want('analytics')} />
-        </TabPanel>
-        <TabPanel active={active === 'accounts'}>
-          <AccountsTab
-            enabled={want('accounts')}
-            accounts={data.accounts}
-            categories={data.categories}
-            savings={data.savings}
-            loaded={data.loaded.accounts}
-            reload={() => { loadAccounts(); loadSavings(); loadTransactions(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); }}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'transactions'}>
-          <TransactionsTab
-            accounts={data.accounts}
-            categories={data.categories}
-            slates={slates.items}
-            transactions={data.transactions}
-            lends={data.lends}
-            loaded={data.loaded.transactions}
-            slateFilter={slateFilter}
-            onSlateFilter={setSlateFilter}
-            truncated={data.transactions.length >= TXN_LIMIT}
-            canLoadEarlier={data.loaded.transactions}
-            onLoadEarlier={() => setMonthsBack((n) => n + 3)}
-            sheetRequest={sheetRequest}
-            active={active === 'transactions'}
-            reload={() => { loadTransactions(); loadAccounts(); loadLends(); loadInvestments(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); loadSlates(); }}
-            reloadCategories={loadCategories}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'lends'}>
-          <LendsTab
-            accounts={data.accounts}
-            lends={data.lends}
-            loaded={data.loaded.lends}
-            reload={() => { loadLends(); loadAccounts(); loadTransactions(); qc.invalidateQueries({ queryKey: qk.finance.overview() }); }}
-            onNewLend={() => setSheetRequest((r) => ({ kind: 'lend', person: '', n: (r?.n ?? 0) + 1 }))}
-            onSettle={(borrower) => setSheetRequest((r) => ({ kind: 'settle', person: borrower, n: (r?.n ?? 0) + 1 }))}
-            onBorrow={() => setSheetRequest((r) => ({ kind: 'borrow', person: '', n: (r?.n ?? 0) + 1 }))}
-            onPayBack={(person) => setSheetRequest((r) => ({ kind: 'payback', person, n: (r?.n ?? 0) + 1 }))}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'slates'}>
-          <SlatesTab
-            slates={slates.items}
-            loaded={slatesQ.isSuccess}
-            // Opening a slate is just the ledger filtered to it — same list,
-            // same sweep, no second implementation of a transaction list.
-            onOpenSlate={(id) => { setSlateFilter(id); setActive('transactions'); }}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'budgets'}>
-          <BudgetsTab
-            categories={data.categories}
-            slates={slates.items}
-            enabled={want('budgets')}
-            reloadCategories={loadCategories}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'investments'}>
-          <InvestmentsTab
-            accounts={data.accounts}
-            investments={data.investments}
-            loaded={data.loaded.investments}
-            reload={loadInvestments}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'billers'}>
-          <BillersTab
-            accounts={data.accounts}
-            categories={data.categories}
-            enabled={want('billers')}
-          />
-        </TabPanel>
-        <TabPanel active={active === 'cards'}>
-          <CardsTab
-            accounts={data.accounts}
-            statements={data.statements}
-            loaded={data.loaded.statements}
-            reload={loadStatements}
-          />
-        </TabPanel>
+          <TabPanel active={active === 'analytics'}>
+            <AnalyticsTab enabled={want('analytics')} />
+          </TabPanel>
+          <TabPanel active={active === 'accounts'}>
+            <AccountsTab
+              enabled={want('accounts')}
+              accounts={data.accounts}
+              categories={data.categories}
+              savings={data.savings}
+              loaded={data.loaded.accounts}
+              reload={() => {
+                loadAccounts();
+                loadSavings();
+                loadTransactions();
+                qc.invalidateQueries({ queryKey: qk.finance.overview() });
+              }}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'transactions'}>
+            <TransactionsTab
+              accounts={data.accounts}
+              categories={data.categories}
+              slates={slates.items}
+              transactions={data.transactions}
+              lends={data.lends}
+              loaded={data.loaded.transactions}
+              slateFilter={slateFilter}
+              onSlateFilter={setSlateFilter}
+              truncated={data.transactions.length >= TXN_LIMIT}
+              canLoadEarlier={data.loaded.transactions}
+              onLoadEarlier={() => setMonthsBack((n) => n + 3)}
+              sheetRequest={sheetRequest}
+              active={active === 'transactions'}
+              reload={() => {
+                loadTransactions();
+                loadAccounts();
+                loadLends();
+                loadInvestments();
+                qc.invalidateQueries({ queryKey: qk.finance.overview() });
+                loadSlates();
+              }}
+              reloadCategories={loadCategories}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'lends'}>
+            <LendsTab
+              accounts={data.accounts}
+              lends={data.lends}
+              loaded={data.loaded.lends}
+              reload={() => {
+                loadLends();
+                loadAccounts();
+                loadTransactions();
+                qc.invalidateQueries({ queryKey: qk.finance.overview() });
+              }}
+              onNewLend={() => setSheetRequest((r) => ({ kind: 'lend', person: '', n: (r?.n ?? 0) + 1 }))}
+              onSettle={(borrower) =>
+                setSheetRequest((r) => ({ kind: 'settle', person: borrower, n: (r?.n ?? 0) + 1 }))
+              }
+              onBorrow={() => setSheetRequest((r) => ({ kind: 'borrow', person: '', n: (r?.n ?? 0) + 1 }))}
+              onPayBack={(person) => setSheetRequest((r) => ({ kind: 'payback', person, n: (r?.n ?? 0) + 1 }))}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'slates'}>
+            <SlatesTab
+              slates={slates.items}
+              loaded={slatesQ.isSuccess}
+              // Opening a slate is just the ledger filtered to it — same list,
+              // same sweep, no second implementation of a transaction list.
+              onOpenSlate={(id) => {
+                setSlateFilter(id);
+                setActive('transactions');
+              }}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'budgets'}>
+            <BudgetsTab
+              categories={data.categories}
+              slates={slates.items}
+              enabled={want('budgets')}
+              reloadCategories={loadCategories}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'investments'}>
+            <InvestmentsTab
+              accounts={data.accounts}
+              investments={data.investments}
+              loaded={data.loaded.investments}
+              reload={loadInvestments}
+            />
+          </TabPanel>
+          <TabPanel active={active === 'billers'}>
+            <BillersTab accounts={data.accounts} categories={data.categories} enabled={want('billers')} />
+          </TabPanel>
+          <TabPanel active={active === 'cards'}>
+            <CardsTab
+              accounts={data.accounts}
+              statements={data.statements}
+              loaded={data.loaded.statements}
+              reload={loadStatements}
+            />
+          </TabPanel>
 
-        {/* Hidden absolute reload helper for global refresh after deep mutations */}
-        <Input type="hidden" data-reload-all onClick={reloadAll} />
-      </div>
+          {/* Hidden absolute reload helper for global refresh after deep mutations */}
+          <Input type="hidden" data-reload-all onClick={reloadAll} />
+        </div>
       </PageShell>
     </FinancePrivacyProvider>
   );
@@ -354,14 +401,14 @@ function FinanceHeaderActions({
         aria-pressed={privacy}
         title={privacy ? 'Privacy on - figures hidden. Tap to reveal.' : 'Hide all figures'}
         className={cn(
-          'relative h-10 w-10 px-0 sm:w-auto sm:px-3 sm:gap-1.5 font-mono text-xs label-kicker',
+          'label-kicker relative h-10 w-10 px-0 font-mono text-xs sm:w-auto sm:gap-1.5 sm:px-3',
           privacy && 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
         )}
       >
         {privacy ? <VenetianMask className="size-3.5" /> : <Eye className="size-3.5" />}
         <span className="hidden sm:inline">{privacy ? 'Private' : 'Privacy'}</span>
         {privacy && (
-          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[hsl(var(--primary))] ring-2 ring-[hsl(var(--surface-container-low))] motion-safe:animate-pulse" />
+          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-[hsl(var(--primary))] ring-2 ring-[hsl(var(--surface-container-low))] motion-safe:animate-pulse" />
         )}
       </Button>
 
@@ -371,7 +418,7 @@ function FinanceHeaderActions({
           variant="outline"
           size="sm"
           onClick={() => setExportOpen((v) => !v)}
-          className="h-10 w-10 px-0 sm:w-auto sm:px-3 sm:gap-1.5 font-mono text-xs label-kicker"
+          className="label-kicker h-10 w-10 px-0 font-mono text-xs sm:w-auto sm:gap-1.5 sm:px-3"
           aria-expanded={exportOpen}
         >
           <Download className="size-3.5" />
@@ -385,7 +432,7 @@ function FinanceHeaderActions({
               initial={{ opacity: 0, transform: 'translateY(-4px) scale(0.98)' }}
               animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
               transition={{ duration: 0.12 }}
-              className="absolute right-0 mt-2 w-60 rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-2)] z-40 p-1.5 text-sm origin-top-right"
+              className="absolute right-0 z-40 mt-2 w-60 origin-top-right rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-1.5 text-sm shadow-[var(--m3-elev-2)]"
             >
               {[
                 { label: 'Transactions (.csv)', kind: 'transactions' as const, file: 'sajni_transactions.csv' },
@@ -397,15 +444,18 @@ function FinanceHeaderActions({
                   type="button"
                   onClick={async () => {
                     setExportOpen(false);
-                    try { await downloadCSV(finance.exportUrl(opt.kind), opt.file); }
-                    catch (e) { console.error(e); }
+                    try {
+                      await downloadCSV(finance.exportUrl(opt.kind), opt.file);
+                    } catch (e) {
+                      console.error(e);
+                    }
                   }}
                   className="block w-full rounded-xl px-3 py-2 text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] active:bg-[hsl(var(--on-surface)/0.12)]"
                 >
                   {opt.label}
                 </button>
               ))}
-              <div className="mx-1 mt-1 border-t border-border px-2 py-2 text-xs text-muted-foreground font-mono">
+              <div className="mx-1 mt-1 border-t border-border px-2 py-2 font-mono text-xs text-muted-foreground">
                 Open with Google Sheets, then File / Import
               </div>
             </motion.div>

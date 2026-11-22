@@ -4,11 +4,11 @@ Self-host only WOFF2 files used by the site. `src/styles/fonts.css` declares
 the faces; `src/index.css` maps semantic roles. Components use roles, never
 individual family names.
 
-| Role | Family | Existing aliases |
-| --- | --- | --- |
-| Headings and display | Chubbo | `font-heading`, `font-serif`, `.serif`, M3 display/title roles, h1–h6 |
-| Body and UI labels | Supreme | `font-sans`, `font-mono`, `.mono`, M3 body/label roles |
-| Source code | Maple Mono Web | `font-code`, pre/code/samp, Markdown and editor code |
+| Role                 | Family         | Existing aliases                                                      |
+| -------------------- | -------------- | --------------------------------------------------------------------- |
+| Headings and display | Chubbo         | `font-heading`, `font-serif`, `.serif`, M3 display/title roles, h1–h6 |
+| Body and UI labels   | Supreme        | `font-sans`, `font-mono`, `.mono`, M3 body/label roles                |
+| Source code          | Maple Mono Web | `font-code`, pre/code/samp, Markdown and editor code                  |
 
 `font-mono` is a legacy metadata role, so UI labels continue to use Supreme.
 Use `font-code` for new source-code surfaces. Keyboard hint chips use Supreme.

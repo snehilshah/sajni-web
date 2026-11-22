@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react';
 import { EditActions } from '@/components/editor-actions';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
@@ -23,8 +28,12 @@ import type { Plan, PlanInput } from '@/types';
 
 const SWATCHES = ['#2D5A4F', '#7C9A92', '#C49A6C', '#A14B4F', '#4F6FA1', '#8B6FA1', '#7A7A7A'];
 const WEEKDAYS = [
-  { value: 1, label: 'M' }, { value: 2, label: 'T' }, { value: 3, label: 'W' },
-  { value: 4, label: 'T' }, { value: 5, label: 'F' }, { value: 6, label: 'S' },
+  { value: 1, label: 'M' },
+  { value: 2, label: 'T' },
+  { value: 3, label: 'W' },
+  { value: 4, label: 'T' },
+  { value: 5, label: 'F' },
+  { value: 6, label: 'S' },
   { value: 0, label: 'S' },
 ];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -38,7 +47,10 @@ export function planDaysLabel(days: number[]) {
   if (days.length === 7) return 'Every day';
   if (same(days, WORKDAYS)) return 'Workdays';
   if (same(days, WEEKENDS)) return 'Weekends';
-  return [...days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DAY_NAMES[d]).join(', ');
+  return [...days]
+    .sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7))
+    .map((d) => DAY_NAMES[d])
+    .join(', ');
 }
 
 /** "09:00" → "9:00 AM". */
@@ -48,15 +60,27 @@ export function formatClock(hhmm: string) {
 }
 
 const emptyDraft = (): PlanInput => ({
-  name: '', color: SWATCHES[0], weekdays: WORKDAYS, start_time: '09:00', notify: true,
+  name: '',
+  color: SWATCHES[0],
+  weekdays: WORKDAYS,
+  start_time: '09:00',
+  notify: true,
 });
 const draftOf = (p: Plan): PlanInput => ({
-  name: p.name, color: p.color, weekdays: p.weekdays, start_time: p.start_time, notify: p.notify,
+  name: p.name,
+  color: p.color,
+  weekdays: p.weekdays,
+  start_time: p.start_time,
+  notify: p.notify,
 });
 
 /** Journal's plans manager: the list, and an editor for one plan.
  *  Nothing saves until Save; a new plan is an explicit Add. */
-export function PlansManager({ open, onOpenChange, initialId = null }: {
+export function PlansManager({
+  open,
+  onOpenChange,
+  initialId = null,
+}: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Opens straight into this plan's editor ('new' for a blank one). */
@@ -69,9 +93,12 @@ export function PlansManager({ open, onOpenChange, initialId = null }: {
   const remove = useDeletePlan();
   const [view, setView] = useState<number | 'new' | null>(null);
   const [draft, setDraft] = useState<PlanInput>(emptyDraft);
-  const editing = typeof view === 'number' ? list.find((r) => r.id === view) ?? null : null;
-  const invalid = !draft.name.trim() ? 'a plan needs a name.'
-    : draft.weekdays.length === 0 ? 'pick at least one day.' : null;
+  const editing = typeof view === 'number' ? (list.find((r) => r.id === view) ?? null) : null;
+  const invalid = !draft.name.trim()
+    ? 'a plan needs a name.'
+    : draft.weekdays.length === 0
+      ? 'pick at least one day.'
+      : null;
 
   // Nothing saves until Save (or Add plan); leaving with changes asks twice.
   const editor = useEditorDraft({
@@ -89,11 +116,18 @@ export function PlansManager({ open, onOpenChange, initialId = null }: {
   });
   const loadDraft = editor.load;
 
-  useEffect(() => { if (open) setView(initialId); }, [open, initialId]);
+  useEffect(() => {
+    if (open) setView(initialId);
+  }, [open, initialId]);
   // Load once per opened plan; later list refetches mustn't reset typing.
   const editingId = editing?.id ?? null;
   useEffect(() => {
-    if (view === 'new') { const blank = emptyDraft(); setDraft(blank); loadDraft(blank); return; }
+    if (view === 'new') {
+      const blank = emptyDraft();
+      setDraft(blank);
+      loadDraft(blank);
+      return;
+    }
     const r = list.find((x) => x.id === view);
     if (!r) return;
     const loaded = draftOf(r);
@@ -123,26 +157,38 @@ export function PlansManager({ open, onOpenChange, initialId = null }: {
     ? 'Moments to plan your day, like reaching the office. They show at the top of each Journal day.'
     : 'At this time on these days, plan what the day is about.';
 
-  const body = !inEditor ? (
-    <PlanList plans={list} onOpen={setView} />
-  ) : (
-    <PlanForm draft={draft} onChange={setDraft} />
-  );
+  const body = !inEditor ? <PlanList plans={list} onOpen={setView} /> : <PlanForm draft={draft} onChange={setDraft} />;
   const footer = !inEditor ? (
     <>
-      <Button variant="outline" onClick={requestClose}>Close</Button>
-      <Button onClick={() => setView('new')}><Plus className="size-4" /> New plan</Button>
+      <Button variant="outline" onClick={requestClose}>
+        Close
+      </Button>
+      <Button onClick={() => setView('new')}>
+        <Plus className="size-4" /> New plan
+      </Button>
     </>
   ) : editing ? (
     <>
-      <Button variant="destructive-ghost" size="icon-sm" className="mr-auto size-10" onClick={del} aria-label="Delete plan" title="Delete plan">
+      <Button
+        variant="destructive-ghost"
+        size="icon-sm"
+        className="mr-auto size-10"
+        onClick={del}
+        aria-label="Delete plan"
+        title="Delete plan"
+      >
         <Trash2 className="size-4" />
       </Button>
       <EditActions draft={editor} onCancel={() => setView(null)} onSave={() => void editor.save(() => setView(null))} />
     </>
   ) : (
-    <EditActions draft={editor} onCancel={() => setView(null)} onSave={add} saveLabel="Add plan"
-      disabled={create.isPending || !!invalid} />
+    <EditActions
+      draft={editor}
+      onCancel={() => setView(null)}
+      onSave={add}
+      saveLabel="Add plan"
+      disabled={create.isPending || !!invalid}
+    />
   );
   const heading = (
     <span className="flex items-center gap-1.5">
@@ -160,11 +206,15 @@ export function PlansManager({ open, onOpenChange, initialId = null }: {
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="bottom" className="max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto">
           <SheetHeader className="pb-3">
-            <SheetTitle className="flex items-baseline justify-between gap-3 serif text-xl normal-case tracking-tight">{heading}</SheetTitle>
+            <SheetTitle className="serif flex items-baseline justify-between gap-3 text-xl tracking-tight normal-case">
+              {heading}
+            </SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-4">{body}</div>
-          <SheetFooter className="sticky bottom-0 flex-row justify-end border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">{footer}</SheetFooter>
+          <SheetFooter className="sticky bottom-0 flex-row justify-end border-t border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+            {footer}
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     );
@@ -187,7 +237,11 @@ export function PlansManager({ open, onOpenChange, initialId = null }: {
 
 function PlanList({ plans, onOpen }: { plans: Plan[]; onOpen: (id: number) => void }) {
   if (plans.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No plans yet. Try “Office start”, workdays at 9:00.</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        No plans yet. Try “Office start”, workdays at 9:00.
+      </p>
+    );
   }
   return (
     <div className="overflow-hidden rounded-xl bg-[hsl(var(--surface-container-low))]">
@@ -197,7 +251,7 @@ function PlanList({ plans, onOpen }: { plans: Plan[]; onOpen: (id: number) => vo
           type="button"
           onClick={() => onOpen(p.id)}
           className={cn(
-            'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[hsl(var(--surface-container))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45',
+            'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[hsl(var(--surface-container))] focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:outline-none',
             i > 0 && 'border-t border-[hsl(var(--outline-variant)/0.55)]',
           )}
         >
@@ -227,7 +281,14 @@ function PlanForm({ draft, onChange }: { draft: PlanInput; onChange: (d: PlanInp
     <div className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="plan-name">Name</Label>
-        <Input id="plan-name" autoFocus value={draft.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} placeholder="Office start" />
+        <Input
+          id="plan-name"
+          autoFocus
+          value={draft.name}
+          maxLength={80}
+          onChange={(e) => set({ name: e.target.value })}
+          placeholder="Office start"
+        />
       </div>
 
       <div className="grid gap-2">
@@ -239,7 +300,9 @@ function PlanForm({ draft, onChange }: { draft: PlanInput; onChange: (d: PlanInp
               type="button"
               onClick={() => set({ weekdays: p.days })}
               className={cn('chip', same(draft.weekdays, p.days) && 'chip-selected')}
-            >{p.label}</button>
+            >
+              {p.label}
+            </button>
           ))}
         </div>
         <div className="flex justify-between gap-1" aria-label="Days it runs">
@@ -251,9 +314,20 @@ function PlanForm({ draft, onChange }: { draft: PlanInput; onChange: (d: PlanInp
                 type="button"
                 aria-label={DAY_NAMES[day.value]}
                 aria-pressed={selected}
-                onClick={() => set({ weekdays: selected ? draft.weekdays.filter((d) => d !== day.value) : [...draft.weekdays, day.value] })}
-                className={cn('size-10 rounded-full text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45', selected ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]' : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground hover:text-foreground')}
-              >{day.label}</button>
+                onClick={() =>
+                  set({
+                    weekdays: selected ? draft.weekdays.filter((d) => d !== day.value) : [...draft.weekdays, day.value],
+                  })
+                }
+                className={cn(
+                  'size-10 rounded-full text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:outline-none',
+                  selected
+                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                    : 'bg-[hsl(var(--surface-container-high))] text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {day.label}
+              </button>
             );
           })}
         </div>
@@ -266,7 +340,11 @@ function PlanForm({ draft, onChange }: { draft: PlanInput; onChange: (d: PlanInp
         </div>
         <label className="flex min-h-10 items-center gap-2.5 text-sm">
           Alert
-          <Switch checked={draft.notify} onCheckedChange={(v) => set({ notify: v })} aria-label="Alert at the start time" />
+          <Switch
+            checked={draft.notify}
+            onCheckedChange={(v) => set({ notify: v })}
+            aria-label="Alert at the start time"
+          />
         </label>
       </div>
 
@@ -280,8 +358,10 @@ function PlanForm({ draft, onChange }: { draft: PlanInput; onChange: (d: PlanInp
               onClick={() => set({ color })}
               aria-label={`Use colour ${color}`}
               aria-pressed={draft.color === color}
-              className={cn('size-8 rounded-md border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                draft.color === color ? 'scale-110 border-background ring-2 ring-ring' : 'border-transparent')}
+              className={cn(
+                'size-8 rounded-md border-2 transition-transform focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                draft.color === color ? 'scale-110 border-background ring-2 ring-ring' : 'border-transparent',
+              )}
               style={{ backgroundColor: color }}
             />
           ))}

@@ -13,13 +13,12 @@ let rendererPromise: ReturnType<typeof loadRenderer> | null = null;
 type AvatarView = 'nav' | 'full';
 
 function loadRenderer() {
-  return Promise.all([
-    import('@dicebear/core'),
-    import('@dicebear/styles/voxel-art.json'),
-  ]).then(([{ Avatar, Style }, { default: definition }]) => ({
-    Avatar,
-    style: new Style(definition),
-  }));
+  return Promise.all([import('@dicebear/core'), import('@dicebear/styles/voxel-art.json')]).then(
+    ([{ Avatar, Style }, { default: definition }]) => ({
+      Avatar,
+      style: new Style(definition),
+    }),
+  );
 }
 
 function avatarDataUri(seed: string, colors: readonly string[], view: AvatarView): Promise<string> {
@@ -29,17 +28,19 @@ function avatarDataUri(seed: string, colors: readonly string[], view: AvatarView
   if (cached) return cached;
 
   rendererPromise ??= loadRenderer();
-  const avatar = rendererPromise.then(({ Avatar, style }) => new Avatar(style, {
-    seed,
-    // Slow enough to stay peripheral in the persistent nav. Voxel Art wraps
-    // its blink/stretch CSS in prefers-reduced-motion: no-preference.
-    animationVariant: 'slow',
-    animationProbability: 100,
-    // DiceBear v10's library accepts hex colors without the leading '#'.
-    shirtColor: colors[0].slice(1),
-    pantsColor: colors[1].slice(1),
-    ...(view === 'nav' ? { scale: 1.4, translateY: 32 } : {}),
-  }).toDataUri());
+  const avatar = rendererPromise.then(({ Avatar, style }) =>
+    new Avatar(style, {
+      seed,
+      // Slow enough to stay peripheral in the persistent nav. Voxel Art wraps
+      // its blink/stretch CSS in prefers-reduced-motion: no-preference.
+      animationVariant: 'slow',
+      animationProbability: 100,
+      // DiceBear v10's library accepts hex colors without the leading '#'.
+      shirtColor: colors[0].slice(1),
+      pantsColor: colors[1].slice(1),
+      ...(view === 'nav' ? { scale: 1.4, translateY: 32 } : {}),
+    }).toDataUri(),
+  );
 
   if (avatarCache.size >= MAX_CACHE_ENTRIES) {
     const oldest = avatarCache.keys().next().value;
@@ -71,9 +72,15 @@ export function ProfileAvatar({
   useEffect(() => {
     let current = true;
     void avatarDataUri(`${user.id}:${user.avatar_revision ?? 0}`, colors, view)
-      .then((next) => { if (current) setSrc(next); })
-      .catch(() => { if (current) setSrc(''); });
-    return () => { current = false; };
+      .then((next) => {
+        if (current) setSrc(next);
+      })
+      .catch(() => {
+        if (current) setSrc('');
+      });
+    return () => {
+      current = false;
+    };
   }, [colors, user.avatar_revision, user.id, view]);
 
   return (
@@ -91,7 +98,7 @@ export function ProfileAvatar({
           src={src}
           alt=""
           draggable={false}
-          className="block size-full select-none animate-in fade-in duration-200"
+          className="block size-full animate-in duration-200 select-none fade-in"
         />
       )}
     </span>

@@ -20,9 +20,8 @@ export default function AnalyticsDoc() {
         <FeatureList>
           <Feature name="Activity heatmap (365 days)">
             <p>
-              One cell per day, intensity = contributions across every module,
-              notes, tasks, habits, journal, media, finance. The header
-              counts total contributions and active days.
+              One cell per day, intensity = contributions across every module, notes, tasks, habits, journal, media,
+              finance. The header counts total contributions and active days.
             </p>
           </Feature>
           <Feature name="Journal consistency">
@@ -36,8 +35,8 @@ export default function AnalyticsDoc() {
           </Feature>
           <Feature name="Habit streaks">
             <p>
-              Current <em>and</em> longest streak per habit, side by side,
-              the longest is the reminder that the current one is rebuildable.
+              Current <em>and</em> longest streak per habit, side by side, the longest is the reminder that the current
+              one is rebuildable.
             </p>
           </Feature>
           <Feature name="Top tags & media stats">
@@ -48,21 +47,17 @@ export default function AnalyticsDoc() {
 
       <Section id="insights" title="Insights" chip="tab">
         <p>
-          Each week Sajni reads your data and writes short observations worth
-          acting on, spending drifts, habit patterns, task pile-ups. They
-          accrue as a feed; skim them Sunday evening. Insights are
-          observations, not nags: nothing here fires a notification beyond
-          the weekly digest.
+          Each week Sajni reads your data and writes short observations worth acting on, spending drifts, habit
+          patterns, task pile-ups. They accrue as a feed; skim them Sunday evening. Insights are observations, not nags:
+          nothing here fires a notification beyond the weekly digest.
         </p>
       </Section>
 
       <Section id="tags" title="Tags" chip="tab">
         <p>
-          Every <Code>#tag</Code> you've written anywhere, notes, memos,
-          task notes, transaction notes, bookmarks, collected with counts.
-          Opening a tag lists everything filed under it across all modules,
-          with jump-throughs. Tags are created by writing them; there is no
-          tag manager to maintain.
+          Every <Code>#tag</Code> you've written anywhere, notes, memos, task notes, transaction notes, bookmarks,
+          collected with counts. Opening a tag lists everything filed under it across all modules, with jump-throughs.
+          Tags are created by writing them; there is no tag manager to maintain.
         </p>
       </Section>
     </>

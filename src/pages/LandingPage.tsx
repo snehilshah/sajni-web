@@ -153,8 +153,8 @@ function CarePreview() {
   const active = CARE_VIEWS.find((view) => view.id === activeId) ?? CARE_VIEWS[0];
 
   return (
-    <div className="w-full min-w-0 max-w-full rounded-[32px] bg-[hsl(var(--surface-container-low))] p-3 sm:p-4">
-      <div className="min-w-0 max-w-full rounded-[24px_24px_24px_10px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-lowest))] p-4 sm:p-6">
+    <div className="w-full max-w-full min-w-0 rounded-[32px] bg-[hsl(var(--surface-container-low))] p-3 sm:p-4">
+      <div className="max-w-full min-w-0 rounded-[24px_24px_24px_10px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-lowest))] p-4 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <span className="sajni-logo size-6!" aria-hidden="true" />
@@ -164,7 +164,7 @@ function CarePreview() {
         </div>
 
         <div
-          className="mt-5 flex min-w-0 max-w-full gap-1 overflow-x-auto rounded-full bg-[hsl(var(--surface-container))] p-1"
+          className="mt-5 flex max-w-full min-w-0 gap-1 overflow-x-auto rounded-full bg-[hsl(var(--surface-container))] p-1"
           role="group"
           aria-label="Ways Sajni tends your life"
         >
@@ -198,17 +198,13 @@ function CarePreview() {
               transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.2, 0, 0, 1] }}
             >
               <div className="pt-7">
-                <h2 className="serif text-3xl font-semibold leading-tight tracking-[-0.025em]">
-                  {active.title}
-                </h2>
-                <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-                  {active.body}
-                </p>
+                <h2 className="serif text-3xl leading-tight font-semibold tracking-[-0.025em]">{active.title}</h2>
+                <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">{active.body}</p>
               </div>
 
               <div className="relative mt-6">
                 <div
-                  className="absolute bottom-6 left-[21px] top-6 w-px bg-[hsl(var(--outline-variant))]"
+                  className="absolute top-6 bottom-6 left-[21px] w-px bg-[hsl(var(--outline-variant))]"
                   aria-hidden="true"
                 />
                 <div className="relative flex flex-col gap-2">
@@ -309,7 +305,7 @@ export default function LandingPage() {
           <Link
             to="/"
             aria-label="Sajni home"
-            className="rounded-lg transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="rounded-lg transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <Brand />
           </Link>
@@ -348,17 +344,17 @@ export default function LandingPage() {
       <main>
         <section className="relative">
           <div
-            className="pointer-events-none absolute -right-32 top-10 size-[440px] rounded-full bg-[hsl(var(--primary-container)/0.38)] blur-3xl"
+            className="pointer-events-none absolute top-10 -right-32 size-[440px] rounded-full bg-[hsl(var(--primary-container)/0.38)] blur-3xl"
             aria-hidden="true"
           />
-          <div className="relative mx-auto grid min-w-0 max-w-7xl items-center gap-14 px-5 py-16 sm:px-8 sm:py-22 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:px-10 lg:py-28">
-            <div className="min-w-0 max-w-xl">
-              <h1 className="serif text-[clamp(2.75rem,4.5vw,4rem)] font-semibold leading-[1] tracking-[-0.045em]">
+          <div className="relative mx-auto grid max-w-7xl min-w-0 items-center gap-14 px-5 py-16 sm:px-8 sm:py-22 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:px-10 lg:py-28">
+            <div className="max-w-xl min-w-0">
+              <h1 className="serif text-[clamp(2.75rem,4.5vw,4rem)] leading-[1] font-semibold tracking-[-0.045em]">
                 A Quieter Place for Everything That Matters.
               </h1>
               <p className="mt-7 max-w-lg text-lg leading-8 text-muted-foreground sm:text-xl">
-                Sajni brings your notes, days, plans, habits, projects, media, and money into one
-                personal space. Keep each thread connected.
+                Sajni brings your notes, days, plans, habits, projects, media, and money into one personal space. Keep
+                each thread connected.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link to="/signin" className={buttonVariants({ variant: 'default', size: 'lg' })}>
@@ -378,16 +374,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="care" className="scroll-mt-20 border-y border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]">
+        <section
+          id="care"
+          className="scroll-mt-20 border-y border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))]"
+        >
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-26 lg:px-10">
             <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
               <div className="lg:sticky lg:top-28 lg:self-start">
-                <h2 className="serif max-w-md text-4xl font-semibold leading-[1.02] tracking-[-0.035em] sm:text-5xl">
+                <h2 className="serif max-w-md text-4xl leading-[1.02] font-semibold tracking-[-0.035em] sm:text-5xl">
                   Each Part Is Looked After in Context.
                 </h2>
                 <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
-                  Sajni keeps the spaces distinct enough to stay clear, and connected enough to
-                  feel like one continuous place.
+                  Sajni keeps the spaces distinct enough to stay clear, and connected enough to feel like one continuous
+                  place.
                 </p>
               </div>
 
@@ -395,13 +394,14 @@ export default function LandingPage() {
                 {TENDING_ROWS.map((row, index) => {
                   const Icon = row.icon;
                   return (
-                    <article key={row.number} className="grid gap-4 py-7 sm:grid-cols-[56px_1fr_auto] sm:items-start sm:gap-5">
+                    <article
+                      key={row.number}
+                      className="grid gap-4 py-7 sm:grid-cols-[56px_1fr_auto] sm:items-start sm:gap-5"
+                    >
                       <span
                         className={cn(
                           'grid size-14 place-items-center bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
-                          index % 2 === 0
-                            ? 'rounded-[20px_20px_20px_8px]'
-                            : 'rounded-[20px_8px_20px_20px]',
+                          index % 2 === 0 ? 'rounded-[20px_20px_20px_8px]' : 'rounded-[20px_8px_20px_20px]',
                         )}
                       >
                         <Icon className="size-5" />
@@ -430,12 +430,12 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-26 lg:px-10">
             <div className="grid overflow-hidden rounded-[32px] bg-[hsl(var(--primary-container))] lg:grid-cols-[0.92fr_1.08fr]">
               <div className="p-7 sm:p-10 lg:p-14">
-                <h2 className="serif max-w-lg text-4xl font-semibold leading-[1.02] tracking-[-0.035em] text-[hsl(var(--on-primary-container))] sm:text-5xl">
+                <h2 className="serif max-w-lg text-4xl leading-[1.02] font-semibold tracking-[-0.035em] text-[hsl(var(--on-primary-container))] sm:text-5xl">
                   The System Should Feel Personal Before You Put Anything in It.
                 </h2>
                 <p className="mt-5 max-w-lg text-base leading-7 text-[hsl(var(--on-primary-container)/0.78)]">
-                  Every Sajni theme is a complete Material 3 tonal system, not a coat of paint.
-                  Surfaces, focus states, charts, light mode, and dark mode all follow together.
+                  Every Sajni theme is a complete Material 3 tonal system, not a coat of paint. Surfaces, focus states,
+                  charts, light mode, and dark mode all follow together.
                 </p>
               </div>
 
@@ -485,12 +485,12 @@ export default function LandingPage() {
         <section id="quiet" className="scroll-mt-20 bg-[hsl(var(--surface-container-low))]">
           <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 sm:py-26 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-18 lg:px-10">
             <div>
-              <h2 className="serif max-w-lg text-4xl font-semibold leading-[1.02] tracking-[-0.035em] sm:text-5xl">
+              <h2 className="serif max-w-lg text-4xl leading-[1.02] font-semibold tracking-[-0.035em] sm:text-5xl">
                 It Stays Out of Sight Until Language Is Easier.
               </h2>
               <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
-                Sajni has no floating assistant and no prompt parade. Ask from the command palette
-                when you want help; it acts inside the same system you already understand.
+                Sajni has no floating assistant and no prompt parade. Ask from the command palette when you want help;
+                it acts inside the same system you already understand.
               </p>
             </div>
 
@@ -505,7 +505,7 @@ export default function LandingPage() {
               <div className="divide-y divide-[hsl(var(--outline-variant))]">
                 {QUIET_ACTIONS.map((action) => (
                   <div key={action.ask} className="grid gap-3 px-5 py-5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                    <p className="text-sm font-medium leading-6">{action.ask}</p>
+                    <p className="text-sm leading-6 font-medium">{action.ask}</p>
                     <ArrowRight className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
                     <p className="text-sm leading-6 text-muted-foreground">{action.result}</p>
                   </div>
@@ -518,8 +518,8 @@ export default function LandingPage() {
         <section>
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-26 lg:px-10">
             <div className="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-end">
-            <div>
-                <h2 className="serif max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.04em] sm:text-6xl">
+              <div>
+                <h2 className="serif max-w-3xl text-4xl leading-[1.02] font-semibold tracking-[-0.04em] sm:text-6xl">
                   A Beloved Place to Return to, Not Another System to Perform For.
                 </h2>
               </div>

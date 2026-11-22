@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | Json[]
-  | { [key: string]: Json };
+export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
 export interface Memo {
   id: number;
@@ -136,27 +130,29 @@ export interface ReminderInput {
   recurrence?: ReminderRecurrence;
 }
 
-export type TaskPatch = Partial<Pick<
-  Task,
-  | 'title'
-  | 'description'
-  | 'priority'
-  | 'color'
-  | 'status'
-  | 'due_date'
-  | 'week_of'
-  | 'month_of'
-  | 'scheduled_at'
-  | 'remind'
-  | 'notify_emails'
-  | 'list_id'
-  | 'parent_task_id'
-  | 'blocked_by_task_id'
-  | 'important'
-  | 'steps'
-  | 'recurrence'
-  | 'board_rank'
->> & {
+export type TaskPatch = Partial<
+  Pick<
+    Task,
+    | 'title'
+    | 'description'
+    | 'priority'
+    | 'color'
+    | 'status'
+    | 'due_date'
+    | 'week_of'
+    | 'month_of'
+    | 'scheduled_at'
+    | 'remind'
+    | 'notify_emails'
+    | 'list_id'
+    | 'parent_task_id'
+    | 'blocked_by_task_id'
+    | 'important'
+    | 'steps'
+    | 'recurrence'
+    | 'board_rank'
+  >
+> & {
   clear_plan?: boolean;
   clear_due?: boolean;
   clear_week?: boolean;
@@ -249,7 +245,17 @@ export interface TaskList {
   updated_at: string;
 }
 
-export type SmartList = 'my_day' | 'important' | 'planned' | 'week' | 'month' | 'scheduled' | 'blocked' | 'missed' | 'inbox' | 'all';
+export type SmartList =
+  | 'my_day'
+  | 'important'
+  | 'planned'
+  | 'week'
+  | 'month'
+  | 'scheduled'
+  | 'blocked'
+  | 'missed'
+  | 'inbox'
+  | 'all';
 
 export type HabitFrequency = 'daily' | 'weekly' | 'fortnightly' | 'monthly';
 
@@ -344,11 +350,18 @@ export interface TrackedEventDayEntry {
   note: string;
 }
 
-export type TrackedEventPatch = Partial<
-  Pick<TrackedEvent, 'name' | 'description' | 'color' | 'icon' | 'archived'>
->;
+export type TrackedEventPatch = Partial<Pick<TrackedEvent, 'name' | 'description' | 'color' | 'icon' | 'archived'>>;
 
-export type MediaStatus = 'in_progress' | 'pending' | 'waiting' | 'complete' | 'new_season' | 'archived' | 'dropped' | 'scratched' | 'upcoming';
+export type MediaStatus =
+  | 'in_progress'
+  | 'pending'
+  | 'waiting'
+  | 'complete'
+  | 'new_season'
+  | 'archived'
+  | 'dropped'
+  | 'scratched'
+  | 'upcoming';
 
 export interface MediaEntry {
   id: number;
@@ -378,27 +391,29 @@ export interface MediaEntry {
   last_completed_at: string;
 }
 
-export type MediaPatch = Partial<Pick<
-  MediaEntry,
-  | 'title'
-  | 'type'
-  | 'status'
-  | 'rating'
-  | 'notes'
-  | 'platform'
-  | 'poster_url'
-  | 'year'
-  | 'release_date'
-  | 'genre'
-  | 'external_id'
-  | 'episodes_watched'
-  | 'episodes_total'
-  | 'seasons_watched'
-  | 'seasons_total'
-  | 'season_episodes'
-  | 'collection_id'
-  | 'collection_name'
->>;
+export type MediaPatch = Partial<
+  Pick<
+    MediaEntry,
+    | 'title'
+    | 'type'
+    | 'status'
+    | 'rating'
+    | 'notes'
+    | 'platform'
+    | 'poster_url'
+    | 'year'
+    | 'release_date'
+    | 'genre'
+    | 'external_id'
+    | 'episodes_watched'
+    | 'episodes_total'
+    | 'seasons_watched'
+    | 'seasons_total'
+    | 'season_episodes'
+    | 'collection_id'
+    | 'collection_name'
+  >
+>;
 
 export interface Bookmark {
   id: number;

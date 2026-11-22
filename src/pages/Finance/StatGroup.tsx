@@ -16,7 +16,12 @@ const TONE = {
   destructive: 'text-destructive',
 } as const;
 
-export function Stat({ label, value, tone = 'default', className }: {
+export function Stat({
+  label,
+  value,
+  tone = 'default',
+  className,
+}: {
   label: string;
   value: ReactNode;
   tone?: keyof typeof TONE;
@@ -27,7 +32,7 @@ export function Stat({ label, value, tone = 'default', className }: {
       <div className="text-xs text-muted-foreground">{label}</div>
       {/* A figure never wraps: a sign or currency symbol alone on a line reads
           as a different number. */}
-      <div className={cn('mt-0.5 whitespace-nowrap font-serif text-2xl font-semibold tabular-nums', TONE[tone])}>
+      <div className={cn('mt-0.5 font-serif text-2xl font-semibold whitespace-nowrap tabular-nums', TONE[tone])}>
         {value}
       </div>
     </div>

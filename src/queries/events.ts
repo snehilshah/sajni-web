@@ -8,10 +8,7 @@ import { qk } from './keys';
 type EventListParams = { archived?: boolean; search?: string };
 type EventEntryParams = { search?: string; from?: string; to?: string; before?: string; limit?: number };
 
-function useEventMutation<TVariables>(
-  mutationFn: (variables: TVariables) => Promise<unknown>,
-  errorMessage: string,
-) {
+function useEventMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<unknown>, errorMessage: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
@@ -79,24 +76,21 @@ export function useDeleteEvent() {
 
 export function useDeleteEventVariable() {
   return useEventMutation(
-    ({ eventId, variableId }: { eventId: number; variableId: number }) =>
-      eventsApi.deleteVariable(eventId, variableId),
+    ({ eventId, variableId }: { eventId: number; variableId: number }) => eventsApi.deleteVariable(eventId, variableId),
     'Could not delete variable',
   );
 }
 
 export function useCreateEventEntry() {
   return useEventMutation(
-    ({ eventId, data }: { eventId: number; data: EventEntryInput }) =>
-      eventsApi.createEntry(eventId, data),
+    ({ eventId, data }: { eventId: number; data: EventEntryInput }) => eventsApi.createEntry(eventId, data),
     'Could not log event',
   );
 }
 
 export function useDeleteEventEntry() {
   return useEventMutation(
-    ({ eventId, entryId }: { eventId: number; entryId: number }) =>
-      eventsApi.deleteEntry(eventId, entryId),
+    ({ eventId, entryId }: { eventId: number; entryId: number }) => eventsApi.deleteEntry(eventId, entryId),
     'Could not delete entry',
   );
 }

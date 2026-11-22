@@ -5,10 +5,30 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  ArrowLeft, Plus, Sparkles, Trash2, RefreshCw, ChevronRight, ChevronDown, X,
-  Check, MessageSquare,
-  Edit3, Save, Link2,
-  FileText, Hash, CircleHelp, Lightbulb, NotebookPen, CheckCircle2, Zap, Quote, AlertTriangle, Target, CheckSquare,
+  ArrowLeft,
+  Plus,
+  Sparkles,
+  Trash2,
+  RefreshCw,
+  ChevronRight,
+  ChevronDown,
+  X,
+  Check,
+  MessageSquare,
+  Edit3,
+  Save,
+  Link2,
+  FileText,
+  Hash,
+  CircleHelp,
+  Lightbulb,
+  NotebookPen,
+  CheckCircle2,
+  Zap,
+  Quote,
+  AlertTriangle,
+  Target,
+  CheckSquare,
   type LucideIcon,
 } from '@/components/ui/icons';
 import { HuePill, hueVar } from '@/components/ui/hue-pill';
@@ -19,51 +39,90 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  thinking, type ThinkingCard, type ThinkingKind,
-  type ThinkingCardEvent, type ThinkingConnection, type ThinkingRelation, type ThinkingEnrichment,
+  thinking,
+  type ThinkingCard,
+  type ThinkingKind,
+  type ThinkingCardEvent,
+  type ThinkingConnection,
+  type ThinkingRelation,
+  type ThinkingEnrichment,
 } from '@/api';
 import { useThinkingProject } from '@/queries/thinking';
 import { qk } from '@/queries/keys';
 import { confirmDialog } from '@/lib/confirm';
 
 const KINDS: ThinkingKind[] = [
-  'note', 'entity', 'question', 'idea', 'reflection',
-  'claim', 'fact', 'hypothesis', 'evidence',
-  'contradiction', 'decision', 'todo',
+  'note',
+  'entity',
+  'question',
+  'idea',
+  'reflection',
+  'claim',
+  'fact',
+  'hypothesis',
+  'evidence',
+  'contradiction',
+  'decision',
+  'todo',
 ];
 
 const RELATIONS: ThinkingRelation[] = [
-  'supports', 'contradicts', 'extends', 'depends_on', 'refines',
-  'fixes', 'refs', 'points', 'questions',
-  'exemplifies', 'generalizes', 'related',
+  'supports',
+  'contradicts',
+  'extends',
+  'depends_on',
+  'refines',
+  'fixes',
+  'refs',
+  'points',
+  'questions',
+  'exemplifies',
+  'generalizes',
+  'related',
 ];
 
 // Kind glyph + hue (mirrors Android `kindIcon`/`kindHue`): the filter chips
 // and the card's kind badge are recognised by shape and colour. null = a
 // neutral kind (note, todo) that takes the theme's quiet tone.
 const KIND_ICON: Record<ThinkingKind, LucideIcon> = {
-  note: FileText, entity: Hash, question: CircleHelp, idea: Lightbulb, reflection: NotebookPen,
-  claim: MessageSquare, fact: CheckCircle2, hypothesis: Zap, evidence: Quote,
-  contradiction: AlertTriangle, decision: Target, todo: CheckSquare,
+  note: FileText,
+  entity: Hash,
+  question: CircleHelp,
+  idea: Lightbulb,
+  reflection: NotebookPen,
+  claim: MessageSquare,
+  fact: CheckCircle2,
+  hypothesis: Zap,
+  evidence: Quote,
+  contradiction: AlertTriangle,
+  decision: Target,
+  todo: CheckSquare,
 };
 const KIND_HUE: Record<ThinkingKind, string | null> = {
-  note: null, entity: '#7A8794', question: '#3F7FE0', idea: '#E3A21A', reflection: '#E0567B',
-  claim: '#C7743B', fact: '#4C9A5B', hypothesis: '#8B6FD6', evidence: '#4C9A5B',
-  contradiction: '#D9534F', decision: '#2E9E8F', todo: null,
+  note: null,
+  entity: '#7A8794',
+  question: '#3F7FE0',
+  idea: '#E3A21A',
+  reflection: '#E0567B',
+  claim: '#C7743B',
+  fact: '#4C9A5B',
+  hypothesis: '#8B6FD6',
+  evidence: '#4C9A5B',
+  contradiction: '#D9534F',
+  decision: '#2E9E8F',
+  todo: null,
 };
 // Soft tinted badge for a kind: wash of its hue, ink mixed toward on-surface.
-const kindBadge = 'bg-[color-mix(in_oklab,var(--hue)_16%,transparent)] text-[color-mix(in_oklab,var(--hue)_75%,hsl(var(--on-surface)))]';
+const kindBadge =
+  'bg-[color-mix(in_oklab,var(--hue)_16%,transparent)] text-[color-mix(in_oklab,var(--hue)_75%,hsl(var(--on-surface)))]';
 const kindStyle = (k: ThinkingKind) => hueVar(KIND_HUE[k] ?? 'hsl(var(--on-surface-variant))');
 
-const CARD_SURFACE =
-  'rounded-2xl bg-[hsl(var(--surface-container-low))]';
+const CARD_SURFACE = 'rounded-2xl bg-[hsl(var(--surface-container-low))]';
 const THREAD_TEXTAREA_SIZE = 'max-h-[100px] overflow-y-auto overscroll-contain';
 
 // Local cache of stale-banner dismissals so reloading doesn't keep
@@ -116,17 +175,28 @@ export default function ThinkingProjectPage() {
   // Enrichment runs server-side after a write: mark the card as being read
   // and poll a few times until its enrichment lands (or give up quietly).
   const watchEnrichment = (cid: number) => {
-    const before = qc.getQueryData<{ cards?: { id: number; ai_enrichment?: unknown; updated_at?: string }[] }>(qk.thinking.project(pid))
+    const before = qc
+      .getQueryData<{ cards?: { id: number; ai_enrichment?: unknown; updated_at?: string }[] }>(
+        qk.thinking.project(pid),
+      )
       ?.cards?.find((c) => c.id === cid)?.ai_enrichment;
     setEnrichingIds((prev) => new Set(prev).add(cid));
-    const done = () => setEnrichingIds((prev) => { const next = new Set(prev); next.delete(cid); return next; });
+    const done = () =>
+      setEnrichingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(cid);
+        return next;
+      });
     let tries = 0;
     const tick = async () => {
       tries++;
       await load();
-      const card = qc.getQueryData<{ cards?: { id: number; ai_enrichment?: unknown }[] }>(qk.thinking.project(pid))?.cards?.find((c) => c.id === cid);
+      const card = qc
+        .getQueryData<{ cards?: { id: number; ai_enrichment?: unknown }[] }>(qk.thinking.project(pid))
+        ?.cards?.find((c) => c.id === cid);
       const landed = !card || (card.ai_enrichment && JSON.stringify(card.ai_enrichment) !== JSON.stringify(before));
-      if (landed || tries >= 6) done(); else setTimeout(tick, 2500);
+      if (landed || tries >= 6) done();
+      else setTimeout(tick, 2500);
     };
     setTimeout(tick, 2500);
   };
@@ -134,8 +204,11 @@ export default function ThinkingProjectPage() {
   const staleDismissed = useMemo(() => {
     if (!project?.context_updated_at) return false;
     if (dismissedAt === project.context_updated_at) return true;
-    try { return localStorage.getItem(STALE_DISMISS_KEY(pid, project.context_updated_at)) === '1'; }
-    catch { return false; }
+    try {
+      return localStorage.getItem(STALE_DISMISS_KEY(pid, project.context_updated_at)) === '1';
+    } catch {
+      return false;
+    }
   }, [pid, project, dismissedAt]);
 
   // Auto-categorize: debounce draft text, hit the classifier, silently
@@ -147,9 +220,16 @@ export default function ThinkingProjectPage() {
     const t = setTimeout(() => {
       const seq = ++classifySeq.current;
       setClassifying(true);
-      const p = thinking.classify(draft).then((r) => r.kind).catch(() => null);
+      const p = thinking
+        .classify(draft)
+        .then((r) => r.kind)
+        .catch(() => null);
       p.then((k) => {
-        if (k && !userPickedKind.current) { setKind(k); setAutoPicked(true); classifiedFor.current = draft.trim(); }
+        if (k && !userPickedKind.current) {
+          setKind(k);
+          setAutoPicked(true);
+          classifiedFor.current = draft.trim();
+        }
         if (seq === classifySeq.current) setClassifying(false);
       });
     }, 600);
@@ -183,7 +263,10 @@ export default function ThinkingProjectPage() {
     if (!userPickedKind.current && classifiedFor.current !== text) {
       setClassifying(true);
       const guess = await Promise.race<ThinkingKind | null>([
-        thinking.classify(text).then((r) => r.kind).catch(() => null),
+        thinking
+          .classify(text)
+          .then((r) => r.kind)
+          .catch(() => null),
         new Promise<null>((res) => setTimeout(() => res(null), 4000)),
       ]);
       if (guess && !userPickedKind.current) finalKind = guess;
@@ -245,16 +328,24 @@ export default function ThinkingProjectPage() {
     setChangingCardId(card.id);
     await qc.cancelQueries({ queryKey });
     const previous = qc.getQueryData<Awaited<ReturnType<typeof thinking.getProject>>>(queryKey);
-    qc.setQueryData<Awaited<ReturnType<typeof thinking.getProject>>>(queryKey, (current) => current && ({
-      ...current,
-      cards: current.cards.map((item) => item.id === card.id ? {
-        ...item,
-        status: nextClosed ? 'closed' : 'open',
-        closed_at: nextClosed ? changedAt : '',
-        updated_at: changedAt,
-        thread_count: (item.thread_count ?? 0) + 1,
-      } : item),
-    }));
+    qc.setQueryData<Awaited<ReturnType<typeof thinking.getProject>>>(
+      queryKey,
+      (current) =>
+        current && {
+          ...current,
+          cards: current.cards.map((item) =>
+            item.id === card.id
+              ? {
+                  ...item,
+                  status: nextClosed ? 'closed' : 'open',
+                  closed_at: nextClosed ? changedAt : '',
+                  updated_at: changedAt,
+                  thread_count: (item.thread_count ?? 0) + 1,
+                }
+              : item,
+          ),
+        },
+    );
     try {
       await thinking.setCardState(card.id, nextClosed, '');
     } catch {
@@ -280,21 +371,22 @@ export default function ThinkingProjectPage() {
   const openCard = cards.find((c) => c.id === openCardId) || null;
 
   // User-authored card changes, comments and resolutions can all change the thesis.
-  const showStaleBanner =
-    project?.thesis &&
-    project.needs_synthesis &&
-    !staleDismissed &&
-    !synthesizing;
+  const showStaleBanner = project?.thesis && project.needs_synthesis && !staleDismissed && !synthesizing;
 
   const dismissStale = () => {
     setDismissedAt(project?.context_updated_at ?? null);
-    try { localStorage.setItem(STALE_DISMISS_KEY(pid, project?.context_updated_at ?? ''), '1'); } catch { /* noop */ }
+    try {
+      localStorage.setItem(STALE_DISMISS_KEY(pid, project?.context_updated_at ?? ''), '1');
+    } catch {
+      /* noop */
+    }
   };
 
   const toggleKind = (k: ThinkingKind) => {
     setActiveKinds((s) => {
       const next = new Set(s);
-      if (next.has(k)) next.delete(k); else next.add(k);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
       return next;
     });
   };
@@ -306,263 +398,314 @@ export default function ThinkingProjectPage() {
     <PageShell
       title={project.title}
       leading={
-        <Button variant="ghost" size="icon-sm" className="size-11 md:size-9" onClick={() => navigate('/projects')} aria-label="Back to projects">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-11 md:size-9"
+          onClick={() => navigate('/projects')}
+          aria-label="Back to projects"
+        >
           <ArrowLeft className="size-4" />
         </Button>
       }
       actions={
         <Button size="sm" onClick={synthesize} disabled={synthesizing || cards.length < 2}>
-          <Sparkles className="size-4 mr-1" />
+          <Sparkles className="mr-1 size-4" />
           {synthesizing ? 'Synthesizing…' : project.thesis ? 'Re-synthesize' : 'Synthesize'}
         </Button>
       }
       contentClassName={`w-full mx-auto px-4 md:px-8 pt-5 md:pt-6 pb-28 md:pb-20 transition-[max-width] duration-[450ms] ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'max-w-[100vw]' : 'max-w-6xl'}`}
     >
-      <div className={`grid items-start transition-[grid-template-columns,gap] duration-400 ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-5' : 'lg:grid-cols-[minmax(0,1fr)_0px]'}`}>
+      <div
+        className={`grid items-start transition-[grid-template-columns,gap] duration-400 ease-[cubic-bezier(0.2,0,0,1)] ${openCard ? 'lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-5' : 'lg:grid-cols-[minmax(0,1fr)_0px]'}`}
+      >
         <main className="flex min-w-0 flex-col gap-6">
-      {project.description && (
-        <div className="text-sm text-muted-foreground">{project.description}</div>
-      )}
+          {project.description && <div className="text-sm text-muted-foreground">{project.description}</div>}
 
-      {showStaleBanner && (
-        <div className="rounded-xl border border-primary/40 bg-[hsl(var(--primary-container)/0.5)] text-[hsl(var(--on-primary-container))] px-4 py-3 flex items-start gap-3">
-          <Sparkles className="size-4 mt-0.5 shrink-0" />
-          <div className="flex-1 text-sm">
-            This project changed since the last synthesis. The thesis may be stale.
-          </div>
-          <Button size="sm" onClick={synthesize} disabled={synthesizing}>
-            Re-synthesize
-          </Button>
-          <button onClick={dismissStale} className="p-1 rounded hover:bg-foreground/10" title="Dismiss">
-            <X className="size-3.5" />
-          </button>
-        </div>
-      )}
-
-      {(project.thesis || (project.gap_questions && project.gap_questions.length > 0)) && (
-        <div className={`${CARD_SURFACE} overflow-hidden`}>
-          <button
-            type="button"
-            onClick={() => setSynthesisOpen((open) => !open)}
-            aria-expanded={synthesisOpen}
-            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]"
-          >
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]">
-              <Sparkles className="size-3.5" />
-            </span>
-            <span className="min-w-0 flex-1 text-sm font-medium leading-tight">
-              Synthesis
-              {project.gap_questions?.length > 0 && (
-                <span className="font-normal text-muted-foreground"> · {project.gap_questions.length} gap question{project.gap_questions.length === 1 ? '' : 's'}</span>
-              )}
-            </span>
-            <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${synthesisOpen ? '' : '-rotate-90'}`} />
-          </button>
-          <AnimatePresence initial={false}>
-            {synthesisOpen && (
-              <motion.div
-                initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="space-y-4 border-t border-[hsl(var(--outline-variant))] p-5">
-                  {project.thesis && (
-                    <div>
-                      <SectionLabel>Thesis</SectionLabel>
-                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2 prose-headings:font-serif prose-headings:tracking-tight prose-h1:text-base prose-h1:mb-2 prose-h2:text-sm prose-h2:mt-4 prose-h2:mb-1 prose-p:leading-relaxed">
-                        <Markdown remarkPlugins={[remarkGfm]}>{project.thesis}</Markdown>
-                      </div>
-                    </div>
-                  )}
-                  {project.thesis && project.gap_questions?.length > 0 && <Separator />}
-                  {project.gap_questions && project.gap_questions.length > 0 && (
-                    <div>
-                      <SectionLabel>Gap Questions</SectionLabel>
-                      <ul className="space-y-1.5 mt-2">
-                        {project.gap_questions.map((q, i) => (
-                          <li key={i} className="text-sm flex items-start gap-2">
-                            <span className="text-primary mt-0.5">·</span>
-                            <span>{q}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Composer */}
-      <div className={`${CARD_SURFACE} p-3 space-y-3`}>
-        <Textarea
-          placeholder="What's on your mind? Sajni picks a kind automatically; override below."
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              addCard();
-            }
-          }}
-          rows={3}
-          className="min-h-[88px]"
-        />
-        <div className="flex items-center gap-2">
-          <Select value={kind} onValueChange={(v) => onUserPickKind(v as ThinkingKind)}>
-            <SelectTrigger className="h-9 w-40 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {KINDS.map((k) => (
-                <SelectItem key={k} value={k}>
-                  <span className="flex items-center gap-2">
-                    {(() => { const I = KIND_ICON[k]; return <I className="size-3.5 text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]" style={kindStyle(k)} />; })()}
-                    {k}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {/* One status slot that takes the free width: its text changes,
-              the row never reflows. */}
-          <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs" aria-live="polite">
-            {classifying ? (
-              <><M3CookieLoader size="xs" tone="primary" /><span className="truncate text-muted-foreground">Sajni is picking a kind…</span></>
-            ) : autoPicked && !userPickedKindState && draft.trim() ? (
-              <><Sparkles className="size-3 shrink-0 text-primary" /><span className="truncate text-primary">Auto · change anytime</span></>
-            ) : (
-              <span className="hidden truncate text-muted-foreground sm:inline">⌘+Enter to add</span>
-            )}
-          </span>
-          <Button size="sm" onClick={addCard} disabled={!draft.trim() || adding}>
-            <Plus className="size-4 mr-1" /> {adding ? (classifying ? 'Picking kind…' : 'Adding…') : 'Add'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter chips — equal width grid */}
-      {cards.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <SectionLabel>Filter</SectionLabel>
-            {activeKinds.size > 0 && (
-              <button
-                onClick={() => setActiveKinds(new Set())}
-                className="text-xs mono label-kicker text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-              >
-                <X className="size-3" /> Clear
+          {showStaleBanner && (
+            <div className="flex items-start gap-3 rounded-xl border border-primary/40 bg-[hsl(var(--primary-container)/0.5)] px-4 py-3 text-[hsl(var(--on-primary-container))]">
+              <Sparkles className="mt-0.5 size-4 shrink-0" />
+              <div className="flex-1 text-sm">
+                This project changed since the last synthesis. The thesis may be stale.
+              </div>
+              <Button size="sm" onClick={synthesize} disabled={synthesizing}>
+                Re-synthesize
+              </Button>
+              <button onClick={dismissStale} className="rounded p-1 hover:bg-foreground/10" title="Dismiss">
+                <X className="size-3.5" />
               </button>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {KINDS.filter((k) => (kindCounts[k] ?? 0) > 0).map((k) => (
-              <HuePill
-                key={k}
-                icon={KIND_ICON[k]}
-                hue={KIND_HUE[k]}
-                selected={activeKinds.has(k)}
-                count={kindCounts[k]}
-                onClick={() => toggleKind(k)}
-                className="capitalize"
-              >
-                {k}
-              </HuePill>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Cards list */}
-      {visibleCards.length === 0 ? (
-        <div className="text-sm text-muted-foreground italic">No cards yet. Drop a thought above.</div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {visibleCards.map((c) => {
-            const connectionCount = c.ai_enrichment?.connections?.length ?? 0;
-            const stateLabel = c.kind === 'question'
-              ? c.status === 'closed' ? 'Answered' : 'Open'
-              : c.kind === 'contradiction'
-                ? c.status === 'closed' ? 'Resolved' : 'Open'
-                : null;
-            return (
-              <div key={c.id} className={`${CARD_SURFACE} @container group overflow-hidden transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}>
-                <div className="grid @min-[40rem]:grid-cols-[minmax(0,1fr)_12rem]">
-                  <button
-                    type="button"
-                    onClick={() => { setThreadJumpToken(0); setOpenCardId(c.id); }}
-                    aria-pressed={openCardId === c.id}
-                    className="flex min-w-0 items-start p-3 text-left outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]"
+          {(project.thesis || (project.gap_questions && project.gap_questions.length > 0)) && (
+            <div className={`${CARD_SURFACE} overflow-hidden`}>
+              <button
+                type="button"
+                onClick={() => setSynthesisOpen((open) => !open)}
+                aria-expanded={synthesisOpen}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]"
+              >
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1 text-sm leading-tight font-medium">
+                  Synthesis
+                  {project.gap_questions?.length > 0 && (
+                    <span className="font-normal text-muted-foreground">
+                      {' '}
+                      · {project.gap_questions.length} gap question{project.gap_questions.length === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown
+                  className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${synthesisOpen ? '' : '-rotate-90'}`}
+                />
+              </button>
+              <AnimatePresence initial={false}>
+                {synthesisOpen && (
+                  <motion.div
+                    initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                    className="overflow-hidden"
                   >
-                    <div className="grid w-full grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
-                      <span style={kindStyle(c.kind)} className={`inline-flex items-center justify-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${kindBadge}`}>
-                        {(() => { const I = KIND_ICON[c.kind]; return <I className="size-3 shrink-0" aria-hidden />; })()}
-                        {c.kind}
-                      </span>
-                      <div className={`grid min-w-0 gap-2 ${c.ai_enrichment?.summary ? '@min-[50rem]:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @min-[50rem]:gap-5' : ''}`}>
-                        <div className="prose prose-sm dark:prose-invert min-w-0 max-w-none break-words">
-                          <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
-                        </div>
-                        {enrichingIds.has(c.id) ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-                            <M3CookieLoader size="xs" tone="primary" /> Sajni is reading this card…
-                          </span>
-                        ) : c.ai_enrichment?.summary && (
-                          <div className="min-w-0 border-t-2 border-primary/40 pt-2 text-xs italic text-foreground/60 @min-[50rem]:border-l-2 @min-[50rem]:border-t-0 @min-[50rem]:pl-3 @min-[50rem]:pt-0">
-                            <span className="line-clamp-3">{c.ai_enrichment.summary}</span>
+                    <div className="space-y-4 border-t border-[hsl(var(--outline-variant))] p-5">
+                      {project.thesis && (
+                        <div>
+                          <SectionLabel>Thesis</SectionLabel>
+                          <div className="prose prose-sm mt-2 max-w-none dark:prose-invert prose-headings:font-serif prose-headings:tracking-tight prose-h1:mb-2 prose-h1:text-base prose-h2:mt-4 prose-h2:mb-1 prose-h2:text-sm prose-p:leading-relaxed">
+                            <Markdown remarkPlugins={[remarkGfm]}>{project.thesis}</Markdown>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                      {project.thesis && project.gap_questions?.length > 0 && <Separator />}
+                      {project.gap_questions && project.gap_questions.length > 0 && (
+                        <div>
+                          <SectionLabel>Gap Questions</SectionLabel>
+                          <ul className="mt-2 space-y-1.5">
+                            {project.gap_questions.map((q, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <span className="mt-0.5 text-primary">·</span>
+                                <span>{q}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Composer */}
+          <div className={`${CARD_SURFACE} space-y-3 p-3`}>
+            <Textarea
+              placeholder="What's on your mind? Sajni picks a kind automatically; override below."
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  addCard();
+                }
+              }}
+              rows={3}
+              className="min-h-[88px]"
+            />
+            <div className="flex items-center gap-2">
+              <Select value={kind} onValueChange={(v) => onUserPickKind(v as ThinkingKind)}>
+                <SelectTrigger className="h-9 w-40 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {KINDS.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      <span className="flex items-center gap-2">
+                        {(() => {
+                          const I = KIND_ICON[k];
+                          return (
+                            <I
+                              className="size-3.5 text-[color-mix(in_oklab,var(--hue)_80%,hsl(var(--on-surface)))]"
+                              style={kindStyle(k)}
+                            />
+                          );
+                        })()}
+                        {k}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* One status slot that takes the free width: its text changes,
+              the row never reflows. */}
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs" aria-live="polite">
+                {classifying ? (
+                  <>
+                    <M3CookieLoader size="xs" tone="primary" />
+                    <span className="truncate text-muted-foreground">Sajni is picking a kind…</span>
+                  </>
+                ) : autoPicked && !userPickedKindState && draft.trim() ? (
+                  <>
+                    <Sparkles className="size-3 shrink-0 text-primary" />
+                    <span className="truncate text-primary">Auto · change anytime</span>
+                  </>
+                ) : (
+                  <span className="hidden truncate text-muted-foreground sm:inline">⌘+Enter to add</span>
+                )}
+              </span>
+              <Button size="sm" onClick={addCard} disabled={!draft.trim() || adding}>
+                <Plus className="mr-1 size-4" /> {adding ? (classifying ? 'Picking kind…' : 'Adding…') : 'Add'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Filter chips — equal width grid */}
+          {cards.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <SectionLabel>Filter</SectionLabel>
+                {activeKinds.size > 0 && (
+                  <button
+                    onClick={() => setActiveKinds(new Set())}
+                    className="mono label-kicker inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-3" /> Clear
                   </button>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-3 py-2 @min-[40rem]:flex-col @min-[40rem]:items-stretch @min-[40rem]:justify-center @min-[40rem]:gap-1 @min-[40rem]:border-l @min-[40rem]:border-t-0">
-                    <div className="flex items-center gap-2">
-                      {c.kind === 'todo' && (
-                        <TodoToggle
-                          complete={c.status === 'closed'}
-                          disabled={changingCardId !== null}
-                          reduceMotion={Boolean(reduceMotion)}
-                          onToggle={() => void toggleTodo(c)}
-                        />
-                      )}
-                      {stateLabel && (
-                        <span className={`inline-flex h-8 items-center rounded-full px-2 text-xs font-medium ${c.status === 'closed' ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground'}`}>
-                          {stateLabel}
-                        </span>
-                      )}
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {KINDS.filter((k) => (kindCounts[k] ?? 0) > 0).map((k) => (
+                  <HuePill
+                    key={k}
+                    icon={KIND_ICON[k]}
+                    hue={KIND_HUE[k]}
+                    selected={activeKinds.has(k)}
+                    count={kindCounts[k]}
+                    onClick={() => toggleKind(k)}
+                    className="capitalize"
+                  >
+                    {k}
+                  </HuePill>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cards list */}
+          {visibleCards.length === 0 ? (
+            <div className="text-sm text-muted-foreground italic">No cards yet. Drop a thought above.</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {visibleCards.map((c) => {
+                const connectionCount = c.ai_enrichment?.connections?.length ?? 0;
+                const stateLabel =
+                  c.kind === 'question'
+                    ? c.status === 'closed'
+                      ? 'Answered'
+                      : 'Open'
+                    : c.kind === 'contradiction'
+                      ? c.status === 'closed'
+                        ? 'Resolved'
+                        : 'Open'
+                      : null;
+                return (
+                  <div
+                    key={c.id}
+                    className={`${CARD_SURFACE} group @container overflow-hidden transition-[background-color,border-color,box-shadow] hover:bg-[hsl(var(--surface-container))] ${openCardId === c.id ? 'border-primary/60 shadow-[var(--m3-elev-1)]' : ''}`}
+                  >
+                    <div className="grid @min-[40rem]:grid-cols-[minmax(0,1fr)_12rem]">
                       <button
                         type="button"
-                        onClick={() => { setOpenCardId(c.id); setThreadJumpToken((token) => token + 1); }}
-                        className="inline-flex min-h-11 items-center gap-1 rounded-lg text-xs font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
-                        aria-label={`Open thread for ${c.kind} card, ${c.thread_count ?? 0} entries`}
+                        onClick={() => {
+                          setThreadJumpToken(0);
+                          setOpenCardId(c.id);
+                        }}
+                        aria-pressed={openCardId === c.id}
+                        className="flex min-w-0 items-start p-3 text-left outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]"
                       >
-                        <MessageSquare className="size-3.5 shrink-0" />
-                        <span>Thread {c.thread_count ?? 0}</span>
+                        <div className="grid w-full grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
+                          <span
+                            style={kindStyle(c.kind)}
+                            className={`inline-flex items-center justify-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${kindBadge}`}
+                          >
+                            {(() => {
+                              const I = KIND_ICON[c.kind];
+                              return <I className="size-3 shrink-0" aria-hidden />;
+                            })()}
+                            {c.kind}
+                          </span>
+                          <div
+                            className={`grid min-w-0 gap-2 ${c.ai_enrichment?.summary ? '@min-[50rem]:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @min-[50rem]:gap-5' : ''}`}
+                          >
+                            <div className="prose prose-sm max-w-none min-w-0 break-words dark:prose-invert">
+                              <Markdown remarkPlugins={[remarkGfm]}>{c.content}</Markdown>
+                            </div>
+                            {enrichingIds.has(c.id) ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                                aria-live="polite"
+                              >
+                                <M3CookieLoader size="xs" tone="primary" /> Sajni is reading this card…
+                              </span>
+                            ) : (
+                              c.ai_enrichment?.summary && (
+                                <div className="min-w-0 border-t-2 border-primary/40 pt-2 text-xs text-foreground/60 italic @min-[50rem]:border-t-0 @min-[50rem]:border-l-2 @min-[50rem]:pt-0 @min-[50rem]:pl-3">
+                                  <span className="line-clamp-3">{c.ai_enrichment.summary}</span>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
                       </button>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                      {connectionCount > 0 && (
-                        <span className="inline-flex items-center gap-1">
-                          <Link2 className="size-3.5 shrink-0" />
-                          {connectionCount} link{connectionCount === 1 ? '' : 's'}
-                        </span>
-                      )}
-                      <span>
-                        Updated {formatDistanceToNow(new Date(c.updated_at), { addSuffix: true })}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-3 py-2 @min-[40rem]:flex-col @min-[40rem]:items-stretch @min-[40rem]:justify-center @min-[40rem]:gap-1 @min-[40rem]:border-t-0 @min-[40rem]:border-l">
+                        <div className="flex items-center gap-2">
+                          {c.kind === 'todo' && (
+                            <TodoToggle
+                              complete={c.status === 'closed'}
+                              disabled={changingCardId !== null}
+                              reduceMotion={Boolean(reduceMotion)}
+                              onToggle={() => void toggleTodo(c)}
+                            />
+                          )}
+                          {stateLabel && (
+                            <span
+                              className={`inline-flex h-8 items-center rounded-full px-2 text-xs font-medium ${c.status === 'closed' ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : 'bg-[hsl(var(--surface-container-highest))] text-muted-foreground'}`}
+                            >
+                              {stateLabel}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenCardId(c.id);
+                              setThreadJumpToken((token) => token + 1);
+                            }}
+                            className="inline-flex min-h-11 items-center gap-1 rounded-lg text-xs font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                            aria-label={`Open thread for ${c.kind} card, ${c.thread_count ?? 0} entries`}
+                          >
+                            <MessageSquare className="size-3.5 shrink-0" />
+                            <span>Thread {c.thread_count ?? 0}</span>
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                          {connectionCount > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Link2 className="size-3.5 shrink-0" />
+                              {connectionCount} link{connectionCount === 1 ? '' : 's'}
+                            </span>
+                          )}
+                          <span>Updated {formatDistanceToNow(new Date(c.updated_at), { addSuffix: true })}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
+                );
+              })}
+            </div>
+          )}
         </main>
 
         <AnimatePresence initial={false}>
@@ -573,7 +716,7 @@ export default function ThinkingProjectPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 40 }}
               transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-              className="fixed inset-x-0 bottom-0 top-[calc(env(safe-area-inset-top,0px)+68px)] z-50 overflow-hidden bg-background px-3 pb-3 lg:sticky lg:inset-auto lg:top-16 lg:z-auto lg:h-[calc(100dvh-5rem)] lg:bg-transparent lg:px-0 lg:pb-0"
+              className="fixed inset-x-0 top-[calc(env(safe-area-inset-top,0px)+68px)] bottom-0 z-50 overflow-hidden bg-background px-3 pb-3 lg:sticky lg:inset-auto lg:top-16 lg:z-auto lg:h-[calc(100dvh-5rem)] lg:bg-transparent lg:px-0 lg:pb-0"
             >
               <div className="h-full overflow-hidden rounded-[28px] bg-[hsl(var(--surface-container-low))] shadow-[var(--m3-elev-2)]">
                 <CardDetail
@@ -581,8 +724,14 @@ export default function ThinkingProjectPage() {
                   card={openCard}
                   threadJumpToken={threadJumpToken}
                   siblings={cards}
-                  onClose={() => { setThreadJumpToken(0); setOpenCardId(null); }}
-                  onJump={(id) => { setThreadJumpToken(0); setOpenCardId(id); }}
+                  onClose={() => {
+                    setThreadJumpToken(0);
+                    setOpenCardId(null);
+                  }}
+                  onJump={(id) => {
+                    setThreadJumpToken(0);
+                    setOpenCardId(id);
+                  }}
                   onToggleTodo={() => void toggleTodo(openCard)}
                   todoBusy={changingCardId !== null}
                   onReEnrich={() => reEnrich(openCard.id)}
@@ -603,15 +752,14 @@ export default function ThinkingProjectPage() {
 // ─── Reusable bits ──────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mono text-xs label-kicker text-muted-foreground">
-      {children}
-    </div>
-  );
+  return <div className="mono label-kicker text-xs text-muted-foreground">{children}</div>;
 }
 
 function TodoToggle({
-  complete, disabled, reduceMotion, onToggle,
+  complete,
+  disabled,
+  reduceMotion,
+  onToggle,
 }: {
   complete: boolean;
   disabled: boolean;
@@ -627,7 +775,7 @@ function TodoToggle({
       aria-pressed={complete}
       aria-label={label}
       title={label}
-      className="relative grid size-11 shrink-0 place-items-center rounded-[18px] outline-none transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60"
+      className="relative grid size-11 shrink-0 place-items-center rounded-[18px] transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.96] disabled:cursor-wait disabled:opacity-60"
     >
       <span
         className="relative grid size-8 place-items-center overflow-hidden rounded-[12px] bg-[hsl(var(--surface-container-highest))]"
@@ -665,7 +813,10 @@ function TodoToggle({
 }
 
 function Section({
-  title, action, children, sectionRef,
+  title,
+  action,
+  children,
+  sectionRef,
 }: {
   title: string;
   action?: React.ReactNode;
@@ -684,7 +835,18 @@ function Section({
 }
 
 function CardDetail({
-  card, threadJumpToken, siblings, onClose, onJump, onToggleTodo, todoBusy, onReEnrich, onDelete, onSaveEnrichment, onChangeKind, onActivity,
+  card,
+  threadJumpToken,
+  siblings,
+  onClose,
+  onJump,
+  onToggleTodo,
+  todoBusy,
+  onReEnrich,
+  onDelete,
+  onSaveEnrichment,
+  onChangeKind,
+  onActivity,
 }: {
   card: ThinkingCard;
   threadJumpToken: number;
@@ -708,7 +870,12 @@ function CardDetail({
     const scroll = detailScrollRef.current;
     scroll.scrollTop += threadRef.current.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12;
   }, [threadJumpToken]);
-  const { data: events = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
+  const {
+    data: events = [],
+    isLoading: eventsLoading,
+    isError: eventsError,
+    refetch: refetchEvents,
+  } = useQuery({
     queryKey: qk.thinking.events(card.id),
     queryFn: () => thinking.cardEvents(card.id),
   });
@@ -729,8 +896,11 @@ function CardDetail({
       await thinking.commentOnCard(card.id, comment.trim());
       setComment('');
       await refreshActivity();
-    } catch { toast.error('Could not post comment'); }
-    finally { setBusy(false); }
+    } catch {
+      toast.error('Could not post comment');
+    } finally {
+      setBusy(false);
+    }
   };
   const startCommentEdit = (id: number, body: string) => {
     setEditingEventId(id);
@@ -747,8 +917,11 @@ function CardDetail({
       await thinking.updateCardComment(card.id, editingEventId, editingEventBody.trim());
       cancelCommentEdit();
       await refreshActivity();
-    } catch { toast.error('Could not update comment'); }
-    finally { setBusy(false); }
+    } catch {
+      toast.error('Could not update comment');
+    } finally {
+      setBusy(false);
+    }
   };
   const deleteComment = async (eventID: number) => {
     if (!(await confirmDialog('Delete this comment?'))) return;
@@ -756,7 +929,10 @@ function CardDetail({
     const queryKey = qk.thinking.events(card.id);
     await qc.cancelQueries({ queryKey });
     const previousEvents = qc.getQueryData<ThinkingCardEvent[]>(queryKey) ?? events;
-    qc.setQueryData<ThinkingCardEvent[]>(queryKey, previousEvents.filter((event) => event.id !== eventID));
+    qc.setQueryData<ThinkingCardEvent[]>(
+      queryKey,
+      previousEvents.filter((event) => event.id !== eventID),
+    );
     if (editingEventId === eventID) cancelCommentEdit();
     try {
       await thinking.deleteCardComment(card.id, eventID);
@@ -764,8 +940,9 @@ function CardDetail({
     } catch {
       qc.setQueryData(queryKey, previousEvents);
       toast.error('Could not delete comment');
+    } finally {
+      setBusy(false);
     }
-    finally { setBusy(false); }
   };
   const changeState = async (closed: boolean) => {
     if (closed && (card.kind === 'question' || card.kind === 'contradiction') && !closingComment.trim()) return;
@@ -776,11 +953,16 @@ function CardDetail({
       setShowCloseForm(false);
       await refreshActivity();
     } catch {
-      toast.error(closed
-        ? card.kind === 'question' ? 'Could not mark question answered' : 'Could not resolve contradiction'
-        : 'Could not reopen card');
+      toast.error(
+        closed
+          ? card.kind === 'question'
+            ? 'Could not mark question answered'
+            : 'Could not resolve contradiction'
+          : 'Could not reopen card',
+      );
+    } finally {
+      setBusy(false);
     }
-    finally { setBusy(false); }
   };
   const e: ThinkingEnrichment = card.ai_enrichment || {};
   const hasAny =
@@ -810,24 +992,32 @@ function CardDetail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="space-y-2 border-b border-[hsl(var(--outline-variant))] px-5 pb-4 pt-5">
+      <header className="space-y-2 border-b border-[hsl(var(--outline-variant))] px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Select value={card.kind} onValueChange={(v) => onChangeKind(v as ThinkingKind)} disabled={card.status === 'closed'}>
-              <SelectTrigger className="h-8 w-auto rounded-full text-xs label-kicker">
+            <Select
+              value={card.kind}
+              onValueChange={(v) => onChangeKind(v as ThinkingKind)}
+              disabled={card.status === 'closed'}
+            >
+              <SelectTrigger className="label-kicker h-8 w-auto rounded-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {KINDS.map((k) => (
-                  <SelectItem key={k} value={k}>{k}</SelectItem>
+                  <SelectItem key={k} value={k}>
+                    {k}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-xs label-kicker text-muted-foreground">
+            <span className="label-kicker text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(card.created_at), { addSuffix: true })}
             </span>
             {card.status === 'closed' && (card.kind === 'question' || card.kind === 'contradiction') && (
-              <span className="text-xs text-muted-foreground">{card.kind === 'question' ? 'Answered' : 'Resolved'}</span>
+              <span className="text-xs text-muted-foreground">
+                {card.kind === 'question' ? 'Answered' : 'Resolved'}
+              </span>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -839,19 +1029,25 @@ function CardDetail({
                 onToggle={onToggleTodo}
               />
             )}
-            <Button variant="ghost" size="icon-sm" className="size-11 lg:size-9" onClick={onClose} aria-label="Close card detail">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-11 lg:size-9"
+              onClick={onClose}
+              aria-label="Close card detail"
+            >
               <X className="size-4" />
             </Button>
           </div>
         </div>
-        <h2 className="line-clamp-2 text-base font-semibold leading-tight">
+        <h2 className="line-clamp-2 text-base leading-tight font-semibold">
           {card.content.split('\n')[0].slice(0, 80) || 'Card detail'}
         </h2>
       </header>
 
-      <div ref={detailScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div ref={detailScrollRef} className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
         <Section title="Content">
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+          <div className="prose prose-sm max-w-none break-words dark:prose-invert">
             <Markdown remarkPlugins={[remarkGfm]}>{card.content}</Markdown>
           </div>
         </Section>
@@ -864,7 +1060,9 @@ function CardDetail({
               {card.status === 'closed' ? (
                 <div className="flex items-center justify-between gap-3">
                   <span>{card.kind === 'question' ? 'Answered' : 'Resolved'}</span>
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>Reopen</Button>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => changeState(false)}>
+                    Reopen
+                  </Button>
                 </div>
               ) : showCloseForm ? (
                 <div className="space-y-2">
@@ -878,7 +1076,9 @@ function CardDetail({
                     aria-label={card.kind === 'question' ? 'Answer comment' : 'Resolution comment'}
                   />
                   <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>
+                      Cancel
+                    </Button>
                     <Button size="sm" disabled={busy || !closingComment.trim()} onClick={() => changeState(true)}>
                       {card.kind === 'question' ? 'Mark answered' : 'Resolve'}
                     </Button>
@@ -896,52 +1096,86 @@ function CardDetail({
 
         <Section title="Thread" sectionRef={threadRef}>
           <div className="space-y-3">
-            {eventsLoading ? <p className="text-muted-foreground">Loading thread…</p> : eventsError ? (
-              <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>Could not load thread. Retry</Button>
+            {eventsLoading ? (
+              <p className="text-muted-foreground">Loading thread…</p>
+            ) : eventsError ? (
+              <Button size="sm" variant="ghost" onClick={() => refetchEvents()}>
+                Could not load thread. Retry
+              </Button>
             ) : events.length === 0 ? (
               <p className="text-muted-foreground">No comments yet.</p>
-            ) : events.map((event) => (
-              <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {event.kind === 'comment' ? 'Comment' : event.kind === 'reopened' ? 'Reopened' : card.kind === 'todo' ? 'Completed' : card.kind === 'question' ? 'Answered' : 'Resolved'}
-                    </span>
-                    <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
-                  </div>
-                  {event.kind === 'comment' && editingEventId !== event.id && (
-                    <div className="flex shrink-0 items-center">
-                      <Button variant="ghost" size="icon-xs" className="size-11 lg:size-7" disabled={busy} onClick={() => startCommentEdit(event.id, event.body)} aria-label="Edit comment">
-                        <Edit3 className="size-3.5" />
-                      </Button>
-                      <Button variant="destructive-ghost" size="icon-xs" disabled={busy} onClick={() => deleteComment(event.id)} className="size-11 lg:size-7" aria-label="Delete comment">
-                        <Trash2 className="size-3.5" />
-                      </Button>
+            ) : (
+              events.map((event) => (
+                <div key={event.id} className="rounded-xl bg-[hsl(var(--surface-container))] px-3 py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {event.kind === 'comment'
+                          ? 'Comment'
+                          : event.kind === 'reopened'
+                            ? 'Reopened'
+                            : card.kind === 'todo'
+                              ? 'Completed'
+                              : card.kind === 'question'
+                                ? 'Answered'
+                                : 'Resolved'}
+                      </span>
+                      <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
                     </div>
+                    {event.kind === 'comment' && editingEventId !== event.id && (
+                      <div className="flex shrink-0 items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="size-11 lg:size-7"
+                          disabled={busy}
+                          onClick={() => startCommentEdit(event.id, event.body)}
+                          aria-label="Edit comment"
+                        >
+                          <Edit3 className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="destructive-ghost"
+                          size="icon-xs"
+                          disabled={busy}
+                          onClick={() => deleteComment(event.id)}
+                          className="size-11 lg:size-7"
+                          aria-label="Delete comment"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {editingEventId === event.id ? (
+                    <div className="mt-2 space-y-2">
+                      <Textarea
+                        value={editingEventBody}
+                        onChange={(ev) => setEditingEventBody(ev.target.value)}
+                        maxLength={4000}
+                        rows={3}
+                        className={THREAD_TEXTAREA_SIZE}
+                        aria-label="Edit comment"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={cancelCommentEdit}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" disabled={busy || !editingEventBody.trim()} onClick={saveCommentEdit}>
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    event.body && (
+                      <div className="prose prose-sm mt-1 max-w-none break-words dark:prose-invert">
+                        <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
+                      </div>
+                    )
                   )}
                 </div>
-                {editingEventId === event.id ? (
-                  <div className="mt-2 space-y-2">
-                    <Textarea
-                      value={editingEventBody}
-                      onChange={(ev) => setEditingEventBody(ev.target.value)}
-                      maxLength={4000}
-                      rows={3}
-                      className={THREAD_TEXTAREA_SIZE}
-                      aria-label="Edit comment"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" disabled={busy} onClick={cancelCommentEdit}>Cancel</Button>
-                      <Button size="sm" disabled={busy || !editingEventBody.trim()} onClick={saveCommentEdit}>Save</Button>
-                    </div>
-                  </div>
-                ) : event.body && (
-                  <div className="prose prose-sm dark:prose-invert max-w-none break-words mt-1">
-                    <Markdown remarkPlugins={[remarkGfm]}>{event.body}</Markdown>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))
+            )}
             <Textarea
               value={comment}
               onChange={(ev) => setComment(ev.target.value)}
@@ -952,7 +1186,9 @@ function CardDetail({
               aria-label="Add a comment"
             />
             <div className="flex justify-end">
-              <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>Post comment</Button>
+              <Button size="sm" disabled={busy || !comment.trim()} onClick={postComment}>
+                Post comment
+              </Button>
             </div>
           </div>
         </Section>
@@ -965,19 +1201,21 @@ function CardDetail({
             <SectionLabel>Enrichment</SectionLabel>
             <div className="flex items-center gap-2">
               {typeof e.confidence === 'number' && e.confidence > 0 && !editing && (
-                <span className="mono text-xs label-kicker text-muted-foreground">
+                <span className="mono label-kicker text-xs text-muted-foreground">
                   confidence {Math.round((e.confidence ?? 0) * 100)}%
                 </span>
               )}
               {!editing ? (
                 <Button size="sm" variant="ghost" onClick={startEdit}>
-                  <Edit3 className="size-3.5 mr-1" /> Edit
+                  <Edit3 className="mr-1 size-3.5" /> Edit
                 </Button>
               ) : (
                 <>
-                  <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
+                  <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                    Cancel
+                  </Button>
                   <Button size="sm" onClick={saveEdit}>
-                    <Save className="size-3.5 mr-1" /> Save
+                    <Save className="mr-1 size-3.5" /> Save
                   </Button>
                 </>
               )}
@@ -992,14 +1230,17 @@ function CardDetail({
                 </p>
               )}
               {e.summary && (
-                <Section title="Summary"><p>{e.summary}</p></Section>
+                <Section title="Summary">
+                  <p>{e.summary}</p>
+                </Section>
               )}
               {e.implications && e.implications.length > 0 && (
                 <Section title="Implications">
                   <ul className="space-y-1.5">
                     {e.implications.map((s, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5 shrink-0">→</span><span>{s}</span>
+                        <span className="mt-0.5 shrink-0 text-primary">→</span>
+                        <span>{s}</span>
                       </li>
                     ))}
                   </ul>
@@ -1010,7 +1251,8 @@ function CardDetail({
                   <ul className="space-y-1.5">
                     {e.questions_raised.map((s, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5 shrink-0">?</span><span>{s}</span>
+                        <span className="mt-0.5 shrink-0 text-primary">?</span>
+                        <span>{s}</span>
                       </li>
                     ))}
                   </ul>
@@ -1022,25 +1264,28 @@ function CardDetail({
                     {e.connections.map((c, i) => {
                       const target = siblings.find((x) => x.id === c.card_id);
                       const preview = target
-                        ? (target.content.split('\n')[0].slice(0, 50) || `card #${c.card_id}`)
+                        ? target.content.split('\n')[0].slice(0, 50) || `card #${c.card_id}`
                         : `(deleted card)`;
                       return (
                         <li key={i}>
                           <button
                             disabled={!target}
                             onClick={() => target && onJump(c.card_id)}
-                            className="w-full text-left rounded-lg bg-[hsl(var(--surface-container))] hover:bg-[hsl(var(--surface-container-high))] transition-colors px-3 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex w-full items-center gap-2 rounded-lg bg-[hsl(var(--surface-container))] px-3 py-2 text-left transition-colors hover:bg-[hsl(var(--surface-container-high))] disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <span className="mono text-xs label-kicker text-muted-foreground shrink-0">
+                            <span className="mono label-kicker shrink-0 text-xs text-muted-foreground">
                               {c.relation.replace('_', ' ')}
                             </span>
                             {target && (
-                              <span style={kindStyle(target.kind)} className={`shrink-0 text-xs font-medium capitalize px-1.5 py-0.5 rounded-full ${kindBadge}`}>
+                              <span
+                                style={kindStyle(target.kind)}
+                                className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium capitalize ${kindBadge}`}
+                              >
                                 {target.kind}
                               </span>
                             )}
-                            <span className="text-sm truncate">{preview}</span>
-                            <ChevronRight className="size-3.5 text-muted-foreground ml-auto shrink-0" />
+                            <span className="truncate text-sm">{preview}</span>
+                            <ChevronRight className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
                           </button>
                         </li>
                       );
@@ -1055,13 +1300,13 @@ function CardDetail({
         </div>
       </div>
 
-      <div className="border-t border-border px-5 py-3 flex items-center gap-2">
+      <div className="flex items-center gap-2 border-t border-border px-5 py-3">
         <Button size="sm" variant="ghost" onClick={onReEnrich}>
-          <RefreshCw className="size-3.5 mr-1.5" /> Re-enrich
+          <RefreshCw className="mr-1.5 size-3.5" /> Re-enrich
         </Button>
         <div className="flex-1" />
         <Button size="sm" variant="destructive-quiet" onClick={onDelete}>
-          <Trash2 className="size-3.5 mr-1.5" /> Delete
+          <Trash2 className="mr-1.5 size-3.5" /> Delete
         </Button>
       </div>
     </div>
@@ -1069,14 +1314,15 @@ function CardDetail({
 }
 
 function EnrichmentEditor({
-  draft, setDraft, siblings,
+  draft,
+  setDraft,
+  siblings,
 }: {
   draft: ThinkingEnrichment;
   setDraft: (next: ThinkingEnrichment) => void;
   siblings: ThinkingCard[];
 }) {
-  const setList = (key: 'implications' | 'questions_raised', next: string[]) =>
-    setDraft({ ...draft, [key]: next });
+  const setList = (key: 'implications' | 'questions_raised', next: string[]) => setDraft({ ...draft, [key]: next });
 
   const updateConn = (i: number, patch: Partial<ThinkingConnection>) => {
     const next = [...(draft.connections ?? [])];
@@ -1126,7 +1372,7 @@ function EnrichmentEditor({
         title="Connections"
         action={
           <Button size="sm" variant="ghost" onClick={addConn} disabled={siblings.length === 0}>
-            <Plus className="size-3.5 mr-1" /> Add
+            <Plus className="mr-1 size-3.5" /> Add
           </Button>
         }
       >
@@ -1136,33 +1382,46 @@ function EnrichmentEditor({
           <ul className="space-y-2">
             {(draft.connections ?? []).map((c, i) => (
               <li key={i} className="flex items-center gap-2">
-                <Select value={c.relation} onValueChange={(v) => updateConn(i, { relation: v as ThinkingRelation })}
-                  items={RELATIONS.map((r) => ({ value: r, label: r.replace('_', ' ') }))}>
+                <Select
+                  value={c.relation}
+                  onValueChange={(v) => updateConn(i, { relation: v as ThinkingRelation })}
+                  items={RELATIONS.map((r) => ({ value: r, label: r.replace('_', ' ') }))}
+                >
                   <SelectTrigger className="h-8 w-32 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {RELATIONS.map((r) => (
-                      <SelectItem key={r} value={r}>{r.replace('_', ' ')}</SelectItem>
+                      <SelectItem key={r} value={r}>
+                        {r.replace('_', ' ')}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={String(c.card_id)} onValueChange={(v) => updateConn(i, { card_id: Number(v) })}
-                  items={siblings.map((s) => ({ value: String(s.id), label: s.content.split('\n')[0].slice(0, 40) || `card #${s.id}` }))}>
+                <Select
+                  value={String(c.card_id)}
+                  onValueChange={(v) => updateConn(i, { card_id: Number(v) })}
+                  items={siblings.map((s) => ({
+                    value: String(s.id),
+                    label: s.content.split('\n')[0].slice(0, 40) || `card #${s.id}`,
+                  }))}
+                >
                   <SelectTrigger className="h-8 flex-1 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {siblings.map((s) => (
                       <SelectItem key={s.id} value={String(s.id)}>
-                        <span className="truncate">
-                          {s.content.split('\n')[0].slice(0, 40) || `card #${s.id}`}
-                        </span>
+                        <span className="truncate">{s.content.split('\n')[0].slice(0, 40) || `card #${s.id}`}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <button onClick={() => removeConn(i)} className="p-1 rounded hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]" title="Remove">
+                <button
+                  onClick={() => removeConn(i)}
+                  className="rounded p-1 hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]"
+                  title="Remove"
+                >
                   <X className="size-3.5" />
                 </button>
               </li>
@@ -1175,7 +1434,10 @@ function EnrichmentEditor({
 }
 
 function ListEditor({
-  title, items, onChange, placeholder,
+  title,
+  items,
+  onChange,
+  placeholder,
 }: {
   title: string;
   items: string[];
@@ -1205,7 +1467,7 @@ function ListEditor({
             />
             <button
               onClick={() => onChange(items.filter((_, j) => j !== i))}
-              className="p-1 rounded hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]"
+              className="rounded p-1 hover:bg-[hsl(var(--error-container))] hover:text-[hsl(var(--on-error-container))]"
               title="Remove"
             >
               <X className="size-3.5" />
@@ -1213,11 +1475,16 @@ function ListEditor({
           </li>
         ))}
       </ul>
-      <div className="flex items-center gap-2 mt-2">
+      <div className="mt-2 flex items-center gap-2">
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
+          }}
           placeholder={placeholder}
           className="h-8 text-sm"
         />

@@ -1,10 +1,10 @@
-import * as React from "react"
-import { Clock, X } from "@/components/ui/icons"
+import * as React from 'react';
+import { Clock, X } from '@/components/ui/icons';
 
-import { cn } from "@/lib/utils"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 /**
  * M3 expressive time field — drop-in replacement for `<Input type="time" />`.
@@ -15,99 +15,118 @@ import { Input } from "@/components/ui/input"
  * picker, no scrolling through 5-minute steps.
  */
 export interface TimePickerProps {
-  value?: string
-  onChange?: (value: string) => void
-  placeholder?: string
-  className?: string
-  disabled?: boolean
-  id?: string
-  name?: string
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+  id?: string;
+  name?: string;
 }
 
-
-interface Parts { h12: number; min: number; pm: boolean }
+interface Parts {
+  h12: number;
+  min: number;
+  pm: boolean;
+}
 
 function parse(value?: string): Parts | null {
-  if (!value) return null
-  const m = value.match(/^(\d{1,2}):(\d{2})$/)
-  if (!m) return null
-  const h = Number(m[1])
-  const min = Number(m[2])
-  if (h < 0 || h > 23 || min < 0 || min > 59) return null
-  const pm = h >= 12
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  return { h12, min, pm }
+  if (!value) return null;
+  const m = value.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  const pm = h >= 12;
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return { h12, min, pm };
 }
 
 function to24({ h12, min, pm }: Parts): string {
-  let h = h12 % 12
-  if (pm) h += 12
-  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`
+  let h = h12 % 12;
+  if (pm) h += 12;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }
 
 function display(parts: Parts | null): string {
-  if (!parts) return ""
-  return `${parts.h12}:${String(parts.min).padStart(2, "0")} ${parts.pm ? "PM" : "AM"}`
+  if (!parts) return '';
+  return `${parts.h12}:${String(parts.min).padStart(2, '0')} ${parts.pm ? 'PM' : 'AM'}`;
 }
 
 // One typed segment (hour or minute): type the digits, ↑/↓, the mouse
 // wheel or a drag up/down move it by one.
 // Module-level so it isn't re-created on every render (React Compiler).
 function Segment({
-  value, min, max, onChange, onFilled, ariaLabel, inputRef, autoFocus,
+  value,
+  min,
+  max,
+  onChange,
+  onFilled,
+  ariaLabel,
+  inputRef,
+  autoFocus,
 }: {
-  value: number
-  min: number
-  max: number
-  onChange: (n: number) => void
+  value: number;
+  min: number;
+  max: number;
+  onChange: (n: number) => void;
   /** Called when the segment is complete (two digits, or one that can't grow). */
-  onFilled?: () => void
-  ariaLabel: string
-  inputRef?: React.RefObject<HTMLInputElement | null>
-  autoFocus?: boolean
+  onFilled?: () => void;
+  ariaLabel: string;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  autoFocus?: boolean;
 }) {
-  const [text, setText] = React.useState<string | null>(null)
-  const shown = text ?? String(value).padStart(2, "0")
-  const own = React.useRef<HTMLInputElement | null>(null)
-  const span = max - min + 1
+  const [text, setText] = React.useState<string | null>(null);
+  const shown = text ?? String(value).padStart(2, '0');
+  const own = React.useRef<HTMLInputElement | null>(null);
+  const span = max - min + 1;
   const step = (d: number) => {
-    setText(null)
-    onChange(((value - min + d) % span + span) % span + min)
-  }
+    setText(null);
+    onChange(((((value - min + d) % span) + span) % span) + min);
+  };
   // The wheel listener is attached once; it calls the latest step.
-  const stepRef = React.useRef(step)
-  React.useEffect(() => { stepRef.current = step })
+  const stepRef = React.useRef(step);
   React.useEffect(() => {
-    const el = own.current
-    if (!el) return
-    let acc = 0
+    stepRef.current = step;
+  });
+  React.useEffect(() => {
+    const el = own.current;
+    if (!el) return;
+    let acc = 0;
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
+      e.preventDefault();
       // A mouse notch is one step; a trackpad's small deltas add up first.
-      acc += e.deltaMode === 0 ? e.deltaY : e.deltaY * 40
-      if (Math.abs(acc) < 30) return
-      stepRef.current(acc < 0 ? 1 : -1)
-      acc = 0
-    }
-    el.addEventListener("wheel", onWheel, { passive: false })
-    return () => el.removeEventListener("wheel", onWheel)
-  }, [])
-  const drag = React.useRef<number | null>(null)
+      acc += e.deltaMode === 0 ? e.deltaY : e.deltaY * 40;
+      if (Math.abs(acc) < 30) return;
+      stepRef.current(acc < 0 ? 1 : -1);
+      acc = 0;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+  const drag = React.useRef<number | null>(null);
   return (
     <Input
       ref={(el: HTMLInputElement | null) => {
-        own.current = el
-        if (inputRef) inputRef.current = el
+        own.current = el;
+        if (inputRef) inputRef.current = el;
       }}
-      onPointerDown={(e) => { if (e.pointerType === "mouse") { drag.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId) } }}
+      onPointerDown={(e) => {
+        if (e.pointerType === 'mouse') {
+          drag.current = e.clientY;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+      }}
       onPointerMove={(e) => {
-        if (drag.current == null) return
-        const dy = drag.current - e.clientY
-        if (Math.abs(dy) < 14) return
-        step(dy > 0 ? 1 : -1)
-        drag.current = e.clientY
+        if (drag.current == null) return;
+        const dy = drag.current - e.clientY;
+        if (Math.abs(dy) < 14) return;
+        step(dy > 0 ? 1 : -1);
+        drag.current = e.clientY;
       }}
-      onPointerUp={() => { drag.current = null }}
+      onPointerUp={() => {
+        drag.current = null;
+      }}
       inputMode="numeric"
       autoFocus={autoFocus}
       aria-label={ariaLabel}
@@ -115,62 +134,65 @@ function Segment({
       onFocus={(e) => e.currentTarget.select()}
       onBlur={() => setText(null)}
       onChange={(e) => {
-        const digits = e.target.value.replace(/\D/g, "").slice(-2)
-        setText(digits)
-        if (!digits) return
-        const n = Number(digits)
-        if (n >= min && n <= max) onChange(n)
+        const digits = e.target.value.replace(/\D/g, '').slice(-2);
+        setText(digits);
+        if (!digits) return;
+        const n = Number(digits);
+        if (n >= min && n <= max) onChange(n);
         // "9" can't become a valid hour 9x, "6" no minute 6x: move on.
-        if (digits.length === 2 || n * 10 > max) { setText(null); onFilled?.() }
+        if (digits.length === 2 || n * 10 > max) {
+          setText(null);
+          onFilled?.();
+        }
       }}
       onKeyDown={(e) => {
-        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return
-        e.preventDefault()
-        step(e.key === "ArrowUp" ? 1 : -1)
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        e.preventDefault();
+        step(e.key === 'ArrowUp' ? 1 : -1);
       }}
       className={cn(
-        "h-16 w-[4.5rem] cursor-ns-resize px-0 py-0 rounded-xl border-0 bg-[hsl(var(--surface-container-highest))] text-center text-4xl font-medium tabular-nums text-foreground outline-none",
-        "focus:bg-[hsl(var(--primary-container))] focus:text-[hsl(var(--on-primary-container))] focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
+        'h-16 w-[4.5rem] cursor-ns-resize rounded-xl border-0 bg-[hsl(var(--surface-container-highest))] px-0 py-0 text-center text-4xl font-medium text-foreground tabular-nums outline-none',
+        'focus:bg-[hsl(var(--primary-container))] focus:text-[hsl(var(--on-primary-container))] focus:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
       )}
     />
-  )
+  );
 }
 
 export function TimePicker({
   value,
   onChange,
-  placeholder = "Set time",
+  placeholder = 'Set time',
   className,
   disabled,
   id,
   name,
 }: TimePickerProps) {
-  const generatedId = React.useId()
-  const fieldId = id ?? generatedId
-  const [open, setOpen] = React.useState(false)
-  const minuteRef = React.useRef<HTMLInputElement>(null)
-  const parts = parse(value)
+  const generatedId = React.useId();
+  const fieldId = id ?? generatedId;
+  const [open, setOpen] = React.useState(false);
+  const minuteRef = React.useRef<HTMLInputElement>(null);
+  const parts = parse(value);
 
   // Editing defaults: a fresh pick lands on 9:00 AM so the columns aren't
   // arbitrary. Committed only once the user touches a column.
-  const current: Parts = parts ?? { h12: 9, min: 0, pm: false }
+  const current: Parts = parts ?? { h12: 9, min: 0, pm: false };
 
-  const emit = (next: Parts) => onChange?.(to24(next))
+  const emit = (next: Parts) => onChange?.(to24(next));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <input type="hidden" name={name ?? fieldId} value={value ?? ""} />
+      <input type="hidden" name={name ?? fieldId} value={value ?? ''} />
       <PopoverTrigger
         id={fieldId}
         disabled={disabled}
         className={cn(
-          "group inline-flex h-11 w-full items-center justify-between gap-2",
-          "rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] px-3.5 py-2.5 text-sm",
-          "text-foreground transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
-          "hover:border-transparent",
-          "data-[popup-open]:border-transparent data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
-          "disabled:opacity-50 disabled:pointer-events-none",
-          !parts && "text-muted-foreground",
+          'group inline-flex h-11 w-full items-center justify-between gap-2',
+          'rounded-xl border border-transparent bg-[hsl(var(--surface-container-highest))] px-3.5 py-2.5 text-sm',
+          'text-foreground transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]',
+          'hover:border-transparent',
+          'data-[popup-open]:border-transparent data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+          'disabled:pointer-events-none disabled:opacity-50',
+          !parts && 'text-muted-foreground',
           className,
         )}
       >
@@ -182,8 +204,11 @@ export function TimePicker({
           <span
             role="button"
             aria-label="Clear time"
-            onClick={(e) => { e.stopPropagation(); onChange?.("") }}
-            className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange?.('');
+            }}
+            className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
           >
             <X className="size-3.5" />
           </span>
@@ -212,18 +237,18 @@ export function TimePicker({
           <div className="ml-1 flex flex-col overflow-hidden rounded-xl border border-[hsl(var(--outline-variant))]">
             {([false, true] as const).map((pm) => (
               <button
-                key={pm ? "PM" : "AM"}
+                key={pm ? 'PM' : 'AM'}
                 type="button"
                 aria-pressed={current.pm === pm}
                 onClick={() => emit({ ...current, pm })}
                 className={cn(
-                  "h-8 w-12 text-xs font-semibold tracking-wide transition-colors",
+                  'h-8 w-12 text-xs font-semibold tracking-wide transition-colors',
                   current.pm === pm
-                    ? "bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]"
-                    : "text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)]",
+                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                    : 'text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)]',
                 )}
               >
-                {pm ? "PM" : "AM"}
+                {pm ? 'PM' : 'AM'}
               </button>
             ))}
           </div>
@@ -233,15 +258,17 @@ export function TimePicker({
             variant="outline"
             size="sm"
             onClick={() => {
-              const now = new Date()
-              emit({ h12: now.getHours() % 12 || 12, min: now.getMinutes(), pm: now.getHours() >= 12 })
+              const now = new Date();
+              emit({ h12: now.getHours() % 12 || 12, min: now.getMinutes(), pm: now.getHours() >= 12 });
             }}
           >
             Now
           </Button>
-          <Button size="sm" onClick={() => setOpen(false)}>Done</Button>
+          <Button size="sm" onClick={() => setOpen(false)}>
+            Done
+          </Button>
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

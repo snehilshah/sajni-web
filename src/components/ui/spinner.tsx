@@ -1,4 +1,4 @@
-import { MorphLoader } from "./morph-loader"
+import { MorphLoader } from './morph-loader';
 
 /**
  * Generic loading spinner. The M3 Expressive shape-morphing loader under
@@ -7,7 +7,7 @@ import { MorphLoader } from "./morph-loader"
  * does it.
  */
 function Spinner({ className }: { className?: string }) {
-  return <MorphLoader size="sm" className={className} />
+  return <MorphLoader size="sm" className={className} />;
 }
 
-export { Spinner }
+export { Spinner };

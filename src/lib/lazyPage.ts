@@ -15,8 +15,14 @@ export function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ def
   const timed = () => {
     const started = performance.now();
     return load().then(
-      (mod) => { trackChunk(name, Math.round(performance.now() - started)); return mod; },
-      (err: unknown) => { trackChunk(name, Math.round(performance.now() - started), err); throw err; },
+      (mod) => {
+        trackChunk(name, Math.round(performance.now() - started));
+        return mod;
+      },
+      (err: unknown) => {
+        trackChunk(name, Math.round(performance.now() - started), err);
+        throw err;
+      },
     );
   };
   loaders.push(timed);
@@ -32,12 +38,18 @@ export function prefetchPages() {
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
   if (connection?.saveData) return;
   const idle = (fn: () => void) =>
-    typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(fn, { timeout: 5000 }) : setTimeout(fn, 2000);
+    typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback(fn, { timeout: 5000 })
+      : setTimeout(fn, 2000);
   idle(async () => {
     for (const load of loaders) {
       // Ignored here: opening that screen meets the same failure, and its
       // error boundary recovers (lib/chunkReload).
-      try { await load(); } catch { /* ignore */ }
+      try {
+        await load();
+      } catch {
+        /* ignore */
+      }
     }
   });
 }

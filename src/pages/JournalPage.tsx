@@ -3,10 +3,23 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffe
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  format, startOfMonth, endOfMonth, eachDayOfInterval,
-  subMonths, addMonths, subDays, addDays, isSameMonth, isToday as isTodayFn,
-  parseISO, startOfISOWeek, endOfISOWeek, getISOWeek, getISOWeekYear,
-  addWeeks, subWeeks,
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  subMonths,
+  addMonths,
+  subDays,
+  addDays,
+  isSameMonth,
+  isToday as isTodayFn,
+  parseISO,
+  startOfISOWeek,
+  endOfISOWeek,
+  getISOWeek,
+  getISOWeekYear,
+  addWeeks,
+  subWeeks,
 } from 'date-fns';
 
 import { useQueryClient } from '@tanstack/react-query';
@@ -49,14 +62,39 @@ import TaskScopeBadge from '@/components/tasks/TaskScopeBadge';
 import { DateBadge } from '@/components/ui/state-chip';
 import { Money } from '@/pages/Finance/Money';
 import {
-  ChevronLeft, ChevronRight, Save, Target, CheckSquare,
-  Trash2, AlertCircle, ArrowRight,
-  PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Calendar as CalendarIcon,
-  ChevronDown, Check as LucideCheck, Plus, CalendarRange, Clock,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  Target,
+  CheckSquare,
+  Trash2,
+  AlertCircle,
+  ArrowRight,
+  PanelLeftClose,
+  PanelLeft,
+  PanelRightClose,
+  PanelRight,
+  Calendar as CalendarIcon,
+  ChevronDown,
+  Check as LucideCheck,
+  Plus,
+  CalendarRange,
+  Clock,
 } from '@/components/ui/icons';
 
-interface TaskItem { id: number; title: string; status: string; priority: string; due_date?: string | null; }
-interface JournalEntry { id: number; date: string; tags: string[]; updated_at: string; }
+interface TaskItem {
+  id: number;
+  title: string;
+  status: string;
+  priority: string;
+  due_date?: string | null;
+}
+interface JournalEntry {
+  id: number;
+  date: string;
+  tags: string[];
+  updated_at: string;
+}
 type RingStyle = React.CSSProperties & { '--tw-ring-color': string };
 
 function ringStyle(color: string): RingStyle {
@@ -90,13 +128,25 @@ export default function JournalPage() {
   const [habitStatuses, setHabitStatuses] = useState<HabitStatus[]>([]);
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem(SIDEBAR_KEY) !== '0'; } catch { return true; }
+    try {
+      return localStorage.getItem(SIDEBAR_KEY) !== '0';
+    } catch {
+      return true;
+    }
   });
   const [dailyOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem(DAILY_KEY) !== '0'; } catch { return true; }
+    try {
+      return localStorage.getItem(DAILY_KEY) !== '0';
+    } catch {
+      return true;
+    }
   });
   const [marginOpen, setMarginOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem(MARGIN_KEY) !== '0'; } catch { return true; }
+    try {
+      return localStorage.getItem(MARGIN_KEY) !== '0';
+    } catch {
+      return true;
+    }
   });
   const [mobileMarginOpen, setMobileMarginOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -107,23 +157,33 @@ export default function JournalPage() {
     try {
       const raw = localStorage.getItem(EXPANDED_MONTHS_KEY);
       return raw ? new Set(JSON.parse(raw)) : new Set([format(new Date(), 'yyyy-MM')]);
-    } catch { return new Set([format(new Date(), 'yyyy-MM')]); }
+    } catch {
+      return new Set([format(new Date(), 'yyyy-MM')]);
+    }
   });
 
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    try { localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0'); } catch {}
+    try {
+      localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0');
+    } catch {}
   }, [sidebarOpen]);
   useEffect(() => {
-    try { localStorage.setItem(DAILY_KEY, dailyOpen ? '1' : '0'); } catch {}
+    try {
+      localStorage.setItem(DAILY_KEY, dailyOpen ? '1' : '0');
+    } catch {}
   }, [dailyOpen]);
   useEffect(() => {
-    try { localStorage.setItem(MARGIN_KEY, marginOpen ? '1' : '0'); } catch {}
+    try {
+      localStorage.setItem(MARGIN_KEY, marginOpen ? '1' : '0');
+    } catch {}
   }, [marginOpen]);
   useEffect(() => {
-    try { localStorage.setItem(EXPANDED_MONTHS_KEY, JSON.stringify(Array.from(expandedMonths))); } catch {}
+    try {
+      localStorage.setItem(EXPANDED_MONTHS_KEY, JSON.stringify(Array.from(expandedMonths)));
+    } catch {}
   }, [expandedMonths]);
 
   // View mode is derived from URL: `?view=week&week=YYYY-Www` triggers the
@@ -136,14 +196,10 @@ export default function JournalPage() {
   const monthParam = params.get('month');
   const monthMatch = monthParam ? monthParam.match(/^(\d{4})-(\d{1,2})$/) : null;
   const viewMode: 'day' | 'week' | 'month' =
-    viewParam === 'week' && weekMatch ? 'week'
-    : viewParam === 'month' && monthMatch ? 'month'
-    : 'day';
+    viewParam === 'week' && weekMatch ? 'week' : viewParam === 'month' && monthMatch ? 'month' : 'day';
   const weekYear = weekMatch ? parseInt(weekMatch[1], 10) : getISOWeekYear(parseISO(selectedDate));
   const weekNumber = weekMatch ? parseInt(weekMatch[2], 10) : getISOWeek(parseISO(selectedDate));
-  const activeWeekKey = viewMode === 'week'
-    ? `${weekYear}-W${String(weekNumber).padStart(2, '0')}`
-    : null;
+  const activeWeekKey = viewMode === 'week' ? `${weekYear}-W${String(weekNumber).padStart(2, '0')}` : null;
   const monthYear = monthMatch ? parseInt(monthMatch[1], 10) : parseISO(selectedDate).getFullYear();
   const monthNumber = monthMatch ? parseInt(monthMatch[2], 10) : parseISO(selectedDate).getMonth() + 1;
 
@@ -167,21 +223,27 @@ export default function JournalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  const goWeek = useCallback((year: number, week: number) => {
-    const next = new URLSearchParams(params);
-    next.set('view', 'week');
-    next.set('week', `${year}-W${String(week).padStart(2, '0')}`);
-    next.delete('month');
-    setParams(next, { replace: true });
-  }, [params, setParams]);
+  const goWeek = useCallback(
+    (year: number, week: number) => {
+      const next = new URLSearchParams(params);
+      next.set('view', 'week');
+      next.set('week', `${year}-W${String(week).padStart(2, '0')}`);
+      next.delete('month');
+      setParams(next, { replace: true });
+    },
+    [params, setParams],
+  );
 
-  const goMonth = useCallback((year: number, month: number) => {
-    const next = new URLSearchParams(params);
-    next.set('view', 'month');
-    next.set('month', `${year}-${String(month).padStart(2, '0')}`);
-    next.delete('week');
-    setParams(next, { replace: true });
-  }, [params, setParams]);
+  const goMonth = useCallback(
+    (year: number, month: number) => {
+      const next = new URLSearchParams(params);
+      next.set('view', 'month');
+      next.set('month', `${year}-${String(month).padStart(2, '0')}`);
+      next.delete('week');
+      setParams(next, { replace: true });
+    },
+    [params, setParams],
+  );
 
   const { data: entriesData } = useJournalList();
   const entries = useMemo(() => (entriesData ?? []) as JournalEntry[], [entriesData]);
@@ -195,7 +257,10 @@ export default function JournalPage() {
   const { data: doneTaskData = [], isLoading: loadingDoneTasks } = useTasks({ done_date: selectedDate });
   const { data: missedTasks = [], isLoading: loadingMissedTasks } = useMissedTasksForDate(selectedDate);
   const { data: dayPlans = [], isLoading: loadingPlans } = useDayPlans(selectedDate);
-  const [plansEditor, setPlansEditor] = useState<{ open: boolean; id: number | 'new' | null }>({ open: false, id: null });
+  const [plansEditor, setPlansEditor] = useState<{ open: boolean; id: number | 'new' | null }>({
+    open: false,
+    id: null,
+  });
   // A plan's tasks show under the plan, not again in Tasks.
   const planIds = useMemo(() => new Set(dayPlans.map((p) => p.id)), [dayPlans]);
   const inPlan = (t: Task) => t.plan_id != null && planIds.has(t.plan_id) && t.due_date === selectedDate;
@@ -213,9 +278,11 @@ export default function JournalPage() {
     if (!entryData) return;
     dirtyRef.current = false;
     setContent(entryData.content || '');
-    setLocation(entryData.location_label
+    setLocation(
+      entryData.location_label
         ? { label: entryData.location_label, lat: entryData.location_lat ?? null, lon: entryData.location_lon ?? null }
-        : null);
+        : null,
+    );
     setTags(entryData.tags || []);
     setBacklinks(entryData.backlinks || []);
   }, [entryData, selectedDate]);
@@ -224,23 +291,26 @@ export default function JournalPage() {
     setHabitStatuses(habitStatusData ?? []);
   }, [habitStatusData, selectedDate]);
 
-  const performSave = useCallback(async (silent = false) => {
-    if (!silent) setSavingState('saving');
-    try {
-      await journalApi.save(selectedDate, content, location);
-      const entry = await journalApi.get(selectedDate);
-      qc.setQueryData(qk.journal.entry(selectedDate), entry);
-      setTags(entry.tags || []);
-      setBacklinks(entry.backlinks || []);
-      setSavingState('saved');
-      setTimeout(() => setSavingState((s) => (s === 'saved' ? 'idle' : s)), 1400);
-      dirtyRef.current = false;
-      loadEntries();
-    } catch (err) {
-      console.error(err);
-      setSavingState('idle');
-    }
-  }, [selectedDate, content, location, loadEntries, qc]);
+  const performSave = useCallback(
+    async (silent = false) => {
+      if (!silent) setSavingState('saving');
+      try {
+        await journalApi.save(selectedDate, content, location);
+        const entry = await journalApi.get(selectedDate);
+        qc.setQueryData(qk.journal.entry(selectedDate), entry);
+        setTags(entry.tags || []);
+        setBacklinks(entry.backlinks || []);
+        setSavingState('saved');
+        setTimeout(() => setSavingState((s) => (s === 'saved' ? 'idle' : s)), 1400);
+        dirtyRef.current = false;
+        loadEntries();
+      } catch (err) {
+        console.error(err);
+        setSavingState('idle');
+      }
+    },
+    [selectedDate, content, location, loadEntries, qc],
+  );
 
   // Debounced auto-save when dirty
   useEffect(() => {
@@ -248,17 +318,25 @@ export default function JournalPage() {
     if (!dirtyRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => performSave(true), 1000);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [content, location, performSave, loading]);
 
-  const handleContentChange = (v: string) => { dirtyRef.current = true; setContent(v); };
-  const handleLocationChange = (v: JournalLocation | null) => { dirtyRef.current = true; setLocation(v); };
+  const handleContentChange = (v: string) => {
+    dirtyRef.current = true;
+    setContent(v);
+  };
+  const handleLocationChange = (v: JournalLocation | null) => {
+    dirtyRef.current = true;
+    setLocation(v);
+  };
 
   const toggleHabit = async (habitId: number) => {
     if (selectedDate > todayKey) return;
     const habit = habitStatuses.find((item) => item.id === habitId);
     if (!habit?.period_start) return;
-    setHabitStatuses((prev) => prev.map((h) => h.id === habitId ? { ...h, logged: !h.logged } : h));
+    setHabitStatuses((prev) => prev.map((h) => (h.id === habitId ? { ...h, logged: !h.logged } : h)));
     await habitsApi.togglePeriod(habitId, habit.period_start);
     qc.invalidateQueries({ queryKey: qk.habits.all });
   };
@@ -275,17 +353,28 @@ export default function JournalPage() {
     if (!(await confirmDialog(`Delete journal entry for ${selectedDate}?`))) return;
     await journalApi.delete(selectedDate);
     qc.setQueryData(qk.journal.entry(selectedDate), {
-      id: 0, date: selectedDate, content: '', location_label: '',
-      location_lat: null, location_lon: null, tags: [], backlinks: [],
-      created_at: '', updated_at: '',
+      id: 0,
+      date: selectedDate,
+      content: '',
+      location_label: '',
+      location_lat: null,
+      location_lon: null,
+      tags: [],
+      backlinks: [],
+      created_at: '',
+      updated_at: '',
     });
-    setContent(''); setLocation(null); setTags([]); setBacklinks([]);
+    setContent('');
+    setLocation(null);
+    setTags([]);
+    setBacklinks([]);
     loadEntries();
   };
 
   const goToday = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    setSelectedDate(today); setViewMonth(new Date());
+    setSelectedDate(today);
+    setViewMonth(new Date());
   };
   const goPrev = () => setSelectedDate(format(subDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'));
   const goNext = () => setSelectedDate(format(addDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'));
@@ -299,7 +388,8 @@ export default function JournalPage() {
       // Alt+[ / Alt+] change the day (by key position, so any layout works).
       if (e.altKey && !mod && (e.code === 'BracketLeft' || e.code === 'BracketRight')) {
         e.preventDefault();
-        if (e.code === 'BracketLeft') goPrev(); else goNext();
+        if (e.code === 'BracketLeft') goPrev();
+        else goNext();
         return;
       }
       if (!mod) return;
@@ -325,7 +415,7 @@ export default function JournalPage() {
     return () => window.removeEventListener('keydown', onKey);
     // performSave / handlers are stable enough; intentionally narrow deps to
     // avoid re-binding on every keystroke.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, performSave]);
 
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
@@ -345,7 +435,8 @@ export default function JournalPage() {
   const toggleMonth = (key: string) => {
     setExpandedMonths((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -365,22 +456,16 @@ export default function JournalPage() {
         <PanelHeading title="Tasks" onOpen={() => navigate('/tasks')} />
         {loadingTasks ? (
           <Skeleton className="h-16 w-full" />
-        ) : dueTasks.length === 0 && doneTasks.length === 0 ? (
-          null
-        ) : (
+        ) : dueTasks.length === 0 && doneTasks.length === 0 ? null : (
           <div className="flex flex-col gap-2">
             {dueTasks.map((t) => (
               <div key={t.id} className="group flex items-start gap-2.5">
-                <button
-                  onClick={() => markTaskDone(t.id)}
-                  title="Mark done"
-                  className="shrink-0 mt-0.5"
-                >
+                <button onClick={() => markTaskDone(t.id)} title="Mark done" className="mt-0.5 shrink-0">
                   <Checkbox checked={false} className="pointer-events-none" tabIndex={-1} />
                 </button>
                 <button
                   onClick={() => openTask(t.id)}
-                  className="flex-1 text-left text-[12.5px] text-foreground/85 leading-snug hover:text-foreground transition-colors"
+                  className="flex-1 text-left text-[12.5px] leading-snug text-foreground/85 transition-colors hover:text-foreground"
                   title="Open task"
                 >
                   {t.title}
@@ -389,16 +474,12 @@ export default function JournalPage() {
             ))}
             {doneTasks.map((t) => (
               <div key={t.id} className="group flex items-start gap-2.5">
-                <button
-                  onClick={() => reopenTask(t.id)}
-                  title="Mark not done"
-                  className="shrink-0 mt-0.5"
-                >
+                <button onClick={() => reopenTask(t.id)} title="Mark not done" className="mt-0.5 shrink-0">
                   <Checkbox checked={true} className="pointer-events-none" tabIndex={-1} />
                 </button>
                 <button
                   onClick={() => openTask(t.id)}
-                  className="flex-1 text-left text-[12.5px] line-through text-muted-foreground leading-snug hover:text-foreground/70 transition-colors"
+                  className="flex-1 text-left text-[12.5px] leading-snug text-muted-foreground line-through transition-colors hover:text-foreground/70"
                   title="Open task"
                 >
                   {t.title}
@@ -418,7 +499,7 @@ export default function JournalPage() {
                 <button
                   key={t.id}
                   onClick={() => openTask(t.id)}
-                  className="text-[12px] text-foreground/70 truncate text-left hover:text-foreground transition-colors"
+                  className="truncate text-left text-[12px] text-foreground/70 transition-colors hover:text-foreground"
                   title="Open task"
                 >
                   {t.title}
@@ -443,10 +524,10 @@ export default function JournalPage() {
                 key={h.id}
                 onClick={() => toggleHabit(h.id)}
                 disabled={selectedDate > todayKey}
-                className="group -mx-1.5 flex min-h-9 items-center gap-2.5 rounded-lg px-1.5 text-left outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] disabled:cursor-default disabled:opacity-45 focus-visible:ring-2 focus-visible:ring-ring"
+                className="group -mx-1.5 flex min-h-9 items-center gap-2.5 rounded-lg px-1.5 text-left transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-45"
               >
                 <span
-                  className="size-[18px] rounded-[3px] border-2 inline-flex items-center justify-center shrink-0 transition-[background-color,border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
+                  className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 transition-[background-color,border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
                   style={{
                     background: h.logged ? h.color : 'transparent',
                     borderColor: h.logged ? h.color : 'hsl(var(--on-surface-variant))',
@@ -459,7 +540,9 @@ export default function JournalPage() {
                     second line, so the list reads as a column of names. */}
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground/85">{h.name}</span>
                 {h.frequency !== 'daily' && (
-                  <DateBadge>{h.frequency === 'fortnightly' ? '2 wk' : h.frequency === 'weekly' ? 'Week' : 'Month'}</DateBadge>
+                  <DateBadge>
+                    {h.frequency === 'fortnightly' ? '2 wk' : h.frequency === 'weekly' ? 'Week' : 'Month'}
+                  </DateBadge>
                 )}
               </button>
             ))}
@@ -480,7 +563,7 @@ export default function JournalPage() {
               <button
                 key={entry.id}
                 onClick={() => navigate(`/habits?tab=events&id=${entry.event_id}`)}
-                className="flex min-h-11 items-center gap-2.5 rounded-xl px-1.5 text-left outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-11 items-center gap-2.5 rounded-xl px-1.5 text-left transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.06)] focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span
                   className="grid size-8 shrink-0 place-items-center rounded-[12px]"
@@ -490,9 +573,11 @@ export default function JournalPage() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12.5px] text-foreground/85">{entry.event_name}</span>
-                  {entry.note && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{entry.note}</span>}
+                  {entry.note && (
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{entry.note}</span>
+                  )}
                 </span>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                   {format(new Date(entry.occurred_at), 'h:mm a')}
                 </span>
               </button>
@@ -503,19 +588,21 @@ export default function JournalPage() {
 
       {/* Backlinks: only when something links here. */}
       {backlinks.length > 0 && (
-      <section>
-        <PanelHeading title="Backlinks" />
-        {(
-          <div className="flex flex-col gap-2">
-            {backlinks.map((bl, i) => (
-              <div key={i} className="text-[12.5px] text-primary">
-                <div className="underline underline-offset-2 decoration-primary/30 truncate">[[{bl.title || 'Untitled'}]]</div>
-                <div className="text-xs text-muted-foreground mt-0.5 capitalize">{bl.source_type}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+        <section>
+          <PanelHeading title="Backlinks" />
+          {
+            <div className="flex flex-col gap-2">
+              {backlinks.map((bl, i) => (
+                <div key={i} className="text-[12.5px] text-primary">
+                  <div className="truncate underline decoration-primary/30 underline-offset-2">
+                    [[{bl.title || 'Untitled'}]]
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground capitalize">{bl.source_type}</div>
+                </div>
+              ))}
+            </div>
+          }
+        </section>
       )}
     </div>
   );
@@ -533,48 +620,67 @@ export default function JournalPage() {
           <span className="serif text-2xl font-medium tracking-tight tabular-nums">{entries.length}</span>
           <span className="text-xs text-muted-foreground">entr{entries.length === 1 ? 'y' : 'ies'}</span>
         </div>
-        <div className="flex gap-[3px] mt-2">
+        <div className="mt-2 flex gap-[3px]">
           {Array.from({ length: 14 }).map((_, i) => {
             const d = format(subDays(new Date(), 13 - i), 'yyyy-MM-dd');
             const has = entryDates.has(d);
             return (
               <div
                 key={i}
-                className="flex-1 h-1 rounded-sm"
+                className="h-1 flex-1 rounded-sm"
                 style={{ background: has ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.18)' }}
               />
             );
           })}
         </div>
       </div>
-      <div className="p-2.5 flex flex-col gap-2 shrink-0">
+      <div className="flex shrink-0 flex-col gap-2 p-2.5">
         <div className="flex gap-1">
-          <Button onClick={() => { goToday(); closeMobileSidebar(); }} size="xs" variant="ghost" className="flex-1 justify-center gap-1.5 font-normal text-xs">
+          <Button
+            onClick={() => {
+              goToday();
+              closeMobileSidebar();
+            }}
+            size="xs"
+            variant="ghost"
+            className="flex-1 justify-center gap-1.5 text-xs font-normal"
+          >
             <CalendarIcon className="size-3.5" /> Today
           </Button>
         </div>
 
         {/* Calendar */}
         <div className="px-1 pt-1.5">
-          <div className="flex items-center justify-between mb-1.5">
-            <button onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
+          <div className="mb-1.5 flex items-center justify-between">
+            <button
+              onClick={() => setViewMonth(subMonths(viewMonth, 1))}
+              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+            >
               <ChevronLeft className="size-3.5" />
             </button>
             {/* Clicking the month name opens the monthly journal view
                 (parallel to clicking a week number for the weekly view). */}
             <button
               type="button"
-              onClick={() => { goMonth(viewMonth.getFullYear(), viewMonth.getMonth() + 1); closeMobileSidebar(); }}
+              onClick={() => {
+                goMonth(viewMonth.getFullYear(), viewMonth.getMonth() + 1);
+                closeMobileSidebar();
+              }}
               title="Open monthly entry"
               className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:bg-sidebar-accent hover:text-foreground ${
-                viewMode === 'month' && monthYear === viewMonth.getFullYear() && monthNumber === viewMonth.getMonth() + 1
+                viewMode === 'month' &&
+                monthYear === viewMonth.getFullYear() &&
+                monthNumber === viewMonth.getMonth() + 1
                   ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
                   : ''
               }`}
             >
               {format(viewMonth, 'MMMM yyyy')}
             </button>
-            <button onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="size-5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground flex items-center justify-center">
+            <button
+              onClick={() => setViewMonth(addMonths(viewMonth, 1))}
+              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+            >
               <ChevronRight className="size-3.5" />
             </button>
           </div>
@@ -583,17 +689,21 @@ export default function JournalPage() {
             selectedDate={selectedDate}
             entryDates={entryDates}
             activeWeekKey={activeWeekKey}
-            onPick={(d) => { setSelectedDate(d); closeMobileSidebar(); }}
-            onPickWeek={(y, w) => { goWeek(y, w); closeMobileSidebar(); }}
+            onPick={(d) => {
+              setSelectedDate(d);
+              closeMobileSidebar();
+            }}
+            onPickWeek={(y, w) => {
+              goWeek(y, w);
+              closeMobileSidebar();
+            }}
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-1.5 px-1">
+      <div className="flex-1 overflow-y-auto px-1 py-1.5">
         {groupedByMonth.length === 0 ? (
-          <div className="text-center text-xs text-muted-foreground py-12 px-3">
-            No entries yet
-          </div>
+          <div className="px-3 py-12 text-center text-xs text-muted-foreground">No entries yet</div>
         ) : (
           groupedByMonth.map(([monthKey, list]) => {
             const isExpanded = expandedMonths.has(monthKey);
@@ -602,10 +712,10 @@ export default function JournalPage() {
               <div key={monthKey}>
                 <button
                   onClick={() => toggleMonth(monthKey)}
-                  className="w-full group flex items-center gap-1 hover:bg-sidebar-accent/40 rounded-md px-1 py-1 text-[12px] text-muted-foreground transition-colors"
+                  className="group flex w-full items-center gap-1 rounded-md px-1 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-sidebar-accent/40"
                 >
                   <ChevronRight className={`size-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                  <span className="flex-1 text-left truncate">{monthLabel}</span>
+                  <span className="flex-1 truncate text-left">{monthLabel}</span>
                   <span className="text-xs tabular-nums opacity-60">{list.length}</span>
                 </button>
                 <AnimatePresence initial={false}>
@@ -622,7 +732,10 @@ export default function JournalPage() {
                           key={e.date}
                           entry={e}
                           selected={selectedDate === e.date}
-                          onClick={() => { setSelectedDate(e.date); closeMobileSidebar(); }}
+                          onClick={() => {
+                            setSelectedDate(e.date);
+                            closeMobileSidebar();
+                          }}
                         />
                       ))}
                     </motion.div>
@@ -639,39 +752,66 @@ export default function JournalPage() {
   // No chrome row at all — the serif date hero IS the page header, and
   // every control rides its trailing cluster (see day view below).
   const heroControls = (
-    <div className="flex items-center gap-0.5 shrink-0 flex-wrap justify-end">
-      <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={goPrev} title="Previous day" aria-label="Previous day">
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-full"
+        onClick={goPrev}
+        title="Previous day"
+        aria-label="Previous day"
+      >
         <ChevronLeft className="size-4" />
       </Button>
       {!isToday && (
-        <Button variant="ghost" size="sm" onClick={goToday} className="rounded-full text-xs h-8 px-2.5 text-[hsl(var(--primary))]">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={goToday}
+          className="h-8 rounded-full px-2.5 text-xs text-[hsl(var(--primary))]"
+        >
           Today
         </Button>
       )}
-      <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={goNext} title="Next day" aria-label="Next day">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-full"
+        onClick={goNext}
+        title="Next day"
+        aria-label="Next day"
+      >
         <ChevronRight className="size-4" />
       </Button>
-      <span className="w-px h-4 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+      <span className="mx-1 h-4 w-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
       <SaveStatus state={savingState} onSave={() => performSave()} />
       {entryDates.has(selectedDate) && (
         <Button variant="destructive-ghost" size="icon-sm" onClick={deleteEntry} title="Delete entry">
           <Trash2 className="size-4" />
         </Button>
       )}
-      <span className="w-px h-4 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+      <span className="mx-1 h-4 w-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
       <Button
-        variant="ghost" size="icon-sm"
-        onClick={() => isMobile ? setMobileSidebarOpen(true) : setSidebarOpen((v) => !v)}
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => (isMobile ? setMobileSidebarOpen(true) : setSidebarOpen((v) => !v))}
         className="shrink-0 rounded-full"
-        title={isMobile ? 'Journal & calendar' : (sidebarOpen ? 'Hide journal' : 'Show journal')}
+        title={isMobile ? 'Journal & calendar' : sidebarOpen ? 'Hide journal' : 'Show journal'}
       >
-        {isMobile ? <PanelLeft className="size-4" /> : (sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />)}
+        {isMobile ? (
+          <PanelLeft className="size-4" />
+        ) : sidebarOpen ? (
+          <PanelLeftClose className="size-4" />
+        ) : (
+          <PanelLeft className="size-4" />
+        )}
       </Button>
       <Button
-        variant="ghost" size="icon-sm"
-        onClick={() => isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v)}
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => (isMobile ? setMobileMarginOpen(true) : setMarginOpen((v) => !v))}
         className="shrink-0 rounded-full"
-        title={isMobile ? 'Show context' : (marginOpen ? 'Hide context' : 'Show context')}
+        title={isMobile ? 'Show context' : marginOpen ? 'Hide context' : 'Show context'}
       >
         {marginOpen && !isMobile ? <PanelRightClose className="size-4" /> : <PanelRight className="size-4" />}
       </Button>
@@ -679,14 +819,13 @@ export default function JournalPage() {
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden page-fade-in">
-
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+    <div className="page-fade-in flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Editor pane (CENTER) — pads below the floating primary pill
             (desktop); mobile has no top chrome, just the safe area. */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 order-2">
+        <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col">
           <div
-            className="flex-1 flex flex-col min-h-0 overflow-y-auto"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto"
             style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isMobile ? 8 : 72}px)` }}
           >
             {viewMode === 'week' ? (
@@ -717,29 +856,27 @@ export default function JournalPage() {
                 }}
               />
             ) : (
-              <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-8 pb-32 flex flex-col gap-5 min-h-full">
+              <div className="mx-auto flex min-h-full w-full max-w-[88rem] flex-col gap-5 px-4 pt-6 pb-32 md:px-8 md:pt-8 lg:px-10">
                 {/* Date title — Obsidian-style serif hero; ALL page controls
                     ride its trailing edge (no chrome rows above). */}
-                <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
+                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                   <div className="min-w-0">
-                    <h1 className="serif text-4xl md:text-5xl font-normal tracking-[-0.02em] leading-[1.05]">
+                    <h1 className="serif text-4xl leading-[1.05] font-normal tracking-[-0.02em] md:text-5xl">
                       {format(dateObj, 'EEEE')}
                     </h1>
-                    <div className="serif italic text-base md:text-lg text-muted-foreground mt-1">
+                    <div className="serif mt-1 text-base text-muted-foreground italic md:text-lg">
                       {format(dateObj, 'MMMM d, yyyy')}
                     </div>
                   </div>
-                  <div className="mt-1">
-                    {heroControls}
-                  </div>
+                  <div className="mt-1">{heroControls}</div>
                 </div>
 
-                <div className="flex gap-1.5 flex-wrap items-center">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <LocationPill value={location} onChange={handleLocationChange} />
                 </div>
 
                 {/* Editor — fills the available height (≈80–90%) like Notes. */}
-                <div className="flex flex-1 flex-col min-h-0">
+                <div className="flex min-h-0 flex-1 flex-col">
                   {loading ? (
                     <Skeleton className="h-64 w-full" />
                   ) : (
@@ -751,18 +888,21 @@ export default function JournalPage() {
                       contextDate={selectedDate}
                       vim={vimKeys}
                       vimStatus={vimHost}
-                      onSave={() => { void performSave(); }}
+                      onSave={() => {
+                        void performSave();
+                      }}
                     />
                   )}
                 </div>
 
                 {/* Tags */}
                 {tags.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap pt-3 border-t border-border/50">
-                    {tags.map((tag) => <TagPill key={tag} tag={tag} />)}
+                  <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+                    {tags.map((tag) => (
+                      <TagPill key={tag} tag={tag} />
+                    ))}
                   </div>
                 )}
-
               </div>
             )}
           </div>
@@ -774,75 +914,72 @@ export default function JournalPage() {
           )}
         </div>
 
-      {/* Right margin — context dock (desktop) */}
-      <AnimatePresence initial={false} mode="popLayout">
-        {marginOpen && (
-          <motion.aside
-            key="right-margin"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 260, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-            className="hidden md:flex bg-[hsl(var(--surface-container-low))] flex-col shrink-0 overflow-hidden order-3"
+        {/* Right margin — context dock (desktop) */}
+        <AnimatePresence initial={false} mode="popLayout">
+          {marginOpen && (
+            <motion.aside
+              key="right-margin"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 260, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+              className="order-3 hidden shrink-0 flex-col overflow-hidden bg-[hsl(var(--surface-container-low))] md:flex"
+            >
+              <div className="overflow-y-auto pt-5">{contextPanel}</div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        <PlansManager
+          open={plansEditor.open}
+          initialId={plansEditor.id}
+          onOpenChange={(open) => setPlansEditor((v) => ({ ...v, open }))}
+        />
+
+        {/* Mobile right margin — bottom sheet */}
+        <Sheet open={mobileMarginOpen} onOpenChange={setMobileMarginOpen}>
+          <SheetContent
+            side="bottom"
+            className="max-h-[80dvh] overflow-y-auto border-t border-border bg-popover px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden"
           >
-            <div className="overflow-y-auto pt-5">
-              {contextPanel}
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+            <div className="mx-auto mb-3 h-[3px] w-9 bg-muted-foreground/35" aria-hidden="true" />
+            <SheetHeader className="p-0 px-2">
+              <SheetTitle className="serif text-base tracking-tight normal-case">This day</SheetTitle>
+            </SheetHeader>
+            {contextPanel}
+          </SheetContent>
+        </Sheet>
 
-      <PlansManager
-        open={plansEditor.open}
-        initialId={plansEditor.id}
-        onOpenChange={(open) => setPlansEditor((v) => ({ ...v, open }))}
-      />
+        {/* Sidebar — LEFT (entries + mini calendar, design-aligned) */}
+        <AnimatePresence initial={false} mode="popLayout">
+          {sidebarOpen && (
+            <motion.aside
+              key="sidebar"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 240, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+              className="order-1 hidden shrink-0 flex-col overflow-hidden bg-[hsl(var(--surface-container-low))] md:flex"
+            >
+              {sidebarContent}
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
-      {/* Mobile right margin — bottom sheet */}
-      <Sheet open={mobileMarginOpen} onOpenChange={setMobileMarginOpen}>
-        <SheetContent
-          side="bottom"
-          className="md:hidden max-h-[80dvh] overflow-y-auto bg-popover border-t border-border px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
-        >
-          <div className="mx-auto mb-3 h-[3px] w-9 bg-muted-foreground/35" aria-hidden="true" />
-          <SheetHeader className="p-0 px-2">
-            <SheetTitle className="serif text-base normal-case tracking-tight">This day</SheetTitle>
-          </SheetHeader>
-          {contextPanel}
-        </SheetContent>
-      </Sheet>
-
-      {/* Sidebar — LEFT (entries + mini calendar, design-aligned) */}
-      <AnimatePresence initial={false} mode="popLayout">
-        {sidebarOpen && (
-          <motion.aside
-            key="sidebar"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 240, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
-            className="hidden md:flex bg-[hsl(var(--surface-container-low))] flex-col shrink-0 overflow-hidden order-1"
-          >
-            {sidebarContent}
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile vault — left drawer. Same rail as desktop so phones regain the
+        {/* Mobile vault — left drawer. Same rail as desktop so phones regain the
           calendar grid + week/month entry nav (the desktop aside is md:flex). */}
-      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-        <SheetContent
-          side="left"
-          showCloseButton={false}
-          className="md:hidden w-[86vw] max-w-[20rem] p-0 pt-[env(safe-area-inset-top)] flex flex-col bg-sidebar"
-        >
-          <SheetHeader className="sr-only p-0">
-            <SheetTitle>Journal & Calendar</SheetTitle>
-          </SheetHeader>
-          {sidebarContent}
-        </SheetContent>
-      </Sheet>
-
+        <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="flex w-[86vw] max-w-[20rem] flex-col bg-sidebar p-0 pt-[env(safe-area-inset-top)] md:hidden"
+          >
+            <SheetHeader className="sr-only p-0">
+              <SheetTitle>Journal & Calendar</SheetTitle>
+            </SheetHeader>
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
@@ -858,8 +995,12 @@ function WordCount({ text }: { text: string }) {
   const { words, characters } = useMemo(() => countText(deferred), [deferred]);
   return (
     <>
-      <StatusSeg tone={1}>{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</StatusSeg>
-      <StatusSeg tone={3}>{characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}</StatusSeg>
+      <StatusSeg tone={1}>
+        {words.toLocaleString()} {words === 1 ? 'word' : 'words'}
+      </StatusSeg>
+      <StatusSeg tone={3}>
+        {characters.toLocaleString()} {characters === 1 ? 'character' : 'characters'}
+      </StatusSeg>
     </>
   );
 }
@@ -869,7 +1010,13 @@ function SaveSeg({ state }: { state: 'idle' | 'saving' | 'saved' }) {
   if (state === 'idle') return null;
   return (
     <StatusSeg tone={2} className="min-w-[5.75rem]">
-      {state === 'saving' ? <><M3CookieLoader size="xs" tone="primary" /> Saving</> : 'Saved'}
+      {state === 'saving' ? (
+        <>
+          <M3CookieLoader size="xs" tone="primary" /> Saving
+        </>
+      ) : (
+        'Saved'
+      )}
     </StatusSeg>
   );
 }
@@ -881,7 +1028,13 @@ function isoWeekDateFromKey(year: number, week: number): Date {
 }
 
 function WeekView({
-  year, week, onPickDay, onShiftWeek, vimStatus, onText, onSaving,
+  year,
+  week,
+  onPickDay,
+  onShiftWeek,
+  vimStatus,
+  onText,
+  onSaving,
 }: {
   vimStatus: HTMLElement | null;
   /** The text as it changes (status line counts). */
@@ -896,11 +1049,16 @@ function WeekView({
   const vimKeys = useVimKeys();
   const onTextRef = useRef(onText);
   const onSavingRef = useRef(onSaving);
-  useLayoutEffect(() => { onTextRef.current = onText; onSavingRef.current = onSaving; });
+  useLayoutEffect(() => {
+    onTextRef.current = onText;
+    onSavingRef.current = onSaving;
+  });
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
-  useEffect(() => { onSavingRef.current?.(saving); }, [saving]);
+  useEffect(() => {
+    onSavingRef.current?.(saving);
+  }, [saving]);
   const [summary, setSummary] = useState<import('@/api').WeeklySummary | null>(null);
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -908,19 +1066,21 @@ function WeekView({
   const monday = useMemo(() => isoWeekDateFromKey(year, week), [year, week]);
   const sunday = useMemo(() => endOfISOWeek(monday), [monday]);
   const mondayKey = useMemo(() => format(monday, 'yyyy-MM-dd'), [monday]);
-  const weekDays = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
-    [monday],
-  );
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(monday, i)), [monday]);
 
   // Week-scoped tasks (week_of = this Monday) — the "This week" section. Kept
   // separate from the per-day breakdown since they have no specific day.
   const qc = useQueryClient();
   const [weekTasks, setWeekTasks] = useState<Task[]>([]);
   const loadWeekTasks = useCallback(() => {
-    tasksApi.list({ week_of: mondayKey }).then(setWeekTasks).catch(() => setWeekTasks([]));
+    tasksApi
+      .list({ week_of: mondayKey })
+      .then(setWeekTasks)
+      .catch(() => setWeekTasks([]));
   }, [mondayKey]);
-  useEffect(() => { loadWeekTasks(); }, [loadWeekTasks]);
+  useEffect(() => {
+    loadWeekTasks();
+  }, [loadWeekTasks]);
 
   const toggleWeekTask = async (t: Task) => {
     const next = t.status === 'done' ? 'todo' : 'done';
@@ -948,10 +1108,7 @@ function WeekView({
     dirtyRef.current = false;
     (async () => {
       try {
-        const [entry, summ] = await Promise.all([
-          journalApi.week.get(year, week),
-          journalApi.week.summary(year, week),
-        ]);
+        const [entry, summ] = await Promise.all([journalApi.week.get(year, week), journalApi.week.summary(year, week)]);
         if (!alive) return;
         setContent(entry.content || '');
         onTextRef.current?.(entry.content || '');
@@ -960,7 +1117,9 @@ function WeekView({
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [year, week]);
 
   // Debounced auto-save.
@@ -979,10 +1138,16 @@ function WeekView({
         setSaving('idle');
       }
     }, 1000);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [content, loading, year, week]);
 
-  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); onTextRef.current?.(v); };
+  const handleContent = (v: string) => {
+    dirtyRef.current = true;
+    setContent(v);
+    onTextRef.current?.(v);
+  };
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -993,34 +1158,30 @@ function WeekView({
   const habitProgress = summary?.habits.reduce(
     (acc, habit) => {
       const target = habit.frequency === 'daily' ? 7 : 1;
-      const done = habit.frequency === 'daily'
-        ? habit.logged_days.length
-        : Number(habit.period_logged);
+      const done = habit.frequency === 'daily' ? habit.logged_days.length : Number(habit.period_logged);
       return { done: acc.done + done, target: acc.target + target };
     },
     { done: 0, target: 0 },
   ) ?? { done: 0, target: 0 };
 
   return (
-    <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-[88rem] flex-col gap-8 px-4 pt-10 pb-32 md:px-8 lg:px-10">
       {/* Title + week shift controls. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mono text-xs label-kicker text-muted-foreground mb-1.5">
-            weekly entry
-          </div>
-          <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
+          <div className="mono label-kicker mb-1.5 text-xs text-muted-foreground">weekly entry</div>
+          <h1 className="serif text-5xl leading-[1.02] font-normal tracking-[-0.02em] md:text-6xl">
             Week {week}, {year}
           </h1>
-          <div className="serif italic text-lg md:text-xl text-muted-foreground mt-1.5">
+          <div className="serif mt-1.5 text-lg text-muted-foreground italic md:text-xl">
             {format(monday, 'MMM d')} – {format(sunday, 'MMM d, yyyy')}
           </div>
         </div>
-        <div className="flex items-center gap-1 mt-1 shrink-0">
+        <div className="mt-1 flex shrink-0 items-center gap-1">
           <Button variant="ghost" size="icon-sm" onClick={() => onShiftWeek(-1)} title="Previous week">
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="mono text-xs text-muted-foreground tabular-nums px-1 min-w-[52px] text-center">
+          <span className="mono min-w-[52px] px-1 text-center text-xs text-muted-foreground tabular-nums">
             {saving === 'saving' ? 'Saving' : saving === 'saved' ? 'Saved' : ''}
           </span>
           <Button variant="ghost" size="icon-sm" onClick={() => onShiftWeek(1)} title="Next week">
@@ -1030,13 +1191,19 @@ function WeekView({
       </div>
 
       {/* At-a-glance stats — M3 expressive: surface-container-low + serif numerals. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Tasks done" value={`${totalDone}/${totalDue}`} tone="primary" />
         <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
         <StatTile label="Entries" value={`${entriesWritten}/7`} tone="tertiary" />
         <StatTile
           label="Expenses"
-          value={summary ? <Money value={summary.expense_total} currency={summary.expense_currency || 'INR'} privacy={false} /> : '–'}
+          value={
+            summary ? (
+              <Money value={summary.expense_total} currency={summary.expense_currency || 'INR'} privacy={false} />
+            ) : (
+              '–'
+            )
+          }
           tone="secondary"
         />
       </div>
@@ -1069,10 +1236,10 @@ function WeekView({
       />
 
       {/* 7-day task breakdown */}
-      <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+      <section className="overflow-hidden rounded-2xl border border-border bg-card/40">
+        <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2.5">
           <CheckSquare className="size-3.5 text-secondary" />
-          <span className="font-mono text-xs label-kicker text-muted-foreground">Tasks by day</span>
+          <span className="label-kicker font-mono text-xs text-muted-foreground">Tasks by day</span>
         </div>
         <div className="divide-y divide-border/40">
           {weekDays.map((day, i) => {
@@ -1080,49 +1247,49 @@ function WeekView({
             const stat = summary?.days[i];
             const isCurrent = ds === today;
             const totalForDay = (stat?.tasks_due ?? 0) + (stat?.tasks_done ?? 0);
-            const ratio = totalForDay > 0 ? (stat!.tasks_done / totalForDay) : 0;
+            const ratio = totalForDay > 0 ? stat!.tasks_done / totalForDay : 0;
             return (
               <button
                 key={ds}
                 onClick={() => onPickDay(ds)}
-                className={`w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/30 transition-colors ${
+                className={`flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/30 ${
                   isCurrent ? 'bg-primary/[0.04]' : ''
                 }`}
               >
-                <div className={`flex flex-col items-center w-14 shrink-0 ${
-                  isCurrent ? 'text-primary' : 'text-muted-foreground'
-                }`}>
-                  <span className="mono text-xs label-kicker">{format(day, 'EEE')}</span>
-                  <span className={`serif text-2xl font-medium leading-none tabular-nums ${
-                    isCurrent ? 'text-primary' : 'text-foreground/90'
-                  }`}>
+                <div
+                  className={`flex w-14 shrink-0 flex-col items-center ${
+                    isCurrent ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  <span className="mono label-kicker text-xs">{format(day, 'EEE')}</span>
+                  <span
+                    className={`serif text-2xl leading-none font-medium tabular-nums ${
+                      isCurrent ? 'text-primary' : 'text-foreground/90'
+                    }`}
+                  >
                     {format(day, 'd')}
                   </span>
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-[13px] ${isCurrent ? 'text-primary font-medium' : 'text-foreground/85'}`}>
+                    <span className={`text-[13px] ${isCurrent ? 'font-medium text-primary' : 'text-foreground/85'}`}>
                       {format(day, 'MMMM')}
                     </span>
-                    {stat?.has_entry && (
-                      <span className="mono text-xs label-kicker text-primary/70">entry</span>
-                    )}
+                    {stat?.has_entry && <span className="mono label-kicker text-xs text-primary/70">entry</span>}
                   </div>
-                  <div className="h-1 rounded-full bg-muted-foreground/15 overflow-hidden">
+                  <div className="h-1 overflow-hidden rounded-full bg-muted-foreground/15">
                     <div
                       className="h-full rounded-full bg-primary transition-[width] duration-300"
                       style={{ width: `${Math.round(ratio * 100)}%` }}
                     />
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
                   <span className="mono text-xs text-foreground/80 tabular-nums">
                     {stat ? `${stat.tasks_done}/${totalForDay}` : '–'}
                   </span>
                   {stat && stat.tasks_missed > 0 ? (
-                    <span className="mono text-xs text-destructive/80 tabular-nums">
-                      {stat.tasks_missed} missed
-                    </span>
+                    <span className="mono text-xs text-destructive/80 tabular-nums">{stat.tasks_missed} missed</span>
                   ) : (
                     <span className="mono text-xs text-muted-foreground/60">on track</span>
                   )}
@@ -1135,14 +1302,12 @@ function WeekView({
 
       {/* Habits — full-width tracker. Bigger affordances, M3 expressive
           tonal cards per row, weekly streak summary on the right. */}
-      <section className="rounded-3xl bg-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+      <section className="overflow-hidden rounded-3xl bg-card">
+        <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-5 py-3">
           <Target className="size-4 text-primary" />
-          <span className="font-mono text-xs label-kicker tracking-[0.18em] text-foreground/80">
-            Habits this week
-          </span>
+          <span className="label-kicker font-mono text-xs tracking-[0.18em] text-foreground/80">Habits this week</span>
           {summary && summary.habits.length > 0 && (
-            <span className="ml-auto mono text-xs label-kicker text-muted-foreground tabular-nums">
+            <span className="mono label-kicker ml-auto text-xs text-muted-foreground tabular-nums">
               {habitProgress.done}/{habitProgress.target} periods
             </span>
           )}
@@ -1150,8 +1315,8 @@ function WeekView({
         <div className="p-5">
           {!summary || summary.habits.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
-              <p className="serif italic text-base text-muted-foreground">No habits tracked yet.</p>
-              <p className="mono text-xs label-kicker text-muted-foreground/70 mt-2">
+              <p className="serif text-base text-muted-foreground italic">No habits tracked yet.</p>
+              <p className="mono label-kicker mt-2 text-xs text-muted-foreground/70">
                 Add habits from the Habits page to start the streak.
               </p>
             </div>
@@ -1167,22 +1332,20 @@ function WeekView({
                 return (
                   <div
                     key={h.id}
-                    className="rounded-2xl bg-surface-container-low/40 px-4 py-3.5 flex flex-col gap-3 transition-colors hover:bg-surface-container-low/70"
+                    className="flex flex-col gap-3 rounded-2xl bg-surface-container-low/40 px-4 py-3.5 transition-colors hover:bg-surface-container-low/70"
                   >
                     {/* Row header: color swatch · name · count badge. */}
                     <div className="flex items-center gap-3">
                       <span
-                        className="size-3 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-background"
+                        className="size-3 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-background"
                         style={ringStyle(h.color)}
                       />
-                      <span className="text-[14px] font-medium text-foreground/90 flex-1 truncate">
-                        {h.name}
-                      </span>
-                      <span className="mono text-xs label-kicker tracking-[0.08em] text-muted-foreground">
+                      <span className="flex-1 truncate text-[14px] font-medium text-foreground/90">{h.name}</span>
+                      <span className="mono label-kicker text-xs tracking-[0.08em] text-muted-foreground">
                         {h.frequency === 'fortnightly' ? '2 weeks' : h.frequency}
                       </span>
                       <span
-                        className={`mono text-xs label-kicker tabular-nums rounded-full px-2.5 py-0.5 ${
+                        className={`mono label-kicker rounded-full px-2.5 py-0.5 text-xs tabular-nums ${
                           isPerfect
                             ? 'bg-primary text-primary-foreground'
                             : ratio >= 0.5
@@ -1196,48 +1359,53 @@ function WeekView({
 
                     {h.frequency === 'daily' ? (
                       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                      {weekDays.map((day) => {
-                        const ds = format(day, 'yyyy-MM-dd');
-                        const on = logged.has(ds);
-                        const isToday = ds === today;
-                        return (
-                          <div
-                            key={ds}
-                            title={`${format(day, 'EEE d')} · ${on ? 'logged' : 'not logged'}`}
-                            className="flex flex-col items-center gap-1"
-                          >
-                            <span className="mono text-xs label-kicker text-muted-foreground/70">
-                              {format(day, 'EEEEE')}
-                            </span>
-                            <span
-                              className={`flex items-center justify-center w-full h-9 rounded-xl transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
-                                on ? 'shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]' : ''
-                              } ${isToday && !on ? 'ring-1 ring-primary/40' : ''}`}
-                              style={{
-                                background: on
-                                  ? h.color
-                                  : 'hsl(var(--muted-foreground) / 0.08)',
-                              }}
+                        {weekDays.map((day) => {
+                          const ds = format(day, 'yyyy-MM-dd');
+                          const on = logged.has(ds);
+                          const isToday = ds === today;
+                          return (
+                            <div
+                              key={ds}
+                              title={`${format(day, 'EEE d')} · ${on ? 'logged' : 'not logged'}`}
+                              className="flex flex-col items-center gap-1"
                             >
-                              {on ? (
-                                <svg className="size-4 text-white" viewBox="0 0 12 12">
-                                  <path d="M10 3L4.5 8.5 2 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              ) : (
-                                <span
-                                  className="size-1.5 rounded-full"
-                                  style={{ background: 'hsl(var(--muted-foreground) / 0.35)' }}
-                                />
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
+                              <span className="mono label-kicker text-xs text-muted-foreground/70">
+                                {format(day, 'EEEEE')}
+                              </span>
+                              <span
+                                className={`flex h-9 w-full items-center justify-center rounded-xl transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
+                                  on ? 'shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]' : ''
+                                } ${isToday && !on ? 'ring-1 ring-primary/40' : ''}`}
+                                style={{
+                                  background: on ? h.color : 'hsl(var(--muted-foreground) / 0.08)',
+                                }}
+                              >
+                                {on ? (
+                                  <svg className="size-4 text-white" viewBox="0 0 12 12">
+                                    <path
+                                      d="M10 3L4.5 8.5 2 6"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2.2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <span
+                                    className="size-1.5 rounded-full"
+                                    style={{ background: 'hsl(var(--muted-foreground) / 0.35)' }}
+                                  />
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 rounded-2xl bg-[hsl(var(--surface-container))] p-2">
                         <span
-                          className="grid size-11 place-items-center rounded-[18px] mono text-xs font-semibold"
+                          className="mono grid size-11 place-items-center rounded-[18px] text-xs font-semibold"
                           style={{
                             background: h.period_logged ? h.color : 'hsl(var(--surface-container-highest))',
                             color: h.period_logged ? inkOn(h.color) : 'hsl(var(--on-surface-variant))',
@@ -1247,9 +1415,7 @@ function WeekView({
                           {h.period_logged ? <LucideCheck className="size-4" /> : cadencePeriod.label}
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-sm font-medium">
-                            {cadencePeriod.accessibleLabel}
-                          </span>
+                          <span className="block text-sm font-medium">{cadencePeriod.accessibleLabel}</span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">
                             {h.period_logged ? 'Completed' : 'Open'}
                           </span>
@@ -1259,7 +1425,7 @@ function WeekView({
 
                     {/* Streak meter — a thin progress bar in the habit color. */}
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-muted-foreground/12 overflow-hidden">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted-foreground/12">
                         <div
                           className="h-full rounded-full transition-[width] duration-300"
                           style={{
@@ -1268,7 +1434,7 @@ function WeekView({
                           }}
                         />
                       </div>
-                      <span className="mono text-xs label-kicker text-muted-foreground tabular-nums w-10 text-right">
+                      <span className="mono label-kicker w-10 text-right text-xs text-muted-foreground tabular-nums">
                         {Math.round(ratio * 100)}%
                       </span>
                     </div>
@@ -1283,7 +1449,11 @@ function WeekView({
   );
 }
 
-function StatTile({ label, value, tone }: {
+function StatTile({
+  label,
+  value,
+  tone,
+}: {
   label: string;
   value: React.ReactNode;
   tone: 'primary' | 'secondary' | 'tertiary' | 'destructive' | 'muted';
@@ -1296,9 +1466,9 @@ function StatTile({ label, value, tone }: {
     muted: 'bg-muted/40 text-foreground/80',
   };
   return (
-    <div className={`rounded-2xl px-4 py-3.5 flex flex-col gap-1.5 ${toneClasses[tone]}`}>
-      <span className="mono text-xs label-kicker opacity-80">{label}</span>
-      <span className="serif text-2xl font-medium tabular-nums leading-none">{value}</span>
+    <div className={`flex flex-col gap-1.5 rounded-2xl px-4 py-3.5 ${toneClasses[tone]}`}>
+      <span className="mono label-kicker text-xs opacity-80">{label}</span>
+      <span className="serif text-2xl leading-none font-medium tabular-nums">{value}</span>
     </div>
   );
 }
@@ -1316,7 +1486,11 @@ function QuickAddTask({ dueDate }: { dueDate: string }) {
 
   const submit = async () => {
     const title = value.trim();
-    if (!title) { setEditing(false); setValue(''); return; }
+    if (!title) {
+      setEditing(false);
+      setValue('');
+      return;
+    }
     setSubmitting(true);
     try {
       await tasksApi.create({ title, due_date: dueDate });
@@ -1334,29 +1508,36 @@ function QuickAddTask({ dueDate }: { dueDate: string }) {
     return (
       <button
         onClick={() => setEditing(true)}
-        className="mt-2 flex items-center gap-2 text-[12.5px] text-muted-foreground hover:text-foreground transition-colors"
+        className="mt-2 flex items-center gap-2 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
       >
-        <span className="mono text-[12px] w-[18px] text-center">+</span>
+        <span className="mono w-[18px] text-center text-[12px]">+</span>
         <span>Add task</span>
       </button>
     );
   }
   return (
     <div className="mt-2 flex items-center gap-2">
-      <span className="mono text-[12px] w-[18px] text-center text-muted-foreground">+</span>
+      <span className="mono w-[18px] text-center text-[12px] text-muted-foreground">+</span>
       <Input
         name="journal-quick-task-title"
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); submit(); }
-          else if (e.key === 'Escape') { setEditing(false); setValue(''); }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submit();
+          } else if (e.key === 'Escape') {
+            setEditing(false);
+            setValue('');
+          }
         }}
-        onBlur={() => { if (!value.trim()) setEditing(false); }}
+        onBlur={() => {
+          if (!value.trim()) setEditing(false);
+        }}
         disabled={submitting}
         placeholder="Task title…"
-        className="flex-1 h-7 text-[12.5px] px-2"
+        className="h-7 flex-1 px-2 text-[12.5px]"
       />
     </div>
   );
@@ -1367,21 +1548,24 @@ function EntryRow({ entry, selected, onClick }: { entry: JournalEntry; selected:
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-md px-2 py-1.5 flex items-center gap-2 transition-colors ${
-        selected ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/40 text-foreground/85'
+      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
+        selected ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-foreground/85 hover:bg-sidebar-accent/40'
       }`}
       style={{ paddingLeft: '20px' }}
     >
-      <span className="font-mono text-xs tabular-nums text-muted-foreground w-7 shrink-0">
-        {format(date, 'd')}
-      </span>
+      <span className="w-7 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">{format(date, 'd')}</span>
       <span className="flex-1 truncate text-[13px]">{format(date, 'EEEE')}</span>
     </button>
   );
 }
 
 function CalendarGrid({
-  viewMonth, selectedDate, entryDates, activeWeekKey, onPick, onPickWeek,
+  viewMonth,
+  selectedDate,
+  entryDates,
+  activeWeekKey,
+  onPick,
+  onPickWeek,
 }: {
   viewMonth: Date;
   selectedDate: string;
@@ -1409,7 +1593,7 @@ function CalendarGrid({
       {['W', 'M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
         <div
           key={`${d}${i}`}
-          className={`text-center font-mono text-xs uppercase py-1 ${
+          className={`py-1 text-center font-mono text-xs uppercase ${
             i === 0 ? 'text-muted-foreground/50' : 'text-muted-foreground/70'
           }`}
         >
@@ -1429,11 +1613,7 @@ function CalendarGrid({
             <button
               onClick={() => onPickWeek(isoYear, isoWeek)}
               title={`Week ${isoWeek}, ${isoYear}`}
-              className={`aspect-square flex items-center justify-center text-xs font-mono rounded transition-colors
-                ${isActiveWeek ? 'bg-primary text-primary-foreground font-semibold' : ''}
-                ${!isActiveWeek && isCurrentWeek ? 'ring-1 ring-primary/40 text-foreground/80' : ''}
-                ${!isActiveWeek && !isCurrentWeek ? 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-foreground' : ''}
-              `}
+              className={`flex aspect-square items-center justify-center rounded font-mono text-xs transition-colors ${isActiveWeek ? 'bg-primary font-semibold text-primary-foreground' : ''} ${!isActiveWeek && isCurrentWeek ? 'text-foreground/80 ring-1 ring-primary/40' : ''} ${!isActiveWeek && !isCurrentWeek ? 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-foreground' : ''} `}
             >
               W{weekOfMonth}
             </button>
@@ -1446,13 +1626,7 @@ function CalendarGrid({
                 <button
                   key={dateStr}
                   onClick={() => onPick(dateStr)}
-                  className={`aspect-square flex items-center justify-center text-xs rounded transition-colors relative
-                    ${isSelected ? 'bg-primary text-primary-foreground font-semibold' : ''}
-                    ${!isSelected && hasEntry ? 'bg-primary/10 text-primary font-medium' : ''}
-                    ${!isSelected && !hasEntry && isCurrent ? 'ring-1 ring-primary/40 text-foreground' : ''}
-                    ${!isSelected && !hasEntry && !isCurrent ? 'text-muted-foreground hover:bg-sidebar-accent' : ''}
-                    ${!isSameMonth(day, viewMonth) ? 'opacity-30' : ''}
-                  `}
+                  className={`relative flex aspect-square items-center justify-center rounded text-xs transition-colors ${isSelected ? 'bg-primary font-semibold text-primary-foreground' : ''} ${!isSelected && hasEntry ? 'bg-primary/10 font-medium text-primary' : ''} ${!isSelected && !hasEntry && isCurrent ? 'text-foreground ring-1 ring-primary/40' : ''} ${!isSelected && !hasEntry && !isCurrent ? 'text-muted-foreground hover:bg-sidebar-accent' : ''} ${!isSameMonth(day, viewMonth) ? 'opacity-30' : ''} `}
                 >
                   {format(day, 'd')}
                   {hasEntry && !isSelected && <span className="absolute bottom-0.5 size-1 rounded-full bg-primary" />}
@@ -1468,13 +1642,23 @@ function CalendarGrid({
 
 function SaveStatus({ state, onSave }: { state: 'idle' | 'saving' | 'saved'; onSave: () => void }) {
   if (state === 'saving') {
-    return <span className="flex items-center gap-1.5 text-xs text-muted-foreground px-2"><M3CookieLoader size="xs" tone="primary" />Saving</span>;
+    return (
+      <span className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+        <M3CookieLoader size="xs" tone="primary" />
+        Saving
+      </span>
+    );
   }
   if (state === 'saved') {
-    return <span className="flex items-center gap-1.5 text-xs text-primary px-2"><Save className="size-3.5" />Saved</span>;
+    return (
+      <span className="flex items-center gap-1.5 px-2 text-xs text-primary">
+        <Save className="size-3.5" />
+        Saved
+      </span>
+    );
   }
   return (
-    <Button onClick={onSave} size="sm" variant="ghost" className="text-xs gap-1.5">
+    <Button onClick={onSave} size="sm" variant="ghost" className="gap-1.5 text-xs">
       <Save className="size-3.5" /> Save
     </Button>
   );
@@ -1485,8 +1669,17 @@ function SaveStatus({ state, onSave }: { state: 'idle' | 'saving' | 'saved'; onS
 // deliberate prune — safe to delete along with the dailyOpen / DAILY_KEY state.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DailySection({
-  open, onToggle, habitStatuses, loadingHabits, dueTasks, doneTasks, missedTasks, loadingTasks,
-  onToggleHabit, onMarkTaskDone, onJumpDate,
+  open,
+  onToggle,
+  habitStatuses,
+  loadingHabits,
+  dueTasks,
+  doneTasks,
+  missedTasks,
+  loadingTasks,
+  onToggleHabit,
+  onMarkTaskDone,
+  onJumpDate,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -1508,19 +1701,19 @@ function DailySection({
     taskCount > 0 ? `${taskCount} due` : null,
     doneCount > 0 ? `${doneCount} done` : null,
     missedTasks.length > 0 ? `${missedTasks.length} missed` : null,
-  ].filter(Boolean).join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <div className="rounded-lg bg-card overflow-hidden">
+    <div className="overflow-hidden rounded-lg bg-card">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/30"
       >
         <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${open ? '' : '-rotate-90'}`} />
-        <span className="font-mono text-xs label-kicker text-muted-foreground">Daily</span>
-        {summary && (
-          <span className="font-mono text-xs text-muted-foreground/80 ml-auto truncate">{summary}</span>
-        )}
+        <span className="label-kicker font-mono text-xs text-muted-foreground">Daily</span>
+        {summary && <span className="ml-auto truncate font-mono text-xs text-muted-foreground/80">{summary}</span>}
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -1531,67 +1724,70 @@ function DailySection({
             transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
             style={{ overflow: 'hidden' }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border-t border-border/60">
+            <div className="grid grid-cols-1 gap-3 border-t border-border/60 p-3 md:grid-cols-2">
               {/* Habits */}
               <DailyColumn icon={<Target className="size-3.5 text-primary" />} title="Habits">
-                {loadingHabits ? <Skeleton className="h-12 w-full" /> :
-                 habitStatuses.length === 0 ? <Empty>No habits yet</Empty> :
-                 <div className="flex flex-col gap-0.5">
-                   {habitStatuses.map((h) => (
-                     <button
-                       key={h.id}
-                       onClick={() => onToggleHabit(h.id)}
-                       className={`flex items-center gap-2 px-1.5 py-1 rounded transition-colors text-left ${
-                         h.logged ? 'bg-primary/5' : 'hover:bg-muted/40'
-                       }`}
-                     >
-                       <span
-                         className="size-3.5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0"
-                         style={{ borderColor: h.color, backgroundColor: h.logged ? h.color : 'transparent' }}
-                       >
-                         {h.logged && <CheckIcon />}
-                       </span>
-                       <span className={`text-[13px] truncate ${h.logged ? '' : 'text-muted-foreground'}`}>{h.name}</span>
-                     </button>
-                   ))}
-                 </div>}
+                {loadingHabits ? (
+                  <Skeleton className="h-12 w-full" />
+                ) : habitStatuses.length === 0 ? (
+                  <Empty>No habits yet</Empty>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {habitStatuses.map((h) => (
+                      <button
+                        key={h.id}
+                        onClick={() => onToggleHabit(h.id)}
+                        className={`flex items-center gap-2 rounded px-1.5 py-1 text-left transition-colors ${
+                          h.logged ? 'bg-primary/5' : 'hover:bg-muted/40'
+                        }`}
+                      >
+                        <span
+                          className="flex size-3.5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+                          style={{ borderColor: h.color, backgroundColor: h.logged ? h.color : 'transparent' }}
+                        >
+                          {h.logged && <CheckIcon />}
+                        </span>
+                        <span className={`truncate text-[13px] ${h.logged ? '' : 'text-muted-foreground'}`}>
+                          {h.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </DailyColumn>
 
               {/* Tasks */}
               <DailyColumn icon={<CheckSquare className="size-3.5 text-secondary" />} title="Tasks">
-                {loadingTasks ? <Skeleton className="h-12 w-full" /> :
-                 dueTasks.length === 0 && doneTasks.length === 0 && missedTasks.length === 0 ? (
+                {loadingTasks ? (
+                  <Skeleton className="h-12 w-full" />
+                ) : dueTasks.length === 0 && doneTasks.length === 0 && missedTasks.length === 0 ? (
                   <Empty>Nothing scheduled</Empty>
                 ) : (
                   <div className="flex flex-col gap-0.5">
                     {dueTasks.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40">
+                      <div key={t.id} className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-muted/40">
                         <Checkbox onCheckedChange={() => onMarkTaskDone(t.id)} className="size-3.5" />
                         <TaskScopeBadge task={t} />
-                        <span className="text-[13px] flex-1 truncate">{t.title}</span>
+                        <span className="flex-1 truncate text-[13px]">{t.title}</span>
                         <PriorityDot priority={t.priority} />
                       </div>
                     ))}
                     {doneTasks.map((t) => (
                       <div key={t.id} className="flex items-center gap-2 px-1.5 py-1 text-muted-foreground">
-                        <span className="size-3.5 rounded-full bg-primary/40 shrink-0" />
+                        <span className="size-3.5 shrink-0 rounded-full bg-primary/40" />
                         <TaskScopeBadge task={t} />
-                        <span className="text-[13px] flex-1 truncate line-through">{t.title}</span>
+                        <span className="flex-1 truncate text-[13px] line-through">{t.title}</span>
                       </div>
                     ))}
 
                     {missedTasks.length > 0 && (
-                      <div className="mt-1 pt-1 border-t border-border/60">
-                        <div className="flex items-center gap-1.5 px-1.5 mb-0.5 font-mono text-xs label-kicker text-secondary">
+                      <div className="mt-1 border-t border-border/60 pt-1">
+                        <div className="label-kicker mb-0.5 flex items-center gap-1.5 px-1.5 font-mono text-xs text-secondary">
                           <AlertCircle className="size-3" />
                           Missed
                         </div>
                         {missedTasks.map((m) => (
-                          <MissedTaskRow
-                            key={`${m.id}-${m.missed_date}`}
-                            task={m}
-                            onJump={onJumpDate}
-                          />
+                          <MissedTaskRow key={`${m.id}-${m.missed_date}`} task={m} onJump={onJumpDate} />
                         ))}
                       </div>
                     )}
@@ -1608,10 +1804,10 @@ function DailySection({
 
 function DailyColumn({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-border/60 bg-background/60 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-border/40 bg-muted/20">
+    <div className="overflow-hidden rounded-md border border-border/60 bg-background/60">
+      <div className="flex items-center gap-1.5 border-b border-border/40 bg-muted/20 px-2.5 py-1.5">
         {icon}
-        <span className="font-mono text-xs label-kicker text-muted-foreground">{title}</span>
+        <span className="label-kicker font-mono text-xs text-muted-foreground">{title}</span>
       </div>
       <div className="p-1.5">{children}</div>
     </div>
@@ -1619,14 +1815,17 @@ function DailyColumn({ icon, title, children }: { icon: React.ReactNode; title: 
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-muted-foreground py-1.5 px-1.5">{children}</p>;
+  return <p className="px-1.5 py-1.5 text-xs text-muted-foreground">{children}</p>;
 }
 
 // WeekTasksSection — the journal's "This week" list: week-scoped tasks
 // (week_of = this Monday) shown as checkable rows with an inline quick-add.
 // Sits above the per-day breakdown; week tasks have no specific day.
 function WeekTasksSection({
-  tasks, onToggle, onAdd, onOpen,
+  tasks,
+  onToggle,
+  onAdd,
+  onOpen,
 }: {
   tasks: Task[];
   onToggle: (t: Task) => void;
@@ -1645,10 +1844,10 @@ function WeekTasksSection({
   };
 
   return (
-    <section className="rounded-2xl bg-card overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+    <section className="overflow-hidden rounded-2xl bg-card">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2.5">
         <CalendarRange className="size-3.5 text-secondary" />
-        <span className="font-mono text-xs label-kicker text-muted-foreground">This week</span>
+        <span className="label-kicker font-mono text-xs text-muted-foreground">This week</span>
         {open.length > 0 && (
           <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{open.length} open</span>
         )}
@@ -1666,13 +1865,15 @@ function WeekTasksSection({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-                className="group flex items-center gap-3 px-4 py-2.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
+                className="group flex items-center gap-3 border-b border-border/30 px-4 py-2.5 transition-colors last:border-0 hover:bg-muted/30"
               >
                 <button
                   type="button"
                   onClick={() => onToggle(t)}
-                  className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    isDone ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'
+                  className={`flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                    isDone
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-[hsl(var(--outline))] hover:border-primary'
                   }`}
                   aria-pressed={isDone}
                   title={isDone ? 'Mark not done' : 'Mark done'}
@@ -1682,12 +1883,12 @@ function WeekTasksSection({
                 <button
                   type="button"
                   onClick={() => onOpen(t.id)}
-                  className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
+                  className={`flex-1 truncate text-left text-sm transition-colors hover:text-primary ${isDone ? 'text-muted-foreground line-through' : ''}`}
                 >
                   {t.title}
                 </button>
                 {t.priority === 'high' && !isDone && (
-                  <span className="size-2 rounded-full bg-destructive shrink-0" title="High priority" />
+                  <span className="size-2 shrink-0 rounded-full bg-destructive" title="High priority" />
                 )}
               </motion.div>
             );
@@ -1696,21 +1897,26 @@ function WeekTasksSection({
 
         {/* Inline quick-add — creates a week task for this week. */}
         <div className="flex items-center gap-2.5 px-4 py-2.5">
-          <span className="size-[18px] rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+          <span className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] text-muted-foreground/60">
             <Plus className="size-3" strokeWidth={2.5} />
           </span>
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
+            }}
             placeholder={tasks.length === 0 ? 'Add a goal for this week…' : 'Add a week task'}
-            className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+            className="h-7 flex-1 border-0 bg-transparent px-1 py-0 text-sm shadow-none outline-none placeholder:text-muted-foreground/50 focus-visible:border-0 focus-visible:shadow-none"
           />
           {draft.trim() && (
             <button
               type="button"
               onClick={submit}
-              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1 text-xs font-medium text-[hsl(var(--on-secondary-container))] transition-opacity hover:opacity-90"
             >
               Add
             </button>
@@ -1725,7 +1931,13 @@ function WeekTasksSection({
 // month entry + stat tiles, the "This month" goals (tasks.month_of),
 // and a per-week task breakdown that drills into the weekly view.
 function MonthView({
-  year, month, onPickWeek, onShiftMonth, vimStatus, onText, onSaving,
+  year,
+  month,
+  onPickWeek,
+  onShiftMonth,
+  vimStatus,
+  onText,
+  onSaving,
 }: {
   vimStatus: HTMLElement | null;
   /** The text as it changes (status line counts). */
@@ -1740,11 +1952,16 @@ function MonthView({
   const vimKeys = useVimKeys();
   const onTextRef = useRef(onText);
   const onSavingRef = useRef(onSaving);
-  useLayoutEffect(() => { onTextRef.current = onText; onSavingRef.current = onSaving; });
+  useLayoutEffect(() => {
+    onTextRef.current = onText;
+    onSavingRef.current = onSaving;
+  });
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
-  useEffect(() => { onSavingRef.current?.(saving); }, [saving]);
+  useEffect(() => {
+    onSavingRef.current?.(saving);
+  }, [saving]);
   const [summary, setSummary] = useState<import('@/api').MonthlySummary | null>(null);
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1756,9 +1973,14 @@ function MonthView({
   const qc = useQueryClient();
   const [monthTasks, setMonthTasks] = useState<Task[]>([]);
   const loadMonthTasks = useCallback(() => {
-    tasksApi.list({ month_of: monthKey }).then(setMonthTasks).catch(() => setMonthTasks([]));
+    tasksApi
+      .list({ month_of: monthKey })
+      .then(setMonthTasks)
+      .catch(() => setMonthTasks([]));
   }, [monthKey]);
-  useEffect(() => { loadMonthTasks(); }, [loadMonthTasks]);
+  useEffect(() => {
+    loadMonthTasks();
+  }, [loadMonthTasks]);
 
   const toggleMonthTask = async (t: Task) => {
     const next = t.status === 'done' ? 'todo' : 'done';
@@ -1798,7 +2020,9 @@ function MonthView({
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [year, month]);
 
   useEffect(() => {
@@ -1816,11 +2040,16 @@ function MonthView({
         setSaving('idle');
       }
     }, 1000);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [content, loading, year, month]);
 
-  const handleContent = (v: string) => { dirtyRef.current = true; setContent(v); onTextRef.current?.(v); };
-
+  const handleContent = (v: string) => {
+    dirtyRef.current = true;
+    setContent(v);
+    onTextRef.current?.(v);
+  };
 
   const totalDone = summary?.total_done ?? 0;
   const totalDue = summary?.total_due ?? 0;
@@ -1829,25 +2058,23 @@ function MonthView({
   const daysInMonth = summary?.days_in_month ?? 30;
 
   return (
-    <div className="w-full max-w-[88rem] mx-auto px-4 md:px-8 lg:px-10 pt-10 pb-32 flex flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-[88rem] flex-col gap-8 px-4 pt-10 pb-32 md:px-8 lg:px-10">
       {/* Title + month shift controls. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mono text-xs label-kicker text-muted-foreground mb-1.5">
-            monthly entry
-          </div>
-          <h1 className="serif text-5xl md:text-6xl font-normal tracking-[-0.02em] leading-[1.02]">
+          <div className="mono label-kicker mb-1.5 text-xs text-muted-foreground">monthly entry</div>
+          <h1 className="serif text-5xl leading-[1.02] font-normal tracking-[-0.02em] md:text-6xl">
             {format(monthStart, 'MMMM')}
           </h1>
-          <div className="serif italic text-lg md:text-xl text-muted-foreground mt-1.5">
+          <div className="serif mt-1.5 text-lg text-muted-foreground italic md:text-xl">
             {format(monthStart, 'yyyy')}
           </div>
         </div>
-        <div className="flex items-center gap-1 mt-1 shrink-0">
+        <div className="mt-1 flex shrink-0 items-center gap-1">
           <Button variant="ghost" size="icon-sm" onClick={() => onShiftMonth(-1)} title="Previous month">
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="mono text-xs text-muted-foreground tabular-nums px-1 min-w-[52px] text-center">
+          <span className="mono min-w-[52px] px-1 text-center text-xs text-muted-foreground tabular-nums">
             {saving === 'saving' ? 'Saving' : saving === 'saved' ? 'Saved' : ''}
           </span>
           <Button variant="ghost" size="icon-sm" onClick={() => onShiftMonth(1)} title="Next month">
@@ -1857,11 +2084,21 @@ function MonthView({
       </div>
 
       {/* At-a-glance stats — same tiles as the week view, month-scoped. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Tasks done" value={`${totalDone}/${totalDue}`} tone="primary" />
         <StatTile label="Missed" value={String(totalMissed)} tone={totalMissed > 0 ? 'destructive' : 'muted'} />
         <StatTile label="Entries" value={`${entriesWritten}/${daysInMonth}`} tone="tertiary" />
-        <StatTile label="Expenses" value={summary ? <Money value={summary.expense_total} currency={summary.expense_currency || 'INR'} privacy={false} /> : '–'} tone="secondary" />
+        <StatTile
+          label="Expenses"
+          value={
+            summary ? (
+              <Money value={summary.expense_total} currency={summary.expense_currency || 'INR'} privacy={false} />
+            ) : (
+              '–'
+            )
+          }
+          tone="secondary"
+        />
       </div>
 
       {/* Editor — full-width, matches the daily/weekly layout. */}
@@ -1890,10 +2127,10 @@ function MonthView({
       />
 
       {/* Per-week breakdown — drills into the weekly view on click. */}
-      <section className="rounded-2xl border border-border bg-card/40 overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+      <section className="overflow-hidden rounded-2xl border border-border bg-card/40">
+        <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2.5">
           <CheckSquare className="size-3.5 text-secondary" />
-          <span className="font-mono text-xs label-kicker text-muted-foreground">Tasks by week</span>
+          <span className="label-kicker font-mono text-xs text-muted-foreground">Tasks by week</span>
         </div>
         <div className="divide-y divide-border/40">
           {(summary?.weeks ?? []).map((wk) => {
@@ -1903,27 +2140,32 @@ function MonthView({
               <button
                 key={`${wk.iso_year}-${wk.iso_week}`}
                 onClick={() => onPickWeek(wk.iso_year, wk.iso_week)}
-                className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/30"
               >
-                <div className="flex flex-col w-16 shrink-0 text-muted-foreground">
-                  <span className="mono text-xs label-kicker">Week</span>
+                <div className="flex w-16 shrink-0 flex-col text-muted-foreground">
+                  <span className="mono label-kicker text-xs">Week</span>
                   <span className="serif text-lg leading-none tabular-nums">{wk.iso_week}</span>
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="text-sm text-foreground/80">
                     {format(parseISO(wk.start_date), 'MMM d')} – {format(parseISO(wk.end_date), 'MMM d')}
                   </div>
-                  <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${ratio * 100}%` }} />
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width]"
+                      style={{ width: `${ratio * 100}%` }}
+                    />
                   </div>
                 </div>
-                <div className="flex flex-col items-end shrink-0 w-20">
-                  <span className="mono text-xs tabular-nums text-muted-foreground">{wk.tasks_done}/{total} done</span>
+                <div className="flex w-20 shrink-0 flex-col items-end">
+                  <span className="mono text-xs text-muted-foreground tabular-nums">
+                    {wk.tasks_done}/{total} done
+                  </span>
                   {wk.tasks_missed > 0 && (
-                    <span className="mono text-xs tabular-nums text-destructive">{wk.tasks_missed} missed</span>
+                    <span className="mono text-xs text-destructive tabular-nums">{wk.tasks_missed} missed</span>
                   )}
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground/60 shrink-0" />
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
               </button>
             );
           })}
@@ -1937,7 +2179,10 @@ function MonthView({
 // (tasks.month_of) shown as checkable rows with a progress chip (done/total
 // sessions) and an inline quick-add. Parallels WeekTasksSection.
 function MonthTasksSection({
-  tasks, onToggle, onAdd, onOpen,
+  tasks,
+  onToggle,
+  onAdd,
+  onOpen,
 }: {
   tasks: Task[];
   onToggle: (t: Task) => void;
@@ -1956,10 +2201,10 @@ function MonthTasksSection({
   };
 
   return (
-    <section className="rounded-2xl bg-card overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+    <section className="overflow-hidden rounded-2xl bg-card">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2.5">
         <Target className="size-3.5 text-secondary" />
-        <span className="font-mono text-xs label-kicker text-muted-foreground">This month</span>
+        <span className="label-kicker font-mono text-xs text-muted-foreground">This month</span>
         {open.length > 0 && (
           <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{open.length} open</span>
         )}
@@ -1977,13 +2222,15 @@ function MonthTasksSection({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-                className="group flex items-center gap-3 px-4 py-2.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
+                className="group flex items-center gap-3 border-b border-border/30 px-4 py-2.5 transition-colors last:border-0 hover:bg-muted/30"
               >
                 <button
                   type="button"
                   onClick={() => onToggle(t)}
-                  className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    isDone ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'
+                  className={`flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                    isDone
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-[hsl(var(--outline))] hover:border-primary'
                   }`}
                   aria-pressed={isDone}
                   title={isDone ? 'Mark not done' : 'Mark done'}
@@ -1993,19 +2240,19 @@ function MonthTasksSection({
                 <button
                   type="button"
                   onClick={() => onOpen(t.id)}
-                  className={`flex-1 text-left text-sm truncate transition-colors hover:text-primary ${isDone ? 'line-through text-muted-foreground' : ''}`}
+                  className={`flex-1 truncate text-left text-sm transition-colors hover:text-primary ${isDone ? 'text-muted-foreground line-through' : ''}`}
                 >
                   {t.title}
                 </button>
                 {/* Session progress — month goals are broken into dated child
                     sessions; show done/total so the rollup is visible here. */}
                 {(t.subtask_count ?? 0) > 0 && (
-                  <span className="mono text-xs tabular-nums text-muted-foreground shrink-0" title="Sessions done">
+                  <span className="mono shrink-0 text-xs text-muted-foreground tabular-nums" title="Sessions done">
                     {t.subtasks_done ?? 0}/{t.subtask_count}
                   </span>
                 )}
                 {t.priority === 'high' && !isDone && (
-                  <span className="size-2 rounded-full bg-destructive shrink-0" title="High priority" />
+                  <span className="size-2 shrink-0 rounded-full bg-destructive" title="High priority" />
                 )}
               </motion.div>
             );
@@ -2014,21 +2261,26 @@ function MonthTasksSection({
 
         {/* Inline quick-add — creates a month goal for this month. */}
         <div className="flex items-center gap-2.5 px-4 py-2.5">
-          <span className="size-[18px] rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+          <span className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] text-muted-foreground/60">
             <Plus className="size-3" strokeWidth={2.5} />
           </span>
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
+            }}
             placeholder={tasks.length === 0 ? 'Add a goal for this month…' : 'Add a month goal'}
-            className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+            className="h-7 flex-1 border-0 bg-transparent px-1 py-0 text-sm shadow-none outline-none placeholder:text-muted-foreground/50 focus-visible:border-0 focus-visible:shadow-none"
           />
           {draft.trim() && (
             <button
               type="button"
               onClick={submit}
-              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1 text-xs font-medium text-[hsl(var(--on-secondary-container))] transition-opacity hover:opacity-90"
             >
               Add
             </button>
@@ -2041,27 +2293,30 @@ function MonthTasksSection({
 
 function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: string) => void }) {
   const isDone = task.status === 'done';
-  const wasRescheduled = task.source === 'rescheduled' && task.current_due_date && task.current_due_date !== task.missed_date;
+  const wasRescheduled =
+    task.source === 'rescheduled' && task.current_due_date && task.current_due_date !== task.missed_date;
   const targetDate = task.current_due_date || '';
 
   return (
-    <div className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 group">
-      <span className={`size-3.5 rounded-full border shrink-0 ${isDone ? 'bg-primary/40 border-primary/40' : 'border-amber-500/60 bg-amber-500/10'}`} />
+    <div className="group flex items-center gap-2 rounded px-1.5 py-1 hover:bg-muted/40">
+      <span
+        className={`size-3.5 shrink-0 rounded-full border ${isDone ? 'border-primary/40 bg-primary/40' : 'border-amber-500/60 bg-amber-500/10'}`}
+      />
       <TaskScopeBadge scope="day" />
-      <div className="flex-1 min-w-0">
-        <div className={`text-[13px] truncate ${isDone ? 'text-muted-foreground line-through' : 'text-foreground/80'}`}>
+      <div className="min-w-0 flex-1">
+        <div className={`truncate text-[13px] ${isDone ? 'text-muted-foreground line-through' : 'text-foreground/80'}`}>
           {task.title}
         </div>
         {wasRescheduled && targetDate ? (
           <button
             onClick={() => onJump(targetDate)}
-            className="font-mono text-xs label-kicker text-muted-foreground hover:text-primary inline-flex items-center gap-1 mt-0.5 transition-colors"
+            className="label-kicker mt-0.5 inline-flex items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-primary"
           >
             <ArrowRight className="size-2.5" />
             moved to {format(parseISO(targetDate), 'MMM d')}
           </button>
         ) : (
-          <span className="font-mono text-xs label-kicker text-muted-foreground">
+          <span className="label-kicker font-mono text-xs text-muted-foreground">
             {isDone ? 'done later' : 'still pending'}
           </span>
         )}
@@ -2077,11 +2332,22 @@ function PriorityDot({ priority }: { priority: string }) {
     medium: 'bg-amber-500',
     low: 'bg-muted-foreground/40',
   };
-  return <span className={`size-2 rounded-full shrink-0 ${colors[priority] || 'bg-muted'}`} />;
+  return <span className={`size-2 shrink-0 rounded-full ${colors[priority] || 'bg-muted'}`} />;
 }
 
 function CheckIcon() {
-  return <svg className="size-2 text-white" viewBox="0 0 12 12"><path d="M10 3L4.5 8.5 2 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  return (
+    <svg className="size-2 text-white" viewBox="0 0 12 12">
+      <path
+        d="M10 3L4.5 8.5 2 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 // Side-panel section title. The whole title is the jump to its page; the
@@ -2092,7 +2358,7 @@ function PanelHeading({ title, onOpen }: { title: string; onOpen?: () => void })
     <button
       type="button"
       onClick={onOpen}
-      className="group mb-2 flex w-full items-center justify-between text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+      className="group mb-2 flex w-full items-center justify-between rounded text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {title}
       <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />

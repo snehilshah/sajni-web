@@ -22,7 +22,14 @@ const WARN_MS = 3000;
  * `editing` false means create: the dialog has its own Add, `save` is unused.
  * `dirty` overrides what counts as unsaved (fields that fill in defaults).
  */
-export function useEditorDraft<T>({ open, editing, value, invalid = null, save, dirty }: {
+export function useEditorDraft<T>({
+  open,
+  editing,
+  value,
+  invalid = null,
+  save,
+  dirty,
+}: {
   open: boolean;
   editing: boolean;
   value: T;
@@ -54,25 +61,39 @@ export function useEditorDraft<T>({ open, editing, value, invalid = null, save, 
   // Closing the tab or reloading with unsaved changes asks the browser's question.
   useEffect(() => {
     if (!changed) return;
-    const onUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    const onUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
     window.addEventListener('beforeunload', onUnload);
     return () => window.removeEventListener('beforeunload', onUnload);
   }, [changed]);
 
   // Close paths are handed to dialogs as callbacks; they read the latest state.
   const latest = useRef({ changed, warning });
-  useLayoutEffect(() => { latest.current = { changed, warning }; });
+  useLayoutEffect(() => {
+    latest.current = { changed, warning };
+  });
 
   const close = useCallback((then: () => void) => {
     const { changed: c, warning: w } = latest.current;
-    if (!c || w) { setArmed(false); then(); return; }
+    if (!c || w) {
+      setArmed(false);
+      then();
+      return;
+    }
     setArmed(true);
   }, []);
 
   const saveDraft = async (then?: () => void) => {
     if (!editing || saving) return;
-    if (!changed) { then?.(); return; }
-    if (invalid) { toast.error(`Can't save: ${invalid}`); return; }
+    if (!changed) {
+      then?.();
+      return;
+    }
+    if (invalid) {
+      toast.error(`Can't save: ${invalid}`);
+      return;
+    }
     setSaving(true);
     try {
       await save?.(value);
@@ -92,7 +113,10 @@ export function useEditorDraft<T>({ open, editing, value, invalid = null, save, 
   };
 
   /** The item is going (deleted): nothing left to keep. */
-  const cancel = useCallback(() => { setBaseline(null); setArmed(false); }, []);
+  const cancel = useCallback(() => {
+    setBaseline(null);
+    setArmed(false);
+  }, []);
 
   return { changed, warning, saving, load, close, save: saveDraft, commit, cancel };
 }

@@ -51,7 +51,10 @@ export function useDeleteReminder() {
 }
 
 export function useDeleteReminderHistory() {
-  return useReminderMutation((occurrenceId: number) => remindersApi.deleteRecent(occurrenceId), 'Could not delete reminder');
+  return useReminderMutation(
+    (occurrenceId: number) => remindersApi.deleteRecent(occurrenceId),
+    'Could not delete reminder',
+  );
 }
 
 export function useSnoozeReminder() {

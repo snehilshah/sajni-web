@@ -26,7 +26,12 @@ function sinePath(width: number): string {
 }
 
 export function WavyProgress({
-  value, height = 12, active = false, className, label, marker = true,
+  value,
+  height = 12,
+  active = false,
+  className,
+  label,
+  marker = true,
 }: {
   /** 0–100 */
   value: number;
@@ -64,68 +69,78 @@ export function WavyProgress({
   return (
     // Fixed wrapper height so the first (pre-measure) frame doesn't shift layout.
     <div ref={wrapRef} className={cn('relative min-w-0', className)} style={{ height }}>
-    {w > 0 && (
-    <svg
-      width="100%"
-      height={height}
-      viewBox={`0 0 ${w} ${VIEW_H}`}
-      preserveAspectRatio="none"
-      className="block overflow-visible"
-      role="progressbar"
-      aria-valuenow={Math.round(pct)}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-label={label}
-    >
-      <defs>
-        <clipPath id={clipId}>
-          <rect x="0" y="-2" width={Math.max(fill, 0)} height={VIEW_H + 4} rx={MID} />
-        </clipPath>
-      </defs>
+      {w > 0 && (
+        <svg
+          width="100%"
+          height={height}
+          viewBox={`0 0 ${w} ${VIEW_H}`}
+          preserveAspectRatio="none"
+          className="block overflow-visible"
+          role="progressbar"
+          aria-valuenow={Math.round(pct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={label}
+        >
+          <defs>
+            <clipPath id={clipId}>
+              <rect x="0" y="-2" width={Math.max(fill, 0)} height={VIEW_H + 4} rx={MID} />
+            </clipPath>
+          </defs>
 
-      {/* Filled track — wavy `--primary` in flight, then a flat green
+          {/* Filled track — wavy `--primary` in flight, then a flat green
           `--color-complete` line once complete so 100% reads as done. */}
-      {done ? (
-        <line
-          x1="1.5" y1={MID} x2={w - 1.5} y2={MID}
-          stroke="hsl(var(--color-complete))" strokeWidth="3" strokeLinecap="round"
-        />
-      ) : (
-        <>
-          {fill > 1 && (
-            <g clipPath={`url(#${clipId})`}>
-              <path
-                d={waveD}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="3"
-                strokeLinecap="round"
-                className={active ? 'sajni-wave-drift' : undefined}
-              />
-            </g>
-          )}
-          {/* Remaining track + M3 stop indicator. */}
-          {fill + gap < w - 4 && (
+          {done ? (
             <line
-              x1={Math.max(fill + gap, 2)} y1={MID} x2={w - 6} y2={MID}
-              stroke="hsl(var(--outline-variant))" strokeWidth="3" strokeLinecap="round"
+              x1="1.5"
+              y1={MID}
+              x2={w - 1.5}
+              y2={MID}
+              stroke="hsl(var(--color-complete))"
+              strokeWidth="3"
+              strokeLinecap="round"
             />
+          ) : (
+            <>
+              {fill > 1 && (
+                <g clipPath={`url(#${clipId})`}>
+                  <path
+                    d={waveD}
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    className={active ? 'sajni-wave-drift' : undefined}
+                  />
+                </g>
+              )}
+              {/* Remaining track + M3 stop indicator. */}
+              {fill + gap < w - 4 && (
+                <line
+                  x1={Math.max(fill + gap, 2)}
+                  y1={MID}
+                  x2={w - 6}
+                  y2={MID}
+                  stroke="hsl(var(--outline-variant))"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              )}
+              <circle cx={w - 2} cy={MID} r="2" fill="hsl(var(--primary))" />
+            </>
           )}
-          <circle cx={w - 2} cy={MID} r="2" fill="hsl(var(--primary))" />
-        </>
+        </svg>
       )}
-    </svg>
-    )}
-    {/* Head tick — a slider-style handle at the live position. Rendered
+      {/* Head tick — a slider-style handle at the live position. Rendered
         in CSS pixels (not viewBox units) so it never stretches with the
         bar's width. */}
-    {marker && !done && pct > 1 && (
-      <span
-        aria-hidden="true"
-        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[4px] rounded-full bg-[hsl(var(--primary))] shadow-[0_0_0_2.5px_hsl(var(--surface-container-low))]"
-        style={{ left: `${pct}%`, height: height + 6 }}
-      />
-    )}
+      {marker && !done && pct > 1 && (
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 w-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_0_2.5px_hsl(var(--surface-container-low))]"
+          style={{ left: `${pct}%`, height: height + 6 }}
+        />
+      )}
     </div>
   );
 }

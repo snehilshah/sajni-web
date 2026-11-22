@@ -22,8 +22,9 @@ export function submitOnEnter(e: KeyboardEvent<HTMLElement>) {
     if (!(target instanceof HTMLInputElement) || !SINGLE_LINE.has(target.type)) return;
     if (target.getAttribute('aria-expanded') === 'true') return;
   }
-  const button = scope.querySelector<HTMLButtonElement>('[data-dialog-submit]')
-    ?? [...scope.querySelectorAll<HTMLButtonElement>('button[data-variant="default"]')].at(-1);
+  const button =
+    scope.querySelector<HTMLButtonElement>('[data-dialog-submit]') ??
+    [...scope.querySelectorAll<HTMLButtonElement>('button[data-variant="default"]')].at(-1);
   if (!button || button.disabled) return;
   e.preventDefault();
   button.click();

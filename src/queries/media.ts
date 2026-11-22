@@ -22,8 +22,7 @@ export function useCreateMedia() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: MediaPatch) => mediaApi.create(data),
-    onError: (err) =>
-      toast.error(failureText(err, 'Could not add')),
+    onError: (err) => toast.error(failureText(err, 'Could not add')),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.media.all });
       qc.invalidateQueries({ queryKey: qk.tags.all });

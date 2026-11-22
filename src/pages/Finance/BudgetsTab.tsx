@@ -85,7 +85,12 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
   };
 
   const blank: Prefill = {
-    name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [],
+    name: '',
+    start_date: '',
+    end_date: '',
+    total_amount: 0,
+    slate_ids: [],
+    items: [],
   };
 
   return (
@@ -94,10 +99,10 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
         <h2 className="font-serif text-lg font-semibold">Budgets</h2>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setManageCats(true)}>
-            <Tags className="size-4 mr-1" /> Categories
+            <Tags className="mr-1 size-4" /> Categories
           </Button>
           <Button size="sm" onClick={() => setCreating(blank)}>
-            <Plus className="size-4 mr-1" /> New budget
+            <Plus className="mr-1 size-4" /> New budget
           </Button>
         </div>
       </div>
@@ -111,11 +116,15 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
           {current.length > 0 && (
             <section className="flex flex-col gap-2">
               <h3 className="text-sm font-medium text-muted-foreground">Running</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {current.map((b) => (
                   <BudgetCard
-                    key={b.id} budget={b} categories={categories} slates={slates}
-                    onOpen={() => setEditing(b)} onDuplicate={() => duplicate(b)}
+                    key={b.id}
+                    budget={b}
+                    categories={categories}
+                    slates={slates}
+                    onOpen={() => setEditing(b)}
+                    onDuplicate={() => duplicate(b)}
                   />
                 ))}
               </div>
@@ -125,11 +134,15 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
           {past.length > 0 && (
             <section className="flex flex-col gap-2">
               <h3 className="text-sm font-medium text-muted-foreground">Closed</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {past.map((b) => (
                   <BudgetCard
-                    key={b.id} budget={b} categories={categories} slates={slates}
-                    onOpen={() => setEditing(b)} onDuplicate={() => duplicate(b)}
+                    key={b.id}
+                    budget={b}
+                    categories={categories}
+                    slates={slates}
+                    onOpen={() => setEditing(b)}
+                    onDuplicate={() => duplicate(b)}
                   />
                 ))}
               </div>
@@ -144,8 +157,15 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
         prefill={creating}
         categories={expenseCats}
         slates={slates}
-        onClose={() => { setCreating(null); setEditing(null); }}
-        onSaved={() => { setCreating(null); setEditing(null); reload(); }}
+        onClose={() => {
+          setCreating(null);
+          setEditing(null);
+        }}
+        onSaved={() => {
+          setCreating(null);
+          setEditing(null);
+          reload();
+        }}
       />
       <CategoryManager
         open={manageCats}
@@ -157,7 +177,13 @@ export default function BudgetsTab({ categories, slates, enabled, reloadCategori
   );
 }
 
-function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
+function BudgetCard({
+  budget: b,
+  categories,
+  slates,
+  onOpen,
+  onDuplicate,
+}: {
   budget: FinBudget;
   categories: FinCategory[];
   slates: FinSlate[];
@@ -168,9 +194,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
   const pct = b.total_amount > 0 ? Math.min((b.spent / b.total_amount) * 100, 100) : 0;
   const overBudget = b.spent > b.total_amount;
   // Progress tone escalates on tokens only: calm → attention (>80%) → over.
-  const barColor = overBudget
-    ? 'hsl(var(--destructive))'
-    : pct > 80 ? 'hsl(var(--tertiary))' : 'hsl(var(--primary))';
+  const barColor = overBudget ? 'hsl(var(--destructive))' : pct > 80 ? 'hsl(var(--tertiary))' : 'hsl(var(--primary))';
   // Empty slate_ids = Plain only, which is the default lens.
   const filterSlates = (b.slate_ids ?? [])
     .map((id) => slates.find((p) => p.id === id))
@@ -185,26 +209,31 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
       onClick={onOpen}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onOpen();
+      }}
       className={cardClass({ interactive: true }, 'group p-4')}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="font-medium truncate">{b.name}</div>
+          <div className="truncate font-medium">{b.name}</div>
           {b.start_date && b.end_date ? (
             <div className="text-xs text-muted-foreground">
               {format(new Date(b.start_date), 'd MMM') + ' – ' + format(new Date(b.end_date), 'd MMM yyyy')}
             </div>
           ) : null}
         </div>
-        <div className="-mr-2 -mt-2 flex shrink-0 items-center">
+        <div className="-mt-2 -mr-2 flex shrink-0 items-center">
           {/* Budgets never reset, so "next month" is an explicit copy. */}
           <button
             type="button"
             aria-label={`Duplicate ${b.name} for the next period`}
             title="Duplicate for next period"
-            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-            className="grid size-11 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+            className="grid size-11 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
           >
             <Copy className="size-4" />
           </button>
@@ -214,7 +243,10 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
       {filterSlates.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {filterSlates.map((p) => (
-            <DateBadge key={p.id} icon={<span aria-hidden className="!size-1.5 rounded-full" style={{ backgroundColor: p.color }} />}>
+            <DateBadge
+              key={p.id}
+              icon={<span aria-hidden className="!size-1.5 rounded-full" style={{ backgroundColor: p.color }} />}
+            >
               {p.name}
             </DateBadge>
           ))}
@@ -222,22 +254,23 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
       )}
 
       <div className="mt-3 flex items-baseline justify-between gap-2">
-        <div className={`whitespace-nowrap font-serif text-2xl font-semibold tabular-nums ${overBudget ? 'text-destructive' : ''}`}>
+        <div
+          className={`font-serif text-2xl font-semibold whitespace-nowrap tabular-nums ${overBudget ? 'text-destructive' : ''}`}
+        >
           <Money value={b.spent} />
         </div>
         {overBudget ? (
-          <DateBadge tone="alert">Over by <Money value={subMoney(b.spent, b.total_amount)} /></DateBadge>
+          <DateBadge tone="alert">
+            Over by <Money value={subMoney(b.spent, b.total_amount)} />
+          </DateBadge>
         ) : (
-          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+          <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
             {formatPercent(pct)} of <Money value={b.total_amount} />
           </span>
         )}
       </div>
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-        <div
-          className="h-full rounded-full"
-          style={{ width: pct + '%', backgroundColor: barColor }}
-        />
+        <div className="h-full rounded-full" style={{ width: pct + '%', backgroundColor: barColor }} />
       </div>
 
       {b.items.length > 0 && (
@@ -250,7 +283,9 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
               <div key={it.id}>
                 <div className="flex items-center justify-between gap-2">
                   <CategoryPill name={cat?.name || 'Uncategorized'} color={cat?.color} />
-                  <span className={`whitespace-nowrap text-xs tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <span
+                    className={`text-xs whitespace-nowrap tabular-nums ${iover ? 'text-destructive' : 'text-muted-foreground'}`}
+                  >
                     <Money value={it.spent} /> / <Money value={it.amount} />
                   </span>
                 </div>
@@ -259,7 +294,7 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
                     className="h-full rounded-full"
                     style={{
                       width: ipct + '%',
-                      backgroundColor: iover ? 'hsl(var(--destructive))' : (cat?.color || 'hsl(var(--primary))'),
+                      backgroundColor: iover ? 'hsl(var(--destructive))' : cat?.color || 'hsl(var(--primary))',
                     }}
                   />
                 </div>
@@ -275,25 +310,32 @@ function BudgetCard({ budget: b, categories, slates, onOpen, onDuplicate }: {
 /** Window presets. Pure convenience — they only fill the two dates; there is no
  *  stored period and nothing re-derives them later. */
 const WINDOWS: { label: string; range: () => [string, string] }[] = [
-  { label: 'This week', range: () => [
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
-    format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
-  ] },
-  { label: 'This month', range: () => [
-    format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-    format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-  ] },
-  { label: 'This year', range: () => [
-    format(startOfYear(new Date()), 'yyyy-MM-dd'),
-    format(endOfYear(new Date()), 'yyyy-MM-dd'),
-  ] },
+  {
+    label: 'This week',
+    range: () => [
+      format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+      format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+    ],
+  },
+  {
+    label: 'This month',
+    range: () => [format(startOfMonth(new Date()), 'yyyy-MM-dd'), format(endOfMonth(new Date()), 'yyyy-MM-dd')],
+  },
+  {
+    label: 'This year',
+    range: () => [format(startOfYear(new Date()), 'yyyy-MM-dd'), format(endOfYear(new Date()), 'yyyy-MM-dd')],
+  },
 ];
 
 // The budget editor's fields as one value: the draft compares it to tell
 // what's unsaved. Slates are a sorted id list (a Set doesn't serialise).
 interface BudgetValues {
-  name: string; overall: string; startDate: string; endDate: string;
-  slateIds: number[]; items: { category_id: number | null; amount: string }[];
+  name: string;
+  overall: string;
+  startDate: string;
+  endDate: string;
+  slateIds: number[];
+  items: { category_id: number | null; amount: string }[];
 }
 
 function budgetValues(src: Prefill): BudgetValues {
@@ -328,7 +370,15 @@ function budgetDraft(v: BudgetValues): BudgetDraft {
   };
 }
 
-function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSaved }: {
+function BudgetDialog({
+  open,
+  budget,
+  prefill,
+  categories,
+  slates,
+  onClose,
+  onSaved,
+}: {
   open: boolean;
   budget: FinBudget | null;
   /** Values for a new budget — blank, or a duplicate of an existing one. */
@@ -347,11 +397,20 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const [saving, setSaving] = useState(false);
 
   const values: BudgetValues = {
-    name, overall, startDate, endDate, slateIds: [...slateIds].sort((a, b) => a - b), items,
+    name,
+    overall,
+    startDate,
+    endDate,
+    slateIds: [...slateIds].sort((a, b) => a - b),
+    items,
   };
   const apply = (v: BudgetValues) => {
-    setName(v.name); setOverall(v.overall); setStartDate(v.startDate); setEndDate(v.endDate);
-    setSlateIds(new Set(v.slateIds)); setItems(v.items);
+    setName(v.name);
+    setOverall(v.overall);
+    setStartDate(v.startDate);
+    setEndDate(v.endDate);
+    setSlateIds(new Set(v.slateIds));
+    setItems(v.items);
   };
   const total = budgetTotal(values);
   const invalid = !name.trim() ? 'a budget needs a name.' : total > 0 ? null : 'set an amount.';
@@ -371,16 +430,18 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 
   useEffect(() => {
     if (!open) return;
-    const v = budgetValues(budget
-      ? {
-          name: budget.name,
-          start_date: budget.start_date,
-          end_date: budget.end_date,
-          total_amount: budget.total_amount,
-          slate_ids: budget.slate_ids ?? [],
-          items: budget.items.map((i) => ({ category_id: i.category_id, amount: String(i.amount) })),
-        }
-      : prefill ?? { name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [] });
+    const v = budgetValues(
+      budget
+        ? {
+            name: budget.name,
+            start_date: budget.start_date,
+            end_date: budget.end_date,
+            total_amount: budget.total_amount,
+            slate_ids: budget.slate_ids ?? [],
+            items: budget.items.map((i) => ({ category_id: i.category_id, amount: String(i.amount) })),
+          }
+        : (prefill ?? { name: '', start_date: '', end_date: '', total_amount: 0, slate_ids: [], items: [] }),
+    );
     apply(v);
     loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
@@ -397,14 +458,18 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
   const toggleSlate = (id: number) =>
     setSlateIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
 
   const canSave = !invalid;
 
   const save = async () => {
-    if (budget) { await editor.save(onSaved); return; }
+    if (budget) {
+      await editor.save(onSaved);
+      return;
+    }
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -427,7 +492,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{budget ? 'Edit budget' : 'New budget'}</DialogTitle>
         </DialogHeader>
@@ -452,14 +517,17 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
               dates you give it, forever. Next month gets its own copy. */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Label className="font-mono text-xs label-kicker text-muted-foreground">
-                Dates <span className="normal-case tracking-normal">(optional)</span>
+              <Label className="label-kicker font-mono text-xs text-muted-foreground">
+                Dates <span className="tracking-normal normal-case">(optional)</span>
               </Label>
               {(startDate || endDate) && (
                 <button
                   type="button"
-                  onClick={() => { setStartDate(''); setEndDate(''); }}
-                  className="rounded-md px-1.5 py-0.5 font-mono text-xs text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="rounded-md px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
                 >
                   Clear
                 </button>
@@ -474,7 +542,10 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                     key={w.label}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => { setStartDate(s); setEndDate(e); }}
+                    onClick={() => {
+                      setStartDate(s);
+                      setEndDate(e);
+                    }}
                     style={hueVar()}
                     className={cn(huePillBase, 'justify-center px-3', on ? huePillOn : huePillOff)}
                   >
@@ -500,45 +571,54 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 
           {slates.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <Label className="font-mono text-xs label-kicker text-muted-foreground">
+              <Label className="label-kicker font-mono text-xs text-muted-foreground">
                 Count spending from these slates
               </Label>
               <div className="flex flex-wrap gap-2">
-                {slates.filter((p) => !p.archived).map((p) => {
-                  const on = slateIds.has(p.id);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleSlate(p.id)}
-                      style={hueVar(p.color)}
-                      className={cn(huePillBase, 'pl-3 pr-3.5', on ? huePillOn : huePillOff)}
-                    >
-                      {on
-                        ? <Check className={huePillGlyph} />
-                        : <span aria-hidden className="size-2 rounded-full" style={{ backgroundColor: p.color }} />}
-                      {p.name}
-                    </button>
-                  );
-                })}
+                {slates
+                  .filter((p) => !p.archived)
+                  .map((p) => {
+                    const on = slateIds.has(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleSlate(p.id)}
+                        style={hueVar(p.color)}
+                        className={cn(huePillBase, 'pr-3.5 pl-3', on ? huePillOn : huePillOff)}
+                      >
+                        {on ? (
+                          <Check className={huePillGlyph} />
+                        ) : (
+                          <span aria-hidden className="size-2 rounded-full" style={{ backgroundColor: p.color }} />
+                        )}
+                        {p.name}
+                      </button>
+                    );
+                  })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Leave this empty and the budget counts Plain only, your normal
-                life, with outliers kept out. Pick a slate to budget the outlier
-                instead: select Goa trip and nothing else, and this becomes the
-                trip's budget.
+                Leave this empty and the budget counts Plain only, your normal life, with outliers kept out. Pick a
+                slate to budget the outlier instead: select Goa trip and nothing else, and this becomes the trip's
+                budget.
               </p>
             </div>
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <Label className="text-sm font-medium text-muted-foreground">
-                Category caps{capsTotal > 0 && <> · <Money value={capsTotal} /></>}
+                Category caps
+                {capsTotal > 0 && (
+                  <>
+                    {' '}
+                    · <Money value={capsTotal} />
+                  </>
+                )}
               </Label>
               <Button variant="outline" size="sm" onClick={addItem}>
-                <Plus className="size-3.5 mr-1" /> Add cap
+                <Plus className="mr-1 size-3.5" /> Add cap
               </Button>
             </div>
             {items.length === 0 ? (
@@ -550,7 +630,10 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                     <Select
                       value={it.category_id == null ? 'none' : String(it.category_id)}
                       onValueChange={(v) => updateItem(idx, { category_id: !v || v === 'none' ? null : parseInt(v) })}
-                      items={[{ value: 'none', label: 'Choose category' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
+                      items={[
+                        { value: 'none', label: 'Choose category' },
+                        ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+                      ]}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose category" />
@@ -558,7 +641,9 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                       <SelectContent>
                         <SelectItem value="none">Choose category</SelectItem>
                         {categories.map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -569,7 +654,12 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
                       onChange={(e) => updateItem(idx, { amount: e.target.value })}
                       placeholder="Amount"
                     />
-                    <Button variant="destructive-ghost" size="icon-sm" onClick={() => removeItem(idx)} aria-label="Remove cap">
+                    <Button
+                      variant="destructive-ghost"
+                      size="icon-sm"
+                      onClick={() => removeItem(idx)}
+                      aria-label="Remove cap"
+                    >
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>
@@ -582,11 +672,19 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
         <DialogFooter className="flex-row items-center justify-between">
           {budget ? (
             <Button variant="destructive-quiet" onClick={remove}>
-              <Trash2 className="size-4 mr-1" /> Delete
+              <Trash2 className="mr-1 size-4" /> Delete
             </Button>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
           <div className="flex gap-2">
-            <EditActions draft={editor} onCancel={onClose} onSave={save} saveLabel={budget ? 'Save' : 'Create'} disabled={!budget && (saving || !canSave)} />
+            <EditActions
+              draft={editor}
+              onCancel={onClose}
+              onSave={save}
+              saveLabel={budget ? 'Save' : 'Create'}
+              disabled={!budget && (saving || !canSave)}
+            />
           </div>
         </DialogFooter>
       </DialogContent>
@@ -597,7 +695,7 @@ function BudgetDialog({ open, budget, prefill, categories, slates, onClose, onSa
 function Field({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>}
+      {label && <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>}
       {children}
     </div>
   );

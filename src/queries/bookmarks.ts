@@ -30,8 +30,13 @@ export function useCreateBookmark() {
 export function useUpdateBookmark() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { title?: string; note?: string; unread?: boolean; archived?: boolean } }) =>
-      bookmarksApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: { title?: string; note?: string; unread?: boolean; archived?: boolean };
+    }) => bookmarksApi.update(id, data),
     onMutate: async ({ id, data }) => {
       await qc.cancelQueries({ queryKey: qk.bookmarks.all });
       const prev = qc.getQueriesData({ queryKey: qk.bookmarks.all });

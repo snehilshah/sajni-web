@@ -23,7 +23,8 @@ export const GROUP_LABELS: Record<GroupBy, string> = {
 /** Groupings a view offers. The Board has no "None" (a lane is the point);
  *  List grouping is hidden inside one of the owner's lists (one group). */
 export function groupOptions(view: TaskView, inOwnList: boolean): GroupBy[] {
-  const all: GroupBy[] = view === 'board' ? ['status', 'due', 'priority', 'list'] : ['status', 'due', 'priority', 'list', 'none'];
+  const all: GroupBy[] =
+    view === 'board' ? ['status', 'due', 'priority', 'list'] : ['status', 'due', 'priority', 'list', 'none'];
   return inOwnList ? all.filter((g) => g !== 'list') : all;
 }
 
@@ -33,12 +34,18 @@ export function readGroupBy(view: TaskView): GroupBy {
   try {
     const v = localStorage.getItem(groupKey(view)) as GroupBy | null;
     if (v && v in GROUP_LABELS && (view === 'list' || v !== 'none')) return v;
-  } catch { /* private mode */ }
+  } catch {
+    /* private mode */
+  }
   return 'status';
 }
 
 export function saveGroupBy(view: TaskView, by: GroupBy) {
-  try { localStorage.setItem(groupKey(view), by); } catch { /* private mode */ }
+  try {
+    localStorage.setItem(groupKey(view), by);
+  } catch {
+    /* private mode */
+  }
 }
 
 /** One section (List) or lane (Board). */
@@ -94,21 +101,31 @@ const INBOX = 'inbox';
 
 export function keyOf(t: Task, by: GroupBy): string {
   switch (by) {
-    case 'status': return t.status;
-    case 'due': return dueKey(t);
-    case 'priority': return t.priority;
-    case 'list': return t.list_id == null ? INBOX : String(t.list_id);
-    default: return 'all';
+    case 'status':
+      return t.status;
+    case 'due':
+      return dueKey(t);
+    case 'priority':
+      return t.priority;
+    case 'list':
+      return t.list_id == null ? INBOX : String(t.list_id);
+    default:
+      return 'all';
   }
 }
 
 function defsFor(by: GroupBy, view: TaskView, lists: TaskList[]): GroupDef[] {
   switch (by) {
-    case 'status': return STATUS_ORDER[view].map((s) => ({ key: s, label: STATUS_LABELS[s] }));
-    case 'due': return DUE_DEFS;
-    case 'priority': return PRIORITY_DEFS;
-    case 'list': return [{ key: INBOX, label: 'Inbox' }, ...lists.map((l) => ({ key: String(l.id), label: l.name }))];
-    default: return [{ key: 'all', label: '' }];
+    case 'status':
+      return STATUS_ORDER[view].map((s) => ({ key: s, label: STATUS_LABELS[s] }));
+    case 'due':
+      return DUE_DEFS;
+    case 'priority':
+      return PRIORITY_DEFS;
+    case 'list':
+      return [{ key: INBOX, label: 'Inbox' }, ...lists.map((l) => ({ key: String(l.id), label: l.name }))];
+    default:
+      return [{ key: 'all', label: '' }];
   }
 }
 
@@ -146,7 +163,8 @@ export function dropAction(by: GroupBy, lane: string, task: Task): DropAction {
       return { kind: 'patch', patch: lane === INBOX ? { clear_list: true } : { list_id: Number(lane) } };
     case 'due':
       if (lane === 'today') return { kind: 'patch', patch: { due_date: format(new Date(), 'yyyy-MM-dd') } };
-      if (lane === 'week') return { kind: 'patch', patch: { week_of: weekMondayKey(), clear_due: true, clear_month: true } };
+      if (lane === 'week')
+        return { kind: 'patch', patch: { week_of: weekMondayKey(), clear_due: true, clear_month: true } };
       if (lane === 'none') return { kind: 'patch', patch: { clear_due: true, clear_week: true, clear_month: true } };
       if (lane === 'later') return { kind: 'pickDate' };
       return { kind: 'none' };
@@ -202,7 +220,11 @@ export function priorityBox(priority: Task['priority'], color?: string | null): 
 const FOLDS_KEY = 'sajni:tasks:folds';
 
 function readFolds(): Record<string, boolean> {
-  try { return JSON.parse(localStorage.getItem(FOLDS_KEY) || '{}') as Record<string, boolean>; } catch { return {}; }
+  try {
+    return JSON.parse(localStorage.getItem(FOLDS_KEY) || '{}') as Record<string, boolean>;
+  } catch {
+    return {};
+  }
 }
 
 /** Whether a fold is open. Groups start open; Done, Archive and Scratched closed. */
@@ -215,5 +237,7 @@ export function saveFold(id: string, open: boolean) {
     const all = readFolds();
     all[id] = open;
     localStorage.setItem(FOLDS_KEY, JSON.stringify(all));
-  } catch { /* private mode */ }
+  } catch {
+    /* private mode */
+  }
 }

@@ -42,7 +42,7 @@ export function cardClass({ variant = 'filled', interactive, accent }: CardOptio
     // keeps the wash's negative z-index inside this card.
     accent && 'isolate overflow-hidden',
     interactive && [
-      'cursor-pointer outline-none tap-highlight-none',
+      'tap-highlight-none cursor-pointer outline-none',
       'hover:bg-[hsl(var(--surface-container-high))]',
       'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
     ],
@@ -66,13 +66,14 @@ export function CardAccent({ color }: { color: string }) {
   );
 }
 
-export const Card = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'> & CardOptions>(
-  function Card({ variant, interactive, accent, className, children, ...props }, ref) {
-    return (
-      <div ref={ref} data-slot="card" className={cardClass({ variant, interactive, accent }, className)} {...props}>
-        {accent && <CardAccent color={accent} />}
-        {children}
-      </div>
-    );
-  },
-);
+export const Card = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'> & CardOptions>(function Card(
+  { variant, interactive, accent, className, children, ...props },
+  ref,
+) {
+  return (
+    <div ref={ref} data-slot="card" className={cardClass({ variant, interactive, accent }, className)} {...props}>
+      {accent && <CardAccent color={accent} />}
+      {children}
+    </div>
+  );
+});

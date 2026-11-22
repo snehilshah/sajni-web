@@ -64,8 +64,13 @@ export const PixelIcon = forwardRef<SVGSVGElement, PixelIconProps>(
   ({ name, solid = false, size = 24, children: _children, ...props }, ref) => {
     const inner = useMemo(() => strip(REGISTRY[name][solid ? 1 : 0]), [name, solid]);
     return createElement('svg', {
-      ref, width: size, height: size, viewBox: '0 0 24 24', fill: 'currentColor',
-      ...props, dangerouslySetInnerHTML: { __html: inner },
+      ref,
+      width: size,
+      height: size,
+      viewBox: '0 0 24 24',
+      fill: 'currentColor',
+      ...props,
+      dangerouslySetInnerHTML: { __html: inner },
     });
   },
 );

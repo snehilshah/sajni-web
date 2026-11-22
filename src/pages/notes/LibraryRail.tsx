@@ -9,10 +9,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ChevronRight, FilePlus, FolderPlus, MoreHorizontal, PanelLeftClose, Pencil, Pin, PinOff, Search, Trash2, X,
+  ChevronRight,
+  FilePlus,
+  FolderPlus,
+  MoreHorizontal,
+  PanelLeftClose,
+  Pencil,
+  Pin,
+  PinOff,
+  Search,
+  Trash2,
+  X,
   FolderInput as MoveIcon,
 } from '@/components/ui/icons';
 import { confirmDialog } from '@/lib/confirm';
@@ -65,7 +79,9 @@ export default function LibraryRail(props: LibraryRailProps) {
     const clean = name.trim().replace(/\//g, '-');
     if (!clean) return;
     const path = parent ? `${parent}/${clean}` : clean;
-    qc.setQueryData<NoteFolder[]>(qk.notes.folders(), (old) => (old && !old.some((f) => f.path === path) ? [...old, { path, pinned: false }] : old));
+    qc.setQueryData<NoteFolder[]>(qk.notes.folders(), (old) =>
+      old && !old.some((f) => f.path === path) ? [...old, { path, pinned: false }] : old,
+    );
     folderAncestors(path).forEach((p) => props.onToggle(p, true));
     try {
       await notesApi.createFolder(path);
@@ -162,12 +178,9 @@ export default function LibraryRail(props: LibraryRailProps) {
           <span className="flex-1 truncate">{props.draft.title.trim() || 'Untitled'}</span>
         </Row>
       )}
-      {node.children.map((child) => (child.type === 'folder'
-        ? (
-          renderFolder(child, depth)
-        ) : (
-          renderNote(child.note!, depth)
-        )))}
+      {node.children.map((child) =>
+        child.type === 'folder' ? renderFolder(child, depth) : renderNote(child.note!, depth),
+      )}
     </>
   );
 
@@ -193,22 +206,37 @@ export default function LibraryRail(props: LibraryRailProps) {
             dropping={dropTarget === node.path}
             onClick={() => props.onToggle(node.path)}
             leading={<Chevron open={open} />}
-            trailing={(
+            trailing={
               <>
                 {node.pinned && <Pin className="size-3 text-muted-foreground" aria-label="Pinned" />}
-                <span className="text-xs tabular-nums text-muted-foreground">{node.count || ''}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{node.count || ''}</span>
               </>
-            )}
-            menu={(
+            }
+            menu={
               <>
-                <DropdownMenuItem onClick={() => props.onNew(node.path)}><FilePlus /> New note</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { props.onToggle(node.path, true); setEditing({ kind: 'new', parent: node.path }); }}><FolderPlus /> New folder</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEditing({ kind: 'rename', path: node.path })}><Pencil /> Rename</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => pinFolder(node)}>{node.pinned ? <PinOff /> : <Pin />} {node.pinned ? 'Unpin' : 'Pin'}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => props.onNew(node.path)}>
+                  <FilePlus /> New note
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    props.onToggle(node.path, true);
+                    setEditing({ kind: 'new', parent: node.path });
+                  }}
+                >
+                  <FolderPlus /> New folder
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEditing({ kind: 'rename', path: node.path })}>
+                  <Pencil /> Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => pinFolder(node)}>
+                  {node.pinned ? <PinOff /> : <Pin />} {node.pinned ? 'Unpin' : 'Pin'}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => deleteFolder(node)}><Trash2 /> Delete</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => deleteFolder(node)}>
+                  <Trash2 /> Delete
+                </DropdownMenuItem>
               </>
-            )}
+            }
             menuLabel={`More for ${node.name}`}
           >
             <span className="flex-1 truncate">{node.name}</span>
@@ -236,14 +264,20 @@ export default function LibraryRail(props: LibraryRailProps) {
         onPointerEnter={() => props.onPrefetch(note.id)}
         leading={null}
         trailing={note.pinned ? <Pin className="size-3 text-muted-foreground" aria-label="Pinned" /> : null}
-        menu={(
+        menu={
           <>
-            <DropdownMenuItem onClick={() => props.onPin(note)}>{note.pinned ? <PinOff /> : <Pin />} {note.pinned ? 'Unpin' : 'Pin'}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => props.onMoveRequest(note)}><MoveIcon /> Move to…</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => props.onPin(note)}>
+              {note.pinned ? <PinOff /> : <Pin />} {note.pinned ? 'Unpin' : 'Pin'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => props.onMoveRequest(note)}>
+              <MoveIcon /> Move to…
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => props.onDelete(note)}><Trash2 /> Delete</DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => props.onDelete(note)}>
+              <Trash2 /> Delete
+            </DropdownMenuItem>
           </>
-        )}
+        }
         menuLabel={`More for ${displayTitle(note.title)}`}
       >
         <span className="flex-1 truncate">{displayTitle(note.title)}</span>
@@ -255,60 +289,90 @@ export default function LibraryRail(props: LibraryRailProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-1 pl-4 pr-2">
+      <header className="flex h-14 shrink-0 items-center gap-1 pr-2 pl-4">
         <h2 className="flex-1 truncate text-xl font-semibold tracking-tight">Notes</h2>
-        <Button size="icon-sm" variant="ghost" className="rounded-full" title="New note · Alt+N" aria-label="New note" onClick={() => props.onNew('')}>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="rounded-full"
+          title="New note · Alt+N"
+          aria-label="New note"
+          onClick={() => props.onNew('')}
+        >
           <FilePlus className="size-4" />
         </Button>
-        <Button size="icon-sm" variant="ghost" className="rounded-full" title="New folder" aria-label="New folder" onClick={() => setEditing({ kind: 'new', parent: '' })}>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="rounded-full"
+          title="New folder"
+          aria-label="New folder"
+          onClick={() => setEditing({ kind: 'new', parent: '' })}
+        >
           <FolderPlus className="size-4" />
         </Button>
       </header>
 
       <div className="shrink-0 px-2 pb-2">
-       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={props.search}
-          onChange={(e) => props.onSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Escape') props.onSearch(''); }}
-          placeholder="Search notes"
-          aria-label="Search notes"
-          className="h-9 rounded-lg bg-[hsl(var(--surface-container))] pl-8 pr-8 text-sm"
-        />
-        {props.search && (
-          <button
-            type="button"
-            onClick={() => props.onSearch('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Clear search"
-          >
-            <X className="size-3.5" />
-          </button>
-        )}
-       </div>
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={props.search}
+            onChange={(e) => props.onSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') props.onSearch('');
+            }}
+            placeholder="Search notes"
+            aria-label="Search notes"
+            className="h-9 rounded-lg bg-[hsl(var(--surface-container))] pr-8 pl-8 text-sm"
+          />
+          {props.search && (
+            <button
+              type="button"
+              onClick={() => props.onSearch('')}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div
-        className={cn('stable-scrollbar flex-1 min-h-0 overflow-y-auto px-2 pb-6', dropTarget === '' && 'bg-[hsl(var(--primary)/0.04)]')}
+        className={cn(
+          'stable-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pb-6',
+          dropTarget === '' && 'bg-[hsl(var(--primary)/0.04)]',
+        )}
         role="tree"
         aria-label="Notes"
         {...dropProps('')}
       >
         {props.loading ? (
           <div className="flex flex-col gap-1.5 px-2 py-1">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-6 w-full" />)}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-6 w-full" />
+            ))}
           </div>
         ) : empty ? (
           <p className="px-2 py-10 text-center text-sm text-muted-foreground">
             {searching ? 'No notes match' : 'No notes yet'}
           </p>
-        ) : renderChildren(props.tree, 0)}
+        ) : (
+          renderChildren(props.tree, 0)
+        )}
       </div>
       {/* Same corner as the "Show library" button when the rail is closed. */}
       {props.onCollapse && (
         <footer className="flex h-[var(--notes-foot-h,60px)] shrink-0 items-center px-3">
-          <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide library" aria-label="Hide library" onClick={props.onCollapse}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="rounded-full"
+            title="Hide library"
+            aria-label="Hide library"
+            onClick={props.onCollapse}
+          >
             <PanelLeftClose className="size-4" />
           </Button>
         </footer>
@@ -320,14 +384,28 @@ export default function LibraryRail(props: LibraryRailProps) {
 function Chevron({ open }: { open: boolean }) {
   return (
     <ChevronRight
-      className={cn('size-3.5 text-muted-foreground transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]', open && 'rotate-90')}
+      className={cn(
+        'size-3.5 text-muted-foreground transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]',
+        open && 'rotate-90',
+      )}
       aria-hidden
     />
   );
 }
 
 function Row({
-  depth, selected, dropping, leading, trailing, menu, menuLabel, children, onClick, role, ariaExpanded, ...rest
+  depth,
+  selected,
+  dropping,
+  leading,
+  trailing,
+  menu,
+  menuLabel,
+  children,
+  onClick,
+  role,
+  ariaExpanded,
+  ...rest
 }: {
   depth: number;
   selected?: boolean;
@@ -354,17 +432,27 @@ function Row({
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.currentTarget !== e.target) return;
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
       }}
-      onContextMenu={menu ? (e) => { e.preventDefault(); setMenuOpen(true); } : undefined}
+      onContextMenu={
+        menu
+          ? (e) => {
+              e.preventDefault();
+              setMenuOpen(true);
+            }
+          : undefined
+      }
       style={rowPad(depth)}
       className={cn(
-        'tree-row group relative flex min-h-11 md:min-h-8 select-none items-center gap-1.5 rounded-lg pr-1.5 text-sm transition-colors',
+        'tree-row group relative flex min-h-11 items-center gap-1.5 rounded-lg pr-1.5 text-sm transition-colors select-none md:min-h-8',
         onClick && 'cursor-pointer',
         selected
           ? 'bg-[hsl(var(--on-surface)/0.07)] font-medium text-foreground'
           : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.05)] hover:text-foreground',
-        dropping && 'ring-2 ring-inset ring-[hsl(var(--primary))]',
+        dropping && 'ring-2 ring-[hsl(var(--primary))] ring-inset',
       )}
       {...rest}
     >
@@ -373,27 +461,32 @@ function Row({
       {/* One trailing slot: pin/count at rest, the menu on hover (no shift).
           Touch screens have no hover, so there the menu sits after the count. */}
       <span className="relative flex h-7 shrink-0 items-center justify-end gap-1 md:min-w-7 md:pr-1">
-        <span className={cn('flex items-center gap-1.5', menu && (menuOpen ? 'md:invisible' : 'md:group-hover:invisible md:group-focus-within:invisible'))}>
+        <span
+          className={cn(
+            'flex items-center gap-1.5',
+            menu && (menuOpen ? 'md:invisible' : 'md:group-focus-within:invisible md:group-hover:invisible'),
+          )}
+        >
           {trailing}
         </span>
         {menu && (
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger
-              render={(
+              render={
                 <button
                   type="button"
                   onClick={(e) => e.stopPropagation()}
                   className={cn(
-                    'flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
-                    'md:absolute md:right-0 md:top-0 md:size-7',
-                    menuOpen ? 'md:visible' : 'md:invisible md:group-hover:visible md:group-focus-within:visible',
+                    'flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-[hsl(var(--surface-container-highest))] hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:outline-none',
+                    'md:absolute md:top-0 md:right-0 md:size-7',
+                    menuOpen ? 'md:visible' : 'md:invisible md:group-focus-within:visible md:group-hover:visible',
                   )}
                   aria-label={menuLabel}
                   title="More"
                 >
                   <MoreHorizontal className="size-3.5" />
                 </button>
-              )}
+              }
             />
             <DropdownMenuContent align="end" className="min-w-44" onClick={(e) => e.stopPropagation()}>
               {menu}
@@ -407,7 +500,11 @@ function Row({
 
 /** Inline name field that sits exactly where a row's name would. */
 function NameField({
-  depth, initial, placeholder, leading, onDone,
+  depth,
+  initial,
+  placeholder,
+  leading,
+  onDone,
 }: {
   depth: number;
   initial: string;
@@ -418,22 +515,31 @@ function NameField({
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
   const [value, setValue] = useState(initial);
-  useEffect(() => { ref.current?.focus(); ref.current?.select(); }, []);
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
   const finish = (name: string | null) => {
     if (done.current) return;
     done.current = true;
     onDone(name);
   };
   return (
-    <div style={rowPad(depth)} className="flex min-h-11 md:min-h-8 items-center gap-1.5 pr-1.5">
+    <div style={rowPad(depth)} className="flex min-h-11 items-center gap-1.5 pr-1.5 md:min-h-8">
       <span className="flex w-4 shrink-0 items-center justify-center">{leading}</span>
       <Input
         ref={ref}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); finish(value); }
-          if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            finish(value);
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            finish(null);
+          }
         }}
         onBlur={() => finish(value.trim() ? value : null)}
         placeholder={placeholder}

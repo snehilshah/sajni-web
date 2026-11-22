@@ -12,12 +12,15 @@ export function TaskAttachments({ tiles, uploading }: { tiles: AttachmentTile[];
   if (tiles.length === 0 && uploading === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
+      <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
         <ImageIcon className="size-3" /> Images
       </Label>
       <div className="flex flex-wrap gap-2">
         {tiles.map((t) => (
-          <div key={t.key} className="relative size-24 overflow-hidden rounded-xl bg-[hsl(var(--surface-container-high))]">
+          <div
+            key={t.key}
+            className="relative size-24 overflow-hidden rounded-xl bg-[hsl(var(--surface-container-high))]"
+          >
             <a href={t.src} target="_blank" rel="noreferrer" title="Open image">
               <img src={t.src} alt="" className="size-full object-cover" />
             </a>
@@ -26,7 +29,7 @@ export function TaskAttachments({ tiles, uploading }: { tiles: AttachmentTile[];
               aria-label="Remove image"
               title="Remove image"
               onClick={t.onRemove}
-              className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
+              className="absolute top-1 right-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
             >
               <X className="size-3.5" />
             </button>

@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Receipt, Plus, Trash2, Zap, CheckCircle2, Pencil, Archive,
-} from '@/components/ui/icons';
+import { Receipt, Plus, Trash2, Zap, CheckCircle2, Pencil, Archive } from '@/components/ui/icons';
 
 import {
   finance,
-  type FinAccount, type FinCategory, type FinBiller, type FinTransaction,
-  type BillerFrequency, type BillerKind, type FinRecurringSuggestion,
+  type FinAccount,
+  type FinCategory,
+  type FinBiller,
+  type FinTransaction,
+  type BillerFrequency,
+  type BillerKind,
+  type FinRecurringSuggestion,
 } from '@/api';
 import { useFinBillers, useBillerPayments } from '@/queries/finance';
 import { qk } from '@/queries/keys';
@@ -53,8 +56,7 @@ const FREQ_LABEL: Record<BillerFrequency, string> = {
 
 // A bill's amount is only an estimate (may be 0 = unknown); the last actual
 // payment is the better guess where we have one.
-const effectiveAmount = (b: FinBiller) =>
-  b.kind === 'bill' ? (b.last_paid_amount ?? 0) || b.amount : b.amount;
+const effectiveAmount = (b: FinBiller) => (b.kind === 'bill' ? (b.last_paid_amount ?? 0) || b.amount : b.amount);
 
 export default function BillersTab({ accounts, categories, enabled }: Props) {
   const qc = useQueryClient();
@@ -87,28 +89,47 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
     try {
       await finance.dismissRecurringSuggestion(s.key);
       qc.invalidateQueries({ queryKey: ['finance', 'billers', 'suggestions'] });
-    } catch (e) { toast.error(failureText(e)); }
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
   const monthlyIn = useMemo(
-    () => sumMoney(billers.filter((b) => !b.archived && b.income), (b) => effectiveAmount(b) / perMonthDivisor(b.frequency)),
+    () =>
+      sumMoney(
+        billers.filter((b) => !b.archived && b.income),
+        (b) => effectiveAmount(b) / perMonthDivisor(b.frequency),
+      ),
     [billers],
   );
 
   const monthlyOutflow = useMemo(() => {
     // Each biller's monthly share rounds to the paisa, then sums exactly.
     // Money expected in (Salary) isn't outflow.
-    return sumMoney(billers.filter((b) => !b.archived && !b.income), (b) => effectiveAmount(b) / perMonthDivisor(b.frequency));
+    return sumMoney(
+      billers.filter((b) => !b.archived && !b.income),
+      (b) => effectiveAmount(b) / perMonthDivisor(b.frequency),
+    );
   }, [billers]);
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex items-end justify-between gap-3 flex-wrap">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         {/* The monthly outflow is the one figure this list adds up to; it
             sits beside the title as a badge instead of a sentence under it. */}
-        <div className="flex items-baseline gap-2 flex-wrap">
+        <div className="flex flex-wrap items-baseline gap-2">
           <h2 className="font-serif text-lg font-semibold">Recurring</h2>
-          <DateBadge><span>Out <Money value={monthlyOutflow} /> a month</span></DateBadge>
-          {monthlyIn > 0 && <DateBadge tone="positive"><span>In <Money value={monthlyIn} /> a month</span></DateBadge>}
+          <DateBadge>
+            <span>
+              Out <Money value={monthlyOutflow} /> a month
+            </span>
+          </DateBadge>
+          {monthlyIn > 0 && (
+            <DateBadge tone="positive">
+              <span>
+                In <Money value={monthlyIn} /> a month
+              </span>
+            </DateBadge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -131,12 +152,17 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
           {suggestions.map((s) => (
             <div key={s.key} className="rounded-xl border border-dashed border-border bg-card p-3 md:p-4">
               <div className="text-sm font-medium">
-                {s.title} · {s.income ? '+' : ''}<Money value={s.amount} /> {s.income ? 'into' : 'on'} {s.account_name}
+                {s.title} · {s.income ? '+' : ''}
+                <Money value={s.amount} /> {s.income ? 'into' : 'on'} {s.account_name}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">{suggestionWhy(s)}</p>
               <div className="mt-3 flex gap-2">
-                <Button size="sm" onClick={() => setFromSuggestion(s)}>Make it recurring</Button>
-                <Button size="sm" variant="outline" onClick={() => dismiss(s)}>It doesn't repeat</Button>
+                <Button size="sm" onClick={() => setFromSuggestion(s)}>
+                  Make it recurring
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => dismiss(s)}>
+                  It doesn't repeat
+                </Button>
               </div>
             </div>
           ))}
@@ -146,7 +172,7 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
       <section className="flex flex-col gap-2">
         {billers.length === 0 ? (
           isLoading ? (
-            <div className="text-xs text-muted-foreground text-center py-8">Loading…</div>
+            <div className="py-8 text-center text-xs text-muted-foreground">Loading…</div>
           ) : (
             <p className="py-2 text-sm text-muted-foreground">Nothing recurring yet</p>
           )
@@ -173,9 +199,16 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
         initial={fromSuggestion}
         accounts={accounts}
         categories={categories}
-        onClose={() => { setCreating(false); setEditing(null); setFromSuggestion(null); }}
+        onClose={() => {
+          setCreating(false);
+          setEditing(null);
+          setFromSuggestion(null);
+        }}
         onSaved={() => {
-          setCreating(false); setEditing(null); setFromSuggestion(null); refreshBillers();
+          setCreating(false);
+          setEditing(null);
+          setFromSuggestion(null);
+          refreshBillers();
           qc.invalidateQueries({ queryKey: ['finance', 'billers', 'suggestions'] });
         }}
       />
@@ -185,9 +218,15 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
         accounts={accounts}
         categories={categories}
         onClose={() => setDetailId(null)}
-        onEdit={() => { setEditing(detail); setDetailId(null); }}
+        onEdit={() => {
+          setEditing(detail);
+          setDetailId(null);
+        }}
         onChanged={refreshBillers}
-        onGone={() => { setDetailId(null); refreshBillers(); }}
+        onGone={() => {
+          setDetailId(null);
+          refreshBillers();
+        }}
       />
     </div>
   );
@@ -196,7 +235,10 @@ export default function BillersTab({ accounts, categories, enabled }: Props) {
 // ─── Row ────────────────────────────────────────────────────────────────────
 
 function BillerRow({
-  biller, accounts, onOpen, onPaid,
+  biller,
+  accounts,
+  onOpen,
+  onPaid,
 }: {
   biller: FinBiller;
   accounts: FinAccount[];
@@ -214,11 +256,15 @@ function BillerRow({
   const word = biller.income ? 'Expected' : 'Due';
   const state = biller.state ?? (overdue ? 'not_recorded' : 'due');
   const dueLabel =
-    state === 'paid' ? `${biller.income ? 'Came' : 'Paid'} ✓ · ${format(parseISO(biller.state_date || biller.next_due_date), 'd MMM')}` :
-    state === 'not_recorded' ? `Not recorded · ${format(due, 'd MMM')}` :
-    daysAway === 0 ? `${word} today` :
-    daysAway === 1 ? `${word} tomorrow` :
-    `${word} in ${daysAway}d · ${format(due, 'd MMM')}`;
+    state === 'paid'
+      ? `${biller.income ? 'Came' : 'Paid'} ✓ · ${format(parseISO(biller.state_date || biller.next_due_date), 'd MMM')}`
+      : state === 'not_recorded'
+        ? `Not recorded · ${format(due, 'd MMM')}`
+        : daysAway === 0
+          ? `${word} today`
+          : daysAway === 1
+            ? `${word} tomorrow`
+            : `${word} in ${daysAway}d · ${format(due, 'd MMM')}`;
 
   return (
     <motion.li
@@ -227,7 +273,7 @@ function BillerRow({
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       exit={{ opacity: 0, transform: 'translateY(-4px)' }}
       className={cn(
-        'rounded-xl bg-card flex items-center gap-3 p-3 md:p-4 transition-colors',
+        'flex items-center gap-3 rounded-xl bg-card p-3 transition-colors md:p-4',
         biller.archived && 'opacity-60',
       )}
     >
@@ -235,33 +281,53 @@ function BillerRow({
       <button
         type="button"
         onClick={onOpen}
-        className="flex flex-1 min-w-0 items-center gap-3 text-left outline-none rounded-lg focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] tap-highlight-none"
+        className="tap-highlight-none flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
       >
         <span
           aria-hidden
-          className="size-9 rounded-md shrink-0 grid place-items-center text-white"
+          className="grid size-9 shrink-0 place-items-center rounded-md text-white"
           style={{ background: biller.color }}
         >
           <Receipt className="size-4" />
         </span>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-medium text-sm truncate">{biller.name}</span>
-            {biller.auto_renew ? <DateBadge tone="accent" icon={<Zap />}>Auto</DateBadge> : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-medium">{biller.name}</span>
+            {biller.auto_renew ? (
+              <DateBadge tone="accent" icon={<Zap />}>
+                Auto
+              </DateBadge>
+            ) : null}
           </div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">
-            {FREQ_LABEL[biller.frequency]}{acct ? ` · ${biller.income ? 'into' : 'from'} ${acct.name}` : ''} · {biller.kind === 'bill' ? 'varies' : 'fixed'}
+            {FREQ_LABEL[biller.frequency]}
+            {acct ? ` · ${biller.income ? 'into' : 'from'} ${acct.name}` : ''} ·{' '}
+            {biller.kind === 'bill' ? 'varies' : 'fixed'}
           </div>
         </div>
 
-        <div className="text-right shrink-0">
-          <div className="whitespace-nowrap font-semibold tabular-nums text-sm">
-            {biller.kind === 'bill' && !(biller.amount > 0)
-              ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
-              : <>{biller.income ? '+' : ''}<Money value={biller.amount} /></>}
+        <div className="shrink-0 text-right">
+          <div className="text-sm font-semibold whitespace-nowrap tabular-nums">
+            {biller.kind === 'bill' && !(biller.amount > 0) ? (
+              biller.last_paid_amount != null ? (
+                <>
+                  ~<Money value={biller.last_paid_amount} />
+                </>
+              ) : (
+                '–'
+              )
+            ) : (
+              <>
+                {biller.income ? '+' : ''}
+                <Money value={biller.amount} />
+              </>
+            )}
           </div>
-          <DateBadge className="mt-0.5" tone={state === 'paid' ? 'positive' : state === 'not_recorded' ? 'alert' : soon ? 'accent' : 'neutral'}>
+          <DateBadge
+            className="mt-0.5"
+            tone={state === 'paid' ? 'positive' : state === 'not_recorded' ? 'alert' : soon ? 'accent' : 'neutral'}
+          >
             {dueLabel}
           </DateBadge>
         </div>
@@ -278,13 +344,24 @@ function KindBadge({ kind }: { kind: BillerKind }) {
 
 // How many of a frequency make a month (weekly ≈ 4.33 a month).
 function perMonthDivisor(f: BillerFrequency): number {
-  return f === 'weekly' ? 1 / 4.33 : f === 'fortnightly' ? 1 / 2.17 : f === 'bimonthly' ? 2 : f === 'quarterly' ? 3 : f === 'yearly' ? 12 : 1;
+  return f === 'weekly'
+    ? 1 / 4.33
+    : f === 'fortnightly'
+      ? 1 / 2.17
+      : f === 'bimonthly'
+        ? 2
+        : f === 'quarterly'
+          ? 3
+          : f === 'yearly'
+            ? 12
+            : 1;
 }
 
 // "Paid around the 23rd in October and November, the same amount each time."
 function suggestionWhy(s: FinRecurringSuggestion): string {
   const months = s.months.map((m) => format(parseISO(m + '-01'), 'MMMM'));
-  const list = months.length <= 2 ? months.join(' and ') : `${months.slice(0, -1).join(', ')} and ${months[months.length - 1]}`;
+  const list =
+    months.length <= 2 ? months.join(' and ') : `${months.slice(0, -1).join(', ')} and ${months[months.length - 1]}`;
   return `${s.income ? 'Came' : 'Paid'} around the ${ordinal(s.day)} in ${list}.`;
 }
 
@@ -317,7 +394,8 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
     setAmount(guess > 0 ? String(guess) : '');
     setPaidDate(format(new Date(), 'yyyy-MM-dd'));
     setPicked(new Set());
-    finance.listTransactions({ type: biller.income ? 'income' : 'expense', limit: 20 })
+    finance
+      .listTransactions({ type: biller.income ? 'income' : 'expense', limit: 20 })
       .then(setRecent)
       .catch(() => setRecent([]));
   }, [open, biller]);
@@ -331,31 +409,49 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
 
   const record = async () => {
     const amt = parseFloat(amount);
-    if (biller.kind === 'bill' && !(amt > 0)) { toast.error('Enter the actual amount'); return; }
+    if (biller.kind === 'bill' && !(amt > 0)) {
+      toast.error('Enter the actual amount');
+      return;
+    }
     setBusy(true);
     try {
-      done(await finance.payBiller(biller.id, {
-        paid_date: paidDate,
-        due_date: biller.next_due_date,
-        ...(amt > 0 ? { amount: amt } : {}),
-      }));
-    } catch (e) { toast.error(failureText(e)); } finally { setBusy(false); }
+      done(
+        await finance.payBiller(biller.id, {
+          paid_date: paidDate,
+          due_date: biller.next_due_date,
+          ...(amt > 0 ? { amount: amt } : {}),
+        }),
+      );
+    } catch (e) {
+      toast.error(failureText(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const attach = async () => {
     if (picked.size === 0) return;
     setBusy(true);
     try {
-      done(await finance.payBiller(biller.id, {
-        paid_date: paidDate,
-        due_date: biller.next_due_date,
-        attach_txn_ids: Array.from(picked),
-      }));
-    } catch (e) { toast.error(failureText(e)); } finally { setBusy(false); }
+      done(
+        await finance.payBiller(biller.id, {
+          paid_date: paidDate,
+          due_date: biller.next_due_date,
+          attach_txn_ids: Array.from(picked),
+        }),
+      );
+    } catch (e) {
+      toast.error(failureText(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const pickedSum = recent
-    ? sumMoney(recent.filter((t) => picked.has(t.id)), (t) => t.amount)
+    ? sumMoney(
+        recent.filter((t) => picked.has(t.id)),
+        (t) => t.amount,
+      )
     : 0;
 
   return (
@@ -363,14 +459,14 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
       <PopoverTrigger
         title="Mark this cycle as paid"
         aria-label={`Mark ${biller.name} paid`}
-        className="size-11 shrink-0 grid place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-primary focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+        className="grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-primary focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
       >
         <CheckCircle2 className="size-4.5" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-3">
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-medium">Mark “{biller.name}” paid</span>
-          <span className="text-xs text-muted-foreground font-mono">
+          <span className="font-mono text-xs text-muted-foreground">
             cycle due {format(parseISO(biller.next_due_date), 'd MMM')}
           </span>
         </div>
@@ -390,7 +486,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
         {mode === 'record' ? (
           <div className="flex flex-col gap-2.5">
             <div className="flex flex-col gap-1">
-              <Label className="text-xs font-mono label-kicker text-muted-foreground">
+              <Label className="label-kicker font-mono text-xs text-muted-foreground">
                 {biller.kind === 'bill' ? 'Actual amount' : 'Amount'}
               </Label>
               <Input
@@ -402,7 +498,7 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs font-mono label-kicker text-muted-foreground">Paid on</Label>
+              <Label className="label-kicker font-mono text-xs text-muted-foreground">Paid on</Label>
               <DatePicker value={paidDate} onChange={(d) => d && setPaidDate(d)} />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -417,11 +513,11 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
         ) : (
           <div className="flex flex-col gap-2.5">
             {recent === null ? (
-              <div className="text-xs text-muted-foreground py-4 text-center">Loading recent expenses…</div>
+              <div className="py-4 text-center text-xs text-muted-foreground">Loading recent expenses…</div>
             ) : recent.length === 0 ? (
-              <div className="text-xs text-muted-foreground py-4 text-center">No recent expenses to attach.</div>
+              <div className="py-4 text-center text-xs text-muted-foreground">No recent expenses to attach.</div>
             ) : (
-              <div className="max-h-56 overflow-y-auto -mx-1 px-1 flex flex-col">
+              <div className="-mx-1 flex max-h-56 flex-col overflow-y-auto px-1">
                 {recent.map((t) => (
                   <label
                     key={t.id}
@@ -432,18 +528,21 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
                       onCheckedChange={(c) => {
                         setPicked((prev) => {
                           const next = new Set(prev);
-                          if (c === true) next.add(t.id); else next.delete(t.id);
+                          if (c === true) next.add(t.id);
+                          else next.delete(t.id);
                           return next;
                         });
                       }}
                     />
-                    <span className="flex-1 min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{t.description || t.category_name || 'Expense'}</span>
-                      <span className="block font-mono text-xs text-muted-foreground truncate">
+                      <span className="block truncate font-mono text-xs text-muted-foreground">
                         {formatTxnDate(t.txn_at)} · {t.account_name}
                       </span>
                     </span>
-                    <span className="font-mono text-xs tabular-nums shrink-0"><Money value={t.amount} /></span>
+                    <span className="shrink-0 font-mono text-xs tabular-nums">
+                      <Money value={t.amount} />
+                    </span>
                   </label>
                 ))}
               </div>
@@ -464,7 +563,13 @@ function PayPopover({ biller, onPaid }: { biller: FinBiller; onPaid: () => void 
 // ─── Detail sheet: full biller + payment history ────────────────────────────
 
 function BillerDetailSheet({
-  biller, accounts, categories, onClose, onEdit, onChanged, onGone,
+  biller,
+  accounts,
+  categories,
+  onClose,
+  onEdit,
+  onChanged,
+  onGone,
 }: {
   biller: FinBiller | null;
   accounts: FinAccount[];
@@ -486,7 +591,9 @@ function BillerDetailSheet({
       await finance.unlinkBillerPayment(biller.id, paymentId);
       qc.invalidateQueries({ queryKey: qk.finance.billerPayments(biller.id) });
       onChanged();
-    } catch (e) { toast.error(failureText(e)); }
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
 
   const acct = biller ? accounts.find((a) => a.id === biller.account_id) : null;
@@ -497,7 +604,9 @@ function BillerDetailSheet({
     try {
       await finance.updateBiller(biller.id, { archived: !biller.archived });
       onChanged();
-    } catch (e) { toast.error(failureText(e)); }
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
 
   const remove = async () => {
@@ -506,56 +615,81 @@ function BillerDetailSheet({
     try {
       await finance.deleteBiller(biller.id);
       onGone();
-    } catch (e) { toast.error(failureText(e)); }
+    } catch (e) {
+      toast.error(failureText(e));
+    }
   };
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="!max-w-md w-full flex flex-col p-0 gap-0">
+      <SheetContent side="right" className="flex w-full !max-w-md flex-col gap-0 p-0">
         {biller && (
           <>
             <SheetHeader className="border-b border-border px-5 py-4">
               <div className="flex items-center gap-3">
                 <span
                   aria-hidden
-                  className="size-10 rounded-lg shrink-0 grid place-items-center text-white"
+                  className="grid size-10 shrink-0 place-items-center rounded-lg text-white"
                   style={{ background: biller.color }}
                 >
                   <Receipt className="size-5" />
                 </span>
                 <div className="min-w-0">
                   <SheetTitle className="truncate text-left">{biller.name}</SheetTitle>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="mt-1 flex items-center gap-2">
                     {biller.income ? <DateBadge>Income</DateBadge> : <KindBadge kind={biller.kind} />}
-                    {biller.auto_renew && <DateBadge tone="accent" icon={<Zap />}>Auto-renews</DateBadge>}
+                    {biller.auto_renew && (
+                      <DateBadge tone="accent" icon={<Zap />}>
+                        Auto-renews
+                      </DateBadge>
+                    )}
                     {biller.archived && <DateBadge>Archived</DateBadge>}
                   </div>
                 </div>
               </div>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
+            <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
               {/* Amount + next due */}
               <div>
                 <div className="font-serif text-2xl font-semibold tabular-nums">
-                  {biller.kind === 'bill' && !(biller.amount > 0)
-                    ? (biller.last_paid_amount != null ? <>~<Money value={biller.last_paid_amount} /></> : '–')
-                    : <>{biller.income ? '+' : ''}<Money value={biller.amount} /></>}
+                  {biller.kind === 'bill' && !(biller.amount > 0) ? (
+                    biller.last_paid_amount != null ? (
+                      <>
+                        ~<Money value={biller.last_paid_amount} />
+                      </>
+                    ) : (
+                      '–'
+                    )
+                  ) : (
+                    <>
+                      {biller.income ? '+' : ''}
+                      <Money value={biller.amount} />
+                    </>
+                  )}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {FREQ_LABEL[biller.frequency]} · {biller.income ? 'expected' : 'due'} {format(parseISO(biller.next_due_date), 'd MMM yyyy')}
+                  {FREQ_LABEL[biller.frequency]} · {biller.income ? 'expected' : 'due'}{' '}
+                  {format(parseISO(biller.next_due_date), 'd MMM yyyy')}
                 </div>
               </div>
 
               {/* Details */}
               <section>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Details</h3>
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">Details</h3>
                 <dl className="flex flex-col gap-0.5 overflow-hidden rounded-xl text-sm">
                   <DetailRow label={biller.income ? 'Into' : 'Paid from'} value={acct?.name || '–'} />
                   <DetailRow label="Category" value={cat?.name || '–'} />
                   <DetailRow label="Make a task" value={biller.remind_task ? 'On' : 'Off'} />
                   {!biller.income && (
-                    <DetailRow label="Heads-up" value={biller.alert_days === 0 ? 'The morning of' : `${biller.alert_days} day${biller.alert_days === 1 ? '' : 's'} before`} />
+                    <DetailRow
+                      label="Heads-up"
+                      value={
+                        biller.alert_days === 0
+                          ? 'The morning of'
+                          : `${biller.alert_days} day${biller.alert_days === 1 ? '' : 's'} before`
+                      }
+                    />
                   )}
                   {biller.notes && <DetailRow label="Notes" value={biller.notes} />}
                 </dl>
@@ -563,9 +697,9 @@ function BillerDetailSheet({
 
               {/* Payment history */}
               <section>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Cycles</h3>
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">Cycles</h3>
                 {isLoading ? (
-                  <div className="text-xs text-muted-foreground py-4 text-center">Loading…</div>
+                  <div className="py-4 text-center text-xs text-muted-foreground">Loading…</div>
                 ) : payments.length === 0 ? (
                   <p className="text-sm text-muted-foreground">None yet</p>
                 ) : (
@@ -575,25 +709,40 @@ function BillerDetailSheet({
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm">
                             {format(parseISO(p.paid_date), 'd MMM yyyy')}
-                            {p.auto && <DateBadge className="ml-2" tone="accent" icon={<Zap />}>Auto</DateBadge>}
+                            {p.auto && (
+                              <DateBadge className="ml-2" tone="accent" icon={<Zap />}>
+                                Auto
+                              </DateBadge>
+                            )}
                           </span>
-                          <span className="whitespace-nowrap text-sm tabular-nums"><Money value={p.amount} /></span>
+                          <span className="text-sm whitespace-nowrap tabular-nums">
+                            <Money value={p.amount} />
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-0.5">
+                        <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                           <span>For {format(parseISO(p.due_date), 'd MMM')}</span>
-                          <button type="button" onClick={() => unlink(p.id)}
-                            className="rounded px-1 text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] outline-none">
+                          <button
+                            type="button"
+                            onClick={() => unlink(p.id)}
+                            className="rounded px-1 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]"
+                          >
                             Unlink
                           </button>
                         </div>
                         {p.txns.length > 0 && (
                           <ul className="mt-1.5 flex flex-col gap-1">
                             {p.txns.map((t) => (
-                              <li key={t.id} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                              <li
+                                key={t.id}
+                                className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
+                              >
                                 <span className="truncate">
-                                  ↳ {t.description || 'Transaction'}{t.account_name ? ` · ${t.account_name}` : ''}
+                                  ↳ {t.description || 'Transaction'}
+                                  {t.account_name ? ` · ${t.account_name}` : ''}
                                 </span>
-                                <span className="font-mono tabular-nums shrink-0"><Money value={t.amount} /></span>
+                                <span className="shrink-0 font-mono tabular-nums">
+                                  <Money value={t.amount} />
+                                </span>
                               </li>
                             ))}
                           </ul>
@@ -605,16 +754,16 @@ function BillerDetailSheet({
               </section>
             </div>
 
-            <div className="px-5 py-3 flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 px-5 py-3">
               <Button variant="destructive-quiet" onClick={remove}>
-                <Trash2 className="size-4 mr-1" /> Delete
+                <Trash2 className="mr-1 size-4" /> Delete
               </Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={archive}>
-                  <Archive className="size-4 mr-1" /> {biller.archived ? 'Unarchive' : 'Archive'}
+                  <Archive className="mr-1 size-4" /> {biller.archived ? 'Unarchive' : 'Archive'}
                 </Button>
                 <Button onClick={onEdit}>
-                  <Pencil className="size-4 mr-1" /> Edit
+                  <Pencil className="mr-1 size-4" /> Edit
                 </Button>
               </div>
             </div>
@@ -628,8 +777,8 @@ function BillerDetailSheet({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-md bg-card px-3 py-2.5">
-      <dt className="text-sm text-muted-foreground shrink-0">{label}</dt>
-      <dd className="text-sm text-right min-w-0 break-words">{value}</dd>
+      <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-right text-sm break-words">{value}</dd>
     </div>
   );
 }
@@ -638,16 +787,33 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 // The biller editor's fields as one value: the editor compares it to tell what's unsaved.
 interface BillerValues {
-  name: string; kind: BillerKind; amount: string; frequency: BillerFrequency; nextDueDate: string;
-  accountID: number | null; categoryID: number | null; autoRenew: boolean; remindTask: boolean;
-  alertDays: number; notes: string; income: boolean;
+  name: string;
+  kind: BillerKind;
+  amount: string;
+  frequency: BillerFrequency;
+  nextDueDate: string;
+  accountID: number | null;
+  categoryID: number | null;
+  autoRenew: boolean;
+  remindTask: boolean;
+  alertDays: number;
+  notes: string;
+  income: boolean;
 }
 
 function billerValues(b: FinBiller): BillerValues {
   return {
-    name: b.name, kind: b.kind, amount: b.amount > 0 ? String(b.amount) : '', frequency: b.frequency,
-    nextDueDate: b.next_due_date, accountID: b.account_id, categoryID: b.category_id,
-    autoRenew: b.auto_renew, remindTask: b.remind_task, alertDays: b.alert_days, notes: b.notes,
+    name: b.name,
+    kind: b.kind,
+    amount: b.amount > 0 ? String(b.amount) : '',
+    frequency: b.frequency,
+    nextDueDate: b.next_due_date,
+    accountID: b.account_id,
+    categoryID: b.category_id,
+    autoRenew: b.auto_renew,
+    remindTask: b.remind_task,
+    alertDays: b.alert_days,
+    notes: b.notes,
     income: !!b.income,
   };
 }
@@ -672,7 +838,13 @@ function billerPayload(v: BillerValues): Partial<FinBiller> {
 }
 
 function BillerDialog({
-  open, biller, initial, accounts, categories, onClose, onSaved,
+  open,
+  biller,
+  initial,
+  accounts,
+  categories,
+  onClose,
+  onSaved,
 }: {
   open: boolean;
   biller: FinBiller | null;
@@ -698,16 +870,38 @@ function BillerDialog({
   const [saving, setSaving] = useState(false);
 
   const values: BillerValues = {
-    name, kind, amount, frequency, nextDueDate, accountID, categoryID, autoRenew, remindTask, alertDays, notes, income,
+    name,
+    kind,
+    amount,
+    frequency,
+    nextDueDate,
+    accountID,
+    categoryID,
+    autoRenew,
+    remindTask,
+    alertDays,
+    notes,
+    income,
   };
   const apply = (v: BillerValues) => {
-    setName(v.name); setKind(v.kind); setAmount(v.amount); setFrequency(v.frequency);
-    setNextDueDate(v.nextDueDate); setAccountID(v.accountID); setCategoryID(v.categoryID);
-    setAutoRenew(v.autoRenew); setRemindTask(v.remindTask); setAlertDays(v.alertDays); setNotes(v.notes);
+    setName(v.name);
+    setKind(v.kind);
+    setAmount(v.amount);
+    setFrequency(v.frequency);
+    setNextDueDate(v.nextDueDate);
+    setAccountID(v.accountID);
+    setCategoryID(v.categoryID);
+    setAutoRenew(v.autoRenew);
+    setRemindTask(v.remindTask);
+    setAlertDays(v.alertDays);
+    setNotes(v.notes);
     setIncome(v.income);
   };
-  const invalid = !name.trim() ? 'it needs a name.'
-    : kind === 'subscription' && !(parseFloat(amount) > 0) ? 'a fixed amount is needed (or pick Varies).' : null;
+  const invalid = !name.trim()
+    ? 'it needs a name.'
+    : kind === 'subscription' && !(parseFloat(amount) > 0)
+      ? 'a fixed amount is needed (or pick Varies).'
+      : null;
   // Nothing saves until Save; a new biller is created explicitly.
   const editor = useEditorDraft({
     open: open,
@@ -724,14 +918,37 @@ function BillerDialog({
 
   useEffect(() => {
     if (!open) return;
-    const v: BillerValues = biller ? billerValues(biller) : initial ? {
-      name: initial.title, kind: 'subscription', amount: String(initial.amount), frequency: 'monthly', nextDueDate: initial.next_due_date,
-      accountID: initial.account_id, categoryID: initial.category_id, autoRenew: false, remindTask: false,
-      alertDays: initial.income ? 0 : 3, notes: '', income: initial.income,
-    } : {
-      name: '', kind: 'subscription', amount: '', frequency: 'monthly', nextDueDate: format(new Date(), 'yyyy-MM-dd'),
-      accountID: null, categoryID: null, autoRenew: false, remindTask: false, alertDays: 3, notes: '', income: false,
-    };
+    const v: BillerValues = biller
+      ? billerValues(biller)
+      : initial
+        ? {
+            name: initial.title,
+            kind: 'subscription',
+            amount: String(initial.amount),
+            frequency: 'monthly',
+            nextDueDate: initial.next_due_date,
+            accountID: initial.account_id,
+            categoryID: initial.category_id,
+            autoRenew: false,
+            remindTask: false,
+            alertDays: initial.income ? 0 : 3,
+            notes: '',
+            income: initial.income,
+          }
+        : {
+            name: '',
+            kind: 'subscription',
+            amount: '',
+            frequency: 'monthly',
+            nextDueDate: format(new Date(), 'yyyy-MM-dd'),
+            accountID: null,
+            categoryID: null,
+            autoRenew: false,
+            remindTask: false,
+            alertDays: 3,
+            notes: '',
+            income: false,
+          };
     apply(v);
     loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
@@ -741,7 +958,10 @@ function BillerDialog({
   const canSubmit = !invalid;
 
   const submit = async () => {
-    if (biller) { await editor.save(onSaved); return; }
+    if (biller) {
+      await editor.save(onSaved);
+      return;
+    }
     if (!canSubmit) return;
     setSaving(true);
     try {
@@ -764,10 +984,13 @@ function BillerDialog({
 
         {/* Tall form — cap height and scroll the fields so the modal never
             runs off-screen; header + footer stay pinned. */}
-        <div className="flex flex-col gap-3 mt-2 max-h-[62vh] overflow-y-auto overscroll-contain -mx-1 px-1">
+        <div className="-mx-1 mt-2 flex max-h-[62vh] flex-col gap-3 overflow-y-auto overscroll-contain px-1">
           <SegmentedButton
             value={income ? 'in' : 'out'}
-            onChange={(v) => { setIncome(v === 'in'); setCategoryID(null); }}
+            onChange={(v) => {
+              setIncome(v === 'in');
+              setCategoryID(null);
+            }}
             stretch
             className="shrink-0"
             aria-label="Direction"
@@ -796,14 +1019,19 @@ function BillerDialog({
               />
             </Field>
             <Field label="Frequency">
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as BillerFrequency)}
-                items={(Object.keys(FREQ_LABEL) as BillerFrequency[]).map((f) => ({ value: f, label: FREQ_LABEL[f] }))}>
+              <Select
+                value={frequency}
+                onValueChange={(v) => setFrequency(v as BillerFrequency)}
+                items={(Object.keys(FREQ_LABEL) as BillerFrequency[]).map((f) => ({ value: f, label: FREQ_LABEL[f] }))}
+              >
                 <SelectTrigger size="sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(FREQ_LABEL) as BillerFrequency[]).map((f) => (
-                    <SelectItem key={f} value={f}>{FREQ_LABEL[f]}</SelectItem>
+                    <SelectItem key={f} value={f}>
+                      {FREQ_LABEL[f]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -821,17 +1049,14 @@ function BillerDialog({
               { value: 'bill', label: 'Varies' },
             ]}
           />
-          <p className="text-xs text-muted-foreground -mt-1.5">
+          <p className="-mt-1.5 text-xs text-muted-foreground">
             {kind === 'subscription'
               ? 'The same amount every time: Netflix, rent, Home Contrib.'
               : 'The amount is a guess (electricity, Salary with a bonus); the real payment is what counts.'}
           </p>
 
           <Field label="Next due date">
-            <DatePicker
-              value={nextDueDate}
-              onChange={(d) => d && setNextDueDate(d)}
-            />
+            <DatePicker value={nextDueDate} onChange={(d) => d && setNextDueDate(d)} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -839,7 +1064,10 @@ function BillerDialog({
               <Select
                 value={accountID == null ? 'none' : String(accountID)}
                 onValueChange={(v) => setAccountID(v === 'none' ? null : Number(v))}
-                items={[{ value: 'none', label: '–' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
+                items={[
+                  { value: 'none', label: '–' },
+                  ...accounts.map((a) => ({ value: String(a.id), label: a.name })),
+                ]}
               >
                 <SelectTrigger size="sm">
                   <SelectValue placeholder="–" />
@@ -847,7 +1075,9 @@ function BillerDialog({
                 <SelectContent>
                   <SelectItem value="none">–</SelectItem>
                   {accounts.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -856,22 +1086,31 @@ function BillerDialog({
               <Select
                 value={categoryID == null ? 'none' : String(categoryID)}
                 onValueChange={(v) => setCategoryID(v === 'none' ? null : Number(v))}
-                items={[{ value: 'none', label: '–' }, ...categories.filter((c) => c.kind === (income ? 'income' : 'expense')).map((c) => ({ value: String(c.id), label: c.name }))]}
+                items={[
+                  { value: 'none', label: '–' },
+                  ...categories
+                    .filter((c) => c.kind === (income ? 'income' : 'expense'))
+                    .map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
               >
                 <SelectTrigger size="sm">
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">–</SelectItem>
-                  {categories.filter((c) => c.kind === (income ? 'income' : 'expense')).map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
+                  {categories
+                    .filter((c) => c.kind === (income ? 'income' : 'expense'))
+                    .map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </Field>
           </div>
 
-          <div className="rounded-xl border border-border divide-y divide-border">
+          <div className="divide-y divide-border rounded-xl border border-border">
             {kind === 'subscription' && (
               <CheckRow
                 label="Sajni adds it itself"
@@ -897,18 +1136,18 @@ function BillerDialog({
           </Field>
 
           <Field label="Notes">
-            <Textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional"
-            />
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
           </Field>
         </div>
 
         <DialogFooter className="mt-3">
-          <EditActions draft={editor} onCancel={onClose} onSave={submit} saveLabel={biller ? 'Save' : saving ? 'Saving…' : 'Create'}
-            disabled={!biller && (saving || !canSubmit)} />
+          <EditActions
+            draft={editor}
+            onCancel={onClose}
+            onSave={submit}
+            saveLabel={biller ? 'Save' : saving ? 'Saving…' : 'Create'}
+            disabled={!biller && (saving || !canSubmit)}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -918,7 +1157,7 @@ function BillerDialog({
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={'flex flex-col gap-1 ' + (className || '')}>
-      <Label className="text-xs font-mono label-kicker text-muted-foreground">{label}</Label>
+      <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -927,7 +1166,12 @@ function Field({ label, children, className }: { label: string; children: React.
 // A labelled toggle row with a description and, when disabled, an inline reason
 // so it's obvious WHY the option can't be picked.
 function CheckRow({
-  label, desc, checked, onChange, disabled, disabledReason,
+  label,
+  desc,
+  checked,
+  onChange,
+  disabled,
+  disabledReason,
 }: {
   label: string;
   desc: string;
@@ -937,23 +1181,23 @@ function CheckRow({
   disabledReason?: string;
 }) {
   return (
-    <label className={'flex items-start gap-3 p-3 ' + (disabled ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer')}>
+    <label className={'flex items-start gap-3 p-3 ' + (disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer')}>
       <Checkbox
         checked={checked}
-        onCheckedChange={(c) => { if (!disabled) onChange(c === true); }}
+        onCheckedChange={(c) => {
+          if (!disabled) onChange(c === true);
+        }}
         disabled={disabled}
         className="mt-0.5"
       />
       <div className="min-w-0">
-        <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 text-sm leading-none font-medium">
           {label}
           {disabled && disabledReason ? (
-            <span className="text-xs font-mono label-kicker text-[hsl(var(--tertiary))]">
-              · {disabledReason}
-            </span>
+            <span className="label-kicker font-mono text-xs text-[hsl(var(--tertiary))]">· {disabledReason}</span>
           ) : null}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">{desc}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{desc}</div>
       </div>
     </label>
   );

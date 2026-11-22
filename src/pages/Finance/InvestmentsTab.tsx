@@ -40,8 +40,17 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
   const totals = useMemo(() => {
     const invested = sumMoney(investments, (i) => i.invested_amount);
     const current = sumMoney(investments, (i) => i.current_value);
-    const monthly = sumMoney(investments.filter((i) => i.frequency === 'monthly'), (i) => i.monthly_amount);
-    return { invested, current, monthly, gain: subMoney(current, invested), gainPct: invested > 0 ? ((current - invested) / invested) * 100 : 0 };
+    const monthly = sumMoney(
+      investments.filter((i) => i.frequency === 'monthly'),
+      (i) => i.monthly_amount,
+    );
+    return {
+      invested,
+      current,
+      monthly,
+      gain: subMoney(current, invested),
+      gainPct: invested > 0 ? ((current - invested) / invested) * 100 : 0,
+    };
   }, [investments]);
 
   return (
@@ -51,7 +60,13 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         <Stat label="Current value" value={<AnimatedMoney value={totals.current} />} tone="primary" />
         <Stat
           label={totals.gain >= 0 ? 'Gain' : 'Loss'}
-          value={<>{totals.gain >= 0 ? '+' : ''}<AnimatedMoney value={totals.gain} /> <span className="text-base">{formatPercent(totals.gainPct, 1)}</span></>}
+          value={
+            <>
+              {totals.gain >= 0 ? '+' : ''}
+              <AnimatedMoney value={totals.gain} />{' '}
+              <span className="text-base">{formatPercent(totals.gainPct, 1)}</span>
+            </>
+          }
           tone={totals.gain >= 0 ? 'primary' : 'destructive'}
         />
         <Stat label="Monthly outflow" value={<AnimatedMoney value={totals.monthly} />} />
@@ -60,7 +75,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">Investments</h2>
         <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="size-4 mr-1" /> Add investment
+          <Plus className="mr-1 size-4" /> Add investment
         </Button>
       </div>
 
@@ -69,7 +84,7 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
       ) : investments.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">No investments yet</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {investments.map((inv) => {
             const gain = subMoney(inv.current_value, inv.invested_amount);
             const gainPct = inv.invested_amount > 0 ? (gain / inv.invested_amount) * 100 : 0;
@@ -87,35 +102,50 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
                 onClick={() => setEditing(inv)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setEditing(inv); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') setEditing(inv);
+                }}
                 className={cardClass({ interactive: true }, 'p-4')}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{inv.name}</div>
+                    <div className="truncate font-medium">{inv.name}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label ?? inv.type.replace('_', ' ')}
-                      {inv.frequency === 'monthly' && inv.monthly_amount > 0 && <> · <Money value={inv.monthly_amount} />/mo</>}
+                      {inv.frequency === 'monthly' && inv.monthly_amount > 0 && (
+                        <>
+                          {' '}
+                          · <Money value={inv.monthly_amount} />
+                          /mo
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {closed ? (
                   <ClosedSummary inv={inv} />
-                ) : (<>
-                <div className="mt-3 flex items-baseline justify-between gap-2">
-                  <div className="font-serif text-2xl font-semibold tabular-nums">
-                    <Money value={inv.current_value} />
-                  </div>
-                  <div className={`whitespace-nowrap text-sm font-medium tabular-nums ${positive ? 'text-primary' : 'text-destructive'}`}>
-                    {positive ? '+' : ''}<Money value={gain} /> · {formatPercent(gainPct, 1)}
-                  </div>
-                </div>
-                <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-                  of <Money value={inv.invested_amount} /> invested
-                  {!(inv.type === 'rd' || inv.type === 'fd') && inv.last_updated && ' · ' + format(parseISO(inv.last_updated), 'd MMM')}
-                </div>
-                </>)}
+                ) : (
+                  <>
+                    <div className="mt-3 flex items-baseline justify-between gap-2">
+                      <div className="font-serif text-2xl font-semibold tabular-nums">
+                        <Money value={inv.current_value} />
+                      </div>
+                      <div
+                        className={`text-sm font-medium whitespace-nowrap tabular-nums ${positive ? 'text-primary' : 'text-destructive'}`}
+                      >
+                        {positive ? '+' : ''}
+                        <Money value={gain} /> · {formatPercent(gainPct, 1)}
+                      </div>
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                      of <Money value={inv.invested_amount} /> invested
+                      {!(inv.type === 'rd' || inv.type === 'fd') &&
+                        inv.last_updated &&
+                        ' · ' + format(parseISO(inv.last_updated), 'd MMM')}
+                    </div>
+                  </>
+                )}
 
                 {/* Cadence and dates as badges; auto-debit is the one that
                     acts on its own, so it carries the accent. */}
@@ -147,19 +177,35 @@ export default function InvestmentsTab({ accounts, investments, loaded, reload }
         open={creating || editing !== null}
         investment={editing}
         accounts={accounts}
-        onClose={() => { setCreating(false); setEditing(null); }}
-        onSaved={() => { setCreating(false); setEditing(null); reload(); }}
+        onClose={() => {
+          setCreating(false);
+          setEditing(null);
+        }}
+        onSaved={() => {
+          setCreating(false);
+          setEditing(null);
+          reload();
+        }}
       />
     </div>
   );
 }
 
-
 // The investment editor's fields as one value: the editor compares it to tell what's unsaved.
 interface InvestmentValues {
-  name: string; type: FinInvestment['type']; accountId: string; invested: string; current: string;
-  monthly: string; frequency: string; startDate: string; maturityDate: string; expectedReturn: string;
-  notes: string; autoDebit: boolean; nextDebitDate: string;
+  name: string;
+  type: FinInvestment['type'];
+  accountId: string;
+  invested: string;
+  current: string;
+  monthly: string;
+  frequency: string;
+  startDate: string;
+  maturityDate: string;
+  expectedReturn: string;
+  notes: string;
+  autoDebit: boolean;
+  nextDebitDate: string;
 }
 
 function investmentValues(inv: FinInvestment): InvestmentValues {
@@ -213,7 +259,13 @@ function investmentDraft(v: InvestmentValues): InvDraft {
   };
 }
 
-function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
+function InvestmentDialog({
+  open,
+  investment,
+  accounts,
+  onClose,
+  onSaved,
+}: {
   open: boolean;
   investment: FinInvestment | null;
   accounts: FinAccount[];
@@ -235,14 +287,34 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   const [nextDebitDate, setNextDebitDate] = useState('');
 
   const values: InvestmentValues = {
-    name, type, accountId, invested, current, monthly, frequency, startDate, maturityDate,
-    expectedReturn, notes, autoDebit, nextDebitDate,
+    name,
+    type,
+    accountId,
+    invested,
+    current,
+    monthly,
+    frequency,
+    startDate,
+    maturityDate,
+    expectedReturn,
+    notes,
+    autoDebit,
+    nextDebitDate,
   };
   const apply = (v: InvestmentValues) => {
-    setName(v.name); setType(v.type); setAccountId(v.accountId); setInvested(v.invested);
-    setCurrent(v.current); setMonthly(v.monthly); setFrequency(v.frequency); setStartDate(v.startDate);
-    setMaturityDate(v.maturityDate); setExpectedReturn(v.expectedReturn); setNotes(v.notes);
-    setAutoDebit(v.autoDebit); setNextDebitDate(v.nextDebitDate);
+    setName(v.name);
+    setType(v.type);
+    setAccountId(v.accountId);
+    setInvested(v.invested);
+    setCurrent(v.current);
+    setMonthly(v.monthly);
+    setFrequency(v.frequency);
+    setStartDate(v.startDate);
+    setMaturityDate(v.maturityDate);
+    setExpectedReturn(v.expectedReturn);
+    setNotes(v.notes);
+    setAutoDebit(v.autoDebit);
+    setNextDebitDate(v.nextDebitDate);
   };
   // Nothing saves until Save; a new investment is created explicitly.
   const editor = useEditorDraft({
@@ -259,10 +331,23 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   const requestClose = () => editor.close(onClose);
 
   useEffect(() => {
-    const v: InvestmentValues = investment ? investmentValues(investment) : {
-      name: '', type: 'sip', accountId: '', invested: '', current: '', monthly: '', frequency: 'monthly',
-      startDate: '', maturityDate: '', expectedReturn: '', notes: '', autoDebit: false, nextDebitDate: '',
-    };
+    const v: InvestmentValues = investment
+      ? investmentValues(investment)
+      : {
+          name: '',
+          type: 'sip',
+          accountId: '',
+          invested: '',
+          current: '',
+          monthly: '',
+          frequency: 'monthly',
+          startDate: '',
+          maturityDate: '',
+          expectedReturn: '',
+          notes: '',
+          autoDebit: false,
+          nextDebitDate: '',
+        };
     apply(v);
     loadDraft(v);
     // Keyed on the dialog opening; the setters are stable.
@@ -288,7 +373,10 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   });
 
   const save = async () => {
-    if (investment) { await editor.save(onSaved); return; }
+    if (investment) {
+      await editor.save(onSaved);
+      return;
+    }
     if (!name.trim()) return;
     await finance.createInvestment(investmentDraft(values));
     onSaved();
@@ -304,7 +392,7 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="flex-row items-baseline justify-between gap-3">
           <DialogTitle>{investment ? 'Edit investment' : 'New investment'}</DialogTitle>
         </DialogHeader>
@@ -313,13 +401,19 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nifty 50 SIP" />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType((v as FinInvestment['type']) || 'sip')} items={INVESTMENT_TYPES}>
+            <Select
+              value={type}
+              onValueChange={(v) => setType((v as FinInvestment['type']) || 'sip')}
+              items={INVESTMENT_TYPES}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {INVESTMENT_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -328,7 +422,10 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             <Select
               value={accountId || 'none'}
               onValueChange={(v) => setAccountId(!v || v === 'none' ? '' : v)}
-              items={[{ value: 'none', label: 'None' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
+              items={[
+                { value: 'none', label: 'None' },
+                ...accounts.map((a) => ({ value: String(a.id), label: a.name })),
+              ]}
             >
               <SelectTrigger>
                 <SelectValue placeholder="None" />
@@ -336,7 +433,9 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
                 {accounts.map((a) => (
-                  <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -345,20 +444,45 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
             label={type === 'rd' ? 'Total deposited' : type === 'fd' ? 'Deposit amount' : 'Total invested'}
             hint={type === 'rd' ? 'Principal paid into this RD so far.' : undefined}
           >
-            <Input type="number" min="0" inputMode="decimal" value={invested} onChange={(e) => setInvested(e.target.value)} placeholder="₹ 0" />
+            <Input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={invested}
+              onChange={(e) => setInvested(e.target.value)}
+              placeholder="₹ 0"
+            />
           </Field>
           {!fixedDeposit && (
             <Field
               label={type === 'sip' ? 'Current market value' : 'Current value'}
-              hint={type === 'sip' ? 'Use the value from your latest statement; market prices are not estimated.' : undefined}
+              hint={
+                type === 'sip'
+                  ? 'Use the value from your latest statement; market prices are not estimated.'
+                  : undefined
+              }
             >
-              <Input type="number" min="0" inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Defaults to invested" />
+              <Input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                placeholder="Defaults to invested"
+              />
             </Field>
           )}
           {recurring && (
             <Field label="Frequency">
-              <Select value={frequency} onValueChange={(v) => setFrequency(v ?? 'monthly')}
-                items={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'yearly', label: 'Yearly' }]}>
+              <Select
+                value={frequency}
+                onValueChange={(v) => setFrequency(v ?? 'monthly')}
+                items={[
+                  { value: 'monthly', label: 'Monthly' },
+                  { value: 'quarterly', label: 'Quarterly' },
+                  { value: 'yearly', label: 'Yearly' },
+                ]}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -372,11 +496,17 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
           )}
           {recurring && (
             <Field label="Amount per cycle">
-              <Input type="number" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder="e.g. 5000" />
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={monthly}
+                onChange={(e) => setMonthly(e.target.value)}
+                placeholder="e.g. 5000"
+              />
             </Field>
           )}
           {recurring && (
-            <div className="col-span-2 rounded-xl border border-border divide-y divide-border">
+            <div className="col-span-2 divide-y divide-border rounded-xl border border-border">
               <CheckRow
                 label="Automatically debit?"
                 desc="Each cycle Sajni records a transfer from the linked account into this investment. It isn't spending. You'll get a notification."
@@ -387,11 +517,9 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
               />
               {autoDebitOn && (
                 <div className="flex flex-col gap-1.5 p-3">
-                  <Label className="font-mono text-xs label-kicker text-muted-foreground">Next debit date</Label>
+                  <Label className="label-kicker font-mono text-xs text-muted-foreground">Next debit date</Label>
                   <DatePicker value={nextDebitDate} onChange={setNextDebitDate} />
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to project it from the start date.
-                  </p>
+                  <p className="text-xs text-muted-foreground">Leave blank to project it from the start date.</p>
                 </div>
               )}
             </div>
@@ -405,18 +533,27 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
                 <DatePicker value={maturityDate} onChange={setMaturityDate} showWeekday={false} />
               </Field>
               <Field label={fixedDeposit ? 'Interest rate (p.a.)' : 'Expected return (p.a.)'}>
-                <Input type="number" min="0" step="0.01" inputMode="decimal" value={expectedReturn} onChange={(e) => setExpectedReturn(e.target.value)} placeholder="e.g. 6.6" />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={expectedReturn}
+                  onChange={(e) => setExpectedReturn(e.target.value)}
+                  placeholder="e.g. 6.6"
+                />
               </Field>
             </>
           )}
           {fixedDeposit && (
             <div className="col-span-2 rounded-xl bg-secondary/45 px-4 py-3">
-              <div className="font-mono text-xs label-kicker text-muted-foreground">Estimated current value</div>
-              <div className="font-serif text-2xl font-semibold tabular-nums mt-0.5">
+              <div className="label-kicker font-mono text-xs text-muted-foreground">Estimated current value</div>
+              <div className="mt-0.5 font-serif text-2xl font-semibold tabular-nums">
                 <AnimatedMoney value={estimatedValue} />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Pre-tax estimate to today, capped at maturity, using quarterly compounding. Your bank may round differently.
+              <p className="mt-1 text-xs text-muted-foreground">
+                Pre-tax estimate to today, capped at maturity, using quarterly compounding. Your bank may round
+                differently.
               </p>
             </div>
           )}
@@ -427,9 +564,11 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
         <DialogFooter className="flex-row items-center justify-between">
           {investment ? (
             <Button variant="destructive-quiet" onClick={remove}>
-              <Trash2 className="size-4 mr-1" /> Delete
+              <Trash2 className="mr-1 size-4" /> Delete
             </Button>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
           <div className="flex gap-2">
             <EditActions draft={editor} onCancel={onClose} onSave={save} saveLabel={investment ? 'Save' : 'Create'} />
           </div>
@@ -439,10 +578,20 @@ function InvestmentDialog({ open, investment, accounts, onClose, onSaved }: {
   );
 }
 
-function Field({ label, hint, className = '', children }: { label: string; hint?: string; className?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  className = '',
+  children,
+}: {
+  label: string;
+  hint?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
+      <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
       {children}
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
@@ -450,7 +599,13 @@ function Field({ label, hint, className = '', children }: { label: string; hint?
 }
 
 function estimateFixedInvestmentValue({
-  type, investedAmount, cycleAmount, frequency, startDate, maturityDate, annualRate,
+  type,
+  investedAmount,
+  cycleAmount,
+  frequency,
+  startDate,
+  maturityDate,
+  annualRate,
 }: {
   type: FinInvestment['type'];
   investedAmount: number;
@@ -496,7 +651,7 @@ function compoundDeposit(principal: number, annualRate: number, from: Date, to: 
     cursor = next;
   }
   const days = differenceInDays(to, cursor);
-  if (days > 0) value *= 1 + annualRate * days / 365;
+  if (days > 0) value *= 1 + (annualRate * days) / 365;
   return value;
 }
 
@@ -515,7 +670,12 @@ function roundMoney(value: number) {
 // Labelled toggle row with an inline reason when disabled (same pattern as
 // the billers dialog) so it's obvious WHY the option can't be picked yet.
 function CheckRow({
-  label, desc, checked, onChange, disabled, disabledReason,
+  label,
+  desc,
+  checked,
+  onChange,
+  disabled,
+  disabledReason,
 }: {
   label: string;
   desc: string;
@@ -525,23 +685,23 @@ function CheckRow({
   disabledReason?: string;
 }) {
   return (
-    <label className={'flex items-start gap-3 p-3 ' + (disabled ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer')}>
+    <label className={'flex items-start gap-3 p-3 ' + (disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer')}>
       <Checkbox
         checked={checked}
-        onCheckedChange={(c) => { if (!disabled) onChange(c === true); }}
+        onCheckedChange={(c) => {
+          if (!disabled) onChange(c === true);
+        }}
         disabled={disabled}
         className="mt-0.5"
       />
       <div className="min-w-0">
-        <div className="text-sm font-medium leading-none flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 text-sm leading-none font-medium">
           {label}
           {disabled && disabledReason ? (
-            <span className="text-xs font-mono label-kicker text-[hsl(var(--tertiary))]">
-              · {disabledReason}
-            </span>
+            <span className="label-kicker font-mono text-xs text-[hsl(var(--tertiary))]">· {disabledReason}</span>
           ) : null}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">{desc}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{desc}</div>
       </div>
     </label>
   );
@@ -557,12 +717,16 @@ function ClosedSummary({ inv }: { inv: FinInvestment }) {
   const pct = putIn > 0 ? (earned / putIn) * 100 : 0;
   return (
     <div className="mt-3 flex flex-col gap-0.5 text-sm">
-      <div className="text-xs text-muted-foreground">Closed {inv.closed_on ? format(parseISO(inv.closed_on), 'd MMM yyyy') : ''}</div>
+      <div className="text-xs text-muted-foreground">
+        Closed {inv.closed_on ? format(parseISO(inv.closed_on), 'd MMM yyyy') : ''}
+      </div>
       <div className="tabular-nums">
         Put in <Money value={putIn} /> · got back <Money value={back} />
       </div>
       {earned > 0 && (
-        <div className="text-primary tabular-nums">Earned <Money value={earned} /> · {formatPercent(pct, 1)}</div>
+        <div className="text-primary tabular-nums">
+          Earned <Money value={earned} /> · {formatPercent(pct, 1)}
+        </div>
       )}
     </div>
   );

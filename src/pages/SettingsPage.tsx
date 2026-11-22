@@ -1,6 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Monitor, Type, LogOut, Download, Upload, AlertTriangle, Trash2, Wand2, Pencil, Mail, Check, X, RefreshCw, Copy } from '@/components/ui/icons';
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Type,
+  LogOut,
+  Download,
+  Upload,
+  AlertTriangle,
+  Trash2,
+  Wand2,
+  Pencil,
+  Mail,
+  Check,
+  X,
+  RefreshCw,
+  Copy,
+} from '@/components/ui/icons';
 // No pixel match — straight lucide (same as the icon shim's passthroughs).
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,14 +47,7 @@ import { diagStats, downloadDiagnostics, sendDiagnostics, type DiagStats } from 
 // applied through the ThemeProvider so other pages observe the swap
 // the moment activate fires.
 function AIThemes() {
-  const {
-    mode,
-    active,
-    action,
-    activateTheme,
-    generateTheme,
-    deleteTheme,
-  } = useUserTheme();
+  const { mode, active, action, activateTheme, generateTheme, deleteTheme } = useUserTheme();
   const qc = useQueryClient();
   const { data: list = [], isLoading: loading } = useThemes();
   const [prompt, setPrompt] = useState('');
@@ -94,7 +104,12 @@ function AIThemes() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. forest morning, calm, dark-leaning"
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); generate(); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                generate();
+              }
+            }}
             disabled={generating}
           />
           <Button onClick={generate} disabled={busy || !prompt.trim()} className="w-full gap-2 sm:w-auto sm:shrink-0">
@@ -102,7 +117,11 @@ function AIThemes() {
             {generating ? 'Mixing…' : 'Generate'}
           </Button>
         </div>
-        {error && <div role="alert" className="text-xs text-destructive">{error}</div>}
+        {error && (
+          <div role="alert" className="text-xs text-destructive">
+            {error}
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -110,7 +129,7 @@ function AIThemes() {
       ) : list.length === 0 ? (
         <p className="text-sm text-muted-foreground">No themes yet</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {list.map((t) => {
             const isActive = active?.id === t.id;
             const isActivating = action?.kind === 'activate' && action.id === t.id;
@@ -132,7 +151,7 @@ function AIThemes() {
                   disabled={busy || isActive}
                   aria-pressed={isActive}
                   aria-label={isActive ? `${t.name}, active theme` : `Activate ${t.name}`}
-                  className="flex min-w-0 flex-1 items-center gap-3 rounded-l-xl p-3 text-left outline-none transition-colors enabled:hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-l-xl p-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset enabled:hover:bg-accent/40 disabled:cursor-default"
                 >
                   <span className="flex shrink-0" aria-hidden="true">
                     {swatches.map((swatch, index) => (
@@ -148,9 +167,7 @@ function AIThemes() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-serif text-sm font-semibold">{t.name}</span>
-                    <span className="block truncate text-xs opacity-70">
-                      {t.prompt}
-                    </span>
+                    <span className="block truncate text-xs opacity-70">{t.prompt}</span>
                   </span>
                   {isActivating && (
                     <span className="grid size-8 shrink-0 place-items-center" aria-hidden="true">
@@ -162,20 +179,17 @@ function AIThemes() {
                   type="button"
                   onClick={() => remove(t)}
                   disabled={busy}
-                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-xl text-[hsl(var(--error))] outline-none transition-colors enabled:hover:bg-[hsl(var(--error-container))] enabled:hover:text-[hsl(var(--on-error-container))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
+                  className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-r-xl text-[hsl(var(--error))] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset enabled:hover:bg-[hsl(var(--error-container))] enabled:hover:text-[hsl(var(--on-error-container))] disabled:opacity-50"
                   title={`Delete ${t.name}`}
                   aria-label={`Delete ${t.name}`}
                 >
-                  {isDeleting
-                    ? <M3CookieLoader size="xs" tone="primary" />
-                    : <Trash2 className="size-4" />}
+                  {isDeleting ? <M3CookieLoader size="xs" tone="primary" /> : <Trash2 className="size-4" />}
                 </button>
               </div>
             );
           })}
         </div>
       )}
-
     </div>
   );
 }
@@ -238,7 +252,9 @@ function ConnectedApps() {
                     app.host,
                     app.can_write ? 'Can make changes' : 'Read only',
                     app.last_used_at ? `Used ${format(parseISO(app.last_used_at), 'd MMM, h:mm a')}` : 'Not used yet',
-                  ].filter(Boolean).join(' · ')}
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </span>
               </span>
               <Button
@@ -264,18 +280,27 @@ function ConnectedApps() {
 function Diagnostics() {
   const [stats, setStats] = useState<DiagStats | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
-  const refresh = () => { diagStats().then(setStats).catch(() => setStats(null)); };
+  const refresh = () => {
+    diagStats()
+      .then(setStats)
+      .catch(() => setStats(null));
+  };
   useEffect(refresh, []);
 
   async function send() {
     setProgress('Sending…');
     try {
-      const { sent, left } = await sendDiagnostics((p) => setProgress(
-        p.retrying
-          ? `Connection stalled, retrying… (${p.sent.toLocaleString()} of ${p.total.toLocaleString()})`
-          : `Sending ${p.sent.toLocaleString()} of ${p.total.toLocaleString()}…`,
-      ));
-      if (left) toast.error(`Sent ${sent.toLocaleString()}, ${left.toLocaleString()} still to go: couldn't reach Sajni. Send again to carry on.`);
+      const { sent, left } = await sendDiagnostics((p) =>
+        setProgress(
+          p.retrying
+            ? `Connection stalled, retrying… (${p.sent.toLocaleString()} of ${p.total.toLocaleString()})`
+            : `Sending ${p.sent.toLocaleString()} of ${p.total.toLocaleString()}…`,
+        ),
+      );
+      if (left)
+        toast.error(
+          `Sent ${sent.toLocaleString()}, ${left.toLocaleString()} still to go: couldn't reach Sajni. Send again to carry on.`,
+        );
       else toast.success(sent ? `Sent ${sent.toLocaleString()} events` : 'Nothing new to send');
     } catch (e) {
       toast.error(failureText(e, "Couldn't send. Try again."));
@@ -297,7 +322,14 @@ function Diagnostics() {
           {progress ? <M3CookieLoader size="xs" tone="primary" /> : <Upload className="size-4" />}
           {progress ?? 'Send to Sajni'}
         </Button>
-        <Button variant="outline" disabled={!stats?.total} onClick={() => { downloadDiagnostics().catch((e) => toast.error(failureText(e))); }} className="gap-2">
+        <Button
+          variant="outline"
+          disabled={!stats?.total}
+          onClick={() => {
+            downloadDiagnostics().catch((e) => toast.error(failureText(e)));
+          }}
+          className="gap-2"
+        >
           <Download className="size-4" />
           Download (.json)
         </Button>
@@ -310,7 +342,7 @@ function Diagnostics() {
 // title, then the controls. No caption — the controls say what they do.
 function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="border-t border-border first:border-t-0 py-6 first:pt-0 scroll-mt-6">
+    <section id={id} className="scroll-mt-6 border-t border-border py-6 first:border-t-0 first:pt-0">
       <h2 className="mb-3 text-sm font-medium text-muted-foreground">{title}</h2>
       {children}
     </section>
@@ -318,9 +350,15 @@ function Section({ id, title, children }: { id?: string; title: string; children
 }
 
 function Choice<T extends string>({
-  value, current, onSelect, Icon, label,
+  value,
+  current,
+  onSelect,
+  Icon,
+  label,
 }: {
-  value: T; current: T; onSelect: (v: T) => void;
+  value: T;
+  current: T;
+  onSelect: (v: T) => void;
   Icon?: React.ComponentType<{ className?: string }>;
   label: string;
 }) {
@@ -328,10 +366,7 @@ function Choice<T extends string>({
   return (
     <button
       onClick={() => onSelect(value)}
-      className={cn(
-        huePillBase, 'h-10 px-5 justify-center capitalize text-sm',
-        active ? huePillOn : huePillOff,
-      )}
+      className={cn(huePillBase, 'h-10 justify-center px-5 text-sm capitalize', active ? huePillOn : huePillOff)}
       style={hueVar()}
       aria-pressed={active}
     >
@@ -353,10 +388,22 @@ const PROVIDER_META: Record<
     fg: '#3c4043',
     node: (
       <svg width="14" height="14" viewBox="0 0 18 18" aria-hidden="true">
-        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.79 2.72v2.26h2.9c1.69-1.56 2.67-3.86 2.67-6.62z" />
-        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.81.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.06-3.72H.96v2.33A9 9 0 0 0 9 18z" />
-        <path fill="#FBBC05" d="M3.94 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.16.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l2.98-2.34z" />
-        <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96L3.94 7.3C4.66 5.17 6.65 3.58 9 3.58z" />
+        <path
+          fill="#4285F4"
+          d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.79 2.72v2.26h2.9c1.69-1.56 2.67-3.86 2.67-6.62z"
+        />
+        <path
+          fill="#34A853"
+          d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.81.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.06-3.72H.96v2.33A9 9 0 0 0 9 18z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M3.94 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.16.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l2.98-2.34z"
+        />
+        <path
+          fill="#EA4335"
+          d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96L3.94 7.3C4.66 5.17 6.65 3.58 9 3.58z"
+        />
       </svg>
     ),
   },
@@ -403,7 +450,10 @@ function NameEditor() {
 
   const save = async () => {
     const v = draft.trim();
-    if (!v) { setError('Name cannot be empty.'); return; }
+    if (!v) {
+      setError('Name cannot be empty.');
+      return;
+    }
     setSaving(true);
     try {
       await updateName(v);
@@ -421,7 +471,7 @@ function NameEditor() {
         <span className="serif font-semibold">{user.name || '–'}</span>
         <button
           onClick={begin}
-          className="size-7 rounded-full grid place-items-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]"
+          className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground"
           title="Edit name"
           aria-label="Edit display name"
         >
@@ -438,8 +488,14 @@ function NameEditor() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); save(); }
-            if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              save();
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              cancel();
+            }
           }}
           disabled={saving}
           autoFocus
@@ -448,7 +504,14 @@ function NameEditor() {
         <Button size="icon-sm" onClick={save} disabled={saving} title="Save" aria-label="Save display name">
           {saving ? <M3CookieLoader size="xs" tone="primary" /> : <Check className="size-4" />}
         </Button>
-        <Button size="icon-sm" variant="ghost" onClick={cancel} disabled={saving} title="Cancel" aria-label="Cancel display name edit">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={cancel}
+          disabled={saving}
+          title="Cancel"
+          aria-label="Cancel display name edit"
+        >
           <X className="size-4" />
         </Button>
       </div>
@@ -460,13 +523,7 @@ function NameEditor() {
 export default function SettingsPage() {
   const { hash } = useLocation();
   const { user, logout, rerollAvatar } = useAuth();
-  const {
-    preset,
-    setPreset,
-    active: activeUserTheme,
-    mode: resolvedMode,
-    action: themeAction,
-  } = useUserTheme();
+  const { preset, setPreset, active: activeUserTheme, mode: resolvedMode, action: themeAction } = useUserTheme();
   const { mode, setMode } = useMode();
   const { density, setDensity } = useDensity();
   const vimPref = useVimPref();
@@ -496,14 +553,21 @@ export default function SettingsPage() {
   }, [hash]);
 
   useEffect(() => {
-    account.deletionStatus().then(setDelState).catch(() => setDelState({ scheduled: false }));
+    account
+      .deletionStatus()
+      .then(setDelState)
+      .catch(() => setDelState({ scheduled: false }));
   }, []);
 
   const onExport = async () => {
     setExporting(true);
-    try { await account.exportData(); }
-    catch (e) { toast.error((e as Error).message); }
-    finally { setExporting(false); }
+    try {
+      await account.exportData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const onImportFile = async (file: File) => {
@@ -512,7 +576,11 @@ export default function SettingsPage() {
     try {
       const res = await account.importData(file);
       const total = Object.values(res.imported || {}).reduce((a, b) => a + b, 0);
-      setImportMsg(`Imported ${total} items: ${Object.entries(res.imported).map(([k, v]) => `${v} ${k}`).join(', ')}`);
+      setImportMsg(
+        `Imported ${total} items: ${Object.entries(res.imported)
+          .map(([k, v]) => `${v} ${k}`)
+          .join(', ')}`,
+      );
     } catch (e) {
       setImportMsg('Import failed: ' + (e as Error).message);
     } finally {
@@ -553,20 +621,13 @@ export default function SettingsPage() {
     >
       <div>
         {user && (
-          <section
-            aria-label="Profile"
-            className="mb-8 rounded-xl bg-card p-4 sm:p-5"
-          >
-            <div className="grid grid-cols-[88px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
-              <ProfileAvatar
-                user={user}
-                size={112}
-                className="!size-[88px] sm:!size-[112px]"
-              />
-              <div className="min-w-0 flex flex-col gap-3">
+          <section aria-label="Profile" className="mb-8 rounded-xl bg-card p-4 sm:p-5">
+            <div className="grid grid-cols-[88px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-5">
+              <ProfileAvatar user={user} size={112} className="!size-[88px] sm:!size-[112px]" />
+              <div className="flex min-w-0 flex-col gap-3">
                 <div className="min-w-0">
                   <NameEditor />
-                  <div className="mt-1 text-sm text-muted-foreground break-all">{user.email}</div>
+                  <div className="mt-1 text-sm break-all text-muted-foreground">{user.email}</div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -595,14 +656,16 @@ export default function SettingsPage() {
                     disabled={rerollingAvatar}
                     onClick={async () => {
                       setRerollingAvatar(true);
-                      try { await rerollAvatar(); }
-                      catch (error) { toast.error((error as Error).message); }
-                      finally { setRerollingAvatar(false); }
+                      try {
+                        await rerollAvatar();
+                      } catch (error) {
+                        toast.error((error as Error).message);
+                      } finally {
+                        setRerollingAvatar(false);
+                      }
                     }}
                   >
-                    {rerollingAvatar
-                      ? <M3CookieLoader size="xs" tone="primary" />
-                      : <RefreshCw className="size-3.5" />}
+                    {rerollingAvatar ? <M3CookieLoader size="xs" tone="primary" /> : <RefreshCw className="size-3.5" />}
                     {rerollingAvatar ? 'Rerolling…' : 'Reroll avatar'}
                   </Button>
                   <Button
@@ -611,13 +674,14 @@ export default function SettingsPage() {
                     disabled={signingOut}
                     onClick={async () => {
                       setSigningOut(true);
-                      try { await logout(); }
-                      finally { setSigningOut(false); }
+                      try {
+                        await logout();
+                      } finally {
+                        setSigningOut(false);
+                      }
                     }}
                   >
-                    {signingOut
-                      ? <M3CookieLoader size="xs" tone="primary" />
-                      : <LogOut className="size-3.5" />}
+                    {signingOut ? <M3CookieLoader size="xs" tone="primary" /> : <LogOut className="size-3.5" />}
                     {signingOut ? 'Signing out…' : 'Sign out'}
                   </Button>
                 </div>
@@ -629,8 +693,8 @@ export default function SettingsPage() {
         <Section title="Appearance">
           <div className="flex flex-wrap gap-2">
             <Choice value={'system' as ModePref} current={mode} onSelect={setMode} Icon={Monitor} label="System" />
-            <Choice value={'light'  as ModePref} current={mode} onSelect={setMode} Icon={Sun} label="Light" />
-            <Choice value={'dark'   as ModePref} current={mode} onSelect={setMode} Icon={Moon} label="Dark" />
+            <Choice value={'light' as ModePref} current={mode} onSelect={setMode} Icon={Sun} label="Light" />
+            <Choice value={'dark' as ModePref} current={mode} onSelect={setMode} Icon={Moon} label="Dark" />
           </div>
         </Section>
 
@@ -657,7 +721,8 @@ export default function SettingsPage() {
                   aria-pressed={active}
                   aria-busy={themeAction?.kind === 'preset' && themeAction.preset === t.id}
                   className={cn(
-                    huePillBase, 'h-11 pl-2 pr-5 gap-2.5 text-sm disabled:opacity-60',
+                    huePillBase,
+                    'h-11 gap-2.5 pr-5 pl-2 text-sm disabled:opacity-60',
                     active ? huePillOn : huePillOff,
                   )}
                   style={hueVar()}
@@ -684,19 +749,37 @@ export default function SettingsPage() {
 
         <Section title="Density">
           <div className="flex flex-wrap gap-2">
-            <Choice value={'compact'      as Density} current={density} onSelect={setDensity} Icon={Type} label="Compact" />
-            <Choice value={'comfortable'  as Density} current={density} onSelect={setDensity} Icon={Type} label="Comfortable" />
-            <Choice value={'cozy'         as Density} current={density} onSelect={setDensity} Icon={Type} label="Cozy" />
+            <Choice value={'compact' as Density} current={density} onSelect={setDensity} Icon={Type} label="Compact" />
+            <Choice
+              value={'comfortable' as Density}
+              current={density}
+              onSelect={setDensity}
+              Icon={Type}
+              label="Comfortable"
+            />
+            <Choice value={'cozy' as Density} current={density} onSelect={setDensity} Icon={Type} label="Cozy" />
           </div>
         </Section>
 
         {hasKeyboardPointer() && (
           <Section id="editor" title="Editor keys">
             <div className="flex flex-wrap gap-2">
-              <Choice value="standard" current={vimPref ? 'vim' : 'standard'} onSelect={() => setVimKeys(false)} label="Standard" />
-              <Choice value="vim" current={vimPref ? 'vim' : 'standard'} onSelect={() => setVimKeys(true)} label="Vim" />
+              <Choice
+                value="standard"
+                current={vimPref ? 'vim' : 'standard'}
+                onSelect={() => setVimKeys(false)}
+                label="Standard"
+              />
+              <Choice
+                value="vim"
+                current={vimPref ? 'vim' : 'standard'}
+                onSelect={() => setVimKeys(true)}
+                label="Vim"
+              />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">For Notes and Journal on this device. Yanks go to the clipboard; <code>:w</code> saves.</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              For Notes and Journal on this device. Yanks go to the clipboard; <code>:w</code> saves.
+            </p>
           </Section>
         )}
 
@@ -728,14 +811,8 @@ export default function SettingsPage() {
               />
             </div>
             {/* The one caveat that can cost data stays; the format list goes. */}
-            <div className="text-xs text-muted-foreground">
-              Importing the same archive twice creates duplicates.
-            </div>
-            {importMsg && (
-              <div className="text-xs text-foreground/80 bg-card rounded-lg px-3 py-2">
-                {importMsg}
-              </div>
-            )}
+            <div className="text-xs text-muted-foreground">Importing the same archive twice creates duplicates.</div>
+            {importMsg && <div className="rounded-lg bg-card px-3 py-2 text-xs text-foreground/80">{importMsg}</div>}
           </div>
         </Section>
 
@@ -745,77 +822,83 @@ export default function SettingsPage() {
 
         <Section title="Danger zone">
           <AnimatePresence initial={false} mode="wait">
-          {delState?.scheduled ? (
-            <motion.div
-              key="scheduled"
-              initial={{ opacity: 0, transform: 'translateY(4px)' }}
-              animate={{ opacity: 1, transform: 'translateY(0)' }}
-              exit={{ opacity: 0, transform: 'translateY(-4px)' }}
-              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-              className="flex flex-col gap-3 rounded-xl bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))] px-4 py-3.5"
-            >
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="size-4 mt-0.5 shrink-0" />
-                <div className="text-sm">
-                  Your account is scheduled for deletion
-                  {delState.purge_after && (
-                    <> on <span className="serif font-semibold">{format(parseISO(delState.purge_after), 'PPP p')}</span></>
-                  )}
-                  . Cancel any time before then to keep your data.
+            {delState?.scheduled ? (
+              <motion.div
+                key="scheduled"
+                initial={{ opacity: 0, transform: 'translateY(4px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0)' }}
+                exit={{ opacity: 0, transform: 'translateY(-4px)' }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                className="flex flex-col gap-3 rounded-xl bg-[hsl(var(--error-container))] px-4 py-3.5 text-[hsl(var(--on-error-container))]"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                  <div className="text-sm">
+                    Your account is scheduled for deletion
+                    {delState.purge_after && (
+                      <>
+                        {' '}
+                        on{' '}
+                        <span className="serif font-semibold">{format(parseISO(delState.purge_after), 'PPP p')}</span>
+                      </>
+                    )}
+                    . Cancel any time before then to keep your data.
+                  </div>
                 </div>
-              </div>
-              <Button onClick={onCancelDelete} disabled={working} className="w-fit gap-2">
-                {working ? <M3CookieLoader size="xs" tone="primary" /> : null}
-                Cancel deletion
-              </Button>
-            </motion.div>
-          ) : confirmDelete ? (
-            <motion.div
-              key="confirm"
-              initial={{ opacity: 0, transform: 'translateY(4px)' }}
-              animate={{ opacity: 1, transform: 'translateY(0)' }}
-              exit={{ opacity: 0, transform: 'translateY(-4px)' }}
-              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-              className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] px-4 py-3.5"
-            >
-              <div className="text-sm">
-                Are you sure? Your data will live for <span className="serif font-semibold">7 days</span> after
-                you confirm, then everything (memos, tasks, notes, habits, media, finance, journals) will be
-                permanently deleted. Consider downloading a takeout first.
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="destructive" disabled={working} onClick={onScheduleDelete} className="gap-2">
-                  {working ? <M3CookieLoader size="xs" tone="primary" /> : <Trash2 className="size-4" />}
-                  Yes, schedule deletion
+                <Button onClick={onCancelDelete} disabled={working} className="w-fit gap-2">
+                  {working ? <M3CookieLoader size="xs" tone="primary" /> : null}
+                  Cancel deletion
                 </Button>
-                <Button variant="outline" disabled={working} onClick={onExport} className="gap-2">
-                  <Download className="size-4" /> Download takeout first
+              </motion.div>
+            ) : confirmDelete ? (
+              <motion.div
+                key="confirm"
+                initial={{ opacity: 0, transform: 'translateY(4px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0)' }}
+                exit={{ opacity: 0, transform: 'translateY(-4px)' }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--error))] px-4 py-3.5"
+              >
+                <div className="text-sm">
+                  Are you sure? Your data will live for <span className="serif font-semibold">7 days</span> after you
+                  confirm, then everything (memos, tasks, notes, habits, media, finance, journals) will be permanently
+                  deleted. Consider downloading a takeout first.
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="destructive" disabled={working} onClick={onScheduleDelete} className="gap-2">
+                    {working ? <M3CookieLoader size="xs" tone="primary" /> : <Trash2 className="size-4" />}
+                    Yes, schedule deletion
+                  </Button>
+                  <Button variant="outline" disabled={working} onClick={onExport} className="gap-2">
+                    <Download className="size-4" /> Download takeout first
+                  </Button>
+                  <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+                    Nevermind
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16 }}
+              >
+                <Button variant="destructive" onClick={() => setConfirmDelete(true)} className="w-fit gap-2">
+                  <Trash2 className="size-4" /> Delete my account
                 </Button>
-                <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Nevermind</Button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.16 }}
-            >
-              <Button variant="destructive" onClick={() => setConfirmDelete(true)} className="gap-2 w-fit">
-                <Trash2 className="size-4" /> Delete my account
-              </Button>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
           </AnimatePresence>
         </Section>
 
         {/* Brand mark — moved here from the rail. */}
-        <div className="border-t border-border mt-10 pt-8 flex items-center gap-3 opacity-80">
+        <div className="mt-10 flex items-center gap-3 border-t border-border pt-8 opacity-80">
           <span className="sajni-logo" aria-hidden="true" />
           <div>
-            <div className="serif text-base font-semibold leading-tight">sajni</div>
-            <div className="text-xs text-muted-foreground mt-0.5">v1</div>
+            <div className="serif text-base leading-tight font-semibold">sajni</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">v1</div>
           </div>
         </div>
       </div>

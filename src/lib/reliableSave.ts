@@ -30,7 +30,11 @@ function waitOnline() {
   return new Promise<void>((resolve) => window.addEventListener('online', () => resolve(), { once: true }));
 }
 
-export async function sendReliably<T>(run: () => Promise<T>, key: string = crypto.randomUUID(), label = ''): Promise<T> {
+export async function sendReliably<T>(
+  run: () => Promise<T>,
+  key: string = crypto.randomUUID(),
+  label = '',
+): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const started = performance.now();
     try {
@@ -38,7 +42,10 @@ export async function sendReliably<T>(run: () => Promise<T>, key: string = crypt
     } catch (err) {
       const again = retryable(err) && attempt < RETRY_DELAYS_MS.length;
       track('save_retry', {
-        label, attempt, again, ms: Math.round(performance.now() - started),
+        label,
+        attempt,
+        again,
+        ms: Math.round(performance.now() - started),
         err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
         status: (err as Status | null)?.status,
       });
@@ -51,9 +58,15 @@ export async function sendReliably<T>(run: () => Promise<T>, key: string = crypt
 
 // Leaving the page while a save is still going would drop it.
 let inFlight = 0;
-function onUnload(e: BeforeUnloadEvent) { e.preventDefault(); }
-function hold() { if (inFlight++ === 0) window.addEventListener('beforeunload', onUnload); }
-function release() { if (--inFlight === 0) window.removeEventListener('beforeunload', onUnload); }
+function onUnload(e: BeforeUnloadEvent) {
+  e.preventDefault();
+}
+function hold() {
+  if (inFlight++ === 0) window.addEventListener('beforeunload', onUnload);
+}
+function release() {
+  if (--inFlight === 0) window.removeEventListener('beforeunload', onUnload);
+}
 
 interface GraceOptions<T> {
   /** Shown in notices: the task's title. */
@@ -69,13 +82,18 @@ interface GraceOptions<T> {
 
 export async function saveWithGrace<T>(opts: GraceOptions<T>): Promise<void> {
   const key = crypto.randomUUID();
-  const job = () => sendReliably(opts.run, key, opts.label).then(async (v) => { await opts.then?.(v); });
+  const job = () =>
+    sendReliably(opts.run, key, opts.label).then(async (v) => {
+      await opts.then?.(v);
+    });
   hold();
   const p = job();
   p.then(release, release);
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const slow = new Promise<'slow'>((resolve) => { timer = setTimeout(() => resolve('slow'), GRACE_MS); });
+  const slow = new Promise<'slow'>((resolve) => {
+    timer = setTimeout(() => resolve('slow'), GRACE_MS);
+  });
   try {
     if ((await Promise.race([p.then(() => 'done' as const), slow])) === 'done') return;
   } finally {
@@ -95,20 +113,23 @@ async function background<T>(p: Promise<void>, opts: GraceOptions<T>, job: () =>
   } catch (err) {
     opts.onFail?.(err);
     const again = retryable(err);
-    toast.error(again ? `Couldn't save “${opts.label}”. Sajni didn't answer.` : failureText(err, `Couldn't save “${opts.label}”`), {
-      id,
-      duration: Infinity,
-      action: again
-        ? {
-            label: 'Retry',
-            onClick: () => {
-              hold();
-              const retry = job();
-              retry.then(release, release);
-              void background(retry, opts, job);
-            },
-          }
-        : undefined,
-    });
+    toast.error(
+      again ? `Couldn't save “${opts.label}”. Sajni didn't answer.` : failureText(err, `Couldn't save “${opts.label}”`),
+      {
+        id,
+        duration: Infinity,
+        action: again
+          ? {
+              label: 'Retry',
+              onClick: () => {
+                hold();
+                const retry = job();
+                retry.then(release, release);
+                void background(retry, opts, job);
+              },
+            }
+          : undefined,
+      },
+    );
   }
 }

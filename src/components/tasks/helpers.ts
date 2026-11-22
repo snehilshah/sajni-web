@@ -46,9 +46,7 @@ export const PRIORITY_LABEL: Record<string, string> = {
   low: 'Low',
 };
 
-export type Selection =
-  | { kind: 'smart'; smart: SmartList }
-  | { kind: 'list'; id: number };
+export type Selection = { kind: 'smart'; smart: SmartList } | { kind: 'list'; id: number };
 
 /** Glyph + hue per smart list (mirrors Android `SMART_LOOK`) so a list is
  *  recognised by colour and shape before its label is read. `null` hue =

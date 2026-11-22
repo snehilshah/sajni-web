@@ -33,52 +33,114 @@ for (const f of files) {
   const re = /import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"]@\/components\/ui\/icons['"]/gs;
   let m;
   while ((m = re.exec(t))) {
-    m[1].split(',').map((s) => s.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, '').trim()).filter(Boolean).forEach((n) => used.add(n));
+    m[1]
+      .split(',')
+      .map((s) =>
+        s
+          .trim()
+          .split(/\s+as\s+/)[0]
+          .replace(/^type\s+/, '')
+          .trim(),
+      )
+      .filter(Boolean)
+      .forEach((n) => used.add(n));
   }
 }
 used.delete('LucideIcon'); // type, handled separately
 
 // 2) explicit aliases (lucide -> pixelarticons base). null = force lucide passthrough.
 const ALIAS = {
-  Trash2: 'trash', X: 'close', XIcon: 'close',
+  Trash2: 'trash',
+  X: 'close',
+  XIcon: 'close',
   Film: 'clapperboard',
-  Loader2: null, Loader2Icon: null,            // keep smooth spinner
-  ListChecks: 'list-box', ListTodo: 'list-box', List: 'bulletlist',
+  Loader2: null,
+  Loader2Icon: null, // keep smooth spinner
+  ListChecks: 'list-box',
+  ListTodo: 'list-box',
+  List: 'bulletlist',
   CheckSquare: 'checkbox-on',
-  CheckIcon: 'check', CircleCheck: 'check', CircleCheckIcon: 'check', CheckCircle2: 'check',
-  TrendingUp: 'waves-arrow-up', TrendingDown: 'waves-arrow-down',
-  AlertCircle: 'square-alert', AlertTriangle: 'warning-diamond', TriangleAlertIcon: 'warning-diamond',
-  Flame: 'fire', LogOut: 'logout', Settings: 'settings-cog',
-  ArrowLeftRight: 'arrows-horizontal', ArrowUpDown: 'arrows-vertical',
-  Sun: null, Type: null, Tags: null, Pin: null, PinOff: null,
-  Bold: null, Italic: null, Strikethrough: null, ListOrdered: null,
-  ArrowUpRight: null, ArrowDownLeft: 'corner-down-left',
-  PanelLeft: null, PanelLeftClose: null, PanelRight: null, PanelRightClose: null, PanelLeftIcon: null,
-  Compass: null, Brain: null, History: null, VenetianMask: 'sunglasses',
+  CheckIcon: 'check',
+  CircleCheck: 'check',
+  CircleCheckIcon: 'check',
+  CheckCircle2: 'check',
+  TrendingUp: 'waves-arrow-up',
+  TrendingDown: 'waves-arrow-down',
+  AlertCircle: 'square-alert',
+  AlertTriangle: 'warning-diamond',
+  TriangleAlertIcon: 'warning-diamond',
+  Flame: 'fire',
+  LogOut: 'logout',
+  Settings: 'settings-cog',
+  ArrowLeftRight: 'arrows-horizontal',
+  ArrowUpDown: 'arrows-vertical',
+  Sun: null,
+  Type: null,
+  Tags: null,
+  Pin: null,
+  PinOff: null,
+  Bold: null,
+  Italic: null,
+  Strikethrough: null,
+  ListOrdered: null,
+  ArrowUpRight: null,
+  ArrowDownLeft: 'corner-down-left',
+  PanelLeft: null,
+  PanelLeftClose: null,
+  PanelRight: null,
+  PanelRightClose: null,
+  PanelLeftIcon: null,
+  Compass: null,
+  Brain: null,
+  History: null,
+  VenetianMask: 'sunglasses',
   RefreshCw: 'reload',
   Quote: 'quote-text-inline',
   Link2: 'link',
-  CalendarX2: 'calendar', CalendarClock: 'date-time', CalendarDays: 'calendar', CalendarIcon: 'calendar',
-  MonitorPlay: 'video', MoreHorizontalIcon: 'more-horizontal',
-  Landmark: 'university', CandlestickChart: 'chart',
-  Ban: 'cancel', RotateCcw: 'undo', OctagonXIcon: 'cancel',
-  MinusIcon: 'minus', SearchIcon: 'search', InfoIcon: 'info-box',
-  CircleHelp: 'info-box', Activity: 'analytics',
-  ArchiveRestore: 'archive', BookmarkPlus: 'bookmark',
+  CalendarX2: 'calendar',
+  CalendarClock: 'date-time',
+  CalendarDays: 'calendar',
+  CalendarIcon: 'calendar',
+  MonitorPlay: 'video',
+  MoreHorizontalIcon: 'more-horizontal',
+  Landmark: 'university',
+  CandlestickChart: 'chart',
+  Ban: 'cancel',
+  RotateCcw: 'undo',
+  OctagonXIcon: 'cancel',
+  MinusIcon: 'minus',
+  SearchIcon: 'search',
+  InfoIcon: 'info-box',
+  CircleHelp: 'info-box',
+  Activity: 'analytics',
+  ArchiveRestore: 'archive',
+  BookmarkPlus: 'bookmark',
   ArrowDownToLine: 'arrow-bar-down',
-  LayoutDashboard: 'grid-2x2-2', LayoutGrid: 'grid-3x3',
-  PiggyBank: 'money', CircleDollarSign: 'money',
-  FilePlus: 'file', FolderOpen: 'folder', FolderInput: 'folder',
-  Wand2: 'magic-edit', NotebookPen: 'notebook', Edit3: 'pen-square', Pencil: 'pen-square',
+  LayoutDashboard: 'grid-2x2-2',
+  LayoutGrid: 'grid-3x3',
+  PiggyBank: 'money',
+  CircleDollarSign: 'money',
+  FilePlus: 'file',
+  FolderOpen: 'folder',
+  FolderInput: 'folder',
+  Wand2: 'magic-edit',
+  NotebookPen: 'notebook',
+  Edit3: 'pen-square',
+  Pencil: 'pen-square',
   Code: 'braces',
-  Heading1: 'heading-1', Heading2: 'heading-2', Heading3: 'heading-3',
+  Heading1: 'heading-1',
+  Heading2: 'heading-2',
+  Heading3: 'heading-3',
   MessageSquare: 'message',
 };
 
 // 3) auto-normalize PascalCase -> kebab, strip trailing "Icon", split letter/digit
 const auto = (name) => {
   let n = name.replace(/Icon$/, '');
-  n = n.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([A-Za-z])([0-9])/g, '$1-$2').toLowerCase();
+  n = n
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/([A-Za-z])([0-9])/g, '$1-$2')
+    .toLowerCase();
   return n;
 };
 
@@ -111,7 +173,8 @@ out += '  const C = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement> & { size?:
 out += '    // The glyph is injected via dangerouslySetInnerHTML, so any `children`\n';
 out += "    // handed in (e.g. base-ui's <Select.Icon render={...}> clones the element\n";
 out += '    // and adds its own children) must be dropped — React forbids setting both.\n';
-out += "    ({ size = 24, children: _children, ...props }, ref) => createElement('svg', { ref, width: size, height: size, viewBox: '0 0 24 24', fill: 'currentColor', ...props, dangerouslySetInnerHTML: { __html: inner } })\n";
+out +=
+  "    ({ size = 24, children: _children, ...props }, ref) => createElement('svg', { ref, width: size, height: size, viewBox: '0 0 24 24', fill: 'currentColor', ...props, dangerouslySetInnerHTML: { __html: inner } })\n";
 out += '  );\n';
 out += "  C.displayName = 'PixelIcon';\n";
 out += '  return C as unknown as LucideIcon;\n';
@@ -128,5 +191,7 @@ out += "\nexport type { LucideIcon } from 'lucide-react';\n";
 
 fs.writeFileSync(OUTPUT, out);
 
-console.log(`icons.tsx regenerated — ${used.size} used, ${Object.keys(mapped).length} pixel-mapped, ${passthrough.length} lucide passthrough`);
+console.log(
+  `icons.tsx regenerated — ${used.size} used, ${Object.keys(mapped).length} pixel-mapped, ${passthrough.length} lucide passthrough`,
+);
 console.log('passthrough:', passthrough.join(' '));

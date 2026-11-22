@@ -10,9 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MorphingPopover } from '@/components/motion/morphing-popover';
-import {
-  useThinkingProjects, useCreateThinkingProject, useDeleteThinkingProject,
-} from '@/queries/thinking';
+import { useThinkingProjects, useCreateThinkingProject, useDeleteThinkingProject } from '@/queries/thinking';
 import { confirmDialog } from '@/lib/confirm';
 
 const PROJECT_TABS = [
@@ -43,7 +41,8 @@ export default function ThinkingPage() {
     try {
       const r = await createProject.mutateAsync({ title: title.trim(), description: desc.trim() });
       setOpen(false);
-      setTitle(''); setDesc('');
+      setTitle('');
+      setDesc('');
       navigate(`/projects/${r.id}`);
     } finally {
       setCreating(false);
@@ -69,16 +68,19 @@ export default function ThinkingPage() {
   // History/New, the panel fills everything under it edge to edge.
   if (tab === 'chat') {
     return (
-      <div className="page-fade-in flex-1 flex flex-col min-h-0">
+      <div className="page-fade-in flex min-h-0 flex-1 flex-col">
         <PageChrome
           title="Projects"
           navigation={navigationEl}
           actions={
             <>
               <Button
-                variant="ghost" size="icon-sm" className="rounded-full"
+                variant="ghost"
+                size="icon-sm"
+                className="rounded-full"
                 onClick={() => chatRef.current?.toggleHistory()}
-                title="Chat history" aria-label="Chat history"
+                title="Chat history"
+                aria-label="Chat history"
               >
                 <History className="size-4" />
               </Button>
@@ -90,7 +92,7 @@ export default function ThinkingPage() {
           }
         />
         <div
-          className="flex-1 min-h-0 flex flex-col w-full max-w-3xl mx-auto"
+          className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col"
           style={{ paddingTop: chromeClearance(isMobile) }}
         >
           <ChatPanel active headerless ref={chatRef} />
@@ -117,21 +119,24 @@ export default function ThinkingPage() {
           }
         >
           <div className="flex flex-col gap-3">
-            <div className="serif text-sm font-semibold px-1">New project</div>
+            <div className="serif px-1 text-sm font-semibold">New project</div>
             <Input
               autoFocus
               placeholder="Title: what are you thinking about?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); create(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  create();
+                }
+              }}
             />
-            <Input
-              placeholder="Optional one-line description"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-            />
+            <Input placeholder="Optional one-line description" value={desc} onChange={(e) => setDesc(e.target.value)} />
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
               <Button size="sm" onClick={create} disabled={!title.trim() || creating}>
                 {creating ? 'Creating…' : 'Create'}
               </Button>
@@ -143,34 +148,39 @@ export default function ThinkingPage() {
       {loading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
       ) : projects.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-10 text-center space-y-3">
-          <Sparkles className="size-8 mx-auto text-primary" />
+        <div className="space-y-3 rounded-2xl border border-dashed border-border p-10 text-center">
+          <Sparkles className="mx-auto size-8 text-primary" />
           <div className="serif text-lg">Start thinking</div>
-          <div className="text-sm text-muted-foreground max-w-md mx-auto">
-            Projects hold typed thought-cards: questions, ideas, claims, evidence.
-            Sajni enriches each card with meaning, then synthesizes a thesis.
+          <div className="mx-auto max-w-md text-sm text-muted-foreground">
+            Projects hold typed thought-cards: questions, ideas, claims, evidence. Sajni enriches each card with
+            meaning, then synthesizes a thesis.
           </div>
-          <Button onClick={() => setOpen(true)}><Plus className="size-4 mr-1" /> New project</Button>
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="mr-1 size-4" /> New project
+          </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <div
               key={p.id}
               onClick={() => navigate(`/projects/${p.id}`)}
-              className="group cursor-pointer flex flex-col rounded-2xl bg-[hsl(var(--surface-container-low))] p-4 hover:bg-[hsl(var(--surface-container))] transition-colors"
+              className="group flex cursor-pointer flex-col rounded-2xl bg-[hsl(var(--surface-container-low))] p-4 transition-colors hover:bg-[hsl(var(--surface-container))]"
             >
               <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="serif font-semibold truncate">{p.title}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="serif truncate font-semibold">{p.title}</div>
                   {p.description && (
-                    <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{p.description}</div>
+                    <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{p.description}</div>
                   )}
                 </div>
                 <Button
                   variant="destructive-ghost"
                   size="icon-xs"
-                  onClick={(e) => { e.stopPropagation(); remove(p.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    remove(p.id);
+                  }}
                   className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   title="Delete"
                   aria-label="Delete project"
@@ -179,22 +189,21 @@ export default function ThinkingPage() {
                 </Button>
               </div>
               {p.thesis && (
-                <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-                  {markdownPlain(p.thesis)}
-                </div>
+                <div className="mt-3 line-clamp-2 text-sm text-muted-foreground">{markdownPlain(p.thesis)}</div>
               )}
               {/* mt-auto pins the meta bar to the card's bottom edge, so rows
                   of cards keep aligned footers even when description/thesis
                   are absent (grid items stretch to equal height). */}
-              <div className="mt-auto pt-3 flex items-center justify-between text-xs mono label-kicker text-muted-foreground">
-                <span>{p.card_count} {p.card_count === 1 ? 'card' : 'cards'}</span>
+              <div className="mono label-kicker mt-auto flex items-center justify-between pt-3 text-xs text-muted-foreground">
+                <span>
+                  {p.card_count} {p.card_count === 1 ? 'card' : 'cards'}
+                </span>
                 <span>{formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}</span>
               </div>
             </div>
           ))}
         </div>
       )}
-
     </PageShell>
   );
 }

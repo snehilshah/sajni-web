@@ -5,7 +5,12 @@ import { cn } from '@/lib/utils';
 
 // One section per secondary-bar tab (or feature area when a page has no
 // tabs). `chip` names the tab it documents.
-export function Section({ id, title, chip, children }: {
+export function Section({
+  id,
+  title,
+  chip,
+  children,
+}: {
   id: string;
   title: string;
   chip?: string;
@@ -16,12 +21,12 @@ export function Section({ id, title, chip, children }: {
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="font-serif text-xl font-semibold tracking-tight">{title}</h2>
         {chip && (
-          <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--on-secondary-container))]">
+          <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 font-mono text-[10px] tracking-wider text-[hsl(var(--on-secondary-container))] uppercase">
             {chip}
           </span>
         )}
       </div>
-      <div className="docs-prose mt-3 flex flex-col gap-3 text-[15px] leading-relaxed text-foreground/90 [&_h3]:mt-2 [&_h3]:font-serif [&_h3]:text-base [&_h3]:font-semibold [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1.5 [&_ul]:pl-5 [&_li]:list-disc [&_em]:text-foreground [&_strong]:text-foreground">
+      <div className="docs-prose mt-3 flex flex-col gap-3 text-[15px] leading-relaxed text-foreground/90 [&_em]:text-foreground [&_h3]:mt-2 [&_h3]:font-serif [&_h3]:text-base [&_h3]:font-semibold [&_li]:list-disc [&_strong]:text-foreground [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1.5 [&_ul]:pl-5">
         {children}
       </div>
     </section>
@@ -34,7 +39,7 @@ export function Feature({ name, children }: { name: string; children: React.Reac
   return (
     <div className="rounded-xl border border-border bg-[hsl(var(--surface-container-low))] px-4 py-3">
       <h4 className="font-medium text-foreground">{name}</h4>
-      <div className="mt-1.5 flex flex-col gap-2 text-sm leading-relaxed text-foreground/85 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1 [&_ul]:pl-4.5 [&_li]:list-disc">
+      <div className="mt-1.5 flex flex-col gap-2 text-sm leading-relaxed text-foreground/85 [&_li]:list-disc [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1 [&_ul]:pl-4.5">
         {children}
       </div>
     </div>
@@ -72,7 +77,7 @@ export function Callout({ children, tone = 'note' }: { children: React.ReactNode
       )}
     >
       {tone === 'why' && (
-        <span className="mb-1 block font-mono text-xs label-kicker text-[hsl(var(--primary))]">
+        <span className="label-kicker mb-1 block font-mono text-xs text-[hsl(var(--primary))]">
           why it works this way
         </span>
       )}
@@ -84,20 +89,20 @@ export function Callout({ children, tone = 'note' }: { children: React.ReactNode
 // Small two-column reference table (command → effect, view → meaning …).
 export function RefTable({ head, rows }: { head?: [string, string]; rows: [React.ReactNode, React.ReactNode][] }) {
   return (
-    <div className="overflow-x-auto rounded-xl ">
+    <div className="overflow-x-auto rounded-xl">
       <table className="w-full text-sm">
         {head && (
           <thead>
             <tr className="border-b border-border bg-[hsl(var(--surface-container-low))] text-left">
-              <th className="px-3 py-2 font-mono text-xs label-kicker text-muted-foreground">{head[0]}</th>
-              <th className="px-3 py-2 font-mono text-xs label-kicker text-muted-foreground">{head[1]}</th>
+              <th className="label-kicker px-3 py-2 font-mono text-xs text-muted-foreground">{head[0]}</th>
+              <th className="label-kicker px-3 py-2 font-mono text-xs text-muted-foreground">{head[1]}</th>
             </tr>
           </thead>
         )}
         <tbody>
           {rows.map(([a, b], i) => (
-            <tr key={i} className="border-b border-border/60 last:border-0 align-top">
-              <td className="whitespace-nowrap px-3 py-2 font-mono text-[13px] text-foreground">{a}</td>
+            <tr key={i} className="border-b border-border/60 align-top last:border-0">
+              <td className="px-3 py-2 font-mono text-[13px] whitespace-nowrap text-foreground">{a}</td>
               <td className="px-3 py-2 text-muted-foreground">{b}</td>
             </tr>
           ))}

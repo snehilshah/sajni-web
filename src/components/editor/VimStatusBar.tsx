@@ -12,7 +12,14 @@ import { cn } from '@/lib/utils';
  * join is a curve (editor.css → .sajni-chain). Vim fills the mode slot, the
  * keys / prompt slot and the message slot; the page passes the rest.
  */
-export default function VimStatusBar({ ref, leading, status, children, trailing, className }: {
+export default function VimStatusBar({
+  ref,
+  leading,
+  status,
+  children,
+  trailing,
+  className,
+}: {
   ref?: Ref<HTMLDivElement>;
   leading?: ReactNode;
   /** Pieces tucked under the mode chip (the save state). */
@@ -45,7 +52,13 @@ export default function VimStatusBar({ ref, leading, status, children, trailing,
 }
 
 /** One piece of a status chain. `tone` 1–3 runs from the bar's colour towards the lightest piece. */
-export function StatusSeg({ children, tone = 1, onClick, title, className }: {
+export function StatusSeg({
+  children,
+  tone = 1,
+  onClick,
+  title,
+  className,
+}: {
   children: ReactNode;
   tone?: 1 | 2 | 3;
   onClick?: () => void;
@@ -54,10 +67,20 @@ export function StatusSeg({ children, tone = 1, onClick, title, className }: {
 }) {
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} title={title} data-tone={tone} className={cn('sajni-seg is-button', className)}>
+      <button
+        type="button"
+        onClick={onClick}
+        title={title}
+        data-tone={tone}
+        className={cn('sajni-seg is-button', className)}
+      >
         {children}
       </button>
     );
   }
-  return <span title={title} data-tone={tone} className={cn('sajni-seg', className)}>{children}</span>;
+  return (
+    <span title={title} data-tone={tone} className={cn('sajni-seg', className)}>
+      {children}
+    </span>
+  );
 }

@@ -7,7 +7,27 @@ import { clientMsg } from '@/lib/errors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import BlockerPicker from '@/components/tasks/BlockerPicker';
-import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle, SkipForward, Image as ImageIcon } from '@/components/ui/icons';
+import {
+  Trash2,
+  Star,
+  CalendarClock,
+  ListChecks,
+  Bell,
+  Clock,
+  History,
+  Plus,
+  X,
+  Check,
+  GitBranch,
+  Ban,
+  RotateCcw,
+  Mail,
+  ChevronDown,
+  MoreHorizontal,
+  Circle,
+  SkipForward,
+  Image as ImageIcon,
+} from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { ReminderRecurrence, Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
@@ -26,16 +46,26 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MorphingDialog } from '@/components/motion/morphing-dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SegmentedButton } from '@/components/ui/segmented-button';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  STATUSES, STATUS_LABELS, STATUS_DOT, PRIORITIES, PRIORITY_COLORS, PRIORITY_LABEL, weekMondayKey, monthFirstKey,
+  STATUSES,
+  STATUS_LABELS,
+  STATUS_DOT,
+  PRIORITIES,
+  PRIORITY_COLORS,
+  PRIORITY_LABEL,
+  weekMondayKey,
+  monthFirstKey,
 } from './helpers';
 import { StepsEditor } from './TaskRow';
 import { RepeatPicker, repeatLabel, repeats } from './RepeatPicker';
@@ -78,23 +108,47 @@ export interface FormState {
   files: File[];
 }
 
-export interface DraftSubtask { title: string; due_date?: string }
+export interface DraftSubtask {
+  title: string;
+  due_date?: string;
+}
 
 export type TaskDefaults = Partial<FormState>;
 
 const blank: FormState = {
-  title: '', description: '', priority: 'medium', color: null, status: 'todo', blocked_by_task_id: null,
-  due_type: 'day', due_date: '', week_of: '', month_of: '', scheduled_time: '', remind: false,
-  notify_emails: [], list_id: null, important: false, steps: [], recurrence: {}, reminders: [], subtasks: [], files: [],
+  title: '',
+  description: '',
+  priority: 'medium',
+  color: null,
+  status: 'todo',
+  blocked_by_task_id: null,
+  due_type: 'day',
+  due_date: '',
+  week_of: '',
+  month_of: '',
+  scheduled_time: '',
+  remind: false,
+  notify_emails: [],
+  list_id: null,
+  important: false,
+  steps: [],
+  recurrence: {},
+  reminders: [],
+  subtasks: [],
+  files: [],
 };
 
 /** The task's anchor for its scope: the day, the Monday or the 1st. */
-const scopeDate = (f: FormState) => (f.due_type === 'month' ? f.month_of : f.due_type === 'week' ? f.week_of : f.due_date);
+const scopeDate = (f: FormState) =>
+  f.due_type === 'month' ? f.month_of : f.due_type === 'week' ? f.week_of : f.due_date;
 
 const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
-  { value: '#2D5A4F', label: 'Forest' }, { value: '#7C9A92', label: 'Sage' },
-  { value: '#C49A6C', label: 'Sand' }, { value: '#A14B4F', label: 'Rose' },
-  { value: '#4F6FA1', label: 'Blue' }, { value: '#8B6FA1', label: 'Lavender' },
+  { value: '#2D5A4F', label: 'Forest' },
+  { value: '#7C9A92', label: 'Sage' },
+  { value: '#C49A6C', label: 'Sand' },
+  { value: '#A14B4F', label: 'Rose' },
+  { value: '#4F6FA1', label: 'Blue' },
+  { value: '#8B6FA1', label: 'Lavender' },
   { value: '#7A7A7A', label: 'Slate' },
 ];
 
@@ -108,7 +162,13 @@ function timeFromISO(iso?: string | null): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-const fmtDay = (s: string) => { try { return format(parseISO(s), 'MMM d'); } catch { return s; } };
+const fmtDay = (s: string) => {
+  try {
+    return format(parseISO(s), 'MMM d');
+  } catch {
+    return s;
+  }
+};
 
 // eventText renders one audit-trail line for the activity timeline.
 function eventText(e: TaskEvent): React.ReactNode {
@@ -117,21 +177,56 @@ function eventText(e: TaskEvent): React.ReactNode {
     case 'created':
       return 'Created this task';
     case 'status':
-      return <>Status <b className="font-medium">{label(e.from) || '–'}</b> → <b className="font-medium">{label(e.to)}</b></>;
+      return (
+        <>
+          Status <b className="font-medium">{label(e.from) || '–'}</b> → <b className="font-medium">{label(e.to)}</b>
+        </>
+      );
     case 'title':
-      return <>Renamed to <b className="font-medium">“{e.to}”</b></>;
+      return (
+        <>
+          Renamed to <b className="font-medium">“{e.to}”</b>
+        </>
+      );
     case 'list':
-      return <>Moved <b className="font-medium">{e.from}</b> → <b className="font-medium">{e.to}</b></>;
+      return (
+        <>
+          Moved <b className="font-medium">{e.from}</b> → <b className="font-medium">{e.to}</b>
+        </>
+      );
     case 'rescheduled':
-      return <>Rescheduled from <b className="font-medium">{fmtDay(e.from)}</b> → <b className="font-medium">{fmtDay(e.to)}</b></>;
+      return (
+        <>
+          Rescheduled from <b className="font-medium">{fmtDay(e.from)}</b> →{' '}
+          <b className="font-medium">{fmtDay(e.to)}</b>
+        </>
+      );
     case 'repeated':
-      return <>Done for <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b></>;
+      return (
+        <>
+          Done for <b className="font-medium">{fmtDay(e.from)}</b>, repeats{' '}
+          <b className="font-medium">{fmtDay(e.to)}</b>
+        </>
+      );
     case 'missed':
-      return <>Missed <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b></>;
+      return (
+        <>
+          Missed <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b>
+        </>
+      );
     case 'skipped':
-      return <>Skipped <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b></>;
+      return (
+        <>
+          Skipped <b className="font-medium">{fmtDay(e.from)}</b>, repeats <b className="font-medium">{fmtDay(e.to)}</b>
+        </>
+      );
     case 'planned':
-      return <>Planned for <b className="font-medium">{e.to.replace(/ · (\d{4}-\d{2}-\d{2})$/, (_, d: string) => ` · ${fmtDay(d)}`)}</b></>;
+      return (
+        <>
+          Planned for{' '}
+          <b className="font-medium">{e.to.replace(/ · (\d{4}-\d{2}-\d{2})$/, (_, d: string) => ` · ${fmtDay(d)}`)}</b>
+        </>
+      );
     default:
       return e.kind;
   }
@@ -177,22 +272,24 @@ function buildUpdate(form: FormState, editing: Task, parent: { id: number } | nu
     color: form.color ?? undefined,
     clear_color: form.color === null,
     status: form.status,
-    blocked_by_task_id: form.status === 'blocked' ? form.blocked_by_task_id ?? undefined : undefined,
+    blocked_by_task_id: form.status === 'blocked' ? (form.blocked_by_task_id ?? undefined) : undefined,
     clear_blocked_by: form.status !== 'blocked',
     // Day / week / month are exclusive — set one column, clear the others
     // so a switch never leaves a stale due_date / week_of / month_of behind.
     ...(isMonth
       ? { month_of: form.month_of, clear_due: true, clear_week: true, clear_scheduled: true, remind: false }
       : isWeek
-      ? { week_of: form.week_of, clear_due: true, clear_month: true, clear_scheduled: true, remind: false }
-      : {
-          due_date: form.due_date || null,
-          week_of: null, clear_week: true,
-          month_of: null, clear_month: true,
-          scheduled_at: scheduledISO,
-          clear_scheduled: scheduledISO === null,
-          remind,
-        }),
+        ? { week_of: form.week_of, clear_due: true, clear_month: true, clear_scheduled: true, remind: false }
+        : {
+            due_date: form.due_date || null,
+            week_of: null,
+            clear_week: true,
+            month_of: null,
+            clear_month: true,
+            scheduled_at: scheduledISO,
+            clear_scheduled: scheduledISO === null,
+            remind,
+          }),
     notify_emails,
     list_id: form.list_id,
     // list_id:null alone is ignored by the API ("leave alone"); clear_list
@@ -227,7 +324,17 @@ function shownFields(form: FormState): Partial<Task> {
   };
 }
 
-export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, editing, defaults, lists, onSaved, layoutId, onCreated }: Props) {
+export default function TaskFormDialog({
+  open,
+  onOpenChange,
+  onCloseComplete,
+  editing,
+  defaults,
+  lists,
+  onSaved,
+  layoutId,
+  onCreated,
+}: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(blank);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
@@ -238,11 +345,18 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   // so a child never reads as a standalone task, and so the user can promote it.
   const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
   const [moreDetails, setMoreDetails] = useState(() => {
-    try { return localStorage.getItem(MORE_DETAILS_KEY) === 'true'; } catch { return false; }
+    try {
+      return localStorage.getItem(MORE_DETAILS_KEY) === 'true';
+    } catch {
+      return false;
+    }
   });
 
-  const invalid = !form.title.trim() ? 'a task needs a title.'
-    : form.status === 'blocked' && !form.blocked_by_task_id ? 'pick the task that blocks this one.' : null;
+  const invalid = !form.title.trim()
+    ? 'a task needs a title.'
+    : form.status === 'blocked' && !form.blocked_by_task_id
+      ? 'pick the task that blocks this one.'
+      : null;
   // Nothing saves until Save (or Create task); every way out with changes
   // asks twice.
   const editor = useEditorDraft({
@@ -300,11 +414,15 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       qc.fetchQuery({
         queryKey: qk.tasks.history(editing.id),
         queryFn: () => tasksApi.history(editing.id),
-      }).then(setHistory).catch(() => {});
+      })
+        .then(setHistory)
+        .catch(() => {});
       qc.fetchQuery({
         queryKey: qk.tasks.events(editing.id),
         queryFn: () => tasksApi.events(editing.id),
-      }).then(setEvents).catch(() => {});
+      })
+        .then(setEvents)
+        .catch(() => {});
       if (editing.parent_task_id != null) {
         qc.fetchQuery({
           queryKey: qk.tasks.detail(editing.parent_task_id),
@@ -324,7 +442,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     qc.fetchQuery({
       queryKey: qk.tasks.list({ smart: 'all' }),
       queryFn: () => tasksApi.list({ smart: 'all' }),
-    }).then(setBlockerTasks).catch(() => setBlockerTasks([]));
+    })
+      .then(setBlockerTasks)
+      .catch(() => setBlockerTasks([]));
   }, [open, editing, defaults, qc, loadDraft]);
 
   // Images: straight to the task when editing, held in the form when creating.
@@ -388,7 +508,10 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
   const requestClose = () => editor.close(() => onOpenChange(false));
 
   const handleSave = async () => {
-    if (editing) { await editor.save(() => onOpenChange(false)); return; }
+    if (editing) {
+      await editor.save(() => onOpenChange(false));
+      return;
+    }
     if (!form.title.trim()) return;
     setSaving(true);
     const isWeek = form.due_type === 'week';
@@ -406,8 +529,8 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       priority: f.priority,
       color: f.color ?? undefined,
       status: f.status,
-      blocked_by_task_id: f.status === 'blocked' ? f.blocked_by_task_id ?? undefined : undefined,
-      due_date: noDay ? undefined : (f.due_date || undefined),
+      blocked_by_task_id: f.status === 'blocked' ? (f.blocked_by_task_id ?? undefined) : undefined,
+      due_date: noDay ? undefined : f.due_date || undefined,
       week_of: isWeek ? f.week_of : undefined,
       month_of: isMonth ? f.month_of : undefined,
       scheduled_at: scheduledISO ?? undefined,
@@ -422,9 +545,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
     // saved, so a failed one gets a soft notice rather than losing the task.
     const finish = async (res: { id: number }) => {
       if (f.reminders.length > 0) {
-        const results = await Promise.allSettled(
-          f.reminders.map((iso) => tasksApi.addReminder(res.id, iso)),
-        );
+        const results = await Promise.allSettled(f.reminders.map((iso) => tasksApi.addReminder(res.id, iso)));
         const failed = results.filter((r) => r.status === 'rejected').length;
         if (failed > 0) toast.error(`Task saved, but ${failed} reminder${failed > 1 ? 's' : ''} failed to add.`);
       }
@@ -434,8 +555,15 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
         let failed = 0;
         for (const sub of f.subtasks) {
           try {
-            await tasksApi.create({ title: sub.title, parent_task_id: res.id, list_id: f.list_id ?? null, due_date: sub.due_date || undefined });
-          } catch { failed++; }
+            await tasksApi.create({
+              title: sub.title,
+              parent_task_id: res.id,
+              list_id: f.list_id ?? null,
+              due_date: sub.due_date || undefined,
+            });
+          } catch {
+            failed++;
+          }
         }
         if (failed > 0) toast.error(`Task saved, but ${failed} subtask${failed > 1 ? 's' : ''} failed to add.`);
       }
@@ -514,11 +642,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
       className={cn(
         isMobile
           ? cn(
-              'inset-x-0 bottom-0 max-w-full w-full max-h-[92dvh] rounded-b-none',
+              'inset-x-0 bottom-0 max-h-[92dvh] w-full max-w-full rounded-b-none',
               moreDetails ? 'h-[92dvh]' : 'h-auto',
             )
           : cn(
-              'left-0 right-0 top-[7vh] mx-auto w-[min(42rem,92vw)] max-h-[min(85vh,720px)]',
+              'top-[7vh] right-0 left-0 mx-auto max-h-[min(85vh,720px)] w-[min(42rem,92vw)]',
               moreDetails ? 'h-[min(85vh,720px)]' : 'h-auto',
             ),
       )}
@@ -532,7 +660,9 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           e.preventDefault();
           addFiles(files);
         }}
-        onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+        }}
         onDrop={(e) => {
           const files = imageFiles(e.dataTransfer);
           if (e.defaultPrevented || files.length === 0) return;
@@ -540,417 +670,569 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
           addFiles(files);
         }}
       >
-		<div className="shrink-0 px-4 pb-1 pt-4 md:px-6 md:pt-5">
-		  <div className="flex items-center justify-between gap-3">
-		    <button
-		      type="button"
-		      onClick={() => setForm({ ...form, status: form.status === 'done' ? 'todo' : 'done' })}
-		      className="flex min-h-10 min-w-0 items-center gap-2 rounded-full px-2 text-left text-sm hover:bg-[hsl(var(--on-surface)/0.06)]"
-		      title={form.status === 'done' ? 'Mark not done' : 'Mark done'}
-		    >
-		      <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full border-2', form.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))]')}>
-		        {form.status === 'done' && <Check className="size-4" />}
-		      </span>
-		      <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
-		      <span className="truncate font-medium">
-		        {form.due_type === 'month' && form.month_of ? format(parseISO(form.month_of), 'MMMM yyyy')
-		          : form.due_type === 'week' && form.week_of ? `Week of ${format(parseISO(form.week_of), 'MMM d')}`
-		            : form.due_date ? format(parseISO(form.due_date), 'EEE, MMM d') : 'No date'}
-		        {scopeDate(form) && repeats(form.recurrence) && <span className="font-normal text-muted-foreground"> · ↻ {repeatLabel(form.recurrence)}</span>}
-		      </span>
-		    </button>
-		    <div className="flex shrink-0 items-center gap-0.5">
-		      <Button variant="ghost" size="icon-sm" aria-label="Task list" title="Task list" onClick={() => setMoreDetails(true)}><ListChecks /></Button>
-		      <DropdownMenu>
-		        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Task color" title="Task color" />}>
-		          <span className="size-4 rounded-full border border-[hsl(var(--outline))]" style={{ backgroundColor: form.color ?? 'transparent' }}><Circle className={cn('size-3.5', form.color && 'opacity-0')} /></span>
-		        </DropdownMenuTrigger>
-		        <DropdownMenuContent align="end" className="min-w-44">
-		          <DropdownMenuGroup>
-		          <DropdownMenuLabel>Task color</DropdownMenuLabel>
-		          <DropdownMenuItem onClick={() => setForm({ ...form, color: null })}><span className="size-4 rounded-full border border-[hsl(var(--outline))]" /> None</DropdownMenuItem>
-		          {TASK_COLORS.map((color) => <DropdownMenuItem key={color.value} onClick={() => setForm({ ...form, color: color.value })}><span className="size-4 rounded-full" style={{ backgroundColor: color.value }} />{color.label}{form.color === color.value && <Check className="ml-auto size-4" />}</DropdownMenuItem>)}
-		          </DropdownMenuGroup>
-		        </DropdownMenuContent>
-		      </DropdownMenu>
-		      <Button variant="ghost" size="icon-sm" aria-label="Reminder settings" title="Reminder settings" onClick={() => setMoreDetails(true)} className={form.remind || form.reminders.length ? 'text-primary' : undefined}><Bell /></Button>
-		      <Button variant="ghost" size="icon-sm" aria-label="Attach image" title="Attach image (or paste one)" onClick={() => pickImages(addFiles)}><ImageIcon /></Button>
-		      <Button variant="ghost" size="icon-sm" aria-label={form.important ? 'Remove important' : 'Mark important'} title={form.important ? 'Remove important' : 'Mark important'} onClick={() => setForm({ ...form, important: !form.important })}><Star className={form.important ? 'fill-current text-[hsl(var(--tertiary))]' : ''} /></Button>
-		      {editing && (
-		        <DropdownMenu modal={false}>
-		          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More task actions" title="More task actions" />}><MoreHorizontal /></DropdownMenuTrigger>
-		          <DropdownMenuContent align="end" sideOffset={8} className="z-[70]">
-		            {repeats(editing.recurrence) && (
-		              <DropdownMenuItem onClick={handleSkip}><SkipForward /> Skip this time</DropdownMenuItem>
-		            )}
-		            <DropdownMenuItem onClick={handleScratch}>{form.status === 'scratched' ? <RotateCcw /> : <Ban />}{form.status === 'scratched' ? 'Unscratch' : 'Scratch'}</DropdownMenuItem>
-		            <DropdownMenuSeparator />
-		            <DropdownMenuItem variant="destructive" onClick={handleDelete}><Trash2 /> Delete task</DropdownMenuItem>
-		          </DropdownMenuContent>
-		        </DropdownMenu>
-		      )}
-		      <Button variant="ghost" size="icon-sm" aria-label="Close task editor" onClick={requestClose}><X /></Button>
-		    </div>
-		  </div>
-		</div>
+        <div className="shrink-0 px-4 pt-4 pb-1 md:px-6 md:pt-5">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, status: form.status === 'done' ? 'todo' : 'done' })}
+              className="flex min-h-10 min-w-0 items-center gap-2 rounded-full px-2 text-left text-sm hover:bg-[hsl(var(--on-surface)/0.06)]"
+              title={form.status === 'done' ? 'Mark not done' : 'Mark done'}
+            >
+              <span
+                className={cn(
+                  'flex size-6 shrink-0 items-center justify-center rounded-full border-2',
+                  form.status === 'done'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-[hsl(var(--outline))]',
+                )}
+              >
+                {form.status === 'done' && <Check className="size-4" />}
+              </span>
+              <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
+              <span className="truncate font-medium">
+                {form.due_type === 'month' && form.month_of
+                  ? format(parseISO(form.month_of), 'MMMM yyyy')
+                  : form.due_type === 'week' && form.week_of
+                    ? `Week of ${format(parseISO(form.week_of), 'MMM d')}`
+                    : form.due_date
+                      ? format(parseISO(form.due_date), 'EEE, MMM d')
+                      : 'No date'}
+                {scopeDate(form) && repeats(form.recurrence) && (
+                  <span className="font-normal text-muted-foreground"> · ↻ {repeatLabel(form.recurrence)}</span>
+                )}
+              </span>
+            </button>
+            <div className="flex shrink-0 items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Task list"
+                title="Task list"
+                onClick={() => setMoreDetails(true)}
+              >
+                <ListChecks />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="ghost" size="icon-sm" aria-label="Task color" title="Task color" />}
+                >
+                  <span
+                    className="size-4 rounded-full border border-[hsl(var(--outline))]"
+                    style={{ backgroundColor: form.color ?? 'transparent' }}
+                  >
+                    <Circle className={cn('size-3.5', form.color && 'opacity-0')} />
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-44">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Task color</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => setForm({ ...form, color: null })}>
+                      <span className="size-4 rounded-full border border-[hsl(var(--outline))]" /> None
+                    </DropdownMenuItem>
+                    {TASK_COLORS.map((color) => (
+                      <DropdownMenuItem key={color.value} onClick={() => setForm({ ...form, color: color.value })}>
+                        <span className="size-4 rounded-full" style={{ backgroundColor: color.value }} />
+                        {color.label}
+                        {form.color === color.value && <Check className="ml-auto size-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Reminder settings"
+                title="Reminder settings"
+                onClick={() => setMoreDetails(true)}
+                className={form.remind || form.reminders.length ? 'text-primary' : undefined}
+              >
+                <Bell />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Attach image"
+                title="Attach image (or paste one)"
+                onClick={() => pickImages(addFiles)}
+              >
+                <ImageIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={form.important ? 'Remove important' : 'Mark important'}
+                title={form.important ? 'Remove important' : 'Mark important'}
+                onClick={() => setForm({ ...form, important: !form.important })}
+              >
+                <Star className={form.important ? 'fill-current text-[hsl(var(--tertiary))]' : ''} />
+              </Button>
+              {editing && (
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="ghost" size="icon-sm" aria-label="More task actions" title="More task actions" />
+                    }
+                  >
+                    <MoreHorizontal />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={8} className="z-[70]">
+                    {repeats(editing.recurrence) && (
+                      <DropdownMenuItem onClick={handleSkip}>
+                        <SkipForward /> Skip this time
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={handleScratch}>
+                      {form.status === 'scratched' ? <RotateCcw /> : <Ban />}
+                      {form.status === 'scratched' ? 'Unscratch' : 'Scratch'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                      <Trash2 /> Delete task
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <Button variant="ghost" size="icon-sm" aria-label="Close task editor" onClick={requestClose}>
+                <X />
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {/* Sections never shrink: once "More details" pins the dialog height,
             flex would squeeze the notes box (explicit min-h) to 92px and the
             editor would overflow onto the sections below. Scroll instead. */}
-        <div className="flex flex-col gap-3.5 flex-1 overflow-y-auto px-4 py-4 md:px-6 [&>*]:shrink-0">
+        <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4 md:px-6 [&>*]:shrink-0">
           {/* Subtask context — makes parentage explicit (a child must never
               read as a normal task) and lets the user promote it out so it can
               live in its own list. */}
           {parent && (
             <div className="flex min-h-12 items-center gap-2.5 rounded-xl bg-card px-4 text-sm">
-              <GitBranch className="size-3.5 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground shrink-0">Subtask of</span>
+              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="shrink-0 text-muted-foreground">Subtask of</span>
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: parent.id } }))}
-                className="font-medium truncate hover:text-primary transition-colors"
+                className="truncate font-medium transition-colors hover:text-primary"
               >
                 {parent.title}
               </button>
-              <Button variant="ghost" size="sm" className="ml-auto -mr-3 h-8 shrink-0 text-primary" onClick={handleDetach}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-mr-3 ml-auto h-8 shrink-0 text-primary"
+                onClick={handleDetach}
+              >
                 Move out
               </Button>
             </div>
           )}
 
-		  <div className="flex flex-col gap-1.5">
-		    <Input
+          <div className="flex flex-col gap-1.5">
+            <Input
               id="task-title"
               name="task-title"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               autoFocus={!editing}
               placeholder="What needs doing?"
-		      className="h-auto rounded-none border-0 bg-transparent px-0 py-1 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:shadow-none md:text-3xl"
-		    />
-		  </div>
-
-		  <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
-		    <MarkdownEditor value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} placeholder="Add some extra notes here…" toolbar="compact" onImageFiles={addFiles} />
-		  </div>
-
-		  <TaskAttachments tiles={tiles} uploading={uploading} />
-
-		  <div className="py-0.5">
-		    <StepsEditor
-		      steps={form.steps}
-		      onChange={(next) => setForm({ ...form, steps: next })}
-		      onCommit={editing ? (next) => { tasksApi.update(editing.id, { steps: next }).then(onSaved).catch(() => {}); } : undefined}
-		    />
-		  </div>
-
-		  <button
-		    type="button"
-		    aria-expanded={moreDetails}
-		    onClick={() => {
-		      const next = !moreDetails;
-		      setMoreDetails(next);
-		      try { localStorage.setItem(MORE_DETAILS_KEY, String(next)); } catch {}
-		    }}
-		    className="flex min-h-12 items-center gap-2 rounded-xl bg-card px-4 text-left text-sm font-medium hover:bg-[hsl(var(--surface-container-high))]"
-		  >
-		    <span className="flex-1">More details</span>
-		    {!moreDetails && form.status === 'blocked' && <span className="rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-error-container))]">Blocked</span>}
-		    {!moreDetails && form.priority === 'high' && <span className="rounded-full bg-[hsl(var(--tertiary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-tertiary-container))]">High priority</span>}
-		    {!moreDetails && form.subtasks.length > 0 && <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">{form.subtasks.length} subtask{form.subtasks.length > 1 ? 's' : ''}</span>}
-		    {!moreDetails && form.reminders.length > 0 && <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">{form.reminders.length} extra reminder{form.reminders.length > 1 ? 's' : ''}</span>}
-		    <ChevronDown className={cn('size-4 transition-transform', moreDetails && 'rotate-180')} />
-		  </button>
-
-		  {moreDetails && <div className="flex flex-col gap-4 px-0.5 md:gap-5">
-
-		  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 shrink-0">
-            <div className="flex flex-col gap-1.5">
-              <Label className="flex h-6 items-center text-xs font-mono label-kicker text-muted-foreground">Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue>
-                    <span className="flex items-center gap-2">
-                      <span className={`size-2 rounded-full ${STATUS_DOT[form.status]}`} />
-                      {STATUS_LABELS[form.status]}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      <span className="flex items-center gap-2">
-                        <span className={`size-2 rounded-full ${STATUS_DOT[s]}`} />
-                        {STATUS_LABELS[s]}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label className="flex h-6 items-center text-xs font-mono label-kicker text-muted-foreground">Priority</Label>
-              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: (v as Task['priority']) || 'medium' })}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue>
-                    <span className="flex items-center gap-2">
-                      <span className={`size-2 rounded-full ${PRIORITY_COLORS[form.priority]}`} />
-                      {PRIORITY_LABEL[form.priority]}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      <span className="flex items-center gap-2">
-                        <span className={`size-2 rounded-full ${PRIORITY_COLORS[p]}`} />
-                        {PRIORITY_LABEL[p]}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label className="flex h-6 items-center text-xs font-mono label-kicker text-muted-foreground">List</Label>
-              <Select
-                value={form.list_id ? String(form.list_id) : 'inbox'}
-                onValueChange={(v) =>
-                  setForm({ ...form, list_id: v === 'inbox' ? null : Number(v) })
-                }
-                items={[{ value: 'inbox', label: 'Inbox' }, ...lists.map((l) => ({ value: String(l.id), label: l.name }))]}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="inbox">Inbox</SelectItem>
-                  {lists.map((l) => (
-                    <SelectItem key={l.id} value={String(l.id)}>
-                      <span className="flex items-center gap-2">
-                        <span className="size-2 rounded-full" style={{ backgroundColor: l.color }} />
-                        {l.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              className="h-auto rounded-none border-0 bg-transparent px-0 py-1 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:shadow-none focus-visible:ring-0 md:text-3xl"
+            />
           </div>
 
-          {form.status === 'blocked' && (
-            <div className="flex flex-col gap-1.5 rounded-xl bg-[hsl(var(--error-container)/0.55)] p-3">
-              <Label className="text-xs font-mono label-kicker text-[hsl(var(--on-error-container))] inline-flex items-center gap-1.5">
-                <GitBranch className="size-3" /> Blocked by
-              </Label>
-              <BlockerPicker
-                value={form.blocked_by_task_id}
-                tasks={blockerCandidates}
-                onChange={(id) => setForm({ ...form, blocked_by_task_id: id })}
-              />
-              <p className="text-xs text-[hsl(var(--on-error-container)/0.8)]">
-                Marking the blocker done, scratching or deleting it returns this task to To do.
-              </p>
-            </div>
-          )}
+          <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
+            <MarkdownEditor
+              value={form.description}
+              onChange={(value) => setForm((f) => ({ ...f, description: value }))}
+              placeholder="Add some extra notes here…"
+              toolbar="compact"
+              onImageFiles={addFiles}
+            />
+          </div>
 
-          {/* Due scope — its own full-width row (a 3-way toggle crammed into a
+          <TaskAttachments tiles={tiles} uploading={uploading} />
+
+          <div className="py-0.5">
+            <StepsEditor
+              steps={form.steps}
+              onChange={(next) => setForm({ ...form, steps: next })}
+              onCommit={
+                editing
+                  ? (next) => {
+                      tasksApi
+                        .update(editing.id, { steps: next })
+                        .then(onSaved)
+                        .catch(() => {});
+                    }
+                  : undefined
+              }
+            />
+          </div>
+
+          <button
+            type="button"
+            aria-expanded={moreDetails}
+            onClick={() => {
+              const next = !moreDetails;
+              setMoreDetails(next);
+              try {
+                localStorage.setItem(MORE_DETAILS_KEY, String(next));
+              } catch {}
+            }}
+            className="flex min-h-12 items-center gap-2 rounded-xl bg-card px-4 text-left text-sm font-medium hover:bg-[hsl(var(--surface-container-high))]"
+          >
+            <span className="flex-1">More details</span>
+            {!moreDetails && form.status === 'blocked' && (
+              <span className="rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-error-container))]">
+                Blocked
+              </span>
+            )}
+            {!moreDetails && form.priority === 'high' && (
+              <span className="rounded-full bg-[hsl(var(--tertiary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-tertiary-container))]">
+                High priority
+              </span>
+            )}
+            {!moreDetails && form.subtasks.length > 0 && (
+              <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">
+                {form.subtasks.length} subtask{form.subtasks.length > 1 ? 's' : ''}
+              </span>
+            )}
+            {!moreDetails && form.reminders.length > 0 && (
+              <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">
+                {form.reminders.length} extra reminder{form.reminders.length > 1 ? 's' : ''}
+              </span>
+            )}
+            <ChevronDown className={cn('size-4 transition-transform', moreDetails && 'rotate-180')} />
+          </button>
+
+          {moreDetails && (
+            <div className="flex flex-col gap-4 px-0.5 md:gap-5">
+              <div className="grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="label-kicker flex h-6 items-center font-mono text-xs text-muted-foreground">
+                    Status
+                  </Label>
+                  <Select
+                    value={form.status}
+                    onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue>
+                        <span className="flex items-center gap-2">
+                          <span className={`size-2 rounded-full ${STATUS_DOT[form.status]}`} />
+                          {STATUS_LABELS[form.status]}
+                        </span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          <span className="flex items-center gap-2">
+                            <span className={`size-2 rounded-full ${STATUS_DOT[s]}`} />
+                            {STATUS_LABELS[s]}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="label-kicker flex h-6 items-center font-mono text-xs text-muted-foreground">
+                    Priority
+                  </Label>
+                  <Select
+                    value={form.priority}
+                    onValueChange={(v) => setForm({ ...form, priority: (v as Task['priority']) || 'medium' })}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue>
+                        <span className="flex items-center gap-2">
+                          <span className={`size-2 rounded-full ${PRIORITY_COLORS[form.priority]}`} />
+                          {PRIORITY_LABEL[form.priority]}
+                        </span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITIES.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          <span className="flex items-center gap-2">
+                            <span className={`size-2 rounded-full ${PRIORITY_COLORS[p]}`} />
+                            {PRIORITY_LABEL[p]}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="label-kicker flex h-6 items-center font-mono text-xs text-muted-foreground">
+                    List
+                  </Label>
+                  <Select
+                    value={form.list_id ? String(form.list_id) : 'inbox'}
+                    onValueChange={(v) => setForm({ ...form, list_id: v === 'inbox' ? null : Number(v) })}
+                    items={[
+                      { value: 'inbox', label: 'Inbox' },
+                      ...lists.map((l) => ({ value: String(l.id), label: l.name })),
+                    ]}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inbox">Inbox</SelectItem>
+                      {lists.map((l) => (
+                        <SelectItem key={l.id} value={String(l.id)}>
+                          <span className="flex items-center gap-2">
+                            <span className="size-2 rounded-full" style={{ backgroundColor: l.color }} />
+                            {l.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {form.status === 'blocked' && (
+                <div className="flex flex-col gap-1.5 rounded-xl bg-[hsl(var(--error-container)/0.55)] p-3">
+                  <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-[hsl(var(--on-error-container))]">
+                    <GitBranch className="size-3" /> Blocked by
+                  </Label>
+                  <BlockerPicker
+                    value={form.blocked_by_task_id}
+                    tasks={blockerCandidates}
+                    onChange={(id) => setForm({ ...form, blocked_by_task_id: id })}
+                  />
+                  <p className="text-xs text-[hsl(var(--on-error-container)/0.8)]">
+                    Marking the blocker done, scratching or deleting it returns this task to To do.
+                  </p>
+                </div>
+              )}
+
+              {/* Due scope — its own full-width row (a 3-way toggle crammed into a
               grid cell overran the List label). Connected M3 button-group picks
               the scope; the picker below adapts. Day → date, Week → Monday
               anchor, Month → 1st-of-month goal (broken into dated sessions). */}
-          <div className="flex flex-col gap-2.5 rounded-xl bg-card p-3 shrink-0">
-            <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
-              <CalendarClock className="size-3" /> Due date &amp; time
-            </Label>
-            <SegmentedButton
-              showCheck={false}
-              stretch
-              aria-label="Due scope"
-              value={form.due_type}
-              onChange={(t) => setForm({
-                ...form,
-                due_type: t as FormState['due_type'],
-                ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
-                ...(t === 'month' && !form.month_of ? { month_of: monthFirstKey() } : {}),
-                // Each scope repeats its own way; start over on a switch.
-                ...(t !== form.due_type ? { recurrence: {} } : {}),
-              })}
-              options={[
-                { value: 'day', label: 'Day' },
-                { value: 'week', label: 'Week' },
-                { value: 'month', label: 'Month' },
-              ]}
-            />
-            <div className={cn('grid gap-2.5', form.due_type === 'day' && 'sm:grid-cols-2')}>
-            {form.due_type === 'day' ? (
-              <DatePicker
-                id="task-due-date"
-                name="task-due-date"
-                value={form.due_date}
-                onChange={(v) => setForm({ ...form, due_date: v })}
-                placeholder="No date"
-              />
-            ) : form.due_type === 'week' ? (
-              // Picking any day snaps to that week's Monday (week_of anchor).
-              <DatePicker
-                value={form.week_of}
-                onChange={(v) => setForm({ ...form, week_of: v ? weekMondayKey(parseISO(v)) : '' })}
-                placeholder="Pick a week"
-              />
-            ) : (
-              // Picking any day snaps to that month's 1st (month_of anchor).
-              <DatePicker
-                value={form.month_of}
-                onChange={(v) => setForm({ ...form, month_of: v ? monthFirstKey(parseISO(v)) : '' })}
-                placeholder="Pick a month"
-              />
-            )}
-            {form.due_type === 'day' && (
-              <TimePicker
-                id="task-time"
-                name="task-time"
-                value={form.scheduled_time}
-                placeholder="No time"
-                onChange={(v) => setForm({
-                  ...form,
-                  scheduled_time: v,
-                  due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
-                  remind: v ? form.remind : false,
-                })}
-              />
-            )}
-            </div>
-            <RepeatPicker
-              value={form.recurrence}
-              onChange={(recurrence) => setForm({ ...form, recurrence })}
-              scope={form.due_type}
-              date={scopeDate(form)}
-            />
-          </div>
-
-          {/* Reminder controls stay together, separate from due date/time. */}
-          <div className="flex flex-col rounded-lg bg-card">
-            {form.due_type === 'day' ? (
-              <div className="flex flex-col gap-2 p-3">
-                <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
-                  <Bell className="size-3" /> Reminders
+              <div className="flex shrink-0 flex-col gap-2.5 rounded-xl bg-card p-3">
+                <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                  <CalendarClock className="size-3" /> Due date &amp; time
                 </Label>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <label
-                    className={cn(
-                      'flex items-center gap-2.5 rounded-xl px-3 h-11 flex-1 transition-colors',
-                      form.scheduled_time ? 'hover:bg-[hsl(var(--on-surface)/0.06)] cursor-pointer' : 'opacity-50 cursor-not-allowed',
-                    )}
-                  >
-                    <Bell className="size-4 text-muted-foreground shrink-0" />
-                    <span className="text-sm flex-1">Remind me by email</span>
-                    <Switch
-                      checked={form.remind}
-                      disabled={!form.scheduled_time}
-                      onCheckedChange={(v) => setForm({ ...form, remind: v })}
+                <SegmentedButton
+                  showCheck={false}
+                  stretch
+                  aria-label="Due scope"
+                  value={form.due_type}
+                  onChange={(t) =>
+                    setForm({
+                      ...form,
+                      due_type: t as FormState['due_type'],
+                      ...(t === 'week' && !form.week_of ? { week_of: weekMondayKey() } : {}),
+                      ...(t === 'month' && !form.month_of ? { month_of: monthFirstKey() } : {}),
+                      // Each scope repeats its own way; start over on a switch.
+                      ...(t !== form.due_type ? { recurrence: {} } : {}),
+                    })
+                  }
+                  options={[
+                    { value: 'day', label: 'Day' },
+                    { value: 'week', label: 'Week' },
+                    { value: 'month', label: 'Month' },
+                  ]}
+                />
+                <div className={cn('grid gap-2.5', form.due_type === 'day' && 'sm:grid-cols-2')}>
+                  {form.due_type === 'day' ? (
+                    <DatePicker
+                      id="task-due-date"
+                      name="task-due-date"
+                      value={form.due_date}
+                      onChange={(v) => setForm({ ...form, due_date: v })}
+                      placeholder="No date"
                     />
-                  </label>
+                  ) : form.due_type === 'week' ? (
+                    // Picking any day snaps to that week's Monday (week_of anchor).
+                    <DatePicker
+                      value={form.week_of}
+                      onChange={(v) => setForm({ ...form, week_of: v ? weekMondayKey(parseISO(v)) : '' })}
+                      placeholder="Pick a week"
+                    />
+                  ) : (
+                    // Picking any day snaps to that month's 1st (month_of anchor).
+                    <DatePicker
+                      value={form.month_of}
+                      onChange={(v) => setForm({ ...form, month_of: v ? monthFirstKey(parseISO(v)) : '' })}
+                      placeholder="Pick a month"
+                    />
+                  )}
+                  {form.due_type === 'day' && (
+                    <TimePicker
+                      id="task-time"
+                      name="task-time"
+                      value={form.scheduled_time}
+                      placeholder="No time"
+                      onChange={(v) =>
+                        setForm({
+                          ...form,
+                          scheduled_time: v,
+                          due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
+                          remind: v ? form.remind : false,
+                        })
+                      }
+                    />
+                  )}
                 </div>
+                <RepeatPicker
+                  value={form.recurrence}
+                  onChange={(recurrence) => setForm({ ...form, recurrence })}
+                  scope={form.due_type}
+                  date={scopeDate(form)}
+                />
+              </div>
 
-              </div>
-            ) : (
-              <div className="p-3">
-                <p className="text-xs text-muted-foreground inline-flex items-start gap-1.5">
-                  <Clock className="size-3 mt-0.5 shrink-0" /> <span>{form.due_type === 'month'
-                    ? 'Month goals have no set time. Sajni emails your pending month tasks on the last day of the month. Break them into dated sessions below.'
-                    : 'Week tasks have no set time. Sajni emails your pending week tasks every Friday morning. Add a reminder below for a custom nudge.'}</span>
-                </p>
-              </div>
-            )}
-            {/* Custom recipients — also email these people when reminders fire. */}
-            <div className="p-3">
-              <EmailRecipients
-                value={form.notify_emails}
-                onChange={(em) => setForm({ ...form, notify_emails: em })}
-              />
-            </div>
-            {/* Extra reminders — any date/time, delivered by the cron. Editing
+              {/* Reminder controls stay together, separate from due date/time. */}
+              <div className="flex flex-col rounded-lg bg-card">
+                {form.due_type === 'day' ? (
+                  <div className="flex flex-col gap-2 p-3">
+                    <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                      <Bell className="size-3" /> Reminders
+                    </Label>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <label
+                        className={cn(
+                          'flex h-11 flex-1 items-center gap-2.5 rounded-xl px-3 transition-colors',
+                          form.scheduled_time
+                            ? 'cursor-pointer hover:bg-[hsl(var(--on-surface)/0.06)]'
+                            : 'cursor-not-allowed opacity-50',
+                        )}
+                      >
+                        <Bell className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 text-sm">Remind me by email</span>
+                        <Switch
+                          checked={form.remind}
+                          disabled={!form.scheduled_time}
+                          onCheckedChange={(v) => setForm({ ...form, remind: v })}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3">
+                    <p className="inline-flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="mt-0.5 size-3 shrink-0" />{' '}
+                      <span>
+                        {form.due_type === 'month'
+                          ? 'Month goals have no set time. Sajni emails your pending month tasks on the last day of the month. Break them into dated sessions below.'
+                          : 'Week tasks have no set time. Sajni emails your pending week tasks every Friday morning. Add a reminder below for a custom nudge.'}
+                      </span>
+                    </p>
+                  </div>
+                )}
+                {/* Custom recipients — also email these people when reminders fire. */}
+                <div className="p-3">
+                  <EmailRecipients
+                    value={form.notify_emails}
+                    onChange={(em) => setForm({ ...form, notify_emails: em })}
+                  />
+                </div>
+                {/* Extra reminders — any date/time, delivered by the cron. Editing
                 talks to the API directly; creating buffers them in form state
                 and the create handler flushes them once the task exists. */}
-            <div className="p-3">
+                <div className="p-3">
+                  {editing ? (
+                    <RemindersSection taskId={editing.id} />
+                  ) : (
+                    <RemindersSection
+                      draft={form.reminders}
+                      onDraftChange={(r) => setForm({ ...form, reminders: r })}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Subtasks — real child tasks (own status/due). A new task has no
+              id to parent them to yet, so they're buffered and created on save. */}
               {editing ? (
-                <RemindersSection taskId={editing.id} />
+                <SubtasksSection
+                  taskId={editing.id}
+                  listId={editing.list_id ?? null}
+                  isGoal={!!editing.month_of}
+                  onChanged={onSaved}
+                />
               ) : (
-                <RemindersSection
-                  draft={form.reminders}
-                  onDraftChange={(r) => setForm({ ...form, reminders: r })}
+                <SubtasksSection
+                  isGoal={form.due_type === 'month'}
+                  draft={form.subtasks}
+                  onDraftChange={(next) => setForm((f) => ({ ...f, subtasks: next }))}
                 />
               )}
-            </div>
-          </div>
 
-		  {/* Subtasks — real child tasks (own status/due). A new task has no
-              id to parent them to yet, so they're buffered and created on save. */}
-          {editing ? (
-            <SubtasksSection taskId={editing.id} listId={editing.list_id ?? null} isGoal={!!editing.month_of} onChanged={onSaved} />
-          ) : (
-            <SubtasksSection
-              isGoal={form.due_type === 'month'}
-              draft={form.subtasks}
-              onDraftChange={(next) => setForm((f) => ({ ...f, subtasks: next }))}
-            />
-          )}
-
-          {editing && history.length > 0 && (
-            <div className="rounded-lg bg-card p-3 flex flex-col gap-2 shrink-0">
-              <h4 className="font-mono text-xs label-kicker text-muted-foreground flex items-center gap-1.5">
-                <CalendarClock className="size-3" />
-                Lifecycle ({history.length})
-              </h4>
-              <div className="flex flex-col gap-1">
-                {history.map((h, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className={`font-mono text-xs label-kicker ${
-                      h.outcome === 'rescheduled'
-                        ? 'text-[hsl(var(--primary))]'
-                        : 'text-[hsl(var(--color-waiting))]'
-                    }`}>
-                      {h.outcome}
-                    </span>
-                    <span className="text-muted-foreground">on</span>
-                    <span className="font-mono">{format(parseISO(h.due_date), 'MMM d, yyyy')}</span>
+              {editing && history.length > 0 && (
+                <div className="flex shrink-0 flex-col gap-2 rounded-lg bg-card p-3">
+                  <h4 className="label-kicker flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                    <CalendarClock className="size-3" />
+                    Lifecycle ({history.length})
+                  </h4>
+                  <div className="flex flex-col gap-1">
+                    {history.map((h, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <span
+                          className={`label-kicker font-mono text-xs ${
+                            h.outcome === 'rescheduled'
+                              ? 'text-[hsl(var(--primary))]'
+                              : 'text-[hsl(var(--color-waiting))]'
+                          }`}
+                        >
+                          {h.outcome}
+                        </span>
+                        <span className="text-muted-foreground">on</span>
+                        <span className="font-mono">{format(parseISO(h.due_date), 'MMM d, yyyy')}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Activity — GitHub-style audit timeline (create / status / title
+              / list moves). Note edits are intentionally not tracked. */}
+              {editing && events.length > 0 && (
+                <div className="flex shrink-0 flex-col gap-2 rounded-xl bg-card p-4">
+                  <h4 className="label-kicker flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                    <History className="size-3" /> Activity ({events.length})
+                  </h4>
+                  <ol className="relative ml-1 flex flex-col gap-3 border-l border-border/60 pt-1 pl-4">
+                    {events.map((e, i) => (
+                      <li key={i} className="relative">
+                        <span className="absolute top-1 -left-[21px] size-2.5 rounded-full bg-[hsl(var(--secondary))] ring-2 ring-[hsl(var(--card))]" />
+                        <div className="text-xs leading-snug text-foreground/90">{eventText(e)}</div>
+                        <div className="mt-0.5 font-mono text-xs text-muted-foreground">
+                          {formatDistanceToNow(parseISO(e.created_at), { addSuffix: true })}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
             </div>
           )}
+        </div>
 
-          {/* Activity — GitHub-style audit timeline (create / status / title
-              / list moves). Note edits are intentionally not tracked. */}
-		  {editing && events.length > 0 && (
-            <div className="rounded-xl bg-card p-4 flex flex-col gap-2 shrink-0">
-              <h4 className="font-mono text-xs label-kicker text-muted-foreground flex items-center gap-1.5">
-                <History className="size-3" /> Activity ({events.length})
-              </h4>
-              <ol className="relative ml-1 flex flex-col gap-3 border-l border-border/60 pl-4 pt-1">
-                {events.map((e, i) => (
-                  <li key={i} className="relative">
-                    <span className="absolute -left-[21px] top-1 size-2.5 rounded-full bg-[hsl(var(--secondary))] ring-2 ring-[hsl(var(--card))]" />
-                    <div className="text-xs text-foreground/90 leading-snug">{eventText(e)}</div>
-                    <div className="font-mono text-xs text-muted-foreground mt-0.5">
-                      {formatDistanceToNow(parseISO(e.created_at), { addSuffix: true })}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-		  )}
-		  </div>}
-		</div>
-
-        <div className="shrink-0 flex flex-row items-center justify-end gap-2 px-4 md:px-6 py-3 md:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] ">
-		  <div className="mr-auto min-w-0 text-xs text-muted-foreground">
-		    {!editing && !editor.warning && form.color && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task</span>}
-		  </div>
-          <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void handleSave()}
-            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create task'} disabled={!editing && (saving || !!invalid)} />
+        <div className="flex shrink-0 flex-row items-center justify-end gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:py-4">
+          <div className="mr-auto min-w-0 text-xs text-muted-foreground">
+            {!editing && !editor.warning && form.color && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task
+              </span>
+            )}
+          </div>
+          <EditActions
+            draft={editor}
+            onCancel={() => onOpenChange(false)}
+            onSave={() => void handleSave()}
+            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create task'}
+            disabled={!editing && (saving || !!invalid)}
+          />
         </div>
       </div>
     </MorphingDialog>
@@ -965,10 +1247,31 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 //  • draft mode (draft/onDraftChange) — for a not-yet-created task; titles
 //    are buffered and handleSave creates them under the new task.
 type SubtasksProps =
-  | { taskId: number; listId: number | null; isGoal?: boolean; onChanged: () => void; draft?: never; onDraftChange?: never }
-  | { taskId?: never; listId?: never; isGoal?: boolean; onChanged?: never; draft: DraftSubtask[]; onDraftChange: (next: DraftSubtask[]) => void };
+  | {
+      taskId: number;
+      listId: number | null;
+      isGoal?: boolean;
+      onChanged: () => void;
+      draft?: never;
+      onDraftChange?: never;
+    }
+  | {
+      taskId?: never;
+      listId?: never;
+      isGoal?: boolean;
+      onChanged?: never;
+      draft: DraftSubtask[];
+      onDraftChange: (next: DraftSubtask[]) => void;
+    };
 
-function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, draft: drafts, onDraftChange }: SubtasksProps) {
+function SubtasksSection({
+  taskId,
+  listId = null,
+  isGoal = false,
+  onChanged,
+  draft: drafts,
+  onDraftChange,
+}: SubtasksProps) {
   const qc = useQueryClient();
   const isDraft = taskId === undefined;
   const [fetched, setSubs] = useState<Task[] | null>(null);
@@ -987,16 +1290,23 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
     qc.fetchQuery({
       queryKey: qk.tasks.subtasks(taskId),
       queryFn: () => tasksApi.subtasks(taskId),
-    }).then(setSubs).catch(() => setSubs([]));
+    })
+      .then(setSubs)
+      .catch(() => setSubs([]));
   }, [qc, taskId]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const add = async () => {
     const title = draft.trim();
     if (!title) return;
     setDraft('');
     setDateDraft('');
-    if (isDraft) { onDraftChange!([...drafts!, { title, due_date: dateDraft || undefined }]); return; }
+    if (isDraft) {
+      onDraftChange!([...drafts!, { title, due_date: dateDraft || undefined }]);
+      return;
+    }
     await tasksApi.create({ title, parent_task_id: taskId, list_id: listId, due_date: dateDraft || undefined });
     await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId!) });
     load();
@@ -1015,7 +1325,10 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
     onChanged!();
   };
   const remove = async (s: Task) => {
-    if (isDraft) { onDraftChange!(drafts!.filter((_, i) => i !== -s.id - 1)); return; }
+    if (isDraft) {
+      onDraftChange!(drafts!.filter((_, i) => i !== -s.id - 1));
+      return;
+    }
     await tasksApi.delete(s.id);
     await qc.invalidateQueries({ queryKey: qk.tasks.subtasks(taskId!) });
     load();
@@ -1028,12 +1341,16 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
+        <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
           <GitBranch className="size-3" /> {isGoal ? 'Sessions' : 'Subtasks'}
         </Label>
-        {total > 0 && !isDraft && <span className="mono text-xs text-muted-foreground tabular-nums">{done}/{total} done</span>}
+        {total > 0 && !isDraft && (
+          <span className="mono text-xs text-muted-foreground tabular-nums">
+            {done}/{total} done
+          </span>
+        )}
       </div>
-      <div className="rounded-xl bg-card px-1.5 py-1.5 flex flex-col gap-0.5">
+      <div className="flex flex-col gap-0.5 rounded-xl bg-card px-1.5 py-1.5">
         <AnimatePresence initial={false}>
           {subs?.map((s) => (
             <motion.div
@@ -1043,7 +1360,7 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-              className="group flex items-center gap-2.5 rounded-xl px-2 py-1 hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+              className="group flex items-center gap-2.5 rounded-xl px-2 py-1 transition-colors hover:bg-[hsl(var(--surface-container-high))]"
             >
               <motion.button
                 type="button"
@@ -1051,27 +1368,32 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
                 transition={{ type: 'spring', stiffness: 500, damping: 24 }}
                 onClick={() => toggle(s)}
                 disabled={isDraft}
-                className={`size-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-                  ${s.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
+                className={`flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${s.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
                 aria-pressed={s.status === 'done'}
               >
                 {s.status === 'done' && <Check className="size-3" strokeWidth={3.5} />}
               </motion.button>
               <button
                 type="button"
-                onClick={isDraft ? undefined : () => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: s.id } }))}
+                onClick={
+                  isDraft
+                    ? undefined
+                    : () => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: s.id } }))
+                }
                 disabled={isDraft}
-                className={`flex-1 text-left text-sm truncate enabled:hover:text-primary transition-colors ${s.status === 'done' ? 'line-through text-muted-foreground' : ''}`}
+                className={`flex-1 truncate text-left text-sm transition-colors enabled:hover:text-primary ${s.status === 'done' ? 'text-muted-foreground line-through' : ''}`}
               >
                 {s.title}
               </button>
               {s.due_date && (
-                <span className="mono text-xs text-muted-foreground shrink-0">{format(parseISO(s.due_date), 'MMM d')}</span>
+                <span className="mono shrink-0 text-xs text-muted-foreground">
+                  {format(parseISO(s.due_date), 'MMM d')}
+                </span>
               )}
               <button
                 type="button"
                 onClick={() => remove(s)}
-                className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[background-color,color,opacity] group-hover:opacity-100 hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground [@media(hover:none)]:opacity-100"
                 title="Delete subtask"
               >
                 <X className="size-3.5" />
@@ -1080,7 +1402,7 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
           ))}
         </AnimatePresence>
         <div className="flex items-center gap-2.5 rounded-xl px-2 py-1">
-          <span className="size-[18px] rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+          <span className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[hsl(var(--outline)/0.6)] text-muted-foreground/60">
             <Plus className="size-3" strokeWidth={2.5} />
           </span>
           <Input
@@ -1090,14 +1412,25 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); add(); }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                add();
+              }
               if (e.key === 'Escape') setDraft('');
             }}
-            placeholder={isGoal ? (total === 0 ? 'Add a session…' : 'Add a session') : (total === 0 ? 'Break this into smaller tasks…' : 'Add a subtask')}
-            className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+            placeholder={
+              isGoal
+                ? total === 0
+                  ? 'Add a session…'
+                  : 'Add a session'
+                : total === 0
+                  ? 'Break this into smaller tasks…'
+                  : 'Add a subtask'
+            }
+            className="h-7 flex-1 border-0 bg-transparent px-1 py-0 text-sm shadow-none outline-none placeholder:text-muted-foreground/50 focus-visible:border-0 focus-visible:shadow-none"
           />
           {isGoal && draft && (
-            <div className="shrink-0 w-32">
+            <div className="w-32 shrink-0">
               <DatePicker value={dateDraft} onChange={setDateDraft} placeholder="Date" />
             </div>
           )}
@@ -1105,7 +1438,7 @@ function SubtasksSection({ taskId, listId = null, isGoal = false, onChanged, dra
             <button
               type="button"
               onClick={add}
-              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+              className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1 text-xs font-medium text-[hsl(var(--on-secondary-container))] transition-opacity hover:opacity-90"
             >
               Add
             </button>
@@ -1130,9 +1463,18 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
   const add = () => {
     const e = draft.trim().toLowerCase();
     if (!e) return;
-    if (!EMAIL_RE.test(e)) { setErr('Enter a valid email address.'); return; }
-    if (value.includes(e)) { setDraft(''); return; }
-    if (value.length >= MAX_NOTIFY_EMAILS) { setErr(`Up to ${MAX_NOTIFY_EMAILS} recipients.`); return; }
+    if (!EMAIL_RE.test(e)) {
+      setErr('Enter a valid email address.');
+      return;
+    }
+    if (value.includes(e)) {
+      setDraft('');
+      return;
+    }
+    if (value.length >= MAX_NOTIFY_EMAILS) {
+      setErr(`Up to ${MAX_NOTIFY_EMAILS} recipients.`);
+      return;
+    }
     onChange([...value, e]);
     setDraft('');
     setErr('');
@@ -1142,7 +1484,7 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
   const full = value.length >= MAX_NOTIFY_EMAILS;
   return (
     <div className="flex flex-col gap-2">
-      <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
+      <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
         <Mail className="size-3" /> Also email
       </Label>
       {value.length > 0 && (
@@ -1156,13 +1498,13 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
                 animate={{ opacity: 1, transform: 'scale(1)' }}
                 exit={{ opacity: 0, transform: 'scale(0.9)' }}
                 transition={{ duration: 0.14, ease: [0.2, 0, 0, 1] }}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] pl-2.5 pr-1.5 py-1 text-xs"
+                className="group inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] py-1 pr-1.5 pl-2.5 text-xs text-[hsl(var(--on-secondary-container))]"
               >
                 <span className="max-w-[14rem] truncate">{e}</span>
                 <button
                   type="button"
                   onClick={() => remove(e)}
-                  className="size-4 inline-flex items-center justify-center rounded-full hover:bg-[hsl(var(--on-surface)/0.12)] transition-colors"
+                  className="inline-flex size-4 items-center justify-center rounded-full transition-colors hover:bg-[hsl(var(--on-surface)/0.12)]"
                   title="Remove recipient"
                 >
                   <X className="size-3" />
@@ -1178,9 +1520,15 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
             type="email"
             inputMode="email"
             value={draft}
-            onChange={(e) => { setDraft(e.target.value); if (err) setErr(''); }}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (err) setErr('');
+            }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+              if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                add();
+              }
             }}
             placeholder="friend@example.com"
             className="h-9 flex-1 text-sm"
@@ -1205,7 +1553,11 @@ function EmailRecipients({ value, onChange }: { value: string[]; onChange: (v: s
 //  • draft mode (draft/onDraftChange) — for a not-yet-created task; reminders
 //    live in parent form state as ISO strings and the create handler flushes
 //    them once the task exists. Same UI either way (parity create⇄edit).
-function RemindersSection({ taskId, draft, onDraftChange }: {
+function RemindersSection({
+  taskId,
+  draft,
+  onDraftChange,
+}: {
   taskId?: number;
   draft?: string[];
   onDraftChange?: (v: string[]) => void;
@@ -1229,9 +1581,13 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
     qc.fetchQuery({
       queryKey: qk.tasks.reminders(taskId),
       queryFn: () => tasksApi.reminders(taskId),
-    }).then(setApiRems).catch(() => setApiRems([]));
+    })
+      .then(setApiRems)
+      .catch(() => setApiRems([]));
   }, [isDraft, qc, taskId]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const add = async () => {
     if (!date || !time) return;
@@ -1239,7 +1595,9 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
     if (isNaN(d.getTime())) return;
     if (isDraft) {
       onDraftChange?.([...(draft ?? []), d.toISOString()]);
-      setAdding(false); setDate(''); setTime('09:00');
+      setAdding(false);
+      setDate('');
+      setTime('09:00');
       return;
     }
     setSaving(true);
@@ -1266,7 +1624,7 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
 
   return (
     <div className="flex flex-col gap-2">
-      <Label className="text-xs font-mono label-kicker text-muted-foreground inline-flex items-center gap-1.5">
+      <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
         <Bell className="size-3" /> Extra reminders
       </Label>
       <div className="flex flex-col gap-1.5">
@@ -1279,17 +1637,25 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-              className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 bg-[hsl(var(--surface-container-high))]"
+              className="group flex items-center gap-2.5 rounded-xl bg-[hsl(var(--surface-container-high))] px-2.5 py-1.5"
             >
-              <Bell className={`size-3.5 shrink-0 ${r.sent_at ? 'text-muted-foreground/50' : 'text-[hsl(var(--primary))]'}`} />
-              <span className={`text-sm flex-1 ${r.sent_at ? 'text-muted-foreground line-through' : ''}`}>
-                {(() => { try { return format(parseISO(r.remind_at), 'EEE, MMM d · h:mm a'); } catch { return r.remind_at; } })()}
+              <Bell
+                className={`size-3.5 shrink-0 ${r.sent_at ? 'text-muted-foreground/50' : 'text-[hsl(var(--primary))]'}`}
+              />
+              <span className={`flex-1 text-sm ${r.sent_at ? 'text-muted-foreground line-through' : ''}`}>
+                {(() => {
+                  try {
+                    return format(parseISO(r.remind_at), 'EEE, MMM d · h:mm a');
+                  } catch {
+                    return r.remind_at;
+                  }
+                })()}
               </span>
-              {r.sent_at && <span className="mono text-xs label-kicker text-muted-foreground">sent</span>}
+              {r.sent_at && <span className="mono label-kicker text-xs text-muted-foreground">sent</span>}
               <button
                 type="button"
                 onClick={() => remove(r.id)}
-                className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[background-color,color,opacity] group-hover:opacity-100 hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground [@media(hover:none)]:opacity-100"
                 title="Remove reminder"
               >
                 <X className="size-3.5" />
@@ -1298,30 +1664,37 @@ function RemindersSection({ taskId, draft, onDraftChange }: {
           ))}
         </AnimatePresence>
 
-
-
         {adding ? (
           <div className="flex flex-col gap-2 pt-0.5">
             {/* Give time an explicit column so the date field cannot squeeze
                 "12:55 PM" behind the icon/clear control. Stack only on
                 extra-narrow screens. */}
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(9.5rem,10rem)] gap-2 max-[380px]:grid-cols-1">
-              <div className="min-w-0"><DatePicker value={date} onChange={setDate} placeholder="Pick a date" /></div>
-              <div className="min-w-0"><TimePicker value={time} onChange={setTime} placeholder="Time" /></div>
+              <div className="min-w-0">
+                <DatePicker value={date} onChange={setDate} placeholder="Pick a date" />
+              </div>
+              <div className="min-w-0">
+                <TimePicker value={time} onChange={setTime} placeholder="Time" />
+              </div>
             </div>
-            <div className="flex gap-1.5 justify-end">
+            <div className="flex justify-end gap-1.5">
               <Button size="sm" onClick={add} disabled={!date || saving} className="gap-1.5">
                 {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
                 Add
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
+                Cancel
+              </Button>
             </div>
           </div>
         ) : (
           <button
             type="button"
-            onClick={() => { setAdding(true); if (!date) setDate(format(new Date(), 'yyyy-MM-dd')); }}
-            className="self-start inline-flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:opacity-90 transition-opacity"
+            onClick={() => {
+              setAdding(true);
+              if (!date) setDate(format(new Date(), 'yyyy-MM-dd'));
+            }}
+            className="inline-flex items-center gap-1.5 self-start rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1.5 text-xs text-[hsl(var(--on-secondary-container))] transition-opacity hover:opacity-90"
           >
             <Plus className="size-3.5" /> Add reminder
           </button>

@@ -15,10 +15,18 @@ const STATE = 'sajni:session:';
 const ONE_SHOT = ['focus', 'id'];
 
 function read(key: string): string | null {
-  try { return sessionStorage.getItem(key); } catch { return null; }
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 function write(key: string, value: string) {
-  try { sessionStorage.setItem(key, value); } catch { /* storage off */ }
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* storage off */
+  }
 }
 
 /** The nav space an address belongs to (Today has nothing to resume). */
@@ -51,14 +59,21 @@ export function useSessionState<T>(key: string, initial: T): [T, Dispatch<SetSta
   const [value, setValue] = useState<T>(() => {
     const raw = read(STATE + key);
     if (raw == null) return initial;
-    try { return JSON.parse(raw) as T; } catch { return initial; }
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return initial;
+    }
   });
-  const set = useCallback<Dispatch<SetStateAction<T>>>((next) => {
-    setValue((cur) => {
-      const v = typeof next === 'function' ? (next as (c: T) => T)(cur) : next;
-      write(STATE + key, JSON.stringify(v));
-      return v;
-    });
-  }, [key]);
+  const set = useCallback<Dispatch<SetStateAction<T>>>(
+    (next) => {
+      setValue((cur) => {
+        const v = typeof next === 'function' ? (next as (c: T) => T)(cur) : next;
+        write(STATE + key, JSON.stringify(v));
+        return v;
+      });
+    },
+    [key],
+  );
   return [value, set];
 }

@@ -1,4 +1,12 @@
-import { EditorSelection, EditorState, Facet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
+import {
+  EditorSelection,
+  EditorState,
+  Facet,
+  StateEffect,
+  StateField,
+  type Extension,
+  type Range,
+} from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import type { SyntaxNodeRef } from '@lezer/common';
@@ -22,7 +30,9 @@ export interface EditorHooks {
   wikiExists: (target: string) => boolean;
 }
 
-export const editorHooks = Facet.define<{ current: EditorHooks }, { current: EditorHooks } | null>({ combine: (v) => v[0] ?? null });
+export const editorHooks = Facet.define<{ current: EditorHooks }, { current: EditorHooks } | null>({
+  combine: (v) => v[0] ?? null,
+});
 
 const setFocused = StateEffect.define<boolean>();
 const focusField = StateField.define<boolean>({
@@ -37,7 +47,9 @@ export const refreshDecorations = StateEffect.define<null>();
 // ── Widgets ───────────────────────────────────────────────────────────────
 
 class BulletWidget extends WidgetType {
-  eq() { return true; }
+  eq() {
+    return true;
+  }
   toDOM() {
     const s = document.createElement('span');
     s.className = 'cm-bullet';
@@ -48,8 +60,13 @@ class BulletWidget extends WidgetType {
 
 class CheckboxWidget extends WidgetType {
   readonly checked: boolean;
-  constructor(checked: boolean) { super(); this.checked = checked; }
-  eq(o: CheckboxWidget) { return o.checked === this.checked; }
+  constructor(checked: boolean) {
+    super();
+    this.checked = checked;
+  }
+  eq(o: CheckboxWidget) {
+    return o.checked === this.checked;
+  }
   toDOM(view: EditorView) {
     const box = document.createElement('span');
     box.className = 'cm-checkbox' + (this.checked ? ' is-checked' : '');
@@ -67,11 +84,15 @@ class CheckboxWidget extends WidgetType {
     });
     return box;
   }
-  ignoreEvent() { return true; }
+  ignoreEvent() {
+    return true;
+  }
 }
 
 class HrWidget extends WidgetType {
-  eq() { return true; }
+  eq() {
+    return true;
+  }
   toDOM() {
     const s = document.createElement('span');
     s.className = 'cm-hr';
@@ -82,8 +103,14 @@ class HrWidget extends WidgetType {
 class ImageWidget extends WidgetType {
   readonly src: string;
   readonly alt: string;
-  constructor(src: string, alt: string) { super(); this.src = src; this.alt = alt; }
-  eq(o: ImageWidget) { return o.src === this.src && o.alt === this.alt; }
+  constructor(src: string, alt: string) {
+    super();
+    this.src = src;
+    this.alt = alt;
+  }
+  eq(o: ImageWidget) {
+    return o.src === this.src && o.alt === this.alt;
+  }
   toDOM() {
     const img = document.createElement('img');
     img.className = 'cm-image';
@@ -93,15 +120,24 @@ class ImageWidget extends WidgetType {
     img.decoding = 'async';
     return img;
   }
-  ignoreEvent() { return false; }
+  ignoreEvent() {
+    return false;
+  }
 }
 
 class WikiWidget extends WidgetType {
   readonly target: string;
   readonly label: string;
   readonly exists: boolean;
-  constructor(target: string, label: string, exists: boolean) { super(); this.target = target; this.label = label; this.exists = exists; }
-  eq(o: WikiWidget) { return o.target === this.target && o.label === this.label && o.exists === this.exists; }
+  constructor(target: string, label: string, exists: boolean) {
+    super();
+    this.target = target;
+    this.label = label;
+    this.exists = exists;
+  }
+  eq(o: WikiWidget) {
+    return o.target === this.target && o.label === this.label && o.exists === this.exists;
+  }
   toDOM(view: EditorView) {
     const a = document.createElement('span');
     a.className = 'cm-wiki' + (this.exists ? '' : ' is-missing');
@@ -114,7 +150,9 @@ class WikiWidget extends WidgetType {
     });
     return a;
   }
-  ignoreEvent() { return true; }
+  ignoreEvent() {
+    return true;
+  }
 }
 
 const DUE_FMT = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
@@ -123,20 +161,32 @@ class TaskWidget extends WidgetType {
   private off?: () => void;
   readonly id: number;
   readonly fallback: string;
-  constructor(id: number, fallback: string) { super(); this.id = id; this.fallback = fallback; }
-  eq(o: TaskWidget) { return o.id === this.id && o.fallback === this.fallback; }
+  constructor(id: number, fallback: string) {
+    super();
+    this.id = id;
+    this.fallback = fallback;
+  }
+  eq(o: TaskWidget) {
+    return o.id === this.id && o.fallback === this.fallback;
+  }
   private paint(el: HTMLElement) {
     const t = chipTask(this.id);
     const status = t?.status ?? 'todo';
     const done = status === 'done';
-    el.className = 'cm-task' + (done ? ' is-done' : '') + (status === 'scratched' || t?.missing ? ' is-gone' : '') + (status === 'blocked' ? ' is-blocked' : '');
+    el.className =
+      'cm-task' +
+      (done ? ' is-done' : '') +
+      (status === 'scratched' || t?.missing ? ' is-gone' : '') +
+      (status === 'blocked' ? ' is-blocked' : '');
     el.replaceChildren();
     const ring = document.createElement('span');
     ring.className = 'cm-task-ring';
     ring.setAttribute('aria-hidden', 'true');
     const title = document.createElement('span');
     title.className = 'cm-task-title';
-    title.textContent = t?.missing ? `${this.fallback || 'Task'} (deleted)` : (t?.title || this.fallback || `Task ${this.id}`);
+    title.textContent = t?.missing
+      ? `${this.fallback || 'Task'} (deleted)`
+      : t?.title || this.fallback || `Task ${this.id}`;
     el.append(ring, title);
     if (t?.due_date && !done) {
       const due = document.createElement('span');
@@ -144,7 +194,8 @@ class TaskWidget extends WidgetType {
       const d = new Date(`${t.due_date.slice(0, 10)}T00:00:00`);
       if (!Number.isNaN(d.getTime())) {
         due.textContent = DUE_FMT.format(d);
-        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         if (d < today) due.classList.add('is-overdue');
         el.append(due);
       }
@@ -163,14 +214,23 @@ class TaskWidget extends WidgetType {
     });
     return el;
   }
-  destroy() { this.off?.(); }
-  ignoreEvent() { return true; }
+  destroy() {
+    this.off?.();
+  }
+  ignoreEvent() {
+    return true;
+  }
 }
 
 class TimeWidget extends WidgetType {
   readonly label: string;
-  constructor(label: string) { super(); this.label = label; }
-  eq(o: TimeWidget) { return o.label === this.label; }
+  constructor(label: string) {
+    super();
+    this.label = label;
+  }
+  eq(o: TimeWidget) {
+    return o.label === this.label;
+  }
   toDOM() {
     const s = document.createElement('span');
     s.className = 'cm-time';
@@ -186,7 +246,8 @@ function escapeHtml(s: string) {
 /** Light inline Markdown for table cells (bold, italic, code, links, wikilinks). */
 function inlineHtml(src: string) {
   let s = escapeHtml(src);
-  s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
+  s = s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
     .replace(/~~([^~]+)~~/g, '<s>$1</s>')
@@ -205,12 +266,19 @@ function splitRow(line: string): string[] {
 
 class TableWidget extends WidgetType {
   readonly source: string;
-  constructor(source: string) { super(); this.source = source; }
-  eq(o: TableWidget) { return o.source === this.source; }
+  constructor(source: string) {
+    super();
+    this.source = source;
+  }
+  eq(o: TableWidget) {
+    return o.source === this.source;
+  }
   toDOM(view: EditorView) {
     const lines = this.source.split('\n');
     const head = splitRow(lines[0] ?? '');
-    const aligns = splitRow(lines[1] ?? '').map((c) => (/^:-+:$/.test(c) ? 'center' : /^-+:$/.test(c) ? 'right' : 'left'));
+    const aligns = splitRow(lines[1] ?? '').map((c) =>
+      /^:-+:$/.test(c) ? 'center' : /^-+:$/.test(c) ? 'right' : 'left',
+    );
     const wrap = document.createElement('div');
     wrap.className = 'cm-table-wrap';
     const table = document.createElement('table');
@@ -249,7 +317,9 @@ class TableWidget extends WidgetType {
     });
     return wrap;
   }
-  ignoreEvent() { return true; }
+  ignoreEvent() {
+    return true;
+  }
 }
 
 // ── Decorations ───────────────────────────────────────────────────────────
@@ -258,7 +328,20 @@ const hide = Decoration.replace({});
 const mark = (cls: string, attrs?: Record<string, string>) => Decoration.mark({ class: cls, attributes: attrs });
 const lineDeco = (cls: string) => Decoration.line({ class: cls });
 
-const SKIP_TAGS = new Set(['InlineCode', 'FencedCode', 'CodeBlock', 'URL', 'Autolink', 'WikiLink', 'LegacyTask', 'TimeChip', 'HTMLTag', 'HTMLBlock', 'Image', 'LinkMark']);
+const SKIP_TAGS = new Set([
+  'InlineCode',
+  'FencedCode',
+  'CodeBlock',
+  'URL',
+  'Autolink',
+  'WikiLink',
+  'LegacyTask',
+  'TimeChip',
+  'HTMLTag',
+  'HTMLBlock',
+  'Image',
+  'LinkMark',
+]);
 const TAG_RE = /(^|[\s(])#([A-Za-z0-9_][A-Za-z0-9_/-]*)/g;
 
 function build(state: EditorState): DecorationSet {
@@ -303,12 +386,17 @@ function build(state: EditorState): DecorationSet {
       const name = n.name;
       if (SKIP_TAGS.has(name)) skip.push([n.from, n.to]);
       switch (name) {
-        case 'ATXHeading1': case 'ATXHeading2': case 'ATXHeading3':
-        case 'ATXHeading4': case 'ATXHeading5': case 'ATXHeading6': {
+        case 'ATXHeading1':
+        case 'ATXHeading2':
+        case 'ATXHeading3':
+        case 'ATXHeading4':
+        case 'ATXHeading5':
+        case 'ATXHeading6': {
           out.push(lineDeco(`cm-h cm-h${name.slice(-1)}`).range(doc.lineAt(n.from).from));
           return;
         }
-        case 'SetextHeading1': case 'SetextHeading2':
+        case 'SetextHeading1':
+        case 'SetextHeading2':
           linesOf(n.from, n.to, (i, c) => (i === c - 1 ? 'cm-setext-mark' : `cm-h cm-h${name.slice(-1)}`));
           return;
         case 'HeaderMark':
@@ -317,12 +405,24 @@ function build(state: EditorState): DecorationSet {
             else hideWithSpace(n);
           } else out.push(mark('cm-md-mark').range(n.from, n.to));
           return;
-        case 'Emphasis': out.push(mark('cm-em').range(n.from, n.to)); return;
-        case 'StrongEmphasis': out.push(mark('cm-strong').range(n.from, n.to)); return;
-        case 'Strikethrough': out.push(mark('cm-strike').range(n.from, n.to)); return;
-        case 'Highlight': out.push(mark('cm-highlight').range(n.from, n.to)); return;
-        case 'InlineCode': out.push(mark('cm-inline-code').range(n.from, n.to)); return;
-        case 'EmphasisMark': case 'StrikethroughMark': case 'HighlightMark':
+        case 'Emphasis':
+          out.push(mark('cm-em').range(n.from, n.to));
+          return;
+        case 'StrongEmphasis':
+          out.push(mark('cm-strong').range(n.from, n.to));
+          return;
+        case 'Strikethrough':
+          out.push(mark('cm-strike').range(n.from, n.to));
+          return;
+        case 'Highlight':
+          out.push(mark('cm-highlight').range(n.from, n.to));
+          return;
+        case 'InlineCode':
+          out.push(mark('cm-inline-code').range(n.from, n.to));
+          return;
+        case 'EmphasisMark':
+        case 'StrikethroughMark':
+        case 'HighlightMark':
           out.push((shown(n.from) ? hide : mark('cm-md-mark')).range(n.from, n.to));
           return;
         case 'CodeMark': {
@@ -336,7 +436,8 @@ function build(state: EditorState): DecorationSet {
         case 'HardBreak':
           if (shown(n.from) && state.sliceDoc(n.from, n.from + 1) === '\\') out.push(hide.range(n.from, n.from + 1));
           return;
-        case 'Link': case 'Autolink': {
+        case 'Link':
+        case 'Autolink': {
           const node = n.node;
           const url = node.getChild('URL');
           const href = url ? state.sliceDoc(url.from, url.to) : '';
@@ -347,7 +448,8 @@ function build(state: EditorState): DecorationSet {
             return false;
           }
           const textEnd = marks[1]?.from ?? n.to;
-          if (textEnd > marks[0].to) out.push(mark('cm-link', href ? { 'data-href': href } : undefined).range(marks[0].to, textEnd));
+          if (textEnd > marks[0].to)
+            out.push(mark('cm-link', href ? { 'data-href': href } : undefined).range(marks[0].to, textEnd));
           if (shown(n.from) && href) {
             out.push(hide.range(marks[0].from, marks[0].to));
             out.push(hide.range(textEnd, n.to));
@@ -364,35 +466,56 @@ function build(state: EditorState): DecorationSet {
           return;
         }
         case 'Image': {
-          if (!shown(n.from)) { out.push(mark('cm-md-src').range(n.from, n.to)); return false; }
+          if (!shown(n.from)) {
+            out.push(mark('cm-md-src').range(n.from, n.to));
+            return false;
+          }
           const node = n.node;
           const url = node.getChild('URL');
           if (!url) return false;
           const raw = state.sliceDoc(n.from, n.to);
           const alt = /^!\[([^\]]*)\]/.exec(raw)?.[1] ?? '';
-          out.push(Decoration.replace({ widget: new ImageWidget(state.sliceDoc(url.from, url.to), alt) }).range(n.from, n.to));
+          out.push(
+            Decoration.replace({ widget: new ImageWidget(state.sliceDoc(url.from, url.to), alt) }).range(n.from, n.to),
+          );
           return false;
         }
         case 'WikiLink': {
           const raw = state.sliceDoc(n.from, n.to);
           const w = parseWiki(raw);
-          if (!shown(n.from)) { out.push(mark(w.taskId ? 'cm-task-src' : 'cm-wiki-src').range(n.from, n.to)); return false; }
-          const widget = w.taskId != null
-            ? new TaskWidget(w.taskId, w.label === w.target ? '' : w.label)
-            : new WikiWidget(w.target, w.label, /^\d{4}-\d{2}-\d{2}$/.test(w.target) || (hooks?.wikiExists(w.target) ?? true));
+          if (!shown(n.from)) {
+            out.push(mark(w.taskId ? 'cm-task-src' : 'cm-wiki-src').range(n.from, n.to));
+            return false;
+          }
+          const widget =
+            w.taskId != null
+              ? new TaskWidget(w.taskId, w.label === w.target ? '' : w.label)
+              : new WikiWidget(
+                  w.target,
+                  w.label,
+                  /^\d{4}-\d{2}-\d{2}$/.test(w.target) || (hooks?.wikiExists(w.target) ?? true),
+                );
           out.push(Decoration.replace({ widget }).range(n.from, n.to));
           return false;
         }
         case 'LegacyTask': {
           const t = parseLegacyTask(state.sliceDoc(n.from, n.to));
           if (!t) return false;
-          if (!shown(n.from)) { out.push(mark('cm-task-src').range(n.from, n.to)); return false; }
+          if (!shown(n.from)) {
+            out.push(mark('cm-task-src').range(n.from, n.to));
+            return false;
+          }
           out.push(Decoration.replace({ widget: new TaskWidget(t.id, t.title) }).range(n.from, n.to));
           return false;
         }
         case 'TimeChip': {
-          if (!shown(n.from)) { out.push(mark('cm-task-src').range(n.from, n.to)); return false; }
-          out.push(Decoration.replace({ widget: new TimeWidget(timeLabel(state.sliceDoc(n.from, n.to))) }).range(n.from, n.to));
+          if (!shown(n.from)) {
+            out.push(mark('cm-task-src').range(n.from, n.to));
+            return false;
+          }
+          out.push(
+            Decoration.replace({ widget: new TimeWidget(timeLabel(state.sliceDoc(n.from, n.to))) }).range(n.from, n.to),
+          );
           return false;
         }
         case 'ListMark': {
@@ -409,11 +532,13 @@ function build(state: EditorState): DecorationSet {
             } else out.push(mark('cm-md-mark').range(n.from, marker.to));
             return;
           }
-          if (list === 'BulletList' && shown(n.from)) out.push(Decoration.replace({ widget: new BulletWidget() }).range(n.from, n.to));
+          if (list === 'BulletList' && shown(n.from))
+            out.push(Decoration.replace({ widget: new BulletWidget() }).range(n.from, n.to));
           else out.push(mark('cm-list-mark').range(n.from, n.to));
           return;
         }
-        case 'TaskMarker': return;
+        case 'TaskMarker':
+          return;
         case 'Blockquote':
           linesOf(n.from, n.to, () => 'cm-quote');
           return;
@@ -425,18 +550,30 @@ function build(state: EditorState): DecorationSet {
           if (shown(n.from)) out.push(Decoration.replace({ widget: new HrWidget() }).range(n.from, n.to));
           else out.push(mark('cm-md-mark').range(n.from, n.to));
           return;
-        case 'FencedCode': case 'CodeBlock': {
+        case 'FencedCode':
+        case 'CodeBlock': {
           const open = render && !rangeActive(n.from, n.to);
           linesOf(n.from, n.to, (i, c) => {
-            const fence = name === 'FencedCode' && (i === 0 || (i === c - 1 && /^\s*(`{3,}|~{3,})\s*$/.test(doc.lineAt(n.to).text)));
-            return ['cm-codeblock', i === 0 && 'is-first', i === c - 1 && 'is-last', fence && 'cm-fence', fence && open && 'is-folded'].filter(Boolean).join(' ');
+            const fence =
+              name === 'FencedCode' &&
+              (i === 0 || (i === c - 1 && /^\s*(`{3,}|~{3,})\s*$/.test(doc.lineAt(n.to).text)));
+            return [
+              'cm-codeblock',
+              i === 0 && 'is-first',
+              i === c - 1 && 'is-last',
+              fence && 'cm-fence',
+              fence && open && 'is-folded',
+            ]
+              .filter(Boolean)
+              .join(' ');
           });
           if (open && name === 'FencedCode') {
             const first = doc.lineAt(n.from);
             const last = doc.lineAt(n.to);
             const lang = /^\s*(?:`{3,}|~{3,})\s*([\w+#.-]*)/.exec(first.text)?.[1] ?? '';
             out.push(Decoration.replace({ widget: new CodeLabelWidget(lang) }).range(first.from, first.to));
-            if (last.number !== first.number && /^\s*(`{3,}|~{3,})\s*$/.test(last.text)) out.push(hide.range(last.from, last.to));
+            if (last.number !== first.number && /^\s*(`{3,}|~{3,})\s*$/.test(last.text))
+              out.push(hide.range(last.from, last.to));
           }
           return false;
         }
@@ -444,7 +581,9 @@ function build(state: EditorState): DecorationSet {
           if (render && !rangeActive(n.from, n.to)) {
             const from = doc.lineAt(n.from).from;
             const to = doc.lineAt(n.to).to;
-            out.push(Decoration.replace({ widget: new TableWidget(state.sliceDoc(from, to)), block: true }).range(from, to));
+            out.push(
+              Decoration.replace({ widget: new TableWidget(state.sliceDoc(from, to)), block: true }).range(from, to),
+            );
           } else linesOf(n.from, n.to, () => 'cm-table-src');
           return false;
         }
@@ -473,8 +612,13 @@ function build(state: EditorState): DecorationSet {
 
 class CodeLabelWidget extends WidgetType {
   readonly lang: string;
-  constructor(lang: string) { super(); this.lang = lang; }
-  eq(o: CodeLabelWidget) { return o.lang === this.lang; }
+  constructor(lang: string) {
+    super();
+    this.lang = lang;
+  }
+  eq(o: CodeLabelWidget) {
+    return o.lang === this.lang;
+  }
   toDOM() {
     const s = document.createElement('span');
     s.className = 'cm-code-lang';
@@ -487,11 +631,13 @@ const decorations = StateField.define<DecorationSet>({
   create: (state) => build(state),
   update(deco, tr) {
     if (
-      tr.docChanged || tr.selection
-      || syntaxTree(tr.startState) !== syntaxTree(tr.state)
-      || tr.startState.facet(editorMode) !== tr.state.facet(editorMode)
-      || tr.effects.some((e) => e.is(setFocused) || e.is(refreshDecorations))
-    ) return build(tr.state);
+      tr.docChanged ||
+      tr.selection ||
+      syntaxTree(tr.startState) !== syntaxTree(tr.state) ||
+      tr.startState.facet(editorMode) !== tr.state.facet(editorMode) ||
+      tr.effects.some((e) => e.is(setFocused) || e.is(refreshDecorations))
+    )
+      return build(tr.state);
     return deco;
   },
   provide: (f) => EditorView.decorations.from(f),
@@ -527,17 +673,24 @@ const clicks = EditorView.domEventHandlers({
 // land. A time, not a flag: Vim moves the cursor a moment after the key.
 let verticalKeyAt = 0;
 const VERTICAL_KEYS = new Set(['j', 'k', 'ArrowDown', 'ArrowUp']);
-const verticalKeyTracker = ViewPlugin.fromClass(class {
-  view: EditorView;
-  // Capture on the editor's outer element, so this runs before Vim's and
-  // CodeMirror's own key handlers.
-  onKey = (e: KeyboardEvent) => {
-    const vertical = VERTICAL_KEYS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey;
-    verticalKeyAt = vertical ? performance.now() : 0;
-  };
-  constructor(view: EditorView) { this.view = view; view.dom.addEventListener('keydown', this.onKey, true); }
-  destroy() { this.view.dom.removeEventListener('keydown', this.onKey, true); }
-});
+const verticalKeyTracker = ViewPlugin.fromClass(
+  class {
+    view: EditorView;
+    // Capture on the editor's outer element, so this runs before Vim's and
+    // CodeMirror's own key handlers.
+    onKey = (e: KeyboardEvent) => {
+      const vertical = VERTICAL_KEYS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey;
+      verticalKeyAt = vertical ? performance.now() : 0;
+    };
+    constructor(view: EditorView) {
+      this.view = view;
+      view.dom.addEventListener('keydown', this.onKey, true);
+    }
+    destroy() {
+      this.view.dom.removeEventListener('keydown', this.onKey, true);
+    }
+  },
+);
 
 /**
  * A drawn table is one block, so a move down from the line above it jumps
@@ -546,7 +699,8 @@ const verticalKeyTracker = ViewPlugin.fromClass(class {
  * Markdown, and each further step goes through its rows.
  */
 const stepIntoTables = EditorState.transactionFilter.of((tr) => {
-  if (performance.now() - verticalKeyAt > 400 || tr.docChanged || !tr.selection || tr.isUserEvent('select.pointer')) return tr;
+  if (performance.now() - verticalKeyAt > 400 || tr.docChanged || !tr.selection || tr.isUserEvent('select.pointer'))
+    return tr;
   const start = tr.startState;
   if (start.facet(editorMode) !== 'live' || !start.field(focusField, false)) return tr;
   const before = start.selection;
@@ -587,7 +741,8 @@ const topShowsPage = EditorView.scrollHandler.of((view, range) => {
   const own = view.scrollDOM;
   if (own.scrollHeight > own.clientHeight + 1) return false;
   let el = view.dom.parentElement;
-  while (el && !(/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1)) el = el.parentElement;
+  while (el && !(/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1))
+    el = el.parentElement;
   if (!el || el.scrollTop === 0) return false;
   // From the line's place in the document, since a line scrolled far away
   // isn't drawn and has no on-screen coordinates.

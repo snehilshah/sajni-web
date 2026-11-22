@@ -16,7 +16,12 @@ const BADGE_TONE: Record<BadgeTone, string> = {
 /** Small tonal badge for a category the eye should find without reading:
  *  a due date ("Today", "Fri", "Overdue"), a cadence, a count ("0/3").
  *  Default states get no badge at all. */
-export function DateBadge({ children, tone = 'neutral', icon, className }: {
+export function DateBadge({
+  children,
+  tone = 'neutral',
+  icon,
+  className,
+}: {
   children: ReactNode;
   tone?: BadgeTone;
   icon?: ReactNode;
@@ -46,7 +51,13 @@ const CHIP_TONE: Record<BadgeTone, string> = {
 /** Live page state ("1 overdue", "6 open"). With `onClick` it is a filter
  *  or a jump, so the state is also the control; `selected` uses the single
  *  selection role (secondary-container). */
-export function StateChip({ children, tone = 'neutral', selected, onClick, className }: {
+export function StateChip({
+  children,
+  tone = 'neutral',
+  selected,
+  onClick,
+  className,
+}: {
   children: ReactNode;
   tone?: BadgeTone;
   selected?: boolean;
@@ -56,7 +67,7 @@ export function StateChip({ children, tone = 'neutral', selected, onClick, class
   const cls = cn(
     'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm whitespace-nowrap transition-colors',
     selected
-      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] font-semibold'
+      ? 'bg-[hsl(var(--secondary-container))] font-semibold text-[hsl(var(--on-secondary-container))]'
       : CHIP_TONE[tone],
     className,
   );
@@ -66,7 +77,10 @@ export function StateChip({ children, tone = 'neutral', selected, onClick, class
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={cn(cls, 'outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring/45 active:scale-[0.98]')}
+      className={cn(
+        cls,
+        'outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring/45 active:scale-[0.98]',
+      )}
     >
       {children}
     </button>

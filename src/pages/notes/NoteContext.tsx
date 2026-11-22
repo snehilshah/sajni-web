@@ -15,7 +15,16 @@ const KIND: Record<string, string> = { note: 'Note', journal: 'Journal', memo: '
  * space; empty ones hide.
  */
 export default function NoteContext({
-  description, onDescription, outline, onOutline, backlinks, onBacklink, outgoing, onOutgoing, tags, onCollapse,
+  description,
+  onDescription,
+  outline,
+  onOutline,
+  backlinks,
+  onBacklink,
+  outgoing,
+  onOutgoing,
+  tags,
+  onCollapse,
 }: {
   description: string;
   onDescription: (v: string) => void;
@@ -31,10 +40,10 @@ export default function NoteContext({
   const minLevel = Math.min(...outline.map((o) => o.level), 6);
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-1 pl-4 pr-2">
+      <header className="flex h-14 shrink-0 items-center gap-1 pr-2 pl-4">
         <h2 className="flex-1 text-sm font-medium text-muted-foreground">Details</h2>
       </header>
-      <div className="stable-scrollbar flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-6">
+      <div className="stable-scrollbar flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
         <Section label="Description">
           <Textarea
             value={description}
@@ -68,7 +77,13 @@ export default function NoteContext({
           <Section label={`Linked from · ${backlinks.length}`}>
             <div className="-mx-2 flex flex-col">
               {backlinks.map((b) => (
-                <LinkRow key={`${b.source_type}:${b.source_id}`} icon={<ArrowDownLeft className="size-3.5" />} title={b.title || 'Untitled'} meta={KIND[b.source_type] ?? b.source_type} onClick={() => onBacklink(b)} />
+                <LinkRow
+                  key={`${b.source_type}:${b.source_id}`}
+                  icon={<ArrowDownLeft className="size-3.5" />}
+                  title={b.title || 'Untitled'}
+                  meta={KIND[b.source_type] ?? b.source_type}
+                  onClick={() => onBacklink(b)}
+                />
               ))}
             </div>
           </Section>
@@ -78,7 +93,13 @@ export default function NoteContext({
           <Section label={`Links to · ${outgoing.length}`}>
             <div className="-mx-2 flex flex-col">
               {outgoing.map((l) => (
-                <LinkRow key={l.ref.toLowerCase()} icon={<ArrowUpRight className="size-3.5" />} title={l.title} meta={l.id ? undefined : 'New'} onClick={() => onOutgoing(l)} />
+                <LinkRow
+                  key={l.ref.toLowerCase()}
+                  icon={<ArrowUpRight className="size-3.5" />}
+                  title={l.title}
+                  meta={l.id ? undefined : 'New'}
+                  onClick={() => onOutgoing(l)}
+                />
               ))}
             </div>
           </Section>
@@ -86,14 +107,25 @@ export default function NoteContext({
 
         {tags.length > 0 && (
           <Section label="Tags">
-            <div className="flex flex-wrap gap-1.5">{tags.map((t) => <TagPill key={t} tag={t} />)}</div>
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((t) => (
+                <TagPill key={t} tag={t} />
+              ))}
+            </div>
           </Section>
         )}
       </div>
       {/* Same corner as the "Show details" button when the rail is closed. */}
       {onCollapse && (
         <footer className="flex h-[var(--notes-foot-h,60px)] shrink-0 items-center justify-end px-3">
-          <Button size="icon-sm" variant="ghost" className="rounded-full" title="Hide details" aria-label="Hide details" onClick={onCollapse}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="rounded-full"
+            title="Hide details"
+            aria-label="Hide details"
+            onClick={onCollapse}
+          >
             <PanelRightClose className="size-4" />
           </Button>
         </footer>
@@ -111,7 +143,17 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function LinkRow({ icon, title, meta, onClick }: { icon: ReactNode; title: string; meta?: string; onClick: () => void }) {
+function LinkRow({
+  icon,
+  title,
+  meta,
+  onClick,
+}: {
+  icon: ReactNode;
+  title: string;
+  meta?: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"

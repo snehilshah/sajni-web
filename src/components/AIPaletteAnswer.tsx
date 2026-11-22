@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  Sparkles, ArrowRight, AlertCircle,
-  CheckSquare, Target, BookOpen, Film, Wallet,
-} from '@/components/ui/icons';
+import { Sparkles, ArrowRight, AlertCircle, CheckSquare, Target, BookOpen, Film, Wallet } from '@/components/ui/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -155,21 +152,22 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
   const actions = tools.filter((t) => t.ok && t.meta?.kind);
 
   return (
-    <div className="px-4 py-4 flex flex-col gap-3">
+    <div className="flex flex-col gap-3 px-4 py-4">
       {!query && (
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Sparkles className="size-4" />
-          Type a question after <kbd className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@sajni</kbd>. Try "what's on my plate today?"
+          Type a question after <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-xs">@sajni</kbd>. Try
+          "what's on my plate today?"
         </div>
       )}
 
       {query && (
         <>
           <div className="flex items-start gap-2">
-            <Sparkles className="size-4 mt-0.5 shrink-0 text-primary" />
-            <div className="flex-1 min-w-0">
+            <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
               {answer ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                <div className="prose prose-sm max-w-none break-words dark:prose-invert">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
@@ -186,11 +184,13 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                                 const [_, hash] = href.split('#');
                                 if (hash) {
                                   setTimeout(() => {
-                                    document.getElementById(hash)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                                    document
+                                      .getElementById(hash)
+                                      ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
                                   }, 100);
                                 }
                               }}
-                              className="text-primary hover:underline cursor-pointer"
+                              className="cursor-pointer text-primary hover:underline"
                               {...props}
                             >
                               {children}
@@ -202,7 +202,7 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                             {children}
                           </a>
                         );
-                      }
+                      },
                     }}
                   >
                     {answer}
@@ -214,11 +214,11 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                 </div>
               ) : (
                 !error && (
-                  <div className="text-sm text-muted-foreground space-y-1">
+                  <div className="space-y-1 text-sm text-muted-foreground">
                     <div>The model didn't return text for this one.</div>
                     <button
                       onClick={() => setRetryNonce((n) => n + 1)}
-                      className="text-primary hover:underline text-xs"
+                      className="text-xs text-primary hover:underline"
                     >
                       Try again
                     </button>
@@ -226,14 +226,14 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                 )
               )}
               {streaming && answer && (
-                <span className="inline-block w-1.5 h-3.5 align-baseline bg-primary/70 animate-pulse ml-0.5" />
+                <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-primary/70 align-baseline" />
               )}
             </div>
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-sm bg-error-container text-on-error-container rounded-md px-3 py-2">
-              <AlertCircle className="size-4 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 rounded-md bg-error-container px-3 py-2 text-sm text-on-error-container">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <div>{error}</div>
             </div>
           )}
@@ -262,11 +262,11 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
                         }
                       }
                     }}
-                    className="flex items-center gap-2 text-left bg-accent/40 hover:bg-accent rounded-md px-3 py-2 transition-colors"
+                    className="flex items-center gap-2 rounded-md bg-accent/40 px-3 py-2 text-left transition-colors hover:bg-accent"
                   >
                     <Icon className="size-4 shrink-0 text-primary" />
-                    <span className="text-xs font-mono label-kicker text-muted-foreground">{label}</span>
-                    <span className="text-sm flex-1 truncate">{a.meta?.title}</span>
+                    <span className="label-kicker font-mono text-xs text-muted-foreground">{label}</span>
+                    <span className="flex-1 truncate text-sm">{a.meta?.title}</span>
                     {route && <ArrowRight className="size-3.5 text-muted-foreground" />}
                   </motion.button>
                 );
@@ -278,12 +278,16 @@ export default function AIPaletteAnswer({ query, onClose }: Props) {
             <button
               onClick={continueInChat}
               disabled={adopting}
-              className="self-start mt-1 inline-flex items-center gap-1.5 text-xs text-primary hover:underline disabled:opacity-50"
+              className="mt-1 inline-flex items-center gap-1.5 self-start text-xs text-primary hover:underline disabled:opacity-50"
             >
               {adopting ? (
-                <><M3CookieLoader size="xs" tone="tertiary" /> Opening chat…</>
+                <>
+                  <M3CookieLoader size="xs" tone="tertiary" /> Opening chat…
+                </>
               ) : (
-                <>Continue in chat <ArrowRight className="size-3" /></>
+                <>
+                  Continue in chat <ArrowRight className="size-3" />
+                </>
               )}
             </button>
           )}

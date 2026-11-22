@@ -1,14 +1,25 @@
 import { AlignLeft, Check, ChevronDown } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { GROUP_LABELS, type GroupBy } from './grouping';
 
 // "Group: Status ▾" beside the List/Board switch: how the view splits its
 // tasks. The menu lists only what the current view offers.
-export default function GroupMenu({ value, options, board, onChange }: {
+export default function GroupMenu({
+  value,
+  options,
+  board,
+  onChange,
+}: {
   value: GroupBy;
   options: GroupBy[];
   board: boolean;
@@ -28,7 +39,9 @@ export default function GroupMenu({ value, options, board, onChange }: {
       />
       <DropdownMenuContent align="end" className="min-w-52">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="normal-case tracking-normal">{board ? 'Lanes by' : 'Group the list by'}</DropdownMenuLabel>
+          <DropdownMenuLabel className="tracking-normal normal-case">
+            {board ? 'Lanes by' : 'Group the list by'}
+          </DropdownMenuLabel>
           {options.map((by) => (
             <div key={by}>
               {by === 'none' && <DropdownMenuSeparator />}

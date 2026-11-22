@@ -140,7 +140,16 @@ function px(raw: string): LucideIcon {
     // The glyph is injected via dangerouslySetInnerHTML, so any `children`
     // handed in (e.g. base-ui's <Select.Icon render={...}> clones the element
     // and adds its own children) must be dropped — React forbids setting both.
-    ({ size = 24, children: _children, ...props }, ref) => createElement('svg', { ref, width: size, height: size, viewBox: '0 0 24 24', fill: 'currentColor', ...props, dangerouslySetInnerHTML: { __html: inner } })
+    ({ size = 24, children: _children, ...props }, ref) =>
+      createElement('svg', {
+        ref,
+        width: size,
+        height: size,
+        viewBox: '0 0 24 24',
+        fill: 'currentColor',
+        ...props,
+        dangerouslySetInnerHTML: { __html: inner },
+      }),
   );
   C.displayName = 'PixelIcon';
   return C as unknown as LucideIcon;

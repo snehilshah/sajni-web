@@ -50,9 +50,11 @@ export function SegmentedProgress({
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       {showLabel && (
-        <div className="flex items-center justify-between gap-2 mono text-xs text-muted-foreground">
+        <div className="mono flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="min-w-0 truncate">{label}</span>
-          <span className="shrink-0 tabular-nums">{safeValue}/{total} · {percent}%</span>
+          <span className="shrink-0 tabular-nums">
+            {safeValue}/{total} · {percent}%
+          </span>
         </div>
       )}
       <div

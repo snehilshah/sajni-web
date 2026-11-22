@@ -2,8 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import {
-  Sparkles, Pin, PinOff, X, RefreshCw, Clock, Search,
-  BookOpen, FileText, StickyNote, Wallet, Film,
+  Sparkles,
+  Pin,
+  PinOff,
+  X,
+  RefreshCw,
+  Clock,
+  Search,
+  BookOpen,
+  FileText,
+  StickyNote,
+  Wallet,
+  Film,
 } from '@/components/ui/icons';
 
 import { timeTravel, type Insight, type InsightWindow, type TimeTravelHit } from '@/api';
@@ -34,22 +44,28 @@ export default function InsightsPanel() {
   const dismissInsight = useDismissInsight();
   const running = runInsights.isPending;
 
-  const runNow = () => { runInsights.mutate(window); };
-  const togglePin = (it: Insight) => { pinInsight.mutate({ id: it.id, pinned: !it.pinned }); };
-  const dismiss = (it: Insight) => { dismissInsight.mutate(it.id); };
+  const runNow = () => {
+    runInsights.mutate(window);
+  };
+  const togglePin = (it: Insight) => {
+    pinInsight.mutate({ id: it.id, pinned: !it.pinned });
+  };
+  const dismiss = (it: Insight) => {
+    dismissInsight.mutate(it.id);
+  };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       {/* Toolbar: window pills + re-run */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
           {WINDOWS.map((w) => {
             const active = w.id === window;
             return (
               <button
                 key={w.id}
                 onClick={() => setWindow(w.id)}
-                className={`relative px-3 py-1 rounded-full text-[12px] font-mono label-kicker transition-colors ${
+                className={`label-kicker relative rounded-full px-3 py-1 font-mono text-[12px] transition-colors ${
                   active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
                 title={w.long}
@@ -94,7 +110,9 @@ export default function InsightsPanel() {
 }
 
 function InsightCard({
-  insight, onPin, onDismiss,
+  insight,
+  onPin,
+  onDismiss,
 }: {
   insight: Insight;
   onPin: (it: Insight) => void;
@@ -106,29 +124,29 @@ function InsightCard({
       initial={{ opacity: 0, transform: 'translateY(4px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       exit={{ opacity: 0, transform: 'translateY(-4px)' }}
-      className="rounded-2xl bg-card p-4 md:p-5 flex gap-3"
+      className="flex gap-3 rounded-2xl bg-card p-4 md:p-5"
     >
-      <span className="size-9 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0">
+      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
         <Sparkles className="size-4" />
       </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-2">
           <span className="font-serif text-base font-semibold">{insight.title}</span>
-          <span className="font-mono text-xs label-kicker text-muted-foreground">
+          <span className="label-kicker font-mono text-xs text-muted-foreground">
             {insight.window_key} · score {insight.score.toFixed(2)}
           </span>
         </div>
-        <p className="text-sm text-foreground/85 mt-1 leading-relaxed">{insight.body}</p>
-        <div className="font-mono text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
+        <p className="mt-1 text-sm leading-relaxed text-foreground/85">{insight.body}</p>
+        <div className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-muted-foreground">
           <Clock className="size-3" />
           {format(parseISO(insight.generated_at), 'MMM d, h:mm a')}
         </div>
       </div>
-      <div className="flex flex-col gap-1 shrink-0">
+      <div className="flex shrink-0 flex-col gap-1">
         <button
           onClick={() => onPin(insight)}
           title={insight.pinned ? 'Unpin' : 'Pin'}
-          className={`size-8 grid place-items-center rounded-md hover:bg-accent ${
+          className={`grid size-8 place-items-center rounded-md hover:bg-accent ${
             insight.pinned ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -137,7 +155,7 @@ function InsightCard({
         <button
           onClick={() => onDismiss(insight)}
           title="Dismiss"
-          className="size-8 grid place-items-center rounded-md hover:bg-accent text-muted-foreground hover:text-destructive"
+          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
         >
           <X className="size-4" />
         </button>
@@ -149,11 +167,11 @@ function InsightCard({
 function Empty({ onRun, running }: { onRun: () => void; running: boolean }) {
   return (
     <div className="rounded-2xl border border-dashed border-border p-10 text-center">
-      <Sparkles className="size-6 text-muted-foreground mx-auto mb-3" />
+      <Sparkles className="mx-auto mb-3 size-6 text-muted-foreground" />
       <div className="serif text-lg font-medium">Nothing surfaced yet.</div>
-      <div className="text-sm text-muted-foreground mt-1 mb-4">
-        Insights look for cross-module patterns once you have a few days of data.
-        Try recording a journal entry, completing some tasks, and running it.
+      <div className="mt-1 mb-4 text-sm text-muted-foreground">
+        Insights look for cross-module patterns once you have a few days of data. Try recording a journal entry,
+        completing some tasks, and running it.
       </div>
       <Button onClick={onRun} disabled={running}>
         <RefreshCw className={`size-3.5 ${running ? 'animate-spin' : ''}`} />
@@ -181,7 +199,8 @@ function TimeTravelSearch() {
       return;
     }
     setLoading(true);
-    timeTravel.search(debounced, { limit: 15 })
+    timeTravel
+      .search(debounced, { limit: 15 })
       .then((res) => setHits(res.items))
       .catch(() => setHits([]))
       .finally(() => setLoading(false));
@@ -189,19 +208,29 @@ function TimeTravelSearch() {
 
   const open = (h: TimeTravelHit) => {
     switch (h.type) {
-      case 'journal': navigate(`/journal?date=${h.date}`); break;
-      case 'note': navigate(`/notes?id=${h.id}`); break;
-      case 'memo': navigate('/memos'); break;
-      case 'transaction': navigate('/finance/transactions'); break;
-      case 'media': navigate('/media'); break;
+      case 'journal':
+        navigate(`/journal?date=${h.date}`);
+        break;
+      case 'note':
+        navigate(`/notes?id=${h.id}`);
+        break;
+      case 'memo':
+        navigate('/memos');
+        break;
+      case 'transaction':
+        navigate('/finance/transactions');
+        break;
+      case 'media':
+        navigate('/media');
+        break;
     }
   };
 
   return (
     <section className="rounded-2xl bg-card p-4 md:p-5">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="mb-3 flex items-center gap-2">
         <Search className="size-3.5 text-muted-foreground" />
-        <h2 className="font-mono text-xs label-kicker text-muted-foreground">Time Travel</h2>
+        <h2 className="label-kicker font-mono text-xs text-muted-foreground">Time Travel</h2>
       </div>
       <Input
         value={q}
@@ -229,25 +258,31 @@ function TimeTravelSearch() {
 function HitRow({ hit, onOpen }: { hit: TimeTravelHit; onOpen: () => void }) {
   const Icon = useMemo(() => {
     switch (hit.type) {
-      case 'journal': return BookOpen;
-      case 'note': return FileText;
-      case 'memo': return StickyNote;
-      case 'transaction': return Wallet;
-      case 'media': return Film;
-      default: return Sparkles;
+      case 'journal':
+        return BookOpen;
+      case 'note':
+        return FileText;
+      case 'memo':
+        return StickyNote;
+      case 'transaction':
+        return Wallet;
+      case 'media':
+        return Film;
+      default:
+        return Sparkles;
     }
   }, [hit.type]);
   return (
     <button
       onClick={onOpen}
-      className="flex items-center gap-3 text-left p-2 rounded-md hover:bg-accent transition-colors"
+      className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-accent"
     >
-      <span className="size-7 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0">
+      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
         <Icon className="size-3.5" />
       </span>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm truncate">{hit.title}</div>
-        <div className="font-mono text-xs text-muted-foreground truncate">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm">{hit.title}</div>
+        <div className="truncate font-mono text-xs text-muted-foreground">
           {hit.date} · {hit.type}
           {hit.excerpt ? ` · ${hit.excerpt}` : ''}
         </div>

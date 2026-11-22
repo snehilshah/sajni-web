@@ -22,10 +22,8 @@ export default function TasksDoc() {
     <>
       <Section id="views" title="Smart Views & Lists" chip="pill row">
         <p>
-          The <strong>Lists</strong> chip at the start of the row holds your
-          own lists; the swipeable pills after it are the smart views. Smart
-          views are queries, not containers, a task appears in every view it
-          matches:
+          The <strong>Lists</strong> chip at the start of the row holds your own lists; the swipeable pills after it are
+          the smart views. Smart views are queries, not containers, a task appears in every view it matches:
         </p>
         <RefTable
           head={['view', 'what it shows']}
@@ -42,25 +40,20 @@ export default function TasksDoc() {
         <FeatureList>
           <Feature name="Your lists">
             <p>
-              Tap <strong>Lists</strong> (it never scrolls away) and start
-              typing: “gro” finds Groceries, and Enter opens the first match.
-              <strong>Inbox</strong> always leads the menu: it holds every
-              task you never filed in a list.
-              With more than six lists, the last few you opened sit on top
-              under Recent. The chip then shows the open list's name and
-              count. Create, rename and delete live in the same menu (on the
-              phone, hold a list to rename, reorder or delete it). Deleting
-              a list doesn't delete its tasks, they fall back to the Inbox.
-              New tasks default into whichever list you're viewing.
+              Tap <strong>Lists</strong> (it never scrolls away) and start typing: “gro” finds Groceries, and Enter
+              opens the first match.
+              <strong>Inbox</strong> always leads the menu: it holds every task you never filed in a list. With more
+              than six lists, the last few you opened sit on top under Recent. The chip then shows the open list's name
+              and count. Create, rename and delete live in the same menu (on the phone, hold a list to rename, reorder
+              or delete it). Deleting a list doesn't delete its tasks, they fall back to the Inbox. New tasks default
+              into whichever list you're viewing.
             </p>
           </Feature>
           <Feature name="New tasks start in the view">
             <p>
-              <strong>New task</strong> (or a Board lane's Add a task)
-              inherits the view: adding inside My Day pre-fills today's date,
-              inside This week the current week, inside Important the star,
-              inside a list that list, inside Blocked the blocker picker.
-              What you see is where it lands.
+              <strong>New task</strong> (or a Board lane's Add a task) inherits the view: adding inside My Day pre-fills
+              today's date, inside This week the current week, inside Important the star, inside a list that list,
+              inside Blocked the blocker picker. What you see is where it lands.
             </p>
           </Feature>
         </FeatureList>
@@ -68,37 +61,30 @@ export default function TasksDoc() {
 
       <Section id="scopes" title="Day / Week / Month Scope">
         <p>
-          A task's due-ness has a <strong>scope</strong>, not just a date,
-          picked in the form as Day / Week / Month:
+          A task's due-ness has a <strong>scope</strong>, not just a date, picked in the form as Day / Week / Month:
         </p>
         <FeatureList>
           <Feature name="Day">
-            <p>
-              A dated task: due date, optional time-of-day, optional
-              reminder. The classic.
-            </p>
+            <p>A dated task: due date, optional time-of-day, optional reminder. The classic.</p>
           </Feature>
           <Feature name="Week">
             <p>
-              “Sometime this week”, anchored to a week, no specific day.
-              Drives the This-week view and the journal's weekly review.
-              Mutually exclusive with a date: switching scope clears the
-              other anchors so nothing stale lingers.
+              “Sometime this week”, anchored to a week, no specific day. Drives the This-week view and the journal's
+              weekly review. Mutually exclusive with a date: switching scope clears the other anchors so nothing stale
+              lingers.
             </p>
           </Feature>
           <Feature name="Month (month goals)">
             <p>
-              A month-long agenda, “Ship the redesign”, broken into dated
-              child <em>sessions</em>. The goal shows session progress
-              (“3/8”); sessions are ordinary dated subtasks you schedule as
-              the month unfolds. Reviewed in the journal's monthly view.
+              A month-long agenda, “Ship the redesign”, broken into dated child <em>sessions</em>. The goal shows
+              session progress (“3/8”); sessions are ordinary dated subtasks you schedule as the month unfolds. Reviewed
+              in the journal's monthly view.
             </p>
           </Feature>
         </FeatureList>
         <Callout tone="why">
-          Most systems force a fake date onto “this week-ish” work, and then
-          you snooze it daily. Scopes let the honesty live in the data: a
-          week task never nags on a Tuesday.
+          Most systems force a fake date onto “this week-ish” work, and then you snooze it daily. Scopes let the honesty
+          live in the data: a week task never nags on a Tuesday.
         </Callout>
       </Section>
 
@@ -106,74 +92,56 @@ export default function TasksDoc() {
         <FeatureList>
           <Feature name="Steps">
             <p>
-              A lightweight checklist <em>inside</em> the task, “pack
-              charger, pack kindle”. Steps have no dates, no reminders, no
-              identity of their own; they're for shape, not scheduling. Tap
-              a step's text to reword it.
+              A lightweight checklist <em>inside</em> the task, “pack charger, pack kindle”. Steps have no dates, no
+              reminders, no identity of their own; they're for shape, not scheduling. Tap a step's text to reword it.
             </p>
           </Feature>
           <Feature name="Subtasks">
             <p>
-              Full child tasks with their own status, dates and reminders.
-              The parent row shows a progress ring and the count (“2/5”);
-              tap it and the subtasks drop down one by one under the parent.
-              You can add subtasks while creating a task: “Paint the room”
-              with “Buy paint” and “Sand the walls” typed under More details
-              are all created together when you press Create (on the phone,
-              Add at the top of the sheet).
-              When a subtask shows up on its own in a smart view (My Day, Missed, All), a
-              small “↳ Paint the room” chip beside its title names the parent;
-              tap the chip to open the parent. A task in a Journal plan
-              carries that plan's name as a chip too (“Office start”); tap it
-              to open that day in Journal. A repeating task shows ↻ and how
-              often (“Workdays”). Delete the last subtask and the
-              group folds away with it. Use subtasks when the child
-              is real work; steps when it's just a checklist line.
-              Month-goal sessions are subtasks.
+              Full child tasks with their own status, dates and reminders. The parent row shows a progress ring and the
+              count (“2/5”); tap it and the subtasks drop down one by one under the parent. You can add subtasks while
+              creating a task: “Paint the room” with “Buy paint” and “Sand the walls” typed under More details are all
+              created together when you press Create (on the phone, Add at the top of the sheet). When a subtask shows
+              up on its own in a smart view (My Day, Missed, All), a small “↳ Paint the room” chip beside its title
+              names the parent; tap the chip to open the parent. A task in a Journal plan carries that plan's name as a
+              chip too (“Office start”); tap it to open that day in Journal. A repeating task shows ↻ and how often
+              (“Workdays”). Delete the last subtask and the group folds away with it. Use subtasks when the child is
+              real work; steps when it's just a checklist line. Month-goal sessions are subtasks.
             </p>
           </Feature>
           <Feature name="Priority & Important">
             <p>
-              Priority (low/medium/high) is a sorting weight; Important is a
-              star that pins the task into the Important smart view. The
-              task's box shows its priority: a red border and light red fill
-              for high, amber for medium, grey for low (a task with its own
-              colour uses that instead).
+              Priority (low/medium/high) is a sorting weight; Important is a star that pins the task into the Important
+              smart view. The task's box shows its priority: a red border and light red fill for high, amber for medium,
+              grey for low (a task with its own colour uses that instead).
             </p>
           </Feature>
           <Feature name="Description & #tags">
             <p>
-              Free-form details; <Code>#tags</Code> written there index the
-              task under Analytics → Tags.
+              Free-form details; <Code>#tags</Code> written there index the task under Analytics → Tags.
             </p>
           </Feature>
           <Feature name="Images">
             <p>
-              Attach screenshots or photos with the image button at the top
-              of the task. On the web you can also paste or drop an image
-              anywhere in the task. They show as thumbnails under the notes;
-              open one to see it full size. On a task you're editing, an
-              image attaches (or is removed) straight away; on a new one it
-              attaches when you create the task. Deleting a task deletes its
-              images.
+              Attach screenshots or photos with the image button at the top of the task. On the web you can also paste
+              or drop an image anywhere in the task. They show as thumbnails under the notes; open one to see it full
+              size. On a task you're editing, an image attaches (or is removed) straight away; on a new one it attaches
+              when you create the task. Deleting a task deletes its images.
             </p>
           </Feature>
           <Feature name="Saving on a slow connection">
             <p>
-              Save (or Create) normally closes the task the moment the server
-              has it. If the connection is slow, the task closes anyway after
-              a second and a “Saving “Buy milk”…” notice finishes the job in
-              the background; the edit already shows in your lists. Sajni
-              keeps trying for about a minute and never saves the same change
-              twice. If it still can't get through, the notice says so and
-              offers Retry. Ticking, starring and rescheduling retry the same
-              way.
+              Save (or Create) normally closes the task the moment the server has it. If the connection is slow, the
+              task closes anyway after a second and a “Saving “Buy milk”…” notice finishes the job in the background;
+              the edit already shows in your lists. Sajni keeps trying for about a minute and never saves the same
+              change twice. If it still can't get through, the notice says so and offers Retry. Ticking, starring and
+              rescheduling retry the same way.
             </p>
           </Feature>
           <Feature name="History & activity">
             <p>
-              Editing a task shows its trail, status flips, date moves,
-              reschedules, so “when did I push this?” has an answer.
+              Editing a task shows its trail, status flips, date moves, reschedules, so “when did I push this?” has an
+              answer.
             </p>
           </Feature>
         </FeatureList>
@@ -181,89 +149,72 @@ export default function TasksDoc() {
 
       <Section id="repeat" title="Repeating Tasks">
         <p>
-          A task can repeat: set <em>Repeat</em> under its date (Daily,
-          Workdays, Weekly, Monthly, Yearly, or Custom, like every 2 days or
-          Mon and Thu). Week tasks repeat every week or every few weeks;
-          month goals every month or few months. It needs a date first. It
-          stays one task that moves forward, so lists never fill with
-          copies.
+          A task can repeat: set <em>Repeat</em> under its date (Daily, Workdays, Weekly, Monthly, Yearly, or Custom,
+          like every 2 days or Mon and Thu). Week tasks repeat every week or every few weeks; month goals every month or
+          few months. It needs a date first. It stays one task that moves forward, so lists never fill with copies.
         </p>
         <FeatureList>
           <Feature name="When its day ends">
             <p>
-              Done: it stays ticked for the rest of the day, then reopens on
-              its next date with its steps unticked. Not done: it moves to
-              its next date and its timeline records “Missed Oct 20”, so it
-              never piles up in Missed. Blocked: it stays blocked, moves on,
-              and you get a notification that it's still blocked. A week task
-              moves when its week ends, a month goal when its month does.
+              Done: it stays ticked for the rest of the day, then reopens on its next date with its steps unticked. Not
+              done: it moves to its next date and its timeline records “Missed Oct 20”, so it never piles up in Missed.
+              Blocked: it stays blocked, moves on, and you get a notification that it's still blocked. A week task moves
+              when its week ends, a month goal when its month does.
             </p>
           </Feature>
           <Feature name="Skip this time">
             <p>
-              In the task's <em>⋯</em> menu: moves it to its next date
-              without counting a miss.
+              In the task's <em>⋯</em> menu: moves it to its next date without counting a miss.
             </p>
           </Feature>
           <Feature name="Reminders">
             <p>
-              Its time, <em>Remind me</em> and extra reminders move with it,
-              so they fire again on every date.
+              Its time, <em>Remind me</em> and extra reminders move with it, so they fire again on every date.
             </p>
           </Feature>
           <Feature name="Stopping">
             <p>
-              Set Repeat to <em>Doesn't repeat</em>. Scratching it stops it
-              too; unscratching picks the series back up.
+              Set Repeat to <em>Doesn't repeat</em>. Scratching it stops it too; unscratching picks the series back up.
             </p>
           </Feature>
         </FeatureList>
         <Callout>
-          <strong>Example.</strong> “Check the build board”, Workdays, due
-          Friday. You tick it Friday. On Monday it's back, unticked, due
-          Monday. Monday is busy and you don't get to it: on Tuesday it's due
-          Tuesday and its timeline reads “Missed Oct 26, repeats Oct 27”.
+          <strong>Example.</strong> “Check the build board”, Workdays, due Friday. You tick it Friday. On Monday it's
+          back, unticked, due Monday. Monday is busy and you don't get to it: on Tuesday it's due Tuesday and its
+          timeline reads “Missed Oct 26, repeats Oct 27”.
         </Callout>
       </Section>
 
       <Section id="blocking" title="Blocked Tasks">
         <p>
-          A task can be marked <strong>blocked by</strong> exactly one other
-          task. Behavior:
+          A task can be marked <strong>blocked by</strong> exactly one other task. Behavior:
         </p>
         <ul>
           <li>
-            The blocked task shows its blocker (name + live status) on the
-            row and in the form; it sits in the Blocked smart view until
-            freed.
+            The blocked task shows its blocker (name + live status) on the row and in the form; it sits in the Blocked
+            smart view until freed.
           </li>
           <li>
-            Cycles are prevented at selection time, a task can't block a
-            task that (transitively) blocks it; the picker simply won't
-            offer it.
+            Cycles are prevented at selection time, a task can't block a task that (transitively) blocks it; the picker
+            simply won't offer it.
           </li>
           <li>
-            The picker has a search box: type words from the title (“invoice
-            pdf”) and only tasks with all of them stay.
+            The picker has a search box: type words from the title (“invoice pdf”) and only tasks with all of them stay.
           </li>
           <li>
-            Leaving blocked status clears the link; the blocker relationship
-            never outlives the state that needed it.
+            Leaving blocked status clears the link; the blocker relationship never outlives the state that needed it.
           </li>
         </ul>
         <Callout tone="why">
-          “Waiting on X” tasks pollute My Day and train you to ignore the
-          list. Making blockage explicit gives waiting work a place to be,
-          and the Blocked view doubles as a “what should I unblock first?”
-          queue.
+          “Waiting on X” tasks pollute My Day and train you to ignore the list. Making blockage explicit gives waiting
+          work a place to be, and the Blocked view doubles as a “what should I unblock first?” queue.
         </Callout>
       </Section>
 
       <Section id="reminders" title="Tasks & Standalone Reminders" chip="Tasks · Reminders">
         <p>
-          The secondary bar separates work from nudges. A task models
-          something you intend to get done; a standalone reminder only needs
-          a message and a time.
+          The secondary bar separates work from nudges. A task models something you intend to get done; a standalone
+          reminder only needs a message and a time.
         </p>
         <RefTable
           head={['use', 'when it fits']}
@@ -276,69 +227,54 @@ export default function TasksDoc() {
         <FeatureList>
           <Feature name="A task's reminder fires once">
             <p>
-              Once a task's reminder has gone off, editing the task (its
-              title, a step, a subtask) never sends it again. Change the
-              reminder's time, or switch it off and on, and it fires again
-              at the new time.
+              Once a task's reminder has gone off, editing the task (its title, a step, a subtask) never sends it again.
+              Change the reminder's time, or switch it off and on, and it fires again at the new time.
             </p>
           </Feature>
           <Feature name="The reminder ledger">
             <p>
-              Reminders group chronologically into Today, Tomorrow, Later and
-              Recurring. A row carries the message, next fire time, the first
-              line of its notes and compact actions. Notes show their
-              formatting (lists, bold, links); <em>More</em> unfolds long
-              notes in place, in the Recent ledger too. The notification shows
-              them as well: a short reminder is its title over the notes, a
-              long one stays in the text under “Reminder”. Delivered and skipped occurrences
-              move into the collapsed Recent ledger instead of lingering in
-              the active list. A new reminder starts at the next whole hour
-              today (at 1:40 pm, 2:00 pm), so “in a bit” needs no date picking.
+              Reminders group chronologically into Today, Tomorrow, Later and Recurring. A row carries the message, next
+              fire time, the first line of its notes and compact actions. Notes show their formatting (lists, bold,
+              links); <em>More</em> unfolds long notes in place, in the Recent ledger too. The notification shows them
+              as well: a short reminder is its title over the notes, a long one stays in the text under “Reminder”.
+              Delivered and skipped occurrences move into the collapsed Recent ledger instead of lingering in the active
+              list. A new reminder starts at the next whole hour today (at 1:40 pm, 2:00 pm), so “in a bit” needs no
+              date picking.
             </p>
           </Feature>
           <Feature name="Recurring series">
             <p>
-              Repeat every N days, weeks, months or years; select weekdays;
-              use a monthly date or an ordinal weekday such as “last Friday”;
-              and stop on a date or after a count. Editing changes the series.
-              Skipping or snoozing acts on the current occurrence, so a
-              one-off delay never shifts future cadence.
+              Repeat every N days, weeks, months or years; select weekdays; use a monthly date or an ordinal weekday
+              such as “last Friday”; and stop on a date or after a count. Editing changes the series. Skipping or
+              snoozing acts on the current occurrence, so a one-off delay never shifts future cadence.
             </p>
           </Feature>
           <Feature name="Snooze and delivery">
             <p>
-              Snooze for ten minutes, an hour, tomorrow morning or a custom
-              date and time. Android reminder notifications expose a direct
-              “Snooze 10 min” action. Delivery follows the account's Email /
-              Push / Both choice; a push-only reminder falls back to email if
-              no registered device receives it.
+              Snooze for ten minutes, an hour, tomorrow morning or a custom date and time. Android reminder
+              notifications expose a direct “Snooze 10 min” action. Delivery follows the account's Email / Push / Both
+              choice; a push-only reminder falls back to email if no registered device receives it.
             </p>
           </Feature>
           <Feature name="Multiple reminders per task">
             <p>
-              A task can still carry several attached reminders, each with
-              its own date and time. They follow the same account delivery
-              choice as standalone reminders.
+              A task can still carry several attached reminders, each with its own date and time. They follow the same
+              account delivery choice as standalone reminders.
             </p>
           </Feature>
           <Feature name="Extra recipients">
             <p>
-              A task can carry additional email addresses, when its
-              reminders fire, those people get the mail too. Useful for the
-              “remind us both about the booking” class of task.
+              A task can carry additional email addresses, when its reminders fire, those people get the mail too.
+              Useful for the “remind us both about the booking” class of task.
             </p>
           </Feature>
           <Feature name="Scheduled time">
-            <p>
-              A dated task can carry a time-of-day; with “remind” on, the
-              time is the reminder.
-            </p>
+            <p>A dated task can carry a time-of-day; with “remind” on, the time is the reminder.</p>
           </Feature>
         </FeatureList>
         <Callout tone="why">
-          “Remind me” should stay small. It becomes a standalone reminder
-          unless you explicitly ask for a task, or ask for a reminder on an
-          existing task.
+          “Remind me” should stay small. It becomes a standalone reminder unless you explicitly ask for a task, or ask
+          for a reminder on an existing task.
         </Callout>
       </Section>
 
@@ -356,41 +292,32 @@ export default function TasksDoc() {
         <FeatureList>
           <Feature name="Done & Archive">
             <p>
-              A task you tick goes under <strong>Done</strong>, a fold at the
-              foot of the list (the Done lane on the Board). It stays there
-              for 7 days after you marked it done, then moves to the{' '}
-              <strong>Archive</strong>. Nothing is deleted, and you can't
-              archive a task by hand: time does it.
+              A task you tick goes under <strong>Done</strong>, a fold at the foot of the list (the Done lane on the
+              Board). It stays there for 7 days after you marked it done, then moves to the <strong>Archive</strong>.
+              Nothing is deleted, and you can't archive a task by hand: time does it.
             </p>
             <p>
-              Every view has its own Done: My Day shows today's tasks you've
-              marked done, Important your starred ones, a list its own. The{' '}
-              <strong>Archive (N)</strong> fold sits under Done in{' '}
-              <strong>All</strong> (every archived task) and in each of your
-              own lists (that list's), in the List view only. It loads only
-              when you open it, newest first, 50 at a time behind “Show
-              more”.
+              Every view has its own Done: My Day shows today's tasks you've marked done, Important your starred ones, a
+              list its own. The <strong>Archive (N)</strong> fold sits under Done in <strong>All</strong> (every
+              archived task) and in each of your own lists (that list's), in the List view only. It loads only when you
+              open it, newest first, 50 at a time behind “Show more”.
             </p>
             <p>
-              Example: you mark “Pay rent” done on Monday 3rd in your Home
-              list. Until Monday 10th it's under Done in Home (and in All);
-              after that it's in Home's Archive. Untick it there and it's back
-              in To do.
+              Example: you mark “Pay rent” done on Monday 3rd in your Home list. Until Monday 10th it's under Done in
+              Home (and in All); after that it's in Home's Archive. Untick it there and it's back in To do.
             </p>
           </Feature>
           <Feature name="Scratched">
             <p>
-              Deciding <em>not</em> to do something is progress. Scratched
-              tasks leave every open list, smart view and reminder queue, but
-              stay visible in their own group and are reversible back to
-              todo. Nothing is quietly deleted.
+              Deciding <em>not</em> to do something is progress. Scratched tasks leave every open list, smart view and
+              reminder queue, but stay visible in their own group and are reversible back to todo. Nothing is quietly
+              deleted.
             </p>
           </Feature>
           <Feature name="Missed banner">
             <p>
-              Tasks whose date passed while open are “missed”. A banner on
-              the Tasks page (and on Today) surfaces them with a one-tap
-              reschedule, a missed task should become a decision, fast.
+              Tasks whose date passed while open are “missed”. A banner on the Tasks page (and on Today) surfaces them
+              with a one-tap reschedule, a missed task should become a decision, fast.
             </p>
           </Feature>
         </FeatureList>
@@ -398,71 +325,55 @@ export default function TasksDoc() {
 
       <Section id="board" title="List & Board" chip="view toggle">
         <p>
-          Desktop offers two projections of the same data: <strong>List</strong>{' '}
-          and <strong>Board</strong>. <strong>Group</strong>, beside the
-          switch, picks how each one splits your tasks: by{' '}
-          <strong>Status</strong> (the default: To do, In progress, Blocked; on
-          the Board Done is a lane too, before Blocked, the exception),{' '}
-          <strong>Due date</strong> (Overdue, Today, This week, Later, No
-          date), <strong>Priority</strong> (High, Medium, Low) or{' '}
-          <strong>List</strong> (Inbox, then your lists; not offered inside one
-          list). The List can also show <strong>None</strong>, one plain list.
-          Each view keeps its own choice on this device, so the List can go by
-          due date while the Board goes by status.
+          Desktop offers two projections of the same data: <strong>List</strong> and <strong>Board</strong>.{' '}
+          <strong>Group</strong>, beside the switch, picks how each one splits your tasks: by <strong>Status</strong>{' '}
+          (the default: To do, In progress, Blocked; on the Board Done is a lane too, before Blocked, the exception),{' '}
+          <strong>Due date</strong> (Overdue, Today, This week, Later, No date), <strong>Priority</strong> (High,
+          Medium, Low) or <strong>List</strong> (Inbox, then your lists; not offered inside one list). The List can also
+          show <strong>None</strong>, one plain list. Each view keeps its own choice on this device, so the List can go
+          by due date while the Board goes by status.
         </p>
         <p>
-          In the List every group sits under a header bar with its count; click
-          it to fold the group away. Done, Archive and Scratched are folds at
-          the foot, closed until you open them. The device remembers which
-          groups you folded (the Archive always starts closed). When the List
-          isn't grouped by status, a task in progress says so on its row.
+          In the List every group sits under a header bar with its count; click it to fold the group away. Done, Archive
+          and Scratched are folds at the foot, closed until you open them. The device remembers which groups you folded
+          (the Archive always starts closed). When the List isn't grouped by status, a task in progress says so on its
+          row.
         </p>
         <p>
-          The Board uses the
-          whole width of the window (up to a limit on very wide screens), its
-          lanes reach down to the foot of the screen, and each has its own Add
-          a task. In every view, Done
-          holds that view's tasks marked done in the last 7 days, so a card
-          you drop there stays in sight; older ones are in the Archive, which
-          the Board doesn't show (open it from the List). A card shows the title on up to four lines and grows downward.
-          Under it, only the date is a pill (red when overdue, blue for
-          today); the rest are small marks: repeats, steps (1/4), subtasks
-          (0/3), a bell for a reminder, lines when it has notes, and a picture
-          with a count when it has images. Click the card for the notes and
-          the rest. The ring of its box shows priority (red high, amber
-          medium, grey low); a task with its own colour is ringed and lightly
-          tinted in it. The star shows on starred tasks; on the others it
-          appears when you point at the card. A blocked card's box carries
-          the blocked symbol, with a line saying what it's waiting on, for
-          example "Waiting on Find the invoice PDF".
+          The Board uses the whole width of the window (up to a limit on very wide screens), its lanes reach down to the
+          foot of the screen, and each has its own Add a task. In every view, Done holds that view's tasks marked done
+          in the last 7 days, so a card you drop there stays in sight; older ones are in the Archive, which the Board
+          doesn't show (open it from the List). A card shows the title on up to four lines and grows downward. Under it,
+          only the date is a pill (red when overdue, blue for today); the rest are small marks: repeats, steps (1/4),
+          subtasks (0/3), a bell for a reminder, lines when it has notes, and a picture with a count when it has images.
+          Click the card for the notes and the rest. The ring of its box shows priority (red high, amber medium, grey
+          low); a task with its own colour is ringed and lightly tinted in it. The star shows on starred tasks; on the
+          others it appears when you point at the card. A blocked card's box carries the blocked symbol, with a line
+          saying what it's waiting on, for example "Waiting on Find the invoice PDF".
         </p>
         <ul>
           <li>
-            <strong>Drag a card</strong> anywhere: up or down to reorder a lane,
-            or into another lane to give it that lane's status, priority or
-            list. The cards make room
-            where it will go, and it stays exactly where you drop it. A task
-            you haven't placed yet (a new one) starts at the top. Reordering
-            doesn't count as an edit, so the List keeps its own order.
+            <strong>Drag a card</strong> anywhere: up or down to reorder a lane, or into another lane to give it that
+            lane's status, priority or list. The cards make room where it will go, and it stays exactly where you drop
+            it. A task you haven't placed yet (a new one) starts at the top. Reordering doesn't count as an edit, so the
+            List keeps its own order.
           </li>
           <li>
-            Dropping on <strong>Blocked</strong> opens the task so you can pick
-            what blocks it. A task with open subtasks can't go into{' '}
-            <strong>Done</strong>: the lane says so while you drag, and the
-            card goes back if you let go there.
+            Dropping on <strong>Blocked</strong> opens the task so you can pick what blocks it. A task with open
+            subtasks can't go into <strong>Done</strong>: the lane says so while you drag, and the card goes back if you
+            let go there.
           </li>
           <li>
-            <strong>By due date</strong>: Today makes it due today, This week
-            makes it a task for this week, No date clears its date, and Later
-            asks which day (from next week on). Overdue takes nothing: “A task
-            can't be made overdue. Drop it on a date.” Example: Group by Due
-            date, drag “Renew car insurance” from No date to Today; it's due
-            today, on the Board and in the List.
+            <strong>By due date</strong>: Today makes it due today, This week makes it a task for this week, No date
+            clears its date, and Later asks which day (from next week on). Overdue takes nothing: “A task can't be made
+            overdue. Drop it on a date.” Example: Group by Due date, drag “Renew car insurance” from No date to Today;
+            it's due today, on the Board and in the List.
           </li>
           <li>
-            <strong>Done</strong> shows the five most recent; the rest wait
-            behind “Show 37 more”. Up to four lanes fit across the screen; with more, scroll sideways (the mouse wheel works over the lane headers and any lane short enough not to scroll). Each lane scrolls on its own; “Add a task” at its foot adds
-            one straight into that lane.
+            <strong>Done</strong> shows the five most recent; the rest wait behind “Show 37 more”. Up to four lanes fit
+            across the screen; with more, scroll sideways (the mouse wheel works over the lane headers and any lane
+            short enough not to scroll). Each lane scrolls on its own; “Add a task” at its foot adds one straight into
+            that lane.
           </li>
         </ul>
         <p>Phones always get the list; a board on a phone is a horizontal scroll of regret.</p>

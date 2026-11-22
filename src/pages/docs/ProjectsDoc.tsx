@@ -18,68 +18,51 @@ export default function ProjectsDoc() {
     <>
       <Section id="projects" title="Projects" chip="projects tab">
         <p>
-          A project is a container for a line of thinking, a decision you're
-          circling, a thing you're designing, a question you keep reopening.
-          Inside it: cards, a synthesis, and the AI tools that work the
-          material. The page keeps a second tab, <em>Chat</em>, so long
-          conversations with Sajni live next to the thinking they feed.
+          A project is a container for a line of thinking, a decision you're circling, a thing you're designing, a
+          question you keep reopening. Inside it: cards, a synthesis, and the AI tools that work the material. The page
+          keeps a second tab, <em>Chat</em>, so long conversations with Sajni live next to the thinking they feed.
         </p>
       </Section>
 
       <Section id="cards" title="Cards, Kinds & Relations">
         <p>
-          The unit of thought is a <strong>card</strong>: short text with a{' '}
-          <strong>kind</strong>, connectable to other cards with typed{' '}
-          <strong>relations</strong>.
+          The unit of thought is a <strong>card</strong>: short text with a <strong>kind</strong>, connectable to other
+          cards with typed <strong>relations</strong>.
         </p>
         <RefTable
           head={['kinds', 'relations']}
           rows={[
-            [
-              'note · entity · question · idea · reflection',
-              'supports · contradicts · extends · depends on',
-            ],
-            [
-              'claim · fact · hypothesis · evidence',
-              'refines · fixes · refs · points · questions',
-            ],
-            [
-              'contradiction · decision · todo',
-              'exemplifies · generalizes · related',
-            ],
+            ['note · entity · question · idea · reflection', 'supports · contradicts · extends · depends on'],
+            ['claim · fact · hypothesis · evidence', 'refines · fixes · refs · points · questions'],
+            ['contradiction · decision · todo', 'exemplifies · generalizes · related'],
           ]}
         />
         <FeatureList>
           <Feature name="Kind chips">
             <p>
-              Every card wears its kind as a tonal chip, a board scans as
-              epistemology at a glance: what's claimed, what's known, what's
-              still a question. Kinds filter the board.
+              Every card wears its kind as a tonal chip, a board scans as epistemology at a glance: what's claimed,
+              what's known, what's still a question. Kinds filter the board.
             </p>
           </Feature>
           <Feature name="Card detail">
             <p>
-              Opening a card slides in a detail panel while keeping the project
-              visible. The panel holds its status, dated thread, summary, and
-              enrichment. Connections open related cards in the same panel.
+              Opening a card slides in a detail panel while keeping the project visible. The panel holds its status,
+              dated thread, summary, and enrichment. Connections open related cards in the same panel.
             </p>
           </Feature>
           <Feature name="Completing and resolving">
             <p>
-              Check a todo directly on its card to complete or reopen it, then
-              add optional context to its thread. Questions can be marked
-              answered with the answer retained as a required comment.
-              Resolving a contradiction also requires an explanation. Earlier
-              answers and explanations stay in the thread, and ordinary
-              comments can be edited or deleted.
+              Check a todo directly on its card to complete or reopen it, then add optional context to its thread.
+              Questions can be marked answered with the answer retained as a required comment. Resolving a contradiction
+              also requires an explanation. Earlier answers and explanations stay in the thread, and ordinary comments
+              can be edited or deleted.
             </p>
           </Feature>
         </FeatureList>
         <Callout tone="why">
-          Prose hides disagreement, two contradicting beliefs can live three
-          paragraphs apart forever. Cards force claims to stand alone, and
-          typed relations (<Code>contradicts</Code>, <Code>depends_on</Code>)
-          make the tension a first-class object you can see and resolve.
+          Prose hides disagreement, two contradicting beliefs can live three paragraphs apart forever. Cards force
+          claims to stand alone, and typed relations (<Code>contradicts</Code>, <Code>depends_on</Code>) make the
+          tension a first-class object you can see and resolve.
         </Callout>
       </Section>
 
@@ -87,63 +70,52 @@ export default function ProjectsDoc() {
         <FeatureList>
           <Feature name="Synthesize">
             <p>
-              With two or more cards, Sajni reads the whole board and drafts
-              the through-line, a thesis for the project. Behavior: the
-              synthesis is stamped with when it ran. New cards, comments,
-              resolutions, and edits mark it stale and offer re-synthesis.
-              Sajni reads the thread and current state so resolved tensions
-              appear as outcomes rather than open problems. Fold the synthesis
-              when you want more room for the board.
+              With two or more cards, Sajni reads the whole board and drafts the through-line, a thesis for the project.
+              Behavior: the synthesis is stamped with when it ran. New cards, comments, resolutions, and edits mark it
+              stale and offer re-synthesis. Sajni reads the thread and current state so resolved tensions appear as
+              outcomes rather than open problems. Fold the synthesis when you want more room for the board.
             </p>
           </Feature>
           <Feature name="Enrich">
             <p>
-              Per card, Sajni expands the thought, a summary, angles,
-              questions, and suggested connections to sibling cards.
-              Enrichment runs server-side asynchronously; the card fills in
-              when it lands. You can edit or re-run it; your edits are kept
-              as yours.
+              Per card, Sajni expands the thought, a summary, angles, questions, and suggested connections to sibling
+              cards. Enrichment runs server-side asynchronously; the card fills in when it lands. You can edit or re-run
+              it; your edits are kept as yours.
             </p>
           </Feature>
           <Feature name="Connections">
             <p>
-              Suggested links surface on the card (“3 connections”) and can
-              be accepted into real relations, the AI proposes, you commit.
+              Suggested links surface on the card (“3 connections”) and can be accepted into real relations, the AI
+              proposes, you commit.
             </p>
           </Feature>
         </FeatureList>
         <p>
-          Intended rhythm: dump cards fast during the week, run Synthesize
-          when the board feels full, promote what survives into notes or
-          tasks.
+          Intended rhythm: dump cards fast during the week, run Synthesize when the board feels full, promote what
+          survives into notes or tasks.
         </p>
       </Section>
 
       <Section id="chat" title="Chat" chip="chat tab">
-        <p>
-          The full conversation surface with Sajni, the same brain as the
-          palette, with room to go long.
-        </p>
+        <p>The full conversation surface with Sajni, the same brain as the palette, with room to go long.</p>
         <FeatureList>
           <Feature name="Sessions">
             <p>
-              Conversations are kept as sessions: start a new chat, or reopen
-              a previous one from history and continue with its context
-              intact.
+              Conversations are kept as sessions: start a new chat, or reopen a previous one from history and continue
+              with its context intact.
             </p>
           </Feature>
           <Feature name="It acts, not just answers">
             <p>
-              Chat has the full tool set, it can create tasks, log
-              transactions, mark recurring payments, file pockets, search your notes.
-              When it changes data, the affected pages refresh themselves;
-              action cards deep-link to what it touched.
+              Chat has the full tool set, it can create tasks, log transactions, mark recurring payments, file pockets,
+              search your notes. When it changes data, the affected pages refresh themselves; action cards deep-link to
+              what it touched.
             </p>
           </Feature>
         </FeatureList>
         <p>
-          For the one-line question, prefer the palette (<Code>@sajni</Code>);
-          see the <em>Ask Sajni</em> page for the split.
+          For the one-line question, prefer the palette (<Code>@sajni</Code>); see the <em>Ask Sajni</em> page for the
+          split.
         </p>
       </Section>
     </>

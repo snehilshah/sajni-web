@@ -1,5 +1,12 @@
 import {
-  createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext,
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -59,77 +66,93 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
   const shownIdRef = useRef<number | null>(null);
   const backRef = useRef<number[]>([]);
   useEffect(() => {
-    shownIdRef.current = open ? editingTask?.id ?? null : null;
+    shownIdRef.current = open ? (editingTask?.id ?? null) : null;
   }, [open, editingTask]);
   // Lazy-load lists so unauthenticated routes don't make a wasted call. The
   // shared query key lets a Tasks-page read satisfy the dialog too.
   const ensureLists = useCallback(async () => {
     try {
-      setLists(await qc.fetchQuery({
-        queryKey: qk.taskLists.list(),
-        queryFn: () => listsApi.list(),
-      }));
+      setLists(
+        await qc.fetchQuery({
+          queryKey: qk.taskLists.list(),
+          queryFn: () => listsApi.list(),
+        }),
+      );
+    } catch {
+      /* ignore — dialog still works with an empty list array */
     }
-    catch {/* ignore — dialog still works with an empty list array */}
   }, [qc]);
 
-  const openTask = useCallback(async (id: number) => {
-    const seq = ++openSeqRef.current;
-    const shown = shownIdRef.current;
-    let pushed = false;
-    if (shown !== null && shown !== id) {
-      // Jumping back to the task underneath pops it rather than stacking a loop.
-      if (backRef.current.at(-1) === id) backRef.current.pop();
-      else { backRef.current.push(shown); pushed = true; }
-    }
-    // Don't pop the dialog yet — wait until we actually have task data.
-    // Otherwise the dialog briefly mounts with stale or null `editing`,
-    // which is what users see as a "blank page" flicker.
-    ensureLists();
-    try {
-      // List responses carry the complete editable task shape. Seed the
-      // detail key from any fresh list before falling back to GET /tasks/:id.
-      if (!qc.getQueryData(qk.tasks.detail(id))) {
-        const now = Date.now();
-        const cached = qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'list'] })
-          .filter(([key]) => {
-            const state = qc.getQueryState(key);
-            return state && !state.isInvalidated && now - state.dataUpdatedAt < 60_000;
-          })
-          .flatMap(([, rows]) => rows ?? [])
-          .find((task) => task.id === id);
-        if (cached) qc.setQueryData(qk.tasks.detail(id), cached);
+  const openTask = useCallback(
+    async (id: number) => {
+      const seq = ++openSeqRef.current;
+      const shown = shownIdRef.current;
+      let pushed = false;
+      if (shown !== null && shown !== id) {
+        // Jumping back to the task underneath pops it rather than stacking a loop.
+        if (backRef.current.at(-1) === id) backRef.current.pop();
+        else {
+          backRef.current.push(shown);
+          pushed = true;
+        }
       }
-      const t = await qc.fetchQuery({
-        queryKey: qk.tasks.detail(id),
-        queryFn: () => tasksApi.get(id),
-      });
-      // A later openTask call has superseded this one — drop the stale
-      // result so we don't overwrite the newer task.
-      if (seq !== openSeqRef.current) return;
-      setEditingTask(t);
-      setDefaults({});
-      setOpen(true);
-    } catch (e) {
-      if (seq !== openSeqRef.current) return;
-      toast.error(failureText(e, "Couldn't open that task"));
-      // Stay on the task already on screen; otherwise there's nothing to show.
-      if (pushed) { backRef.current.pop(); return; }
-      if (shown !== null && shown !== id) return;
-      backRef.current = [];
-      setEditingTask(null);
-      setOpen(false);
-    }
-  }, [ensureLists, qc]);
+      // Don't pop the dialog yet — wait until we actually have task data.
+      // Otherwise the dialog briefly mounts with stale or null `editing`,
+      // which is what users see as a "blank page" flicker.
+      ensureLists();
+      try {
+        // List responses carry the complete editable task shape. Seed the
+        // detail key from any fresh list before falling back to GET /tasks/:id.
+        if (!qc.getQueryData(qk.tasks.detail(id))) {
+          const now = Date.now();
+          const cached = qc
+            .getQueriesData<Task[]>({ queryKey: ['tasks', 'list'] })
+            .filter(([key]) => {
+              const state = qc.getQueryState(key);
+              return state && !state.isInvalidated && now - state.dataUpdatedAt < 60_000;
+            })
+            .flatMap(([, rows]) => rows ?? [])
+            .find((task) => task.id === id);
+          if (cached) qc.setQueryData(qk.tasks.detail(id), cached);
+        }
+        const t = await qc.fetchQuery({
+          queryKey: qk.tasks.detail(id),
+          queryFn: () => tasksApi.get(id),
+        });
+        // A later openTask call has superseded this one — drop the stale
+        // result so we don't overwrite the newer task.
+        if (seq !== openSeqRef.current) return;
+        setEditingTask(t);
+        setDefaults({});
+        setOpen(true);
+      } catch (e) {
+        if (seq !== openSeqRef.current) return;
+        toast.error(failureText(e, "Couldn't open that task"));
+        // Stay on the task already on screen; otherwise there's nothing to show.
+        if (pushed) {
+          backRef.current.pop();
+          return;
+        }
+        if (shown !== null && shown !== id) return;
+        backRef.current = [];
+        setEditingTask(null);
+        setOpen(false);
+      }
+    },
+    [ensureLists, qc],
+  );
 
-  const openNew = useCallback((d: Record<string, unknown> = {}) => {
-    ++openSeqRef.current;
-    backRef.current = [];
-    ensureLists();
-    setEditingTask(null);
-    setDefaults(d);
-    setOpen(true);
-  }, [ensureLists]);
+  const openNew = useCallback(
+    (d: Record<string, unknown> = {}) => {
+      ++openSeqRef.current;
+      backRef.current = [];
+      ensureLists();
+      setEditingTask(null);
+      setDefaults(d);
+      setOpen(true);
+    },
+    [ensureLists],
+  );
 
   const close = useCallback(() => {
     backRef.current = [];
@@ -138,17 +161,20 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
 
   // Closing (Esc, ×, Cancel, after Save/Delete) returns to the task this one
   // was opened from, if any; only the last close dismisses the dialog.
-  const handleOpenChange = useCallback((o: boolean) => {
-    if (!o) {
-      const back = backRef.current.pop();
-      if (back !== undefined) {
-        shownIdRef.current = null; // returning is not a new jump
-        void openTask(back);
-        return;
+  const handleOpenChange = useCallback(
+    (o: boolean) => {
+      if (!o) {
+        const back = backRef.current.pop();
+        if (back !== undefined) {
+          shownIdRef.current = null; // returning is not a new jump
+          void openTask(back);
+          return;
+        }
       }
-    }
-    setOpen(o);
-  }, [openTask]);
+      setOpen(o);
+    },
+    [openTask],
+  );
 
   const handleCloseComplete = useCallback(() => {
     if (!open) {
@@ -183,17 +209,17 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
       {/* Outside the route boundary: a failed chunk must hide the dialog, not
           unmount the whole app (the old blank-page failure). */}
       <ErrorBoundary fallback={null}>
-      <Suspense fallback={null}>
-        <TaskFormDialog
-          open={open}
-          onOpenChange={handleOpenChange}
-          onCloseComplete={handleCloseComplete}
-          editing={editingTask}
-          defaults={defaults}
-          lists={lists}
-          onSaved={handleSaved}
-        />
-      </Suspense>
+        <Suspense fallback={null}>
+          <TaskFormDialog
+            open={open}
+            onOpenChange={handleOpenChange}
+            onCloseComplete={handleCloseComplete}
+            editing={editingTask}
+            defaults={defaults}
+            lists={lists}
+            onSaved={handleSaved}
+          />
+        </Suspense>
       </ErrorBoundary>
     </Ctx.Provider>
   );

@@ -14,7 +14,12 @@ import { EditActions } from '@/components/editor-actions';
 // Create/edit form for a slate (name + color). Plain never reaches here —
 // it can't be renamed, so SlatesTab offers no edit action for it.
 
-export default function SlateDialog({ open, slate, onClose, onSaved }: {
+export default function SlateDialog({
+  open,
+  slate,
+  onClose,
+  onSaved,
+}: {
   open: boolean;
   slate: FinSlate | null;
   onClose: () => void;
@@ -49,7 +54,10 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
   }, [open, slate, loadDraft]);
 
   const save = async () => {
-    if (slate) { await editor.save(onSaved); return; }
+    if (slate) {
+      await editor.save(onSaved);
+      return;
+    }
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
@@ -70,18 +78,23 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label className="font-mono text-xs label-kicker text-muted-foreground">Name</Label>
+            <Label className="label-kicker font-mono text-xs text-muted-foreground">Name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Goa Trip"
               maxLength={60}
               autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  save();
+                }
+              }}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="font-mono text-xs label-kicker text-muted-foreground">Color</Label>
+            <Label className="label-kicker font-mono text-xs text-muted-foreground">Color</Label>
             <div className="flex flex-wrap gap-2">
               {ACCOUNT_COLORS.map((c) => (
                 <button
@@ -92,8 +105,8 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
                   onClick={() => setColor(c)}
                   className={cn(
                     'size-8 rounded-full transition-transform outline-none',
-                    'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--primary))]',
-                    color === c ? 'ring-2 ring-offset-2 ring-[hsl(var(--primary))] scale-110' : 'fine-hover-scale-110',
+                    'focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2',
+                    color === c ? 'scale-110 ring-2 ring-[hsl(var(--primary))] ring-offset-2' : 'fine-hover-scale-110',
                   )}
                   style={{ backgroundColor: c }}
                 />
@@ -102,14 +115,19 @@ export default function SlateDialog({ open, slate, onClose, onSaved }: {
           </div>
           {!slate && (
             <p className="text-xs text-muted-foreground">
-              A slate holds spending that isn't your normal life, a trip, a
-              wedding, a one-off purchase. Whatever you move into it stops
-              counting against your ordinary budgets.
+              A slate holds spending that isn't your normal life, a trip, a wedding, a one-off purchase. Whatever you
+              move into it stops counting against your ordinary budgets.
             </p>
           )}
         </div>
         <DialogFooter>
-          <EditActions draft={editor} onCancel={onClose} onSave={save} saveLabel={slate ? 'Save' : 'Create'} disabled={!slate && (saving || !name.trim())} />
+          <EditActions
+            draft={editor}
+            onCancel={onClose}
+            onSave={save}
+            saveLabel={slate ? 'Save' : 'Create'}
+            disabled={!slate && (saving || !name.trim())}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

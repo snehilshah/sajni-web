@@ -2,12 +2,7 @@
 // app uses (accents, surfaces, outlines, status). Every theme, seeded or
 // hand-authored, resolves to the same `Palette` shape and the same CSS.
 
-import {
-  argbFromHex,
-  hexFromArgb,
-  TonalPalette,
-  Hct,
-} from '@material/material-color-utilities';
+import { argbFromHex, hexFromArgb, TonalPalette, Hct } from '@material/material-color-utilities';
 
 export interface ThemeSeeds {
   primary: string;
@@ -55,14 +50,21 @@ export function hexToHsl(hex: string): string {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const l = (max + min) / 2;
-  let h = 0, s = 0;
+  let h = 0,
+    s = 0;
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
     }
     h *= 60;
   }
@@ -75,7 +77,9 @@ function hslToHex(hsl: string): string {
   const f = (n: number) => {
     const k = (n + h / 30) % 12;
     const c = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-    return Math.round(c * 255).toString(16).padStart(2, '0');
+    return Math.round(c * 255)
+      .toString(16)
+      .padStart(2, '0');
   };
   return `#${f(0)}${f(8)}${f(4)}`;
 }
@@ -86,45 +90,45 @@ type Pal = ReturnType<typeof palettes>;
 type Plan = (p: Pal) => { light: string; dark: string };
 const tokens = {
   // Primary
-  primary:                   (p) => mode(p.primary, 40, 80),
-  'on-primary':              (p) => mode(p.primary, 100, 20),
-  'primary-container':       (p) => mode(p.primary, 90, 30),
-  'on-primary-container':    (p) => mode(p.primary, 10, 90),
+  primary: (p) => mode(p.primary, 40, 80),
+  'on-primary': (p) => mode(p.primary, 100, 20),
+  'primary-container': (p) => mode(p.primary, 90, 30),
+  'on-primary-container': (p) => mode(p.primary, 10, 90),
   // Secondary
-  secondary:                 (p) => mode(p.secondary, 40, 80),
-  'on-secondary':            (p) => mode(p.secondary, 100, 20),
-  'secondary-container':     (p) => mode(p.secondary, 90, 30),
-  'on-secondary-container':  (p) => mode(p.secondary, 10, 90),
+  secondary: (p) => mode(p.secondary, 40, 80),
+  'on-secondary': (p) => mode(p.secondary, 100, 20),
+  'secondary-container': (p) => mode(p.secondary, 90, 30),
+  'on-secondary-container': (p) => mode(p.secondary, 10, 90),
   // Tertiary
-  tertiary:                  (p) => mode(p.tertiary, 40, 80),
-  'on-tertiary':             (p) => mode(p.tertiary, 100, 20),
-  'tertiary-container':      (p) => mode(p.tertiary, 90, 30),
-  'on-tertiary-container':   (p) => mode(p.tertiary, 10, 90),
+  tertiary: (p) => mode(p.tertiary, 40, 80),
+  'on-tertiary': (p) => mode(p.tertiary, 100, 20),
+  'tertiary-container': (p) => mode(p.tertiary, 90, 30),
+  'on-tertiary-container': (p) => mode(p.tertiary, 10, 90),
   // Error
-  error:                     (p) => mode(p.error, 40, 80),
-  'on-error':                (p) => mode(p.error, 100, 20),
-  'error-container':         (p) => mode(p.error, 90, 30),
-  'on-error-container':      (p) => mode(p.error, 10, 90),
+  error: (p) => mode(p.error, 40, 80),
+  'on-error': (p) => mode(p.error, 100, 20),
+  'error-container': (p) => mode(p.error, 90, 30),
+  'on-error-container': (p) => mode(p.error, 10, 90),
   // Surface family
-  surface:                   (p) => mode(p.neutral, 98, 6),
-  'surface-dim':             (p) => mode(p.neutral, 87, 6),
-  'surface-bright':          (p) => mode(p.neutral, 98, 24),
-  'surface-container-lowest':(p) => mode(p.neutral, 100, 4),
-  'surface-container-low':   (p) => mode(p.neutral, 96, 10),
-  'surface-container':       (p) => mode(p.neutral, 94, 12),
-  'surface-container-high':  (p) => mode(p.neutral, 92, 17),
+  surface: (p) => mode(p.neutral, 98, 6),
+  'surface-dim': (p) => mode(p.neutral, 87, 6),
+  'surface-bright': (p) => mode(p.neutral, 98, 24),
+  'surface-container-lowest': (p) => mode(p.neutral, 100, 4),
+  'surface-container-low': (p) => mode(p.neutral, 96, 10),
+  'surface-container': (p) => mode(p.neutral, 94, 12),
+  'surface-container-high': (p) => mode(p.neutral, 92, 17),
   'surface-container-highest': (p) => mode(p.neutral, 90, 22),
-  'on-surface':              (p) => mode(p.neutral, 10, 90),
-  'on-surface-variant':      (p) => mode(p.neutralVariant, 30, 80),
-  outline:                   (p) => mode(p.neutralVariant, 50, 60),
-  'outline-variant':         (p) => mode(p.neutralVariant, 80, 30),
-  scrim:                     (p) => mode(p.neutral, 0, 0),
-  'inverse-surface':         (p) => mode(p.neutral, 20, 90),
-  'inverse-on-surface':      (p) => mode(p.neutral, 95, 20),
-  'inverse-primary':         (p) => mode(p.primary, 80, 40),
+  'on-surface': (p) => mode(p.neutral, 10, 90),
+  'on-surface-variant': (p) => mode(p.neutralVariant, 30, 80),
+  outline: (p) => mode(p.neutralVariant, 50, 60),
+  'outline-variant': (p) => mode(p.neutralVariant, 80, 30),
+  scrim: (p) => mode(p.neutral, 0, 0),
+  'inverse-surface': (p) => mode(p.neutral, 20, 90),
+  'inverse-on-surface': (p) => mode(p.neutral, 95, 20),
+  'inverse-primary': (p) => mode(p.primary, 80, 40),
   // Status accents — bias toward tertiary (calm) and secondary (cool).
-  'color-complete':          (p) => mode(p.tertiary, 38, 66),
-  'color-waiting':           (p) => mode(p.secondary, 44, 68),
+  'color-complete': (p) => mode(p.tertiary, 38, 66),
+  'color-waiting': (p) => mode(p.secondary, 44, 68),
 } satisfies Record<string, Plan>;
 
 export type ThemeToken = keyof typeof tokens;
@@ -156,8 +160,7 @@ export function buildPalette(seeds: ThemeSeeds): AppliedTheme {
 
 // fromHex converts a hand-authored hex palette into the CSS-var format.
 export function fromHex(hex: { light: HexPalette; dark: HexPalette }): AppliedTheme {
-  const conv = (m: HexPalette) =>
-    Object.fromEntries(Object.entries(m).map(([k, v]) => [k, hexToHsl(v)])) as Palette;
+  const conv = (m: HexPalette) => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, hexToHsl(v)])) as Palette;
   return { light: conv(hex.light), dark: conv(hex.dark) };
 }
 
@@ -165,11 +168,10 @@ export function fromHex(hex: { light: HexPalette; dark: HexPalette }): AppliedTh
 // `selector[data-mode="dark"]`. Every theme — built-in or AI — goes through here.
 export function paletteCss(selector: string, palette: AppliedTheme): string {
   const block = (m: Palette) =>
-    Object.entries(m).map(([k, v]) => `--${k}:${v}`).join(';');
-  return (
-    `${selector}{${block(palette.light)}}` +
-    `${selector}[data-mode="dark"]{${block(palette.dark)}}`
-  );
+    Object.entries(m)
+      .map(([k, v]) => `--${k}:${v}`)
+      .join(';');
+  return `${selector}{${block(palette.light)}}` + `${selector}[data-mode="dark"]{${block(palette.dark)}}`;
 }
 
 // Compile a saved AI theme. `:root[data-theme="custom"]` (0-2-0) beats every

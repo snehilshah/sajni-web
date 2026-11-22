@@ -8,14 +8,17 @@
 // `virtual:theme-presets.css`) and shipped as a render-blocking <link>, so no
 // runtime code ever paints presets and first paint is always correct.
 
-import { buildPalette, fromHex, paletteCss, paletteSwatches, type AppliedTheme, type HexPalette, type ThemeSeeds } from './applyM3';
+import {
+  buildPalette,
+  fromHex,
+  paletteCss,
+  paletteSwatches,
+  type AppliedTheme,
+  type HexPalette,
+  type ThemeSeeds,
+} from './applyM3';
 
-export type PresetId =
-  | 'marine'
-  | 'powerpuff'
-  | 'gruvbox'
-  | 'peach'
-  | 'mauve';
+export type PresetId = 'marine' | 'powerpuff' | 'gruvbox' | 'peach' | 'mauve';
 
 export const DEFAULT_PRESET: PresetId = 'marine';
 
@@ -142,8 +145,11 @@ export const PRESETS: ThemePreset[] = [
 ];
 
 // Picker metadata for the Settings theme row.
-export const THEMES: { id: PresetId; label: string; emoji: string }[] =
-  PRESETS.map((p) => ({ id: p.id, label: p.label, emoji: p.emoji }));
+export const THEMES: { id: PresetId; label: string; emoji: string }[] = PRESETS.map((p) => ({
+  id: p.id,
+  label: p.label,
+  emoji: p.emoji,
+}));
 
 const VALID = new Set<string>(PRESETS.map((p) => p.id));
 
@@ -171,7 +177,9 @@ export function presetSwatches(id: PresetId, mode: 'light' | 'dark' = 'light'): 
 export function presetStylesheet(): string {
   const fallback = getPreset(DEFAULT_PRESET).palette;
   const block = (m: AppliedTheme['light']) =>
-    Object.entries(m).map(([k, v]) => `--${k}:${v}`).join(';');
+    Object.entries(m)
+      .map(([k, v]) => `--${k}:${v}`)
+      .join(';');
   return [
     `:where(:root){${block(fallback.light)}}`,
     `:where(:root[data-mode="dark"]){${block(fallback.dark)}}`,

@@ -10,11 +10,19 @@ const WIDTH_KEY = 'sajni-dock-width';
 export const clampDock = (w: number) => Math.round(Math.max(DOCK_MIN, Math.min(DOCK_MAX, w)));
 
 export function readDockWidth(): number {
-  try { return clampDock(Number(localStorage.getItem(WIDTH_KEY)) || DOCK_DEFAULT); } catch { return DOCK_DEFAULT; }
+  try {
+    return clampDock(Number(localStorage.getItem(WIDTH_KEY)) || DOCK_DEFAULT);
+  } catch {
+    return DOCK_DEFAULT;
+  }
 }
 
 export function saveDockWidth(w: number) {
-  try { localStorage.setItem(WIDTH_KEY, String(w)); } catch { /* private mode */ }
+  try {
+    localStorage.setItem(WIDTH_KEY, String(w));
+  } catch {
+    /* private mode */
+  }
 }
 
 /** `push` from 1100px (the page narrows), `overlay` from 768px (over the

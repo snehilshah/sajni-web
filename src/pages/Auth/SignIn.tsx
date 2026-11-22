@@ -6,11 +6,7 @@ import { AFTER_LOGIN_KEY } from '@/auth/afterLogin';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import Backdrop from '@/components/Backdrop';
 
 type Step = 'choose' | 'code';
@@ -20,10 +16,22 @@ type OAuthBusy = 'google' | 'github' | null;
 function GoogleMark() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.79 2.72v2.26h2.9c1.69-1.56 2.67-3.86 2.67-6.62z" />
-      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.81.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.06-3.72H.96v2.33A9 9 0 0 0 9 18z" />
-      <path fill="#FBBC05" d="M3.94 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.16.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l2.98-2.34z" />
-      <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96L3.94 7.3C4.66 5.17 6.65 3.58 9 3.58z" />
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.79 2.72v2.26h2.9c1.69-1.56 2.67-3.86 2.67-6.62z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.81.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.06-3.72H.96v2.33A9 9 0 0 0 9 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.94 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.16.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l2.98-2.34z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96L3.94 7.3C4.66 5.17 6.65 3.58 9 3.58z"
+      />
     </svg>
   );
 }
@@ -105,8 +113,8 @@ export default function SignIn() {
   return (
     <>
       <Backdrop />
-      <div className="relative z-10 min-h-[100dvh] grid md:grid-cols-2">
-        <div className="hidden md:flex flex-col justify-between p-12 border-r border-border">
+      <div className="relative z-10 grid min-h-[100dvh] md:grid-cols-2">
+        <div className="hidden flex-col justify-between border-r border-border p-12 md:flex">
           <Link
             to="/"
             aria-label="Back to Sajni home"
@@ -114,23 +122,22 @@ export default function SignIn() {
           >
             <span className="sajni-logo" aria-hidden="true" />
             <div>
-              <div className="serif text-[20px] font-semibold leading-tight">sajni</div>
+              <div className="serif text-[20px] leading-tight font-semibold">sajni</div>
             </div>
           </Link>
 
           <div className="max-w-md">
-            <h1 className="serif text-5xl lg:text-6xl font-normal tracking-[-0.02em] leading-[1.05]">
-              Notes, journal, tasks, habits.<br />
+            <h1 className="serif text-5xl leading-[1.05] font-normal tracking-[-0.02em] lg:text-6xl">
+              Notes, journal, tasks, habits.
+              <br />
               <em className="text-muted-foreground">One place for your day.</em>
             </h1>
-            <div className="serif italic text-base text-muted-foreground mt-6 max-w-sm">
+            <div className="serif mt-6 max-w-sm text-base text-muted-foreground italic">
               Capture quickly. Reflect at your own pace.
             </div>
           </div>
 
-          <div className="mono text-xs label-kicker text-muted-foreground">
-            ohmysajni.com
-          </div>
+          <div className="mono label-kicker text-xs text-muted-foreground">ohmysajni.com</div>
         </div>
 
         <div className="flex items-center justify-center px-5 py-12 md:py-0">
@@ -142,7 +149,7 @@ export default function SignIn() {
             >
               <span className="sajni-logo" aria-hidden="true" />
               <div>
-                <div className="serif text-[18px] font-semibold leading-tight">sajni</div>
+                <div className="serif text-[18px] leading-tight font-semibold">sajni</div>
               </div>
             </Link>
 
@@ -150,7 +157,7 @@ export default function SignIn() {
               <h2 className="serif text-3xl font-semibold tracking-tight">
                 {step === 'choose' ? 'Step inside.' : 'Check your inbox.'}
               </h2>
-              <p className="serif italic text-base text-muted-foreground mt-1">
+              <p className="serif mt-1 text-base text-muted-foreground italic">
                 {step === 'choose'
                   ? 'Pick a sign-in. They all land in the same notebook.'
                   : `We sent a 6-digit code to ${email}.`}
@@ -167,11 +174,7 @@ export default function SignIn() {
                     disabled={oauthBusy !== null}
                     className="h-12 justify-center gap-3 rounded-full"
                   >
-                    {oauthBusy === 'google' ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <GoogleMark />
-                    )}
+                    {oauthBusy === 'google' ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark />}
                     {oauthBusy === 'google' ? 'Opening Google…' : 'Continue with Google'}
                   </Button>
                   <Button
@@ -181,24 +184,22 @@ export default function SignIn() {
                     disabled={oauthBusy !== null}
                     className="h-12 justify-center gap-3 rounded-full"
                   >
-                    {oauthBusy === 'github' ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <GitHubMark />
-                    )}
+                    {oauthBusy === 'github' ? <Loader2 className="size-4 animate-spin" /> : <GitHubMark />}
                     {oauthBusy === 'github' ? 'Opening GitHub…' : 'Continue with GitHub'}
                   </Button>
                 </div>
 
                 <div className="my-6 flex items-center gap-3 text-muted-foreground">
-                  <span className="flex-1 h-px bg-border" />
-                  <span className="mono text-xs label-kicker">or email</span>
-                  <span className="flex-1 h-px bg-border" />
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="mono label-kicker text-xs">or email</span>
+                  <span className="h-px flex-1 bg-border" />
                 </div>
 
                 <form onSubmit={onRequestCode} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="mono text-xs label-kicker text-muted-foreground">Email</Label>
+                    <Label htmlFor="email" className="mono label-kicker text-xs text-muted-foreground">
+                      Email
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -217,7 +218,7 @@ export default function SignIn() {
                   <Button
                     type="submit"
                     disabled={submitting || oauthBusy !== null}
-                    className="w-full h-11 rounded-full"
+                    className="h-11 w-full rounded-full"
                   >
                     {submitting ? (
                       <span className="inline-flex items-center gap-2">
@@ -232,15 +233,8 @@ export default function SignIn() {
             ) : (
               <form onSubmit={onVerifyCode} className="space-y-5">
                 <div className="space-y-3">
-                  <Label className="mono text-xs label-kicker text-muted-foreground">
-                    6-digit code
-                  </Label>
-                  <InputOTP
-                    maxLength={6}
-                    value={code}
-                    onChange={setCode}
-                    autoFocus
-                  >
+                  <Label className="mono label-kicker text-xs text-muted-foreground">6-digit code</Label>
+                  <InputOTP maxLength={6} value={code} onChange={setCode} autoFocus>
                     <InputOTPGroup>
                       {[0, 1, 2, 3, 4, 5].map((i) => (
                         <InputOTPSlot key={i} index={i} />
@@ -253,11 +247,7 @@ export default function SignIn() {
                     {error}
                   </div>
                 )}
-                <Button
-                  type="submit"
-                  disabled={submitting || code.length !== 6}
-                  className="w-full h-11 rounded-full"
-                >
+                <Button type="submit" disabled={submitting || code.length !== 6} className="h-11 w-full rounded-full">
                   {submitting ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="size-4 animate-spin" /> Verifying…
@@ -268,7 +258,10 @@ export default function SignIn() {
                 </Button>
                 <button
                   type="button"
-                  onClick={() => { setStep('choose'); setError(null); }}
+                  onClick={() => {
+                    setStep('choose');
+                    setError(null);
+                  }}
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   Use a different email or provider

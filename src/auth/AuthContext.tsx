@@ -1,18 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { setAccessToken, authFetch, API_BASE, refreshSession } from "./client";
-import log from "../lib/logger";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { setAccessToken, authFetch, API_BASE, refreshSession } from './client';
+import log from '../lib/logger';
 
 export interface IdentityRef {
-  provider: "google" | "github" | "email";
+  provider: 'google' | 'github' | 'email';
 }
 
 export interface User {
@@ -38,7 +29,7 @@ interface AuthState {
   /** Consume the TOTP and sign in. Sets the session. */
   verifyEmailCode: (email: string, code: string) => Promise<void>;
   /** Browser navigation to the provider consent screen. */
-  beginOAuth: (provider: "google" | "github") => void;
+  beginOAuth: (provider: 'google' | 'github') => void;
   /** Re-fetches the current profile from /auth/me. */
   refreshUser: () => Promise<void>;
   /** Update the user's display name. */
@@ -54,7 +45,7 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
 
@@ -92,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   //     React 19 StrictMode's double-mount only fires one network call.
   useEffect(() => {
     const path = window.location.pathname;
-    if (path === "/auth/done" || path === "/auth/link") {
+    if (path === '/auth/done' || path === '/auth/link') {
       // Those pages will call hydrateFromAccessToken / verifyEmailCode
       // themselves and set the session. Just clear the loading flag so
       // RequireAuth doesn't keep showing the loader forever.
@@ -107,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         setAccessToken(data.access_token);
         setUserSafe(data.user);
-        log.info({ userId: data.user.id }, "session restored");
+        log.info({ userId: data.user.id }, 'session restored');
       } else if (!hydratedRef.current) {
         // Only clobber when nobody else has hydrated a session in
         // parallel. Without this guard a transiently-failed refresh
@@ -131,19 +122,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userTimezone = user?.timezone;
   useEffect(() => {
     if (!userID) return;
-    let tz = "";
+    let tz = '';
     try {
-      tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     } catch {
       /* Intl unavailable — skip */
     }
     // Older browsers report the deprecated 'Asia/Calcutta' alias for IST; the
     // API canonicalizes to 'Asia/Kolkata'. Match it here or the compare below
     // never short-circuits and we re-POST every session.
-    if (tz === "Asia/Calcutta") tz = "Asia/Kolkata";
+    if (tz === 'Asia/Calcutta') tz = 'Asia/Kolkata';
     if (!tz || tz === userTimezone) return;
-    authFetch("/auth/timezone", {
-      method: "POST",
+    authFetch('/auth/timezone', {
+      method: 'POST',
       body: JSON.stringify({ timezone: tz }),
     })
       .then((res) => {
@@ -155,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [userID, userTimezone]);
 
   const refreshUser = useCallback(async () => {
-    const res = await authFetch("/auth/me");
+    const res = await authFetch('/auth/me');
     if (!res.ok) return;
     const me: User = await res.json();
     setUser(me);
@@ -163,9 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const startEmail = useCallback(async (email: string, name: string) => {
     const res = await fetch(`${API_BASE}/auth/email/start`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, name }),
     });
     if (!res.ok) {
@@ -174,49 +165,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const verifyEmailCode = useCallback(async (email: string, code: string) => {
-    const res = await fetch(`${API_BASE}/auth/email/verify`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || res.statusText);
-    }
-    const data: AuthResponse = await res.json();
-    setAccessToken(data.access_token);
-    setUserSafe(data.user);
-    log.info({ userId: data.user.id }, "email-totp sign-in");
-  }, [setUserSafe]);
+  const verifyEmailCode = useCallback(
+    async (email: string, code: string) => {
+      const res = await fetch(`${API_BASE}/auth/email/verify`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || res.statusText);
+      }
+      const data: AuthResponse = await res.json();
+      setAccessToken(data.access_token);
+      setUserSafe(data.user);
+      log.info({ userId: data.user.id }, 'email-totp sign-in');
+    },
+    [setUserSafe],
+  );
 
-  const beginOAuth = useCallback((provider: "google" | "github") => {
+  const beginOAuth = useCallback((provider: 'google' | 'github') => {
     // OAuth start needs to come from a top-level navigation so the
     // provider's cookies (state, anti-CSRF) attach correctly. Using
     // fetch would swallow the 302 redirect chain.
     window.location.href = `${API_BASE}/auth/${provider}/start`;
   }, []);
 
-  const hydrateFromAccessToken = useCallback(async (token: string) => {
-    setAccessToken(token);
-    // Mark hydrated *before* the network call so a parallel background
-    // refresh failure can't clobber the freshly-set token mid-flight.
-    hydratedRef.current = true;
-    const res = await authFetch("/auth/me");
-    if (!res.ok) {
-      setAccessToken(null);
-      hydratedRef.current = false;
-      throw new Error("session handoff failed");
-    }
-    const me: User = await res.json();
-    setUserSafe(me);
-    log.info({ userId: me.id }, "oauth handoff");
-  }, [setUserSafe]);
+  const hydrateFromAccessToken = useCallback(
+    async (token: string) => {
+      setAccessToken(token);
+      // Mark hydrated *before* the network call so a parallel background
+      // refresh failure can't clobber the freshly-set token mid-flight.
+      hydratedRef.current = true;
+      const res = await authFetch('/auth/me');
+      if (!res.ok) {
+        setAccessToken(null);
+        hydratedRef.current = false;
+        throw new Error('session handoff failed');
+      }
+      const me: User = await res.json();
+      setUserSafe(me);
+      log.info({ userId: me.id }, 'oauth handoff');
+    },
+    [setUserSafe],
+  );
 
   const updateName = useCallback(async (name: string) => {
-    const res = await authFetch("/auth/profile", {
-      method: "POST",
+    const res = await authFetch('/auth/profile', {
+      method: 'POST',
       body: JSON.stringify({ name }),
     });
     if (!res.ok) {
@@ -228,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const rerollAvatar = useCallback(async () => {
-    const res = await authFetch("/auth/profile/avatar/reroll", { method: "POST" });
+    const res = await authFetch('/auth/profile/avatar/reroll', { method: 'POST' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(err.error || res.statusText);
@@ -242,19 +239,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onInvalidate = (event: Event) => {
       const kind = (event as CustomEvent).detail?.kind;
-      if (kind === "avatar_rerolled") void refreshUser();
+      if (kind === 'avatar_rerolled') void refreshUser();
     };
-    window.addEventListener("data:invalidate", onInvalidate);
-    return () => window.removeEventListener("data:invalidate", onInvalidate);
+    window.addEventListener('data:invalidate', onInvalidate);
+    return () => window.removeEventListener('data:invalidate', onInvalidate);
   }, [refreshUser]);
 
   const logout = useCallback(async () => {
     try {
-      await authFetch("/auth/logout", { method: "POST" });
+      await authFetch('/auth/logout', { method: 'POST' });
     } catch {
       // ignore — we clear local state regardless
     }
-    log.info("logout");
+    log.info('logout');
     setAccessToken(null);
     hydratedRef.current = false;
     setUser(null);

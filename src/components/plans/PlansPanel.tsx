@@ -20,7 +20,13 @@ import { formatClock } from './PlansManager';
 
 /** Journal side panel: the day's plans in time order. Each is one row
  *  ("Office start · 9:00 AM · 1/3") that unfolds into what's planned. */
-export function PlansPanel({ date, today, plans, loading, onEdit }: {
+export function PlansPanel({
+  date,
+  today,
+  plans,
+  loading,
+  onEdit,
+}: {
   date: string;
   today: string;
   plans: DayPlan[];
@@ -35,10 +41,12 @@ export function PlansPanel({ date, today, plans, loading, onEdit }: {
   const toggle = (id: number) => {
     const flip = (prev: Set<number>) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     };
-    if (date >= today) setClosed(flip); else setOpened(flip);
+    if (date >= today) setClosed(flip);
+    else setOpened(flip);
   };
 
   return (
@@ -49,7 +57,9 @@ export function PlansPanel({ date, today, plans, loading, onEdit }: {
           type="button"
           onClick={() => onEdit(null)}
           className="rounded text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >Edit</button>
+        >
+          Edit
+        </button>
       </div>
       {loading ? (
         <Skeleton className="h-9 w-full" />
@@ -87,9 +97,18 @@ function PlanDay({ plan, open, onToggle }: { plan: DayPlan; open: boolean; onTog
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{plan.name}</span>
         <span className="shrink-0 text-xs text-muted-foreground">{formatClock(plan.start_time)}</span>
         {plan.tasks.length > 0 && (
-          <span className={cn('shrink-0 text-xs tabular-nums', done === plan.tasks.length ? 'text-[hsl(var(--primary))]' : 'text-muted-foreground')}>{done}/{plan.tasks.length}</span>
+          <span
+            className={cn(
+              'shrink-0 text-xs tabular-nums',
+              done === plan.tasks.length ? 'text-[hsl(var(--primary))]' : 'text-muted-foreground',
+            )}
+          >
+            {done}/{plan.tasks.length}
+          </span>
         )}
-        <ChevronDown className={cn('size-3.5 shrink-0 text-muted-foreground transition-transform', !open && '-rotate-90')} />
+        <ChevronDown
+          className={cn('size-3.5 shrink-0 text-muted-foreground transition-transform', !open && '-rotate-90')}
+        />
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -100,7 +119,9 @@ function PlanDay({ plan, open, onToggle }: { plan: DayPlan; open: boolean; onTog
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             className="overflow-hidden"
           >
-            <div className="pb-2 pl-[18px] pt-1"><PlanBody plan={plan} /></div>
+            <div className="pt-1 pb-2 pl-[18px]">
+              <PlanBody plan={plan} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -125,14 +146,22 @@ export function PlanBody({ plan }: { plan: DayPlan }) {
         const isDone = statusOf(t) === 'done';
         return (
           <div key={t.id} className="flex items-start gap-2.5">
-            <button type="button" onClick={() => toggle(t)} title={isDone ? 'Mark not done' : 'Mark done'} className="mt-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggle(t)}
+              title={isDone ? 'Mark not done' : 'Mark done'}
+              className="mt-0.5 shrink-0"
+            >
               <Checkbox checked={isDone} className="pointer-events-none" tabIndex={-1} />
             </button>
             <button
               type="button"
               onClick={() => openTask(t.id)}
               title="Open task"
-              className={cn('flex flex-1 items-center gap-1.5 text-left text-[12.5px] leading-snug transition-colors', isDone ? 'text-muted-foreground line-through' : 'text-foreground/85 hover:text-foreground')}
+              className={cn(
+                'flex flex-1 items-center gap-1.5 text-left text-[12.5px] leading-snug transition-colors',
+                isDone ? 'text-muted-foreground line-through' : 'text-foreground/85 hover:text-foreground',
+              )}
             >
               <span>{t.title}</span>
               {t.recurring && <Repeat className="size-3 shrink-0 text-muted-foreground" aria-label="Repeats" />}
@@ -142,17 +171,24 @@ export function PlanBody({ plan }: { plan: DayPlan }) {
       })}
       {plan.left_over.length > 0 && (
         <div className="flex flex-col gap-1.5 pt-1">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Left over</span>
+          <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Left over</span>
           {plan.left_over.map((t) => (
             <div key={t.id} className="flex items-center gap-2">
-              <button type="button" onClick={() => openTask(t.id)} className="min-w-0 flex-1 truncate text-left text-[12.5px] text-muted-foreground hover:text-foreground">
-                {t.title}{t.due_date && <span className="text-xs"> · {format(parseISO(t.due_date), 'MMM d')}</span>}
+              <button
+                type="button"
+                onClick={() => openTask(t.id)}
+                className="min-w-0 flex-1 truncate text-left text-[12.5px] text-muted-foreground hover:text-foreground"
+              >
+                {t.title}
+                {t.due_date && <span className="text-xs"> · {format(parseISO(t.due_date), 'MMM d')}</span>}
               </button>
               <button
                 type="button"
                 onClick={() => addToPlan.mutate({ id: plan.id, taskId: t.id, date: plan.date })}
                 className="shrink-0 rounded-full px-2 text-xs text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.08)]"
-              >Move here</button>
+              >
+                Move here
+              </button>
             </div>
           ))}
         </div>
@@ -174,15 +210,21 @@ export function PlanBody({ plan }: { plan: DayPlan }) {
 /** Ticks land instantly and hold until the day refetches after the save. */
 function usePlanTicks(plan: DayPlan) {
   const toggleTask = useToggleTaskStatus();
-  const [ticks, setTicks] = useState<{ of: PlanTask[]; status: Record<number, PlanTask['status']> }>({ of: plan.tasks, status: {} });
+  const [ticks, setTicks] = useState<{ of: PlanTask[]; status: Record<number, PlanTask['status']> }>({
+    of: plan.tasks,
+    status: {},
+  });
   const ticked = ticks.of === plan.tasks ? ticks.status : {};
   const statusOf = (t: PlanTask) => ticked[t.id] ?? t.status;
   const toggle = (t: PlanTask) => {
     const next = statusOf(t) === 'done' ? 'todo' : 'done';
     setTicks({ of: plan.tasks, status: { ...ticked, [t.id]: next } });
-    toggleTask.mutate({ id: t.id, status: next }, {
-      onError: () => setTicks({ of: plan.tasks, status: {} }),
-    });
+    toggleTask.mutate(
+      { id: t.id, status: next },
+      {
+        onError: () => setTicks({ of: plan.tasks, status: {} }),
+      },
+    );
   };
   return { statusOf, toggle };
 }
@@ -191,7 +233,15 @@ function usePlanTicks(plan: DayPlan) {
 function usePickerOpen() {
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState(0);
-  return { open, setOpen, key, show: () => { setKey((k) => k + 1); setOpen(true); } };
+  return {
+    open,
+    setOpen,
+    key,
+    show: () => {
+      setKey((k) => k + 1);
+      setOpen(true);
+    },
+  };
 }
 
 const ringTone: Record<PlanTask['priority'], string> = {
@@ -216,20 +266,35 @@ export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean 
   return (
     <div className="overflow-hidden rounded-xl bg-[hsl(var(--surface-container))]">
       {(showName || total > 0) && (
-        <div className="flex flex-col gap-2.5 px-4 pb-1 pt-3.5 md:px-5">
+        <div className="flex flex-col gap-2.5 px-4 pt-3.5 pb-1 md:px-5">
           {showName && (
             <div className="flex items-center gap-2 text-[13px]">
               <span
                 className="rounded-md px-2 py-0.5 font-semibold"
-                style={{ backgroundColor: `color-mix(in srgb, ${accent} 22%, transparent)`, color: `color-mix(in srgb, ${accent} 55%, hsl(var(--on-surface)))` }}
-              >{plan.name}</span>
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${accent} 22%, transparent)`,
+                  color: `color-mix(in srgb, ${accent} 55%, hsl(var(--on-surface)))`,
+                }}
+              >
+                {plan.name}
+              </span>
               <span className="mono text-xs text-muted-foreground">{formatClock(plan.start_time)}</span>
             </div>
           )}
           {total > 0 && (
             <div className="flex items-center gap-3">
-              <WavyProgress value={(done / total) * 100} height={10} className="flex-1" label={`${done} of ${total} done`} />
-              <span className={cn('mono shrink-0 text-xs tabular-nums', done === total ? 'text-[hsl(var(--primary))]' : 'text-muted-foreground')}>
+              <WavyProgress
+                value={(done / total) * 100}
+                height={10}
+                className="flex-1"
+                label={`${done} of ${total} done`}
+              />
+              <span
+                className={cn(
+                  'mono shrink-0 text-xs tabular-nums',
+                  done === total ? 'text-[hsl(var(--primary))]' : 'text-muted-foreground',
+                )}
+              >
                 {done === total ? 'All done' : `${done} of ${total}`}
               </span>
             </div>
@@ -259,7 +324,9 @@ export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean 
             onClick={() => openTask(t.id)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter') openTask(t.id); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') openTask(t.id);
+            }}
             className={cn(
               'flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-container-high))] md:px-5',
               i > 0 && 'border-t border-border/50',
@@ -267,16 +334,26 @@ export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean 
           >
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); toggle(t); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle(t);
+              }}
               aria-label={isDone ? 'Mark not done' : 'Mark done'}
               className={cn(
                 'grid size-[18px] shrink-0 place-items-center rounded-full border-2 transition-colors',
-                isDone ? 'border-primary bg-primary text-primary-foreground' : cn(ringTone[t.priority], 'hover:bg-primary/10'),
+                isDone
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : cn(ringTone[t.priority], 'hover:bg-primary/10'),
               )}
             >
               {isDone && <Check className="size-3" strokeWidth={3} />}
             </button>
-            <span className={cn('min-w-0 flex-1 truncate text-[14px] font-medium', isDone && 'text-muted-foreground line-through')}>
+            <span
+              className={cn(
+                'min-w-0 flex-1 truncate text-[14px] font-medium',
+                isDone && 'text-muted-foreground line-through',
+              )}
+            >
               {t.title}
             </span>
             {t.recurring && <Repeat className="size-3.5 shrink-0 text-muted-foreground" aria-label="Repeats" />}
@@ -285,8 +362,10 @@ export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean 
       })}
 
       {plan.left_over.length > 0 && (
-        <div className={cn('flex flex-col px-4 pb-1.5 pt-3 md:px-5', total > 0 && 'border-t border-border/50')}>
-          <span className="mono label-kicker mb-1 text-xs text-muted-foreground">Left over · {plan.left_over.length}</span>
+        <div className={cn('flex flex-col px-4 pt-3 pb-1.5 md:px-5', total > 0 && 'border-t border-border/50')}>
+          <span className="mono label-kicker mb-1 text-xs text-muted-foreground">
+            Left over · {plan.left_over.length}
+          </span>
           {plan.left_over.map((t) => (
             <div key={t.id} className="flex min-h-9 items-center gap-3">
               <button
@@ -301,7 +380,9 @@ export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean 
                 type="button"
                 onClick={() => addToPlan.mutate({ id: plan.id, taskId: t.id, date: plan.date })}
                 className="h-7 shrink-0 rounded-full bg-[hsl(var(--secondary-container))] px-3 text-xs font-medium text-[hsl(var(--on-secondary-container))] transition-colors hover:brightness-110"
-              >Move here</button>
+              >
+                Move here
+              </button>
             </div>
           ))}
         </div>
@@ -339,13 +420,24 @@ function PlanCardInput({ plan, onDone }: { plan: DayPlan; onDone: () => void }) 
   const create = useCreateTask();
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
   const submit = () => {
     const title = value.trim();
-    if (!title) { onDone(); return; }
-    create.mutate({ title, due_date: plan.date, plan_id: plan.id }, {
-      onSuccess: () => { setValue(''); inputRef.current?.focus(); },
-    });
+    if (!title) {
+      onDone();
+      return;
+    }
+    create.mutate(
+      { title, due_date: plan.date, plan_id: plan.id },
+      {
+        onSuccess: () => {
+          setValue('');
+          inputRef.current?.focus();
+        },
+      },
+    );
   };
   return (
     <>
@@ -355,15 +447,27 @@ function PlanCardInput({ plan, onDone }: { plan: DayPlan; onDone: () => void }) 
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); submit(); }
-          else if (e.key === 'Escape') onDone();
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submit();
+          } else if (e.key === 'Escape') onDone();
         }}
-        onBlur={() => { if (!value.trim()) onDone(); }}
+        onBlur={() => {
+          if (!value.trim()) onDone();
+        }}
         disabled={create.isPending}
         placeholder={`Add to ${plan.name}…`}
         className="h-8 flex-1 text-[13.5px]"
       />
-      <Button size="sm" className="h-8" disabled={!value.trim() || create.isPending} onMouseDown={(e) => e.preventDefault()} onClick={submit}>Add</Button>
+      <Button
+        size="sm"
+        className="h-8"
+        disabled={!value.trim() || create.isPending}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={submit}
+      >
+        Add
+      </Button>
     </>
   );
 }
@@ -373,14 +477,25 @@ function AddToPlan({ planId, name, date }: { planId: number; name: string; date:
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   const submit = () => {
     const title = value.trim();
-    if (!title) { setEditing(false); return; }
-    create.mutate({ title, due_date: date, plan_id: planId }, {
-      onSuccess: () => { setValue(''); inputRef.current?.focus(); },
-    });
+    if (!title) {
+      setEditing(false);
+      return;
+    }
+    create.mutate(
+      { title, due_date: date, plan_id: planId },
+      {
+        onSuccess: () => {
+          setValue('');
+          inputRef.current?.focus();
+        },
+      },
+    );
   };
 
   if (!editing) {
@@ -402,10 +517,17 @@ function AddToPlan({ planId, name, date }: { planId: number; name: string; date:
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') { e.preventDefault(); submit(); }
-        else if (e.key === 'Escape') { setEditing(false); setValue(''); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submit();
+        } else if (e.key === 'Escape') {
+          setEditing(false);
+          setValue('');
+        }
       }}
-      onBlur={() => { if (!value.trim()) setEditing(false); }}
+      onBlur={() => {
+        if (!value.trim()) setEditing(false);
+      }}
       disabled={create.isPending}
       placeholder={`Add to ${name}…`}
       className="h-7 px-2 text-[12.5px]"
@@ -416,7 +538,15 @@ function AddToPlan({ planId, name, date }: { planId: number; name: string; date:
 /** "Plan Office start · Thu, Oct 23": your open tasks in groups (left
  *  over, overdue, due that day, that week, coming up, no date). Each tap
  *  moves one into the plan; the list stays open for more. */
-function PlanPicker({ plan, open, onOpenChange }: { plan: DayPlan; open: boolean; onOpenChange: (open: boolean) => void }) {
+function PlanPicker({
+  plan,
+  open,
+  onOpenChange,
+}: {
+  plan: DayPlan;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const mobile = useIsMobile();
   const { data: groups, isLoading } = usePlanCandidates(plan.id, plan.date, open);
   const addToPlan = useAddToPlan();
@@ -430,36 +560,55 @@ function PlanPicker({ plan, open, onOpenChange }: { plan: DayPlan; open: boolean
         <Skeleton className="h-24 w-full" />
       ) : !groups || groups.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">No open tasks to pick from.</p>
-      ) : groups.map((g) => (
-        <div key={g.key} className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{g.label}</span>
-          {g.tasks.map((t) => {
-            const isAdded = added.has(t.id);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                disabled={isAdded}
-                onClick={() => {
-                  setAdded((s) => new Set(s).add(t.id));
-                  addToPlan.mutate({ id: plan.id, taskId: t.id, date: plan.date }, {
-                    onError: () => setAdded((s) => { const c = new Set(s); c.delete(t.id); return c; }),
-                  });
-                }}
-                className="flex min-h-10 items-center gap-3 rounded-lg px-2 text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] disabled:opacity-60"
-              >
-                <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full', isAdded ? 'bg-primary text-primary-foreground' : 'bg-[hsl(var(--surface-container-high))]')}>
-                  <Plus className={cn('size-3.5', isAdded && 'rotate-45 opacity-0')} />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
-                {t.recurring && <Repeat className="size-3 shrink-0 text-muted-foreground" aria-label="Repeats" />}
-                {t.due_date && <span className="shrink-0 text-xs text-muted-foreground">{format(parseISO(t.due_date), 'MMM d')}</span>}
-                {isAdded && <span className="shrink-0 text-xs text-[hsl(var(--primary))]">Added</span>}
-              </button>
-            );
-          })}
-        </div>
-      ))}
+      ) : (
+        groups.map((g) => (
+          <div key={g.key} className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{g.label}</span>
+            {g.tasks.map((t) => {
+              const isAdded = added.has(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={isAdded}
+                  onClick={() => {
+                    setAdded((s) => new Set(s).add(t.id));
+                    addToPlan.mutate(
+                      { id: plan.id, taskId: t.id, date: plan.date },
+                      {
+                        onError: () =>
+                          setAdded((s) => {
+                            const c = new Set(s);
+                            c.delete(t.id);
+                            return c;
+                          }),
+                      },
+                    );
+                  }}
+                  className="flex min-h-10 items-center gap-3 rounded-lg px-2 text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] disabled:opacity-60"
+                >
+                  <span
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded-full',
+                      isAdded ? 'bg-primary text-primary-foreground' : 'bg-[hsl(var(--surface-container-high))]',
+                    )}
+                  >
+                    <Plus className={cn('size-3.5', isAdded && 'rotate-45 opacity-0')} />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
+                  {t.recurring && <Repeat className="size-3 shrink-0 text-muted-foreground" aria-label="Repeats" />}
+                  {t.due_date && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {format(parseISO(t.due_date), 'MMM d')}
+                    </span>
+                  )}
+                  {isAdded && <span className="shrink-0 text-xs text-[hsl(var(--primary))]">Added</span>}
+                </button>
+              );
+            })}
+          </div>
+        ))
+      )}
     </div>
   );
 
@@ -468,7 +617,7 @@ function PlanPicker({ plan, open, onOpenChange }: { plan: DayPlan; open: boolean
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto">
           <SheetHeader className="pb-3">
-            <SheetTitle className="serif text-xl normal-case tracking-tight">{title}</SheetTitle>
+            <SheetTitle className="serif text-xl tracking-tight normal-case">{title}</SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-[calc(env(safe-area-inset-bottom)+1rem)]">{body}</div>
@@ -484,7 +633,11 @@ function PlanPicker({ plan, open, onOpenChange }: { plan: DayPlan; open: boolean
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {body}
-        <div className="flex justify-end"><Button variant="outline" onClick={() => onOpenChange(false)}>Done</Button></div>
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Done
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

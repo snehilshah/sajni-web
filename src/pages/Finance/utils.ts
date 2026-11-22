@@ -28,10 +28,14 @@ let privacyOn = (() => {
       return true;
     }
     return false;
-  } catch { return true; }
+  } catch {
+    return true;
+  }
 })();
 
-export function isPrivacyMode(): boolean { return privacyOn; }
+export function isPrivacyMode(): boolean {
+  return privacyOn;
+}
 
 export function setPrivacyMode(on: boolean): void {
   privacyOn = on;
@@ -39,7 +43,9 @@ export function setPrivacyMode(on: boolean): void {
     localStorage.setItem(PRIVACY_KEY, on ? '1' : '0');
     if (on) localStorage.removeItem(REVEAL_UNTIL_KEY);
     else localStorage.setItem(REVEAL_UNTIL_KEY, String(Date.now() + REVEAL_MS));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // Epoch ms when the current reveal lapses; null when privacy is on.
@@ -48,7 +54,9 @@ export function revealExpiry(): number | null {
   try {
     const until = Number(localStorage.getItem(REVEAL_UNTIL_KEY) || 0);
     return until > 0 ? until : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // The one money formatter. Money is never rounded for display: every figure
@@ -84,7 +92,12 @@ export function formatMoney(amount: number, currency = 'INR', privacy = privacyO
 
 /** formatMoney split for typesetting (web `Money`): sign, currency symbol,
  *  whole part with grouping, and ".50". Null when privacy masks the figure. */
-export interface MoneyParts { sign: string; symbol: string; whole: string; fraction: string }
+export interface MoneyParts {
+  sign: string;
+  symbol: string;
+  whole: string;
+  fraction: string;
+}
 
 export function moneyParts(amount: number, currency = 'INR', privacy = privacyOn): MoneyParts | null {
   if (privacy) return null;
@@ -141,9 +154,16 @@ export const INVESTMENT_TYPES: { value: string; label: string }[] = [
 ];
 
 export const ACCOUNT_COLORS = [
-  '#2D5A4F', '#A14B4F', '#C49A6C', '#4F6FA1',
-  '#8B6FA1', '#7C9A92', '#6B7280', '#0EA5E9',
-  '#84CC16', '#F59E0B',
+  '#2D5A4F',
+  '#A14B4F',
+  '#C49A6C',
+  '#4F6FA1',
+  '#8B6FA1',
+  '#7C9A92',
+  '#6B7280',
+  '#0EA5E9',
+  '#84CC16',
+  '#F59E0B',
 ];
 
 export async function downloadCSV(path: string, filename: string) {
@@ -176,9 +196,15 @@ export function txnAtToParts(iso: string): { date: string; time: string } {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
       timeZone: IST_TZ,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    }).formatToParts(d).map((p) => [p.type, p.value]),
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
   );
   const hour = parts.hour === '24' ? '00' : parts.hour; // some engines emit 24h at midnight
   return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${hour}:${parts.minute}` };
@@ -195,12 +221,19 @@ export function partsToTxnAt(date: string, time: string): string {
 export function formatTxnDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(
+    d,
+  );
 }
 
 // "2:30 PM" in IST.
 export function formatTxnTime(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TZ, hour: 'numeric', minute: '2-digit', hour12: true }).format(d);
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST_TZ,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(d);
 }

@@ -21,7 +21,9 @@ export function useToday(): string {
       midnight.setHours(24, 0, 1, 0);
       timer = setTimeout(check, midnight.getTime() - Date.now());
     };
-    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check();
+    };
     check();
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', check);

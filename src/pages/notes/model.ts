@@ -60,8 +60,12 @@ export function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNod
   for (const p of [...paths].sort((a, b) => a.localeCompare(b))) {
     const cut = p.lastIndexOf('/');
     const node: TreeNode = {
-      type: 'folder', name: cut >= 0 ? p.slice(cut + 1) : p, path: p,
-      pinned: pinned.has(p), children: [], count: 0,
+      type: 'folder',
+      name: cut >= 0 ? p.slice(cut + 1) : p,
+      path: p,
+      pinned: pinned.has(p),
+      children: [],
+      count: 0,
     };
     byPath.set(p, node);
     byPath.get(cut >= 0 ? p.slice(0, cut) : '')?.children.push(node);
@@ -69,7 +73,13 @@ export function buildTree(notes: NoteListItem[], folders: NoteFolder[]): TreeNod
 
   for (const n of notes) {
     (byPath.get(n.folder) ?? root).children.push({
-      type: 'note', name: displayTitle(n.title), path: n.folder, pinned: n.pinned, note: n, children: [], count: 0,
+      type: 'note',
+      name: displayTitle(n.title),
+      path: n.folder,
+      pinned: n.pinned,
+      note: n,
+      children: [],
+      count: 0,
     });
     for (const p of folderAncestors(n.folder)) {
       const f = byPath.get(p);
@@ -96,7 +106,10 @@ export function extractOutline(markdown: string): OutlineItem[] {
   const items: OutlineItem[] = [];
   let inFence = false;
   for (const line of markdown.split('\n')) {
-    if (FENCE.test(line)) { inFence = !inFence; continue; }
+    if (FENCE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
     if (inFence) continue;
     const m = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
     if (!m) continue;
@@ -152,12 +165,22 @@ export function relTime(iso: string | undefined): string {
   if (h < 24) return `${h}h ago`;
   const days = Math.floor(h / 24);
   if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  });
 }
 
 export function fullTime(iso: string | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }

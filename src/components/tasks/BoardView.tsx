@@ -1,22 +1,35 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
-  DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useDragOperation,
+  DragDropProvider,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useDroppable,
+  useDragOperation,
 } from '@dnd-kit/react';
 import { useSortable, isSortable } from '@dnd-kit/react/sortable';
 import { PointerActivationConstraints } from '@dnd-kit/dom';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 
 import type { Task } from '@/types';
-import { Plus, Star, ListChecks, Repeat, CornerDownRight, Ban, Bell, AlignLeft, Image as ImageIcon } from '@/components/ui/icons';
+import {
+  Plus,
+  Star,
+  ListChecks,
+  Repeat,
+  CornerDownRight,
+  Ban,
+  Bell,
+  AlignLeft,
+  Image as ImageIcon,
+} from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { track } from '@/lib/telemetry';
 import { repeats } from './RepeatPicker';
-import {
-  type GroupBy, type TaskGroup, dropAction, keyOf, laneRefusal, priorityBox,
-} from './grouping';
+import { type GroupBy, type TaskGroup, dropAction, keyOf, laneRefusal, priorityBox } from './grouping';
 
 // The Tasks board (desktop): one tonal lane per group (Group by: status by
 // default, or due date, priority, list); a card is its title (up to four
@@ -54,7 +67,10 @@ const laneBox = (lane: Lane) => document.querySelector<HTMLElement>(`[data-board
  *  is below y: the card goes before it (-1 = at the end). */
 function slotsAt(box: HTMLElement, dragged: Element | null, y: number) {
   const slots = [...box.querySelectorAll<HTMLElement>(':scope > [data-board-slot]')].filter((x) => x !== dragged);
-  const at = slots.findIndex((x) => { const r = x.getBoundingClientRect(); return r.top + r.height / 2 > y; });
+  const at = slots.findIndex((x) => {
+    const r = x.getBoundingClientRect();
+    return r.top + r.height / 2 > y;
+  });
   return { slots, at };
 }
 
@@ -71,7 +87,15 @@ export function rankAt(list: Task[], index: number): number {
   return -Date.now();
 }
 
-export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd, onToggleImportant, onToggleDone }: Props) {
+export default function BoardView({
+  groups,
+  groupBy,
+  onClick,
+  onMove,
+  onQuickAdd,
+  onToggleImportant,
+  onToggleDone,
+}: Props) {
   // A drop shows in this frame; the query cache catches up a moment later
   // (optimistic patch), and then the override is dropped.
   const [moved, setMoved] = useState<Record<number, { lane: Lane; rank: number }>>({});
@@ -97,7 +121,10 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
     const ro = new ResizeObserver(measure);
     ro.observe(document.body);
     window.addEventListener('resize', measure);
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, []);
   // A mouse wheel moves the board sideways, except over a lane whose cards
   // scroll (there it scrolls the cards). Trackpads and Shift+wheel already
@@ -126,7 +153,10 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
   };
   // A new grouping is a new board: drop the overrides from the old one.
   const [seenBy, setSeenBy] = useState(groupBy);
-  if (seenBy !== groupBy) { setSeenBy(groupBy); setMoved({}); }
+  if (seenBy !== groupBy) {
+    setSeenBy(groupBy);
+    setMoved({});
+  }
   useEffect(() => {
     setMoved((cur) => {
       const ids = Object.keys(cur).map(Number);
@@ -158,14 +188,18 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
   // Done folds to five cards; it's a lane only when grouping by status.
   const isDoneLane = (lane: Lane) => groupBy === 'status' && lane === 'done';
 
-  const sensors = useMemo(() => [
-    PointerSensor.configure({
-      activationConstraints: (event) => event.pointerType === 'touch'
-        ? [new PointerActivationConstraints.Delay({ value: 250, tolerance: { x: 8, y: 8 } })]
-        : [new PointerActivationConstraints.Distance({ value: 5 })],
-    }),
-    KeyboardSensor,
-  ], []);
+  const sensors = useMemo(
+    () => [
+      PointerSensor.configure({
+        activationConstraints: (event) =>
+          event.pointerType === 'touch'
+            ? [new PointerActivationConstraints.Delay({ value: 250, tolerance: { x: 8, y: 8 } })]
+            : [new PointerActivationConstraints.Distance({ value: 5 })],
+      }),
+      KeyboardSensor,
+    ],
+    [],
+  );
 
   return (
     <DragDropProvider
@@ -210,12 +244,17 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
         if (!task || !slotLane) return;
         // Let go over a lane that refused it (Done with open subtasks), the
         // card goes home: its slot may have been left in a lane it crossed.
-        if (!target) { flushSync(redraw); return; }
+        if (!target) {
+          flushSync(redraw);
+          return;
+        }
         // The lane under the pointer decides, not the slot: dnd-kit re-slots
         // a card a frame or two after it enters a lane, so a quick drop
         // (In progress → Done in one flick) still had its slot at home and
         // read as "no move". Then place it by the pointer ourselves.
-        const targetLane = (isSortable(target) ? target.group : (target.data as { lane?: Lane } | undefined)?.lane) as Lane | undefined;
+        const targetLane = (isSortable(target) ? target.group : (target.data as { lane?: Lane } | undefined)?.lane) as
+          | Lane
+          | undefined;
         let lane = slotLane;
         let slotIndex = source.index;
         if (targetLane && targetLane !== slotLane) {
@@ -229,18 +268,35 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
         // Diagnostics (2026-11): every drop goes to the server log, so a
         // drop that doesn't do what the owner meant can be traced.
         const home = laneOf(task);
-        track('board_drop', {
-          task: task.id, by: groupBy, from: home, slot: slotLane, over: targetLane ?? '', lane,
-          idx: slotIndex, fixed: lane !== slotLane, kind: isSortable(target) ? 'card' : 'lane',
-        }, true);
-        if (!lanes[lane]) { flushSync(redraw); return; }
+        track(
+          'board_drop',
+          {
+            task: task.id,
+            by: groupBy,
+            from: home,
+            slot: slotLane,
+            over: targetLane ?? '',
+            lane,
+            idx: slotIndex,
+            fixed: lane !== slotLane,
+            kind: isSortable(target) ? 'card' : 'lane',
+          },
+          true,
+        );
+        if (!lanes[lane]) {
+          flushSync(redraw);
+          return;
+        }
         const list = lanes[lane].filter((t) => t.id !== task.id);
         // Done shows five until opened; a card dropped below them stays in
         // sight as the fifth rather than vanishing behind "Show N more".
         const shown = isDoneLane(lane) && !doneOpen ? DONE_PREVIEW - 1 : list.length;
         const index = Math.max(0, Math.min(slotIndex, list.length, shown));
         const before = lanes[home]?.findIndex((t) => t.id === task.id) ?? -1;
-        if (lane === home && index === before) { flushSync(redraw); return; }
+        if (lane === home && index === before) {
+          flushSync(redraw);
+          return;
+        }
         const rank = rankAt(list, index);
         const action = lane === home ? null : dropAction(groupBy, lane, task);
         if (action && action.kind !== 'patch') {
@@ -267,7 +323,7 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
         style={{ '--lane-h': laneH } as React.CSSProperties}
         // At most four lanes fill the width; more scroll sideways (a lane is
         // never narrower than a quarter, or 15.5rem on small windows).
-        className="grid grid-flow-col auto-cols-[minmax(max(15.5rem,calc((100%_-_3rem)/4)),1fr)] gap-4 overflow-x-auto overscroll-x-contain pb-2 -mx-1 px-1"
+        className="-mx-1 grid auto-cols-[minmax(max(15.5rem,calc((100%_-_3rem)/4)),1fr)] grid-flow-col gap-4 overflow-x-auto overscroll-x-contain px-1 pb-2"
         aria-label="Tasks board"
       >
         {groups.map((g) => (
@@ -276,7 +332,9 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
             group={g}
             groupBy={groupBy}
             tasks={lanes[g.key] ?? []}
-            scrollRef={(el) => { scroll.current[g.key] = el; }}
+            scrollRef={(el) => {
+              scroll.current[g.key] = el;
+            }}
             savedScroll={savedScroll}
             showAll={isDoneLane(g.key) && doneOpen}
             folds={isDoneLane(g.key)}
@@ -295,10 +353,12 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
           return (
             <div className="cursor-grabbing">
               {/* Lifted while dragging; settles flat as it drops into place. */}
-              <div className={cn(
-                'rounded-[14px] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
-                source.isDropping ? 'rotate-0 scale-100 shadow-none' : 'rotate-[1.5deg] scale-[1.03] shadow-lg',
-              )}>
+              <div
+                className={cn(
+                  'rounded-[14px] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
+                  source.isDropping ? 'scale-100 rotate-0 shadow-none' : 'scale-[1.03] rotate-[1.5deg] shadow-lg',
+                )}
+              >
                 <CardBody task={task} lifted showStatus={groupBy !== 'status'} />
               </div>
             </div>
@@ -316,7 +376,20 @@ const acceptsInto = (by: GroupBy, lane: Lane) => (source: { data?: unknown }) =>
   return !task || !laneRefusal(by, lane, task);
 };
 
-function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, folds, onShowAll, onClick, onQuickAdd, onToggleImportant, onToggleDone }: {
+function BoardLane({
+  group,
+  groupBy,
+  tasks,
+  scrollRef,
+  savedScroll,
+  showAll,
+  folds,
+  onShowAll,
+  onClick,
+  onQuickAdd,
+  onToggleImportant,
+  onToggleDone,
+}: {
   group: TaskGroup;
   groupBy: GroupBy;
   tasks: Task[];
@@ -333,7 +406,13 @@ function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, fol
   const status = group.key;
   const accept = useMemo(() => acceptsInto(groupBy, status), [groupBy, status]);
   // The lane itself takes a drop below its cards (or when it's empty).
-  const { ref, isDropTarget } = useDroppable({ id: `lane:${groupBy}:${status}`, type: 'lane', accept, collisionPriority: 1, data: { lane: status } });
+  const { ref, isDropTarget } = useDroppable({
+    id: `lane:${groupBy}:${status}`,
+    type: 'lane',
+    accept,
+    collisionPriority: 1,
+    data: { lane: status },
+  });
   // While a card that can't go here is lifted, the lane says why.
   const { source } = useDragOperation();
   const dragged = (source?.data as { task?: Task } | undefined)?.task;
@@ -365,25 +444,38 @@ function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, fol
       )}
     >
       {refusal && (
-        <p role="status" className="pointer-events-none absolute inset-x-1.5 bottom-1.5 z-10 rounded-[14px] bg-[hsl(var(--surface-container-highest))] px-3 py-2.5 text-center text-xs text-muted-foreground">
+        <p
+          role="status"
+          className="pointer-events-none absolute inset-x-1.5 bottom-1.5 z-10 rounded-[14px] bg-[hsl(var(--surface-container-highest))] px-3 py-2.5 text-center text-xs text-muted-foreground"
+        >
           {refusal}
         </p>
       )}
-      <header className="flex h-13 shrink-0 items-center gap-2 pl-4 pr-2">
-        {group.priority && <span aria-hidden className="size-3.5 shrink-0 rounded-[32%] border-2" style={priorityBox(group.priority)} />}
+      <header className="flex h-13 shrink-0 items-center gap-2 pr-2 pl-4">
+        {group.priority && (
+          <span aria-hidden className="size-3.5 shrink-0 rounded-[32%] border-2" style={priorityBox(group.priority)} />
+        )}
         <h3 className={cn('text-[15px] font-semibold', group.tone === 'error' && 'text-destructive')}>{group.label}</h3>
-        <span className="text-xs tabular-nums text-muted-foreground">{tasks.length}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">{tasks.length}</span>
         <Button
-          variant="ghost" size="icon-sm" className="ml-auto rounded-full"
+          variant="ghost"
+          size="icon-sm"
+          className="ml-auto rounded-full"
           aria-label={`Add a task to ${group.label}`}
-          onClick={() => { setAdding(true); setDraft(''); }}
+          onClick={() => {
+            setAdding(true);
+            setDraft('');
+          }}
         >
           <Plus className="size-4" />
         </Button>
       </header>
 
       <div
-        ref={(el) => { scroller.current = el; scrollRef(el); }}
+        ref={(el) => {
+          scroller.current = el;
+          scrollRef(el);
+        }}
         data-board-lane={status}
         className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-2 pb-2"
       >
@@ -394,10 +486,18 @@ function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, fol
               placeholder="What needs doing?"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onBlur={() => { if (!draft.trim()) setAdding(false); }}
+              onBlur={() => {
+                if (!draft.trim()) setAdding(false);
+              }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') { e.preventDefault(); void submit(); }
-                if (e.key === 'Escape') { setAdding(false); setDraft(''); }
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void submit();
+                }
+                if (e.key === 'Escape') {
+                  setAdding(false);
+                  setDraft('');
+                }
               }}
               className="h-9 text-sm"
             />
@@ -443,7 +543,10 @@ function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, fol
         ) : (
           <button
             type="button"
-            onClick={() => { setAdding(true); setDraft(''); }}
+            onClick={() => {
+              setAdding(true);
+              setDraft('');
+            }}
             className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:bg-[hsl(var(--on-surface)/0.06)] hover:text-foreground"
           >
             <Plus className="size-4" /> Add a task
@@ -454,7 +557,16 @@ function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, fol
   );
 }
 
-function BoardCard({ task, index, lane, accept, showStatus, onClick, onToggleImportant, onToggleDone }: {
+function BoardCard({
+  task,
+  index,
+  lane,
+  accept,
+  showStatus,
+  onClick,
+  onToggleImportant,
+  onToggleDone,
+}: {
   task: Task;
   index: number;
   lane: Lane;
@@ -465,15 +577,30 @@ function BoardCard({ task, index, lane, accept, showStatus, onClick, onToggleImp
   onToggleDone: (task: Task) => void;
 }) {
   const { ref, isDragSource } = useSortable({
-    id: task.id, index, group: lane, type: 'task', accept, transition: SHIFT, data: { task },
+    id: task.id,
+    index,
+    group: lane,
+    type: 'task',
+    accept,
+    transition: SHIFT,
+    data: { task },
   });
   return (
     <div ref={ref as React.Ref<HTMLDivElement>} className="relative shrink-0" data-board-slot={task.id}>
       {isDragSource && (
-        <div aria-hidden className="absolute inset-0 rounded-[14px] border-2 border-dashed border-[hsl(var(--outline-variant))]" />
+        <div
+          aria-hidden
+          className="absolute inset-0 rounded-[14px] border-2 border-dashed border-[hsl(var(--outline-variant))]"
+        />
       )}
       <div className={cn(isDragSource && 'invisible')}>
-        <CardBody task={task} showStatus={showStatus} onClick={onClick} onToggleImportant={onToggleImportant} onToggleDone={onToggleDone} />
+        <CardBody
+          task={task}
+          showStatus={showStatus}
+          onClick={onClick}
+          onToggleImportant={onToggleImportant}
+          onToggleDone={onToggleDone}
+        />
       </div>
     </div>
   );
@@ -482,7 +609,14 @@ function BoardCard({ task, index, lane, accept, showStatus, onClick, onToggleImp
 // CardBody is one task: status box, priority/colour dot, title on up to two
 // lines and the star, then (if any) one row of badges in the list's order
 // (date, repeat, steps, subtasks, blocked) right under it.
-function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleImportant, onToggleDone }: {
+function CardBody({
+  task,
+  lifted = false,
+  showStatus = false,
+  onClick,
+  onToggleImportant,
+  onToggleDone,
+}: {
   task: Task;
   lifted?: boolean;
   /** Lanes aren't statuses: In progress gets a badge (Blocked has its box). */
@@ -492,10 +626,14 @@ function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleI
   onToggleDone?: (task: Task) => void;
 }) {
   const done = task.status === 'done';
-  const overdue = Boolean(task.due_date && !done && (() => {
-    const d = parseISO(task.due_date!);
-    return !isToday(d) && isPast(d);
-  })());
+  const overdue = Boolean(
+    task.due_date &&
+    !done &&
+    (() => {
+      const d = parseISO(task.due_date!);
+      return !isToday(d) && isPast(d);
+    })(),
+  );
   const steps = task.steps?.length ?? 0;
   const stepsDone = task.steps?.filter((s) => s.done).length ?? 0;
   const subs = task.subtask_count ?? 0;
@@ -508,8 +646,17 @@ function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleI
   const reminder = Boolean(task.remind && task.scheduled_at && !task.reminded_at && !done);
   const inProgress = showStatus && task.status === 'in_progress';
   const hasBadges = Boolean(
-    inProgress || (task.parent_task_id != null && task.parent_task_title) || task.due_date || task.week_of || task.month_of
-    || repeats(task.recurrence) || steps > 0 || subs > 0 || hasNotes || images > 0 || reminder,
+    inProgress ||
+    (task.parent_task_id != null && task.parent_task_title) ||
+    task.due_date ||
+    task.week_of ||
+    task.month_of ||
+    repeats(task.recurrence) ||
+    steps > 0 ||
+    subs > 0 ||
+    hasNotes ||
+    images > 0 ||
+    reminder,
   );
   // Only the date is a pill (its colour means overdue or today); the rest
   // are quiet icons with counts, as on Trello.
@@ -523,7 +670,12 @@ function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleI
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
         'group flex flex-col gap-2.5 rounded-[14px] px-3.5 py-3 text-left outline-none',
         !task.color && 'bg-[hsl(var(--surface-container-lowest))]',
@@ -532,22 +684,31 @@ function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleI
         lifted ? 'cursor-grabbing' : 'cursor-pointer hover:shadow-[inset_0_0_0_100vmax_hsl(var(--on-surface)/0.035)]',
       )}
       // A coloured task is tinted with its colour (a wash, not a stripe).
-      style={task.color ? { backgroundColor: `color-mix(in srgb, ${task.color} 10%, hsl(var(--surface-container-lowest)))` } : undefined}
+      style={
+        task.color
+          ? { backgroundColor: `color-mix(in srgb, ${task.color} 10%, hsl(var(--surface-container-lowest)))` }
+          : undefined
+      }
     >
       <div className="flex min-w-0 items-start gap-2">
         <button
           type="button"
           aria-label={done ? 'Mark not done' : 'Mark done'}
-          onClick={(e) => { e.stopPropagation(); onToggleDone?.(task); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleDone?.(task);
+          }}
           className="-m-1 shrink-0 p-1"
         >
-          <span className={cn(
-            'flex size-5 items-center justify-center rounded-[32%] border-2 transition-colors',
-            done ? 'rounded-full border-primary bg-primary text-primary-foreground'
-              : blocked && 'border-destructive/70 bg-[hsl(var(--error-container))] text-destructive',
-          )}
-          // Priority is the box (its colour, or the task's own, tinted).
-          style={done || blocked ? undefined : priorityBox(task.priority, task.color)}
+          <span
+            className={cn(
+              'flex size-5 items-center justify-center rounded-[32%] border-2 transition-colors',
+              done
+                ? 'rounded-full border-primary bg-primary text-primary-foreground'
+                : blocked && 'border-destructive/70 bg-[hsl(var(--error-container))] text-destructive',
+            )}
+            // Priority is the box (its colour, or the task's own, tinted).
+            style={done || blocked ? undefined : priorityBox(task.priority, task.color)}
           >
             {/* Blocked: the box itself says so; the lane already does too. */}
             {blocked && <Ban className="size-3" />}
@@ -558,20 +719,26 @@ function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleI
             )}
           </span>
         </button>
-        <span className={cn(
-          'line-clamp-4 min-w-0 flex-1 text-sm font-medium leading-5 [overflow-wrap:anywhere]',
-          done && 'text-muted-foreground line-through',
-        )}>
+        <span
+          className={cn(
+            'line-clamp-4 min-w-0 flex-1 text-sm leading-5 font-medium [overflow-wrap:anywhere]',
+            done && 'text-muted-foreground line-through',
+          )}
+        >
           {task.title}
         </span>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onToggleImportant?.(task.id, !task.important); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleImportant?.(task.id, !task.important);
+          }}
           // Shown on starred tasks; on the rest only on hover or focus.
           className={cn(
             '-m-1 shrink-0 rounded-full p-1 transition-[opacity,color]',
-            task.important ? 'text-[hsl(var(--tertiary))]'
-              : 'text-muted-foreground opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-60 group-focus-visible:opacity-60',
+            task.important
+              ? 'text-[hsl(var(--tertiary))]'
+              : 'text-muted-foreground opacity-0 group-hover:opacity-60 group-focus-visible:opacity-60 hover:opacity-100 focus-visible:opacity-100',
           )}
           aria-label={task.important ? 'Remove from Important' : 'Mark important'}
         >
@@ -582,35 +749,79 @@ function CardBody({ task, lifted = false, showStatus = false, onClick, onToggleI
       {blocked && task.blocked_by_task_title && (
         <p className="flex items-start gap-1.5 rounded-[10px] bg-[hsl(var(--error-container)/0.7)] px-2 py-1.5 text-xs leading-4 text-[hsl(var(--on-error-container))]">
           <Ban className="mt-px size-3.5 shrink-0 text-destructive" />
-          <span className="min-w-0 [overflow-wrap:anywhere]">Waiting on <strong className="font-semibold">{task.blocked_by_task_title}</strong></span>
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            Waiting on <strong className="font-semibold">{task.blocked_by_task_title}</strong>
+          </span>
         </p>
       )}
 
       {hasBadges && (
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-        {inProgress && <span className={cn(pill, 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}>In progress</span>}
-        {task.parent_task_id != null && task.parent_task_title && (
-          <span className={cn(mark, 'min-w-0 max-w-36 shrink')} title={`Subtask of ${task.parent_task_title}`}>
-            <CornerDownRight className="size-3.5 shrink-0" /><span className="truncate">{task.parent_task_title}</span>
-          </span>
-        )}
-        {task.due_date ? (
-          <span className={cn(pill, overdue ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]'
-            : dueToday ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]' : neutral)}>
-            {dueToday ? 'Today' : format(parseISO(task.due_date), 'MMM d')}
-          </span>
-        ) : task.week_of ? (
-          <span className={cn(pill, neutral)}>Wk {format(parseISO(task.week_of), 'MMM d')}</span>
-        ) : task.month_of ? (
-          <span className={cn(pill, neutral)}>{format(parseISO(task.month_of), 'MMMM')}</span>
-        ) : null}
-        {repeats(task.recurrence) && <span className={mark} title="Repeats"><Repeat className="size-3.5" /></span>}
-        {steps > 0 && <span className={mark} title="Steps"><ListChecks className="size-3.5" />{stepsDone}/{steps}</span>}
-        {subs > 0 && <span className={mark} title="Subtasks"><CornerDownRight className="size-3.5" />{task.subtasks_done ?? 0}/{subs}</span>}
-        {reminder && <span className={mark} title="Reminder set"><Bell className="size-3.5" /></span>}
-        {hasNotes && <span className={mark} title="Has notes"><AlignLeft className="size-3.5" /></span>}
-        {images > 0 && <span className={mark} title={`${images} image${images === 1 ? '' : 's'}`}><ImageIcon className="size-3.5" />{images}</span>}
-      </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+          {inProgress && (
+            <span
+              className={cn(pill, 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}
+            >
+              In progress
+            </span>
+          )}
+          {task.parent_task_id != null && task.parent_task_title && (
+            <span className={cn(mark, 'max-w-36 min-w-0 shrink')} title={`Subtask of ${task.parent_task_title}`}>
+              <CornerDownRight className="size-3.5 shrink-0" />
+              <span className="truncate">{task.parent_task_title}</span>
+            </span>
+          )}
+          {task.due_date ? (
+            <span
+              className={cn(
+                pill,
+                overdue
+                  ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]'
+                  : dueToday
+                    ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+                    : neutral,
+              )}
+            >
+              {dueToday ? 'Today' : format(parseISO(task.due_date), 'MMM d')}
+            </span>
+          ) : task.week_of ? (
+            <span className={cn(pill, neutral)}>Wk {format(parseISO(task.week_of), 'MMM d')}</span>
+          ) : task.month_of ? (
+            <span className={cn(pill, neutral)}>{format(parseISO(task.month_of), 'MMMM')}</span>
+          ) : null}
+          {repeats(task.recurrence) && (
+            <span className={mark} title="Repeats">
+              <Repeat className="size-3.5" />
+            </span>
+          )}
+          {steps > 0 && (
+            <span className={mark} title="Steps">
+              <ListChecks className="size-3.5" />
+              {stepsDone}/{steps}
+            </span>
+          )}
+          {subs > 0 && (
+            <span className={mark} title="Subtasks">
+              <CornerDownRight className="size-3.5" />
+              {task.subtasks_done ?? 0}/{subs}
+            </span>
+          )}
+          {reminder && (
+            <span className={mark} title="Reminder set">
+              <Bell className="size-3.5" />
+            </span>
+          )}
+          {hasNotes && (
+            <span className={mark} title="Has notes">
+              <AlignLeft className="size-3.5" />
+            </span>
+          )}
+          {images > 0 && (
+            <span className={mark} title={`${images} image${images === 1 ? '' : 's'}`}>
+              <ImageIcon className="size-3.5" />
+              {images}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

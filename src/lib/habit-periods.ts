@@ -75,9 +75,7 @@ export function dailyPeriods(anchor: Date, weekOffset = 0): HabitPeriod[] {
 
 export function weeklyPeriods(anchor: Date, windowOffset = 0): HabitPeriod[] {
   const currentStart = habitPeriodForDate(anchor, 'weekly').start;
-  const currentIndex = Math.floor(
-    differenceInCalendarDays(currentStart, WEEKLY_EPOCH) / 7,
-  );
+  const currentIndex = Math.floor(differenceInCalendarDays(currentStart, WEEKLY_EPOCH) / 7);
   const pageIndex = Math.floor(currentIndex / PERIODS_PER_WINDOW) + windowOffset;
   const firstStart = addDays(WEEKLY_EPOCH, pageIndex * PERIODS_PER_WINDOW * 7);
 
@@ -89,9 +87,7 @@ export function weeklyPeriods(anchor: Date, windowOffset = 0): HabitPeriod[] {
 
 export function fortnightlyPeriods(anchor: Date, windowOffset = 0): HabitPeriod[] {
   const currentStart = habitPeriodForDate(anchor, 'fortnightly').start;
-  const currentIndex = Math.floor(
-    differenceInCalendarDays(currentStart, FORTNIGHT_EPOCH) / 14,
-  );
+  const currentIndex = Math.floor(differenceInCalendarDays(currentStart, FORTNIGHT_EPOCH) / 14);
   const pageIndex = Math.floor(currentIndex / PERIODS_PER_WINDOW) + windowOffset;
   const firstStart = addDays(FORTNIGHT_EPOCH, pageIndex * PERIODS_PER_WINDOW * 14);
 
@@ -120,11 +116,7 @@ export function visiblePeriodRange(periodGroups: HabitPeriod[][]): { from: strin
   };
 }
 
-export function periodWindowTitle(
-  frequency: HabitFrequency,
-  anchor: Date,
-  offset: number,
-): string {
+export function periodWindowTitle(frequency: HabitFrequency, anchor: Date, offset: number): string {
   if (frequency === 'daily') {
     const periods = dailyPeriods(anchor, offset);
     return `${format(periods[0].start, 'MMM d')} – ${format(periods[6].start, 'MMM d')}`;
@@ -132,9 +124,7 @@ export function periodWindowTitle(
   if (frequency === 'monthly') {
     return format(addYears(anchor, offset), 'yyyy');
   }
-  const periods = frequency === 'weekly'
-    ? weeklyPeriods(anchor, offset)
-    : fortnightlyPeriods(anchor, offset);
+  const periods = frequency === 'weekly' ? weeklyPeriods(anchor, offset) : fortnightlyPeriods(anchor, offset);
   const firstOwner = weekOwner(periods[0].start);
   const lastOwner = weekOwner(periods.at(-1)!.start);
   if (firstOwner.getFullYear() !== lastOwner.getFullYear()) {
@@ -149,9 +139,7 @@ export function periodWindowTitle(
 export function periodWindowEnd(frequency: HabitFrequency, anchor: Date, offset: number): Date {
   if (frequency === 'daily') return dailyPeriods(anchor, offset).at(-1)!.end;
   if (frequency === 'monthly') return endOfYear(addYears(anchor, offset));
-  const periods = frequency === 'weekly'
-    ? weeklyPeriods(anchor, offset)
-    : fortnightlyPeriods(anchor, offset);
+  const periods = frequency === 'weekly' ? weeklyPeriods(anchor, offset) : fortnightlyPeriods(anchor, offset);
   return periods.at(-1)!.end;
 }
 
@@ -159,7 +147,9 @@ function makePeriod(start: Date, end: Date, frequency: HabitFrequency): HabitPer
   const key = dateKey(start);
   if (frequency === 'daily') {
     return {
-      key, start, end,
+      key,
+      start,
+      end,
       label: format(start, 'EEEEE'),
       group: format(start, 'MMM'),
       accessibleLabel: format(start, 'EEEE, MMMM d, yyyy'),
@@ -167,7 +157,9 @@ function makePeriod(start: Date, end: Date, frequency: HabitFrequency): HabitPer
   }
   if (frequency === 'monthly') {
     return {
-      key, start, end,
+      key,
+      start,
+      end,
       label: format(start, 'MMM'),
       group: format(start, 'yyyy'),
       accessibleLabel: format(start, 'MMMM yyyy'),
@@ -179,12 +171,15 @@ function makePeriod(start: Date, end: Date, frequency: HabitFrequency): HabitPer
   const group = format(owner, 'MMM');
   const range = `${format(start, 'MMM d')}–${format(end, 'MMM d, yyyy')}`;
   return {
-    key, start, end,
+    key,
+    start,
+    end,
     label: `W${weekNumber}`,
     group,
-    accessibleLabel: frequency === 'fortnightly'
-      ? `${format(owner, 'MMMM')} week ${weekNumber}, fortnight ${range}`
-      : `${format(owner, 'MMMM')} week ${weekNumber}, ${range}`,
+    accessibleLabel:
+      frequency === 'fortnightly'
+        ? `${format(owner, 'MMMM')} week ${weekNumber}, fortnight ${range}`
+        : `${format(owner, 'MMMM')} week ${weekNumber}, ${range}`,
   };
 }
 

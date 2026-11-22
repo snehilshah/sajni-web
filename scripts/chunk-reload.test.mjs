@@ -15,8 +15,15 @@ function page({ storage = new Map(), blocked, online = true, deployed = 'build-a
   let reloads = 0;
   const timers = [];
   const window = new EventTarget();
-  window.location = { reload: () => { reloads++; } };
-  window.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
+  window.location = {
+    reload: () => {
+      reloads++;
+    },
+  };
+  window.setTimeout = (fn, ms) => {
+    timers.push({ fn, ms });
+    return timers.length;
+  };
   const context = createContext({
     window,
     __BUILD_ID__: 'build-a',
@@ -39,7 +46,10 @@ function page({ storage = new Map(), blocked, online = true, deployed = 'build-a
       },
     },
   });
-  runInContext(`${source}\nglobalThis.api = { isChunkLoadError, isReloadPending, startRecovery, installChunkReload };`, context);
+  runInContext(
+    `${source}\nglobalThis.api = { isChunkLoadError, isReloadPending, startRecovery, installChunkReload };`,
+    context,
+  );
   return {
     ...context.api,
     reloads: () => reloads,
@@ -48,7 +58,9 @@ function page({ storage = new Map(), blocked, online = true, deployed = 'build-a
       for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
       return timers.map((t) => t.ms);
     },
-    fireTimers() { timers.splice(0).forEach((t) => t.fn()); },
+    fireTimers() {
+      timers.splice(0).forEach((t) => t.fn());
+    },
     preload(message) {
       const event = new Event('vite:preloadError', { cancelable: true });
       event.payload = runInContext(`new TypeError(${JSON.stringify(message)})`, context);
@@ -67,7 +79,8 @@ test('recognizes browser import and CSS failures without matching application er
     'Unable to preload CSS for /assets/old.css',
     'Loading chunk 123 failed',
     'Loading CSS chunk 123 failed',
-  ]) assert.equal(app.isChunkLoadError(message), true, message);
+  ])
+    assert.equal(app.isChunkLoadError(message), true, message);
   for (const value of [null, undefined, {}, 'Cannot read properties of undefined', 'Module initialization failed']) {
     assert.equal(app.isChunkLoadError(value), false);
   }
@@ -112,7 +125,7 @@ test('reloads are budgeted across page loads, and the budget recovers', async ()
   for (let i = 0; i < 3; i++) {
     const app = page({ storage, now });
     assert.equal(app.startRecovery(), true, `reload ${i + 1}`);
-    backoffs.push(...await app.settle());
+    backoffs.push(...(await app.settle()));
     clock += 1000;
   }
   assert.deepEqual(backoffs, [1000, 2000, 3000]);

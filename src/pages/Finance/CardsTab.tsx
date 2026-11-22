@@ -31,10 +31,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
   const [paying, setPaying] = useState<FinStatement | null>(null);
   const ccAccounts = useMemo(() => accounts.filter((a) => a.type === 'credit_card'), [accounts]);
   // Accounts that can pay a card bill: anything with cash, not the card itself.
-  const payFrom = useMemo(
-    () => accounts.filter((a) => a.type !== 'credit_card' && !a.archived),
-    [accounts],
-  );
+  const payFrom = useMemo(() => accounts.filter((a) => a.type !== 'credit_card' && !a.archived), [accounts]);
   const load = () => reload();
   useEffect(() => {}, []);
 
@@ -42,9 +39,7 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
     return <CardsSkeleton count={2} />;
   }
   if (ccAccounts.length === 0) {
-    return (
-      <p className="py-2 text-sm text-muted-foreground">No credit cards yet</p>
-    );
+    return <p className="py-2 text-sm text-muted-foreground">No credit cards yet</p>;
   }
 
   return (
@@ -68,7 +63,10 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
             {/* Same face as the card's tile on Accounts: identity colour as a
                 wash and an icon tile, the figure on the leading edge. */}
             <div className="flex items-start gap-3">
-              <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: card.color + '20', color: card.color }}>
+              <div
+                className="grid size-9 shrink-0 place-items-center rounded-md"
+                style={{ backgroundColor: card.color + '20', color: card.color }}
+              >
                 <CreditCard className="size-4" />
               </div>
               <div className="min-w-0">
@@ -77,43 +75,56 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="whitespace-nowrap font-serif text-3xl font-semibold tabular-nums"><Money value={owed} /></span>
+              <span className="font-serif text-3xl font-semibold whitespace-nowrap tabular-nums">
+                <Money value={owed} />
+              </span>
               <span className="text-xs text-muted-foreground">owed</span>
             </div>
-            {card.credit_limit ? (() => {
-              const used = (owed / card.credit_limit) * 100;
-              return (
-                // Label above, bar on its own line: every card's bar is the
-                // full width, whatever the limit's length.
-                <div className="mt-2 flex flex-col gap-1.5">
-                  <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                    {formatPercent(used)} of <Money value={card.credit_limit} /> limit
-                  </span>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: Math.min(used, 100) + '%', backgroundColor: used > 80 ? 'hsl(var(--destructive))' : card.color }}
-                    />
-                  </div>
-                </div>
-              );
-            })() : null}
+            {card.credit_limit
+              ? (() => {
+                  const used = (owed / card.credit_limit) * 100;
+                  return (
+                    // Label above, bar on its own line: every card's bar is the
+                    // full width, whatever the limit's length.
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                        {formatPercent(used)} of <Money value={card.credit_limit} /> limit
+                      </span>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--surface-container-highest))]">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: Math.min(used, 100) + '%',
+                            backgroundColor: used > 80 ? 'hsl(var(--destructive))' : card.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()
+              : null}
 
             <div className="mt-4 flex flex-col gap-3">
               {/* Figures start on the card's leading edge, like every
                   other stat; the billing cycle is a badge, not a fraction. */}
               <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
-                <Stat label="Unpaid" value={<Money value={totalUnpaid} />} tone={totalUnpaid > 0 ? 'destructive' : 'default'} />
+                <Stat
+                  label="Unpaid"
+                  value={<Money value={totalUnpaid} />}
+                  tone={totalUnpaid > 0 ? 'destructive' : 'default'}
+                />
                 <Stat label="Cashback" value={<Money value={totalCashback} />} tone="primary" />
                 {card.statement_day && card.due_day ? (
-                  <DateBadge className="mb-1">Bills on {card.statement_day} · due {card.due_day}</DateBadge>
+                  <DateBadge className="mb-1">
+                    Bills on {card.statement_day} · due {card.due_day}
+                  </DateBadge>
                 ) : null}
               </div>
 
               <div className="flex items-center justify-between">
-                <h3 className="font-medium text-sm">Statements</h3>
+                <h3 className="text-sm font-medium">Statements</h3>
                 <Button size="sm" variant="ghost" className="-mr-2" onClick={() => setCreating(card)}>
-                  <Plus className="size-3.5 mr-1" /> Add
+                  <Plus className="mr-1 size-3.5" /> Add
                 </Button>
               </div>
 
@@ -125,7 +136,10 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
                     <StatementRow
                       key={s.id}
                       statement={s}
-                      onUpdate={async (data) => { await finance.updateStatement(s.id, data); load(); }}
+                      onUpdate={async (data) => {
+                        await finance.updateStatement(s.id, data);
+                        load();
+                      }}
                       onPay={() => setPaying(s)}
                       onDelete={async () => {
                         if (!(await confirmDialog('Delete this statement?'))) return;
@@ -144,13 +158,19 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
       <StatementDialog
         card={creating}
         onClose={() => setCreating(null)}
-        onSaved={() => { setCreating(null); load(); }}
+        onSaved={() => {
+          setCreating(null);
+          load();
+        }}
       />
       <PayStatementDialog
         statement={paying}
         accounts={payFrom}
         onClose={() => setPaying(null)}
-        onPaid={() => { setPaying(null); load(); }}
+        onPaid={() => {
+          setPaying(null);
+          load();
+        }}
       />
     </div>
   );
@@ -159,7 +179,12 @@ export default function CardsTab({ accounts, statements, loaded, reload }: Props
 // PayStatementDialog records a card payment: it marks the statement paid and
 // posts a transfer from the chosen bank account to the card, reducing what's
 // owed. Surfaced when the user taps "Mark paid".
-function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
+function PayStatementDialog({
+  statement,
+  accounts,
+  onClose,
+  onPaid,
+}: {
   statement: FinStatement | null;
   accounts: FinAccount[];
   onClose: () => void;
@@ -184,9 +209,11 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
     <Dialog open={!!statement} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Pay <Money value={statement.amount_due} /></DialogTitle>
+          <DialogTitle>
+            Pay <Money value={statement.amount_due} />
+          </DialogTitle>
         </DialogHeader>
-        <div className="text-xs text-muted-foreground -mt-2">
+        <div className="-mt-2 text-xs text-muted-foreground">
           We'll post a transfer from the selected account to the card and mark this statement paid.
         </div>
         <Field label="Pay from">
@@ -195,10 +222,14 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
             onValueChange={(v) => setAccountId(v ?? '')}
             items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
           >
-            <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Select account" />
+            </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
-                <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                <SelectItem key={a.id} value={String(a.id)}>
+                  {a.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -209,7 +240,9 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={pay}>Confirm payment</Button>
         </DialogFooter>
       </DialogContent>
@@ -217,8 +250,13 @@ function PayStatementDialog({ statement, accounts, onClose, onPaid }: {
   );
 }
 
-function Stat({ label, value, tone = 'default' }: {
-  label: string; value: React.ReactNode;
+function Stat({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: React.ReactNode;
   tone?: 'primary' | 'destructive' | 'default';
 }) {
   const tones: Record<string, string> = {
@@ -229,14 +267,17 @@ function Stat({ label, value, tone = 'default' }: {
   return (
     <div className="min-w-0">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`whitespace-nowrap font-serif text-lg font-semibold tabular-nums ${tones[tone]}`}>
-        {value}
-      </div>
+      <div className={`font-serif text-lg font-semibold whitespace-nowrap tabular-nums ${tones[tone]}`}>{value}</div>
     </div>
   );
 }
 
-function StatementRow({ statement, onUpdate, onPay, onDelete }: {
+function StatementRow({
+  statement,
+  onUpdate,
+  onPay,
+  onDelete,
+}: {
   statement: FinStatement;
   onUpdate: (data: StmtPatch) => Promise<void>;
   onPay: () => void;
@@ -251,34 +292,59 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   return (
     <div className="py-1">
       <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-medium tabular-nums">
-            {isCredit ? <><Money value={-statement.amount_due} /> credit</> : <Money value={statement.amount_due} />}
+            {isCredit ? (
+              <>
+                <Money value={-statement.amount_due} /> credit
+              </>
+            ) : (
+              <Money value={statement.amount_due} />
+            )}
           </div>
           <div className="text-xs text-muted-foreground">
             {format(parseISO(statement.statement_date), 'd MMM')}
-            {statement.cashback_earned > 0 && <> · <Money value={statement.cashback_earned} /> back</>}
+            {statement.cashback_earned > 0 && (
+              <>
+                {' '}
+                · <Money value={statement.cashback_earned} /> back
+              </>
+            )}
           </div>
         </div>
         {statement.paid ? (
-          <DateBadge tone="positive" icon={<Check className="size-3" />}>Paid</DateBadge>
+          <DateBadge tone="positive" icon={<Check className="size-3" />}>
+            Paid
+          </DateBadge>
         ) : isCredit ? (
           <DateBadge tone="positive">In credit</DateBadge>
         ) : overdue ? (
-          <DateBadge tone="alert" icon={<AlertCircle className="size-3" />}>{-daysUntil}d overdue</DateBadge>
+          <DateBadge tone="alert" icon={<AlertCircle className="size-3" />}>
+            {-daysUntil}d overdue
+          </DateBadge>
         ) : (
-          <DateBadge tone={dueSoon ? 'accent' : 'neutral'}>{daysUntil === 0 ? 'Due today' : `Due ${format(dueDate, 'd MMM')}`}</DateBadge>
+          <DateBadge tone={dueSoon ? 'accent' : 'neutral'}>
+            {daysUntil === 0 ? 'Due today' : `Due ${format(dueDate, 'd MMM')}`}
+          </DateBadge>
         )}
       </div>
 
       {/* Breakdown: previous balance carried in + this cycle's new charges. */}
-      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
-        <span>Prev <Money value={statement.previous_balance} /></span>
-        <span>Personal <Money value={Math.max(subMoney(statement.new_charges, statement.lend_charges), 0)} /></span>
-        {statement.lend_charges > 0 && <span className="text-foreground">Lent <Money value={statement.lend_charges} /></span>}
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground tabular-nums">
+        <span>
+          Prev <Money value={statement.previous_balance} />
+        </span>
+        <span>
+          Personal <Money value={Math.max(subMoney(statement.new_charges, statement.lend_charges), 0)} />
+        </span>
+        {statement.lend_charges > 0 && (
+          <span className="text-foreground">
+            Lent <Money value={statement.lend_charges} />
+          </span>
+        )}
       </div>
 
-      <div className="-mr-2 mt-1 flex items-center justify-end gap-1">
+      <div className="mt-1 -mr-2 flex items-center justify-end gap-1">
         {statement.paid ? (
           <Button size="sm" variant="ghost" onClick={() => onUpdate({ paid: false })}>
             Undo
@@ -296,7 +362,11 @@ function StatementRow({ statement, onUpdate, onPay, onDelete }: {
   );
 }
 
-function StatementDialog({ card, onClose, onSaved }: {
+function StatementDialog({
+  card,
+  onClose,
+  onSaved,
+}: {
   card: FinAccount | null;
   onClose: () => void;
   onSaved: () => void;
@@ -338,7 +408,8 @@ function StatementDialog({ card, onClose, onSaved }: {
     if (!card || !stmtDate) return;
     let alive = true;
     setPreviewLoading(true);
-    finance.previewStatement(card.id, { statement_date: stmtDate })
+    finance
+      .previewStatement(card.id, { statement_date: stmtDate })
       .then((res) => {
         if (!alive) return;
         setPreview(res);
@@ -350,7 +421,9 @@ function StatementDialog({ card, onClose, onSaved }: {
       .finally(() => {
         if (alive) setPreviewLoading(false);
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [card, stmtDate]);
 
   if (!card) return null;
@@ -369,12 +442,13 @@ function StatementDialog({ card, onClose, onSaved }: {
 
   return (
     <Dialog open={!!card} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New Statement · {card.name}</DialogTitle>
         </DialogHeader>
-        <div className="text-xs text-muted-foreground -mt-2">
-          Calculated from previous balance, this cycle's charges, payments, and card cashback. Edit the fields if the bank statement differs.
+        <div className="-mt-2 text-xs text-muted-foreground">
+          Calculated from previous balance, this cycle's charges, payments, and card cashback. Edit the fields if the
+          bank statement differs.
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Statement date">
@@ -388,7 +462,10 @@ function StatementDialog({ card, onClose, onSaved }: {
               type="number"
               inputMode="decimal"
               value={amountValue}
-              onChange={(e) => { setAmountTouched(true); setAmountOverride(e.target.value); }}
+              onChange={(e) => {
+                setAmountTouched(true);
+                setAmountOverride(e.target.value);
+              }}
               placeholder="0"
             />
           </Field>
@@ -397,27 +474,42 @@ function StatementDialog({ card, onClose, onSaved }: {
               type="number"
               inputMode="decimal"
               value={cashbackValue}
-              onChange={(e) => { setCashbackTouched(true); setCashbackOverride(e.target.value); }}
+              onChange={(e) => {
+                setCashbackTouched(true);
+                setCashbackOverride(e.target.value);
+              }}
               placeholder="0"
             />
           </Field>
         </div>
-        <div className="rounded-lg bg-muted/40 px-3 py-2 font-mono text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-muted/40 px-3 py-2 font-mono text-xs text-muted-foreground">
           {previewLoading && !preview ? (
             <span>Calculating…</span>
           ) : preview ? (
             <>
-              <span>Prev <Money value={preview.previous_balance} /></span>
-              <span>Personal <Money value={Math.max(subMoney(preview.new_charges, preview.lend_charges), 0)} /></span>
-              {preview.lend_charges > 0 && <span className="text-foreground">Lent <Money value={preview.lend_charges} /></span>}
-              <span>Payments <Money value={preview.payments} /></span>
+              <span>
+                Prev <Money value={preview.previous_balance} />
+              </span>
+              <span>
+                Personal <Money value={Math.max(subMoney(preview.new_charges, preview.lend_charges), 0)} />
+              </span>
+              {preview.lend_charges > 0 && (
+                <span className="text-foreground">
+                  Lent <Money value={preview.lend_charges} />
+                </span>
+              )}
+              <span>
+                Payments <Money value={preview.payments} />
+              </span>
             </>
           ) : (
             <span>Preview unavailable. Generate will still calculate from server records.</span>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={save}>Generate</Button>
         </DialogFooter>
       </DialogContent>
@@ -433,7 +525,7 @@ function formatInputAmount(value: number | undefined) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
+      <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>
   );

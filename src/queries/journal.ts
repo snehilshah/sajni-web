@@ -21,9 +21,8 @@ export function useJournalEntry(date: string) {
 export function useSaveJournal() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ date, content, location }: {
-      date: string; content: string; location?: JournalLocation | null;
-    }) => journalApi.save(date, content, location),
+    mutationFn: ({ date, content, location }: { date: string; content: string; location?: JournalLocation | null }) =>
+      journalApi.save(date, content, location),
     onError: () => toast.error('Could not save entry'),
     onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: qk.journal.all });

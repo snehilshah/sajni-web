@@ -37,12 +37,8 @@ export function useHabitPeriodStatus(date: string) {
 export function useToggleHabitPeriod() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, periodStart }: {
-      id: number;
-      periodStart: string;
-      periodEnd: string;
-      isCurrent: boolean;
-    }) => habitsApi.togglePeriod(id, periodStart),
+    mutationFn: ({ id, periodStart }: { id: number; periodStart: string; periodEnd: string; isCurrent: boolean }) =>
+      habitsApi.togglePeriod(id, periodStart),
     onMutate: async ({ id, periodStart, periodEnd, isCurrent }) => {
       await qc.cancelQueries({ queryKey: qk.habits.all });
       const prevList = qc.getQueryData<Habit[]>(qk.habits.list());
@@ -57,22 +53,22 @@ export function useToggleHabitPeriod() {
       qc.setQueriesData<Record<string, string[]>>({ queryKey: qk.habits.all }, (old) => {
         if (!old || Array.isArray(old)) return old;
         const arr = old[key] ?? [];
-        const next = nextLogged
-          ? [...arr, periodStart]
-          : arr.filter((date) => date < periodStart || date > periodEnd);
+        const next = nextLogged ? [...arr, periodStart] : arr.filter((date) => date < periodStart || date > periodEnd);
         return { ...old, [key]: next };
       });
 
       if (isCurrent) {
         qc.setQueryData<Habit[]>(qk.habits.list(), (old) =>
-          old?.map((habit) => habit.id === id
-            ? {
-              ...habit,
-              logged_current_period: nextLogged,
-              // Ticking the current period moves the streak by one at once.
-              current_streak: Math.max(0, habit.current_streak + (nextLogged ? 1 : -1)),
-            }
-            : habit),
+          old?.map((habit) =>
+            habit.id === id
+              ? {
+                  ...habit,
+                  logged_current_period: nextLogged,
+                  // Ticking the current period moves the streak by one at once.
+                  current_streak: Math.max(0, habit.current_streak + (nextLogged ? 1 : -1)),
+                }
+              : habit,
+          ),
         );
       }
       return { prevList, prevLogs };

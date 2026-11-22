@@ -43,7 +43,14 @@ export interface SplitButtonProps<V extends string = string> {
 }
 
 export function SplitButton<V extends string = string>({
-  value, options, onChange, onPrimary, className, size = 'default', iconOnly = false, variant = 'tonal',
+  value,
+  options,
+  onChange,
+  onPrimary,
+  className,
+  size = 'default',
+  iconOnly = false,
+  variant = 'tonal',
 }: SplitButtonProps<V>) {
   const [open, setOpen] = React.useState(false);
   const current = options.find((o) => o.value === value) ?? options[0];
@@ -52,14 +59,18 @@ export function SplitButton<V extends string = string>({
   const px = size === 'sm' ? 'px-3' : 'px-4';
 
   const bgClasses =
-    variant === 'filled'   ? 'bg-primary text-primary-foreground hover:brightness-105' :
-    variant === 'outlined' ? 'border border-[hsl(var(--outline))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]' :
-                              'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97]';
+    variant === 'filled'
+      ? 'bg-primary text-primary-foreground hover:brightness-105'
+      : variant === 'outlined'
+        ? 'border border-[hsl(var(--outline))] text-foreground hover:bg-[hsl(var(--on-surface)/0.06)]'
+        : 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] hover:brightness-[0.97]';
 
   const divider =
-    variant === 'filled'   ? 'bg-primary-foreground/30' :
-    variant === 'outlined' ? 'bg-[hsl(var(--outline))]' :
-                              'bg-[hsl(var(--on-secondary-container))]/20';
+    variant === 'filled'
+      ? 'bg-primary-foreground/30'
+      : variant === 'outlined'
+        ? 'bg-[hsl(var(--outline))]'
+        : 'bg-[hsl(var(--on-secondary-container))]/20';
 
   return (
     <div className={cn('relative inline-flex shrink-0', className)}>
@@ -67,8 +78,10 @@ export function SplitButton<V extends string = string>({
         type="button"
         onClick={onPrimary ?? (() => setOpen(true))}
         className={cn(
-          'inline-flex items-center justify-center rounded-l-full font-medium text-sm tracking-[0.005em] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97]',
-          h, iconOnly ? (size === 'sm' ? 'w-9 px-0' : 'w-11 px-0') : px, bgClasses,
+          'inline-flex items-center justify-center rounded-l-full text-sm font-medium tracking-[0.005em] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97]',
+          h,
+          iconOnly ? (size === 'sm' ? 'w-9 px-0' : 'w-11 px-0') : px,
+          bgClasses,
         )}
         title={current?.label}
         aria-label={current?.label}
@@ -83,7 +96,7 @@ export function SplitButton<V extends string = string>({
                 aria-hidden={!isActive}
                 className={cn(
                   'col-start-1 row-start-1 inline-flex items-center gap-2 transition-opacity duration-200 ease-in-out',
-                  isActive ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                  isActive ? 'opacity-100' : 'pointer-events-none opacity-0',
                 )}
               >
                 {O && <O className="size-4" />}
@@ -101,12 +114,15 @@ export function SplitButton<V extends string = string>({
               type="button"
               className={cn(
                 'inline-flex items-center justify-center rounded-r-full transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.95]',
-                h, size === 'sm' ? 'w-9' : 'w-11',
+                h,
+                size === 'sm' ? 'w-9' : 'w-11',
                 bgClasses,
               )}
               aria-label="More options"
             >
-              <span className={cn('transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]', open && 'rotate-180')}>
+              <span
+                className={cn('transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]', open && 'rotate-180')}
+              >
                 <ChevronDown className="size-4" />
               </span>
             </button>
@@ -118,12 +134,15 @@ export function SplitButton<V extends string = string>({
             return (
               <DropdownMenuItem
                 key={o.value}
-                onClick={() => { onChange(o.value); setOpen(false); }}
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
                 data-active={o.value === value}
               >
-                {O && <O className="size-4 mr-1.5 opacity-80" />}
+                {O && <O className="mr-1.5 size-4 opacity-80" />}
                 {o.label}
-                {o.value === value && <span className="ml-auto mono text-xs text-muted-foreground">●</span>}
+                {o.value === value && <span className="mono ml-auto text-xs text-muted-foreground">●</span>}
               </DropdownMenuItem>
             );
           })}

@@ -9,7 +9,11 @@ import { STATUS_DOT } from './helpers';
 
 // The "Blocked by" field: pick the task that must be done first. Type to
 // narrow the list (with many open tasks scrolling gets slow).
-export default function BlockerPicker({ value, tasks, onChange }: {
+export default function BlockerPicker({
+  value,
+  tasks,
+  onChange,
+}: {
   value: number | null;
   tasks: Task[];
   onChange: (id: number) => void;
@@ -18,12 +22,18 @@ export default function BlockerPicker({ value, tasks, onChange }: {
   const [query, setQuery] = useState('');
   const picked = tasks.find((t) => t.id === value);
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(''); }}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setQuery('');
+      }}
+    >
       <PopoverTrigger
         aria-label="Select blocking task"
         data-popup-open={open ? '' : undefined}
         className={cn(
-          'flex h-10 w-full items-center justify-between gap-2 rounded-xl bg-card px-3.5 text-left text-sm outline-none transition-[box-shadow] duration-150',
+          'flex h-10 w-full items-center justify-between gap-2 rounded-xl bg-card px-3.5 text-left text-sm transition-[box-shadow] duration-150 outline-none',
           'focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))] data-[popup-open]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
         )}
       >
@@ -43,7 +53,13 @@ export default function BlockerPicker({ value, tasks, onChange }: {
           // "plants" would also match "plan for the side project").
           filter={(value, search) => {
             const title = value.slice(0, value.lastIndexOf('__')).toLowerCase();
-            return search.toLowerCase().split(/\s+/).filter(Boolean).every((w) => title.includes(w)) ? 1 : 0;
+            return search
+              .toLowerCase()
+              .split(/\s+/)
+              .filter(Boolean)
+              .every((w) => title.includes(w))
+              ? 1
+              : 0;
           }}
         >
           <CommandInput placeholder="Search tasks" value={query} onValueChange={setQuery} autoFocus />
@@ -54,7 +70,11 @@ export default function BlockerPicker({ value, tasks, onChange }: {
                 key={t.id}
                 // The title is what's searched; the id keeps equal titles apart.
                 value={`${t.title}__${t.id}`}
-                onSelect={() => { onChange(t.id); setOpen(false); setQuery(''); }}
+                onSelect={() => {
+                  onChange(t.id);
+                  setOpen(false);
+                  setQuery('');
+                }}
                 className={cn(t.id === value && 'font-semibold')}
               >
                 <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT[t.status]}`} />

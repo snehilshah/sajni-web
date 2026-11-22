@@ -1,11 +1,19 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { lazyPage, prefetchPages } from '@/lib/lazyPage';
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
-import {
-  LogOut, Search, Settings, Sparkles, Loader2, BookOpen, History,
-} from '@/components/ui/icons';
+import { LogOut, Search, Settings, Sparkles, Loader2, BookOpen, History } from '@/components/ui/icons';
 import { PixelIcon } from '@/components/ui/pixel-icon';
 import { useAuth, type User } from '@/auth/AuthContext';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
@@ -17,17 +25,19 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { cn } from '@/lib/utils';
 import { readDockWidth, saveDockWidth, useDockMode } from '@/lib/chatDock';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const CommandPalette = lazyPage(() => import('@/components/CommandPalette'));
 const AIChat = lazyPage(() => import('@/components/AIChat'));
 
 function MenuRow({
-  icon: Icon, label, hint, onClick, danger, disabled, spinning,
+  icon: Icon,
+  label,
+  hint,
+  onClick,
+  danger,
+  disabled,
+  spinning,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -43,20 +53,30 @@ function MenuRow({
       onClick={onClick}
       disabled={disabled || spinning}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left rounded-xl transition-colors',
-        danger ? 'text-destructive hover:bg-[hsl(var(--error-container))]' : 'text-foreground/90 hover:bg-[hsl(var(--on-surface)/0.08)]',
-        (disabled || spinning) && 'opacity-50 cursor-not-allowed',
+        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
+        danger
+          ? 'text-destructive hover:bg-[hsl(var(--error-container))]'
+          : 'text-foreground/90 hover:bg-[hsl(var(--on-surface)/0.08)]',
+        (disabled || spinning) && 'cursor-not-allowed opacity-50',
       )}
     >
       <Icon className={cn('size-4 shrink-0', spinning && 'animate-spin')} />
       <span className="flex-1">{label}</span>
-      {hint && <span className="mono text-xs text-muted-foreground tracking-[0.05em]">{hint}</span>}
+      {hint && <span className="mono text-xs tracking-[0.05em] text-muted-foreground">{hint}</span>}
     </button>
   );
 }
 
 function UserMenuBody({
-  user, onOpenCommand, onOpenChat, onSettings, onDocs, onChangelog, onSignOut, onAction, signingOut,
+  user,
+  onOpenCommand,
+  onOpenChat,
+  onSettings,
+  onDocs,
+  onChangelog,
+  onSignOut,
+  onAction,
+  signingOut,
 }: {
   user: User;
   onOpenCommand: () => void;
@@ -75,11 +95,11 @@ function UserMenuBody({
 
   return (
     <div className="p-1">
-      <div className="px-3 pt-3 pb-2 flex items-center gap-3.5">
+      <div className="flex items-center gap-3.5 px-3 pt-3 pb-2">
         <ProfileAvatar user={user} size={64} />
         <div className="min-w-0">
-          <div className="serif text-sm font-semibold leading-tight truncate">{user.name || 'Sajni user'}</div>
-          <div className="text-xs text-muted-foreground mt-1 truncate">{user.email}</div>
+          <div className="serif truncate text-sm leading-tight font-semibold">{user.name || 'Sajni user'}</div>
+          <div className="mt-1 truncate text-xs text-muted-foreground">{user.email}</div>
         </div>
       </div>
       <div className="sajni-sep my-2" />
@@ -89,7 +109,13 @@ function UserMenuBody({
       <MenuRow icon={Settings} label="Settings" onClick={runAction(onSettings)} />
       <MenuRow icon={BookOpen} label="Field guide" hint="/docs" onClick={runAction(onDocs)} />
       <MenuRow icon={History} label="What's new" hint="/changelog" onClick={runAction(onChangelog)} />
-      <MenuRow icon={signingOut ? Loader2 : LogOut} label={signingOut ? 'Signing out…' : 'Sign out'} danger spinning={signingOut} onClick={runAction(onSignOut)} />
+      <MenuRow
+        icon={signingOut ? Loader2 : LogOut}
+        label={signingOut ? 'Signing out…' : 'Sign out'}
+        danger
+        spinning={signingOut}
+        onClick={runAction(onSignOut)}
+      />
     </div>
   );
 }
@@ -102,8 +128,17 @@ function UserMenuBody({
 // growing them swelled the circles into the pill's edges, so the bar
 // seemed to bob up and down under the pointer.
 function DockNavIcon({
-  pointerX, path, label, icon, isActive, base, max, activeLayoutId,
-  hovered = false, hoverLayoutId, onHover,
+  pointerX,
+  path,
+  label,
+  icon,
+  isActive,
+  base,
+  max,
+  activeLayoutId,
+  hovered = false,
+  hoverLayoutId,
+  onHover,
 }: {
   pointerX: MotionValue<number>;
   path: string;
@@ -124,10 +159,11 @@ function DockNavIcon({
     const b = ref.current?.getBoundingClientRect();
     return b ? x - (b.left + b.width / 2) : Infinity;
   });
-  const size = useSpring(
-    useTransform(distance, [-96, 0, 96], [base, max, base]),
-    { mass: 0.1, stiffness: 220, damping: 16 },
-  );
+  const size = useSpring(useTransform(distance, [-96, 0, 96], [base, max, base]), {
+    mass: 0.1,
+    stiffness: 220,
+    damping: 16,
+  });
   const iconScale = useTransform(size, (s) => s / base);
   // A fixed base-sized circle centred in the (wider) slot.
   const circle = { width: base, left: '50%', marginLeft: -base / 2 };
@@ -143,7 +179,7 @@ function DockNavIcon({
       aria-label={label}
       onMouseEnter={onHover}
       onFocus={onHover}
-      className="shrink-0 flex items-center justify-center"
+      className="flex shrink-0 items-center justify-center"
     >
       <motion.span
         style={{ width: size, height: base }}
@@ -186,8 +222,15 @@ function DockNavIcon({
 // sidebars) run underneath to the viewport top. Slides up + fades when
 // the page scrolls; the merged pill (PageChrome) morphs into its place.
 function PrimaryBar({
-  pathname, scrolled, onOpenCommand, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
-  chatDocked, onCloseChat,
+  pathname,
+  scrolled,
+  onOpenCommand,
+  userMenuContent,
+  user,
+  accountMenuOpen,
+  setAccountMenuOpen,
+  chatDocked,
+  onCloseChat,
 }: {
   pathname: string;
   scrolled: boolean;
@@ -220,7 +263,7 @@ function PrimaryBar({
       initial={false}
       animate={{ transform: scrolled ? 'translateY(-88px)' : 'translateY(0)', opacity: scrolled ? 0 : 1 }}
       transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
-      className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none transition-[right] duration-300 ease-[cubic-bezier(0.2,0,0,1)]"
+      className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 transition-[right] duration-300 ease-[cubic-bezier(0.2,0,0,1)]"
       data-dock-chrome
       // --dock-inset: docked Sajni's width, so the pill centres over the page left.
       style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)', right: 'var(--dock-inset, 0px)' }}
@@ -228,9 +271,12 @@ function PrimaryBar({
     >
       <nav
         onMouseMove={(e) => pointerX.set(e.clientX)}
-        onMouseLeave={() => { pointerX.set(Infinity); setHoveredPath(null); }}
+        onMouseLeave={() => {
+          pointerX.set(Infinity);
+          setHoveredPath(null);
+        }}
         className={cn(
-          'flex items-center gap-0.5 h-12 px-1.5 rounded-full bg-[hsl(var(--surface-container-low))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-1)]',
+          'flex h-12 items-center gap-0.5 rounded-full border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-1.5 shadow-[var(--m3-elev-1)]',
           scrolled ? 'pointer-events-none' : 'pointer-events-auto',
         )}
         aria-label="Primary"
@@ -251,11 +297,11 @@ function PrimaryBar({
             onHover={() => enterIcon(path)}
           />
         ))}
-        <span className="w-px h-5 mx-1 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
+        <span className="mx-1 h-5 w-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
         {/* Search and Sajni live in the pill: nothing floats over the page. */}
         <button
           onClick={onOpenCommand}
-          className="size-10 inline-flex items-center justify-center rounded-full text-foreground/80 outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring/45"
+          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/80 transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring/45"
           title="Search · ⌘K"
           aria-label="Search"
         >
@@ -264,7 +310,7 @@ function PrimaryBar({
         <button
           onClick={() => (chatDocked ? onCloseChat() : window.dispatchEvent(new CustomEvent('chat:open')))}
           className={cn(
-            'size-10 inline-flex items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/45',
+            'inline-flex size-10 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/45',
             chatDocked
               ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
               : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.08)]',
@@ -278,7 +324,11 @@ function PrimaryBar({
         <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <DropdownMenuTrigger
             render={
-              <button className="size-10 mr-0.5 inline-flex items-center justify-center rounded-full outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring/45" title="Account" aria-label="Account">
+              <button
+                className="mr-0.5 inline-flex size-10 items-center justify-center rounded-full transition-colors outline-none hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring/45 active:scale-[0.96]"
+                title="Account"
+                aria-label="Account"
+              >
                 <ProfileAvatar user={user} size={32} view="nav" />
               </button>
             }
@@ -320,7 +370,13 @@ function useBottomOcclusion() {
 }
 
 function BottomDock({
-  pathname, hidden, onOpenCommand, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
+  pathname,
+  hidden,
+  onOpenCommand,
+  userMenuContent,
+  user,
+  accountMenuOpen,
+  setAccountMenuOpen,
 }: {
   pathname: string;
   hidden: boolean;
@@ -343,15 +399,15 @@ function BottomDock({
       // (fixed): a bottom URL bar shrinks dvh as it slides in, so the dock
       // rides above it instead of being covered. `occluded` covers browsers
       // that overlay their bar without resizing the viewport.
-      className="absolute inset-x-0 z-40 md:hidden flex justify-center px-3 pointer-events-none"
+      className="pointer-events-none absolute inset-x-0 z-40 flex justify-center px-3 md:hidden"
       style={{ bottom: `calc(env(safe-area-inset-bottom, 0px) + ${10 + occluded}px)` }}
     >
       <nav
-        className="pointer-events-auto flex items-center gap-0.5 h-14 max-w-full pl-1.5 pr-2 rounded-full bg-[hsl(var(--surface-container-high))] border border-[hsl(var(--outline-variant))] shadow-[var(--m3-elev-3)]"
+        className="pointer-events-auto flex h-14 max-w-full items-center gap-0.5 rounded-full border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-high))] pr-2 pl-1.5 shadow-[var(--m3-elev-3)]"
         aria-label="Primary"
       >
         <div
-          className="flex items-center gap-0.5 overflow-x-auto no-scrollbar"
+          className="no-scrollbar flex items-center gap-0.5 overflow-x-auto"
           // Magnify under the thumb while sliding across; settle on lift.
           onTouchMove={(e) => pointerX.set(e.touches[0]?.clientX ?? Infinity)}
           onTouchEnd={() => pointerX.set(Infinity)}
@@ -371,10 +427,10 @@ function BottomDock({
             />
           ))}
         </div>
-        <span className="w-px h-5 mx-0.5 bg-[hsl(var(--outline-variant))] shrink-0" aria-hidden="true" />
+        <span className="mx-0.5 h-5 w-px shrink-0 bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('chat:open'))}
-          className="size-11 shrink-0 inline-flex items-center justify-center rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] active:scale-[0.96] transition-transform"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))] transition-transform active:scale-[0.96]"
           title="Ask Sajni"
           aria-label="Ask Sajni"
         >
@@ -382,7 +438,7 @@ function BottomDock({
         </button>
         <button
           onClick={onOpenCommand}
-          className="size-11 shrink-0 inline-flex items-center justify-center rounded-full text-muted-foreground active:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:bg-[hsl(var(--on-surface)/0.08)]"
           title="Ask anything"
           aria-label="Ask anything"
         >
@@ -391,7 +447,11 @@ function BottomDock({
         <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <DropdownMenuTrigger
             render={
-              <button className="size-11 shrink-0 inline-flex items-center justify-center rounded-full outline-none transition-colors active:bg-[hsl(var(--on-surface)/0.08)] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring/45" title="Account" aria-label="Account">
+              <button
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/45 active:scale-[0.96] active:bg-[hsl(var(--on-surface)/0.08)]"
+                title="Account"
+                aria-label="Account"
+              >
                 <ProfileAvatar user={user} size={32} view="nav" />
               </button>
             }
@@ -411,9 +471,13 @@ function BottomDock({
 // pill — pages report scroll through NavChromeContext.
 export default function Layout() {
   const location = useLocation();
-  useEffect(() => { rememberPlace(location.pathname, location.search); }, [location.pathname, location.search]);
+  useEffect(() => {
+    rememberPlace(location.pathname, location.search);
+  }, [location.pathname, location.search]);
   // Signed in: fetch every screen's chunk once idle (lib/lazyPage).
-  useEffect(() => { prefetchPages(); }, []);
+  useEffect(() => {
+    prefetchPages();
+  }, []);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
@@ -423,7 +487,9 @@ export default function Layout() {
   const [chatOpenRequest, setChatOpenRequest] = useState<ChatOpenRequest | null>(null);
   const dockMode = useDockMode();
   const [dockWidth, setDockWidth] = useState(readDockWidth);
-  useEffect(() => { saveDockWidth(dockWidth); }, [dockWidth]);
+  useEffect(() => {
+    saveDockWidth(dockWidth);
+  }, [dockWidth]);
   const docked = aiChatOpen && dockMode !== 'sheet';
   // Page-wide fixed chrome (nav pill, page header, toasts) keeps clear of a
   // panel that pushes the page aside.
@@ -436,30 +502,39 @@ export default function Layout() {
 
   const [scrollState, setScrollState] = useState({ pathname: location.pathname, scrolled: false });
   const scrolled = scrollState.pathname === location.pathname && scrollState.scrolled;
-  const setScrolled = useCallback<Dispatch<SetStateAction<boolean>>>((next) => {
-    setScrollState((previous) => {
-      const current = previous.pathname === location.pathname ? previous.scrolled : false;
-      const value = typeof next === 'function' ? next(current) : next;
-      if (previous.pathname === location.pathname && previous.scrolled === value) return previous;
-      return { pathname: location.pathname, scrolled: value };
-    });
-  }, [location.pathname]);
+  const setScrolled = useCallback<Dispatch<SetStateAction<boolean>>>(
+    (next) => {
+      setScrollState((previous) => {
+        const current = previous.pathname === location.pathname ? previous.scrolled : false;
+        const value = typeof next === 'function' ? next(current) : next;
+        if (previous.pathname === location.pathname && previous.scrolled === value) return previous;
+        return { pathname: location.pathname, scrolled: value };
+      });
+    },
+    [location.pathname],
+  );
   // Calm is per page too: leaving the page drops it.
   const [calmState, setCalmState] = useState({ pathname: location.pathname, calm: false });
   const calm = calmState.pathname === location.pathname && calmState.calm;
-  const setCalm = useCallback((value: boolean) => {
-    setCalmState((previous) => (
-      previous.pathname === location.pathname && previous.calm === value
-        ? previous
-        : { pathname: location.pathname, calm: value }
-    ));
-  }, [location.pathname]);
+  const setCalm = useCallback(
+    (value: boolean) => {
+      setCalmState((previous) =>
+        previous.pathname === location.pathname && previous.calm === value
+          ? previous
+          : { pathname: location.pathname, calm: value },
+      );
+    },
+    [location.pathname],
+  );
   const chromeCtx = useMemo(() => ({ scrolled, setScrolled, calm, setCalm }), [scrolled, setScrolled, calm, setCalm]);
 
   const accountMenuOpen = accountMenuState.pathname === location.pathname && accountMenuState.open;
-  const setAccountMenuOpen = useCallback((open: boolean) => {
-    setAccountMenuState({ pathname: location.pathname, open });
-  }, [location.pathname]);
+  const setAccountMenuOpen = useCallback(
+    (open: boolean) => {
+      setAccountMenuState({ pathname: location.pathname, open });
+    },
+    [location.pathname],
+  );
 
   const setAIChatOpen = useCallback((open: boolean) => {
     setAiChatOpen(open);
@@ -480,7 +555,7 @@ export default function Layout() {
       setAiChatOpen(true);
       setChatOpenRequest({
         id: Date.now(),
-        detail: ((event as CustomEvent<ChatOpenDetail>).detail ?? {}),
+        detail: (event as CustomEvent<ChatOpenDetail>).detail ?? {},
       });
     };
     window.addEventListener('keydown', onKeyDown);
@@ -498,8 +573,11 @@ export default function Layout() {
   const onSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
-    try { await logout(); }
-    finally { setSigningOut(false); }
+    try {
+      await logout();
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   if (!user) return null;
@@ -525,7 +603,7 @@ export default function Layout() {
     <>
       <Backdrop />
 
-      <div className="relative z-10 flex flex-col h-[100dvh] overflow-hidden text-foreground">
+      <div className="relative z-10 flex h-[100dvh] flex-col overflow-hidden text-foreground">
         {!isMobile && (
           <PrimaryBar
             pathname={location.pathname}
@@ -541,9 +619,9 @@ export default function Layout() {
         )}
 
         {/* The page and, on desktop, Sajni docked beside it. */}
-        <div className="relative flex-1 min-h-0 flex">
+        <div className="relative flex min-h-0 flex-1">
           <NavChromeContext.Provider value={chromeCtx}>
-            <main className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               {/* Per page: a page that fails keeps the nav usable; navigating resets it. */}
               <ErrorBoundary key={location.pathname}>
                 <Outlet />
@@ -558,7 +636,9 @@ export default function Layout() {
                     open
                     onOpenChange={setAIChatOpen}
                     openRequest={chatOpenRequest}
-                    dock={dockMode === 'sheet' ? undefined : { mode: dockMode, width: dockWidth, onResize: setDockWidth }}
+                    dock={
+                      dockMode === 'sheet' ? undefined : { mode: dockMode, width: dockWidth, onResize: setDockWidth }
+                    }
                   />
                 </Suspense>
               </ErrorBoundary>

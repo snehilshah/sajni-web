@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "./styles/fonts.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './styles/fonts.css';
 @plugin "@tailwindcss/typography";
 
 /* ============================================================
@@ -24,114 +24,117 @@
    ============================================================ */
 :root {
   /* shadcn / Tailwind semantic aliases */
-  --background:             var(--surface);
-  --foreground:             var(--on-surface);
+  --background: var(--surface);
+  --foreground: var(--on-surface);
   /* Cards separate by tone, not borders (DESIGN.md): one clear step. */
-  --card:                   var(--surface-container);
-  --card-foreground:        var(--on-surface);
-  --popover:                var(--surface-container-high);
-  --popover-foreground:     var(--on-surface);
-  --primary-foreground:     var(--on-primary);
-  --secondary-foreground:   var(--on-secondary);
-  --muted:                  var(--surface-container);
-  --muted-foreground:       var(--on-surface-variant);
-  --accent:                 var(--secondary-container);
-  --accent-foreground:      var(--on-secondary-container);
-  --destructive:            var(--error);
+  --card: var(--surface-container);
+  --card-foreground: var(--on-surface);
+  --popover: var(--surface-container-high);
+  --popover-foreground: var(--on-surface);
+  --primary-foreground: var(--on-primary);
+  --secondary-foreground: var(--on-secondary);
+  --muted: var(--surface-container);
+  --muted-foreground: var(--on-surface-variant);
+  --accent: var(--secondary-container);
+  --accent-foreground: var(--on-secondary-container);
+  --destructive: var(--error);
   --destructive-foreground: var(--on-error);
-  --border:                 var(--outline-variant);
-  --input:                  var(--outline-variant);
-  --ring:                   var(--primary);
+  --border: var(--outline-variant);
+  --input: var(--outline-variant);
+  --ring: var(--primary);
 
-  --chart-1:                var(--primary);
-  --chart-2:                var(--secondary);
-  --chart-3:                var(--tertiary);
+  --chart-1: var(--primary);
+  --chart-2: var(--secondary);
+  --chart-3: var(--tertiary);
 
-  --sidebar:                var(--surface-container-low);
-  --sidebar-foreground:     var(--on-surface);
-  --sidebar-primary:        var(--primary);
+  --sidebar: var(--surface-container-low);
+  --sidebar-foreground: var(--on-surface);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--on-primary);
-  --sidebar-accent:         var(--secondary-container);
+  --sidebar-accent: var(--secondary-container);
   --sidebar-accent-foreground: var(--on-secondary-container);
-  --sidebar-border:         var(--outline-variant);
-  --sidebar-ring:           var(--primary);
+  --sidebar-border: var(--outline-variant);
+  --sidebar-ring: var(--primary);
 
   /* Density + sizing */
   --text-scale: 1;
   --radius: 12px;
-
 }
 
 /* ============================================================
    Density presets — scale html font-size.
    ============================================================ */
-[data-density="compact"]    { --text-scale: 0.93; }
-[data-density="cozy"]       { --text-scale: 1.06; }
+[data-density='compact'] {
+  --text-scale: 0.93;
+}
+[data-density='cozy'] {
+  --text-scale: 1.06;
+}
 
 /* ============================================================
    Tailwind v4 — token bridge.
    ============================================================ */
 @theme inline {
-  --color-background:          hsl(var(--background));
-  --color-foreground:          hsl(var(--foreground));
-  --color-card:                hsl(var(--card));
-  --color-card-foreground:     hsl(var(--card-foreground));
-  --color-popover:             hsl(var(--popover));
-  --color-popover-foreground:  hsl(var(--popover-foreground));
-  --color-primary:             hsl(var(--primary));
-  --color-primary-foreground:  hsl(var(--primary-foreground));
-  --color-secondary:           hsl(var(--secondary));
-  --color-secondary-foreground:hsl(var(--secondary-foreground));
-  --color-tertiary:            hsl(var(--tertiary));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-tertiary: hsl(var(--tertiary));
   --color-tertiary-foreground: hsl(var(--on-tertiary));
-  --color-muted:               hsl(var(--muted));
-  --color-muted-foreground:    hsl(var(--muted-foreground));
-  --color-accent:              hsl(var(--accent));
-  --color-accent-foreground:   hsl(var(--accent-foreground));
-  --color-destructive:         hsl(var(--destructive));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border:              hsl(var(--border));
-  --color-input:               hsl(var(--input));
-  --color-ring:                hsl(var(--ring));
-  --color-chart-1:             hsl(var(--chart-1));
-  --color-chart-2:             hsl(var(--chart-2));
-  --color-chart-3:             hsl(var(--chart-3));
-  --color-sidebar:             hsl(var(--sidebar));
-  --color-sidebar-foreground:  hsl(var(--sidebar-foreground));
-  --color-sidebar-primary:     hsl(var(--sidebar-primary));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
   --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent:      hsl(var(--sidebar-accent));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border:      hsl(var(--sidebar-border));
-  --color-sidebar-ring:        hsl(var(--sidebar-ring));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   /* M3 surface tokens exposed as utility-friendly colors */
-  --color-surface:                       hsl(var(--surface));
-  --color-surface-container-lowest:      hsl(var(--surface-container-lowest));
-  --color-surface-container-low:         hsl(var(--surface-container-low));
-  --color-surface-container:             hsl(var(--surface-container));
-  --color-surface-container-high:        hsl(var(--surface-container-high));
-  --color-surface-container-highest:     hsl(var(--surface-container-highest));
-  --color-on-surface:                    hsl(var(--on-surface));
-  --color-on-surface-variant:            hsl(var(--on-surface-variant));
-  --color-primary-container:             hsl(var(--primary-container));
-  --color-on-primary-container:          hsl(var(--on-primary-container));
-  --color-secondary-container:           hsl(var(--secondary-container));
-  --color-on-secondary-container:        hsl(var(--on-secondary-container));
-  --color-tertiary-container:            hsl(var(--tertiary-container));
-  --color-on-tertiary-container:         hsl(var(--on-tertiary-container));
-  --color-outline:                       hsl(var(--outline));
-  --color-outline-variant:               hsl(var(--outline-variant));
-  --color-error-container:               hsl(var(--error-container));
-  --color-on-error-container:            hsl(var(--on-error-container));
-  --color-scrim:                         hsl(var(--scrim));
+  --color-surface: hsl(var(--surface));
+  --color-surface-container-lowest: hsl(var(--surface-container-lowest));
+  --color-surface-container-low: hsl(var(--surface-container-low));
+  --color-surface-container: hsl(var(--surface-container));
+  --color-surface-container-high: hsl(var(--surface-container-high));
+  --color-surface-container-highest: hsl(var(--surface-container-highest));
+  --color-on-surface: hsl(var(--on-surface));
+  --color-on-surface-variant: hsl(var(--on-surface-variant));
+  --color-primary-container: hsl(var(--primary-container));
+  --color-on-primary-container: hsl(var(--on-primary-container));
+  --color-secondary-container: hsl(var(--secondary-container));
+  --color-on-secondary-container: hsl(var(--on-secondary-container));
+  --color-tertiary-container: hsl(var(--tertiary-container));
+  --color-on-tertiary-container: hsl(var(--on-tertiary-container));
+  --color-outline: hsl(var(--outline));
+  --color-outline-variant: hsl(var(--outline-variant));
+  --color-error-container: hsl(var(--error-container));
+  --color-on-error-container: hsl(var(--on-error-container));
+  --color-scrim: hsl(var(--scrim));
 
   /* M3 shape scale */
-  --radius-xs:  4px;
-  --radius-sm:  8px;
-  --radius-md:  12px;
-  --radius-lg:  16px;
-  --radius-xl:  20px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-2xl: 28px;
   --radius-3xl: 32px;
 
@@ -149,35 +152,35 @@
    M3 motion tokens.
    ============================================================ */
 :root {
-  --m3-ease-standard:        cubic-bezier(0.2, 0, 0, 1);
-  --m3-ease-emphasized:      cubic-bezier(0.2, 0, 0, 1);
-  --m3-ease-emph-decel:      cubic-bezier(0.05, 0.7, 0.1, 1);
-  --m3-ease-emph-accel:      cubic-bezier(0.3, 0, 0.8, 0.15);
-  --motion-ease-out:          cubic-bezier(0.23, 1, 0.32, 1);
-  --motion-ease-in-out:       cubic-bezier(0.77, 0, 0.175, 1);
-  --motion-ease-drawer:       cubic-bezier(0.32, 0.72, 0, 1);
-  --m3-dur-short-1:  50ms;
-  --m3-dur-short-2:  100ms;
-  --m3-dur-short-3:  150ms;
-  --m3-dur-short-4:  200ms;
-  --m3-dur-med-1:    250ms;
-  --m3-dur-med-2:    300ms;
-  --m3-dur-med-3:    350ms;
-  --m3-dur-med-4:    400ms;
-  --m3-dur-long-1:   450ms;
-  --m3-dur-long-2:   500ms;
-  --m3-dur-long-3:   550ms;
-  --m3-dur-long-4:   600ms;
+  --m3-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --m3-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --m3-ease-emph-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --m3-ease-emph-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --motion-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --m3-dur-short-1: 50ms;
+  --m3-dur-short-2: 100ms;
+  --m3-dur-short-3: 150ms;
+  --m3-dur-short-4: 200ms;
+  --m3-dur-med-1: 250ms;
+  --m3-dur-med-2: 300ms;
+  --m3-dur-med-3: 350ms;
+  --m3-dur-med-4: 400ms;
+  --m3-dur-long-1: 450ms;
+  --m3-dur-long-2: 500ms;
+  --m3-dur-long-3: 550ms;
+  --m3-dur-long-4: 600ms;
 
   /* M3 elevation (subtle shadows; prefer surface-container) */
   --m3-elev-1: 0 1px 2px hsl(var(--scrim) / 0.06), 0 1px 3px hsl(var(--scrim) / 0.05);
   --m3-elev-2: 0 1px 2px hsl(var(--scrim) / 0.08), 0 2px 6px hsl(var(--scrim) / 0.08);
   --m3-elev-3: 0 1px 3px hsl(var(--scrim) / 0.08), 0 4px 12px hsl(var(--scrim) / 0.12);
-  --m3-elev-4: 0 2px 4px hsl(var(--scrim) / 0.10), 0 6px 18px hsl(var(--scrim) / 0.14);
+  --m3-elev-4: 0 2px 4px hsl(var(--scrim) / 0.1), 0 6px 18px hsl(var(--scrim) / 0.14);
   --m3-elev-5: 0 4px 8px hsl(var(--scrim) / 0.12), 0 12px 28px hsl(var(--scrim) / 0.18);
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 /* ============================================================
@@ -187,18 +190,28 @@
    every Tailwind border-colour utility (border-transparent, border-primary,
    border-destructive…), so state borders all rendered as the grey outline. */
 @layer base {
-  * { @apply border-border; }
+  * {
+    @apply border-border;
+  }
   /* No browser spin arrows on number fields: they clash with the tonal
      fields and nobody steps money by 1. */
-  input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 
 html {
   font-size: calc(16px * var(--text-scale, 1));
 }
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
 }
@@ -211,21 +224,33 @@ body {
 }
 
 /* Source text uses the custom Maple build; keyboard hints remain UI labels. */
-pre, code, samp, .font-code {
+pre,
+code,
+samp,
+.font-code {
   font-family: var(--font-code);
-  font-feature-settings: "calt" 1;
+  font-feature-settings: 'calt' 1;
   font-variant-ligatures: contextual;
   font-synthesis: none;
 }
-::selection { background: hsl(var(--primary) / 0.22); color: hsl(var(--on-primary-container)); }
+::selection {
+  background: hsl(var(--primary) / 0.22);
+  color: hsl(var(--on-primary-container));
+}
 
-.app-h, .screen-h { height: 100vh; height: 100dvh; }
+.app-h,
+.screen-h {
+  height: 100vh;
+  height: 100dvh;
+}
 
 /* ============================================================
    Backdrop — solid M3 surface.
    ============================================================ */
 .sajni-backdrop {
-  position: fixed; inset: 0; z-index: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
   background: hsl(var(--background));
 }
@@ -239,7 +264,8 @@ pre, code, samp, .font-code {
    custom palettes. Separate masks keep the vermilion heart in every mode.
    ============================================================ */
 .sajni-logo {
-  width: 28px; height: 28px;
+  width: 28px;
+  height: 28px;
   position: relative;
   display: inline-block;
   flex-shrink: 0;
@@ -258,7 +284,7 @@ pre, code, samp, .font-code {
 }
 
 .sajni-logo::after {
-  background: #B53A2D; /* Fixed brand pigment, not a semantic alert colour. */
+  background: #b53a2d; /* Fixed brand pigment, not a semantic alert colour. */
   mask: url('/logo-center.svg') center / contain no-repeat;
 }
 
@@ -266,24 +292,54 @@ pre, code, samp, .font-code {
    Chips — M3 assist/filter chip surrogate. Pill-shaped.
    ============================================================ */
 .chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 30px; padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 13px;
   font-family: var(--font-sans);
-  font-size: 12.5px; font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 500;
   letter-spacing: 0.02em;
   border-radius: 9999px;
   /* Neutral by default; borders only carry state (DESIGN.md). */
   background: hsl(var(--surface-container-high));
   border: 1px solid transparent;
   color: hsl(var(--on-surface-variant));
-  transition: background-color 150ms var(--m3-ease-standard), color 150ms var(--m3-ease-standard);
+  transition:
+    background-color 150ms var(--m3-ease-standard),
+    color 150ms var(--m3-ease-standard);
 }
-.chip:hover { background: hsl(var(--surface-container-highest)); color: hsl(var(--on-surface)); }
-.chip-selected, .chip-selected:hover { background: hsl(var(--secondary-container)); color: hsl(var(--on-secondary-container)); font-weight: 600; }
-.chip-sage   { color: hsl(var(--on-primary-container));   border-color: transparent;   background: hsl(var(--primary-container)); }
-.chip-amber  { color: hsl(var(--on-secondary-container)); border-color: transparent; background: hsl(var(--secondary-container)); }
-.chip-upcoming { color: hsl(var(--on-tertiary-container)); border-color: transparent; background: hsl(var(--tertiary-container)); }
-.chip-rose   { color: hsl(var(--on-error-container)); border-color: transparent; background: hsl(var(--error-container)); }
+.chip:hover {
+  background: hsl(var(--surface-container-highest));
+  color: hsl(var(--on-surface));
+}
+.chip-selected,
+.chip-selected:hover {
+  background: hsl(var(--secondary-container));
+  color: hsl(var(--on-secondary-container));
+  font-weight: 600;
+}
+.chip-sage {
+  color: hsl(var(--on-primary-container));
+  border-color: transparent;
+  background: hsl(var(--primary-container));
+}
+.chip-amber {
+  color: hsl(var(--on-secondary-container));
+  border-color: transparent;
+  background: hsl(var(--secondary-container));
+}
+.chip-upcoming {
+  color: hsl(var(--on-tertiary-container));
+  border-color: transparent;
+  background: hsl(var(--tertiary-container));
+}
+.chip-rose {
+  color: hsl(var(--on-error-container));
+  border-color: transparent;
+  background: hsl(var(--error-container));
+}
 .chip-olive {
   color: hsl(var(--color-complete));
   border-color: transparent;
@@ -297,11 +353,14 @@ pre, code, samp, .font-code {
 
 /* Kbd — soft surface. */
 .kbd {
-  display: inline-flex; align-items: center; gap: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
   padding: 2px 7px;
   border-radius: 6px;
   font-family: var(--font-sans);
-  font-size: 11.5px; font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 600;
   background: hsl(var(--surface-container-highest));
   border: 1px solid hsl(var(--outline-variant));
   color: hsl(var(--on-surface-variant));
@@ -314,11 +373,14 @@ pre, code, samp, .font-code {
    remains a UI metadata alias. Actual source text uses --font-code.
    Floors: body 14px, label 12px.
    ============================================================ */
-.serif, .font-serif {
+.serif,
+.font-serif {
   font-family: var(--font-heading);
   letter-spacing: -0.015em;
 }
-.mono { font-family: var(--font-sans); }
+.mono {
+  font-family: var(--font-sans);
+}
 
 /* Money figures (Finance `Money`, `AnimatedMoney`). Chubbo's digits share one
    width, so amounts line up down a column; the bundled Supreme has no tabular
@@ -335,64 +397,209 @@ pre, code, samp, .font-code {
     white-space: nowrap;
     font-synthesis: none;
   }
-  :is(.font-semibold, .font-bold, b, strong, h1, h2, h3) .money { font-weight: inherit; }
+  :is(.font-semibold, .font-bold, b, strong, h1, h2, h3) .money {
+    font-weight: inherit;
+  }
   .money-symbol {
     font-family: var(--font-sans);
     font-size: 0.86em;
     opacity: 0.62;
     margin-right: 0.08em;
   }
-  .money-fraction { opacity: 0.68; }
+  .money-fraction {
+    opacity: 0.68;
+  }
 }
 
 /* M3 type roles */
-.m3-display, .m3-headline, .m3-title, .m3-title-sm { font-family: var(--font-heading); }
-.m3-body, .m3-label, .m3-label-sm { font-family: var(--font-sans); }
-.m3-display  { font-size: 2.25rem;   line-height: 1.12; font-weight: 600; letter-spacing: -0.02em; }
-.m3-headline { font-size: 1.5rem;    line-height: 1.2;  font-weight: 600; letter-spacing: -0.015em; }
-.m3-title    { font-size: 1.125rem;  line-height: 1.3;  font-weight: 600; letter-spacing: -0.01em; }
-.m3-title-sm { font-size: 0.9375rem; line-height: 1.35; font-weight: 600; }
-.m3-body     { font-size: 0.875rem;  line-height: 1.5;  font-weight: 400; }
-.m3-label    { font-size: 0.8125rem; line-height: 1.35; font-weight: 500; letter-spacing: 0.01em; }
-.m3-label-sm { font-size: 0.75rem;   line-height: 1.3;  font-weight: 500; letter-spacing: 0.02em; }
+.m3-display,
+.m3-headline,
+.m3-title,
+.m3-title-sm {
+  font-family: var(--font-heading);
+}
+.m3-body,
+.m3-label,
+.m3-label-sm {
+  font-family: var(--font-sans);
+}
+.m3-display {
+  font-size: 2.25rem;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.m3-headline {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.m3-title {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.m3-title-sm {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.m3-body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.m3-label {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.m3-label-sm {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
 
-.sajni-sep { height: 1px; background: linear-gradient(to right, transparent, hsl(var(--outline-variant)), transparent); }
+.sajni-sep {
+  height: 1px;
+  background: linear-gradient(to right, transparent, hsl(var(--outline-variant)), transparent);
+}
 
 /* ============================================================
    Motion — M3 emphasized + standard.
    ============================================================ */
-@keyframes m3RiseIn  { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes fade-in   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes page-fade-in { from { opacity: 0; transform: translateY(4px) scale(0.995); } to { opacity: 1; transform: none; } }
-@keyframes sheetUp   { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes nudge     { 0% { transform: translateX(8px); opacity: 0; } 30% { transform: translateX(-6px); opacity: 1; } 55% { transform: translateX(4px); } 80% { transform: translateX(-2px); } 100% { transform: none; } }
-.animate-nudge { animation: nudge 420ms cubic-bezier(0.2, 0, 0, 1) both; }
-@media (prefers-reduced-motion: reduce) { .animate-nudge { animation: none; } }
-@keyframes m3Shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+@keyframes m3RiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sheetUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes nudge {
+  0% {
+    transform: translateX(8px);
+    opacity: 0;
+  }
+  30% {
+    transform: translateX(-6px);
+    opacity: 1;
+  }
+  55% {
+    transform: translateX(4px);
+  }
+  80% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: none;
+  }
+}
+.animate-nudge {
+  animation: nudge 420ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-nudge {
+    animation: none;
+  }
+}
+@keyframes m3Shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
 
-.fade-up { animation: m3RiseIn 480ms var(--m3-ease-emph-decel) both; }
-.fade-in { animation: fade-in 220ms var(--m3-ease-standard) both; }
-.page-fade-in { animation: page-fade-in 280ms var(--m3-ease-emph-decel); }
+.fade-up {
+  animation: m3RiseIn 480ms var(--m3-ease-emph-decel) both;
+}
+.fade-in {
+  animation: fade-in 220ms var(--m3-ease-standard) both;
+}
+.page-fade-in {
+  animation: page-fade-in 280ms var(--m3-ease-emph-decel);
+}
 
 /* M3 Expressive wavy progress — the filled path is drawn one wavelength
    wider than the clip window and drifts left by exactly that wavelength,
    so the loop is seamless. Units are SVG user units (viewBox space). */
 @keyframes sajni-wave-drift {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-20px); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-20px);
+  }
 }
-.sajni-wave-drift { animation: sajni-wave-drift 1.4s linear infinite; }
+.sajni-wave-drift {
+  animation: sajni-wave-drift 1.4s linear infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .fade-up, .fade-in, .page-fade-in, .sajni-wave-drift { animation: none !important; }
-  .animate-spin, .animate-pulse, .animate-bounce { animation: none !important; }
+  .fade-up,
+  .fade-in,
+  .page-fade-in,
+  .sajni-wave-drift {
+    animation: none !important;
+  }
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .fine-hover-scale-102:hover { transform: scale(1.02); }
-  .fine-hover-scale-110:hover { transform: scale(1.1); }
-  .group:hover .fine-group-hover-scale-105 { transform: scale(1.05); }
-  .group:hover .fine-group-hover-scale-110 { transform: scale(1.1); }
+  .fine-hover-scale-102:hover {
+    transform: scale(1.02);
+  }
+  .fine-hover-scale-110:hover {
+    transform: scale(1.1);
+  }
+  .group:hover .fine-group-hover-scale-105 {
+    transform: scale(1.05);
+  }
+  .group:hover .fine-group-hover-scale-110 {
+    transform: scale(1.1);
+  }
   .fine-hover-note-card:hover {
     transform: translateY(-0.25rem);
     border-radius: 28px;
@@ -407,23 +614,41 @@ pre, code, samp, .font-code {
 /* ============================================================
    Headings — Chubbo on the M3 display + headline scales.
    ============================================================ */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: -0.014em;
   line-height: 1.15;
 }
-h1 { font-weight: 650; letter-spacing: -0.02em; }
-em, .italic { font-style: italic; }
+h1 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+em,
+.italic {
+  font-style: italic;
+}
 
 /* ============================================================
    Scrollbar.
    ============================================================ */
 /* --scrollbar-w: the page chrome's header keeps clear of this strip
    (PageShell PageChrome), so the scrollbar stays grabbable under it. */
-:root { --scrollbar-w: 10px; }
-::-webkit-scrollbar { width: var(--scrollbar-w); height: var(--scrollbar-w); }
-::-webkit-scrollbar-track { background: transparent; }
+:root {
+  --scrollbar-w: 10px;
+}
+::-webkit-scrollbar {
+  width: var(--scrollbar-w);
+  height: var(--scrollbar-w);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 ::-webkit-scrollbar-thumb {
   background: color-mix(in oklch, hsl(var(--outline)) 40%, transparent);
   border: 2px solid transparent;
@@ -438,10 +663,19 @@ em, .italic { font-style: italic; }
 /* Rounded surfaces that scroll (dialogs 28px, sheets, menus): inset the
    track by the corner radius so the thumb runs only along the straight
    edge instead of overshooting the curve. */
-:is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"])::-webkit-scrollbar-track {
+:is(
+  [data-slot='dialog-content'],
+  [data-slot='alert-dialog-content'],
+  [data-slot='sheet-content']
+)::-webkit-scrollbar-track {
   margin-block: 28px;
 }
-:is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="popover-content"], [data-slot="select-content"])::-webkit-scrollbar-track {
+:is(
+  [data-slot='dropdown-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='popover-content'],
+  [data-slot='select-content']
+)::-webkit-scrollbar-track {
   margin-block: 14px;
 }
 
@@ -462,34 +696,74 @@ em, .italic { font-style: italic; }
 /* ============================================================
    Prose / Markdown.
    ============================================================ */
-.prose-sajni { color: hsl(var(--foreground)); line-height: 1.68; }
-.prose-sajni h1, .prose-sajni h2, .prose-sajni h3, .prose-sajni h4 {
-  font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.012em; color: hsl(var(--foreground));
+.prose-sajni {
+  color: hsl(var(--foreground));
+  line-height: 1.68;
 }
-.prose-sajni h1 { font-size: 1.875rem; margin: 1.5rem 0 0.75rem; }
-.prose-sajni h2 { font-size: 1.5rem; margin: 1.25rem 0 0.5rem; }
-.prose-sajni h3 { font-size: 1.25rem; margin: 1rem 0 0.5rem; }
-.prose-sajni p  { margin: 0 0 0.75rem; }
-.prose-sajni ul, .prose-sajni ol { padding-left: 1.5rem; margin: 0 0 0.75rem; }
-.prose-sajni ul { list-style: disc; }
-.prose-sajni ol { list-style: decimal; }
-.prose-sajni li { margin: 0.125rem 0; }
-.prose-sajni li > p { margin: 0; }
+.prose-sajni h1,
+.prose-sajni h2,
+.prose-sajni h3,
+.prose-sajni h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: hsl(var(--foreground));
+}
+.prose-sajni h1 {
+  font-size: 1.875rem;
+  margin: 1.5rem 0 0.75rem;
+}
+.prose-sajni h2 {
+  font-size: 1.5rem;
+  margin: 1.25rem 0 0.5rem;
+}
+.prose-sajni h3 {
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+}
+.prose-sajni p {
+  margin: 0 0 0.75rem;
+}
+.prose-sajni ul,
+.prose-sajni ol {
+  padding-left: 1.5rem;
+  margin: 0 0 0.75rem;
+}
+.prose-sajni ul {
+  list-style: disc;
+}
+.prose-sajni ol {
+  list-style: decimal;
+}
+.prose-sajni li {
+  margin: 0.125rem 0;
+}
+.prose-sajni li > p {
+  margin: 0;
+}
 .prose-sajni code {
-  font-family: var(--font-code); font-size: 0.85em;
+  font-family: var(--font-code);
+  font-size: 0.85em;
   background: hsl(var(--surface-container));
-  padding: 0.15em 0.45em; border-radius: 4px;
+  padding: 0.15em 0.45em;
+  border-radius: 4px;
 }
 .prose-sajni pre {
   background: hsl(var(--surface-container-low));
   border: 1px solid hsl(var(--outline-variant));
   border-radius: 12px;
-  padding: 0.85rem 1.1rem; overflow-x: auto; margin: 0 0 0.75rem;
+  padding: 0.85rem 1.1rem;
+  overflow-x: auto;
+  margin: 0 0 0.75rem;
 }
-.prose-sajni pre code { background: transparent; padding: 0; }
+.prose-sajni pre code {
+  background: transparent;
+  padding: 0;
+}
 .prose-sajni blockquote {
   border-left: 3px solid hsl(var(--primary) / 0.5);
-  padding-left: 1rem; color: hsl(var(--muted-foreground));
+  padding-left: 1rem;
+  color: hsl(var(--muted-foreground));
   margin: 0 0 0.75rem;
 }
 .prose-sajni a {
@@ -498,32 +772,68 @@ em, .italic { font-style: italic; }
   text-decoration: underline;
   text-decoration-color: hsl(var(--primary) / 0.35);
 }
-.prose-sajni a:hover { text-decoration-color: hsl(var(--primary)); }
-.prose-sajni img { max-width: 100%; margin: 0.5rem 0; border-radius: 12px; }
-.prose-sajni hr { border: none; border-top: 1px solid hsl(var(--outline-variant)); margin: 1.5rem 0; }
-.prose-sajni table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; }
-.prose-sajni th, .prose-sajni td { border: 1px solid hsl(var(--outline-variant)); padding: 0.45rem 0.65rem; }
-.prose-sajni th { background: hsl(var(--surface-container)); font-weight: 600; }
+.prose-sajni a:hover {
+  text-decoration-color: hsl(var(--primary));
+}
+.prose-sajni img {
+  max-width: 100%;
+  margin: 0.5rem 0;
+  border-radius: 12px;
+}
+.prose-sajni hr {
+  border: none;
+  border-top: 1px solid hsl(var(--outline-variant));
+  margin: 1.5rem 0;
+}
+.prose-sajni table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1rem;
+}
+.prose-sajni th,
+.prose-sajni td {
+  border: 1px solid hsl(var(--outline-variant));
+  padding: 0.45rem 0.65rem;
+}
+.prose-sajni th {
+  background: hsl(var(--surface-container));
+  font-weight: 600;
+}
 
 /* ============================================================
    Heatmap.
    ============================================================ */
 .heatmap-cell {
-  width: 11px; height: 11px;
+  width: 11px;
+  height: 11px;
   border-radius: 3px;
   background: hsl(var(--surface-container));
   transition: transform 160ms var(--m3-ease-emph-decel);
 }
-.heatmap-cell:hover { transform: scale(1.25); }
-.heatmap-cell.l1 { background: hsl(var(--primary) / 0.30); }
-.heatmap-cell.l2 { background: hsl(var(--primary) / 0.55); }
-.heatmap-cell.l3 { background: hsl(var(--primary) / 0.78); }
-.heatmap-cell.l4 { background: hsl(var(--primary)); }
+.heatmap-cell:hover {
+  transform: scale(1.25);
+}
+.heatmap-cell.l1 {
+  background: hsl(var(--primary) / 0.3);
+}
+.heatmap-cell.l2 {
+  background: hsl(var(--primary) / 0.55);
+}
+.heatmap-cell.l3 {
+  background: hsl(var(--primary) / 0.78);
+}
+.heatmap-cell.l4 {
+  background: hsl(var(--primary));
+}
 
-button, [role="button"], a {
+button,
+[role='button'],
+a {
   -webkit-tap-highlight-color: transparent;
 }
-.tap-highlight-none { -webkit-tap-highlight-color: transparent; }
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* M3 focus ring — colored, follows element's own border-radius.
    Outline (not box-shadow) so layout never shifts; modern browsers honor
@@ -534,19 +844,21 @@ button, [role="button"], a {
   outline-offset: 2px;
 }
 /* Rows in a packed list (Notes library) keep the ring inside their box. */
-.tree-row:focus-visible { outline-offset: -2px; }
+.tree-row:focus-visible {
+  outline-offset: -2px;
+}
 :focus-visible:is(
   input,
   textarea,
   select,
-  [data-slot="input"],
-  [data-slot="textarea"],
-  [data-slot="input-group-control"],
-  [data-slot="sidebar-input"],
-  [data-slot="command-input"],
-  [data-slot="combobox-chip-input"],
-  [data-slot="select-trigger"],
-  [data-slot="button"]
+  [data-slot='input'],
+  [data-slot='textarea'],
+  [data-slot='input-group-control'],
+  [data-slot='sidebar-input'],
+  [data-slot='command-input'],
+  [data-slot='combobox-chip-input'],
+  [data-slot='select-trigger'],
+  [data-slot='button']
 ) {
   outline: none;
   outline-offset: 0;
@@ -559,10 +871,10 @@ button, [role="button"], a {
    ============================================================ */
 :root {
   --progress-complete: hsl(var(--color-complete));
-  --progress-active:   hsl(var(--secondary));
-  --progress-idle:     hsl(var(--surface-container-high));
+  --progress-active: hsl(var(--secondary));
+  --progress-idle: hsl(var(--surface-container-high));
   --progress-inactive: hsl(var(--surface-container));
-  --progress-dropped:  hsl(var(--error) / 0.55);
+  --progress-dropped: hsl(var(--error) / 0.55);
 }
 
 /* ============================================================
@@ -583,33 +895,63 @@ button, [role="button"], a {
   transition: opacity 150ms var(--m3-ease-standard);
   pointer-events: none;
 }
-.m3-state:hover::after        { opacity: 0.08; }
-.m3-state:active::after       { opacity: 0.14; }
-.m3-state:focus-visible::after { opacity: 0.10; }
+.m3-state:hover::after {
+  opacity: 0.08;
+}
+.m3-state:active::after {
+  opacity: 0.14;
+}
+.m3-state:focus-visible::after {
+  opacity: 0.1;
+}
 
 /* M3 ripple-ish active scale */
 .m3-press {
-  transition: transform 150ms var(--m3-ease-emph-decel), filter 150ms var(--m3-ease-standard);
+  transition:
+    transform 150ms var(--m3-ease-emph-decel),
+    filter 150ms var(--m3-ease-standard);
 }
-.m3-press:active { transform: scale(0.97); }
+.m3-press:active {
+  transform: scale(0.97);
+}
 
 /* Reusable elevation utilities (Tailwind shadow-* fallbacks). */
-.m3-elev-1 { box-shadow: var(--m3-elev-1); }
-.m3-elev-2 { box-shadow: var(--m3-elev-2); }
-.m3-elev-3 { box-shadow: var(--m3-elev-3); }
-.m3-elev-4 { box-shadow: var(--m3-elev-4); }
-.m3-elev-5 { box-shadow: var(--m3-elev-5); }
+.m3-elev-1 {
+  box-shadow: var(--m3-elev-1);
+}
+.m3-elev-2 {
+  box-shadow: var(--m3-elev-2);
+}
+.m3-elev-3 {
+  box-shadow: var(--m3-elev-3);
+}
+.m3-elev-4 {
+  box-shadow: var(--m3-elev-4);
+}
+.m3-elev-5 {
+  box-shadow: var(--m3-elev-5);
+}
 
 /* ============================================================
    M3 Expressive shapes — cookie / clover / pentagon / sunny.
    SVG clip-paths defined inline as polygon points (% units).
    Wrap any square element in .m3-shape with a variant for the cut.
    ============================================================ */
-.m3-shape-cookie    { clip-path: url(#m3-shape-cookie); }
-.m3-shape-clover    { clip-path: url(#m3-shape-clover); }
-.m3-shape-pentagon  { clip-path: url(#m3-shape-pentagon); }
-.m3-shape-sunny     { clip-path: url(#m3-shape-sunny); }
-.m3-shape-pill      { border-radius: 9999px; }
+.m3-shape-cookie {
+  clip-path: url(#m3-shape-cookie);
+}
+.m3-shape-clover {
+  clip-path: url(#m3-shape-clover);
+}
+.m3-shape-pentagon {
+  clip-path: url(#m3-shape-pentagon);
+}
+.m3-shape-sunny {
+  clip-path: url(#m3-shape-sunny);
+}
+.m3-shape-pill {
+  border-radius: 9999px;
+}
 
 /* ============================================================
    M3 Expressive Loading Indicator.
@@ -617,54 +959,117 @@ button, [role="button"], a {
    of generic spinners for first-paint loads.
    ============================================================ */
 @keyframes m3CookieSpin {
-  0%   { transform: rotate(0deg);   border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%; }
-  20%  { transform: rotate(72deg);  border-radius: 60% 40% 33% 67% / 54% 32% 68% 46%; }
-  40%  { transform: rotate(144deg); border-radius: 36% 64% 47% 53% / 67% 47% 53% 33%; }
-  60%  { transform: rotate(216deg); border-radius: 55% 45% 70% 30% / 42% 64% 36% 58%; }
-  80%  { transform: rotate(288deg); border-radius: 44% 56% 38% 62% / 33% 53% 47% 67%; }
-  100% { transform: rotate(360deg); border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%; }
+  0% {
+    transform: rotate(0deg);
+    border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
+  }
+  20% {
+    transform: rotate(72deg);
+    border-radius: 60% 40% 33% 67% / 54% 32% 68% 46%;
+  }
+  40% {
+    transform: rotate(144deg);
+    border-radius: 36% 64% 47% 53% / 67% 47% 53% 33%;
+  }
+  60% {
+    transform: rotate(216deg);
+    border-radius: 55% 45% 70% 30% / 42% 64% 36% 58%;
+  }
+  80% {
+    transform: rotate(288deg);
+    border-radius: 44% 56% 38% 62% / 33% 53% 47% 67%;
+  }
+  100% {
+    transform: rotate(360deg);
+    border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
+  }
 }
 .m3-cookie {
   display: inline-block;
   background: hsl(var(--primary));
   animation: m3CookieSpin 1600ms cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
-.m3-cookie-xs { width: 14px; height: 14px; }
-.m3-cookie-sm { width: 18px; height: 18px; }
-.m3-cookie-md { width: 28px; height: 28px; }
-.m3-cookie-lg { width: 44px; height: 44px; }
-.m3-cookie-xl { width: 64px; height: 64px; }
+.m3-cookie-xs {
+  width: 14px;
+  height: 14px;
+}
+.m3-cookie-sm {
+  width: 18px;
+  height: 18px;
+}
+.m3-cookie-md {
+  width: 28px;
+  height: 28px;
+}
+.m3-cookie-lg {
+  width: 44px;
+  height: 44px;
+}
+.m3-cookie-xl {
+  width: 64px;
+  height: 64px;
+}
 
 /* Tertiary / secondary tinted variants */
-.m3-cookie.tertiary  { background: hsl(var(--tertiary)); }
-.m3-cookie.secondary { background: hsl(var(--secondary)); }
+.m3-cookie.tertiary {
+  background: hsl(var(--tertiary));
+}
+.m3-cookie.secondary {
+  background: hsl(var(--secondary));
+}
 
 /* SVG-based shape-morphing loader: rotation happens on the wrapper span
    while the inner <path> morphs `d` via SMIL. */
-@keyframes m3CookieRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes m3CookieRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 .m3-cookie-svg {
   animation: m3CookieRotate 2400ms linear infinite;
   transform-origin: 50% 50%;
 }
 @media (prefers-reduced-motion: reduce) {
-  .m3-cookie-svg { animation: none; }
-  .m3-cookie-svg svg animate { display: none; }
+  .m3-cookie-svg {
+    animation: none;
+  }
+  .m3-cookie-svg svg animate {
+    display: none;
+  }
 }
 
 /* Continuous spin that pairs with the path-morph tween in MorphLoader. */
 @keyframes morphLoaderSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .morph-loader { animation: none !important; }
+  .morph-loader {
+    animation: none !important;
+  }
 }
 
 /* Inline shimmer loading bar (M3 linear progress, indeterminate) */
 @keyframes m3LinearSlide {
-  0%   { left: -40%; right: 100%; }
-  60%  { left: 100%; right: -40%; }
-  100% { left: 100%; right: -40%; }
+  0% {
+    left: -40%;
+    right: 100%;
+  }
+  60% {
+    left: 100%;
+    right: -40%;
+  }
+  100% {
+    left: 100%;
+    right: -40%;
+  }
 }
 .m3-linear-indeterminate {
   position: relative;
@@ -676,24 +1081,39 @@ button, [role="button"], a {
 .m3-linear-indeterminate::before {
   content: '';
   position: absolute;
-  top: 0; bottom: 0;
+  top: 0;
+  bottom: 0;
   border-radius: 9999px;
   background: hsl(var(--primary));
   animation: m3LinearSlide 1500ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Section kicker labels: sentence case, never tracked caps (DESIGN.md). */
-.label-kicker { text-transform: none; letter-spacing: normal; }
-.label-kicker::first-letter { text-transform: uppercase; }
+.label-kicker {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.label-kicker::first-letter {
+  text-transform: uppercase;
+}
 
 /* Resizing docked Sajni: the nav pill and page header track its edge
    exactly instead of easing behind it (AIChat ChatDock). */
-html[data-dock-drag] [data-dock-chrome] { transition: none; }
+html[data-dock-drag] [data-dock-chrome] {
+  transition: none;
+}
 
 /* Toasts (components/ui/sonner.tsx): the app's font (sonner's own stack
    starts at system-ui, which some desktops map to a monospace face), the
    description a step quieter and the action button in the theme's primary.
    Success/error toasts keep their rich colours. */
-.toaster[data-sonner-toaster] { font-family: inherit; }
-.cn-toast[data-sonner-toast][data-styled="true"]:not([data-type]) [data-description] { color: hsl(var(--on-surface-variant)); }
-.cn-toast[data-sonner-toast] [data-button][data-action] { background: hsl(var(--primary)); color: hsl(var(--on-primary)); }
+.toaster[data-sonner-toaster] {
+  font-family: inherit;
+}
+.cn-toast[data-sonner-toast][data-styled='true']:not([data-type]) [data-description] {
+  color: hsl(var(--on-surface-variant));
+}
+.cn-toast[data-sonner-toast] [data-button][data-action] {
+  background: hsl(var(--primary));
+  color: hsl(var(--on-primary));
+}

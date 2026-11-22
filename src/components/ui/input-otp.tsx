@@ -1,49 +1,43 @@
-import * as React from "react"
-import { OTPInput, OTPInputContext } from "input-otp"
+import * as React from 'react';
+import { OTPInput, OTPInputContext } from 'input-otp';
 
-import { cn } from "@/lib/utils"
-import { MinusIcon } from "@/components/ui/icons"
+import { cn } from '@/lib/utils';
+import { MinusIcon } from '@/components/ui/icons';
 
 function InputOTP({
   className,
   containerClassName,
   ...props
 }: React.ComponentProps<typeof OTPInput> & {
-  containerClassName?: string
+  containerClassName?: string;
 }) {
   return (
     <OTPInput
       data-slot="input-otp"
       containerClassName={cn(
-        "cn-input-otp flex w-full items-center justify-center has-disabled:opacity-50",
-        containerClassName
+        'cn-input-otp flex w-full items-center justify-center has-disabled:opacity-50',
+        containerClassName,
       )}
       spellCheck={false}
-      className={cn("disabled:cursor-not-allowed", className)}
+      className={cn('disabled:cursor-not-allowed', className)}
       {...props}
     />
-  )
+  );
 }
 
-function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="input-otp-group"
-      className={cn("flex items-center gap-2", className)}
-      {...props}
-    />
-  )
+function InputOTPGroup({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="input-otp-group" className={cn('flex items-center gap-2', className)} {...props} />;
 }
 
 function InputOTPSlot({
   index,
   className,
   ...props
-}: React.ComponentProps<"div"> & {
-  index: number
+}: React.ComponentProps<'div'> & {
+  index: number;
 }) {
-  const inputOTPContext = React.useContext(OTPInputContext)
-  const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {}
+  const inputOTPContext = React.useContext(OTPInputContext);
+  const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {};
 
   return (
     <div
@@ -53,12 +47,12 @@ function InputOTPSlot({
         // Compact M3 outlined field: a square 44px touch target, the same
         // 12px corners as Input, and an inset focus stroke that never changes
         // the slot's size or spacing.
-        "relative flex size-11 shrink-0 items-center justify-center rounded-md border border-[hsl(var(--outline))] bg-transparent p-0 text-base font-medium text-foreground outline-none",
-        "transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
-        "hover:border-[hsl(var(--on-surface))]",
-        "data-[active=true]:z-10 data-[active=true]:border-transparent data-[active=true]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
-        "aria-invalid:border-destructive aria-invalid:data-[active=true]:border-transparent aria-invalid:data-[active=true]:shadow-[inset_0_0_0_2px_hsl(var(--destructive))]",
-        className
+        'relative flex size-11 shrink-0 items-center justify-center rounded-md border border-[hsl(var(--outline))] bg-transparent p-0 text-base font-medium text-foreground outline-none',
+        'transition-[box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)]',
+        'hover:border-[hsl(var(--on-surface))]',
+        'data-[active=true]:z-10 data-[active=true]:border-transparent data-[active=true]:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
+        'aria-invalid:border-destructive aria-invalid:data-[active=true]:border-transparent aria-invalid:data-[active=true]:shadow-[inset_0_0_0_2px_hsl(var(--destructive))]',
+        className,
       )}
       {...props}
     >
@@ -69,10 +63,10 @@ function InputOTPSlot({
         </div>
       )}
     </div>
-  )
+  );
 }
 
-function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
+function InputOTPSeparator({ ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="input-otp-separator"
@@ -80,10 +74,9 @@ function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
       role="separator"
       {...props}
     >
-      <MinusIcon
-      />
+      <MinusIcon />
     </div>
-  )
+  );
 }
 
-export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }
+export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator };

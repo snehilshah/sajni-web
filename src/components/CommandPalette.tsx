@@ -2,17 +2,33 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles, BookOpen, CheckSquare, Target, FileText, Film, Clock,
-  Wallet, Hash, Search as SearchIcon, ArrowLeftRight, Loader2, CornerDownLeft, X,
-  Sun, Moon, Monitor, Type, LogOut, Settings, ChevronRight, Activity,
+  Sparkles,
+  BookOpen,
+  CheckSquare,
+  Target,
+  FileText,
+  Film,
+  Clock,
+  Wallet,
+  Hash,
+  Search as SearchIcon,
+  ArrowLeftRight,
+  Loader2,
+  CornerDownLeft,
+  X,
+  Sun,
+  Moon,
+  Monitor,
+  Type,
+  LogOut,
+  Settings,
+  ChevronRight,
+  Activity,
   Bookmark as BookmarkIcon,
 } from '@/components/ui/icons';
 
 import { search as searchApi, type SearchHit } from '@/api';
-import {
-  parseQuery, rankHit, highlight,
-  SEARCH_TYPE_LABELS, type SearchType,
-} from '@/lib/fuzzy';
+import { parseQuery, rankHit, highlight, SEARCH_TYPE_LABELS, type SearchType } from '@/lib/fuzzy';
 import { useMode, useDensity } from '@/hooks/useThemePrefs';
 import { useAuth } from '@/auth/AuthContext';
 import { reportHang } from '@/lib/telemetry';
@@ -85,21 +101,56 @@ export default function CommandPalette({ onOpenChange }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const fetchSeq = useRef(0);
 
-  const actions = useMemo<Action[]>(() => [
-    { id: 'theme-system',  label: 'Theme: System', Icon: Monitor, run: () => setMode('system') },
-    { id: 'theme-light',   label: 'Theme: Light',  Icon: Sun,     run: () => setMode('light') },
-    { id: 'theme-dark',    label: 'Theme: Dark',   Icon: Moon,    run: () => setMode('dark') },
-    { id: 'density-comf',  label: 'Density: Comfortable', Icon: Type, run: () => setDensity('comfortable') },
-    { id: 'density-comp',  label: 'Density: Compact',     Icon: Type, run: () => setDensity('compact') },
-    { id: 'density-cozy',  label: 'Density: Cozy',        Icon: Type, run: () => setDensity('cozy') },
-    ...(hasKeyboardPointer() ? [
-      { id: 'keys-vim',      label: 'Editor keys: Vim',      Icon: Type, run: () => { setVimKeys(true); toast('Vim keys on for Notes and Journal'); } },
-      { id: 'keys-standard', label: 'Editor keys: Standard', Icon: Type, run: () => { setVimKeys(false); toast('Vim keys off'); } },
-    ] : []),
-    { id: 'report-slow',   label: 'Report slow loading', Icon: Activity, run: () => { reportHang(); toast('Noted. Thanks.'); } },
-    { id: 'go-settings',   label: 'Open Settings',  Icon: Settings, hint: '/settings', run: () => navigate('/settings') },
-    { id: 'sign-out',      label: 'Sign out',       Icon: LogOut,   danger: true, run: () => logout() },
-  ], [setMode, setDensity, navigate, logout]);
+  const actions = useMemo<Action[]>(
+    () => [
+      { id: 'theme-system', label: 'Theme: System', Icon: Monitor, run: () => setMode('system') },
+      { id: 'theme-light', label: 'Theme: Light', Icon: Sun, run: () => setMode('light') },
+      { id: 'theme-dark', label: 'Theme: Dark', Icon: Moon, run: () => setMode('dark') },
+      { id: 'density-comf', label: 'Density: Comfortable', Icon: Type, run: () => setDensity('comfortable') },
+      { id: 'density-comp', label: 'Density: Compact', Icon: Type, run: () => setDensity('compact') },
+      { id: 'density-cozy', label: 'Density: Cozy', Icon: Type, run: () => setDensity('cozy') },
+      ...(hasKeyboardPointer()
+        ? [
+            {
+              id: 'keys-vim',
+              label: 'Editor keys: Vim',
+              Icon: Type,
+              run: () => {
+                setVimKeys(true);
+                toast('Vim keys on for Notes and Journal');
+              },
+            },
+            {
+              id: 'keys-standard',
+              label: 'Editor keys: Standard',
+              Icon: Type,
+              run: () => {
+                setVimKeys(false);
+                toast('Vim keys off');
+              },
+            },
+          ]
+        : []),
+      {
+        id: 'report-slow',
+        label: 'Report slow loading',
+        Icon: Activity,
+        run: () => {
+          reportHang();
+          toast('Noted. Thanks.');
+        },
+      },
+      {
+        id: 'go-settings',
+        label: 'Open Settings',
+        Icon: Settings,
+        hint: '/settings',
+        run: () => navigate('/settings'),
+      },
+      { id: 'sign-out', label: 'Sign out', Icon: LogOut, danger: true, run: () => logout() },
+    ],
+    [setMode, setDensity, navigate, logout],
+  );
   // aiQuery is set on Enter in AI mode; AIPaletteAnswer reads from it.
   // Empty string means AI mode is active but no question yet.
   const [aiQuery, setAiQuery] = useState<string>('');
@@ -118,11 +169,12 @@ export default function CommandPalette({ onOpenChange }: Props) {
   const actionMode = input.startsWith('>');
   const actionQuery = actionMode ? input.slice(1).trim().toLowerCase() : '';
   const actionResults = useMemo<Action[]>(
-    () => actionMode
-      ? (actionQuery === ''
+    () =>
+      actionMode
+        ? actionQuery === ''
           ? actions
-          : actions.filter((a) => a.label.toLowerCase().includes(actionQuery)))
-      : [],
+          : actions.filter((a) => a.label.toLowerCase().includes(actionQuery))
+        : [],
     [actions, actionMode, actionQuery],
   );
 
@@ -131,9 +183,7 @@ export default function CommandPalette({ onOpenChange }: Props) {
   // type prefixes and detects an *uncommitted* @sajni so we still
   // light up the AI affordance the moment the user starts typing.
   const parsed = useMemo(
-    () => (aiChip
-      ? { typeBoost: null, query: input.trim(), raw: input, aiMode: true }
-      : parseQuery(input)),
+    () => (aiChip ? { typeBoost: null, query: input.trim(), raw: input, aiMode: true } : parseQuery(input)),
     [input, aiChip],
   );
 
@@ -171,11 +221,14 @@ export default function CommandPalette({ onOpenChange }: Props) {
     return filtered.slice(0, 50);
   }, [results, parsed]);
 
-  const open_hit = useCallback((hit: SearchHit) => {
-    onOpenChange(false);
-    if (hit.route) navigate(hit.route);
-    else navigate('/');
-  }, [navigate, onOpenChange]);
+  const open_hit = useCallback(
+    (hit: SearchHit) => {
+      onOpenChange(false);
+      if (hit.route) navigate(hit.route);
+      else navigate('/');
+    },
+    [navigate, onOpenChange],
+  );
 
   // Keyboard navigation.
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -248,174 +301,197 @@ export default function CommandPalette({ onOpenChange }: Props) {
   }, [activeIndex, ranked.length]);
 
   return (
-        <div
-          className="fixed inset-0 z-[60] bg-scrim/30 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-3"
-          onClick={() => onOpenChange(false)}
-        >
-          <div
-            className="w-full max-w-xl rounded-xl bg-popover text-popover-foreground shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={`border-b border-border transition-colors ${aiChip ? 'bg-primary/5' : ''}`}>
-              {/* Input row — the field always keeps its full width; AI
+    <div
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-scrim/30 px-3 pt-[10vh] backdrop-blur-sm"
+      onClick={() => onOpenChange(false)}
+    >
+      <div
+        className="w-full max-w-xl overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`border-b border-border transition-colors ${aiChip ? 'bg-primary/5' : ''}`}>
+          {/* Input row — the field always keeps its full width; AI
                   state lives on its own row below, never beside it. */}
-              <div className="flex items-center gap-2 px-3 py-2.5">
-                {aiChip || parsed.aiMode ? (
-                  <Sparkles className="size-4 text-primary shrink-0" />
-                ) : (
-                  <SearchIcon className="size-4 text-muted-foreground shrink-0" />
-                )}
+          <div className="flex items-center gap-2 px-3 py-2.5">
+            {aiChip || parsed.aiMode ? (
+              <Sparkles className="size-4 shrink-0 text-primary" />
+            ) : (
+              <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+            )}
 
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    setAiQuery('');
-                  }}
-                  onKeyDown={onKeyDown}
-                  placeholder={aiChip
-                    ? 'Ask Sajni anything…  (Enter to send)'
-                    : parsed.aiMode
-                      ? 'Lock in @sajni below, or press space'
-                      : 'Search everything…   try "task grocery", or "@sajni" to ask the AI'}
-                  className="flex-1 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
-                />
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setAiQuery('');
+              }}
+              onKeyDown={onKeyDown}
+              placeholder={
+                aiChip
+                  ? 'Ask Sajni anything…  (Enter to send)'
+                  : parsed.aiMode
+                    ? 'Lock in @sajni below, or press space'
+                    : 'Search everything…   try "task grocery", or "@sajni" to ask the AI'
+              }
+              className="flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
 
-                {loading && !parsed.aiMode && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+            {loading && !parsed.aiMode && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
 
-                {!parsed.aiMode && parsed.typeBoost && (
-                  <span className="mono text-xs uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                    {SEARCH_TYPE_LABELS[parsed.typeBoost as SearchType]}
-                  </span>
-                )}
-                <kbd className="hidden sm:inline-flex mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
-                  Esc
-                </kbd>
-              </div>
+            {!parsed.aiMode && parsed.typeBoost && (
+              <span className="mono rounded bg-primary/10 px-1.5 py-0.5 text-xs tracking-wider text-primary uppercase">
+                {SEARCH_TYPE_LABELS[parsed.typeBoost as SearchType]}
+              </span>
+            )}
+            <kbd className="mono hidden rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground sm:inline-flex">
+              Esc
+            </kbd>
+          </div>
 
-              {/* AI lane strip — tappable commit chip (works on touch,
+          {/* AI lane strip — tappable commit chip (works on touch,
                   where "press space" is invisible), or the active pill. */}
-              <AnimatePresence initial={false}>
-                {(aiChip || parsed.aiMode) && (
-                  <motion.div
-                    key={aiChip ? 'ai-on' : 'ai-hint'}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-3 pb-2.5">
-                      {aiChip ? (
-                        <span className="inline-flex items-center gap-1.5 h-7 pl-2.5 pr-1 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] shadow-[var(--m3-elev-1)] text-xs font-medium">
-                          <Sparkles className="size-3" />
-                          Asking Sajni
-                          <button
-                            type="button"
-                            onClick={() => { setAiChip(false); inputRef.current?.focus(); }}
-                            className="ml-0.5 size-5 inline-flex items-center justify-center rounded-full hover:bg-[hsl(var(--on-secondary-container)/0.12)]"
-                            aria-label="Remove AI mode"
-                          >
-                            <X className="size-3" />
-                          </button>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => { setAiChip(true); setInput(''); inputRef.current?.focus(); }}
-                          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-[hsl(var(--primary)/0.35)] bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 active:scale-[0.97] transition-[background-color,transform]"
-                        >
-                          <Sparkles className="size-3" />
-                          Ask Sajni
-                          <span className="opacity-60 hidden sm:inline">· space</span>
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div ref={listRef} className="max-h-[60vh] overflow-y-auto py-1">
-              {actionMode ? (
-                actionResults.length === 0 ? (
-                  <div className="px-4 py-10 text-center text-sm text-muted-foreground">No matching action.</div>
-                ) : (
-                  actionResults.map((a, i) => (
+          <AnimatePresence initial={false}>
+            {(aiChip || parsed.aiMode) && (
+              <motion.div
+                key={aiChip ? 'ai-on' : 'ai-hint'}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="px-3 pb-2.5">
+                  {aiChip ? (
+                    <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-[hsl(var(--secondary-container))] pr-1 pl-2.5 text-xs font-medium text-[hsl(var(--on-secondary-container))] shadow-[var(--m3-elev-1)]">
+                      <Sparkles className="size-3" />
+                      Asking Sajni
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiChip(false);
+                          inputRef.current?.focus();
+                        }}
+                        className="ml-0.5 inline-flex size-5 items-center justify-center rounded-full hover:bg-[hsl(var(--on-secondary-container)/0.12)]"
+                        aria-label="Remove AI mode"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  ) : (
                     <button
-                      key={a.id}
-                      data-idx={i}
-                      onMouseEnter={() => setActiveIndex(i)}
-                      onClick={() => { onOpenChange(false); Promise.resolve(a.run()).catch(() => {}); }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                        i === activeIndex ? 'bg-accent' : 'hover:bg-accent/50'
-                      } ${a.danger ? 'text-destructive' : 'text-foreground'}`}
+                      type="button"
+                      onClick={() => {
+                        setAiChip(true);
+                        setInput('');
+                        inputRef.current?.focus();
+                      }}
+                      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-[hsl(var(--primary)/0.35)] bg-primary/10 px-2.5 text-xs font-medium text-primary transition-[background-color,transform] hover:bg-primary/15 active:scale-[0.97]"
                     >
-                      <a.Icon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 text-sm">{a.label}</span>
-                      {a.hint && <span className="mono text-xs text-muted-foreground">{a.hint}</span>}
-                      <ChevronRight className="size-3 text-muted-foreground/60" />
+                      <Sparkles className="size-3" />
+                      Ask Sajni
+                      <span className="hidden opacity-60 sm:inline">· space</span>
                     </button>
-                  ))
-                )
-              ) : parsed.aiMode ? (
-                <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
-                  <AIPaletteAnswer key={aiQuery} query={aiQuery} onClose={() => onOpenChange(false)} />
-                </Suspense>
-              ) : ranked.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  {loading ? 'Searching…' : input ? 'No results.' : 'Start typing to search, or use @sajni to ask the AI, or > for actions.'}
+                  )}
                 </div>
-              ) : (
-                ranked.map((hit, i) => (
-                  <PaletteRow
-                    key={`${hit.type}-${hit.id}-${i}`}
-                    hit={hit}
-                    active={i === activeIndex}
-                    queryText={parsed.query}
-                    index={i}
-                    onMouseEnter={() => setActiveIndex(i)}
-                    onClick={() => open_hit(hit)}
-                  />
-                ))
-              )}
-            </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-            <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-border bg-muted/30 font-mono text-xs text-muted-foreground">
-              <div className="flex items-center gap-3">
-                {parsed.aiMode ? (
-                  <span className="inline-flex items-center gap-1">
-                    <kbd className="border border-border rounded px-1 inline-flex items-center"><CornerDownLeft className="size-2.5" /></kbd>
-                    ask Sajni
-                  </span>
-                ) : (
-                  <>
+        <div ref={listRef} className="max-h-[60vh] overflow-y-auto py-1">
+          {actionMode ? (
+            actionResults.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-muted-foreground">No matching action.</div>
+            ) : (
+              actionResults.map((a, i) => (
+                <button
+                  key={a.id}
+                  data-idx={i}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onClick={() => {
+                    onOpenChange(false);
+                    Promise.resolve(a.run()).catch(() => {});
+                  }}
+                  className={`flex w-full items-center gap-3 px-3 py-2 text-left transition-colors ${
+                    i === activeIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                  } ${a.danger ? 'text-destructive' : 'text-foreground'}`}
+                >
+                  <a.Icon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 text-sm">{a.label}</span>
+                  {a.hint && <span className="mono text-xs text-muted-foreground">{a.hint}</span>}
+                  <ChevronRight className="size-3 text-muted-foreground/60" />
+                </button>
+              ))
+            )
+          ) : parsed.aiMode ? (
+            <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
+              <AIPaletteAnswer key={aiQuery} query={aiQuery} onClose={() => onOpenChange(false)} />
+            </Suspense>
+          ) : ranked.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+              {loading
+                ? 'Searching…'
+                : input
+                  ? 'No results.'
+                  : 'Start typing to search, or use @sajni to ask the AI, or > for actions.'}
+            </div>
+          ) : (
+            ranked.map((hit, i) => (
+              <PaletteRow
+                key={`${hit.type}-${hit.id}-${i}`}
+                hit={hit}
+                active={i === activeIndex}
+                queryText={parsed.query}
+                index={i}
+                onMouseEnter={() => setActiveIndex(i)}
+                onClick={() => open_hit(hit)}
+              />
+            ))
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
+          <div className="flex items-center gap-3">
+            {parsed.aiMode ? (
+              <span className="inline-flex items-center gap-1">
+                <kbd className="inline-flex items-center rounded border border-border px-1">
+                  <CornerDownLeft className="size-2.5" />
+                </kbd>
+                ask Sajni
+              </span>
+            ) : (
+              <>
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="border border-border rounded px-1">↑</kbd>
-                  <kbd className="border border-border rounded px-1">↓</kbd>
+                  <kbd className="rounded border border-border px-1">↑</kbd>
+                  <kbd className="rounded border border-border px-1">↓</kbd>
                   navigate
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="border border-border rounded px-1 inline-flex items-center"><CornerDownLeft className="size-2.5" /></kbd>
+                  <kbd className="inline-flex items-center rounded border border-border px-1">
+                    <CornerDownLeft className="size-2.5" />
+                  </kbd>
                   open
                 </span>
-                  </>
-                )}
-              </div>
-              <span>
-                {parsed.aiMode
-                  ? 'press Enter to ask'
-                  : `${ranked.length} result${ranked.length === 1 ? '' : 's'}`}
-              </span>
-            </div>
+              </>
+            )}
           </div>
+          <span>
+            {parsed.aiMode ? 'press Enter to ask' : `${ranked.length} result${ranked.length === 1 ? '' : 's'}`}
+          </span>
         </div>
+      </div>
+    </div>
   );
 }
 
 function PaletteRow({
-  hit, active, queryText, index, onMouseEnter, onClick,
+  hit,
+  active,
+  queryText,
+  index,
+  onMouseEnter,
+  onClick,
 }: {
   hit: RankedHit;
   active: boolean;
@@ -433,30 +509,26 @@ function PaletteRow({
       data-idx={index}
       onMouseEnter={onMouseEnter}
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+      className={`flex w-full items-center gap-3 px-3 py-2 text-left transition-colors ${
         active ? 'bg-accent' : 'hover:bg-accent/50'
       }`}
     >
       <Icon className={`size-4 shrink-0 ${color}`} />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm truncate">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm">
           {highlight(hit.title, queryText).map((seg, i) =>
             seg.hit ? (
-              <mark key={i} className="bg-primary/25 text-foreground rounded-[2px] px-0.5">{seg.text}</mark>
+              <mark key={i} className="rounded-[2px] bg-primary/25 px-0.5 text-foreground">
+                {seg.text}
+              </mark>
             ) : (
               <span key={i}>{seg.text}</span>
             ),
           )}
         </div>
-        {hit.subtitle && (
-          <div className="font-mono text-xs text-muted-foreground truncate mt-0.5">
-            {hit.subtitle}
-          </div>
-        )}
+        {hit.subtitle && <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{hit.subtitle}</div>}
       </div>
-      <span className="font-mono text-xs label-kicker text-muted-foreground shrink-0">
-        {label}
-      </span>
+      <span className="label-kicker shrink-0 font-mono text-xs text-muted-foreground">{label}</span>
     </button>
   );
 }

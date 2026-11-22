@@ -27,31 +27,36 @@ export default function LocationPill({ value, onChange, triggerLabel = 'Add loca
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={
-        <button
-          type="button"
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
-            value
-              ? 'bg-primary/12 ring-1 ring-primary/30 text-foreground'
-              : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <MapPin className="size-3.5" />
-          <span className="font-mono text-xs tracking-wide truncate max-w-[160px]">
-            {value ? value.label : triggerLabel}
-          </span>
-          {value ? (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onChange(null); }}
-              className="opacity-60 hover:opacity-100 hover:text-destructive"
-            >
-              <X className="size-3" />
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-[background-color,color,box-shadow,opacity,transform] ${
+              value
+                ? 'bg-primary/12 text-foreground ring-1 ring-primary/30'
+                : 'bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            <MapPin className="size-3.5" />
+            <span className="max-w-[160px] truncate font-mono text-xs tracking-wide">
+              {value ? value.label : triggerLabel}
             </span>
-          ) : null}
-        </button>
-      } />
+            {value ? (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(null);
+                }}
+                className="opacity-60 hover:text-destructive hover:opacity-100"
+              >
+                <X className="size-3" />
+              </span>
+            ) : null}
+          </button>
+        }
+      />
       <PopoverContent className="w-72 p-2" align="start">
         <Input
           autoFocus

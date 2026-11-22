@@ -69,21 +69,27 @@ export default function MissedBanner() {
       try {
         const months = Math.max(1, differenceInCalendarMonths(new Date(), parseISO(task.month_of)));
         return `${months}mo ago`;
-      } catch { return '1mo ago'; }
+      } catch {
+        return '1mo ago';
+      }
     }
     if (task.week_of && !task.due_date) {
       try {
         const days = differenceInCalendarDays(new Date(), parseISO(task.week_of));
         const weeks = Math.max(1, Math.floor(days / 7));
         return `${weeks}w ago`;
-      } catch { return '1w ago'; }
+      } catch {
+        return '1w ago';
+      }
     }
     if (!task.due_date) return '';
     try {
       const d = parseISO(task.due_date);
       const days = differenceInCalendarDays(new Date(), d);
       return days >= 1 ? `${days}d ago` : format(d, 'MMM d');
-    } catch { return task.due_date; }
+    } catch {
+      return task.due_date;
+    }
   };
 
   const ctaTitle = (task: Task) => {
@@ -93,8 +99,10 @@ export default function MissedBanner() {
   };
 
   const rescheduling = (id: number) => {
-    return (reschedule.isPending && reschedule.variables?.id === id) ||
-      (updateTask.isPending && updateTask.variables?.id === id);
+    return (
+      (reschedule.isPending && reschedule.variables?.id === id) ||
+      (updateTask.isPending && updateTask.variables?.id === id)
+    );
   };
 
   return (
@@ -102,24 +110,24 @@ export default function MissedBanner() {
       initial={{ opacity: 0, transform: 'translateY(-4px)' }}
       animate={{ opacity: 1, transform: 'translateY(0)' }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-      className="rounded-2xl bg-[hsl(var(--surface-container))] overflow-hidden"
+      className="overflow-hidden rounded-2xl bg-[hsl(var(--surface-container))]"
     >
       {/* Summary row — the whole strip toggles the detail list. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[hsl(var(--on-surface)/0.04)] transition-colors"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]"
       >
-        <span className="grid place-items-center size-7 rounded-full bg-[hsl(var(--color-waiting)/0.16)] text-[hsl(var(--color-waiting))] shrink-0">
+        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[hsl(var(--color-waiting)/0.16)] text-[hsl(var(--color-waiting))]">
           <CalendarX2 className="size-3.5" />
         </span>
-        <span className="text-sm font-medium leading-tight flex-1 min-w-0">
+        <span className="min-w-0 flex-1 text-sm leading-tight font-medium">
           {missed.length} missed {missed.length === 1 ? 'task' : 'tasks'}
-          <span className="text-muted-foreground font-normal"> · review</span>
+          <span className="font-normal text-muted-foreground"> · review</span>
         </span>
         <ChevronDown
-          className={`size-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+          className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
         />
       </button>
 
@@ -132,7 +140,7 @@ export default function MissedBanner() {
             transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
             style={{ overflow: 'hidden' }}
           >
-            <div className="px-2.5 pb-2.5 pt-0.5">
+            <div className="px-2.5 pt-0.5 pb-2.5">
               <div className="flex flex-col gap-0.5">
                 <AnimatePresence initial={false}>
                   {missed.map((t) => (
@@ -143,17 +151,17 @@ export default function MissedBanner() {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-                      className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-[hsl(var(--on-surface)/0.05)] transition-colors"
+                      className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-[hsl(var(--on-surface)/0.05)]"
                     >
                       <button
                         type="button"
                         onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: t.id } }))}
-                        className="flex flex-1 min-w-0 items-center gap-2 text-left"
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
                       >
                         <TaskScopeBadge task={t} />
-                        <span className="min-w-0 text-sm truncate block">{t.title}</span>
+                        <span className="block min-w-0 truncate text-sm">{t.title}</span>
                       </button>
-                      <span className="shrink-0 inline-flex items-center justify-center h-6 w-18 whitespace-nowrap rounded-[8px] border border-[hsl(var(--color-waiting)/0.3)] px-2 text-xs font-semibold tabular-nums bg-[hsl(var(--color-waiting)/0.12)] text-[hsl(var(--color-waiting))]">
+                      <span className="inline-flex h-6 w-18 shrink-0 items-center justify-center rounded-[8px] border border-[hsl(var(--color-waiting)/0.3)] bg-[hsl(var(--color-waiting)/0.12)] px-2 text-xs font-semibold whitespace-nowrap text-[hsl(var(--color-waiting))] tabular-nums">
                         {ageLabel(t)}
                       </span>
                       <button
@@ -162,18 +170,26 @@ export default function MissedBanner() {
                         disabled={busy}
                         title={ctaTitle(t)}
                         aria-label={ctaTitle(t)}
-                        className="relative shrink-0 size-6 inline-flex items-center justify-center rounded-[8px] border border-primary/30 bg-primary/12 text-primary hover:bg-primary/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition disabled:opacity-50 before:absolute before:-inset-2.5 before:content-['']"
+                        className="relative inline-flex size-6 shrink-0 items-center justify-center rounded-[8px] border border-primary/30 bg-primary/12 text-primary transition before:absolute before:-inset-2.5 before:content-[''] hover:bg-primary/18 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                       >
-                        {rescheduling(t.id) ? <Loader2 className="size-3 animate-spin" /> : <ArrowRight className="size-4" aria-hidden="true" />}
+                        {rescheduling(t.id) ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          <ArrowRight className="size-4" aria-hidden="true" />
+                        )}
                       </button>
                       <button
                         type="button"
                         onClick={() => scratchOne(t.id)}
                         disabled={busy}
                         title="Scratch (abandon) this task"
-                        className="shrink-0 size-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.1)] hover:text-foreground transition disabled:opacity-50"
+                        className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-[hsl(var(--on-surface)/0.1)] hover:text-foreground disabled:opacity-50"
                       >
-                        {scratch.isPending && scratch.variables === t.id ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+                        {scratch.isPending && scratch.variables === t.id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <X className="size-3.5" />
+                        )}
                       </button>
                     </motion.div>
                   ))}

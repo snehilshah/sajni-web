@@ -1,22 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
-import {
-  differenceInMinutes,
-  format,
-  formatDistanceToNowStrict,
-} from 'date-fns';
+import { differenceInMinutes, format, formatDistanceToNowStrict } from 'date-fns';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Activity,
   Archive,
@@ -47,13 +37,7 @@ import {
 } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
@@ -76,11 +60,7 @@ import {
   useEventTrends,
   useUpdateEvent,
 } from '@/queries/events';
-import type {
-  TrackedEvent,
-  TrackedEventEntry,
-  TrackedEventTrendPoint,
-} from '@/types';
+import type { TrackedEvent, TrackedEventEntry, TrackedEventTrendPoint } from '@/types';
 
 const COLORS = ['#2D5A4F', '#4F6FA1', '#8B6FA1', '#A14B4F', '#C0783C', '#5E7C3A', '#7A7A7A'];
 const ICONS = {
@@ -133,10 +113,7 @@ function EventGlyph({ event, className }: { event: Pick<TrackedEvent, 'icon' | '
   const Icon = ICONS[event.icon as keyof typeof ICONS] ?? Calendar;
   return (
     <span
-      className={cn(
-        'grid size-11 shrink-0 place-items-center rounded-[16px]',
-        className,
-      )}
+      className={cn('grid size-11 shrink-0 place-items-center rounded-[16px]', className)}
       style={{ color: event.color, backgroundColor: `${event.color}20` }}
       aria-hidden
     >
@@ -175,7 +152,9 @@ function useRememberedSort() {
     }
   });
   useEffect(() => {
-    try { localStorage.setItem('sajni:event-sort', sort); } catch {}
+    try {
+      localStorage.setItem('sajni:event-sort', sort);
+    } catch {}
   }, [sort]);
   return [sort, setSort] as const;
 }
@@ -206,12 +185,16 @@ export default function EventsPage() {
   });
   const { data: selectedEvent, isLoading: detailLoading, isError: detailError } = useEvent(eventId);
 
-  const orderedEvents = useMemo(() => [...events].sort((a, b) => {
-    if (sort === 'name') return a.name.localeCompare(b.name);
-    const aTime = a.last_occurred_at ? new Date(a.last_occurred_at).getTime() : 0;
-    const bTime = b.last_occurred_at ? new Date(b.last_occurred_at).getTime() : 0;
-    return sort === 'recent' ? bTime - aTime : aTime - bTime;
-  }), [events, sort]);
+  const orderedEvents = useMemo(
+    () =>
+      [...events].sort((a, b) => {
+        if (sort === 'name') return a.name.localeCompare(b.name);
+        const aTime = a.last_occurred_at ? new Date(a.last_occurred_at).getTime() : 0;
+        const bTime = b.last_occurred_at ? new Date(b.last_occurred_at).getTime() : 0;
+        return sort === 'recent' ? bTime - aTime : aTime - bTime;
+      }),
+    [events, sort],
+  );
 
   function openEvent(id: number) {
     const next = new URLSearchParams(params);
@@ -244,7 +227,9 @@ export default function EventsPage() {
         { value: 'habits', label: 'Habits' },
         { value: 'events', label: 'Events' },
       ]}
-      onChange={(value) => { if (value === 'habits') navigate('/habits'); }}
+      onChange={(value) => {
+        if (value === 'habits') navigate('/habits');
+      }}
     />
   );
 
@@ -253,23 +238,25 @@ export default function EventsPage() {
       <PageShell
         title="Habits"
         navigation={hubTabs}
-        leading={(
+        leading={
           <Button variant="ghost" size="icon-sm" onClick={closeEvent} aria-label="Back to events">
             <ArrowLeft className="size-4" />
           </Button>
-        )}
-        actions={selectedEvent && (
-          <>
-            <Button variant="ghost" size="sm" onClick={() => setEventDialog(selectedEvent)}>
-              <Edit3 className="size-3.5" />
-              <span className="hidden sm:inline">Edit</span>
-            </Button>
-            <Button size="sm" onClick={() => setEntryDialog({ event: selectedEvent })}>
-              <Plus className="size-3.5" />
-              Log
-            </Button>
-          </>
-        )}
+        }
+        actions={
+          selectedEvent && (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setEventDialog(selectedEvent)}>
+                <Edit3 className="size-3.5" />
+                <span className="hidden sm:inline">Edit</span>
+              </Button>
+              <Button size="sm" onClick={() => setEntryDialog({ event: selectedEvent })}>
+                <Plus className="size-3.5" />
+                Log
+              </Button>
+            </>
+          )
+        }
       >
         {detailLoading ? (
           <EventDetailSkeleton />
@@ -277,7 +264,9 @@ export default function EventsPage() {
           <div className="mx-auto w-full max-w-xl rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-6 py-16 text-center">
             <p className="font-medium">Event not found</p>
             <p className="mt-1 text-sm text-muted-foreground">It may have been deleted or is no longer available.</p>
-            <Button variant="outline" className="mt-4 rounded-full" onClick={closeEvent}>Back to events</Button>
+            <Button variant="outline" className="mt-4 rounded-full" onClick={closeEvent}>
+              Back to events
+            </Button>
           </div>
         ) : (
           <EventDetail
@@ -290,12 +279,16 @@ export default function EventsPage() {
         )}
         <EventEditor
           value={eventDialog}
-          onOpenChange={(open) => { if (!open) setEventDialog(null); }}
+          onOpenChange={(open) => {
+            if (!open) setEventDialog(null);
+          }}
           onDeleted={closeEvent}
         />
         <EntryEditor
           value={entryDialog}
-          onOpenChange={(open) => { if (!open) setEntryDialog(null); }}
+          onOpenChange={(open) => {
+            if (!open) setEntryDialog(null);
+          }}
         />
       </PageShell>
     );
@@ -305,28 +298,28 @@ export default function EventsPage() {
     <PageShell
       title="Habits"
       navigation={hubTabs}
-      actions={(
+      actions={
         <Button size="sm" onClick={() => setEventDialog('new')}>
           <Plus className="size-3.5" />
           New event
         </Button>
-      )}
+      }
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search events"
-              className="h-11 rounded-full pl-10 pr-10"
+              className="h-11 rounded-full pr-10 pl-10"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
+                className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
                 aria-label="Clear search"
               >
                 <X className="size-3.5" />
@@ -363,7 +356,9 @@ export default function EventsPage() {
 
         {isLoading ? (
           <div className="overflow-hidden rounded-[28px] border border-[hsl(var(--outline-variant))]">
-            {[1, 2, 3].map((row) => <Skeleton key={row} className="h-24 w-full rounded-none border-b last:border-0" />)}
+            {[1, 2, 3].map((row) => (
+              <Skeleton key={row} className="h-24 w-full rounded-none border-b last:border-0" />
+            ))}
           </div>
         ) : orderedEvents.length === 0 ? (
           <EmptyEvents search={search} archived={archived} onCreate={() => setEventDialog('new')} />
@@ -388,18 +383,25 @@ export default function EventsPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{event.name}</span>
                       <span className="mt-0.5 block truncate text-sm text-muted-foreground">
-                        {event.last_occurred_at ? format(new Date(event.last_occurred_at), 'd MMM yyyy · h:mm a') : event.description || 'No entries yet'}
+                        {event.last_occurred_at
+                          ? format(new Date(event.last_occurred_at), 'd MMM yyyy · h:mm a')
+                          : event.description || 'No entries yet'}
                       </span>
                       {event.last_values.length > 0 && (
                         <span className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                           {event.last_values.map((value) => (
-                            <span key={value.variable_id}>{value.name}: {value.value}{value.unit ? ` ${value.unit}` : ''}</span>
+                            <span key={value.variable_id}>
+                              {value.name}: {value.value}
+                              {value.unit ? ` ${value.unit}` : ''}
+                            </span>
                           ))}
                         </span>
                       )}
                     </span>
                     <span className="hidden shrink-0 text-right sm:block">
-                      <span className="block text-sm font-medium text-[hsl(var(--primary))]">{relativeTime(event.last_occurred_at)}</span>
+                      <span className="block text-sm font-medium text-[hsl(var(--primary))]">
+                        {relativeTime(event.last_occurred_at)}
+                      </span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
                         {event.total_entries} {event.total_entries === 1 ? 'entry' : 'entries'}
                       </span>
@@ -423,25 +425,21 @@ export default function EventsPage() {
 
       <EventEditor
         value={eventDialog}
-        onOpenChange={(open) => { if (!open) setEventDialog(null); }}
+        onOpenChange={(open) => {
+          if (!open) setEventDialog(null);
+        }}
       />
       <EntryEditor
         value={entryDialog}
-        onOpenChange={(open) => { if (!open) setEntryDialog(null); }}
+        onOpenChange={(open) => {
+          if (!open) setEntryDialog(null);
+        }}
       />
     </PageShell>
   );
 }
 
-function EmptyEvents({
-  search,
-  archived,
-  onCreate,
-}: {
-  search: string;
-  archived: boolean;
-  onCreate: () => void;
-}) {
+function EmptyEvents({ search, archived, onCreate }: { search: string; archived: boolean; onCreate: () => void }) {
   return (
     <div className="rounded-[28px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-6 py-20 text-center">
       <Clock className="mx-auto size-10 text-[hsl(var(--primary))] opacity-60" />
@@ -483,13 +481,13 @@ function EventDetail({
       <section className="relative overflow-hidden rounded-[32px] bg-[hsl(var(--primary-container))] px-5 py-6 text-[hsl(var(--on-primary-container))] sm:px-8 sm:py-8">
         <div
           aria-hidden
-          className="absolute -right-12 -top-12 size-44 rounded-full opacity-15"
+          className="absolute -top-12 -right-12 size-44 rounded-full opacity-15"
           style={{ backgroundColor: event.color }}
         />
         <div className="relative flex items-start gap-4">
           <EventGlyph event={event} className="size-14 rounded-[20px] bg-[hsl(var(--surface)/0.75)]" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium label-kicker opacity-70">Last happened</p>
+            <p className="label-kicker text-xs font-medium opacity-70">Last happened</p>
             <h1 className="serif mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
               {relativeTime(event.last_occurred_at)}
             </h1>
@@ -506,8 +504,12 @@ function EventDetail({
           {event.last_values.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {event.last_values.map((value) => (
-                <span key={value.variable_id} className="rounded-full bg-[hsl(var(--surface)/0.7)] px-3 py-1.5 text-xs font-medium">
-                  {value.name} · {value.value}{value.unit ? ` ${value.unit}` : ''}
+                <span
+                  key={value.variable_id}
+                  className="rounded-full bg-[hsl(var(--surface)/0.7)] px-3 py-1.5 text-xs font-medium"
+                >
+                  {value.name} · {value.value}
+                  {value.unit ? ` ${value.unit}` : ''}
                 </span>
               ))}
             </div>
@@ -527,9 +529,11 @@ function EventDetail({
         />
       </div>
 
-      {view === 'timeline'
-        ? <EventTimeline event={event} onLog={onLog} onEdit={onEditEntry} />
-        : <EventTrends event={event} />}
+      {view === 'timeline' ? (
+        <EventTimeline event={event} onLog={onLog} onEdit={onEditEntry} />
+      ) : (
+        <EventTrends event={event} />
+      )}
     </div>
   );
 }
@@ -559,7 +563,7 @@ function EventTimeline({
     <section className="flex flex-col gap-4">
       <div className="grid gap-2 sm:grid-cols-[1fr_180px_180px]">
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(entry) => setSearch(entry.target.value)}
@@ -573,13 +577,17 @@ function EventTimeline({
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((item) => <Skeleton key={item} className="h-24 rounded-[24px]" />)}
+          {[1, 2, 3].map((item) => (
+            <Skeleton key={item} className="h-24 rounded-[24px]" />
+          ))}
         </div>
       ) : entries.length === 0 ? (
         <div className="rounded-[28px] border border-dashed border-[hsl(var(--outline))] px-5 py-14 text-center">
           <p className="font-medium">{search || from || to ? 'No entries in this view' : 'No entries yet'}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {search || from || to ? 'Clear a filter to widen the timeline.' : 'Your first log starts the elapsed-time spine.'}
+            {search || from || to
+              ? 'Clear a filter to widen the timeline.'
+              : 'Your first log starts the elapsed-time spine.'}
           </p>
           {!search && !from && !to && (
             <Button onClick={onLog} className="mt-4 rounded-full">
@@ -589,13 +597,14 @@ function EventTimeline({
         </div>
       ) : (
         <div className="relative">
-          <span className="absolute bottom-7 left-[19px] top-7 w-px bg-[hsl(var(--outline-variant))] sm:left-[27px]" aria-hidden />
+          <span
+            className="absolute top-7 bottom-7 left-[19px] w-px bg-[hsl(var(--outline-variant))] sm:left-[27px]"
+            aria-hidden
+          />
           <div className="flex flex-col">
             {entries.map((entry, index) => {
               const older = entries[index + 1];
-              const gap = older
-                ? differenceInMinutes(new Date(entry.occurred_at), new Date(older.occurred_at))
-                : null;
+              const gap = older ? differenceInMinutes(new Date(entry.occurred_at), new Date(older.occurred_at)) : null;
               return (
                 <motion.div
                   key={entry.id}
@@ -613,18 +622,26 @@ function EventTimeline({
                   <button
                     type="button"
                     onClick={() => onEdit(entry)}
-                    className="rounded-[24px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-4 py-4 text-left outline-none transition-colors hover:bg-[hsl(var(--surface-container))] focus-visible:ring-2 focus-visible:ring-ring sm:px-5"
+                    className="rounded-[24px] border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container-low))] px-4 py-4 text-left transition-colors outline-none hover:bg-[hsl(var(--surface-container))] focus-visible:ring-2 focus-visible:ring-ring sm:px-5"
                   >
                     <span className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                       <span className="font-medium">{format(new Date(entry.occurred_at), 'EEEE, d MMMM yyyy')}</span>
-                      <span className="text-xs text-muted-foreground">{format(new Date(entry.occurred_at), 'h:mm a')}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(entry.occurred_at), 'h:mm a')}
+                      </span>
                     </span>
-                    {entry.note && <span className="mt-2 block text-sm leading-6 text-muted-foreground">{entry.note}</span>}
+                    {entry.note && (
+                      <span className="mt-2 block text-sm leading-6 text-muted-foreground">{entry.note}</span>
+                    )}
                     {entry.values.length > 0 && (
                       <span className="mt-3 flex flex-wrap gap-2">
                         {entry.values.map((value) => (
-                          <span key={value.variable_id} className="rounded-full bg-[hsl(var(--secondary-container))] px-2.5 py-1 text-xs text-[hsl(var(--on-secondary-container))]">
-                            {value.name}: {value.value}{value.unit ? ` ${value.unit}` : ''}
+                          <span
+                            key={value.variable_id}
+                            className="rounded-full bg-[hsl(var(--secondary-container))] px-2.5 py-1 text-xs text-[hsl(var(--on-secondary-container))]"
+                          >
+                            {value.name}: {value.value}
+                            {value.unit ? ` ${value.unit}` : ''}
                           </span>
                         ))}
                       </span>
@@ -706,7 +723,9 @@ function EventTrends({ event }: { event: TrackedEvent }) {
               </SelectTrigger>
               <SelectContent>
                 {event.variables.map((item) => (
-                  <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
+                  <SelectItem key={item.id} value={String(item.id)}>
+                    {item.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -720,8 +739,8 @@ function EventTrends({ event }: { event: TrackedEvent }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-b border-[hsl(var(--outline-variant))] px-5 py-5 last:border-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-      <p className="text-xs label-kicker text-muted-foreground">{label}</p>
+    <div className="border-b border-[hsl(var(--outline-variant))] px-5 py-5 last:border-0 sm:border-r sm:border-b-0 sm:last:border-r-0">
+      <p className="label-kicker text-xs text-muted-foreground">{label}</p>
       <p className="mt-1.5 text-lg font-semibold">{value}</p>
     </div>
   );
@@ -789,13 +808,40 @@ function LineChart({
       >
         {[0, 1, 2].map((line) => {
           const y = pad + (line / 2) * (height - pad * 2);
-          return <line key={line} x1={pad} y1={y} x2={width - pad} y2={y} stroke="hsl(var(--outline-variant))" strokeDasharray="4 6" />;
+          return (
+            <line
+              key={line}
+              x1={pad}
+              y1={y}
+              x2={width - pad}
+              y2={y}
+              stroke="hsl(var(--outline-variant))"
+              strokeDasharray="4 6"
+            />
+          );
         })}
-        <polyline points={polyline} fill="none" stroke={color} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke={color}
+          strokeWidth="4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
         {coords.map((point) => (
           <g key={`${point.at}-${point.x}`}>
-            <circle cx={point.x} cy={point.y} r="6" fill="hsl(var(--surface-container-low))" stroke={color} strokeWidth="3" />
-            <title>{format(new Date(point.at), 'd MMM yyyy')}: {point.value}{suffix ? ` ${suffix}` : ''}</title>
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="6"
+              fill="hsl(var(--surface-container-low))"
+              stroke={color}
+              strokeWidth="3"
+            />
+            <title>
+              {format(new Date(point.at), 'd MMM yyyy')}: {point.value}
+              {suffix ? ` ${suffix}` : ''}
+            </title>
           </g>
         ))}
       </svg>
@@ -839,14 +885,19 @@ function EventEditor({
     save: async (v) => {
       if (!editing) return;
       await eventsApi.update(editing.id, {
-        name: v.name.trim(), description: v.description.trim(), color: v.color, icon: v.icon,
+        name: v.name.trim(),
+        description: v.description.trim(),
+        color: v.color,
+        icon: v.icon,
       });
       for (const variable of cleanVariables(v.variables)) {
         if (variable.id === undefined) {
           const created = await eventsApi.addVariable(editing.id, { name: variable.name, unit: variable.unit });
           savedVariables.current.set(created.id, { name: created.name, unit: created.unit });
           setDraft((current) => {
-            const at = current.variables.findIndex((item) => item.id === undefined && item.name.trim() === variable.name);
+            const at = current.variables.findIndex(
+              (item) => item.id === undefined && item.name.trim() === variable.name,
+            );
             if (at < 0) return current;
             const variables = [...current.variables];
             variables[at] = { ...variables[at], id: created.id };
@@ -882,14 +933,19 @@ function EventEditor({
           unit: variable.unit,
         })),
       };
-      savedVariables.current = new Map(value.variables.map((variable) => [variable.id, { name: variable.name, unit: variable.unit }]));
+      savedVariables.current = new Map(
+        value.variables.map((variable) => [variable.id, { name: variable.name, unit: variable.unit }]),
+      );
       setDraft(loaded);
       loadDraft(loaded);
     }
   }, [value, loadDraft]);
 
   async function save() {
-    if (editing) { await editor.save(() => onOpenChange(false)); return; }
+    if (editing) {
+      await editor.save(() => onOpenChange(false));
+      return;
+    }
     if (!draft.name.trim()) return;
     setSaving(true);
     try {
@@ -962,7 +1018,9 @@ function EventEditor({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="event-description">Description <span className="text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="event-description">
+              Description <span className="text-muted-foreground">(optional)</span>
+            </Label>
             <Textarea
               id="event-description"
               value={draft.description}
@@ -983,7 +1041,7 @@ function EventEditor({
                     aria-label={`Use color ${color}`}
                     aria-pressed={draft.color === color}
                     className={cn(
-                      'size-9 rounded-[12px] border-[3px] border-transparent outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring',
+                      'size-9 rounded-[12px] border-[3px] border-transparent transition-transform outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       draft.color === color && 'scale-110 border-background ring-2 ring-ring',
                     )}
                     style={{ backgroundColor: color }}
@@ -1003,7 +1061,8 @@ function EventEditor({
                     aria-pressed={draft.icon === name}
                     className={cn(
                       'grid size-10 place-items-center rounded-[14px] text-muted-foreground outline-none hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring',
-                      draft.icon === name && 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
+                      draft.icon === name &&
+                        'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]',
                     )}
                   >
                     <Icon className="size-4" />
@@ -1016,40 +1075,53 @@ function EventEditor({
             <div className="flex items-center justify-between">
               <div>
                 <Label>Variables</Label>
-                <p className="mt-0.5 text-xs text-muted-foreground">Optional numbers recorded with each occurrence. Up to 6.</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Optional numbers recorded with each occurrence. Up to 6.
+                </p>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 disabled={draft.variables.length >= 6}
-                onClick={() => setDraft({
-                  ...draft,
-                  variables: [...draft.variables, { name: '', unit: '' }],
-                })}
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    variables: [...draft.variables, { name: '', unit: '' }],
+                  })
+                }
               >
                 <Plus className="size-3.5" /> Add
               </Button>
             </div>
             {draft.variables.map((variable, index) => (
-              <div key={variable.id ?? `new-${index}`} className="grid grid-cols-[minmax(0,1fr)_minmax(90px,0.55fr)_40px] gap-2">
+              <div
+                key={variable.id ?? `new-${index}`}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(90px,0.55fr)_40px] gap-2"
+              >
                 <Input
                   value={variable.name}
-                  onChange={(event) => setDraft({
-                    ...draft,
-                    variables: draft.variables.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, name: event.target.value } : item),
-                  })}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      variables: draft.variables.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, name: event.target.value } : item,
+                      ),
+                    })
+                  }
                   placeholder="Cost, size…"
                   aria-label={`Variable ${index + 1} name`}
                 />
                 <Input
                   value={variable.unit}
-                  onChange={(event) => setDraft({
-                    ...draft,
-                    variables: draft.variables.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, unit: event.target.value } : item),
-                  })}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      variables: draft.variables.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, unit: event.target.value } : item,
+                      ),
+                    })
+                  }
                   placeholder="₹, mm…"
                   aria-label={`Variable ${index + 1} unit`}
                 />
@@ -1073,13 +1145,24 @@ function EventEditor({
                 {editing.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
                 {editing.archived ? 'Restore' : 'Archive'}
               </Button>
-              <Button type="button" variant="destructive-ghost" size="icon-sm" onClick={removeEvent} aria-label="Delete event">
+              <Button
+                type="button"
+                variant="destructive-ghost"
+                size="icon-sm"
+                onClick={removeEvent}
+                aria-label="Delete event"
+              >
                 <Trash2 className="size-4" />
               </Button>
             </div>
           )}
-          <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void save()}
-            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create'} disabled={!draft.name.trim() || saving} />
+          <EditActions
+            draft={editor}
+            onCancel={() => onOpenChange(false)}
+            onSave={() => void save()}
+            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create'}
+            disabled={!draft.name.trim() || saving}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1169,7 +1252,10 @@ function EntryEditor({
   }, [entry, value, loadDraft]);
 
   async function save() {
-    if (entry) { await editor.save(() => onOpenChange(false)); return; }
+    if (entry) {
+      await editor.save(() => onOpenChange(false));
+      return;
+    }
     if (!event || !date || !time) return;
     setSaving(true);
     try {
@@ -1182,11 +1268,14 @@ function EntryEditor({
 
   async function remove() {
     if (!event || !entry) return;
-    if (!(await confirmDialog({
-      title: 'Delete this occurrence?',
-      description: `${exactTime(entry.occurred_at)} will be removed from the timeline.`,
-      confirmText: 'Delete entry',
-    }))) return;
+    if (
+      !(await confirmDialog({
+        title: 'Delete this occurrence?',
+        description: `${exactTime(entry.occurred_at)} will be removed from the timeline.`,
+        confirmText: 'Delete entry',
+      }))
+    )
+      return;
     editor.cancel();
     await deleteEntry.mutateAsync({ eventId: event.id, entryId: entry.id });
     onOpenChange(false);
@@ -1221,15 +1310,17 @@ function EntryEditor({
                       inputMode="decimal"
                       step="any"
                       value={values[String(variable.id)] ?? ''}
-                      onChange={(input) => setValues({
-                        ...values,
-                        [String(variable.id)]: input.target.value,
-                      })}
+                      onChange={(input) =>
+                        setValues({
+                          ...values,
+                          [String(variable.id)]: input.target.value,
+                        })
+                      }
                       className={variable.unit ? 'pr-12' : undefined}
                       placeholder="Optional"
                     />
                     {variable.unit && (
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
                         {variable.unit}
                       </span>
                     )}
@@ -1239,7 +1330,9 @@ function EntryEditor({
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="event-entry-note">Note <span className="text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="event-entry-note">
+              Note <span className="text-muted-foreground">(optional)</span>
+            </Label>
             <Textarea
               id="event-entry-note"
               value={note}
@@ -1252,11 +1345,16 @@ function EntryEditor({
         <DialogFooter className={cn(entry && 'flex-row items-center')}>
           {entry && (
             <Button variant="destructive-quiet" onClick={remove} className="mr-auto">
-              <Trash2 className="size-4 mr-1" /> Delete
+              <Trash2 className="mr-1 size-4" /> Delete
             </Button>
           )}
-          <EditActions draft={editor} onCancel={() => onOpenChange(false)} onSave={() => void save()}
-            saveLabel={entry ? 'Save' : saving ? 'Logging…' : 'Log event'} disabled={saving || !date || !time} />
+          <EditActions
+            draft={editor}
+            onCancel={() => onOpenChange(false)}
+            onSave={() => void save()}
+            saveLabel={entry ? 'Save' : saving ? 'Logging…' : 'Log event'}
+            disabled={saving || !date || !time}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1268,7 +1366,9 @@ function EventDetailSkeleton() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
       <Skeleton className="h-60 rounded-[32px]" />
       <Skeleton className="mx-auto h-12 w-52 rounded-full" />
-      {[1, 2, 3].map((item) => <Skeleton key={item} className="h-24 rounded-[24px]" />)}
+      {[1, 2, 3].map((item) => (
+        <Skeleton key={item} className="h-24 rounded-[24px]" />
+      ))}
     </div>
   );
 }

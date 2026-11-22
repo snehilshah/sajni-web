@@ -40,18 +40,25 @@ export default function ShareCapturePage() {
 
   // Capture once on mount — runs even when logged out, before the redirect.
   const [text] = useState<string>(() => {
-    const incoming = [params.get('text'), params.get('title'), params.get('url')]
-      .filter(Boolean).join('\n').trim();
+    const incoming = [params.get('text'), params.get('title'), params.get('url')].filter(Boolean).join('\n').trim();
     if (incoming) {
-      try { sessionStorage.setItem(SHARE_KEY, incoming); } catch { /* ignore */ }
+      try {
+        sessionStorage.setItem(SHARE_KEY, incoming);
+      } catch {
+        /* ignore */
+      }
       return incoming;
     }
-    try { return sessionStorage.getItem(SHARE_KEY) || ''; } catch { return ''; }
+    try {
+      return sessionStorage.getItem(SHARE_KEY) || '';
+    } catch {
+      return '';
+    }
   });
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] grid place-items-center text-muted-foreground">
+      <div className="grid min-h-[100dvh] place-items-center text-muted-foreground">
         <M3CookieLoader size="xl" tone="primary" />
       </div>
     );
@@ -104,18 +111,24 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
   // Whatever surrounds the URL in the share payload is usually the page
   // title (YouTube shares "Title\nhttps://…"). Server-side fetch fills the
   // rest when this is blank.
-  const [title, setTitle] = useState(() =>
-    text.replace(URL_RE, '').replace(/\s+/g, ' ').trim().slice(0, 200),
-  );
+  const [title, setTitle] = useState(() => text.replace(URL_RE, '').replace(/\s+/g, ' ').trim().slice(0, 200));
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const createBookmark = useCreateBookmark();
 
   let host = '';
-  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
+  try {
+    host = new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    /* ignore */
+  }
 
   const done = (route?: string) => {
-    try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(SHARE_KEY);
+    } catch {
+      /* ignore */
+    }
     if (route) navigate(route, { replace: true });
   };
 
@@ -132,34 +145,36 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background grid place-items-start sm:place-items-center px-4 py-6">
+    <div className="grid min-h-[100dvh] place-items-start bg-background px-4 py-6 sm:place-items-center">
       <div className="w-full max-w-md rounded-2xl bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <button
             onClick={() => done(`/media?tab=${guessKind(url) === 'video' ? 'videos' : 'sites'}`)}
-            className="size-8 grid place-items-center rounded-md hover:bg-accent text-muted-foreground"
+            className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"
             aria-label="Back"
           >
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="serif text-lg font-semibold leading-tight">Save Bookmark</h1>
-            <p className="mono text-xs label-kicker text-muted-foreground flex items-center gap-1">
+            <h1 className="serif text-lg leading-tight font-semibold">Save Bookmark</h1>
+            <p className="mono label-kicker flex items-center gap-1 text-xs text-muted-foreground">
               <Sparkles className="size-3" /> review &amp; save
             </p>
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-muted/40 p-3 min-w-0">
+        <div className="mt-3 flex min-w-0 items-center gap-2.5 rounded-xl bg-muted/40 p-3">
           <img
             src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
             alt=""
-            className="size-8 rounded-md shrink-0 bg-background object-contain"
-            onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+            className="size-8 shrink-0 rounded-md bg-background object-contain"
+            onError={(e) => {
+              e.currentTarget.style.visibility = 'hidden';
+            }}
           />
           <div className="min-w-0">
-            <p className="mono text-xs label-kicker text-muted-foreground">{host || 'link'}</p>
-            <p className="text-xs text-muted-foreground truncate">{url}</p>
+            <p className="mono label-kicker text-xs text-muted-foreground">{host || 'link'}</p>
+            <p className="truncate text-xs text-muted-foreground">{url}</p>
           </div>
         </div>
 
@@ -185,7 +200,9 @@ function BookmarkCapture({ text, url }: { text: string; url: string }) {
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={() => done('/')} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={() => done('/')} disabled={saving}>
+            Cancel
+          </Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">
             {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
             Save
@@ -228,7 +245,9 @@ function Capture({ text }: { text: string }) {
     let alive = true;
     (async () => {
       const [accP, catP, pockP] = await Promise.allSettled([
-        finance.listAccounts(), finance.listCategories(), finance.listSlates(),
+        finance.listAccounts(),
+        finance.listCategories(),
+        finance.listSlates(),
       ]);
       if (!alive) return;
       const accs = accP.status === 'fulfilled' ? accP.value : [];
@@ -243,7 +262,11 @@ function Capture({ text }: { text: string }) {
 
       // Default account: last-used, else first.
       let last = '';
-      try { last = localStorage.getItem(LAST_ACCT_KEY) || ''; } catch { /* ignore */ }
+      try {
+        last = localStorage.getItem(LAST_ACCT_KEY) || '';
+      } catch {
+        /* ignore */
+      }
       const def = accs.find((a) => String(a.id) === last) || accs[0];
       if (def) setAccountId(String(def.id));
 
@@ -258,7 +281,11 @@ function Capture({ text }: { text: string }) {
           // Pre-fill the inferred / learned category (editable).
           if (p.category_id != null) setCategoryId(String(p.category_id));
           // txn_at = parsed date + parsed/fallback time (IST); split for the pickers.
-          if (p.txn_at) { const parts = txnAtToParts(p.txn_at); setDate(parts.date); setTime(parts.time); }
+          if (p.txn_at) {
+            const parts = txnAtToParts(p.txn_at);
+            setDate(parts.date);
+            setTime(parts.time);
+          }
           if (p.account_hint) setAccountHint(p.account_hint);
           // Account match now resolved server-side (one source of truth for
           // web + android); pre-select the returned account.
@@ -273,7 +300,9 @@ function Capture({ text }: { text: string }) {
       }
       if (alive) setParsing(false);
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [text]);
 
   const filteredCats = categories.filter((c) => c.kind === type);
@@ -285,10 +314,22 @@ function Capture({ text }: { text: string }) {
 
   const save = async () => {
     const amt = parseFloat(amount);
-    if (!accountId) { toast.error('Pick an account'); return; }
-    if (!(amt > 0)) { toast.error('Enter a valid amount'); return; }
-    if (!description.trim()) { toast.error('Add a title'); return; }
-    if (splitResult?.error) { setSplitError(splitResult.error); return; }
+    if (!accountId) {
+      toast.error('Pick an account');
+      return;
+    }
+    if (!(amt > 0)) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    if (!description.trim()) {
+      toast.error('Add a title');
+      return;
+    }
+    if (splitResult?.error) {
+      setSplitError(splitResult.error);
+      return;
+    }
     setSaving(true);
     try {
       await finance.createTransaction({
@@ -304,11 +345,23 @@ function Capture({ text }: { text: string }) {
         // No due date sent: a card charge is due with that cycle's bill.
         ...(splitResult ? splitDraft(splitResult.shares) : {}),
       });
-      try { localStorage.setItem(LAST_ACCT_KEY, accountId); } catch { /* ignore */ }
-      try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(LAST_ACCT_KEY, accountId);
+      } catch {
+        /* ignore */
+      }
+      try {
+        sessionStorage.removeItem(SHARE_KEY);
+      } catch {
+        /* ignore */
+      }
       // Refresh any warm finance views (balances, ledger, overview).
       qc.invalidateQueries({ queryKey: qk.finance.all });
-      toast.success(allTheirs && splitResult?.shares.length === 1 ? `Lent to ${splitResult.shares[0].borrower}` : 'Transaction added');
+      toast.success(
+        allTheirs && splitResult?.shares.length === 1
+          ? `Lent to ${splitResult.shares[0].borrower}`
+          : 'Transaction added',
+      );
       navigate('/finance/transactions', { replace: true });
     } catch (e) {
       toast.error('Could not save: ' + (e as Error).message);
@@ -318,27 +371,35 @@ function Capture({ text }: { text: string }) {
   };
 
   const cancel = () => {
-    try { sessionStorage.removeItem(SHARE_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(SHARE_KEY);
+    } catch {
+      /* ignore */
+    }
     navigate('/finance', { replace: true });
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background grid place-items-start sm:place-items-center px-4 py-6">
+    <div className="grid min-h-[100dvh] place-items-start bg-background px-4 py-6 sm:place-items-center">
       <div className="w-full max-w-md rounded-2xl bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
-          <button onClick={cancel} className="size-8 grid place-items-center rounded-md hover:bg-accent text-muted-foreground" aria-label="Back">
+          <button
+            onClick={cancel}
+            className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+            aria-label="Back"
+          >
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="serif text-lg font-semibold leading-tight">Add from Shared Message</h1>
-            <p className="mono text-xs label-kicker text-muted-foreground flex items-center gap-1">
+            <h1 className="serif text-lg leading-tight font-semibold">Add from Shared Message</h1>
+            <p className="mono label-kicker flex items-center gap-1 text-xs text-muted-foreground">
               <Sparkles className="size-3" /> {parsing ? 'Sajni reading…' : 'review & save'}
             </p>
           </div>
         </div>
 
         {text ? (
-          <p className="mt-3 text-xs text-muted-foreground bg-muted/40 rounded-md p-2 line-clamp-3 whitespace-pre-wrap">
+          <p className="mt-3 line-clamp-3 rounded-md bg-muted/40 p-2 text-xs whitespace-pre-wrap text-muted-foreground">
             {text}
           </p>
         ) : (
@@ -351,8 +412,12 @@ function Capture({ text }: { text: string }) {
             {(['expense', 'income'] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { setType(t); setCategoryId(''); if (t !== 'expense') setSplitOn(false); }}
-                className={`py-1.5 text-xs font-medium rounded transition-colors capitalize ${
+                onClick={() => {
+                  setType(t);
+                  setCategoryId('');
+                  if (t !== 'expense') setSplitOn(false);
+                }}
+                className={`rounded py-1.5 text-xs font-medium capitalize transition-colors ${
                   type === t ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -372,16 +437,24 @@ function Capture({ text }: { text: string }) {
             />
           </Field>
 
-          <Field label="Account" className="col-span-2" hint={accountHint ? `${matched ? 'matched' : 'detected'} · ${accountHint}` : undefined}>
+          <Field
+            label="Account"
+            className="col-span-2"
+            hint={accountHint ? `${matched ? 'matched' : 'detected'} · ${accountHint}` : undefined}
+          >
             <Select
               value={accountId || null}
               onValueChange={(v) => setAccountId(v ?? '')}
               items={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
             >
-              <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Select account" />
+              </SelectTrigger>
               <SelectContent>
                 {accounts.map((a) => (
-                  <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -389,15 +462,16 @@ function Capture({ text }: { text: string }) {
 
           {!allTheirs && (
             <Field label={splitting ? 'Category of your part' : 'Category'} className="col-span-2">
-              <CategoryChips categories={filteredCats} value={categoryId} onChange={(v) => setCategoryId(v === categoryId ? '' : v)} />
+              <CategoryChips
+                categories={filteredCats}
+                value={categoryId}
+                onChange={(v) => setCategoryId(v === categoryId ? '' : v)}
+              />
             </Field>
           )}
 
           {slates.length > 0 && (
-            <Field
-              label="Slate"
-              className="col-span-2"
-            >
+            <Field label="Slate" className="col-span-2">
               <Select
                 value={slateId}
                 onValueChange={(v) => setSlateId(v ?? '0')}
@@ -406,23 +480,40 @@ function Capture({ text }: { text: string }) {
                   ...slates.filter((p) => !p.archived).map((p) => ({ value: String(p.id), label: p.name })),
                 ]}
               >
-                <SelectTrigger><SelectValue placeholder="General" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="General" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">General</SelectItem>
-                  {slates.filter((p) => !p.archived).map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                  ))}
+                  {slates
+                    .filter((p) => !p.archived)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </Field>
           )}
 
           <Field label="Title" className="col-span-2">
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} aria-invalid={!description.trim()} placeholder="Merchant / who it was with" maxLength={120} />
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              aria-invalid={!description.trim()}
+              placeholder="Merchant / who it was with"
+              maxLength={120}
+            />
           </Field>
 
           <Field label="Note" className="col-span-2">
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Extra context: ref no., purpose. Use #tags." maxLength={1000} />
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Extra context: ref no., purpose. Use #tags."
+              maxLength={1000}
+            />
           </Field>
 
           <Field label="Date">
@@ -433,28 +524,50 @@ function Capture({ text }: { text: string }) {
             <TimePicker value={time} onChange={setTime} />
           </Field>
 
-          {type === 'expense' && (splitOn ? (
-            <div className="col-span-2">
-              <AddonSection label={allTheirs && splitResult?.shares.length === 1 ? 'Lend to' : 'Split with'} onRemove={() => { setSplitOn(false); setSplitError({}); }}>
-                <SplitFields value={split} onChange={(next) => { setSplit(next); setSplitError({}); }} total={total}
-                  suggestions={people.map((p) => p.borrower)} errors={splitError} autoFocus />
-              </AddonSection>
-            </div>
-          ) : (
-            <div className="col-span-2">
-              <button
-                type="button"
-                onClick={() => { setSplitOn(true); setSplit(emptySplit()); setSplitError({}); }}
-                className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
-              >
-                <Plus className="size-3.5" /> Split
-              </button>
-            </div>
-          ))}
+          {type === 'expense' &&
+            (splitOn ? (
+              <div className="col-span-2">
+                <AddonSection
+                  label={allTheirs && splitResult?.shares.length === 1 ? 'Lend to' : 'Split with'}
+                  onRemove={() => {
+                    setSplitOn(false);
+                    setSplitError({});
+                  }}
+                >
+                  <SplitFields
+                    value={split}
+                    onChange={(next) => {
+                      setSplit(next);
+                      setSplitError({});
+                    }}
+                    total={total}
+                    suggestions={people.map((p) => p.borrower)}
+                    errors={splitError}
+                    autoFocus
+                  />
+                </AddonSection>
+              </div>
+            ) : (
+              <div className="col-span-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSplitOn(true);
+                    setSplit(emptySplit());
+                    setSplitError({});
+                  }}
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-[hsl(var(--outline-variant))] px-3 text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45"
+                >
+                  <Plus className="size-3.5" /> Split
+                </button>
+              </div>
+            ))}
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={cancel} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={cancel} disabled={saving}>
+            Cancel
+          </Button>
           <Button onClick={save} disabled={saving || parsing} className="gap-1.5">
             {saving && <M3CookieLoader size="xs" tone="primary" className="!text-primary-foreground" />}
             Save {amount && parseFloat(amount) > 0 ? formatMoney(parseFloat(amount)) : ''}
@@ -465,7 +578,12 @@ function Capture({ text }: { text: string }) {
   );
 }
 
-function Field({ label, className = '', children, hint }: {
+function Field({
+  label,
+  className = '',
+  children,
+  hint,
+}: {
   label: string;
   className?: string;
   children: React.ReactNode;
@@ -474,8 +592,8 @@ function Field({ label, className = '', children, hint }: {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <Label className="font-mono text-xs label-kicker text-muted-foreground">{label}</Label>
-        {hint && <span className="font-mono text-xs label-kicker text-primary">{hint}</span>}
+        <Label className="label-kicker font-mono text-xs text-muted-foreground">{label}</Label>
+        {hint && <span className="label-kicker font-mono text-xs text-primary">{hint}</span>}
       </div>
       {children}
     </div>

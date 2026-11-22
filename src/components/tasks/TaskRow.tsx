@@ -3,7 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import {
-  Star, ChevronDown, Plus, ListChecks, Clock, Bell, Check, X, CornerDownRight, GitBranch, StickyNote, Repeat, CalendarClock,
+  Star,
+  ChevronDown,
+  Plus,
+  ListChecks,
+  Clock,
+  Bell,
+  Check,
+  X,
+  CornerDownRight,
+  GitBranch,
+  StickyNote,
+  Repeat,
+  CalendarClock,
 } from '@/components/ui/icons';
 import { repeatLabel, repeats } from './RepeatPicker';
 import { M3CookieLoader } from '@/components/ui/shapes';
@@ -12,7 +24,11 @@ import type { Task, TaskStep } from '@/types';
 import TagPill from '@/components/TagPill';
 import { Input } from '@/components/ui/input';
 import {
-  useToggleTaskStatus, useToggleTaskImportant, useCreateTask, useSubtasks, usePrefetchSubtasks,
+  useToggleTaskStatus,
+  useToggleTaskImportant,
+  useCreateTask,
+  useSubtasks,
+  usePrefetchSubtasks,
 } from '@/queries/tasks';
 import { priorityBox } from './grouping';
 import { cn } from '@/lib/utils';
@@ -35,7 +51,13 @@ interface Props {
 // instant; we lazy-fetch only as a fallback. Clicking the body opens the
 // detail dialog (via onClick).
 export default function TaskRow({
-  task, onClick, depth = 0, compact = false, attached = false, first = false, showStatus = false,
+  task,
+  onClick,
+  depth = 0,
+  compact = false,
+  attached = false,
+  first = false,
+  showStatus = false,
 }: Props) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
@@ -56,10 +78,13 @@ export default function TaskRow({
   const subs = embedded ?? fetched;
   const loadingSubs = !embedded && loadingFetched;
 
-  const overdue = task.due_date && task.status !== 'done' && (() => {
-    const d = parseISO(task.due_date);
-    return !isToday(d) && isPast(d);
-  })();
+  const overdue =
+    task.due_date &&
+    task.status !== 'done' &&
+    (() => {
+      const d = parseISO(task.due_date);
+      return !isToday(d) && isPast(d);
+    })();
 
   const doneSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
@@ -90,7 +115,11 @@ export default function TaskRow({
 
   const addSubtask = async () => {
     const title = subDraft.trim();
-    if (!title) { setAddingSub(false); setSubDraft(''); return; }
+    if (!title) {
+      setAddingSub(false);
+      setSubDraft('');
+      return;
+    }
     setSubDraft('');
     setAddingSub(false);
     await createTask.mutateAsync({
@@ -109,271 +138,313 @@ export default function TaskRow({
   const neutral = 'bg-[hsl(var(--on-surface)/0.06)]';
   const calendarIcon = (
     <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
+      <rect x="2" y="3" width="12" height="11" rx="1.5" />
+      <path d="M2 6h12M5 1.5v3M11 1.5v3" strokeLinecap="round" />
     </svg>
   );
 
   const row = (
-      <div
-        onClick={onClick}
-        className={cn(
-          '@container group cursor-pointer transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] text-left',
-          attached
-            ? cn('bg-transparent hover:bg-[hsl(var(--on-surface)/0.04)]', !first && 'border-t border-[hsl(var(--background))] border-t-2')
-            : 'hover:bg-[hsl(var(--on-surface)/0.03)]',
-          dimmed && 'opacity-60',
-        )}
-      >
-        <div className={cn('flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
-          {/* Done checkbox — 24px visual, padded to a comfortable target */}
-          <motion.button
-            onClick={handleToggleStatus}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-            className="shrink-0 -m-2 p-2 flex items-center justify-center"
-            title={task.status === 'done' ? 'Mark not done' : 'Mark done'}
-          >
-            {/* M3 Expressive shape morph: soft square while open, full
+    <div
+      onClick={onClick}
+      className={cn(
+        'group @container cursor-pointer text-left transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
+        attached
+          ? cn(
+              'bg-transparent hover:bg-[hsl(var(--on-surface)/0.04)]',
+              !first && 'border-t border-t-2 border-[hsl(var(--background))]',
+            )
+          : 'hover:bg-[hsl(var(--on-surface)/0.03)]',
+        dimmed && 'opacity-60',
+      )}
+    >
+      <div className={cn('flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
+        {/* Done checkbox — 24px visual, padded to a comfortable target */}
+        <motion.button
+          onClick={handleToggleStatus}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+          className="-m-2 flex shrink-0 items-center justify-center p-2"
+          title={task.status === 'done' ? 'Mark not done' : 'Mark done'}
+        >
+          {/* M3 Expressive shape morph: soft square while open, full
                 circle once done — the state change reads in silhouette. */}
-            <motion.span
-              initial={false}
-              animate={{ borderRadius: task.status === 'done' ? '50%' : '32%' }}
-              transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-              className={`size-7 border-2 flex items-center justify-center transition-colors
-				${task.status === 'done'
-				  ? 'border-primary bg-primary text-primary-foreground'
-				  : task.status === 'blocked'
-				    ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
-				    : ''}`}
-              // Priority is the box: its colour (or the task's own) as border and a light fill.
-              style={task.status === 'done' || task.status === 'blocked' ? undefined : priorityBox(task.priority, task.color)}
-            >
-              <AnimatePresence>
-                {task.status === 'done' && (
-                  <motion.svg
-                    viewBox="0 0 12 12"
-                    className="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    initial={{ transform: 'scale(0.95)', opacity: 0 }}
-                    animate={{ transform: 'scale(1)', opacity: 1 }}
-                    exit={{ transform: 'scale(0.95)', opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 520, damping: 22 }}
-                  >
-                    <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
-                  </motion.svg>
-                )}
-              </AnimatePresence>
-            </motion.span>
-          </motion.button>
+          <motion.span
+            initial={false}
+            animate={{ borderRadius: task.status === 'done' ? '50%' : '32%' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+            className={`flex size-7 items-center justify-center border-2 transition-colors ${
+              task.status === 'done'
+                ? 'border-primary bg-primary text-primary-foreground'
+                : task.status === 'blocked'
+                  ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
+                  : ''
+            }`}
+            // Priority is the box: its colour (or the task's own) as border and a light fill.
+            style={
+              task.status === 'done' || task.status === 'blocked' ? undefined : priorityBox(task.priority, task.color)
+            }
+          >
+            <AnimatePresence>
+              {task.status === 'done' && (
+                <motion.svg
+                  viewBox="0 0 12 12"
+                  className="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  initial={{ transform: 'scale(0.95)', opacity: 0 }}
+                  animate={{ transform: 'scale(1)', opacity: 1 }}
+                  exit={{ transform: 'scale(0.95)', opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+                >
+                  <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
+                </motion.svg>
+              )}
+            </AnimatePresence>
+          </motion.span>
+        </motion.button>
 
-          <div className="flex flex-1 min-w-0 items-center gap-2.5">
-            <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
-              {task.title}
-            </span>
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span
+            className={cn(
+              'min-w-0 flex-1 truncate text-[0.9375rem] leading-snug font-medium',
+              dimmed && 'line-through',
+            )}
+          >
+            {task.title}
+          </span>
 
-            <div className="flex min-w-0 shrink items-center gap-1.5 text-muted-foreground">
-              {/* A subtask listed flat (smart lists, Missed, All) names its
+          <div className="flex min-w-0 shrink items-center gap-1.5 text-muted-foreground">
+            {/* A subtask listed flat (smart lists, Missed, All) names its
                   parent in the first chip, so the title keeps its line;
                   tapping it opens the parent. */}
-              {showParent && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.parent_task_id } }));
-                  }}
-                  title={`Subtask of ${task.parent_task_title || 'another task'}`}
-                  className={cn(chip, neutral, 'min-w-0 shrink max-w-40 hover:text-foreground')}
-                >
-                  <CornerDownRight className="size-3 shrink-0" aria-hidden />
-                  <span className="truncate">{task.parent_task_title || 'Subtask'}</span>
-                </button>
-              )}
-              {/* A planned task names its Journal plan; tapping opens that
+            {showParent && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.parent_task_id } }));
+                }}
+                title={`Subtask of ${task.parent_task_title || 'another task'}`}
+                className={cn(chip, neutral, 'max-w-40 min-w-0 shrink hover:text-foreground')}
+              >
+                <CornerDownRight className="size-3 shrink-0" aria-hidden />
+                <span className="truncate">{task.parent_task_title || 'Subtask'}</span>
+              </button>
+            )}
+            {/* A planned task names its Journal plan; tapping opens that
                   day in Journal, where the plan lists it. */}
-              {task.plan_id != null && task.plan_name && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(task.due_date ? `/journal?date=${task.due_date}` : '/journal');
-                  }}
-                  title={`Planned for ${task.plan_name}`}
-                  className={cn(chip, neutral, 'min-w-0 shrink max-w-40 hover:text-foreground')}
-                >
-                  <CalendarClock className="size-3 shrink-0" aria-hidden />
-                  <span className="truncate">{task.plan_name}</span>
-                </button>
-              )}
-              {repeats(task.recurrence) && (
-                <span title={`Repeats ${repeatLabel(task.recurrence).toLowerCase()}`} className={cn(chip, neutral, 'min-w-0 shrink max-w-36')}>
-                  <Repeat className="size-3 shrink-0" aria-hidden />
-                  <span className="hidden truncate @md:inline">{repeatLabel(task.recurrence)}</span>
-                </span>
-              )}
-              {task.tags && task.tags.length > 0 && (
-                <span className="hidden @2xl:inline-flex items-center gap-1">
-                  {task.tags.slice(0, 2).map((tag) => <TagPill key={tag} tag={tag} />)}
-                  {task.tags.length > 2 && <span className="text-xs">+{task.tags.length - 2}</span>}
-                </span>
-              )}
-              {Boolean(task.description?.trim()) && (
-                <StickyNote className="hidden @md:block size-3.5 shrink-0" aria-label="Has note" />
-              )}
-              {task.status === 'scratched' && <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.08)]')}>scratched</span>}
-              {task.due_date ? (
-                <span
-                  className={cn(chip, 'hidden @xs:inline-flex', overdue
-                    ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]'
-                    : neutral)}
-                  title={overdue ? 'Overdue' : 'Day task'}
-                >
-                  {calendarIcon} {format(parseISO(task.due_date), 'MMM d')}
-                </span>
-              ) : task.week_of ? (
-                <span className={cn(chip, neutral, 'hidden @xs:inline-flex')} title="Week task">
-                  {calendarIcon} Wk {format(parseISO(task.week_of), 'MMM d')}
-                </span>
-              ) : task.month_of ? (
-                <span className={cn(chip, neutral, 'hidden @xs:inline-flex')} title="Month goal">
-                  {calendarIcon} {format(parseISO(task.month_of), 'MMMM')}
-                </span>
-              ) : null}
-              {task.scheduled_at && (
-                <span
-                  className={cn(chip, 'hidden @sm:inline-flex', task.remind
+            {task.plan_id != null && task.plan_name && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(task.due_date ? `/journal?date=${task.due_date}` : '/journal');
+                }}
+                title={`Planned for ${task.plan_name}`}
+                className={cn(chip, neutral, 'max-w-40 min-w-0 shrink hover:text-foreground')}
+              >
+                <CalendarClock className="size-3 shrink-0" aria-hidden />
+                <span className="truncate">{task.plan_name}</span>
+              </button>
+            )}
+            {repeats(task.recurrence) && (
+              <span
+                title={`Repeats ${repeatLabel(task.recurrence).toLowerCase()}`}
+                className={cn(chip, neutral, 'max-w-36 min-w-0 shrink')}
+              >
+                <Repeat className="size-3 shrink-0" aria-hidden />
+                <span className="hidden truncate @md:inline">{repeatLabel(task.recurrence)}</span>
+              </span>
+            )}
+            {task.tags && task.tags.length > 0 && (
+              <span className="hidden items-center gap-1 @2xl:inline-flex">
+                {task.tags.slice(0, 2).map((tag) => (
+                  <TagPill key={tag} tag={tag} />
+                ))}
+                {task.tags.length > 2 && <span className="text-xs">+{task.tags.length - 2}</span>}
+              </span>
+            )}
+            {Boolean(task.description?.trim()) && (
+              <StickyNote className="hidden size-3.5 shrink-0 @md:block" aria-label="Has note" />
+            )}
+            {task.status === 'scratched' && (
+              <span className={cn(chip, 'bg-[hsl(var(--on-surface)/0.08)]')}>scratched</span>
+            )}
+            {task.due_date ? (
+              <span
+                className={cn(
+                  chip,
+                  'hidden @xs:inline-flex',
+                  overdue ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]' : neutral,
+                )}
+                title={overdue ? 'Overdue' : 'Day task'}
+              >
+                {calendarIcon} {format(parseISO(task.due_date), 'MMM d')}
+              </span>
+            ) : task.week_of ? (
+              <span className={cn(chip, neutral, 'hidden @xs:inline-flex')} title="Week task">
+                {calendarIcon} Wk {format(parseISO(task.week_of), 'MMM d')}
+              </span>
+            ) : task.month_of ? (
+              <span className={cn(chip, neutral, 'hidden @xs:inline-flex')} title="Month goal">
+                {calendarIcon} {format(parseISO(task.month_of), 'MMMM')}
+              </span>
+            ) : null}
+            {task.scheduled_at && (
+              <span
+                className={cn(
+                  chip,
+                  'hidden @sm:inline-flex',
+                  task.remind
                     ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
-                    : 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]')}
-                  title={task.remind ? 'Reminder set' : 'Scheduled'}
-                >
-                  {task.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
-                  {format(parseISO(task.scheduled_at), 'h:mm a')}
+                    : 'bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]',
+                )}
+                title={task.remind ? 'Reminder set' : 'Scheduled'}
+              >
+                {task.remind ? <Bell className="size-2.5 fill-current" /> : <Clock className="size-2.5" />}
+                {format(parseISO(task.scheduled_at), 'h:mm a')}
+              </span>
+            )}
+            {totalSteps > 0 && (
+              <span className={cn(chip, neutral, 'hidden @sm:inline-flex')} title="Steps">
+                <ListChecks className="size-3" />
+                <span className="tabular-nums">
+                  {doneSteps}/{totalSteps}
                 </span>
-              )}
-              {totalSteps > 0 && (
-                <span className={cn(chip, neutral, 'hidden @sm:inline-flex')} title="Steps">
-                  <ListChecks className="size-3" />
-                  <span className="tabular-nums">{doneSteps}/{totalSteps}</span>
+              </span>
+            )}
+            {hasSubtasks && (
+              <button
+                type="button"
+                onClick={toggleExpand}
+                onPointerEnter={() => {
+                  if (!embedded) void prefetchSubtasks(task.id);
+                }}
+                onFocus={() => {
+                  if (!embedded) void prefetchSubtasks(task.id);
+                }}
+                aria-expanded={expanded}
+                aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
+                title={expanded ? 'Hide subtasks' : 'View subtasks'}
+                // Taller than the info chips because it's the row's one
+                // control; the hit area grows to the row's full height.
+                className={cn(
+                  'relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full pr-1.5 pl-2 text-xs leading-none font-medium transition-colors',
+                  'before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[""]',
+                  expanded
+                    ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
+                    : 'bg-[hsl(var(--on-surface)/0.06)] text-foreground/80 hover:bg-[hsl(var(--secondary-container))] hover:text-[hsl(var(--on-secondary-container))]',
+                )}
+              >
+                <SubtaskRing done={task.subtasks_done ?? 0} total={task.subtask_count ?? 0} />
+                <span className="tabular-nums">
+                  {task.subtasks_done ?? 0}/{task.subtask_count ?? 0}
                 </span>
-              )}
-              {hasSubtasks && (
-                <button
-                  type="button"
-                  onClick={toggleExpand}
-                  onPointerEnter={() => { if (!embedded) void prefetchSubtasks(task.id); }}
-                  onFocus={() => { if (!embedded) void prefetchSubtasks(task.id); }}
-                  aria-expanded={expanded}
-                  aria-label={expanded ? 'Hide subtasks' : `View ${task.subtask_count ?? 0} subtasks`}
-                  title={expanded ? 'Hide subtasks' : 'View subtasks'}
-                  // Taller than the info chips because it's the row's one
-                  // control; the hit area grows to the row's full height.
-                  className={cn(
-                    'relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-1.5 text-xs font-medium leading-none transition-colors',
-                    'before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[""]',
-                    expanded
-                      ? 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]'
-                      : 'bg-[hsl(var(--on-surface)/0.06)] text-foreground/80 hover:bg-[hsl(var(--secondary-container))] hover:text-[hsl(var(--on-secondary-container))]',
-                  )}
-                >
-                  <SubtaskRing done={task.subtasks_done ?? 0} total={task.subtask_count ?? 0} />
-                  <span className="tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
-                  <ChevronDown className={cn('size-4 transition-transform duration-200', expanded && 'rotate-180')} />
-                </button>
-              )}
-              {showStatus && task.status === 'in_progress' && (
-                <span className={cn(chip, 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}>In progress</span>
-              )}
-              {task.status === 'blocked' && (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (task.blocked_by_task_id) {
-                      window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.blocked_by_task_id } }));
-                    }
-                  }}
-                  className={cn(chip, 'min-w-0 bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}
-                  title={task.blocked_by_task_title ? `Blocked by ${task.blocked_by_task_title}` : 'Blocked'}
-                >
-                  <GitBranch className="size-3 shrink-0" />
-                  <span className="@lg:hidden">Blocked</span>
-                  <span className="hidden @lg:inline truncate max-w-40">Blocked by {task.blocked_by_task_title || 'another task'}</span>
-                </button>
-              )}
-            </div>
+                <ChevronDown className={cn('size-4 transition-transform duration-200', expanded && 'rotate-180')} />
+              </button>
+            )}
+            {showStatus && task.status === 'in_progress' && (
+              <span
+                className={cn(chip, 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}
+              >
+                In progress
+              </span>
+            )}
+            {task.status === 'blocked' && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (task.blocked_by_task_id) {
+                    window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.blocked_by_task_id } }));
+                  }
+                }}
+                className={cn(chip, 'min-w-0 bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}
+                title={task.blocked_by_task_title ? `Blocked by ${task.blocked_by_task_title}` : 'Blocked'}
+              >
+                <GitBranch className="size-3 shrink-0" />
+                <span className="@lg:hidden">Blocked</span>
+                <span className="hidden max-w-40 truncate @lg:inline">
+                  Blocked by {task.blocked_by_task_title || 'another task'}
+                </span>
+              </button>
+            )}
           </div>
-
-          <button
-            onClick={handleToggleStar}
-            className={`-m-1.5 p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-[hsl(var(--surface-container-high))] transition-[background-color,color,opacity] shrink-0 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
-            title={task.important ? 'Remove from Important' : 'Mark important'}
-          >
-            <Star className={`size-[18px] ${task.important ? 'fill-current' : ''}`} />
-          </button>
         </div>
+
+        <button
+          onClick={handleToggleStar}
+          className={`-m-1.5 shrink-0 rounded-full p-1.5 opacity-60 transition-[background-color,color,opacity] hover:bg-[hsl(var(--surface-container-high))] hover:opacity-100 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}
+          title={task.important ? 'Remove from Important' : 'Mark important'}
+        >
+          <Star className={`size-[18px] ${task.important ? 'fill-current' : ''}`} />
+        </button>
       </div>
+    </div>
   );
 
   const children = (
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0, transform: 'translateY(-4px)' }}
-            animate={{ opacity: 1, transform: 'translateY(0)' }}
-            exit={{ opacity: 0, transform: 'translateY(-4px)' }}
-            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-            className="overflow-hidden flex flex-col border-t border-border/50 bg-[hsl(var(--surface-container-low))] pl-6"
-          >
-            {loadingSubs && (
-              <div className="text-sm text-muted-foreground flex items-center gap-2.5 px-3 py-3">
-                <M3CookieLoader size="sm" tone="secondary" /> Loading…
-              </div>
-            )}
+    <AnimatePresence initial={false}>
+      {expanded && (
+        <motion.div
+          initial={{ opacity: 0, transform: 'translateY(-4px)' }}
+          animate={{ opacity: 1, transform: 'translateY(0)' }}
+          exit={{ opacity: 0, transform: 'translateY(-4px)' }}
+          transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+          className="flex flex-col overflow-hidden border-t border-border/50 bg-[hsl(var(--surface-container-low))] pl-6"
+        >
+          {loadingSubs && (
+            <div className="flex items-center gap-2.5 px-3 py-3 text-sm text-muted-foreground">
+              <M3CookieLoader size="sm" tone="secondary" /> Loading…
+            </div>
+          )}
 
-            {subs && subs.length === 0 && !addingSub && (
-              <div className="text-sm text-muted-foreground italic px-3 py-3">No subtasks yet. Break this down.</div>
-            )}
+          {subs && subs.length === 0 && !addingSub && (
+            <div className="px-3 py-3 text-sm text-muted-foreground italic">No subtasks yet. Break this down.</div>
+          )}
 
-            {subs?.map((sub, idx) => (
-              <TaskRow
-                key={sub.id}
-                task={sub}
-                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
-                compact
-                attached
-                first={idx === 0}
+          {subs?.map((sub, idx) => (
+            <TaskRow
+              key={sub.id}
+              task={sub}
+              onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: sub.id } }))}
+              compact
+              attached
+              first={idx === 0}
+            />
+          ))}
+
+          {addingSub ? (
+            <div className="border-t border-border/50 px-3 py-2.5">
+              <Input
+                name={`subtask-${task.id}`}
+                autoFocus
+                placeholder="New subtask"
+                value={subDraft}
+                onChange={(e) => setSubDraft(e.target.value)}
+                onBlur={addSubtask}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addSubtask();
+                  if (e.key === 'Escape') {
+                    setAddingSub(false);
+                    setSubDraft('');
+                  }
+                }}
+                className="h-10 text-sm"
               />
-            ))}
-
-            {addingSub ? (
-              <div className="px-3 py-2.5 border-t border-border/50">
-                <Input
-                  name={`subtask-${task.id}`}
-                  autoFocus
-                  placeholder="New subtask"
-                  value={subDraft}
-                  onChange={(e) => setSubDraft(e.target.value)}
-                  onBlur={addSubtask}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') addSubtask();
-                    if (e.key === 'Escape') { setAddingSub(false); setSubDraft(''); }
-                  }}
-                  className="h-10 text-sm"
-                />
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingSub(true)}
-                className="inline-flex min-h-11 w-full items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5 text-left text-sm font-medium text-[hsl(var(--on-secondary-container))] transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]"
-              >
-                <Plus className="size-4" strokeWidth={2.5} /> Add subtask
-              </button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingSub(true)}
+              className="inline-flex min-h-11 w-full items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5 text-left text-sm font-medium text-[hsl(var(--on-secondary-container))] transition-colors hover:bg-[hsl(var(--on-surface)/0.04)]"
+            >
+              <Plus className="size-4" strokeWidth={2.5} /> Add subtask
+            </button>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   // Attached children render bare inside their parent's card; every top-level
@@ -408,7 +479,9 @@ export default function TaskRow({
 // Enter or toggled/removed, so the parent dialog can persist without
 // requiring a separate Save click.
 export function StepsEditor({
-  steps, onChange, onCommit,
+  steps,
+  onChange,
+  onCommit,
 }: {
   steps: TaskStep[];
   onChange: (next: TaskStep[]) => void;
@@ -440,7 +513,7 @@ export function StepsEditor({
     <div className="flex flex-col gap-0.5">
       {steps.length > 0 && (
         <div className="flex items-center gap-2 px-1.5 pb-1">
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <WavyProgress
               value={(doneCount / steps.length) * 100}
               height={10}
@@ -448,7 +521,9 @@ export function StepsEditor({
               label="Steps"
             />
           </div>
-          <span className="mono text-xs tabular-nums text-muted-foreground shrink-0">{doneCount}/{steps.length}</span>
+          <span className="mono shrink-0 text-xs text-muted-foreground tabular-nums">
+            {doneCount}/{steps.length}
+          </span>
         </div>
       )}
       <AnimatePresence initial={false}>
@@ -460,15 +535,14 @@ export function StepsEditor({
             animate={{ opacity: 1, transform: 'translateY(0)' }}
             exit={{ opacity: 0, transform: 'translateY(-2px)' }}
             transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-            className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1 hover:bg-[hsl(var(--surface-container-high))] transition-colors"
+            className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1 transition-colors hover:bg-[hsl(var(--surface-container-high))]"
           >
             <motion.button
               type="button"
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 500, damping: 24 }}
               onClick={() => update(s.id, { done: !s.done })}
-              className={`size-[18px] rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
-                ${s.done ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
+              className={`flex size-[18px] shrink-0 items-center justify-center rounded-md border-2 transition-colors ${s.done ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))] hover:border-primary'}`}
               aria-pressed={s.done}
             >
               <AnimatePresence>
@@ -488,12 +562,12 @@ export function StepsEditor({
               name={`step-${s.id}`}
               value={s.text}
               onChange={(e) => update(s.id, { text: e.target.value })}
-              className={`flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm ${s.done ? 'line-through text-muted-foreground' : ''}`}
+              className={`h-7 flex-1 border-0 bg-transparent px-1 py-0 text-sm shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none ${s.done ? 'text-muted-foreground line-through' : ''}`}
             />
             <button
               type="button"
               onClick={() => remove(s.id)}
-              className="opacity-0 group-hover:opacity-100 size-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground transition-[background-color,color,opacity] shrink-0"
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[background-color,color,opacity] group-hover:opacity-100 hover:bg-[hsl(var(--on-surface)/0.08)] hover:text-foreground"
               title="Remove step"
             >
               <X className="size-3.5" />
@@ -502,7 +576,7 @@ export function StepsEditor({
         ))}
       </AnimatePresence>
       <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-1">
-        <span className="size-[18px] rounded-md border-2 border-dashed border-[hsl(var(--outline)/0.6)] inline-flex items-center justify-center shrink-0 text-muted-foreground/60">
+        <span className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-md border-2 border-dashed border-[hsl(var(--outline)/0.6)] text-muted-foreground/60">
           <Plus className="size-3" strokeWidth={2.5} />
         </span>
         <Input
@@ -510,16 +584,19 @@ export function StepsEditor({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); add(); }
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
           }}
           placeholder="Add a step"
-          className="flex-1 h-7 border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:border-0 focus-visible:shadow-none text-sm placeholder:text-muted-foreground/50"
+          className="h-7 flex-1 border-0 bg-transparent px-1 py-0 text-sm shadow-none outline-none placeholder:text-muted-foreground/50 focus-visible:border-0 focus-visible:shadow-none"
         />
         {draft && (
           <button
             type="button"
             onClick={add}
-            className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))] text-xs font-medium px-3 py-1 hover:opacity-90 transition-opacity"
+            className="shrink-0 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1 text-xs font-medium text-[hsl(var(--on-secondary-container))] transition-opacity hover:opacity-90"
           >
             Add
           </button>
@@ -539,8 +616,16 @@ function SubtaskRing({ done, total }: { done: number; total: number }) {
     <svg viewBox="0 0 16 16" className="size-4 shrink-0 -rotate-90" aria-hidden>
       <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity={0.22} strokeWidth="2.5" />
       {frac > 0 && (
-        <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-          strokeDasharray={`${c * frac} ${c}`} />
+        <circle
+          cx="8"
+          cy="8"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={`${c * frac} ${c}`}
+        />
       )}
     </svg>
   );

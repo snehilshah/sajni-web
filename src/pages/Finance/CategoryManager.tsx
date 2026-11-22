@@ -19,7 +19,10 @@ import { CategoryPill } from './CategoryChips';
  * itself can only be recoloured).
  */
 export default function CategoryManager({
-  open, categories, onClose, onChanged,
+  open,
+  categories,
+  onClose,
+  onChanged,
 }: {
   open: boolean;
   categories: FinCategory[];
@@ -28,7 +31,9 @@ export default function CategoryManager({
 }) {
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [list, setList] = useState<FinCategory[]>(categories);
-  useEffect(() => { setList(categories); }, [categories]);
+  useEffect(() => {
+    setList(categories);
+  }, [categories]);
 
   const shown = useMemo(() => list.filter((c) => c.kind === kind), [list, kind]);
 
@@ -43,7 +48,9 @@ export default function CategoryManager({
   const [editColor, setEditColor] = useState(ACCOUNT_COLORS[0]);
 
   const refresh = async () => {
-    try { setList(await finance.listCategories()); } catch {}
+    try {
+      setList(await finance.listCategories());
+    } catch {}
     onChanged();
   };
 
@@ -56,11 +63,20 @@ export default function CategoryManager({
       await refresh();
     } catch (e) {
       toast.error((e as Error).message || 'Could not add category');
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const startEdit = (c: FinCategory) => { setEditId(c.id); setEditName(c.name); setEditColor(c.color); };
-  const cancelEdit = () => { setEditId(null); setEditName(''); };
+  const startEdit = (c: FinCategory) => {
+    setEditId(c.id);
+    setEditName(c.name);
+    setEditColor(c.color);
+  };
+  const cancelEdit = () => {
+    setEditId(null);
+    setEditName('');
+  };
 
   const saveEdit = async () => {
     if (editId == null || !editName.trim()) return;
@@ -85,7 +101,7 @@ export default function CategoryManager({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Categories</DialogTitle>
         </DialogHeader>
@@ -93,65 +109,106 @@ export default function CategoryManager({
         <SegmentedButton
           stretch
           value={kind}
-          onChange={(k) => { setKind(k); cancelEdit(); }}
-          options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]}
+          onChange={(k) => {
+            setKind(k);
+            cancelEdit();
+          }}
+          options={[
+            { value: 'expense', label: 'Expense' },
+            { value: 'income', label: 'Income' },
+          ]}
         />
 
         {/* List: plain rows on the dialog surface (no card per row); the
             row padding is pulled into the margin so pills start on the edge. */}
         <div className="-mx-2 flex flex-col">
           {shown.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic py-2">No {kind} categories yet.</div>
-          ) : shown.map((c) => (
-            <div key={c.id} className="flex min-h-12 items-center gap-2 rounded-xl px-2 py-1 hover:bg-[hsl(var(--on-surface)/0.05)]">
-              {editId === c.id ? (
-                <>
-                  <SwatchRow color={editColor} onPick={setEditColor} />
-                  <Input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); } }}
-                    className="h-8 flex-1"
-                    readOnly={c.fallback}
-                    title={c.fallback ? 'Unknown keeps its name: it holds what still needs a category.' : undefined}
-                    autoFocus
-                  />
-                  <Button size="icon-sm" variant="ghost" onClick={saveEdit}><Check className="size-4 text-primary" /></Button>
-                  <Button size="icon-sm" variant="ghost" onClick={cancelEdit}><X className="size-4" /></Button>
-                </>
-              ) : (
-                <>
-                  <span className="flex min-w-0 flex-1"><CategoryPill name={c.name} color={c.color} className="py-1 text-sm" /></span>
-                  <Button size="icon-sm" variant="ghost" onClick={() => startEdit(c)} className="text-muted-foreground">
-                    <Pencil className="size-3.5" />
-                  </Button>
-                  {/* Unknown can't go: an empty slot keeps the rows aligned. */}
-                  <Button size="icon-sm" variant="destructive-ghost" onClick={() => remove(c)} aria-label="Delete category"
-                    disabled={c.fallback} aria-hidden={c.fallback} className={c.fallback ? 'invisible' : undefined}>
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </>
-              )}
-            </div>
-          ))}
+            <div className="py-2 text-xs text-muted-foreground italic">No {kind} categories yet.</div>
+          ) : (
+            shown.map((c) => (
+              <div
+                key={c.id}
+                className="flex min-h-12 items-center gap-2 rounded-xl px-2 py-1 hover:bg-[hsl(var(--on-surface)/0.05)]"
+              >
+                {editId === c.id ? (
+                  <>
+                    <SwatchRow color={editColor} onPick={setEditColor} />
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveEdit();
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelEdit();
+                        }
+                      }}
+                      className="h-8 flex-1"
+                      readOnly={c.fallback}
+                      title={c.fallback ? 'Unknown keeps its name: it holds what still needs a category.' : undefined}
+                      autoFocus
+                    />
+                    <Button size="icon-sm" variant="ghost" onClick={saveEdit}>
+                      <Check className="size-4 text-primary" />
+                    </Button>
+                    <Button size="icon-sm" variant="ghost" onClick={cancelEdit}>
+                      <X className="size-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex min-w-0 flex-1">
+                      <CategoryPill name={c.name} color={c.color} className="py-1 text-sm" />
+                    </span>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => startEdit(c)}
+                      className="text-muted-foreground"
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
+                    {/* Unknown can't go: an empty slot keeps the rows aligned. */}
+                    <Button
+                      size="icon-sm"
+                      variant="destructive-ghost"
+                      onClick={() => remove(c)}
+                      aria-label="Delete category"
+                      disabled={c.fallback}
+                      aria-hidden={c.fallback}
+                      className={c.fallback ? 'invisible' : undefined}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            ))
+          )}
         </div>
 
         {/* Add */}
         <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">
-            New {kind} category
-          </Label>
+          <Label className="text-xs text-muted-foreground">New {kind} category</Label>
           <div className="flex items-center gap-2">
             <SwatchRow color={newColor} onPick={setNewColor} />
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  add();
+                }
+              }}
               placeholder="e.g. Pets"
               className="h-9 flex-1"
             />
             <Button size="sm" onClick={add} disabled={!newName.trim() || busy}>
-              <Plus className="size-4 mr-1" /> Add
+              <Plus className="mr-1 size-4" /> Add
             </Button>
           </div>
         </div>
@@ -165,7 +222,7 @@ export default function CategoryManager({
 function SwatchRow({ color, onPick }: { color: string; onPick: (c: string) => void }) {
   return (
     <label
-      className="relative size-7 rounded-md shrink-0 cursor-pointer ring-1 ring-border ring-offset-1 ring-offset-background"
+      className="relative size-7 shrink-0 cursor-pointer rounded-md ring-1 ring-border ring-offset-1 ring-offset-background"
       style={{ backgroundColor: color }}
       title="Pick color"
     >
@@ -173,7 +230,7 @@ function SwatchRow({ color, onPick }: { color: string; onPick: (c: string) => vo
         type="color"
         value={color}
         onChange={(e) => onPick(e.target.value)}
-        className="absolute inset-0 size-full opacity-0 cursor-pointer"
+        className="absolute inset-0 size-full cursor-pointer opacity-0"
       />
     </label>
   );

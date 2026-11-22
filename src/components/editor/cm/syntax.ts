@@ -27,7 +27,9 @@ const WikiLink: MarkdownConfig = {
         const inner = rest.slice(0, close);
         if (inner.includes('[') || !inner.trim()) return -1;
         const end = pos + 2 + close + 2;
-        return cx.addElement(cx.elt('WikiLink', pos, end, [cx.elt('WikiMark', pos, pos + 2), cx.elt('WikiMark', end - 2, end)]));
+        return cx.addElement(
+          cx.elt('WikiLink', pos, end, [cx.elt('WikiMark', pos, pos + 2), cx.elt('WikiMark', end - 2, end)]),
+        );
       },
     },
     {
@@ -35,7 +37,9 @@ const WikiLink: MarkdownConfig = {
       before: 'Link',
       parse(cx: InlineContext, next: number, pos: number) {
         if (next !== BRACKET) return -1;
-        const m = /^\[time:(\d{1,2})(?::(\d{2}))?(?:-(\d{1,2})(?::(\d{2}))?)?\]/.exec(cx.slice(pos, Math.min(cx.end, pos + 24)));
+        const m = /^\[time:(\d{1,2})(?::(\d{2}))?(?:-(\d{1,2})(?::(\d{2}))?)?\]/.exec(
+          cx.slice(pos, Math.min(cx.end, pos + 24)),
+        );
         if (!m) return -1;
         return cx.addElement(cx.elt('TimeChip', pos, pos + m[0].length));
       },
@@ -56,18 +60,20 @@ const HighlightDelim = { resolve: 'Highlight', mark: 'HighlightMark' };
 
 const Highlight: MarkdownConfig = {
   defineNodes: ['Highlight', 'HighlightMark'],
-  parseInline: [{
-    name: 'Highlight',
-    parse(cx: InlineContext, next: number, pos: number) {
-      if (next !== EQUALS || cx.char(pos + 1) !== EQUALS || cx.char(pos + 2) === EQUALS) return -1;
-      const before = pos > cx.offset ? cx.slice(pos - 1, pos) : ' ';
-      const after = cx.slice(pos + 2, pos + 3) || ' ';
-      const spaceBefore = /\s/.test(before);
-      const spaceAfter = /\s/.test(after);
-      return cx.addDelimiter(HighlightDelim, pos, pos + 2, !spaceAfter, !spaceBefore);
+  parseInline: [
+    {
+      name: 'Highlight',
+      parse(cx: InlineContext, next: number, pos: number) {
+        if (next !== EQUALS || cx.char(pos + 1) !== EQUALS || cx.char(pos + 2) === EQUALS) return -1;
+        const before = pos > cx.offset ? cx.slice(pos - 1, pos) : ' ';
+        const after = cx.slice(pos + 2, pos + 3) || ' ';
+        const spaceBefore = /\s/.test(before);
+        const spaceAfter = /\s/.test(after);
+        return cx.addDelimiter(HighlightDelim, pos, pos + 2, !spaceAfter, !spaceBefore);
+      },
+      after: 'Emphasis',
     },
-    after: 'Emphasis',
-  }],
+  ],
 };
 
 export const sajniMarkdown = [Table, TaskList, Strikethrough, Autolink, WikiLink, Highlight];
