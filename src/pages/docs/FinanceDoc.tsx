@@ -836,7 +836,9 @@ export default function FinanceDoc() {
           so nothing is ever left without a category, and a row in Unknown is
           one still to sort. It can't be deleted or renamed (its colour can
           change). <em>Others</em> is an ordinary category you pick on
-          purpose. Delete a category and its transactions move to Unknown.
+          purpose. Rename a category and every transaction in it shows the new
+          name (Food &amp; Dining → Food keeps one category, not two). Delete a
+          category and its transactions move to Unknown.
         </p>
         <p>
           Sajni learns from you: once you file “Swiggy” under Food, the next
