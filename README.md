@@ -44,5 +44,8 @@ needs to populate any packages missing from the store.
 - **Format:** [oxfmt](https://oxc.rs/docs/guide/usage/formatter.html), config `.oxfmtrc.json` (2 spaces, single quotes,
   width 120, Tailwind classes sorted). `pnpm run fmt` rewrites; CI fails on `pnpm run fmt:check`. Both are pinned to exact
   versions: upgrade them on purpose, then run `pnpm run fmt` and commit the result alone.
+- **React Compiler** runs on every build (`vite.config.ts`, `babel-plugin-react-compiler`). Keep `@babel/core` on 7:
+  under Babel 8 the Compiler skips any component that destructures with defaults (`{ a = 1 }`), silently (Sep–Nov 2026:
+  258 skipped functions instead of 86). `pnpm run compiler:report` lists what it skips and why (`--files` for where).
 - The one-time reformat commit is listed in `.git-blame-ignore-revs` (GitHub skips it in blame; locally run
   `git config blame.ignoreRevsFile .git-blame-ignore-revs`).
