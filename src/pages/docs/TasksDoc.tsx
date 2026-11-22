@@ -54,13 +54,13 @@ export default function TasksDoc() {
               New tasks default into whichever list you're viewing.
             </p>
           </Feature>
-          <Feature name="Context-aware quick-add">
+          <Feature name="New tasks start in the view">
             <p>
-              The quick-add line (“Add a task. Press ↵.”) inherits the view:
-              adding inside My Day pre-fills today's date, inside This week
-              the current week, inside Important the star, inside Blocked it
-              opens the full form so you can pick the blocker. What you see
-              is where it lands.
+              <strong>New task</strong> (or a Board lane's Add a task)
+              inherits the view: adding inside My Day pre-fills today's date,
+              inside This week the current week, inside Important the star,
+              inside a list that list, inside Blocked the blocker picker.
+              What you see is where it lands.
             </p>
           </Feature>
         </FeatureList>
@@ -398,7 +398,7 @@ export default function TasksDoc() {
           and Blocked last, since it's the exception). The Board uses the
           whole width of the window (up to a limit on very wide screens), its
           lanes reach down to the foot of the screen, and each has its own Add
-          a task, so the Board hides the page's add bar. In every view, Done
+          a task. In every view, Done
           holds that view's tasks marked done in the last 7 days, so a card
           you drop there stays in sight; older ones are in the Archive, which
           the Board doesn't show (open it from the List). A card shows the title on up to four lines and grows downward.

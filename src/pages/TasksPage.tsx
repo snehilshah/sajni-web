@@ -18,7 +18,6 @@ import {
 } from '@/queries/tasks';
 import { qk } from '@/queries/keys';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import PillScroller from '@/components/tasks/PillScroller';
@@ -55,7 +54,6 @@ export default function TasksPage() {
   const [formDefaults, setFormDefaults] = useState<TaskDefaults>({});
   const [taskFormLayoutId, setTaskFormLayoutId] = useState<string | undefined>();
 
-  const [quickTitle, setQuickTitle] = useState('');
   const [reminderCreateSignal, setReminderCreateSignal] = useState(0);
 
   useEffect(() => {
@@ -170,32 +168,6 @@ export default function TasksPage() {
     setEditingTask(task);
     setTaskFormLayoutId(undefined);
     setShowForm(true);
-  };
-
-  const handleQuickAdd = async () => {
-    const title = quickTitle.trim();
-    if (!title) return;
-    if (selection.kind === 'smart' && selection.smart === 'blocked') {
-      setQuickTitle('');
-      openCreate({ title, status: 'blocked' });
-      return;
-    }
-    const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title };
-    if (selection.kind === 'list') overrides.list_id = selection.id;
-    if (selection.kind === 'smart' && selection.smart === 'my_day') {
-      overrides.due_date = new Date().toLocaleDateString('en-CA');
-    }
-    if (selection.kind === 'smart' && selection.smart === 'week') {
-      overrides.week_of = weekMondayKey();
-    }
-    if (selection.kind === 'smart' && selection.smart === 'month') {
-      overrides.month_of = monthFirstKey();
-    }
-    if (selection.kind === 'smart' && selection.smart === 'important') {
-      overrides.important = true;
-    }
-    setQuickTitle('');
-    await createTask.mutateAsync(overrides);
   };
 
   // Reactive mobile detection — kanban board is forced to list on phone.
@@ -315,24 +287,6 @@ export default function TasksPage() {
                 />
               )}
             </div>
-
-            {/* The Board has an Add in every lane, so it skips this bar. */}
-            {!isMobile && viewMode !== 'board' && (
-              <div className="flex h-12 items-center gap-3 rounded-xl bg-card px-4 transition-shadow focus-within:shadow-[inset_0_0_0_1px_hsl(var(--outline))]">
-                <Plus className="size-4 shrink-0 text-muted-foreground" />
-                <Input
-                  name="quick-task-title"
-                  value={quickTitle}
-                  onChange={(e) => setQuickTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
-                  placeholder="Add a task"
-                  className="h-8 border-0 bg-transparent px-2 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:shadow-none"
-                />
-                {quickTitle.trim() && (
-                  <Button size="sm" className="h-8 px-3 text-xs" onClick={handleQuickAdd}>Add</Button>
-                )}
-              </div>
-            )}
           </section>
 
         {/* Missed-tasks highlight + reschedule CTA. Hidden while actually
@@ -500,7 +454,6 @@ function ListView({
         <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
           <ListChecks className="size-9 mx-auto mb-3 opacity-30" />
           <div className="text-sm">Nothing here yet.</div>
-          <div className="text-xs mt-1">Type a task above to get started.</div>
         </div>
         {archiveScope !== null && <ArchiveFold scope={archiveScope} onClick={onClick} />}
       </div>
