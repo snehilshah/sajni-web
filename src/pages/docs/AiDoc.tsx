@@ -24,11 +24,26 @@ export default function AiDoc() {
               'one-shot asks: “add lunch 240 to cash”, “what’s due this week?”, “move last week’s spends to the Goa Trip slate”',
             ],
             [
+              'The ✦ button in the nav',
+              'a chat beside the page: ask while you look at your tasks or money, and what Sajni changes refreshes in place',
+            ],
+            [
               'Projects → Chat',
               'long conversations with kept history, sessions you can reopen and continue',
             ],
           ]}
         />
+        <p>
+          The ✦ button opens Sajni docked on the right. On a wide screen the
+          page narrows to make room, so you can keep reading, scrolling and
+          clicking it: ask &ldquo;what&rsquo;s overdue?&rdquo; on Tasks and
+          tick them off as the answer comes in. Drag the panel&rsquo;s edge
+          to make it wider or narrower (double-click puts it back to the
+          default); the width is remembered. Close it with ✕, the ✦ button
+          again, or <Kbd>Esc</Kbd> while you&rsquo;re typing in it. On a
+          smaller window it sits over the page&rsquo;s right edge instead,
+          and on a phone it fills the screen.
+        </p>
         <p>
           Palette mode: <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd>, type <Code>@sajni</Code>{' '}
           (or <Code>@s</Code> / <Code>@ai</Code>) + space, ask, Enter. The

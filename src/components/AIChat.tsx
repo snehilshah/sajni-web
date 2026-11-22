@@ -2,8 +2,9 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, ArrowUp, Plus, Trash2, ChevronDown, AlertCircle,
-  CheckSquare, Target, BookOpen, Film, Wallet, ArrowRight,
+  CheckSquare, Target, BookOpen, Film, Wallet, ArrowRight, X,
 } from '@/components/ui/icons';
+import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -17,6 +18,8 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useVisualViewportBox } from '@/hooks/use-visual-viewport';
+import { cn } from '@/lib/utils';
+import { DOCK_DEFAULT, clampDock } from '@/lib/chatDock';
 
 type Message =
   | { role: 'user'; text: string }
@@ -70,6 +73,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   openRequest?: ChatOpenRequest | null;
+  /** Desktop: dock beside the page instead of a modal sheet. */
+  dock?: { mode: 'push' | 'overlay'; width: number; onResize: (width: number) => void };
 }
 
 export interface ChatOpenDetail {
@@ -82,16 +87,20 @@ export interface ChatOpenRequest {
   detail: ChatOpenDetail;
 }
 
-// Global chat surface: right-side sheet. The actual chat UI lives in
-// ChatPanel so the Projects page can embed the same panel inline.
-export default function AIChat({ open, onOpenChange, openRequest }: Props) {
+// Global chat surface: docked beside the page on desktop, a right-side
+// sheet on phones. The actual chat UI lives in ChatPanel so the Projects
+// page can embed the same panel inline.
+export default function AIChat({ open, onOpenChange, openRequest, dock }: Props) {
   const isMobile = useIsMobile();
   const vvBox = useVisualViewportBox(open && isMobile);
+  if (dock) {
+    return <ChatDock {...dock} openRequest={openRequest} onClose={() => onOpenChange(false)} />;
+  }
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="md:!max-w-md w-full max-md:!max-w-full max-md:!rounded-none flex flex-col p-0 gap-0"
+        className="!w-full !max-w-full !rounded-none flex flex-col p-0 gap-0"
         style={
           isMobile && vvBox
             ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' }
@@ -109,6 +118,83 @@ export default function AIChat({ open, onOpenChange, openRequest }: Props) {
   );
 }
 
+const DOCK_EASE = [0.2, 0, 0, 1] as const;
+
+// Docked Sajni: no scrim and no blur, so the page stays readable and
+// clickable while you ask. `push` narrows the page (wide screens);
+// `overlay` sits over its right edge when there's no room to push. It's
+// set apart by tone, like the Notes rails. Drag its edge to resize
+// (double-click resets); Esc closes it while focus is inside.
+function ChatDock({ mode, width, onResize, onClose, openRequest }: {
+  mode: 'push' | 'overlay';
+  width: number;
+  onResize: (width: number) => void;
+  onClose: () => void;
+  openRequest?: ChatOpenRequest | null;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const startDrag = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const x0 = e.clientX;
+    const w0 = width;
+    setDragging(true);
+    const move = (ev: PointerEvent) => onResize(clampDock(w0 + x0 - ev.clientX));
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <motion.aside
+      aria-label="Sajni"
+      initial={{ width: 0 }}
+      animate={{ width }}
+      exit={{ width: 0, transition: { duration: 0.2, ease: DOCK_EASE } }}
+      // Follow the pointer exactly while dragging; ease only on open/close.
+      transition={dragging ? { duration: 0 } : { duration: 0.32, ease: DOCK_EASE }}
+      onKeyDown={(e) => {
+        // Only keys from inside the panel's own DOM (not portals it opened).
+        if (e.key === 'Escape' && e.currentTarget.contains(e.target as Node)) {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
+      className={cn(
+        'flex shrink-0 overflow-hidden bg-[hsl(var(--surface-container-low))]',
+        // Overlay sits above the nav pill, which it would otherwise run into.
+        mode === 'overlay' ? 'absolute inset-y-0 right-0 z-50 shadow-[var(--m3-elev-3)]' : 'relative',
+      )}
+    >
+      <div className="h-full shrink-0 flex flex-col pt-[env(safe-area-inset-top)]" style={{ width }}>
+        <ChatPanel active openRequest={openRequest} onClose={onClose} />
+      </div>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize Sajni"
+        title="Drag to resize · double-click to reset"
+        onPointerDown={startDrag}
+        onDoubleClick={() => onResize(DOCK_DEFAULT)}
+        className="group/resize absolute left-0 top-0 z-10 h-full w-1.5 cursor-col-resize"
+      >
+        <span className={cn(
+          'absolute inset-y-0 left-0 w-0.5 transition-colors',
+          dragging ? 'bg-[hsl(var(--primary))]' : 'group-hover/resize:bg-[hsl(var(--primary)/0.5)]',
+        )}
+        />
+      </div>
+    </motion.aside>
+  );
+}
+
 // Host-side controls for a headerless panel (the Projects page pill owns
 // the New-chat / History buttons and drives them through this handle).
 export interface ChatPanelHandle {
@@ -121,15 +207,17 @@ export interface ChatPanelHandle {
 // open requests from Layout; embedded panels do not.
 // `headerless` drops the in-panel header for immersive embedding — the
 // host renders New/History elsewhere and calls them via `ref`.
+// `onClose` adds a close button to the header (the docked panel).
 export function ChatPanel({
   active, sheet = false, headerless = false, openRequest,
-  onNavigate, ref,
+  onNavigate, onClose, ref,
 }: {
   active: boolean;
   sheet?: boolean;
   headerless?: boolean;
   openRequest?: ChatOpenRequest | null;
   onNavigate?: () => void;
+  onClose?: () => void;
   ref?: Ref<ChatPanelHandle>;
 }) {
   const navigate = useNavigate();
@@ -419,6 +507,11 @@ export function ChatPanel({
               >
                 <Plus className="size-3 mr-1" /> New
               </Button>
+              {onClose && (
+                <Button size="icon-sm" variant="ghost" onClick={onClose} title="Close · Esc" aria-label="Close Sajni">
+                  <X className="size-4" />
+                </Button>
+              )}
             </div>
 
             {showSessions && (

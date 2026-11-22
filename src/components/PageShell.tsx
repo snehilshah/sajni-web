@@ -139,10 +139,12 @@ export function PageChrome({
       }}
       transition={CHROME_TWEEN}
       className={cn(
-        'fixed inset-x-0 z-40 flex pointer-events-none',
+        'fixed inset-x-0 z-40 flex pointer-events-none transition-[right] duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
         scrolled ? 'justify-center px-3 md:px-4' : 'bg-[hsl(var(--background))]',
       )}
       style={{
+        // Clear of docked Sajni (Layout sets --dock-inset).
+        right: 'var(--dock-inset, 0px)',
         top: isMobile
           ? 'calc(env(safe-area-inset-top, 0px) + 10px)'
           : 'calc(env(safe-area-inset-top, 0px) + 66px)',

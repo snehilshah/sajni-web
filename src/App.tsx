@@ -93,7 +93,7 @@ export default function App() {
 			<TooltipProvider>
 			<TaskDetailProvider>
 				<M3Shapes />
-				<Toaster richColors closeButton position="bottom-right" />
+				<Toaster richColors closeButton position="bottom-right" offset={{ right: 'calc(var(--dock-inset, 0px) + 24px)' }} />
 				<MediaStartupRefresh />
 				<ConfirmRoot />
 				<TweaksPanel />

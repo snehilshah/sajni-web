@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type Dispa
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { lazyPage, prefetchPages } from '@/lib/lazyPage';
-import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import {
   LogOut, Search, Settings, Sparkles, Loader2, BookOpen, History,
 } from '@/components/ui/icons';
@@ -15,6 +15,7 @@ import { NAV_ITEMS, NavChromeContext, isActivePath } from '@/components/nav-chro
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { cn } from '@/lib/utils';
+import { readDockWidth, saveDockWidth, useDockMode } from '@/lib/chatDock';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -183,10 +184,14 @@ function DockNavIcon({
 // the page scrolls; the merged pill (PageChrome) morphs into its place.
 function PrimaryBar({
   pathname, scrolled, onOpenCommand, userMenuContent, user, accountMenuOpen, setAccountMenuOpen,
+  chatDocked, onCloseChat,
 }: {
   pathname: string;
   scrolled: boolean;
   onOpenCommand: () => void;
+  /** Sajni is docked open: its button shows on and closes it. */
+  chatDocked: boolean;
+  onCloseChat: () => void;
   userMenuContent: ReactNode;
   user: User;
   accountMenuOpen: boolean;
@@ -212,8 +217,9 @@ function PrimaryBar({
       initial={false}
       animate={{ transform: scrolled ? 'translateY(-88px)' : 'translateY(0)', opacity: scrolled ? 0 : 1 }}
       transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
-      className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
-      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+      className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none transition-[right] duration-300 ease-[cubic-bezier(0.2,0,0,1)]"
+      // --dock-inset: docked Sajni's width, so the pill centres over the page left.
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)', right: 'var(--dock-inset, 0px)' }}
       aria-hidden={scrolled}
     >
       <nav
@@ -252,10 +258,16 @@ function PrimaryBar({
           <Search className="size-[18px]" />
         </button>
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent('chat:open'))}
-          className="size-10 inline-flex items-center justify-center rounded-full text-foreground/80 outline-none transition-colors hover:bg-[hsl(var(--on-surface)/0.08)] focus-visible:ring-2 focus-visible:ring-ring/45"
-          title="Ask Sajni"
-          aria-label="Ask Sajni"
+          onClick={() => (chatDocked ? onCloseChat() : window.dispatchEvent(new CustomEvent('chat:open')))}
+          className={cn(
+            'size-10 inline-flex items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/45',
+            chatDocked
+              ? 'bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]'
+              : 'text-foreground/80 hover:bg-[hsl(var(--on-surface)/0.08)]',
+          )}
+          title={chatDocked ? 'Close Sajni' : 'Ask Sajni'}
+          aria-label={chatDocked ? 'Close Sajni' : 'Ask Sajni'}
+          aria-pressed={chatDocked}
         >
           <Sparkles className="size-[18px]" />
         </button>
@@ -404,6 +416,16 @@ export default function Layout() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [chatOpenRequest, setChatOpenRequest] = useState<ChatOpenRequest | null>(null);
+  const dockMode = useDockMode();
+  const [dockWidth, setDockWidth] = useState(readDockWidth);
+  useEffect(() => { saveDockWidth(dockWidth); }, [dockWidth]);
+  const docked = aiChatOpen && dockMode !== 'sheet';
+  // Page-wide fixed chrome (nav pill, page header, toasts) keeps clear of a
+  // panel that pushes the page aside.
+  const dockInset = docked && dockMode === 'push' ? dockWidth : 0;
+  useEffect(() => {
+    document.documentElement.style.setProperty('--dock-inset', `${dockInset}px`);
+  }, [dockInset]);
   const [accountMenuState, setAccountMenuState] = useState({ pathname: location.pathname, open: false });
   const [signingOut, setSigningOut] = useState(false);
 
@@ -508,17 +530,36 @@ export default function Layout() {
             user={user}
             accountMenuOpen={accountMenuOpen}
             setAccountMenuOpen={setAccountMenuOpen}
+            chatDocked={docked}
+            onCloseChat={() => setAIChatOpen(false)}
           />
         )}
 
-        <NavChromeContext.Provider value={chromeCtx}>
-          <main className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
-            {/* Per page: a page that fails keeps the nav usable; navigating resets it. */}
-            <ErrorBoundary key={location.pathname}>
-              <Outlet />
-            </ErrorBoundary>
-          </main>
-        </NavChromeContext.Provider>
+        {/* The page and, on desktop, Sajni docked beside it. */}
+        <div className="relative flex-1 min-h-0 flex">
+          <NavChromeContext.Provider value={chromeCtx}>
+            <main className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
+              {/* Per page: a page that fails keeps the nav usable; navigating resets it. */}
+              <ErrorBoundary key={location.pathname}>
+                <Outlet />
+              </ErrorBoundary>
+            </main>
+          </NavChromeContext.Provider>
+          <AnimatePresence initial={false}>
+            {aiChatOpen && (
+              <ErrorBoundary key="sajni" fallback={null}>
+                <Suspense fallback={null}>
+                  <AIChat
+                    open
+                    onOpenChange={setAIChatOpen}
+                    openRequest={chatOpenRequest}
+                    dock={dockMode === 'sheet' ? undefined : { mode: dockMode, width: dockWidth, onResize: setDockWidth }}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            )}
+          </AnimatePresence>
+        </div>
 
         {isMobile && (
           <BottomDock
@@ -536,13 +577,6 @@ export default function Layout() {
           <ErrorBoundary fallback={null}>
             <Suspense fallback={null}>
               <CommandPalette onOpenChange={setCommandPaletteOpen} />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-        {aiChatOpen && (
-          <ErrorBoundary fallback={null}>
-            <Suspense fallback={null}>
-              <AIChat open onOpenChange={setAIChatOpen} openRequest={chatOpenRequest} />
             </Suspense>
           </ErrorBoundary>
         )}
