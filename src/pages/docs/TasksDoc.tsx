@@ -135,8 +135,10 @@ export default function TasksDoc() {
           <Feature name="Priority & Important">
             <p>
               Priority (low/medium/high) is a sorting weight; Important is a
-              star that pins the task into the Important smart view. High
-              priority marks the row with a dot.
+              star that pins the task into the Important smart view. The
+              task's box shows its priority: a red border and light red fill
+              for high, amber for medium, grey for low (a task with its own
+              colour uses that instead).
             </p>
           </Feature>
           <Feature name="Description & #tags">
@@ -239,6 +241,10 @@ export default function TasksDoc() {
             Cycles are prevented at selection time, a task can't block a
             task that (transitively) blocks it; the picker simply won't
             offer it.
+          </li>
+          <li>
+            The picker has a search box: type words from the title (“invoice
+            pdf”) and only tasks with all of them stay.
           </li>
           <li>
             Leaving blocked status clears the link; the blocker relationship
@@ -393,9 +399,26 @@ export default function TasksDoc() {
       <Section id="board" title="List & Board" chip="view toggle">
         <p>
           Desktop offers two projections of the same data: <strong>List</strong>{' '}
-          (grouped Overdue / Today / This week / Later / No date) and{' '}
-          <strong>Board</strong> (a lane per status: To do, In progress, Done,
-          and Blocked last, since it's the exception). The Board uses the
+          and <strong>Board</strong>. <strong>Group</strong>, beside the
+          switch, picks how each one splits your tasks: by{' '}
+          <strong>Status</strong> (the default: To do, In progress, Blocked; on
+          the Board Done is a lane too, before Blocked, the exception),{' '}
+          <strong>Due date</strong> (Overdue, Today, This week, Later, No
+          date), <strong>Priority</strong> (High, Medium, Low) or{' '}
+          <strong>List</strong> (Inbox, then your lists; not offered inside one
+          list). The List can also show <strong>None</strong>, one plain list.
+          Each view keeps its own choice on this device, so the List can go by
+          due date while the Board goes by status.
+        </p>
+        <p>
+          In the List every group sits under a header bar with its count; click
+          it to fold the group away. Done, Archive and Scratched are folds at
+          the foot, closed until you open them. The device remembers which
+          groups you folded (the Archive always starts closed). When the List
+          isn't grouped by status, a task in progress says so on its row.
+        </p>
+        <p>
+          The Board uses the
           whole width of the window (up to a limit on very wide screens), its
           lanes reach down to the foot of the screen, and each has its own Add
           a task. In every view, Done
@@ -416,7 +439,8 @@ export default function TasksDoc() {
         <ul>
           <li>
             <strong>Drag a card</strong> anywhere: up or down to reorder a lane,
-            or into another lane to change its status. The cards make room
+            or into another lane to give it that lane's status, priority or
+            list. The cards make room
             where it will go, and it stays exactly where you drop it. A task
             you haven't placed yet (a new one) starts at the top. Reordering
             doesn't count as an edit, so the List keeps its own order.
@@ -426,6 +450,14 @@ export default function TasksDoc() {
             what blocks it. A task with open subtasks can't go into{' '}
             <strong>Done</strong>: the lane says so while you drag, and the
             card goes back if you let go there.
+          </li>
+          <li>
+            <strong>By due date</strong>: Today makes it due today, This week
+            makes it a task for this week, No date clears its date, and Later
+            asks which day (from next week on). Overdue takes nothing: “A task
+            can't be made overdue. Drop it on a date.” Example: Group by Due
+            date, drag “Renew car insurance” from No date to Today; it's due
+            today, on the Board and in the List.
           </li>
           <li>
             <strong>Done</strong> shows the five most recent; the rest wait

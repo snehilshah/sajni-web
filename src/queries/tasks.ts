@@ -6,6 +6,7 @@ import { tasks as tasksApi, taskLists as listsApi } from '@/api';
 import type { Task, TaskArchivePage, TaskList, TaskPatch } from '@/types';
 import { qk } from './keys';
 import { sendReliably } from '@/lib/reliableSave';
+import { patchFields } from '@/components/tasks/grouping';
 
 export type TaskListParams = Parameters<typeof tasksApi.list>[0];
 
@@ -183,15 +184,17 @@ export function useToggleTaskStatus() {
 // A Board drop: the card's lane (status, when it changed) and its place in
 // it (board_rank). Optimistic, so the card stays where it was dropped; only a
 // status change counts as an edit (updated_at), a place alone doesn't.
+// A Board drop: the new rank and, when the card changed lanes, what that
+// lane sets (status, priority, list or due date; grouping.ts dropAction).
 export function useMoveOnBoard() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status, board_rank }: { id: number; status?: Task['status']; board_rank: number }) =>
-      sendReliably(() => tasksApi.update(id, status ? { status, board_rank } : { board_rank }), undefined, 'board'),
-    onMutate: async ({ id, status, board_rank }) => {
+    mutationFn: ({ id, patch, board_rank }: { id: number; patch?: TaskPatch; board_rank: number }) =>
+      sendReliably(() => tasksApi.update(id, { ...patch, board_rank }), undefined, 'board'),
+    onMutate: async ({ id, patch, board_rank }) => {
       await qc.cancelQueries({ queryKey: qk.tasks.all });
       const prev = qc.getQueriesData({ queryKey: ['tasks', 'list'] });
-      patchTaskInLists(qc, id, status ? { status, board_rank, updated_at: new Date().toISOString() } : { board_rank });
+      patchTaskInLists(qc, id, patch ? { ...patchFields(patch), board_rank, updated_at: new Date().toISOString() } : { board_rank });
       return { prev };
     },
     onError: (_e, _v, ctx) => {
@@ -200,7 +203,7 @@ export function useMoveOnBoard() {
     },
     onSettled: (_d, _e, v) => {
       qc.invalidateQueries({ queryKey: qk.tasks.all });
-      if (v.status) {
+      if (v.patch) {
         qc.invalidateQueries({ queryKey: qk.taskLists.all });
         qc.invalidateQueries({ queryKey: qk.planner.all });
       }

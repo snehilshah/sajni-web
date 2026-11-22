@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/icons';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-import type { Task } from '@/types';
+import type { Task, TaskList } from '@/types';
 import {
   useTasks, useTaskLists, useMissedTasks, useTaskArchive, useTaskArchiveCount,
   useCreateTask, useToggleTaskStatus, useToggleTaskImportant, useMoveOnBoard,
@@ -21,6 +21,13 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import PillScroller from '@/components/tasks/PillScroller';
+import GroupMenu from '@/components/tasks/GroupMenu';
+import {
+  type GroupBy, type TaskGroup, dropAction, foldOpen, groupOptions, groupTasks, priorityBox, readGroupBy, saveFold, saveGroupBy,
+} from '@/components/tasks/grouping';
+import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import TaskRow from '@/components/tasks/TaskRow';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps the Markdown editor (inside the dialog) out of this route chunk.
@@ -55,6 +62,11 @@ export default function TasksPage() {
   const [taskFormLayoutId, setTaskFormLayoutId] = useState<string | undefined>();
 
   const [reminderCreateSignal, setReminderCreateSignal] = useState(0);
+
+  // Group by, one choice per view, kept on this device (grouping.ts).
+  const [groupPref, setGroupPref] = useState<Record<ViewMode, GroupBy>>(() => ({ list: readGroupBy('list'), board: readGroupBy('board') }));
+  // A Board drop on Due date → Later: the date to pick first.
+  const [pickDue, setPickDue] = useState<{ task: Task; rank: number } | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, viewMode); } catch {}
@@ -117,11 +129,6 @@ export default function TasksPage() {
     }
   }, [activeTab, focusId, tasksList, searchParams, setSearchParams]);
 
-  const grouped = useMemo(() => {
-    const map: Record<Task['status'], Task[]> = { todo: [], in_progress: [], blocked: [], done: [], scratched: [] };
-    for (const t of tasksList) map[t.status]?.push(t);
-    return map;
-  }, [tasksList]);
 
   // Scratched (abandoned) tasks are neither open nor done: their own
   // collapsible group, so the open list stays clean.
@@ -129,12 +136,22 @@ export default function TasksPage() {
   const done = tasksList.filter((t) => t.status === 'done');
   const scratched = tasksList.filter((t) => t.status === 'scratched');
 
-  const [showDone, setShowDone] = useState(false);
   // The List view's Archive fold: in one of the owner's lists (its own
   // archive) and in All (every archived task); not in the other smart views,
   // nor on the Board.
   const archiveScope: number | 'all' | null = selection.kind === 'list' ? selection.id
     : selection.smart === 'all' ? 'all' : null;
+
+  // Grouping by list inside one of the owner's lists would be one group.
+  const inOwnList = selection.kind === 'list';
+  const groupFor = (view: ViewMode): GroupBy => {
+    const by = groupPref[view];
+    return groupOptions(view, inOwnList).includes(by) ? by : 'status';
+  };
+  const setGroupFor = (view: ViewMode, by: GroupBy) => {
+    saveGroupBy(view, by);
+    setGroupPref((cur) => ({ ...cur, [view]: by }));
+  };
 
   const { scrolled: chromeScrolled } = useNavChrome();
   const currentTaskFormLayoutId = `task-form-${chromeScrolled ? 'merged' : 'rest'}`;
@@ -171,7 +188,29 @@ export default function TasksPage() {
   };
 
   // Reactive mobile detection — kanban board is forced to list on phone.
-  const effectiveView = isMobile ? 'list' : viewMode;
+  const effectiveView: ViewMode = isMobile ? 'list' : viewMode;
+  const listGroup = groupFor('list');
+  const boardGroup = groupFor('board');
+  // Board lanes: under Status, Done is a lane (its last 7 days); under any
+  // other grouping the Board holds open tasks only.
+  const boardGroups = useMemo(() => groupTasks(
+    boardGroup === 'status' ? tasksList.filter((t) => t.status !== 'scratched') : open,
+    boardGroup, 'board', lists,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [tasksList, boardGroup, lists]);
+  const moveCard = (task: Task, lane: string | undefined, rank: number) => {
+    if (!lane) { moveOnBoard.mutate({ id: task.id, board_rank: rank }); return; }
+    const action = dropAction(boardGroup, lane, task);
+    if (action.kind === 'open') {
+      // Blocked needs a blocker: the task opens; the card returns until saved.
+      setEditingTask({ ...task, status: 'blocked', blocked_by_task_id: null, blocked_by_task_title: null });
+      setShowForm(true);
+    } else if (action.kind === 'pickDate') {
+      setPickDue({ task, rank });
+    } else if (action.kind === 'patch') {
+      moveOnBoard.mutate({ id: task.id, patch: action.patch, board_rank: rank });
+    }
+  };
 
   const switchTab = (tab: 'tasks' | 'planner' | 'reminders') => {
     const next = new URLSearchParams(searchParams);
@@ -274,6 +313,12 @@ export default function TasksPage() {
                   }}
                 />
               </div>
+              <GroupMenu
+                value={groupFor(effectiveView)}
+                options={groupOptions(effectiveView, inOwnList)}
+                board={effectiveView === 'board'}
+                onChange={(by) => setGroupFor(effectiveView, by)}
+              />
               {!isMobile && (
                 <SplitButton
                   size="sm"
@@ -307,32 +352,37 @@ export default function TasksPage() {
               open={open}
               done={done}
               scratched={scratched}
-              showDone={showDone}
-              onToggleDone={() => setShowDone((v) => !v)}
+              groupBy={listGroup}
+              lists={lists}
               archiveScope={archiveScope}
               onClick={openEdit}
             />
           ) : (
             <BoardView
-              grouped={grouped}
+              groups={boardGroups}
+              groupBy={boardGroup}
               onClick={openEdit}
-              onMove={(id, status, rank) => {
-                const t = tasksList.find((x) => x.id === id);
-                if (!t) return;
-                if (status === 'blocked') {
-                  setEditingTask({ ...t, status: 'blocked', blocked_by_task_id: null, blocked_by_task_title: null });
-                  setShowForm(true);
+              onMove={moveCard}
+              onQuickAdd={async (lane, title) => {
+                // A new card takes its lane's value (as a drop there would).
+                const blank = { status: 'todo', priority: 'medium', list_id: selection.kind === 'list' ? selection.id : null } as Task;
+                const action = dropAction(boardGroup, lane, blank);
+                if (action.kind === 'open') { openCreate({ status: 'blocked', title }); return; }
+                if (action.kind === 'pickDate' || (boardGroup === 'due' && lane === 'overdue')) {
+                  openCreate({ title });
                   return;
                 }
-                moveOnBoard.mutate({ id, status, board_rank: rank });
-              }}
-              onQuickAdd={async (status, title) => {
-                if (status === 'blocked') {
-                  openCreate({ status: 'blocked', title });
-                  return;
-                }
-                const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title, status };
+                const overrides: Parameters<typeof createTask.mutateAsync>[0] = { title };
                 if (selection.kind === 'list') overrides.list_id = selection.id;
+                if (action.kind === 'patch') {
+                  const p = action.patch;
+                  if (p.status) overrides.status = p.status;
+                  if (p.priority) overrides.priority = p.priority;
+                  if (p.list_id !== undefined) overrides.list_id = p.list_id;
+                  if (p.clear_list) overrides.list_id = null;
+                  if (p.due_date) overrides.due_date = p.due_date;
+                  if (p.week_of) overrides.week_of = p.week_of;
+                }
                 await createTask.mutateAsync(overrides);
               }}
               onToggleImportant={(id, important) => toggleImportant.mutate({ id, important })}
@@ -342,6 +392,29 @@ export default function TasksPage() {
         </div>
         </div>
       )}
+
+      {/* Board, Due date → Later: pick the day, then the card moves. */}
+      <Dialog open={pickDue !== null} onOpenChange={(o) => { if (!o) setPickDue(null); }}>
+        <DialogContent className="w-auto max-w-[calc(100vw-2rem)] sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="line-clamp-2 pr-8 text-base">Due date for “{pickDue?.task.title}”</DialogTitle>
+          </DialogHeader>
+          {/* Later starts after this week (Monday-anchored, as week tasks are). */}
+          <Calendar
+            mode="single"
+            fixedWeeks
+            weekStartsOn={1}
+            defaultMonth={addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 7)}
+            disabled={{ before: addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 7) }}
+            onSelect={(d) => {
+              if (!d || !pickDue) return;
+              moveOnBoard.mutate({ id: pickDue.task.id, patch: { due_date: format(d, 'yyyy-MM-dd') }, board_rank: pickDue.rank });
+              setPickDue(null);
+            }}
+            className="mx-auto"
+          />
+        </DialogContent>
+      </Dialog>
 
       {activeTab !== 'reminders' && (
         <Suspense fallback={null}>
@@ -388,65 +461,114 @@ function PlannerLoading() {
 }
 
 // --- List view ---
+// Open tasks in the chosen grouping (Group by; Status by default), each group
+// under a tonal header that folds; then Done (last 7 days), Archive and
+// Scratched, folded by default. Folds are remembered on this device.
 
-// --- Due buckets (list view) ---
-// Open tasks group into scannable horizons. Headers only show when more
-// than one bucket has items — a single-horizon list (e.g. My Day) stays flat.
-const BUCKETS = [
-  { key: 'overdue', label: 'Overdue' },
-  { key: 'today',   label: 'Today' },
-  { key: 'week',    label: 'This week' },
-  { key: 'later',   label: 'Later' },
-  { key: 'someday', label: 'No date' },
-] as const;
-type BucketKey = (typeof BUCKETS)[number]['key'];
-
-function bucketOf(t: Task, todayKey: string, weekEndKey: string): BucketKey {
-  if (t.due_date) {
-    if (t.due_date < todayKey) return 'overdue';
-    if (t.due_date === todayKey) return 'today';
-    if (t.due_date <= weekEndKey) return 'week';
-    return 'later';
-  }
-  if (t.week_of) return t.week_of <= todayKey ? 'week' : 'later';
-  if (t.month_of) return 'later';
-  return 'someday';
+function GroupHeader({ id, label, count, open, onToggle, mark, tone, quiet }: {
+  id: string;
+  label: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  mark?: React.ReactNode;
+  tone?: 'error';
+  /** Done, Archive, Scratched: the finished folds read a step quieter. */
+  quiet?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-controls={id}
+      className="flex h-10 w-full items-center gap-2.5 rounded-2xl bg-[hsl(var(--surface-container-low))] pl-3 pr-4 text-left transition-colors hover:bg-[hsl(var(--surface-container))]"
+    >
+      <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)]', !open && '-rotate-90')} />
+      {mark}
+      <span className={cn('text-sm', quiet ? 'font-medium text-muted-foreground' : 'font-semibold', tone === 'error' && 'text-destructive')}>{label}</span>
+      <span className={cn(
+        'inline-grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-xs font-semibold tabular-nums',
+        tone === 'error' ? 'bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]' : 'bg-[hsl(var(--on-surface)/0.07)] text-muted-foreground',
+      )}>{count}</span>
+    </button>
+  );
 }
 
-function BucketHeader({ label, count, overdue }: { label: string; count: number; overdue?: boolean }) {
+/** A fold remembered on this device (grouping.ts foldOpen). */
+function useFold(id: string, byDefault: boolean): [boolean, () => void] {
+  const [open, setOpen] = useState(() => foldOpen(id, byDefault));
+  const [seen, setSeen] = useState(id);
+  if (seen !== id) { setSeen(id); setOpen(foldOpen(id, byDefault)); }
+  return [open, () => setOpen((v) => { saveFold(id, !v); return !v; })];
+}
+
+/** A group's rows unfold downward; folding is instant to the header. */
+function FoldBody({ id, open, children }: { id: string; open: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 pt-1.5">
-      <span className={`mono text-xs label-kicker ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
-        {label}
-      </span>
-      <span className="mono text-xs tabular-nums text-muted-foreground/70">{count}</span>
-      <span className="flex-1 h-px bg-[hsl(var(--outline-variant))]" aria-hidden="true" />
-    </div>
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          id={id}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+          className="overflow-hidden"
+        >
+          <div className="flex flex-col gap-2 pt-2">{children}</div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function TaskGroupSection({ group, by, onClick }: { group: TaskGroup; by: GroupBy; onClick: (t: Task) => void }) {
+  const id = `fold:list:${by}:${group.key}`;
+  const [open, toggle] = useFold(id, true);
+  return (
+    <section>
+      <GroupHeader
+        id={id}
+        label={group.label}
+        count={group.tasks.length}
+        open={open}
+        onToggle={toggle}
+        tone={group.tone}
+        mark={group.priority ? <span aria-hidden className="size-3.5 shrink-0 rounded-[32%] border-2" style={priorityBox(group.priority)} /> : undefined}
+      />
+      <FoldBody id={id} open={open}>
+        <AnimatePresence initial={false}>
+          {group.tasks.map((t) => <TaskRow key={t.id} task={t} showStatus={by !== 'status'} onClick={() => onClick(t)} />)}
+        </AnimatePresence>
+      </FoldBody>
+    </section>
+  );
+}
+
+function FinishedFold({ name, label, count, children }: { name: string; label: string; count: number; children: React.ReactNode }) {
+  const id = `fold:list:fin:${name}`;
+  const [open, toggle] = useFold(id, false);
+  return (
+    <section>
+      <GroupHeader id={id} label={label} count={count} open={open} onToggle={toggle} quiet />
+      <FoldBody id={id} open={open}>{children}</FoldBody>
+    </section>
   );
 }
 
 function ListView({
-  open, done, scratched, showDone, onToggleDone, archiveScope, onClick,
+  open, done, scratched, groupBy, lists, archiveScope, onClick,
 }: {
   open: Task[];
   done: Task[];
   scratched: Task[];
-  showDone: boolean;
-  onToggleDone: () => void;
+  groupBy: GroupBy;
+  lists: TaskList[];
   archiveScope: number | 'all' | null;
   onClick: (t: Task) => void;
 }) {
-  const [showScratched, setShowScratched] = useState(false);
-
-  const bucketed = useMemo(() => {
-    const todayKey = new Date().toLocaleDateString('en-CA');
-    const weekEndKey = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6), 'yyyy-MM-dd');
-    const map: Record<BucketKey, Task[]> = { overdue: [], today: [], week: [], later: [], someday: [] };
-    for (const t of open) map[bucketOf(t, todayKey, weekEndKey)].push(t);
-    return map;
-  }, [open]);
-  const activeBuckets = BUCKETS.filter((b) => bucketed[b.key].length > 0);
-  const showHeaders = activeBuckets.length > 1;
+  const groups = useMemo(() => groupTasks(open, groupBy, 'list', lists), [open, groupBy, lists]);
 
   if (open.length === 0 && done.length === 0 && scratched.length === 0) {
     return (
@@ -461,63 +583,28 @@ function ListView({
   }
   return (
     <div className="flex flex-col gap-2">
-      {activeBuckets.map(({ key, label }) => (
-        <div key={key} className="flex flex-col gap-2">
-          {showHeaders && (
-            <BucketHeader label={label} count={bucketed[key].length} overdue={key === 'overdue'} />
-          )}
-          <AnimatePresence initial={false}>
-            {bucketed[key].map((t) => (
-              <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
-            ))}
-          </AnimatePresence>
-        </div>
-      ))}
-
-      {done.length > 0 && (
-        <div className="mt-4">
-          <FoldToggle open={showDone} onClick={onToggleDone}>Done ({done.length})</FoldToggle>
-          {showDone && (
-            <div className="flex flex-col gap-2 mt-2">
-              {done.map((t) => (
-                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
-              ))}
-            </div>
-          )}
-        </div>
+      {groupBy === 'none' ? (
+        <AnimatePresence initial={false}>
+          {open.map((t) => <TaskRow key={t.id} task={t} showStatus onClick={() => onClick(t)} />)}
+        </AnimatePresence>
+      ) : (
+        groups.map((g) => <TaskGroupSection key={`${groupBy}:${g.key}`} group={g} by={groupBy} onClick={onClick} />)
       )}
 
-      {archiveScope !== null && <ArchiveFold scope={archiveScope} onClick={onClick} />}
-
-      {scratched.length > 0 && (
-        <div className="mt-4">
-          <FoldToggle open={showScratched} onClick={() => setShowScratched((v) => !v)}>
-            Scratched ({scratched.length})
-          </FoldToggle>
-          {showScratched && (
-            <div className="flex flex-col gap-2 mt-2">
-              {scratched.map((t) => (
-                <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="mt-4 flex flex-col gap-2">
+        {done.length > 0 && (
+          <FinishedFold name="done" label="Done" count={done.length}>
+            {done.map((t) => <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />)}
+          </FinishedFold>
+        )}
+        {archiveScope !== null && <ArchiveFold scope={archiveScope} onClick={onClick} />}
+        {scratched.length > 0 && (
+          <FinishedFold name="scratched" label="Scratched" count={scratched.length}>
+            {scratched.map((t) => <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />)}
+          </FinishedFold>
+        )}
+      </div>
     </div>
-  );
-}
-
-function FoldToggle({ open, onClick, children }: { open: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={open}
-      className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
-    >
-      <ChevronDown className={`size-3.5 transition-transform ${open ? '' : '-rotate-90'}`} />
-      {children}
-    </button>
   );
 }
 
@@ -525,16 +612,18 @@ function FoldToggle({ open, onClick, children }: { open: boolean; onClick: () =>
 // its count is fetched until it is opened; then 50 at a time. Unticking one
 // brings it back to To do.
 function ArchiveFold({ scope, onClick }: { scope: number | 'all'; onClick: (t: Task) => void }) {
+  // Not remembered: archived tasks load only when it's opened, every time.
+  const id = 'fold:list:fin:archive';
   const [open, setOpen] = useState(false);
+  const toggle = () => setOpen((v) => !v);
   const { data: count = 0 } = useTaskArchiveCount(scope);
   const archive = useTaskArchive(scope, open);
   if (count === 0) return null;
   const items = archive.data?.pages.flatMap((p) => p.items) ?? [];
   return (
-    <div className="mt-4">
-      <FoldToggle open={open} onClick={() => setOpen((v) => !v)}>Archive ({count})</FoldToggle>
-      {open && (
-        <div className="flex flex-col gap-2 mt-2">
+    <section>
+      <GroupHeader id={id} label="Archive" count={count} open={open} onToggle={toggle} quiet />
+      <FoldBody id={id} open={open}>
           {archive.isLoading ? (
             [1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)
           ) : archive.isError && items.length === 0 ? (
@@ -554,8 +643,7 @@ function ArchiveFold({ scope, onClick }: { scope: number | 'all'; onClick: (t: T
               {archive.isFetchingNextPage ? 'Loading…' : 'Show more'}
             </Button>
           )}
-        </div>
-      )}
-    </div>
+      </FoldBody>
+    </section>
   );
 }

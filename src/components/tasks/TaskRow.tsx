@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import {
   useToggleTaskStatus, useToggleTaskImportant, useCreateTask, useSubtasks, usePrefetchSubtasks,
 } from '@/queries/tasks';
-import { PRIORITY_COLORS } from './helpers';
+import { priorityBox } from './grouping';
 import { cn } from '@/lib/utils';
 import { WavyProgress } from '@/components/ui/wavy-progress';
 
@@ -24,6 +24,8 @@ interface Props {
   depth?: number;
   compact?: boolean;
   attached?: boolean;
+  /** Show "In progress" (the list isn't grouped by Status). */
+  showStatus?: boolean;
   first?: boolean;
 }
 
@@ -33,7 +35,7 @@ interface Props {
 // instant; we lazy-fetch only as a fallback. Clicking the body opens the
 // detail dialog (via onClick).
 export default function TaskRow({
-  task, onClick, depth = 0, compact = false, attached = false, first = false,
+  task, onClick, depth = 0, compact = false, attached = false, first = false, showStatus = false,
 }: Props) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
@@ -98,8 +100,8 @@ export default function TaskRow({
     });
   };
 
-  // One fixed-height line for every task, whatever it carries: checkbox,
-  // accent dot, title, then attribute chips in a fixed order (date → time →
+  // One fixed-height line for every task, whatever it carries: checkbox
+  // (tinted by priority), title, then attribute chips in a fixed order (date → time →
   // steps → subtasks → blocked) and the star. Nothing is ever inserted before
   // the title, so titles line up across rows. Chips drop by priority via
   // container queries (row width, not viewport).
@@ -142,7 +144,9 @@ export default function TaskRow({
 				  ? 'border-primary bg-primary text-primary-foreground'
 				  : task.status === 'blocked'
 				    ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
-				    : 'border-[hsl(var(--outline))] group-hover:border-primary'}`}
+				    : ''}`}
+              // Priority is the box: its colour (or the task's own) as border and a light fill.
+              style={task.status === 'done' || task.status === 'blocked' ? undefined : priorityBox(task.priority, task.color)}
             >
               <AnimatePresence>
                 {task.status === 'done' && (
@@ -165,7 +169,6 @@ export default function TaskRow({
           </motion.button>
 
           <div className="flex flex-1 min-w-0 items-center gap-2.5">
-            <span className={cn('size-2.5 rounded-full shrink-0', !task.color && PRIORITY_COLORS[task.priority])} style={task.color ? { backgroundColor: task.color } : undefined} />
             <span className={cn('flex-1 min-w-0 truncate font-medium text-[0.9375rem] leading-snug', dimmed && 'line-through')}>
               {task.title}
             </span>
@@ -278,6 +281,9 @@ export default function TaskRow({
                   <span className="tabular-nums">{task.subtasks_done ?? 0}/{task.subtask_count ?? 0}</span>
                   <ChevronDown className={cn('size-4 transition-transform duration-200', expanded && 'rotate-180')} />
                 </button>
+              )}
+              {showStatus && task.status === 'in_progress' && (
+                <span className={cn(chip, 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}>In progress</span>
               )}
               {task.status === 'blocked' && (
                 <button

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { clientMsg } from '@/lib/errors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import BlockerPicker from '@/components/tasks/BlockerPicker';
 import { Trash2, Star, CalendarClock, ListChecks, Bell, Clock, History, Plus, X, Check, GitBranch, Ban, RotateCcw, Mail, ChevronDown, MoreHorizontal, Circle, SkipForward, Image as ImageIcon } from '@/components/ui/icons';
 import { M3CookieLoader } from '@/components/ui/shapes';
 
@@ -744,25 +745,11 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
               <Label className="text-xs font-mono label-kicker text-[hsl(var(--on-error-container))] inline-flex items-center gap-1.5">
                 <GitBranch className="size-3" /> Blocked by
               </Label>
-              <Select
-                value={form.blocked_by_task_id ? String(form.blocked_by_task_id) : undefined}
-                onValueChange={(value) => setForm({ ...form, blocked_by_task_id: Number(value) })}
-                items={blockerCandidates.map((task) => ({ value: String(task.id), label: task.title }))}
-              >
-                <SelectTrigger className="h-10 bg-card text-sm" aria-label="Select blocking task">
-                  <SelectValue placeholder="Select the task that must be done first" />
-                </SelectTrigger>
-                <SelectContent>
-                  {blockerCandidates.map((task) => (
-                    <SelectItem key={task.id} value={String(task.id)}>
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className={`size-2 rounded-full shrink-0 ${STATUS_DOT[task.status]}`} />
-                        <span className="truncate">{task.title}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <BlockerPicker
+                value={form.blocked_by_task_id}
+                tasks={blockerCandidates}
+                onChange={(id) => setForm({ ...form, blocked_by_task_id: id })}
+              />
               <p className="text-xs text-[hsl(var(--on-error-container)/0.8)]">
                 Marking the blocker done, scratching or deleting it returns this task to To do.
               </p>
