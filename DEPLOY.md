@@ -7,7 +7,7 @@ requests to the Cloud Run default URL because Cloud Run domain mapping
 is not available in the backend region.
 
 ```
-push branch / PR       ─►  CI: eslint · tsc · vite build
+push branch / PR       ─►  CI: oxlint · oxfmt --check · tsc · vite build
                             Vercel: preview deploy (auto, per branch)
 push main              ─►  CI only (no Vercel deployment)
 
@@ -75,11 +75,11 @@ The deploy workflow uses the Vercel CLI. It needs three values:
 
 In `ohmysajni/sajni-web` → **Settings → Secrets and variables → Actions**:
 
-| Where    | Name                | Value                              |
-| -------- | ------------------- | ---------------------------------- |
-| Secrets  | `VERCEL_TOKEN`      | the token from step 1              |
-| Variables| `VERCEL_ORG_ID`     | `orgId` from `project.json`        |
-| Variables| `VERCEL_PROJECT_ID` | `projectId` from `project.json`    |
+| Where     | Name                | Value                           |
+| --------- | ------------------- | ------------------------------- |
+| Secrets   | `VERCEL_TOKEN`      | the token from step 1           |
+| Variables | `VERCEL_ORG_ID`     | `orgId` from `project.json`     |
+| Variables | `VERCEL_PROJECT_ID` | `projectId` from `project.json` |
 
 That's it. `git push` for previews, `git tag srf/release/v*` for prod.
 
@@ -122,7 +122,7 @@ git push origin srf/release/v0.1.0
 
 The workflow:
 
-1. Re-runs eslint + tsc.
+1. Re-runs oxlint, the oxfmt check and tsc.
 2. `vercel pull` syncs the production env config. The built app always
    calls same-origin `/api`, independently of downloaded environment values.
 3. `vercel build --prod` produces a static deployment artifact.
@@ -170,7 +170,7 @@ Vercel keeps every deploy as a unique URL. To roll back:
 ```sh
 pnpm install --frozen-lockfile
 make dev      # Vite dev server on :5173, proxies /api to localhost:8080
-make check    # what CI runs (eslint + tsc + build)
+make check    # what CI runs (oxlint + oxfmt check + tsc + build)
 ```
 
 `vite.config.ts` proxies `/api/*` to `localhost:8080` in dev so you
@@ -180,12 +180,12 @@ can run sajni-api locally and the frontend talks to it without CORS.
 
 ## How the two repos talk
 
-|                    | dev (laptop)           | prod                           |
-| ------------------ | ---------------------- | ------------------------------ |
-| Frontend           | `localhost:5173`       | `https://www.ohmysajni.com`     |
-| Backend            | `localhost:8080`       | Cloud Run default URL           |
-| Frontend → backend | Vite proxy (`/api/*`)  | Vercel rewrite (`/api/*`)       |
-| CORS_ORIGIN (api)  | not needed (proxy)     | not needed for same-origin API  |
+|                    | dev (laptop)          | prod                           |
+| ------------------ | --------------------- | ------------------------------ |
+| Frontend           | `localhost:5173`      | `https://www.ohmysajni.com`    |
+| Backend            | `localhost:8080`      | Cloud Run default URL          |
+| Frontend → backend | Vite proxy (`/api/*`) | Vercel rewrite (`/api/*`)      |
+| CORS_ORIGIN (api)  | not needed (proxy)    | not needed for same-origin API |
 
 If a request works locally but fails in prod, check that `vercel.json`
 points `/api/:path*` at the current Cloud Run service URL. The client

@@ -55,6 +55,7 @@ jobs:
       # Re-run the same gates CI runs so a tag can never ship a build
       # that wouldn't pass CI on the same commit.
       - run: pnpm run lint:ci
+      - run: pnpm run fmt:check
       - run: pnpm exec tsc --noEmit -p tsconfig.app.json
       - run: pnpm run test:chunk-reload
 

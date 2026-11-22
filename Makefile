@@ -7,9 +7,9 @@ help:
 	@echo "  dev        run Vite dev server (:5173)"
 	@echo "  build      tsc + vite build -> ./dist"
 	@echo "  preview    serve the built bundle"
-	@echo "  fmt        eslint --fix"
-	@echo "  lint       eslint (read-only)"
-	@echo "  check      what CI runs: lint + tsc + build"
+	@echo "  fmt        oxfmt (rewrites files)"
+	@echo "  lint       oxlint (read-only)"
+	@echo "  check      what CI runs: lint + format check + tsc + build"
 	@echo "  clean      remove ./dist + .vite caches"
 
 dev:
@@ -22,12 +22,13 @@ preview: build
 	pnpm run preview
 
 fmt:
-	pnpm exec eslint . --fix
+	pnpm run fmt
 
 lint:
-	pnpm exec eslint .
+	pnpm run lint
 
 check: lint
+	pnpm run fmt:check
 	pnpm exec tsc --noEmit -p tsconfig.app.json
 	pnpm run build
 

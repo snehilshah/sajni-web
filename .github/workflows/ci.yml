@@ -29,8 +29,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: ESLint
+      - name: Lint (oxlint)
         run: pnpm run lint:ci
+
+      - name: Format check (oxfmt)
+        run: pnpm run fmt:check
 
       - name: TypeScript type-check
         run: pnpm exec tsc --noEmit -p tsconfig.app.json

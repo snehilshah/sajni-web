@@ -35,78 +35,14 @@ Sharing package files saves space and reduces repeated writes across projects.
 It does not measure or guarantee SSD lifespan. The one-time migration still
 needs to populate any packages missing from the store.
 
-## Vite template notes
+## Lint and format
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Lint:** [oxlint](https://oxc.rs/docs/guide/usage/linter.html), config `.oxlintrc.json`. It carries the old ESLint rules
+  (core recommended, typescript-eslint recommended, React hooks incl. the React Compiler checks) at the same levels, plus
+  oxlint's own correctness set as warnings. `pnpm run lint`; CI runs `pnpm run lint:ci` (errors only). Existing
+  `eslint-disable` comments are honoured.
+- **Format:** [oxfmt](https://oxc.rs/docs/guide/usage/formatter.html), config `.oxfmtrc.json` (2 spaces, single quotes,
+  width 120, Tailwind classes sorted). `pnpm run fmt` rewrites; CI fails on `pnpm run fmt:check`. Both are pinned to exact
+  versions: upgrade them on purpose, then run `pnpm run fmt` and commit the result alone.
+- The one-time reformat commit is listed in `.git-blame-ignore-revs` (GitHub skips it in blame; locally run
+  `git config blame.ignoreRevsFile .git-blame-ignore-revs`).

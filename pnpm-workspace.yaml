@@ -10,8 +10,15 @@ allowBuilds:
   fsevents@2.3.3: true
 
 # Security fixes for transitive packages (pnpm audit / GitHub advisories):
-# @tailwindcss/typography still asks for an old postcss-selector-parser,
-# eslint 10 for minimatch 10. Drop each once its parent moves on.
+# @tailwindcss/typography still asks for an old postcss-selector-parser.
+# Drop it once typography moves on.
 overrides:
   postcss-selector-parser@<6.1.5: ^6.1.6
-  minimatch@>=7.0.0 <11.0.1: ^11.0.9
+minimumReleaseAgeExclude:
+  - '@oxlint-tsgolint/darwin-arm64@7.0.2008'
+  - '@oxlint-tsgolint/darwin-x64@7.0.2008'
+  - '@oxlint-tsgolint/linux-arm64@7.0.2008'
+  - '@oxlint-tsgolint/linux-x64@7.0.2008'
+  - '@oxlint-tsgolint/win32-arm64@7.0.2008'
+  - '@oxlint-tsgolint/win32-x64@7.0.2008'
+  - oxlint-tsgolint@7.0.2008
