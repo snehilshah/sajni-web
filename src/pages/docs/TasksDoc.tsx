@@ -280,7 +280,8 @@ export default function TasksDoc() {
             <p>
               Reminders group chronologically into Today, Tomorrow, Later and
               Recurring. A row carries the message, next fire time, the first
-              line of its notes and compact actions; <em>More</em> unfolds long
+              line of its notes and compact actions. Notes show their
+              formatting (lists, bold, links); <em>More</em> unfolds long
               notes in place, in the Recent ledger too. The notification shows
               them as well: a short reminder is its title over the notes, a
               long one stays in the text under “Reminder”. Delivered and skipped occurrences

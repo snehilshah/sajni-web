@@ -1,5 +1,7 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { motion } from 'framer-motion';
 import { addDays, format, isSameDay, startOfDay } from 'date-fns';
 
 import type { Reminder, ReminderHistoryItem, ReminderInput, ReminderRecurrence } from '@/types';
@@ -396,41 +398,48 @@ function tileCorners(index: number, count: number) {
   );
 }
 
-// ReminderNotes shows a reminder's notes folded to one line; More unfolds
-// them in place (they can run to 4,000 characters). A button, not the row,
-// so delivered reminders, which open nothing, can be read too.
+// ReminderNotes shows a reminder's notes as Markdown, folded to one line;
+// More unfolds them in place (they can run to 4,000 characters; past 20rem
+// they scroll). One box animates its height, so nothing is swapped and the
+// row never jumps. A button, not the row, so delivered reminders, which open
+// nothing, can be read too.
 function ReminderNotes({ notes }: { notes: string }) {
   const text = notes.trim();
   const [open, setOpen] = useState(false);
+  const inner = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ full: 0, line: 0 });
+  useLayoutEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    const measure = () => setSize({ full: el.scrollHeight, line: parseFloat(getComputedStyle(el).lineHeight) || 22 });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text]);
   if (!text) return null;
-  const long = text.includes('\n') || text.length > 70;
+  const folded = Math.ceil(size.line);
+  const long = size.full > folded + 2;
+  const height = !long ? 'auto' : open ? Math.min(size.full, 320) : folded;
   return (
     <div className="mt-1 min-w-0">
-      <AnimatePresence initial={false} mode="wait">
-        {open ? (
-          <motion.p
-            key="all"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-            className="max-h-80 overflow-y-auto whitespace-pre-wrap break-words text-sm text-muted-foreground"
-          >
+      <motion.div
+        initial={false}
+        animate={{ height }}
+        transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+        className={cn('min-w-0', open && size.full > 320 ? 'overflow-y-auto' : 'overflow-hidden')}
+        // Links open in a new tab and don't open the reminder.
+        onClick={(event) => { if ((event.target as HTMLElement).closest('a')) event.stopPropagation(); }}
+      >
+        <div
+          ref={inner}
+          className="prose-sajni break-words text-sm !text-muted-foreground [&>:first-child]:!mt-0 [&>:last-child]:!mb-0 [&_:is(h1,h2,h3,h4)]:!mt-2 [&_:is(h1,h2,h3,h4)]:!text-sm"
+        >
+          <Markdown remarkPlugins={[remarkGfm]} components={{ a: (props) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}>
             {text}
-          </motion.p>
-        ) : (
-          <motion.p
-            key="one"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="truncate text-sm text-muted-foreground"
-          >
-            {text.split('\n')[0]}
-          </motion.p>
-        )}
-      </AnimatePresence>
+          </Markdown>
+        </div>
+      </motion.div>
       {long && (
         <button
           type="button"
