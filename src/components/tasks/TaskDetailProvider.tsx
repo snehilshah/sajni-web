@@ -83,6 +83,22 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
     }
   }, [qc]);
 
+  // The newest copy of a task held in the cache: its detail entry or any
+  // task list (Missed, Today, a list, the Board).
+  const heldCopy = useCallback(
+    (id: number): Task | undefined => {
+      const copies = [
+        { task: qc.getQueryData<Task>(qk.tasks.detail(id)), at: qc.getQueryState(qk.tasks.detail(id))?.dataUpdatedAt },
+        ...qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'list'] }).map(([key, rows]) => ({
+          task: Array.isArray(rows) ? rows.find((t) => t.id === id) : undefined,
+          at: qc.getQueryState(key)?.dataUpdatedAt,
+        })),
+      ].filter((c): c is { task: Task; at: number } => !!c.task && typeof c.task.title === 'string');
+      return copies.sort((a, b) => (b.at ?? 0) - (a.at ?? 0))[0]?.task;
+    },
+    [qc],
+  );
+
   const openTask = useCallback(
     async (id: number) => {
       const seq = ++openSeqRef.current;
@@ -100,21 +116,31 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
       // Otherwise the dialog briefly mounts with stale or null `editing`,
       // which is what users see as a "blank page" flicker.
       ensureLists();
+      // A task already on screen opens at once, from the copy we hold (a list
+      // carries the full editable task), however old it is; the server is
+      // asked in the background and a newer copy replaces it (the dialog keeps
+      // anything already typed). Only a task we hold no copy of waits for the
+      // network, so a slow trip never leaves a click with nothing on screen.
+      const held = heldCopy(id);
+      if (held) {
+        setEditingTask(held);
+        setDefaults({});
+        setOpen(true);
+        tasksApi
+          .get(id)
+          .then((fresh) => {
+            qc.setQueryData(qk.tasks.detail(id), fresh);
+            if (seq !== openSeqRef.current) return;
+            setEditingTask((shownTask) =>
+              shownTask?.id === id && shownTask.updated_at !== fresh.updated_at ? fresh : shownTask,
+            );
+          })
+          .catch(() => {
+            /* keep the held copy; the dialog still works with it */
+          });
+        return;
+      }
       try {
-        // List responses carry the complete editable task shape. Seed the
-        // detail key from any fresh list before falling back to GET /tasks/:id.
-        if (!qc.getQueryData(qk.tasks.detail(id))) {
-          const now = Date.now();
-          const cached = qc
-            .getQueriesData<Task[]>({ queryKey: ['tasks', 'list'] })
-            .filter(([key]) => {
-              const state = qc.getQueryState(key);
-              return state && !state.isInvalidated && now - state.dataUpdatedAt < 60_000;
-            })
-            .flatMap(([, rows]) => rows ?? [])
-            .find((task) => task.id === id);
-          if (cached) qc.setQueryData(qk.tasks.detail(id), cached);
-        }
         const t = await qc.fetchQuery({
           queryKey: qk.tasks.detail(id),
           queryFn: () => tasksApi.get(id),
@@ -139,7 +165,7 @@ export function TaskDetailProvider({ children }: { children: ReactNode }) {
         setOpen(false);
       }
     },
-    [ensureLists, qc],
+    [ensureLists, heldCopy, qc],
   );
 
   const openNew = useCallback(

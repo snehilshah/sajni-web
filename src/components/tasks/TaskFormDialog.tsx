@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -381,8 +381,22 @@ export default function TaskFormDialog({
   });
   const loadDraft = editor.load;
 
+  // The dialog opens from the copy already on screen and the provider swaps
+  // in the server's newer copy a moment later. That refresh reloads the form
+  // only while nothing has been changed, so typing is never lost.
+  const changedRef = useRef(false);
+  useEffect(() => {
+    changedRef.current = editor.changed;
+  });
+  const loadedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!open) loadedRef.current = null;
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
+    if (editing && loadedRef.current === editing.id && changedRef.current) return;
+    loadedRef.current = editing?.id ?? null;
     if (editing) {
       const loaded: FormState = {
         title: editing.title,
