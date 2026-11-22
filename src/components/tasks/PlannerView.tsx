@@ -37,7 +37,9 @@ type Props = {
 
 const VIEW_DESKTOP_KEY = 'sajni:planner:view:desktop';
 const VIEW_MOBILE_KEY = 'sajni:planner:view:mobile';
-const HIDE_COMPLETED_KEY = 'sajni:planner:hide-completed';
+const HIDE_DONE_KEY = 'sajni:planner:hide-done';
+// Its old name (before 2026-11-22), read so the choice carries over.
+const OLD_HIDE_DONE_KEY = 'sajni:planner:hide-completed';
 
 function dateKey(value: Date) {
   return format(value, 'yyyy-MM-dd');
@@ -113,16 +115,16 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
   const { data, isLoading } = usePlanner(fromKey, toKey);
   const moveTask = usePlannerReschedule();
   const toggleStatus = useToggleTaskStatus();
-  const [hideCompleted, setHideCompleted] = useState(() => {
-    try { return localStorage.getItem(HIDE_COMPLETED_KEY) === 'true'; } catch { return false; }
+  const [hideDone, setHideDone] = useState(() => {
+    try { return (localStorage.getItem(HIDE_DONE_KEY) ?? localStorage.getItem(OLD_HIDE_DONE_KEY)) === 'true'; } catch { return false; }
   });
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    if (!hideCompleted) return;
+    if (!hideDone) return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
-  }, [hideCompleted]);
+  }, [hideDone]);
   const [agendaDay, setAgendaDay] = useState<Date | null>(null);
   const [moveModeTask, setMoveModeTask] = useState<Task | null>(null);
   const [reminderEditorOpen, setReminderEditorOpen] = useState(false);
@@ -149,19 +151,19 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
   const dayTasks = useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const task of data?.tasks ?? []) {
-      if (!task.due_date || (hideCompleted && task.status === 'done')) continue;
+      if (!task.due_date || (hideDone && task.status === 'done')) continue;
       const list = map.get(task.due_date) ?? [];
       list.push(task);
       map.set(task.due_date, list);
     }
     for (const tasks of map.values()) tasks.sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'));
     return map;
-  }, [data?.tasks, hideCompleted]);
+  }, [data?.tasks, hideDone]);
 
   const dayReminders = useMemo(() => {
     const map = new Map<string, PlannerReminderOccurrence[]>();
     for (const reminder of data?.reminder_occurrences ?? []) {
-      if (hideCompleted && (
+      if (hideDone && (
         reminder.status === 'delivered' || reminder.status === 'skipped'
         || new Date(reminder.fire_at).getTime() <= now
       )) continue;
@@ -171,7 +173,7 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
       map.set(key, list);
     }
     return map;
-  }, [data?.reminder_occurrences, data?.timezone, hideCompleted, now]);
+  }, [data?.reminder_occurrences, data?.timezone, hideDone, now]);
 
   const openReminder = async (item: PlannerReminderOccurrence) => {
     try {
@@ -290,15 +292,15 @@ export default function PlannerView({ onCreateTask, onEditTask }: Props) {
       <div className="flex items-center justify-between gap-3 px-1">
         <button
           type="button" className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-muted-foreground hover:bg-[hsl(var(--on-surface)/0.06)]"
-          aria-pressed={hideCompleted}
+          aria-pressed={hideDone}
           onClick={() => {
-            const next = !hideCompleted;
-            setHideCompleted(next);
-            try { localStorage.setItem(HIDE_COMPLETED_KEY, String(next)); } catch {}
+            const next = !hideDone;
+            setHideDone(next);
+            try { localStorage.setItem(HIDE_DONE_KEY, String(next)); } catch {}
           }}
         >
-          <span className={cn('flex size-4 items-center justify-center rounded-md border', hideCompleted && 'border-primary bg-primary text-primary-foreground')}>{hideCompleted && <Check className="size-3" />}</span>
-          Hide completed
+          <span className={cn('flex size-4 items-center justify-center rounded-md border', hideDone && 'border-primary bg-primary text-primary-foreground')}>{hideDone && <Check className="size-3" />}</span>
+          Hide done
         </button>
         {moveModeTask && (
           <div className="flex items-center gap-2 rounded-full bg-[hsl(var(--secondary-container))] px-3 py-1.5 text-xs text-[hsl(var(--on-secondary-container))]">
@@ -469,7 +471,7 @@ function PlannerTaskPill({ task, compact, onEdit, onToggle, containerRef, handle
       )}
       style={task.color ? { backgroundColor: `${task.color}24`, color: task.color } : undefined}
     >
-      <button type="button" aria-label={task.status === 'done' ? 'Mark incomplete' : 'Complete task'} className={cn('flex shrink-0 items-center justify-center rounded-full', compact ? 'size-6' : 'size-11 min-[1360px]:size-8')} onClick={(event) => { event.stopPropagation(); onToggle(task); }}>
+      <button type="button" aria-label={task.status === 'done' ? 'Mark not done' : 'Mark done'} className={cn('flex shrink-0 items-center justify-center rounded-full', compact ? 'size-6' : 'size-11 min-[1360px]:size-8')} onClick={(event) => { event.stopPropagation(); onToggle(task); }}>
         <span className={cn('flex size-4 items-center justify-center rounded-full border border-current', task.status === 'done' && 'bg-current')}>
           {task.status === 'done' && <Check className="size-3 text-[hsl(var(--surface))]" />}
         </span>

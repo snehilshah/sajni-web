@@ -59,7 +59,7 @@ export default function TaskRow({
     return !isToday(d) && isPast(d);
   })();
 
-  const completedSteps = task.steps?.filter((s) => s.done).length ?? 0;
+  const doneSteps = task.steps?.filter((s) => s.done).length ?? 0;
   const totalSteps = task.steps?.length ?? 0;
   const hasSubtasks = (task.subtask_count ?? 0) > 0;
   // Deleting the last subtask takes the toggle with it; fold the group too,
@@ -123,13 +123,13 @@ export default function TaskRow({
         )}
       >
         <div className={cn('flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
-          {/* Completion checkbox — 24px visual, padded to a comfortable target */}
+          {/* Done checkbox — 24px visual, padded to a comfortable target */}
           <motion.button
             onClick={handleToggleStatus}
             whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 500, damping: 24 }}
             className="shrink-0 -m-2 p-2 flex items-center justify-center"
-            title={task.status === 'done' ? 'Mark incomplete' : 'Complete'}
+            title={task.status === 'done' ? 'Mark not done' : 'Mark done'}
           >
             {/* M3 Expressive shape morph: soft square while open, full
                 circle once done — the state change reads in silhouette. */}
@@ -252,7 +252,7 @@ export default function TaskRow({
               {totalSteps > 0 && (
                 <span className={cn(chip, neutral, 'hidden @sm:inline-flex')} title="Steps">
                   <ListChecks className="size-3" />
-                  <span className="tabular-nums">{completedSteps}/{totalSteps}</span>
+                  <span className="tabular-nums">{doneSteps}/{totalSteps}</span>
                 </span>
               )}
               {hasSubtasks && (

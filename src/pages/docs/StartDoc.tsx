@@ -229,8 +229,8 @@ export default function StartDoc() {
             <p>
               If Sajni refuses a change when it syncs (say, ticking a task
               whose subtasks were reopened on the web), it's dropped and a
-              notice says why: <em>Couldn't sync “Pay rent”: Finish its 2 open
-              subtasks first</em>.
+              notice says why: <em>Couldn't sync “Pay rent”: Mark its 2 open
+              subtasks done first</em>.
             </p>
           </Feature>
         </FeatureList>

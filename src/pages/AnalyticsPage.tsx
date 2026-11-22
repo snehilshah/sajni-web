@@ -100,7 +100,7 @@ function ActivityPanel() {
   }
 
   const maxModuleVal = Math.max(...Object.values(data.module_breakdown), 1);
-  const maxVelocity = Math.max(...data.task_velocity.map((v) => v.completed), 1);
+  const maxVelocity = Math.max(...data.task_velocity.map((v) => v.done), 1);
   const maxTagCount = Math.max(...data.top_tags.map((t) => t.count), 1);
   const journalPct = data.journal_consistency.percentage;
 
@@ -241,17 +241,17 @@ function ActivityPanel() {
             </Panel>
 
             {/* Task velocity */}
-            <Panel title="Tasks completed" subtitle="Completed by week">
+            <Panel title="Tasks done" subtitle="Done by week">
               {data.task_velocity.length === 0 ? (
-                <Empty>No completed tasks yet.</Empty>
+                <Empty>No tasks done yet.</Empty>
               ) : (
                 <div className="flex items-end gap-1 h-32 pt-2">
                   {data.task_velocity.map((v, i) => {
-                    const pct = (v.completed / maxVelocity) * 100;
+                    const pct = (v.done / maxVelocity) * 100;
                     return (
-                      <div key={v.week} className="flex-1 flex flex-col items-center gap-1 group" title={`${v.week}: ${v.completed}`}>
+                      <div key={v.week} className="flex-1 flex flex-col items-center gap-1 group" title={`${v.week}: ${v.done}`}>
                         <div className="font-mono text-xs tabular-nums text-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {v.completed}
+                          {v.done}
                         </div>
                         <div className="w-full flex items-end justify-center" style={{ height: '92px' }}>
                           <motion.div
@@ -259,7 +259,7 @@ function ActivityPanel() {
                             animate={{ transform: 'scaleY(1)' }}
                             transition={{ duration: 0.24, delay: Math.min(i * 0.025, 0.1), ease: [0.23, 1, 0.32, 1] }}
                             className="w-full bg-primary/80 rounded-t-sm group-hover:bg-primary"
-                            style={{ height: `${Math.max(pct, v.completed > 0 ? 6 : 0)}%`, transformOrigin: 'center bottom' }}
+                            style={{ height: `${Math.max(pct, v.done > 0 ? 6 : 0)}%`, transformOrigin: 'center bottom' }}
                           />
                         </div>
                         <span className="font-mono text-xs text-muted-foreground truncate max-w-full">

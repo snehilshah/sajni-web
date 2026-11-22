@@ -65,6 +65,8 @@ export interface Task {
   board_rank?: number | null;
   /** Images in its Images section (list and single task). */
   attachment_count?: number;
+  /** When it was marked done; null unless done. 7 days on it moves to the Archive. */
+  done_at?: string | null;
   subtask_count?: number;
   subtasks_done?: number;
   /** Brief children embedded by the list endpoint so subtasks expand
@@ -72,6 +74,15 @@ export interface Task {
   subtasks?: Task[];
   created_at?: string;
   updated_at?: string;
+}
+
+/** A page of the Archive (GET /tasks/archive). */
+export interface TaskArchivePage {
+  items: Task[];
+  /** Every archived task in scope, not just this page. */
+  count: number;
+  has_more: boolean;
+  next_cursor: string | null;
 }
 
 export interface ReminderRecurrence {
@@ -472,7 +483,7 @@ export interface Analytics {
     current: number;
     longest: number;
   }[];
-  task_velocity: { week: string; completed: number }[];
+  task_velocity: { week: string; done: number }[];
   journal_consistency: { days_logged: number; total_days: number; percentage: number };
   top_tags: { tag: string; count: number }[];
   media_stats: Record<string, number>;

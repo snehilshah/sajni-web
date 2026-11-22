@@ -256,13 +256,13 @@ export default function TasksDoc() {
       <Section id="reminders" title="Tasks & Standalone Reminders" chip="Tasks · Reminders">
         <p>
           The secondary bar separates work from nudges. A task models
-          something you intend to complete; a standalone reminder only needs
+          something you intend to get done; a standalone reminder only needs
           a message and a time.
         </p>
         <RefTable
           head={['use', 'when it fits']}
           rows={[
-            ['Task', 'Work with status, scope, priority, steps, subtasks or a completion trail.'],
+            ['Task', 'Work with status, scope, priority, steps, subtasks or a history of when it was done.'],
             ['Reminder', 'A lightweight interruption such as “call Mom tomorrow at 4”.'],
             ['Task reminder', 'A notification that belongs to an existing task and should stay attached to it.'],
           ]}
@@ -342,11 +342,35 @@ export default function TasksDoc() {
             ['todo', 'open'],
             ['in progress', 'actively being worked'],
             ['blocked', 'waiting on its blocker task'],
-            ['done', 'completed, moves to the collapsible Completed group'],
+            ['done', 'ticked off; sits under Done for 7 days, then in the Archive'],
             ['scratched', 'abandoned on purpose, struck through, kept'],
           ]}
         />
         <FeatureList>
+          <Feature name="Done & Archive">
+            <p>
+              A task you tick goes under <strong>Done</strong>, a fold at the
+              foot of the list (the Done lane on the Board). It stays there
+              for 7 days after you marked it done, then moves to the{' '}
+              <strong>Archive</strong>. Nothing is deleted, and you can't
+              archive a task by hand: time does it.
+            </p>
+            <p>
+              Every view has its own Done: My Day shows today's tasks you've
+              marked done, Important your starred ones, a list its own. The{' '}
+              <strong>Archive (N)</strong> fold sits under Done in{' '}
+              <strong>All</strong> (every archived task) and in each of your
+              own lists (that list's), in the List view only. It loads only
+              when you open it, newest first, 50 at a time behind “Show
+              more”.
+            </p>
+            <p>
+              Example: you mark “Pay rent” done on Monday 3rd in your Home
+              list. Until Monday 10th it's under Done in Home (and in All);
+              after that it's in Home's Archive. Untick it there and it's back
+              in To do.
+            </p>
+          </Feature>
           <Feature name="Scratched">
             <p>
               Deciding <em>not</em> to do something is progress. Scratched
@@ -373,11 +397,10 @@ export default function TasksDoc() {
           and Blocked last, since it's the exception). The Board uses the
           whole width of the window (up to a limit on very wide screens), its
           lanes reach down to the foot of the screen, and each has its own Add
-          a task, so the Board hides the page's add bar. Views that list only
-          open tasks (My Day, Planned, Important…) show <strong>Done
-          today</strong> as their last-but-one lane: what you finished today,
-          so a card you drop there stays in sight. All and your own lists show
-          every finished task under Done. A card shows the title on up to four lines and grows downward.
+          a task, so the Board hides the page's add bar. In every view, Done
+          holds that view's tasks marked done in the last 7 days, so a card
+          you drop there stays in sight; older ones are in the Archive, which
+          the Board doesn't show (open it from the List). A card shows the title on up to four lines and grows downward.
           Under it, only the date is a pill (red when overdue, blue for
           today); the rest are small marks: repeats, steps (1/4), subtasks
           (0/3), a bell for a reminder, lines when it has notes, and a picture

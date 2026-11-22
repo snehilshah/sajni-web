@@ -52,8 +52,6 @@ interface Props {
   onQuickAdd: (status: Lane, title: string) => Promise<void>;
   onToggleImportant: (id: number, important: boolean) => void;
   onToggleDone: (task: Task) => void;
-  /** This view lists open tasks only; its Done lane holds today's. */
-  doneToday?: boolean;
 }
 
 /** The lane's card slots (minus the dragged one) and the first whose middle
@@ -77,7 +75,7 @@ export function rankAt(list: Task[], index: number): number {
   return -Date.now();
 }
 
-export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onToggleImportant, onToggleDone, doneToday = false }: Props) {
+export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onToggleImportant, onToggleDone }: Props) {
   // A drop shows in this frame; the query cache catches up a moment later
   // (optimistic patch), and then the override is dropped.
   const [moved, setMoved] = useState<Record<number, { status: Lane; rank: number }>>({});
@@ -246,7 +244,7 @@ export default function BoardView({ grouped, onClick, onMove, onQuickAdd, onTogg
             scrollRef={(el) => { scroll.current[status] = el; }}
             savedScroll={savedScroll}
             showAll={status === 'done' && doneOpen}
-            label={status === 'done' && doneToday ? 'Done today' : STATUS_LABELS[status]}
+            label={STATUS_LABELS[status]}
             onShowAll={setDoneOpen}
             onClick={onClick}
             onQuickAdd={onQuickAdd}
@@ -381,7 +379,7 @@ function BoardLane({ status, tasks, scrollRef, savedScroll, showAll, onShowAll, 
         ))}
         {tasks.length === 0 && !adding && (
           <p className="py-6 text-center text-xs text-muted-foreground [[data-board-slot]~&]:hidden">
-            {status === 'done' ? 'Nothing finished yet' : 'Nothing here'}
+            {status === 'done' ? 'Nothing done in the last 7 days' : 'Nothing here'}
           </p>
         )}
       </div>
@@ -496,7 +494,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
       <div className="flex min-w-0 items-start gap-2">
         <button
           type="button"
-          aria-label={done ? 'Mark not done' : 'Complete task'}
+          aria-label={done ? 'Mark not done' : 'Mark done'}
           onClick={(e) => { e.stopPropagation(); onToggleDone?.(task); }}
           className="-m-1 shrink-0 p-1"
         >
@@ -580,7 +578,7 @@ function CardBody({ task, lifted = false, onClick, onToggleImportant, onToggleDo
 export function boardMoveRefusal(task: Task, status: Lane): string | null {
   if (status === 'done' && (task.subtask_count ?? 0) > (task.subtasks_done ?? 0)) {
     const open = (task.subtask_count ?? 0) - (task.subtasks_done ?? 0);
-    return `Finish its ${open} open subtask${open === 1 ? '' : 's'} first.`;
+    return `Mark its ${open} open subtask${open === 1 ? '' : 's'} done first.`;
   }
   return null;
 }

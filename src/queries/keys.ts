@@ -17,6 +17,9 @@ export const qk = {
     detail: (id: number) => ['tasks', 'detail', id] as const,
     subtasks: (id: number) => ['tasks', 'subtasks', id] as const,
     missed: (date: string) => ['tasks', 'missed', date] as const,
+    /** The Archive of one list (id) or of every task ('all'). */
+    archiveCount: (scope: number | 'all') => ['tasks', 'archive', 'count', scope] as const,
+    archive: (scope: number | 'all') => ['tasks', 'archive', 'pages', scope] as const,
     history: (id: number) => ['tasks', 'history', id] as const,
     events: (id: number) => ['tasks', 'events', id] as const,
     reminders: (id: number) => ['tasks', 'reminders', id] as const,

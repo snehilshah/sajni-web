@@ -30,7 +30,8 @@ type Message =
 
 const ACTION_ICONS: Record<string, typeof CheckSquare> = {
   task_created: CheckSquare,
-  task_completed: CheckSquare,
+  task_done: CheckSquare,
+  task_completed: CheckSquare, // saved chats from before 2026-11-22
   task_deleted: CheckSquare,
   habit_created: Target,
   habit_logged: Target,
@@ -48,7 +49,8 @@ const ACTION_ICONS: Record<string, typeof CheckSquare> = {
 
 const ACTION_LABELS: Record<string, string> = {
   task_created: 'Created task',
-  task_completed: 'Completed task',
+  task_done: 'Marked task done',
+  task_completed: 'Marked task done',
   task_deleted: 'Deleted task',
   habit_created: 'Created habit',
   habit_logged: 'Logged habit',

@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 import type { Task } from '@/types';
 import {
-  useTasks, useTaskLists, useMissedTasks,
+  useTasks, useTaskLists, useMissedTasks, useTaskArchive, useTaskArchiveCount,
   useCreateTask, useToggleTaskStatus, useToggleTaskImportant, useMoveOnBoard,
   useCreateTaskList, useUpdateTaskList, useDeleteTaskList,
   type TaskListParams,
@@ -63,18 +63,16 @@ export default function TasksPage() {
   }, [viewMode]);
 
   // Selection -> list query params. Smart filters carry a `smart` key; a user
-  // list filters by id and only shows top-level tasks.
-  // On the Board, views that list only open tasks (My Day, Planned…) also
-  // fetch what was finished today, so Done isn't an empty lane that eats
-  // whatever is dropped on it.
+  // list filters by id and only shows top-level tasks. done=recent: Done (the
+  // list's fold, the Board's lane) holds the view's tasks done in the last 7
+  // days, open-only views (My Day, Planned…) included; older ones are in the
+  // Archive.
   const isMobile = useIsMobile();
-  const onBoard = viewMode === 'board' && !isMobile;
-  const doneToday = onBoard && selection.kind === 'smart' && selection.smart !== 'all';
   const params: TaskListParams = useMemo(() => (
     selection.kind === 'smart'
-      ? (doneToday ? { smart: selection.smart, done_today: true } : { smart: selection.smart })
-      : { list: selection.id, parent: 'null' }
-  ), [selection, doneToday]);
+      ? { smart: selection.smart, done: 'recent' }
+      : { list: selection.id, parent: 'null', done: 'recent' }
+  ), [selection]);
 
   const { data: lists = [] } = useTaskLists();
   const { data: tasksList = [], isLoading: loading } = useTasks(params);
@@ -127,13 +125,18 @@ export default function TasksPage() {
     return map;
   }, [tasksList]);
 
-  // Scratched (abandoned) tasks are neither open nor completed — their own
+  // Scratched (abandoned) tasks are neither open nor done: their own
   // collapsible group, so the open list stays clean.
   const open = tasksList.filter((t) => t.status !== 'done' && t.status !== 'scratched');
-  const completed = tasksList.filter((t) => t.status === 'done');
+  const done = tasksList.filter((t) => t.status === 'done');
   const scratched = tasksList.filter((t) => t.status === 'scratched');
 
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showDone, setShowDone] = useState(false);
+  // The List view's Archive fold: in one of the owner's lists (its own
+  // archive) and in All (every archived task); not in the other smart views,
+  // nor on the Board.
+  const archiveScope: number | 'all' | null = selection.kind === 'list' ? selection.id
+    : selection.smart === 'all' ? 'all' : null;
 
   const { scrolled: chromeScrolled } = useNavChrome();
   const currentTaskFormLayoutId = `task-form-${chromeScrolled ? 'merged' : 'rest'}`;
@@ -346,17 +349,18 @@ export default function TasksPage() {
             </div>
           ) : effectiveView === 'list' ? (
             <ListView
+              key={archiveScope ?? 'none'}
               open={open}
-              completed={completed}
+              done={done}
               scratched={scratched}
-              showCompleted={showCompleted}
-              onToggleCompleted={() => setShowCompleted((v) => !v)}
+              showDone={showDone}
+              onToggleDone={() => setShowDone((v) => !v)}
+              archiveScope={archiveScope}
               onClick={openEdit}
             />
           ) : (
             <BoardView
               grouped={grouped}
-              doneToday={doneToday}
               onClick={openEdit}
               onMove={(id, status, rank) => {
                 const t = tasksList.find((x) => x.id === id);
@@ -468,13 +472,14 @@ function BucketHeader({ label, count, overdue }: { label: string; count: number;
 }
 
 function ListView({
-  open, completed, scratched, showCompleted, onToggleCompleted, onClick,
+  open, done, scratched, showDone, onToggleDone, archiveScope, onClick,
 }: {
   open: Task[];
-  completed: Task[];
+  done: Task[];
   scratched: Task[];
-  showCompleted: boolean;
-  onToggleCompleted: () => void;
+  showDone: boolean;
+  onToggleDone: () => void;
+  archiveScope: number | 'all' | null;
   onClick: (t: Task) => void;
 }) {
   const [showScratched, setShowScratched] = useState(false);
@@ -489,12 +494,15 @@ function ListView({
   const activeBuckets = BUCKETS.filter((b) => bucketed[b.key].length > 0);
   const showHeaders = activeBuckets.length > 1;
 
-  if (open.length === 0 && completed.length === 0 && scratched.length === 0) {
+  if (open.length === 0 && done.length === 0 && scratched.length === 0) {
     return (
-      <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
-        <ListChecks className="size-9 mx-auto mb-3 opacity-30" />
-        <div className="text-sm">Nothing here yet.</div>
-        <div className="text-xs mt-1">Type a task above to get started.</div>
+      <div className="flex flex-col gap-2">
+        <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
+          <ListChecks className="size-9 mx-auto mb-3 opacity-30" />
+          <div className="text-sm">Nothing here yet.</div>
+          <div className="text-xs mt-1">Type a task above to get started.</div>
+        </div>
+        {archiveScope !== null && <ArchiveFold scope={archiveScope} onClick={onClick} />}
       </div>
     );
   }
@@ -513,18 +521,12 @@ function ListView({
         </div>
       ))}
 
-      {completed.length > 0 && (
+      {done.length > 0 && (
         <div className="mt-4">
-          <button
-            onClick={onToggleCompleted}
-            className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
-          >
-            <ChevronDown className={`size-3.5 transition-transform ${showCompleted ? '' : '-rotate-90'}`} />
-            Completed ({completed.length})
-          </button>
-          {showCompleted && (
+          <FoldToggle open={showDone} onClick={onToggleDone}>Done ({done.length})</FoldToggle>
+          {showDone && (
             <div className="flex flex-col gap-2 mt-2">
-              {completed.map((t) => (
+              {done.map((t) => (
                 <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />
               ))}
             </div>
@@ -532,15 +534,13 @@ function ListView({
         </div>
       )}
 
+      {archiveScope !== null && <ArchiveFold scope={archiveScope} onClick={onClick} />}
+
       {scratched.length > 0 && (
         <div className="mt-4">
-          <button
-            onClick={() => setShowScratched((v) => !v)}
-            className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
-          >
-            <ChevronDown className={`size-3.5 transition-transform ${showScratched ? '' : '-rotate-90'}`} />
+          <FoldToggle open={showScratched} onClick={() => setShowScratched((v) => !v)}>
             Scratched ({scratched.length})
-          </button>
+          </FoldToggle>
           {showScratched && (
             <div className="flex flex-col gap-2 mt-2">
               {scratched.map((t) => (
@@ -554,3 +554,55 @@ function ListView({
   );
 }
 
+function FoldToggle({ open, onClick, children }: { open: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--on-surface)/0.08)] transition-colors"
+    >
+      <ChevronDown className={`size-3.5 transition-transform ${open ? '' : '-rotate-90'}`} />
+      {children}
+    </button>
+  );
+}
+
+// The Archive fold: tasks done more than 7 days ago, newest done first. Only
+// its count is fetched until it is opened; then 50 at a time. Unticking one
+// brings it back to To do.
+function ArchiveFold({ scope, onClick }: { scope: number | 'all'; onClick: (t: Task) => void }) {
+  const [open, setOpen] = useState(false);
+  const { data: count = 0 } = useTaskArchiveCount(scope);
+  const archive = useTaskArchive(scope, open);
+  if (count === 0) return null;
+  const items = archive.data?.pages.flatMap((p) => p.items) ?? [];
+  return (
+    <div className="mt-4">
+      <FoldToggle open={open} onClick={() => setOpen((v) => !v)}>Archive ({count})</FoldToggle>
+      {open && (
+        <div className="flex flex-col gap-2 mt-2">
+          {archive.isLoading ? (
+            [1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)
+          ) : archive.isError && items.length === 0 ? (
+            <div className="flex items-center gap-3 px-2 py-3 text-sm text-muted-foreground">
+              Couldn't load the archive.
+              <Button variant="ghost" size="sm" onClick={() => archive.refetch()}>Try again</Button>
+            </div>
+          ) : (
+            items.map((t) => <TaskRow key={t.id} task={t} onClick={() => onClick(t)} />)
+          )}
+          {archive.hasNextPage && (
+            <Button
+              variant="ghost" size="sm" className="self-start text-muted-foreground"
+              disabled={archive.isFetchingNextPage}
+              onClick={() => archive.fetchNextPage()}
+            >
+              {archive.isFetchingNextPage ? 'Loading…' : 'Show more'}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

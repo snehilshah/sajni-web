@@ -192,7 +192,7 @@ export default function JournalPage() {
   // forever while the query loads or fails, freezing the page.
   const { data: habitStatusData, isLoading: loadingHabits } = useHabitPeriodStatus(selectedDate);
   const { data: dueTaskData = [], isLoading: loadingDueTasks } = useTasks({ due_date: selectedDate });
-  const { data: completedTaskData = [], isLoading: loadingCompletedTasks } = useTasks({ completed_date: selectedDate });
+  const { data: doneTaskData = [], isLoading: loadingDoneTasks } = useTasks({ done_date: selectedDate });
   const { data: missedTasks = [], isLoading: loadingMissedTasks } = useMissedTasksForDate(selectedDate);
   const { data: dayPlans = [], isLoading: loadingPlans } = useDayPlans(selectedDate);
   const [plansEditor, setPlansEditor] = useState<{ open: boolean; id: number | 'new' | null }>({ open: false, id: null });
@@ -200,8 +200,8 @@ export default function JournalPage() {
   const planIds = useMemo(() => new Set(dayPlans.map((p) => p.id)), [dayPlans]);
   const inPlan = (t: Task) => t.plan_id != null && planIds.has(t.plan_id) && t.due_date === selectedDate;
   const dueTasks = dueTaskData.filter((t) => t.status !== 'done' && t.status !== 'scratched' && !inPlan(t));
-  const completedTasks = completedTaskData.filter((t) => !inPlan(t));
-  const loadingTasks = loadingDueTasks || loadingCompletedTasks || loadingMissedTasks;
+  const doneTasks = doneTaskData.filter((t) => !inPlan(t));
+  const loadingTasks = loadingDueTasks || loadingDoneTasks || loadingMissedTasks;
   const toggleTaskStatus = useToggleTaskStatus();
   // Editor writes go through journalApi (day-scoped); refresh the cached list
   // (and any other journal view) after a save/delete.
@@ -263,7 +263,7 @@ export default function JournalPage() {
     qc.invalidateQueries({ queryKey: qk.habits.all });
   };
 
-  const completeTask = (taskId: number) => {
+  const markTaskDone = (taskId: number) => {
     toggleTaskStatus.mutate({ id: taskId, status: 'done' });
   };
 
@@ -365,14 +365,14 @@ export default function JournalPage() {
         <PanelHeading title="Tasks" onOpen={() => navigate('/tasks')} />
         {loadingTasks ? (
           <Skeleton className="h-16 w-full" />
-        ) : dueTasks.length === 0 && completedTasks.length === 0 ? (
+        ) : dueTasks.length === 0 && doneTasks.length === 0 ? (
           null
         ) : (
           <div className="flex flex-col gap-2">
             {dueTasks.map((t) => (
               <div key={t.id} className="group flex items-start gap-2.5">
                 <button
-                  onClick={() => completeTask(t.id)}
+                  onClick={() => markTaskDone(t.id)}
                   title="Mark done"
                   className="shrink-0 mt-0.5"
                 >
@@ -387,7 +387,7 @@ export default function JournalPage() {
                 </button>
               </div>
             ))}
-            {completedTasks.map((t) => (
+            {doneTasks.map((t) => (
               <div key={t.id} className="group flex items-start gap-2.5">
                 <button
                   onClick={() => reopenTask(t.id)}
@@ -1485,28 +1485,28 @@ function SaveStatus({ state, onSave }: { state: 'idle' | 'saving' | 'saved'; onS
 // deliberate prune — safe to delete along with the dailyOpen / DAILY_KEY state.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DailySection({
-  open, onToggle, habitStatuses, loadingHabits, dueTasks, completedTasks, missedTasks, loadingTasks,
-  onToggleHabit, onCompleteTask, onJumpDate,
+  open, onToggle, habitStatuses, loadingHabits, dueTasks, doneTasks, missedTasks, loadingTasks,
+  onToggleHabit, onMarkTaskDone, onJumpDate,
 }: {
   open: boolean;
   onToggle: () => void;
   habitStatuses: HabitStatus[];
   loadingHabits: boolean;
   dueTasks: TaskItem[];
-  completedTasks: TaskItem[];
+  doneTasks: TaskItem[];
   missedTasks: MissedTask[];
   loadingTasks: boolean;
   onToggleHabit: (id: number) => void;
-  onCompleteTask: (id: number) => void;
+  onMarkTaskDone: (id: number) => void;
   onJumpDate: (d: string) => void;
 }) {
   const habitDone = habitStatuses.filter((h) => h.logged).length;
   const taskCount = dueTasks.length;
-  const completedCount = completedTasks.length;
+  const doneCount = doneTasks.length;
   const summary = [
     habitStatuses.length > 0 ? `${habitDone}/${habitStatuses.length} habits` : null,
     taskCount > 0 ? `${taskCount} due` : null,
-    completedCount > 0 ? `${completedCount} done` : null,
+    doneCount > 0 ? `${doneCount} done` : null,
     missedTasks.length > 0 ? `${missedTasks.length} missed` : null,
   ].filter(Boolean).join(' · ');
 
@@ -1560,19 +1560,19 @@ function DailySection({
               {/* Tasks */}
               <DailyColumn icon={<CheckSquare className="size-3.5 text-secondary" />} title="Tasks">
                 {loadingTasks ? <Skeleton className="h-12 w-full" /> :
-                 dueTasks.length === 0 && completedTasks.length === 0 && missedTasks.length === 0 ? (
+                 dueTasks.length === 0 && doneTasks.length === 0 && missedTasks.length === 0 ? (
                   <Empty>Nothing scheduled</Empty>
                 ) : (
                   <div className="flex flex-col gap-0.5">
                     {dueTasks.map((t) => (
                       <div key={t.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40">
-                        <Checkbox onCheckedChange={() => onCompleteTask(t.id)} className="size-3.5" />
+                        <Checkbox onCheckedChange={() => onMarkTaskDone(t.id)} className="size-3.5" />
                         <TaskScopeBadge task={t} />
                         <span className="text-[13px] flex-1 truncate">{t.title}</span>
                         <PriorityDot priority={t.priority} />
                       </div>
                     ))}
-                    {completedTasks.map((t) => (
+                    {doneTasks.map((t) => (
                       <div key={t.id} className="flex items-center gap-2 px-1.5 py-1 text-muted-foreground">
                         <span className="size-3.5 rounded-full bg-primary/40 shrink-0" />
                         <TaskScopeBadge task={t} />
@@ -2062,7 +2062,7 @@ function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: stri
           </button>
         ) : (
           <span className="font-mono text-xs label-kicker text-muted-foreground">
-            {isDone ? 'completed later' : 'still pending'}
+            {isDone ? 'done later' : 'still pending'}
           </span>
         )}
       </div>

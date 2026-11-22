@@ -366,7 +366,7 @@ export default function TodayPage() {
 														e.stopPropagation();
 														toggleTask.mutate({ id: t.id, status: 'done' });
 													}}
-													aria-label="Mark complete"
+													aria-label="Mark done"
 													// Priority is the ring colour (same as the task row), not a chip.
 													className={`size-[18px] rounded-full border-2 shrink-0 hover:bg-primary/10 transition-colors ${
 														t.priority === 'high' ? 'border-destructive' : t.priority === 'low' ? 'border-[hsl(var(--outline-variant))]' : 'border-[hsl(var(--outline))]'

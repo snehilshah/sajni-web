@@ -545,7 +545,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 		      type="button"
 		      onClick={() => setForm({ ...form, status: form.status === 'done' ? 'todo' : 'done' })}
 		      className="flex min-h-10 min-w-0 items-center gap-2 rounded-full px-2 text-left text-sm hover:bg-[hsl(var(--on-surface)/0.06)]"
-		      title={form.status === 'done' ? 'Mark incomplete' : 'Complete task'}
+		      title={form.status === 'done' ? 'Mark not done' : 'Mark done'}
 		    >
 		      <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full border-2', form.status === 'done' ? 'border-primary bg-primary text-primary-foreground' : 'border-[hsl(var(--outline))]')}>
 		        {form.status === 'done' && <Check className="size-4" />}
@@ -750,7 +750,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 items={blockerCandidates.map((task) => ({ value: String(task.id), label: task.title }))}
               >
                 <SelectTrigger className="h-10 bg-card text-sm" aria-label="Select blocking task">
-                  <SelectValue placeholder="Select task that must finish first" />
+                  <SelectValue placeholder="Select the task that must be done first" />
                 </SelectTrigger>
                 <SelectContent>
                   {blockerCandidates.map((task) => (
@@ -764,7 +764,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
                 </SelectContent>
               </Select>
               <p className="text-xs text-[hsl(var(--on-error-container)/0.8)]">
-                Completing, scratching, or deleting blocker returns this task to To do.
+                Marking the blocker done, scratching or deleting it returns this task to To do.
               </p>
             </div>
           )}
@@ -971,7 +971,7 @@ export default function TaskFormDialog({ open, onOpenChange, onCloseComplete, ed
 }
 
 // SubtasksSection — real child tasks under a parent. Each carries its own
-// status/due; toggling completes it, the title opens it in this same dialog,
+// status/due; toggling marks it done, the title opens it in this same dialog,
 // and the inline row adds a new one. This is the explicit "add subtask" CTA
 // that previously only existed (hidden) behind the list-row expander.
 //  • API mode (taskId)                — reads/writes child tasks directly.

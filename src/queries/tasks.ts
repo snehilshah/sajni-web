@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { clientMsg } from '@/lib/errors';
 import { tasks as tasksApi, taskLists as listsApi } from '@/api';
-import type { Task, TaskList, TaskPatch } from '@/types';
+import type { Task, TaskArchivePage, TaskList, TaskPatch } from '@/types';
 import { qk } from './keys';
 import { sendReliably } from '@/lib/reliableSave';
 
@@ -15,6 +15,31 @@ export function useTasks(params?: TaskListParams) {
   return useQuery({
     queryKey: qk.tasks.list(params),
     queryFn: () => tasksApi.list(params),
+  });
+}
+
+// The Archive fold: its count comes with the view (a few bytes); its tasks
+// load only once the fold is opened, a page at a time.
+const ARCHIVE_PAGE = 50;
+
+export function useTaskArchiveCount(scope: number | 'all' | null) {
+  return useQuery({
+    queryKey: qk.tasks.archiveCount(scope ?? 'all'),
+    queryFn: () => tasksApi.archive({ list: scope === 'all' ? undefined : scope ?? undefined, limit: 0 }),
+    select: (page) => page.count,
+    enabled: scope !== null,
+  });
+}
+
+export function useTaskArchive(scope: number | 'all', enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: qk.tasks.archive(scope),
+    queryFn: ({ pageParam }) => tasksApi.archive({
+      list: scope === 'all' ? undefined : scope, limit: ARCHIVE_PAGE, cursor: pageParam,
+    }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => (last.has_more ? last.next_cursor : null),
+    enabled,
   });
 }
 
@@ -87,6 +112,13 @@ export function patchTaskInLists(
   );
   qc.setQueriesData<Task[]>({ queryKey: ['tasks', 'subtasks'] }, (old) =>
     Array.isArray(old) ? old.map((t) => (t.id === id ? { ...t, ...patch } : t)) : old,
+  );
+  // An archived task unticked in the Archive fold.
+  qc.setQueriesData<InfiniteData<TaskArchivePage>>({ queryKey: ['tasks', 'archive', 'pages'] }, (old) =>
+    old?.pages ? {
+      ...old,
+      pages: old.pages.map((p) => ({ ...p, items: p.items.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
+    } : old,
   );
 }
 

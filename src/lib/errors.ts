@@ -10,7 +10,7 @@ export function aborted(err: unknown): boolean {
   return (err as { name?: unknown }).name === 'AbortError';
 }
 
-/** The server's own message for a 4xx refusal (e.g. "Finish its 2 open
+/** The server's own message for a 4xx refusal (e.g. "Mark its 2 open
  *  subtasks first"); anything else collapses to the generic fallback. */
 export function clientMsg(err: unknown, fallback: string): string {
   const status = (err as { status?: unknown } | null)?.status;

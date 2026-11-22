@@ -25,6 +25,7 @@ import type {
   SmartList,
   TagEntities,
   Task,
+  TaskArchivePage,
   TaskList,
   TaskPatch,
   TaskStep,
@@ -157,25 +158,36 @@ export const tasks = {
     due_date?: string;
     week_of?: string;
     month_of?: string;
-    completed_date?: string;
+    /** Tasks done on that day (Journal). */
+    done_date?: string;
     list?: number | 'none';
     parent?: number | 'null';
     smart?: SmartList;
-    /** Board: views of open tasks also keep what was finished today. */
-    done_today?: boolean;
+    /** Tasks screen: Done holds the last 7 days in every view (open-only
+     *  ones too); older done tasks are in the Archive (tasks.archive). */
+    done?: 'recent';
   }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
     if (params?.due_date) q.set('due_date', params.due_date);
     if (params?.week_of) q.set('week_of', params.week_of);
     if (params?.month_of) q.set('month_of', params.month_of);
-    if (params?.completed_date) q.set('completed_date', params.completed_date);
+    if (params?.done_date) q.set('done_date', params.done_date);
     if (params?.list !== undefined) q.set('list', String(params.list));
     if (params?.parent !== undefined) q.set('parent', String(params.parent));
     if (params?.smart) q.set('smart', params.smart);
-    if (params?.done_today) q.set('done_today', '1');
+    if (params?.done) q.set('done', params.done);
     const qs = q.toString();
     return request<Task[]>('/tasks' + (qs ? '?' + qs : ''));
+  },
+  /** The Archive: tasks done more than 7 days ago, newest done first. One
+   *  list's (top-level) or, without list, every task. limit 0 = count only. */
+  archive: (params: { list?: number; limit?: number; cursor?: string | null }) => {
+    const q = new URLSearchParams();
+    if (params.list !== undefined) q.set('list', String(params.list));
+    if (params.limit !== undefined) q.set('limit', String(params.limit));
+    if (params.cursor) q.set('cursor', params.cursor);
+    return request<TaskArchivePage>('/tasks/archive?' + q.toString());
   },
   create: (data: {
     title: string;

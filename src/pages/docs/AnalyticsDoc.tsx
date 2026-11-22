@@ -32,7 +32,7 @@ export default function AnalyticsDoc() {
             <p>Where the activity went, per-module counts for the last month.</p>
           </Feature>
           <Feature name="Task velocity">
-            <p>Completed tasks per week, trend, not judgment.</p>
+            <p>Tasks done per week (by the day you marked them done), trend, not judgment.</p>
           </Feature>
           <Feature name="Habit streaks">
             <p>
