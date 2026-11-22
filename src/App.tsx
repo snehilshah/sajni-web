@@ -48,13 +48,18 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 	return <>{children}</>;
 }
 
-// `/` keeps its meaning for signed-in users (Today), while becoming the
-// public landing page before sign-in. Layout renders the nested Today route;
-// LandingPage intentionally does not render an Outlet.
-function HomeRoute() {
+// One shell for every signed-in page, Today included, so moving between
+// pages never remounts it (docked Sajni stays open). `/` keeps its meaning
+// for signed-in users (Today) and is the public landing page before
+// sign-in (LandingPage intentionally renders no Outlet); every other page
+// sends a signed-out visitor to /signin.
+function AppShell() {
 	const { user, loading } = useAuth();
-	if (loading) return <AppLoader />;
-	return user ? <Layout /> : <LandingPage />;
+	const location = useLocation();
+	const home = location.pathname === '/';
+	if (loading) return home ? <AppLoader /> : <RequireAuth>{null}</RequireAuth>;
+	if (!user) return home ? <LandingPage /> : <Navigate to="/signin" state={{ from: location }} replace />;
+	return <Layout />;
 }
 
 // Memos is a first-class destination again. Keep the old combined Notes URL
@@ -101,9 +106,6 @@ export default function App() {
 				<ErrorBoundary>
 				<Suspense fallback={<AppLoader />}>
 				<Routes>
-          <Route path="/" element={<HomeRoute />}>
-            <Route index element={<TodayPage />} />
-          </Route>
           <Route path="/signin" element={<PublicOnly><SignInPage /></PublicOnly>} />
           {/* Legacy paths fold into /signin so old bookmarks still work. */}
           <Route path="/login" element={<Navigate to="/signin" replace />} />
@@ -121,7 +123,8 @@ export default function App() {
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/docs/:page" element={<DocsPage />} />
           <Route path="/changelog" element={<ChangelogPage />} />
-          <Route element={<RequireAuth><Layout /></RequireAuth>}>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<TodayPage />} />
             <Route path="/projects" element={<ThinkingPage />} />
             <Route path="/projects/:id" element={<ThinkingProjectPage />} />
             <Route path="/projects/:id/cards/:cardId" element={<ThinkingRedirect />} />

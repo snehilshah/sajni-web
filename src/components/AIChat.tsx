@@ -146,9 +146,12 @@ function ChatDock({ mode, width, onResize, onClose, openRequest }: {
       window.removeEventListener('pointerup', up);
       document.body.style.removeProperty('cursor');
       document.body.style.removeProperty('user-select');
+      delete document.documentElement.dataset.dockDrag;
     };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
+    // Page chrome follows the edge exactly while dragging (index.css).
+    document.documentElement.dataset.dockDrag = '';
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   };

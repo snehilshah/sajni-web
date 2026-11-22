@@ -682,3 +682,7 @@ button, [role="button"], a {
 /* Section kicker labels: sentence case, never tracked caps (DESIGN.md). */
 .label-kicker { text-transform: none; letter-spacing: normal; }
 .label-kicker::first-letter { text-transform: uppercase; }
+
+/* Resizing docked Sajni: the nav pill and page header track its edge
+   exactly instead of easing behind it (AIChat ChatDock). */
+html[data-dock-drag] [data-dock-chrome] { transition: none; }

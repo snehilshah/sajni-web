@@ -218,6 +218,7 @@ function PrimaryBar({
       animate={{ transform: scrolled ? 'translateY(-88px)' : 'translateY(0)', opacity: scrolled ? 0 : 1 }}
       transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
       className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none transition-[right] duration-300 ease-[cubic-bezier(0.2,0,0,1)]"
+      data-dock-chrome
       // --dock-inset: docked Sajni's width, so the pill centres over the page left.
       style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)', right: 'var(--dock-inset, 0px)' }}
       aria-hidden={scrolled}

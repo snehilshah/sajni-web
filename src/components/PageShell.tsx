@@ -140,8 +140,9 @@ export function PageChrome({
       transition={CHROME_TWEEN}
       className={cn(
         'fixed inset-x-0 z-40 flex pointer-events-none transition-[right] duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
-        scrolled ? 'justify-center px-3 md:px-4' : 'bg-[hsl(var(--background))]',
+        scrolled && 'justify-center px-3 md:px-4',
       )}
+      data-dock-chrome
       style={{
         // Clear of docked Sajni (Layout sets --dock-inset).
         right: 'var(--dock-inset, 0px)',
@@ -162,7 +163,9 @@ export function PageChrome({
                 'rounded-full bg-[hsl(var(--surface-container-high))] shadow-[var(--m3-elev-1)] gap-2 pl-1 pr-1 max-w-[min(94vw,720px)]',
                 isMobile ? 'min-h-12 py-1 pl-1.5 pr-1.5' : 'min-h-9 py-0.5',
               )
-            : cn('w-full mx-auto gap-4 min-h-12', columnClassName),
+            // At rest only the header's content box is backed, not the full
+            // width: a band would cover the page's scrollbar and docked Sajni.
+            : cn('w-full mx-auto gap-4 min-h-12 bg-[hsl(var(--background))] bg-clip-content', columnClassName),
         )}
       >
         {leading && (
