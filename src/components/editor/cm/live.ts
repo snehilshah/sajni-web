@@ -1,5 +1,5 @@
-import { Facet, StateEffect, StateField, type EditorState, type Extension, type Range } from '@codemirror/state';
-import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
+import { EditorSelection, EditorState, Facet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
+import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import type { SyntaxNodeRef } from '@lezer/common';
 
@@ -520,6 +520,83 @@ const clicks = EditorView.domEventHandlers({
   },
 });
 
+// ── Moving up and down ───────────────────────────────────────────────────
+
+// When the last key pressed was an up/down key (j, k, arrows), so only
+// those moves step into a drawn table; }, G and searches land where they
+// land. A time, not a flag: Vim moves the cursor a moment after the key.
+let verticalKeyAt = 0;
+const VERTICAL_KEYS = new Set(['j', 'k', 'ArrowDown', 'ArrowUp']);
+const verticalKeyTracker = ViewPlugin.fromClass(class {
+  view: EditorView;
+  // Capture on the editor's outer element, so this runs before Vim's and
+  // CodeMirror's own key handlers.
+  onKey = (e: KeyboardEvent) => {
+    const vertical = VERTICAL_KEYS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey;
+    verticalKeyAt = vertical ? performance.now() : 0;
+  };
+  constructor(view: EditorView) { this.view = view; view.dom.addEventListener('keydown', this.onKey, true); }
+  destroy() { this.view.dom.removeEventListener('keydown', this.onKey, true); }
+});
+
+/**
+ * A drawn table is one block, so a move down from the line above it jumps
+ * to the line below (and up the other way). Stop on the table's first line
+ * instead (its last going up): the cursor is then in it, the table shows its
+ * Markdown, and each further step goes through its rows.
+ */
+const stepIntoTables = EditorState.transactionFilter.of((tr) => {
+  if (performance.now() - verticalKeyAt > 400 || tr.docChanged || !tr.selection || tr.isUserEvent('select.pointer')) return tr;
+  const start = tr.startState;
+  if (start.facet(editorMode) !== 'live' || !start.field(focusField, false)) return tr;
+  const before = start.selection;
+  const after = tr.selection;
+  if (before.ranges.length !== 1 || after.ranges.length !== 1 || !before.main.empty || !after.main.empty) return tr;
+  const doc = start.doc;
+  const from = doc.lineAt(before.main.head);
+  const a = from.number;
+  const b = doc.lineAt(after.main.head).number;
+  if (Math.abs(b - a) < 2) return tr;
+  const down = b > a;
+  let target: number | null = null;
+  syntaxTree(start).iterate({
+    from: doc.line(Math.min(a, b) + 1).from,
+    to: doc.line(Math.max(a, b) - 1).to,
+    enter(n) {
+      if (target != null) return false;
+      if (n.name !== 'Table') return;
+      const first = doc.lineAt(n.from).number;
+      const last = doc.lineAt(n.to).number;
+      if (down ? first === a + 1 && last === b - 1 : last === a - 1 && first === b + 1) target = down ? first : last;
+      return false;
+    },
+  });
+  if (target == null) return tr;
+  const line = doc.line(target);
+  const col = Math.min(before.main.head - from.from, line.length);
+  return [tr, { selection: EditorSelection.cursor(line.from + col), scrollIntoView: true, sequential: true }];
+});
+
+/**
+ * Going to the first line (gg, go, Ctrl+Home, k to the top) shows the page
+ * from its very top, so what sits above the text (a note's folder and title)
+ * comes back into view too, as long as the line itself stays visible.
+ */
+const topShowsPage = EditorView.scrollHandler.of((view, range) => {
+  if (view.state.doc.lineAt(range.head).number !== 1) return false;
+  const own = view.scrollDOM;
+  if (own.scrollHeight > own.clientHeight + 1) return false;
+  let el = view.dom.parentElement;
+  while (el && !(/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1)) el = el.parentElement;
+  if (!el || el.scrollTop === 0) return false;
+  // From the line's place in the document, since a line scrolled far away
+  // isn't drawn and has no on-screen coordinates.
+  const bottom = view.lineBlockAt(range.head).bottom + view.documentTop - el.getBoundingClientRect().top + el.scrollTop;
+  if (bottom > el.clientHeight) return false;
+  el.scrollTop = 0;
+  return true;
+});
+
 export function livePreview(): Extension {
-  return [focusField, focusTracker, decorations, clicks];
+  return [focusField, focusTracker, decorations, clicks, verticalKeyTracker, stepIntoTables, topShowsPage];
 }

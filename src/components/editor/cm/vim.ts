@@ -44,6 +44,8 @@ function setup(Vim: VimModule['Vim']) {
   for (const ctx of ['normal', 'visual']) {
     Vim.noremap('j', 'gj', ctx);
     Vim.noremap('k', 'gk', ctx);
+    // go: to the top of the note, like gg.
+    Vim.noremap('go', 'gg', ctx);
   }
   // Only yanks and cuts reach the registers (and so the clipboard): d, c and
   // s delete without yanking, and x is the cut operator (Vim's d with the

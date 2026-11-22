@@ -161,7 +161,9 @@ export default function NotesDoc() {
           </Feature>
           <Feature name="Tables, code and highlights">
             <p>
-              Tables show as tables; click one to edit its Markdown. Code
+              Tables show as tables; click one, or move into it with the
+              arrow keys (or <Kbd>j</Kbd> / <Kbd>k</Kbd>), to edit its
+              Markdown row by row. Code
               blocks are coloured by language (write it after the opening
               fence, like <Code>```go</Code>).
             </p>
@@ -192,7 +194,9 @@ export default function NotesDoc() {
               <Code>&gt;Editor keys</Code> in the command palette) turns on Vim
               in Notes and Journal, on that computer only; phones never get it.
               You start in normal mode. <Kbd>j</Kbd> and <Kbd>k</Kbd> move by
-              the line you see, so long wrapped paragraphs behave.
+              the line you see, so long wrapped paragraphs behave.{' '}
+              <Code>gg</Code> (or <Code>go</Code>) goes to the top of the note
+              and shows its title again.
             </p>
             <p>
               A <strong>status line</strong> runs along the bottom while Vim is

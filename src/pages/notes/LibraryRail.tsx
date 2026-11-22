@@ -153,6 +153,7 @@ export default function LibraryRail(props: LibraryRailProps) {
           depth={depth}
           initial=""
           placeholder="Folder name"
+          leading={<Chevron open={false} />}
           onDone={(name) => (name === null ? setEditing(null) : createFolder(node.path, name))}
         />
       )}
