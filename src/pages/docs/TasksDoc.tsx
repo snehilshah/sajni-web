@@ -461,7 +461,7 @@ export default function TasksDoc() {
           </li>
           <li>
             <strong>Done</strong> shows the five most recent; the rest wait
-            behind “Show 37 more”. Each lane scrolls on its own; “Add a task” at its foot adds
+            behind “Show 37 more”. Up to four lanes fit across the screen; with more, scroll sideways (the mouse wheel works over the lane headers and any lane short enough not to scroll). Each lane scrolls on its own; “Add a task” at its foot adds
             one straight into that lane.
           </li>
         </ul>

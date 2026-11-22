@@ -222,13 +222,15 @@ export default function TasksPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const boardWide = activeTab === 'tasks' && viewMode === 'board' && !isMobile;
+  // Tasks (List and Board) run wide on desktop: 24px gutters, capped at
+  // 2000px so very wide screens (4K) keep margins either side.
+  const boardWide = activeTab === 'tasks' && !isMobile;
 
   return (
     <PageShell
       title="Tasks"
-      // The Board runs (almost) edge to edge, capped for very wide screens,
-      // so lanes get room instead of the reading column's 6xl.
+      // The List and Board run (almost) edge to edge, capped for very wide
+      // screens, instead of the reading column's 6xl.
       columnClassName={activeTab === 'planner' ? 'max-w-[1600px] px-4 md:px-6 xl:px-8'
         : boardWide ? 'max-w-[2000px] px-4 md:px-6' : undefined}
       contentClassName={activeTab === 'planner'

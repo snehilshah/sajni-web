@@ -99,6 +99,26 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
+  // A mouse wheel moves the board sideways, except over a lane whose cards
+  // scroll (there it scrolls the cards). Trackpads and Shift+wheel already
+  // scroll sideways on their own.
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.shiftKey || e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (el.scrollWidth <= el.clientWidth) return;
+      for (let n = e.target as HTMLElement | null; n && n !== el; n = n.parentElement) {
+        if (n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) return;
+      }
+      const atEdge = e.deltaY < 0 ? el.scrollLeft <= 0 : el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+      if (atEdge) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [epoch]);
   const laneKeys = useMemo(() => groups.map((g) => g.key), [groups]);
   const redraw = () => {
     for (const k of laneKeys) savedScroll.current[k] = scroll.current[k]?.scrollTop ?? 0;
@@ -245,7 +265,9 @@ export default function BoardView({ groups, groupBy, onClick, onMove, onQuickAdd
         key={epoch}
         ref={gridRef}
         style={{ '--lane-h': laneH } as React.CSSProperties}
-        className="grid grid-flow-col auto-cols-[minmax(15.5rem,1fr)] gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
+        // At most four lanes fill the width; more scroll sideways (a lane is
+        // never narrower than a quarter, or 15.5rem on small windows).
+        className="grid grid-flow-col auto-cols-[minmax(max(15.5rem,calc((100%_-_3rem)/4)),1fr)] gap-4 overflow-x-auto overscroll-x-contain pb-2 -mx-1 px-1"
         aria-label="Tasks board"
       >
         {groups.map((g) => (
@@ -338,7 +360,7 @@ function BoardLane({ group, groupBy, tasks, scrollRef, savedScroll, showAll, fol
       ref={ref as React.Ref<HTMLElement>}
       aria-label={group.label}
       className={cn(
-        'relative snap-start flex h-(--lane-h) min-h-80 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
+        'relative flex h-(--lane-h) min-h-80 flex-col rounded-[20px] bg-[hsl(var(--surface-container))] transition-[background-color,box-shadow] duration-200',
         isDropTarget && 'bg-[hsl(var(--surface-container-high))] shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.45)]',
       )}
     >
