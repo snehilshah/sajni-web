@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
-import { differenceInMinutes, format, formatDistanceToNowStrict } from 'date-fns';
+import { format, formatDistanceToNowStrict, intervalToDuration } from 'date-fns';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -131,15 +131,26 @@ function exactTime(value: string) {
   return format(new Date(value), 'EEE, d MMM yyyy · h:mm a');
 }
 
-function formatGap(minutes: number) {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.round(minutes / 6) / 10;
-  if (hours < 48) return `${hours}h`;
-  const days = Math.round(hours / 2.4) / 10;
-  if (days < 60) return `${days}d`;
-  const months = Math.round((days / 30.44) * 10) / 10;
-  if (months < 24) return `${months}mo`;
-  return `${Math.round((days / 365.25) * 10) / 10}y`;
+// The time between two entries in calendar units: the largest one and the
+// next, if not zero ("2 months 3 days", "1 year", "5 hours 20 minutes").
+function formatGap(from: Date, to: Date) {
+  const d = intervalToDuration({ start: from, end: to });
+  const parts = (
+    [
+      [d.years, 'year'],
+      [d.months, 'month'],
+      [d.days, 'day'],
+      [d.hours, 'hour'],
+      [d.minutes, 'minute'],
+    ] as const
+  ).map(([n, unit]) => [n ?? 0, unit] as const);
+  const first = parts.findIndex(([n]) => n > 0);
+  if (first < 0) return 'Under a minute';
+  return parts
+    .slice(first, first + 2)
+    .filter(([n]) => n > 0)
+    .map(([n, unit]) => `${n} ${unit}${n === 1 ? '' : 's'}`)
+    .join(' ');
 }
 
 function useRememberedSort() {
@@ -604,7 +615,7 @@ function EventTimeline({
           <div className="flex flex-col">
             {entries.map((entry, index) => {
               const older = entries[index + 1];
-              const gap = older ? differenceInMinutes(new Date(entry.occurred_at), new Date(older.occurred_at)) : null;
+              const gap = older ? formatGap(new Date(older.occurred_at), new Date(entry.occurred_at)) : null;
               return (
                 <motion.div
                   key={entry.id}
@@ -649,7 +660,7 @@ function EventTimeline({
                   </button>
                   {gap != null && (
                     <span className="col-start-2 -mt-2 mb-1 text-xs font-medium text-[hsl(var(--primary))]">
-                      {formatGap(gap)} since previous
+                      {gap} since previous
                     </span>
                   )}
                 </motion.div>
