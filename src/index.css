@@ -419,7 +419,10 @@ em, .italic { font-style: italic; }
 /* ============================================================
    Scrollbar.
    ============================================================ */
-::-webkit-scrollbar { width: 10px; height: 10px; }
+/* --scrollbar-w: the page chrome's header keeps clear of this strip
+   (PageShell PageChrome), so the scrollbar stays grabbable under it. */
+:root { --scrollbar-w: 10px; }
+::-webkit-scrollbar { width: var(--scrollbar-w); height: var(--scrollbar-w); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: color-mix(in oklch, hsl(var(--outline)) 40%, transparent);

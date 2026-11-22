@@ -165,7 +165,10 @@ export function PageChrome({
               )
             // At rest only the header's content box is backed, not the full
             // width: a band would cover the page's scrollbar and docked Sajni.
-            : cn('w-full mx-auto gap-4 min-h-12 bg-[hsl(var(--background))] bg-clip-content', columnClassName),
+            // When the header reaches the page's right edge, its last strip
+            // sits over the scrollbar: clip it so the scrollbar still takes
+            // the pointer there (the side padding leaves room for focus rings).
+            : cn('w-full mx-auto gap-4 min-h-12 bg-[hsl(var(--background))] bg-clip-content [clip-path:inset(0_var(--scrollbar-w)_0_0)]', columnClassName),
         )}
       >
         {leading && (
