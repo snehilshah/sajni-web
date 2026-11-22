@@ -141,8 +141,10 @@ export default function AiDoc() {
           </Feature>
           <Feature name="Budget">
             <p>
-              Every AI call, including themes, insight wording and Projects
-              enrichment, shares a daily budget. Chat questions also have an
+              Every AI call, including themes, picking a category and
+              Projects enrichment, shares a daily budget. (Insights show
+              their findings as found; the AI rewording is switched off for
+              now.) Chat questions also have an
               hourly one, which never holds up bank-message capture. Past a
               limit you get a plain sentence saying when to try again, never a
               silent failure. Palette answers are tuned short; chat goes as
