@@ -28,6 +28,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useSessionState } from '@/lib/sessionState';
 import TaskRow from '@/components/tasks/TaskRow';
 import type { TaskDefaults } from '@/components/tasks/TaskFormDialog';
 // Lazy: keeps the Markdown editor (inside the dialog) out of this route chunk.
@@ -49,7 +50,8 @@ const VIEW_KEY = 'sajni:tasks:view';
 
 export default function TasksPage() {
   const qc = useQueryClient();
-  const [selection, setSelection] = useState<Selection>({ kind: 'smart', smart: 'my_day' });
+  // The list or smart view picked, kept for this session (lib/sessionState).
+  const [selection, setSelection] = useSessionState<Selection>('tasks:selection', { kind: 'smart', smart: 'my_day' });
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       return (localStorage.getItem(VIEW_KEY) as ViewMode) || 'list';
@@ -84,7 +86,11 @@ export default function TasksPage() {
       : { list: selection.id, parent: 'null', done: 'recent' }
   ), [selection]);
 
-  const { data: lists = [] } = useTaskLists();
+  const { data: lists = [], isSuccess: listsLoaded } = useTaskLists();
+  // A remembered list deleted since (here or on the phone): back to My Day.
+  if (selection.kind === 'list' && listsLoaded && !lists.some((l) => l.id === selection.id)) {
+    setSelection({ kind: 'smart', smart: 'my_day' });
+  }
   const { data: tasksList = [], isLoading: loading } = useTasks(params);
   const { data: missed = [] } = useMissedTasks();
   const { data: blockedTasks = [] } = useTasks({ smart: 'blocked' });

@@ -12,6 +12,7 @@ import { ProfileAvatar } from '@/components/ProfileAvatar';
 import type { ChatOpenDetail, ChatOpenRequest } from '@/components/AIChat';
 import Backdrop from '@/components/Backdrop';
 import { NAV_ITEMS, NavChromeContext, isActivePath } from '@/components/nav-chrome';
+import { placeHref, rememberPlace } from '@/lib/sessionState';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { cn } from '@/lib/utils';
@@ -134,7 +135,9 @@ function DockNavIcon({
   return (
     <NavLink
       ref={ref}
-      to={path}
+      // The space's last page this session (lib/sessionState); its start
+      // when you're already in it.
+      to={isActive ? path : placeHref(path, '')}
       end={path === '/'}
       title={label}
       aria-label={label}
@@ -408,6 +411,7 @@ function BottomDock({
 // pill — pages report scroll through NavChromeContext.
 export default function Layout() {
   const location = useLocation();
+  useEffect(() => { rememberPlace(location.pathname, location.search); }, [location.pathname, location.search]);
   // Signed in: fetch every screen's chunk once idle (lib/lazyPage).
   useEffect(() => { prefetchPages(); }, []);
   const navigate = useNavigate();

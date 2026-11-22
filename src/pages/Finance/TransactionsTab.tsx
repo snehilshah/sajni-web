@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSessionState } from '@/lib/sessionState';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -187,10 +188,12 @@ export default function TransactionsTab({
   const [manageCats, setManageCats] = useState(false);
   const [search, setSearch] = useState('');
   // Any of these accounts; empty = all.
-  const [accountFilter, setAccountFilter] = useState<string[]>([]);
+  // Filters last for the session (lib/sessionState), so a trip elsewhere
+  // comes back to the same view.
+  const [accountFilter, setAccountFilter] = useSessionState<string[]>('fin:txn:accounts', []);
   // Any of these categories; empty = all.
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useSessionState<string[]>('fin:txn:categories', []);
+  const [typeFilter, setTypeFilter] = useSessionState<string>('fin:txn:type', '');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [newSlate, setNewSlate] = useState(false);
   const [sweeping, setSweeping] = useState(false);

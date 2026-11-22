@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useSessionState } from '@/lib/sessionState';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -98,13 +99,13 @@ export default function FinancePage() {
 
   // Slate filter: null = off, N = that slate. Plain is a real row, no sentinel.
   // The transactions query is params-keyed, so each filter caches separately.
-  const [slateFilter, setSlateFilter] = useState<number | null>(null);
+  const [slateFilter, setSlateFilter] = useSessionState<number | null>('fin:slate', null);
   // The ledger reports per-day/week/month totals, so a bare row cap is not just
   // truncation — it silently produces a WRONG total for whichever period the
   // cap lands inside. Bounding by date instead makes every period returned a
   // complete one. TXN_LIMIT is the server's max and only a backstop; if it is
   // ever hit, TransactionsTab drops its oldest (provably partial) day.
-  const [monthsBack, setMonthsBack] = useState(2);
+  const [monthsBack, setMonthsBack] = useSessionState('fin:monthsBack', 2);
   const txnParams = useMemo(() => {
     const from = format(startOfMonth(subMonths(new Date(), monthsBack)), 'yyyy-MM-dd');
     return slateFilter === null

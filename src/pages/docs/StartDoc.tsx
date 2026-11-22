@@ -87,6 +87,15 @@ export default function StartDoc() {
           pill so content keeps the room.
         </p>
         <p>
+          Each space picks up where you left it. Say you're in Tasks on your
+          Home list in the Planner, and remember a payment: go to Finance, fix
+          the transaction, tap Tasks, and you're back on Home in the Planner.
+          Finance keeps its tab, month and filters the same way. On the web
+          this lasts until you close the tab or app window; tap the icon of
+          the space you're already in to go back to its first page. The phone
+          keeps each tab's place while the app is open.
+        </p>
+        <p>
           First sign-in runs a short guided tour; replay it any time from
           Settings.
         </p>

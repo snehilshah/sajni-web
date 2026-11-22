@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useSessionState } from '@/lib/sessionState';
 import { addMonths, format, parse } from 'date-fns';
 import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 
@@ -25,7 +26,7 @@ const dayLabel = (m: string, day: number) => format(parse(`${m}-${String(day).pa
 
 export default function AnalyticsTab({ enabled }: { enabled: boolean }) {
   // '' is "this month", so the default view stays live across midnight.
-  const [month, setMonth] = useState('');
+  const [month, setMonth] = useSessionState('fin:analytics:month', '');
   const q = useFinAnalytics(month, enabled);
   const data = q.data;
   const shown = data?.month ?? month;
