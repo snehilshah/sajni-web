@@ -225,6 +225,14 @@ export default function TasksDoc() {
           ]}
         />
         <FeatureList>
+          <Feature name="A time means a reminder">
+            <p>
+              Give a task a time and <em>Remind me</em> switches on with it; a small note says so (&ldquo;Reminder on
+              for 4:00 PM&rdquo;) with Undo. It reaches you the way Settings says (email, phone or both). Switch it off
+              under the task's reminders if the time is only for planning. A task with just a date has no time to remind
+              at.
+            </p>
+          </Feature>
           <Feature name="A task's reminder fires once">
             <p>
               Once a task's reminder has gone off, editing the task (its title, a step, a subtask) never sends it again.

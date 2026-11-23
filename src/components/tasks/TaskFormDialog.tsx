@@ -88,7 +88,7 @@ export interface FormState {
   month_of: string;
   /** Local HH:MM clock time; '' = no time (all-day). */
   scheduled_time: string;
-  /** Email the user at scheduled_time. */
+  /** Notify the user at scheduled_time (their channel: email, push or both). On by default once a time is picked. */
   remind: boolean;
   /** Extra recipients also emailed when this task's reminders fire. */
   notify_emails: string[];
@@ -1086,14 +1086,22 @@ export default function TaskFormDialog({
                       name="task-time"
                       value={form.scheduled_time}
                       placeholder="No time"
-                      onChange={(v) =>
+                      onChange={(v) => {
+                        // A first time switches the reminder on (off again from the toast or below).
+                        const arm = Boolean(v) && !form.scheduled_time && !form.remind;
                         setForm({
                           ...form,
                           scheduled_time: v,
                           due_date: v && !form.due_date ? format(new Date(), 'yyyy-MM-dd') : form.due_date,
-                          remind: v ? form.remind : false,
-                        })
-                      }
+                          remind: v ? form.remind || arm : false,
+                        });
+                        if (arm) {
+                          toast(`Reminder on for ${format(parseISO(`2000-01-01T${v}`), 'h:mm a')}`, {
+                            id: 'task-time-reminder',
+                            action: { label: 'Undo', onClick: () => setForm((f) => ({ ...f, remind: false })) },
+                          });
+                        }
+                      }}
                     />
                   )}
                 </div>
@@ -1122,7 +1130,7 @@ export default function TaskFormDialog({
                         )}
                       >
                         <Bell className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="flex-1 text-sm">Remind me by email</span>
+                        <span className="flex-1 text-sm">Remind me</span>
                         <Switch
                           checked={form.remind}
                           disabled={!form.scheduled_time}
