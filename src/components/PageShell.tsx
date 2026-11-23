@@ -79,6 +79,7 @@ export function PageChrome({
   navigation,
   actions,
   columnClassName = PAGE_COLUMN,
+  restBackdrop = true,
 }: {
   title: ReactNode;
   leading?: ReactNode;
@@ -86,6 +87,9 @@ export function PageChrome({
   actions?: ReactNode;
   /** Width + horizontal padding of the page body this header aligns to. */
   columnClassName?: string;
+  /** At rest the header is backed with the page colour; off for pages with
+   *  their own backdrop (Media's wash), where the band reads as a box. */
+  restBackdrop?: boolean;
 }) {
   const isMobile = useIsMobile();
   const { pathname } = useLocation();
@@ -166,7 +170,8 @@ export function PageChrome({
               // sits over the scrollbar: clip it so the scrollbar still takes
               // the pointer there (the side padding leaves room for focus rings).
               cn(
-                'mx-auto min-h-12 w-full gap-4 bg-[hsl(var(--background))] bg-clip-content [clip-path:inset(0_var(--scrollbar-w)_0_0)]',
+                'mx-auto min-h-12 w-full gap-4 bg-clip-content [clip-path:inset(0_var(--scrollbar-w)_0_0)]',
+                restBackdrop && 'bg-[hsl(var(--background))]',
                 columnClassName,
               ),
         )}
@@ -228,6 +233,7 @@ export default function PageShell({
   contentClassName,
   columnClassName = PAGE_COLUMN,
   hideScrollbar = false,
+  restBackdrop = true,
 }: {
   title: ReactNode;
   leading?: ReactNode;
@@ -238,6 +244,8 @@ export default function PageShell({
   /** Width + horizontal padding shared by the header and the body. */
   columnClassName?: string;
   hideScrollbar?: boolean;
+  /** See PageChrome: false drops the header's backing at rest. */
+  restBackdrop?: boolean;
 }) {
   const { setScrolled: reportScrolled } = useNavChrome();
   const isMobile = useIsMobile();
@@ -258,6 +266,7 @@ export default function PageShell({
         navigation={navigation}
         actions={actions}
         columnClassName={columnClassName}
+        restBackdrop={restBackdrop}
       />
 
       {/* stable-scrollbar reserves the scrollbar gutter so content doesn't

@@ -1,4 +1,4 @@
-import { startTransition, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Fragment, startTransition, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -761,6 +761,7 @@ function TitleAutocomplete({
                   <div className="aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-lg bg-[hsl(var(--surface-container-highest))]">
                     {r.poster_url ? (
                       <img
+                        draggable={false}
                         src={r.poster_url}
                         alt=""
                         loading="lazy"
@@ -1450,7 +1451,7 @@ export default function MediaPage() {
         {/* Poster preview — desktop column */}
         <div className="hidden aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] text-muted-foreground sm:flex">
           {form.poster_url ? (
-            <img src={form.poster_url} alt="" className="h-full w-full object-cover" />
+            <img draggable={false} src={form.poster_url} alt="" className="h-full w-full object-cover" />
           ) : (
             <ImageIcon className="size-8 opacity-30" />
           )}
@@ -1522,12 +1523,21 @@ export default function MediaPage() {
           options={Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))}
         />
         <FieldSelect
-          label={formIsUpcoming ? 'Status · automatic' : 'Status'}
+          label={formIsUpcoming ? 'Status (automatic)' : 'Status'}
           value={form.status}
           onChange={(v) => setForm({ ...form, status: (v as MediaStatus) || 'pending' })}
           options={EDITABLE_STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
           disabled={formIsUpcoming}
-          renderValue={(value) => <MediaStatusBadge status={value as MediaStatus} />}
+          renderValue={(value) => {
+            const look = STATUS_LOOK[value as MediaStatus];
+            const Glyph = look?.icon;
+            return (
+              <span className="flex items-center gap-2">
+                {Glyph && <Glyph className="size-4" style={{ color: look.hue }} />}
+                {statusMeta(value as MediaStatus)?.label ?? value}
+              </span>
+            );
+          }}
           renderOption={(o) => {
             const look = STATUS_LOOK[o.value as MediaStatus];
             const Glyph = look?.icon;
@@ -1640,6 +1650,7 @@ export default function MediaPage() {
     <PageShell
       title="Library"
       hideScrollbar
+      restBackdrop={isBookmarkTab}
       actions={
         !isMobileMedia ? (
           <span className="inline-flex rounded-full">
@@ -1757,6 +1768,7 @@ export default function MediaPage() {
                   {form.poster_url && (
                     <>
                       <img
+                        draggable={false}
                         src={form.poster_url}
                         alt=""
                         aria-hidden
@@ -2203,7 +2215,7 @@ function PosterCard({
         className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl border border-[hsl(var(--outline-variant))] bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)]"
       >
         {item.poster_url ? (
-          <img src={item.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+          <img draggable={false} src={item.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-muted-foreground">
             <Icon className="size-7 opacity-40" />
@@ -2537,6 +2549,7 @@ function UpNextCard({
     >
       {item.poster_url && (
         <img
+          draggable={false}
           src={item.poster_url}
           alt=""
           loading="lazy"
@@ -2603,7 +2616,9 @@ function TintRow({
       )}
     >
       <div data-media-morph-source className="h-[75px] w-[50px] shrink-0 overflow-hidden rounded-[11px] bg-black/5">
-        {item.poster_url && <img src={item.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+        {item.poster_url && (
+          <img draggable={false} src={item.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="serif line-clamp-2 text-[15.5px] leading-snug font-semibold">{item.title}</div>
@@ -2649,7 +2664,15 @@ function SeriesTintRow({ row, onOpen }: { row: Extract<SeriesRow, { kind: 'serie
               className="absolute top-0 h-[75px] w-[50px] overflow-hidden rounded-[11px] bg-black/5 shadow-sm"
               style={{ left: (shown.length - 1 - i) * 12 }}
             >
-              {m.poster_url && <img src={m.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+              {m.poster_url && (
+                <img
+                  draggable={false}
+                  src={m.poster_url}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              )}
             </div>
           ))}
       </div>
@@ -2754,6 +2777,7 @@ function MediaTable({
                   {item.poster_url && (
                     <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
                       <img
+                        draggable={false}
                         src={item.poster_url}
                         alt=""
                         loading="lazy"
@@ -2839,7 +2863,12 @@ function SeriesPosterCard({ row, onOpen }: { row: Extract<SeriesRow, { kind: 'se
           plain border on small screens. */}
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-[hsl(var(--surface-container))] transition-shadow group-hover:shadow-[var(--m3-elev-2)] sm:border-0 sm:shadow-[4px_4px_0_-1px_hsl(var(--outline-variant)),8px_8px_0_-2px_hsl(var(--outline-variant)/0.55)]">
         {cover.poster_url ? (
-          <img src={cover.poster_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            draggable={false}
+            src={cover.poster_url}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-muted-foreground">
             <Film className="size-7 opacity-40" />
@@ -2901,6 +2930,7 @@ function SeriesDialog({
         <DialogHeader className="flex shrink-0 flex-row items-center gap-4 p-5">
           {cover.poster_url ? (
             <img
+              draggable={false}
               src={cover.poster_url}
               alt=""
               className="h-[68px] w-12 shrink-0 rounded object-cover ring-1 ring-border/60"
@@ -3395,7 +3425,12 @@ function CollectionBadge({
                   >
                     <span className="mono w-5 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</span>
                     {p.poster_url ? (
-                      <img src={p.poster_url} alt="" className="h-10 w-7 shrink-0 rounded object-cover" />
+                      <img
+                        draggable={false}
+                        src={p.poster_url}
+                        alt=""
+                        className="h-10 w-7 shrink-0 rounded object-cover"
+                      />
                     ) : (
                       <div className="h-10 w-7 shrink-0 rounded bg-muted" />
                     )}
@@ -3462,12 +3497,6 @@ function MediaDetailView({
   }
   const shown = { ...item, ...over } as MediaEntry;
   const [preview, setPreview] = useState<CollectionPart | null>(null);
-  // The platform you use leads, in the order this item opened with: a tap
-  // never reshuffles the pills under the pointer.
-  const [platformOrder] = useState(() => [
-    ...PLATFORM_OPTIONS.filter((p) => p.value === item.platform),
-    ...PLATFORM_OPTIONS.filter((p) => p.value !== item.platform),
-  ]);
   const details = useQuery({
     queryKey: ['media-details', item.external_id],
     queryFn: () => mediaApi.details(item.external_id),
@@ -3534,27 +3563,43 @@ function MediaDetailView({
   const parts = collection.data?.parts ?? [];
   const meta = [shown.year ? String(shown.year) : '', shown.genre].filter(Boolean).join(', ');
 
+  const seasons = shown.season_episodes ?? [];
+  const facts: [string, string][] = [
+    ['Type', TYPE_META[shown.type]?.label ?? shown.type],
+    ['Released', shown.release_date ? formatReleaseDate(shown.release_date) : shown.year ? String(shown.year) : ''],
+    ['Genre', shown.genre],
+    [
+      'Length',
+      shown.type === 'show' && total > 0
+        ? `${seasons.length || shown.seasons_total} ${(seasons.length || shown.seasons_total) === 1 ? 'season' : 'seasons'}, ${total} episodes`
+        : '',
+    ],
+    ['Added', shown.created_at ? format(parseISO(shown.created_at), 'd MMM yyyy') : ''],
+  ];
+
+  // Desktop: two columns that fill the dialog, as the transaction dialog
+  // does: the cover and your controls on the left, a tonal side panel with
+  // the story, the series and the facts on the right. Phones: one column.
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" style={titleToneVars(item.poster_color)}>
-      <MediaHero
-        posterUrl={shown.poster_url}
-        title={shown.title}
-        lines={[
-          meta,
-          shown.platform ? platformLabel(shown.platform) : '',
-          upcoming && shown.release_date ? `Releases ${formatReleaseDate(shown.release_date)}` : '',
-        ]}
-        leading={<HeroButton label="Close" onClick={onClose} icon={<X className="size-4" />} />}
-        trailing={<HeroButton label="Edit details" onClick={onEdit} icon={<Pencil className="size-4" />} />}
-      />
-      <div className="grid gap-3 px-4 pb-6 md:grid-cols-[1.1fr_1fr] md:px-6">
-        <div className="flex min-w-0 flex-col gap-3">
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto md:grid md:h-[min(40rem,88vh)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:overflow-hidden"
+      style={titleToneVars(item.poster_color)}
+    >
+      <div className="flex min-w-0 flex-col md:min-h-0 md:overflow-y-auto">
+        <MediaHero
+          posterUrl={shown.poster_url}
+          title={shown.title}
+          lines={[meta, upcoming && shown.release_date ? `Releases ${formatReleaseDate(shown.release_date)}` : '']}
+          leading={<HeroButton label="Close" onClick={onClose} icon={<X className="size-4" />} />}
+          trailing={<HeroButton label="Edit details" onClick={onEdit} icon={<Pencil className="size-4" />} />}
+        />
+        <div className="flex flex-col gap-3 px-4 pb-5 md:px-6">
           {shown.type === 'show' && total > 0 && (
             <div className={cn('rounded-[24px] p-4', tt.container, tt.onContainer)}>
               <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="serif text-2xl font-semibold">
-                    {(nextEpisodeLabel(shown) ?? '').replace('Next: ', '')}
+                    {(nextEpisodeLabel(shown) ?? '').replace('Next: ', '') || 'All watched'}
                   </div>
                   <div className="text-xs opacity-75">
                     {total - shown.episodes_watched > 0
@@ -3575,12 +3620,7 @@ function MediaDetailView({
                   />
                 )}
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-                <div
-                  className={cn('h-full rounded-full', tt.accentBg)}
-                  style={{ width: `${Math.min(100, (shown.episodes_watched / total) * 100)}%` }}
-                />
-              </div>
+              <SeasonBar watched={shown.episodes_watched} seasons={seasons} total={total} />
             </div>
           )}
 
@@ -3592,85 +3632,139 @@ function MediaDetailView({
             <StatusButtons status={shown.status} onStatus={setStatus} />
           )}
 
-          <div className="flex items-center justify-between rounded-[20px] bg-[hsl(var(--surface-container-lowest))] px-4 py-3">
-            <span className="text-sm text-muted-foreground">Your rating</span>
-            <StarRating
-              value={shown.rating || 0}
-              interactive
-              size="md"
-              onChange={(v) => apply({ rating: v || null })}
-            />
-          </div>
-
-          {shown.type !== 'book' && (
-            <div>
-              <div className="mb-2 px-1 text-sm text-muted-foreground">Where</div>
-              <div className="flex flex-wrap gap-2">
-                {platformOrder.map((p) => {
-                  const on = p.value === shown.platform;
-                  const brand = PLATFORM_BRAND[p.value];
-                  const color = brand?.bg ?? 'hsl(var(--secondary))';
-                  return (
-                    <button
-                      key={p.value}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => apply({ platform: on ? '' : p.value })}
-                      style={
-                        on
-                          ? { background: color, color: brand?.fg ?? 'hsl(var(--on-secondary))' }
-                          : { background: `color-mix(in srgb, ${color} 12%, transparent)` }
-                      }
-                      className={cn(
-                        'h-9 rounded-xl px-3 text-sm transition-[filter] hover:brightness-95',
-                        on && 'font-semibold',
-                      )}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Your stars and where you watch it: two rows in one card. */}
+          <div className="divide-y divide-[hsl(var(--outline-variant)/0.5)] rounded-[20px] bg-[hsl(var(--surface-container-lowest))]">
+            <div className="flex h-14 items-center justify-between px-4">
+              <span className="text-sm text-muted-foreground">Your rating</span>
+              <StarRating
+                value={shown.rating || 0}
+                interactive
+                size="md"
+                onChange={(v) => apply({ rating: v || null })}
+              />
             </div>
-          )}
+            {shown.type !== 'book' && (
+              <div className="flex h-14 items-center justify-between gap-3 px-4">
+                <span className="text-sm text-muted-foreground">Where</span>
+                <Select
+                  value={shown.platform || 'none'}
+                  onValueChange={(v) => apply({ platform: !v || v === 'none' ? '' : v })}
+                >
+                  <SelectTrigger
+                    aria-label="Where you watch it"
+                    className="h-10 w-auto min-w-40 rounded-full border-0 bg-[hsl(var(--surface-container-high))] pr-3 pl-1.5"
+                  >
+                    {shown.platform ? (
+                      <span className="flex items-center gap-2">
+                        <PlatformTile platform={shown.platform} />
+                        {platformLabel(shown.platform)}
+                      </span>
+                    ) : (
+                      <span className="pl-2 text-muted-foreground">Not set</span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not set</SelectItem>
+                    {PLATFORM_OPTIONS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        <span className="flex items-center gap-2">
+                          <PlatformTile platform={p.value} />
+                          {p.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        <div className="flex min-w-0 flex-col gap-3">
-          {overview && <AboutCard text={overview} />}
-          {parts.length > 1 && (
-            <SeriesShelf
-              name={collection.data?.name || item.collection_name}
-              parts={parts}
-              current={shown}
-              library={library}
-              onOpen={onOpen}
-              onPreview={setPreview}
-            />
-          )}
-          {shown.notes && (
-            <button
-              type="button"
-              onClick={onEdit}
-              className="rounded-[20px] bg-[hsl(var(--surface-container-lowest))] p-4 text-left"
-            >
-              <div className="mb-1 text-sm text-muted-foreground">Notes</div>
-              <div className="text-sm whitespace-pre-wrap">{shown.notes}</div>
-            </button>
-          )}
-        </div>
-        <div className="md:col-span-2">
+      <aside className="flex min-w-0 flex-col gap-4 px-4 pb-6 md:min-h-0 md:overflow-y-auto md:rounded-l-[24px] md:bg-[hsl(var(--surface-container-low))] md:px-5 md:pt-6">
+        {overview && <AboutCard text={overview} />}
+        {parts.length > 1 && (
+          <SeriesShelf
+            name={collection.data?.name || item.collection_name}
+            parts={parts}
+            current={shown}
+            library={library}
+            onOpen={onOpen}
+            onPreview={setPreview}
+          />
+        )}
+        {shown.notes && (
           <button
             type="button"
             onClick={onEdit}
-            className="flex w-full items-center gap-2 rounded-[20px] bg-[hsl(var(--surface-container-lowest))] px-4 py-3.5 text-left hover:bg-[hsl(var(--surface-container-highest))]"
+            className="rounded-[20px] bg-[hsl(var(--surface-container-lowest))] p-4 text-left"
           >
-            <span className="flex-1">Edit details</span>
-            <span className="text-xs text-muted-foreground">Title, year, genre, poster, notes</span>
-            <ChevronRight className="size-4 text-muted-foreground" />
+            <div className="mb-1 text-sm text-muted-foreground">Notes</div>
+            <div className="text-sm whitespace-pre-wrap">{shown.notes}</div>
           </button>
-        </div>
-      </div>
+        )}
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 rounded-[20px] bg-[hsl(var(--surface-container-lowest))] p-4 text-sm">
+          {facts
+            .filter(([, v]) => v)
+            .map(([k, v]) => (
+              <Fragment key={k}>
+                <dt className="text-muted-foreground">{k}</dt>
+                <dd className="truncate">{v}</dd>
+              </Fragment>
+            ))}
+        </dl>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="mt-auto flex w-full items-center gap-2 rounded-[20px] bg-[hsl(var(--surface-container-lowest))] px-4 py-3.5 text-left hover:bg-[hsl(var(--surface-container-highest))]"
+        >
+          <span className="flex-1">Edit details</span>
+          <span className="text-xs text-muted-foreground">Title, year, genre, poster, notes</span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
+      </aside>
     </div>
+  );
+}
+
+// One bar per season, each as long as its episode count: seen seasons full,
+// the current one filled to where you are, the rest faint.
+function SeasonBar({ watched, seasons, total }: { watched: number; seasons: number[]; total: number }) {
+  const lengths = seasons.length > 0 ? seasons : [total];
+  const starts = lengths.map((_, i) => lengths.slice(0, i).reduce((t, n) => t + n, 0));
+  return (
+    <div className="mt-3 flex gap-1" aria-label={`${watched} of ${total} episodes watched`}>
+      {lengths.map((n, i) => {
+        const seen = Math.min(n, Math.max(0, watched - starts[i]));
+        return (
+          <div
+            key={i}
+            title={lengths.length > 1 ? `Season ${i + 1}, ${seen} of ${n}` : undefined}
+            className="h-2 min-w-1 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
+            style={{ flex: `${Math.max(1, n)} 1 0` }}
+          >
+            <div className={cn('h-full rounded-full', tt.accentBg)} style={{ width: `${n ? (seen / n) * 100 : 0}%` }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// A platform's mark on its brand colour; the ring keeps dark brands visible on dark themes.
+function PlatformTile({ platform }: { platform: string }) {
+  const brand = PLATFORM_BRAND[platform];
+  const glyph = (PLATFORM_PIXEL[platform] || PLATFORM_PIXEL.other).glyph;
+  return (
+    <span
+      className="grid size-7 shrink-0 place-items-center rounded-lg ring-1 ring-[hsl(var(--outline-variant))]"
+      style={{
+        background: brand?.bg ?? 'hsl(var(--secondary-container))',
+        color: brand?.fg ?? 'hsl(var(--on-secondary-container))',
+      }}
+    >
+      <PixelIcon glyph={glyph} className="size-4" />
+    </span>
   );
 }
 
@@ -3704,10 +3798,15 @@ function MediaHero({
 }) {
   const fade = 'linear-gradient(to bottom, black 78%, transparent)';
   return (
-    <div className="relative h-[270px] shrink-0 overflow-hidden text-white">
+    <div className="relative h-[250px] shrink-0 overflow-hidden text-white">
       <div className="absolute inset-0" style={{ maskImage: fade, WebkitMaskImage: fade }}>
         {posterUrl ? (
-          <img src={posterUrl} alt="" className="h-full w-full scale-125 object-cover blur-2xl saturate-150" />
+          <img
+            draggable={false}
+            src={posterUrl}
+            alt=""
+            className="h-full w-full scale-125 object-cover blur-2xl saturate-150"
+          />
         ) : (
           <div className="h-full w-full bg-[hsl(var(--inverse-surface))]" />
         )}
@@ -3719,7 +3818,7 @@ function MediaHero({
       </div>
       <div className="absolute inset-x-5 bottom-7 flex items-end gap-4 md:inset-x-6">
         <div className="h-[168px] w-[112px] shrink-0 overflow-hidden rounded-2xl bg-black/20 shadow-2xl">
-          {posterUrl && <img src={posterUrl} alt="" className="h-full w-full object-cover" />}
+          {posterUrl && <img draggable={false} src={posterUrl} alt="" className="h-full w-full object-cover" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="serif line-clamp-3 text-2xl leading-tight font-semibold drop-shadow md:text-[28px]">
@@ -3859,6 +3958,7 @@ function SeriesShelf({
               >
                 {p.poster_url && (
                   <img
+                    draggable={false}
                     src={p.poster_url}
                     alt=""
                     loading="lazy"
