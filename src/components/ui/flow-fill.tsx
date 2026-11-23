@@ -5,7 +5,10 @@ import { cn } from '@/lib/utils';
 // like warm air or slow gas (the phone's `flowFill`, same shader). Time runs
 // on and nothing loops, so there are no bands and no seam. Max priority's
 // fill and a task being finished wear it. Fills its positioned parent.
-// Reduced motion: one still frame. No WebGL: a plain gradient.
+// [running] false holds the last frame (stays mounted, no new context).
+// A resize redraws at once (a resized canvas is blank until drawn, which
+// flickered while the slider's fill grew). Reduced motion: one still
+// frame. No WebGL: a plain gradient.
 
 const VERT = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 const FRAG = `precision mediump float;
@@ -32,9 +35,22 @@ function rgb(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-export function FlowFill({ colors, className }: { colors: string[]; className?: string }) {
+export function FlowFill({
+  colors,
+  running = true,
+  className,
+}: {
+  colors: string[];
+  running?: boolean;
+  className?: string;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // The drawing, set up once per colour set; the clock lives outside it so
+  // pausing and resuming carries on where it was.
+  const drawRef = useRef<((t: number) => void) | null>(null);
+  const clock = useRef(0);
   const key = colors.join(',');
+
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -54,8 +70,7 @@ export function FlowFill({ colors, className }: { colors: string[]; className?: 
     gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FRAG));
     gl.linkProgram(prog);
     gl.useProgram(prog);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'a');
     gl.enableVertexAttribArray(loc);
@@ -66,38 +81,46 @@ export function FlowFill({ colors, className }: { colors: string[]; className?: 
     );
     const uSize = gl.getUniformLocation(prog, 'size');
     const uTime = gl.getUniformLocation(prog, 'time');
-
     const fit = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
-      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      gl.viewport(0, 0, canvas.width, canvas.height);
+      const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      if (canvas.width === w && canvas.height === h) return;
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, w, h);
     };
     const draw = (t: number) => {
+      fit();
       gl.uniform2f(uSize, canvas.width, canvas.height);
       gl.uniform1f(uTime, t);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
-    fit();
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let raf = 0;
-    const start = performance.now();
-    const loop = (now: number) => {
-      draw((now - start) / 1000);
-      raf = requestAnimationFrame(loop);
-    };
-    if (still) draw(2);
-    else raf = requestAnimationFrame(loop);
-    const ro = new ResizeObserver(() => {
-      fit();
-      if (still) draw(2);
-    });
+    drawRef.current = draw;
+    draw(clock.current);
+    // Resizing clears the canvas: draw again before the frame is painted.
+    const ro = new ResizeObserver(() => draw(clock.current));
     ro.observe(canvas);
     return () => {
-      cancelAnimationFrame(raf);
       ro.disconnect();
+      drawRef.current = null;
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [key]);
+
+  useEffect(() => {
+    if (!running || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf = 0;
+    let last = performance.now();
+    const loop = (now: number) => {
+      clock.current += (now - last) / 1000;
+      last = now;
+      drawRef.current?.(clock.current);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [running, key]);
+
   return <canvas ref={ref} aria-hidden className={cn('pointer-events-none absolute inset-0 size-full', className)} />;
 }

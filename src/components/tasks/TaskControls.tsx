@@ -128,7 +128,15 @@ export function PrioritySlider({
             // canvas meanwhile, so the fill never blinks empty on the way in.
             style={{ background: PRIORITY_HUE[priority] }}
           >
-            {max && <FlowFill colors={maxColors()} className="animate-in duration-300 fade-in" />}
+            {/* Mounted from High up, so sliding between High and Max never
+                builds a new canvas; it fades in and drifts only at Max. */}
+            {level >= 2 && (
+              <FlowFill
+                colors={maxColors()}
+                running={max}
+                className={cn('transition-opacity duration-300', max ? 'opacity-100' : 'opacity-0')}
+              />
+            )}
           </motion.div>
         )}
         {[1, 2, 3].map((i) =>
