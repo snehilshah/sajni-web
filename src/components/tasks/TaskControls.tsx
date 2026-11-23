@@ -124,9 +124,11 @@ export function PrioritySlider({
             initial={false}
             animate={{ width: `calc(40px + (100% - 52px) * ${level / 3})` }}
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-            style={max ? undefined : { background: PRIORITY_HUE[priority] }}
+            // Max's wave draws a frame after it mounts: its ember sits under the
+            // canvas meanwhile, so the fill never blinks empty on the way in.
+            style={{ background: PRIORITY_HUE[priority] }}
           >
-            {max && <FlowFill colors={maxColors()} />}
+            {max && <FlowFill colors={maxColors()} className="animate-in duration-300 fade-in" />}
           </motion.div>
         )}
         {[1, 2, 3].map((i) =>

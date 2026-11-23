@@ -378,7 +378,7 @@ export default function TaskRow({
         {open && !finishing && (
           <div
             className="pointer-events-none absolute inset-y-0 right-11 flex items-center gap-1.5 pl-10 opacity-0 transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
-            style={{ background: 'linear-gradient(to right, transparent, hsl(var(--card)) 2.25rem)' }}
+            style={{ background: 'linear-gradient(to right, transparent, hsl(var(--surface-container-high)) 2.25rem)' }}
           >
             <button
               type="button"
@@ -492,7 +492,7 @@ export default function TaskRow({
           {children}
         </>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-card">
+        <div className="overflow-hidden rounded-2xl bg-[hsl(var(--surface-container-high))]">
           {row}
           {children}
         </div>

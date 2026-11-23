@@ -1,4 +1,5 @@
-// A frosted backdrop in the theme's own colours (the phone's FrostBackdrop):
+// A frosted backdrop in the theme's own colours, kept faint so cards and
+// rows stand clear of it (the phone's FrostBackdrop):
 // the primary, tertiary and secondary containers as broad soft swells,
 // settling toward the surface at the foot, under a fine grain. Still and
 // fixed to the viewport, so scrolling over it costs nothing. Tasks and Media
@@ -11,9 +12,9 @@ export function FrostBackdrop() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_12%_0%,hsl(var(--primary-container)/0.5),transparent_70%),radial-gradient(ellipse_55%_60%_at_88%_18%,hsl(var(--tertiary-container)/0.42),transparent_70%),radial-gradient(ellipse_70%_60%_at_40%_95%,hsl(var(--secondary-container)/0.32),transparent_70%)] in-data-[mode=dark]:opacity-80"
+      className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_12%_0%,hsl(var(--primary-container)/0.32),transparent_70%),radial-gradient(ellipse_55%_60%_at_88%_18%,hsl(var(--tertiary-container)/0.26),transparent_70%),radial-gradient(ellipse_70%_60%_at_40%_95%,hsl(var(--secondary-container)/0.2),transparent_70%)] in-data-[mode=dark]:opacity-70"
     >
-      <div className="absolute inset-0 opacity-[0.18] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
+      <div className="absolute inset-0 opacity-[0.12] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
     </div>
   );
 }
