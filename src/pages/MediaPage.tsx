@@ -156,8 +156,22 @@ const STATUS_SOLID: Record<MediaStatus, { bg: string; fg: string }> = {
   waiting: { bg: '#64748B', fg: '#fff' },
   complete: { bg: '#1F9D6A', fg: '#fff' },
   archived: { bg: '#78716C', fg: '#fff' },
-  dropped: { bg: '#D14343', fg: '#fff' },
-  scratched: { bg: '#D14343', fg: '#fff' },
+  dropped: { bg: '#8A6F5C', fg: '#fff' },
+  scratched: { bg: '#6B7280', fg: '#fff' },
+};
+
+// A platform's own colour (its brand where it has one) and the ink on it.
+const PLATFORM_BRAND: Record<string, { bg: string; fg: string }> = {
+  netflix: { bg: '#E50914', fg: '#fff' },
+  amazon: { bg: '#00A8E1', fg: '#fff' },
+  disney: { bg: '#113CCF', fg: '#fff' },
+  hotstar: { bg: '#0F1E4A', fg: '#fff' },
+  hbo: { bg: '#5822B4', fg: '#fff' },
+  apple: { bg: '#1D1D1F', fg: '#fff' },
+  hulu: { bg: '#1CE783', fg: '#0B2A18' },
+  cinema: { bg: '#C9932E', fg: '#fff' },
+  youtube: { bg: '#FF0033', fg: '#fff' },
+  torrent: { bg: '#2E7D5B', fg: '#fff' },
 };
 // Filter chips and the status menu: status glyph + its palette colour.
 const STATUS_LOOK: Record<MediaStatus, { icon: LucideIcon; hue: string }> = {
@@ -1661,17 +1675,11 @@ export default function MediaPage() {
         <BookmarksPanel kind={activeType as 'video' | 'site'} addSignal={bookmarkAddSignal} />
       ) : (
         <div className="relative flex min-w-0 flex-col gap-4">
-          {/* The theme's own wash behind the top of the list view. */}
-          {viewMode === 'list' && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 -top-10 h-[520px] bg-[radial-gradient(ellipse_at_30%_20%,hsl(var(--primary-container)/0.75),hsl(var(--tertiary-container)/0.35)_50%,transparent_85%)]"
-              style={{
-                maskImage: 'radial-gradient(closest-side at 40% 40%, black 40%, transparent)',
-                WebkitMaskImage: 'radial-gradient(closest-side at 40% 40%, black 40%, transparent)',
-              }}
-            />
-          )}
+          {/* The theme's own wash behind every view, top to bottom of the page. */}
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_20%_0%,hsl(var(--primary-container)/0.6),transparent_60%),linear-gradient(to_bottom,hsl(var(--primary-container)/0.35),hsl(var(--tertiary-container)/0.18)_45%,hsl(var(--secondary-container)/0.22))]"
+          />
           <section aria-label="Library controls" className="relative flex flex-col gap-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <MediaSearchField value={searchQuery} onChange={setSearchQuery} onClear={() => setSearchQuery('')} />
@@ -2218,8 +2226,8 @@ function PosterCard({
 
         {/* Rating */}
         {item.rating ? (
-          <div className="absolute top-2 right-2 inline-flex items-center gap-0.5 bg-background px-1.5 py-0.5 font-mono text-xs shadow-sm ring-1 ring-foreground/5">
-            <Star className="size-2.5 fill-amber-400 text-amber-400" />
+          <div className="absolute top-2 right-2 inline-flex h-6 items-center gap-1 rounded-lg bg-black/60 px-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+            <Star className="size-3 fill-amber-400 text-amber-400" />
             <span>{item.rating}</span>
           </div>
         ) : null}
@@ -3454,6 +3462,12 @@ function MediaDetailView({
   }
   const shown = { ...item, ...over } as MediaEntry;
   const [preview, setPreview] = useState<CollectionPart | null>(null);
+  // The platform you use leads, in the order this item opened with: a tap
+  // never reshuffles the pills under the pointer.
+  const [platformOrder] = useState(() => [
+    ...PLATFORM_OPTIONS.filter((p) => p.value === item.platform),
+    ...PLATFORM_OPTIONS.filter((p) => p.value !== item.platform),
+  ]);
   const details = useQuery({
     queryKey: ['media-details', item.external_id],
     queryFn: () => mediaApi.details(item.external_id),
@@ -3592,19 +3606,24 @@ function MediaDetailView({
             <div>
               <div className="mb-2 px-1 text-sm text-muted-foreground">Where</div>
               <div className="flex flex-wrap gap-2">
-                {PLATFORM_OPTIONS.map((p) => {
+                {platformOrder.map((p) => {
                   const on = p.value === shown.platform;
+                  const brand = PLATFORM_BRAND[p.value];
+                  const color = brand?.bg ?? 'hsl(var(--secondary))';
                   return (
                     <button
                       key={p.value}
                       type="button"
                       aria-pressed={on}
                       onClick={() => apply({ platform: on ? '' : p.value })}
-                      className={cn(
-                        'h-9 rounded-xl px-3 text-sm transition-colors',
+                      style={
                         on
-                          ? cn('font-semibold', tt.accentBg, tt.onAccent)
-                          : 'bg-[hsl(var(--surface-container-lowest))] hover:bg-[hsl(var(--surface-container-highest))]',
+                          ? { background: color, color: brand?.fg ?? 'hsl(var(--on-secondary))' }
+                          : { background: `color-mix(in srgb, ${color} 12%, transparent)` }
+                      }
+                      className={cn(
+                        'h-9 rounded-xl px-3 text-sm transition-[filter] hover:brightness-95',
+                        on && 'font-semibold',
                       )}
                     >
                       {p.label}
@@ -3721,12 +3740,13 @@ function MediaHero({
 function StatusButtons({ status, onStatus }: { status: MediaStatus; onStatus: (s: MediaStatus) => void }) {
   const inMore = !MAIN_STATUSES.includes(status);
   const others = EDITABLE_STATUS_OPTIONS.filter((s) => !MAIN_STATUSES.includes(s.value));
-  // Connected row: outer ends round, inner joins small; the chosen one is a full pill.
+  // Connected row: outer ends round, inner joins small; the chosen one is a
+  // full pill in its status colour (the shared palette, no reds).
   const seg = (on: boolean, edge: 'first' | 'middle' | 'last') =>
     cn(
       'h-11 min-w-0 flex-1 px-2 text-sm transition-all',
       on
-        ? cn('rounded-full font-semibold', tt.accentBg, tt.onAccent)
+        ? 'rounded-full font-semibold'
         : cn(
             'bg-[hsl(var(--surface-container-lowest))] hover:bg-[hsl(var(--surface-container-highest))]',
             edge === 'first'
@@ -3736,6 +3756,8 @@ function StatusButtons({ status, onStatus }: { status: MediaStatus; onStatus: (s
                 : 'rounded-lg',
           ),
     );
+  const fill = (s: MediaStatus, on: boolean) =>
+    on ? { background: STATUS_SOLID[s].bg, color: STATUS_SOLID[s].fg } : {};
   return (
     <div className="flex gap-[3px]" role="group" aria-label="Status">
       {MAIN_STATUSES.map((s, i) => (
@@ -3745,6 +3767,7 @@ function StatusButtons({ status, onStatus }: { status: MediaStatus; onStatus: (s
           aria-pressed={status === s}
           onClick={() => onStatus(s)}
           className={seg(status === s, i === 0 ? 'first' : 'middle')}
+          style={fill(s, status === s)}
         >
           <span className="truncate">{statusMeta(s)?.label}</span>
         </button>
@@ -3754,7 +3777,7 @@ function StatusButtons({ status, onStatus }: { status: MediaStatus; onStatus: (s
         <SelectTrigger
           aria-label="More statuses"
           className={cn(seg(inMore, 'last'), 'h-11 justify-center border-0')}
-          style={{ borderRadius: inMore ? 9999 : '8px 9999px 9999px 8px' }}
+          style={{ borderRadius: inMore ? 9999 : '8px 9999px 9999px 8px', ...fill(status, inMore) }}
         >
           <span className="truncate">{inMore ? statusMeta(status)?.label : 'More'}</span>
         </SelectTrigger>
