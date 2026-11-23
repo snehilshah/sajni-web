@@ -372,6 +372,8 @@ export interface MediaEntry {
   notes: string;
   platform: string;
   poster_url: string;
+  /** The poster's main colour, "#rrggbb", set by the server ('' until known). */
+  poster_color?: string;
   year?: number | null;
   release_date?: string;
   genre: string;

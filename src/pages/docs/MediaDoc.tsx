@@ -18,8 +18,26 @@ export default function MediaDoc() {
   return (
     <>
       <Section id="library" title="The Library" chip="movies · shows · books">
-        <p>Three library tabs share one shape: search-to-add, a poster grid, and a detail sheet per item.</p>
+        <p>
+          Three library tabs share one shape: search-to-add, a poster grid or list, and the item itself when you open
+          it.
+        </p>
         <FeatureList>
+          <Feature name="The list view">
+            <p>
+              What you're watching or reading leads as <em>Up next</em>: wide cards with the cover, what's next (“Next:
+              S5 E13, 56 to go”), progress along the bottom edge and a +1. Everything else follows grouped by status
+              (“Pending (12)”), each row tinted with its own poster's colour. Opening The Rookie shows its colour on the
+              buttons too.
+            </p>
+          </Feature>
+          <Feature name="Opening an item">
+            <p>
+              The cover sits on top; below it are the next episode with +1, status (Pending, In progress, Complete, the
+              rest under More), your stars, where you watch it, the story and the series. These save as you tap, and a
+              status change offers Undo. Title, year, genre, poster and notes are behind <em>Edit details</em>.
+            </p>
+          </Feature>
           <Feature name="Search-to-add (TMDB)">
             <p>
               Adding a movie or show searches TMDB, poster, year, genre and release date come along for free. Books are
@@ -105,8 +123,9 @@ export default function MediaDoc() {
         <FeatureList>
           <Feature name="Collections">
             <p>
-              A movie that belongs to a franchise carries its TMDB collection (“The Godfather Collection”), the detail
-              sheet shows the sibling films so the next installment is one tap to add.
+              A movie that belongs to a franchise carries its TMDB collection (“The Mummy Collection”). Opening it shows
+              every part: ones you have carry their status and open when tapped; ones you don't are dimmed with a +, and
+              tapping one shows its story with “Add to your library as Complete or Pending”.
             </p>
           </Feature>
           <Feature name="Upcoming releases">

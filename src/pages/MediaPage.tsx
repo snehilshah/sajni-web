@@ -1,4 +1,5 @@
 import { startTransition, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -12,7 +13,7 @@ import PageShell, { PageShellTabs } from '@/components/PageShell';
 import { SplitButton } from '@/components/ui/split-button';
 import { M3CookieLoader } from '@/components/ui/shapes';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
-import { WavyProgress } from '@/components/ui/wavy-progress';
+import { titleToneVars, tt } from '@/lib/titleTones';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { msg } from '@/lib/errors';
@@ -28,6 +29,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Plus,
+  Pencil,
+  ArrowLeft,
+  ChevronRight,
   Star,
   Trash2,
   Search,
@@ -41,7 +45,6 @@ import {
   ArrowUpDown,
   MonitorPlay,
   Globe,
-  ChevronRight,
   Settings,
   Play,
   Sparkles,
@@ -132,29 +135,65 @@ type SeriesRow =
       members: MediaEntry[];
     };
 
-const STATUS_OPTIONS: { value: MediaStatus; label: string; dot: string }[] = [
-  { value: 'in_progress', label: 'In progress', dot: 'bg-blue-500' },
-  { value: 'new_season', label: 'New Season', dot: 'bg-[hsl(var(--secondary))]' },
-  { value: 'upcoming', label: 'Upcoming', dot: 'bg-[hsl(var(--tertiary))]' },
-  { value: 'pending', label: 'Pending', dot: 'bg-muted-foreground' },
-  { value: 'waiting', label: 'Waiting', dot: 'bg-purple-500' },
-  { value: 'complete', label: 'Complete', dot: 'bg-emerald-500' },
-  { value: 'archived', label: 'Archived', dot: 'bg-stone-500' },
-  { value: 'dropped', label: 'Dropped', dot: 'bg-red-500' },
-  { value: 'scratched', label: 'Scratched', dot: 'bg-rose-500' },
+const STATUS_OPTIONS: { value: MediaStatus; label: string }[] = [
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'new_season', label: 'New Season' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'waiting', label: 'Waiting' },
+  { value: 'complete', label: 'Complete' },
+  { value: 'archived', label: 'Archived' },
+  { value: 'dropped', label: 'Dropped' },
+  { value: 'scratched', label: 'Scratched' },
 ];
-// Filter chips: status glyph + hue (theme tokens where the status has one).
-const STATUS_LOOK: Record<MediaStatus, { icon: LucideIcon; hue: string }> = {
-  in_progress: { icon: Play, hue: '#3F7FE0' },
-  new_season: { icon: Sparkles, hue: 'hsl(var(--secondary))' },
-  upcoming: { icon: CalendarClock, hue: 'hsl(var(--tertiary))' },
-  pending: { icon: Hourglass, hue: '#7A8794' },
-  waiting: { icon: Clock, hue: '#8B6FD6' },
-  complete: { icon: CheckCircle2, hue: '#4C9A5B' },
-  archived: { icon: Archive, hue: '#8A7F72' },
-  dropped: { icon: X, hue: '#D9534F' },
-  scratched: { icon: Ban, hue: '#E0567B' },
+// One status palette on web and Android (Android: mediaStatusColor).
+// Status shows as a solid badge in its colour, never a dot.
+const STATUS_SOLID: Record<MediaStatus, { bg: string; fg: string }> = {
+  in_progress: { bg: '#3A6FD8', fg: '#fff' },
+  new_season: { bg: '#3A6FD8', fg: '#fff' },
+  upcoming: { bg: 'hsl(var(--tertiary-container))', fg: 'hsl(var(--on-tertiary-container))' },
+  pending: { bg: '#E39A00', fg: '#fff' },
+  waiting: { bg: '#64748B', fg: '#fff' },
+  complete: { bg: '#1F9D6A', fg: '#fff' },
+  archived: { bg: '#78716C', fg: '#fff' },
+  dropped: { bg: '#D14343', fg: '#fff' },
+  scratched: { bg: '#D14343', fg: '#fff' },
 };
+// Filter chips and the status menu: status glyph + its palette colour.
+const STATUS_LOOK: Record<MediaStatus, { icon: LucideIcon; hue: string }> = {
+  in_progress: { icon: Play, hue: STATUS_SOLID.in_progress.bg },
+  new_season: { icon: Sparkles, hue: STATUS_SOLID.new_season.bg },
+  upcoming: { icon: CalendarClock, hue: 'hsl(var(--tertiary))' },
+  pending: { icon: Hourglass, hue: STATUS_SOLID.pending.bg },
+  waiting: { icon: Clock, hue: STATUS_SOLID.waiting.bg },
+  complete: { icon: CheckCircle2, hue: STATUS_SOLID.complete.bg },
+  archived: { icon: Archive, hue: STATUS_SOLID.archived.bg },
+  dropped: { icon: X, hue: STATUS_SOLID.dropped.bg },
+  scratched: { icon: Ban, hue: STATUS_SOLID.scratched.bg },
+};
+
+function MediaStatusBadge({
+  status,
+  label,
+  title,
+  className,
+}: {
+  status: MediaStatus;
+  label?: string;
+  title?: string;
+  className?: string;
+}) {
+  const look = STATUS_SOLID[status] ?? STATUS_SOLID.pending;
+  return (
+    <span
+      title={title}
+      className={cn('inline-flex h-6 max-w-full items-center rounded-lg px-2 text-xs font-semibold', className)}
+      style={{ background: look.bg, color: look.fg }}
+    >
+      <span className="truncate">{label ?? STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}</span>
+    </span>
+  );
+}
 const EDITABLE_STATUS_OPTIONS = STATUS_OPTIONS.filter(
   (status) => status.value !== 'upcoming' && status.value !== 'new_season',
 );
@@ -865,18 +904,7 @@ export default function MediaPage() {
       localStorage.setItem('sajni:media:group', groupSeries ? '1' : '0');
     } catch {}
   }, [groupSeries]);
-  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
   const [seriesDialog, setSeriesDialog] = useState<Extract<SeriesRow, { kind: 'series' }> | null>(null);
-  const toggleSeries = useCallback(
-    (id: string) =>
-      setExpandedSeries((s) => {
-        const next = new Set(s);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      }),
-    [],
-  );
   useEffect(() => {
     try {
       localStorage.setItem(MEDIA_VIEW_KEY, viewMode);
@@ -890,6 +918,9 @@ export default function MediaPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MediaEntry | null>(null);
+  // An existing item opens as itself (MediaDetailView); its form is behind
+  // "Edit details". A new one opens straight to the form.
+  const [detailsForm, setDetailsForm] = useState(false);
   // Which always-mounted element the desktop dialog morphs out of:
   // a grid poster ('card'), the pill Add button ('add'), or none
   // (list/table/shelves rows → scale/fade fallback).
@@ -1072,6 +1103,7 @@ export default function MediaPage() {
       const rect = sourceEl?.getBoundingClientRect();
       setMorphSource(morph ?? null);
       setMorphRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : undefined);
+      setDetailsForm(false);
       if (item) {
         const loaded = mediaFormOf(item);
         setEditItem(item);
@@ -1196,6 +1228,43 @@ export default function MediaPage() {
 
   const TypeIcon = TYPE_META[activeType]?.icon || Film;
 
+  // The open item as the library has it now (quick changes refetch it).
+  const liveItem = editItem ? (items.find((m) => m.id === editItem.id) ?? editItem) : null;
+  const showDetail = !!liveItem && !detailsForm;
+  const openDetailsForm = () => {
+    if (!liveItem) return;
+    const loaded = mediaFormOf(liveItem);
+    setEditItem(liveItem);
+    setForm(loaded);
+    loadDraft(loaded);
+    setDetailsForm(true);
+  };
+  const detailView = liveItem ? (
+    <MediaDetailView
+      item={liveItem}
+      library={items}
+      onClose={closeForm}
+      onEdit={openDetailsForm}
+      onOpen={(m) => openForm(m)}
+      save={writeMedia}
+      create={(patch) => createMedia.mutateAsync(patch)}
+    />
+  ) : null;
+
+  // +1 on a row or card: the next episode, saved at once.
+  const stepEpisode = useCallback(
+    (item: MediaEntry) => {
+      const step = nextEpisodeStep(item);
+      if (!step) return;
+      writeMedia(item.id, {
+        episodes_watched: step.watched,
+        seasons_watched: step.season,
+        ...(step.complete ? { status: 'complete' as const } : {}),
+      }).catch((err) => toast.error(failureText(err, 'Could not save progress')));
+    },
+    [writeMedia],
+  );
+
   // Memoize shelf rendering so typing in the dialog never rerenders it. Motion
   // stays limited to disclosures; filtering and sorting update without layout
   // choreography that previously made the shelf feel unstable.
@@ -1258,9 +1327,8 @@ export default function MediaPage() {
         />
       );
     }
-    // List view — rows bucketed into status sections (same lifecycle order
-    // as the shelves). Headers disappear when everything shares one status
-    // (e.g. a single-status filter), leaving the flat card.
+    // List view: what's in progress as wide art cards (Up next), then the
+    // rest grouped by status as rows tinted with each title's own colour.
     const statusIdx = (s: MediaStatus) => {
       const i = STATUS_OPTIONS.findIndex((o) => o.value === s);
       return i === -1 ? STATUS_OPTIONS.length : i;
@@ -1272,8 +1340,13 @@ export default function MediaPage() {
             (best, m) => (statusIdx(m.status) < statusIdx(best) ? m.status : best),
             row.members[0].status,
           );
+    const upNext = seriesRows.filter(
+      (row): row is Extract<SeriesRow, { kind: 'single' }> =>
+        row.kind === 'single' && (row.item.status === 'in_progress' || row.item.status === 'new_season'),
+    );
     const sectionMap = new Map<MediaStatus, SeriesRow[]>();
     for (const row of seriesRows) {
+      if (row.kind === 'single' && upNext.includes(row)) continue;
       const s = rowStatus(row);
       if (!sectionMap.has(s)) sectionMap.set(s, []);
       sectionMap.get(s)!.push(row);
@@ -1282,46 +1355,45 @@ export default function MediaPage() {
       meta: s,
       rows: sectionMap.get(s.value)!,
     }));
-    const showSectionHeaders = sections.length > 1;
-
-    const renderRows = (rows: SeriesRow[]) =>
-      rows.map((row, idx) =>
-        row.kind === 'single' ? (
-          <MediaListRow
-            key={'item-' + row.item.id}
-            item={row.item}
-            index={idx}
-            attached
-            first={idx === 0}
-            morphOpen={showForm && morphSource === 'card' && editItem?.id === row.item.id}
-            onClick={(source) => openForm(row.item, 'card', source)}
-          />
-        ) : (
-          <SeriesListRow
-            key={'series-' + row.collectionId}
-            row={row}
-            attached
-            first={idx === 0}
-            expanded={expandedSeries.has(row.collectionId)}
-            onToggle={() => toggleSeries(row.collectionId)}
-            onPickItem={(item, source) => openForm(item, 'card', source)}
-            openItemId={showForm && morphSource === 'card' ? (editItem?.id ?? null) : null}
-          />
-        ),
-      );
 
     return (
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
+        {upNext.length > 0 && (
+          <section aria-label="Up next">
+            <ListHeader label="Up next" count={upNext.length} />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {upNext.map(({ item }) => (
+                <UpNextCard
+                  key={item.id}
+                  item={item}
+                  onOpen={(source) => openForm(item, 'card', source)}
+                  onPlusOne={stepEpisode}
+                />
+              ))}
+            </div>
+          </section>
+        )}
         {sections.map(({ meta, rows }) => (
           <section key={meta.value} aria-label={meta.label}>
-            {showSectionHeaders && (
-              <header className="mb-2 flex items-baseline gap-2 px-0.5">
-                <span className={cn('size-2 shrink-0 self-center rounded-full', meta.dot)} />
-                <h3 className="serif text-sm font-semibold tracking-tight">{meta.label}</h3>
-                <span className="mono text-xs text-muted-foreground tabular-nums">{rows.length}</span>
-              </header>
-            )}
-            <div className="overflow-hidden rounded-[20px] bg-card">{renderRows(rows)}</div>
+            <ListHeader label={meta.label} count={rows.length} />
+            <div className="grid gap-2.5 md:grid-cols-2">
+              {rows.map((row) =>
+                row.kind === 'single' ? (
+                  <TintRow
+                    key={'item-' + row.item.id}
+                    item={row.item}
+                    onOpen={(source) => openForm(row.item, 'card', source)}
+                    onPlusOne={
+                      ['complete', 'dropped', 'scratched', 'archived'].includes(row.item.status)
+                        ? undefined
+                        : stepEpisode
+                    }
+                  />
+                ) : (
+                  <SeriesTintRow key={'series-' + row.collectionId} row={row} onOpen={() => setSeriesDialog(row)} />
+                ),
+              )}
+            </div>
           </section>
         ))}
       </div>
@@ -1334,9 +1406,8 @@ export default function MediaPage() {
     statusFilters,
     searchQuery,
     activeType,
-    expandedSeries,
     openForm,
-    toggleSeries,
+    stepEpisode,
     setSeriesDialog,
     editItem?.id,
     morphSource,
@@ -1440,14 +1511,16 @@ export default function MediaPage() {
           label={formIsUpcoming ? 'Status · automatic' : 'Status'}
           value={form.status}
           onChange={(v) => setForm({ ...form, status: (v as MediaStatus) || 'pending' })}
-          options={EDITABLE_STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, dot: s.dot }))}
+          options={EDITABLE_STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
           disabled={formIsUpcoming}
-          renderValue={(value) => {
-            const meta = statusMeta(value as MediaStatus);
+          renderValue={(value) => <MediaStatusBadge status={value as MediaStatus} />}
+          renderOption={(o) => {
+            const look = STATUS_LOOK[o.value as MediaStatus];
+            const Glyph = look?.icon;
             return (
               <span className="flex items-center gap-2">
-                <span className={`size-2 rounded-full ${meta?.dot}`} />
-                {meta?.label}
+                {Glyph && <Glyph className="size-4" style={{ color: look.hue }} />}
+                {o.label}
               </span>
             );
           }}
@@ -1587,8 +1660,19 @@ export default function MediaPage() {
       {isBookmarkTab ? (
         <BookmarksPanel kind={activeType as 'video' | 'site'} addSignal={bookmarkAddSignal} />
       ) : (
-        <div className="flex min-w-0 flex-col gap-4">
-          <section aria-label="Library controls" className="flex flex-col gap-2.5">
+        <div className="relative flex min-w-0 flex-col gap-4">
+          {/* The theme's own wash behind the top of the list view. */}
+          {viewMode === 'list' && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 -top-10 h-[520px] bg-[radial-gradient(ellipse_at_30%_20%,hsl(var(--primary-container)/0.75),hsl(var(--tertiary-container)/0.35)_50%,transparent_85%)]"
+              style={{
+                maskImage: 'radial-gradient(closest-side at 40% 40%, black 40%, transparent)',
+                WebkitMaskImage: 'radial-gradient(closest-side at 40% 40%, black 40%, transparent)',
+              }}
+            />
+          )}
+          <section aria-label="Library controls" className="relative flex flex-col gap-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <MediaSearchField value={searchQuery} onChange={setSearchQuery} onClear={() => setSearchQuery('')} />
               <MediaControlCluster
@@ -1629,7 +1713,7 @@ export default function MediaPage() {
           </section>
 
           {/* Grid / list (memoized — see gridEl above) */}
-          {gridEl}
+          <div className="relative">{gridEl}</div>
         </div>
       )}
 
@@ -1649,37 +1733,47 @@ export default function MediaPage() {
             style={vvBox ? { height: vvBox.height, top: vvBox.top, bottom: 'auto' } : { height: '100dvh' }}
             className="max-w-full gap-0 rounded-t-[28px] p-0"
           >
-            {/* EXPERIMENTAL poster header: when the entry has art, the title
+            {showDetail ? (
+              <>
+                <SheetTitle className="sr-only">{liveItem?.title}</SheetTitle>
+                <SheetDescription className="sr-only">Media details</SheetDescription>
+                {detailView}
+              </>
+            ) : (
+              <>
+                {/* EXPERIMENTAL poster header: when the entry has art, the title
                 bar shows it full-bleed under a gradient scrim that resolves
                 into the sheet surface — image + solid scrim, no blur/glass.
                 No poster → plain header, exactly the old look. */}
-            <div className="relative shrink-0 overflow-hidden">
-              {form.poster_url && (
-                <>
-                  <img
-                    src={form.poster_url}
-                    alt=""
-                    aria-hidden
-                    className="absolute inset-0 h-full w-full object-cover object-[center_22%]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--surface-container-high))] via-[hsl(var(--surface-container-high)/0.72)] to-[hsl(var(--surface-container-high)/0.18)]" />
-                </>
-              )}
-              <div className={cn('relative flex flex-col gap-1 px-5 pb-3', form.poster_url ? 'pt-20' : 'pt-5')}>
-                <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
-                  {mediaFormTitle}
-                </SheetTitle>
-                <SheetDescription className="label-kicker mt-0 font-mono text-xs text-muted-foreground">
-                  {mediaFormSubtitle}
-                </SheetDescription>
-              </div>
-            </div>
+                <div className="relative shrink-0 overflow-hidden">
+                  {form.poster_url && (
+                    <>
+                      <img
+                        src={form.poster_url}
+                        alt=""
+                        aria-hidden
+                        className="absolute inset-0 h-full w-full object-cover object-[center_22%]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--surface-container-high))] via-[hsl(var(--surface-container-high)/0.72)] to-[hsl(var(--surface-container-high)/0.18)]" />
+                    </>
+                  )}
+                  <div className={cn('relative flex flex-col gap-1 px-5 pb-3', form.poster_url ? 'pt-20' : 'pt-5')}>
+                    <SheetTitle className="flex items-center gap-2 font-serif text-xl leading-tight font-semibold tracking-tight normal-case">
+                      {mediaFormTitle}
+                    </SheetTitle>
+                    <SheetDescription className="label-kicker mt-0 font-mono text-xs text-muted-foreground">
+                      {mediaFormSubtitle}
+                    </SheetDescription>
+                  </div>
+                </div>
 
-            <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">{mediaFormFields}</div>
+                <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">{mediaFormFields}</div>
 
-            <div className="flex shrink-0 items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              {mediaFormFooter}
-            </div>
+                <div className="flex shrink-0 items-center gap-2 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                  {mediaFormFooter}
+                </div>
+              </>
+            )}
           </SheetContent>
         </Sheet>
       ) : (
@@ -1699,16 +1793,22 @@ export default function MediaPage() {
           ariaLabel={typeof mediaFormTitle === 'string' ? mediaFormTitle : 'Edit media'}
           className="top-[6vh] right-0 left-0 mx-auto max-h-[88vh] w-[min(48rem,92vw)]"
         >
-          <div className="shrink-0 px-6 pt-6 pb-4">
-            <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
-              {mediaFormTitle}
-            </div>
-            <p className="label-kicker mt-0.5 font-mono text-xs text-muted-foreground">{mediaFormSubtitle}</p>
-          </div>
+          {showDetail ? (
+            detailView
+          ) : (
+            <>
+              <div className="shrink-0 px-6 pt-6 pb-4">
+                <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
+                  {mediaFormTitle}
+                </div>
+                <p className="label-kicker mt-0.5 font-mono text-xs text-muted-foreground">{mediaFormSubtitle}</p>
+              </div>
 
-          <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">{mediaFormFields}</div>
+              <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">{mediaFormFields}</div>
 
-          <div className="flex shrink-0 items-center justify-end gap-2 px-6 py-4">{mediaFormFooter}</div>
+              <div className="flex shrink-0 items-center justify-end gap-2 px-6 py-4">{mediaFormFooter}</div>
+            </>
+          )}
         </MorphingDialog>
       )}
       <SeriesDialog
@@ -1985,9 +2085,9 @@ function FieldSelect({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  options: { value: string; label: string; dot?: string }[];
+  options: { value: string; label: string }[];
   renderValue?: (v: string) => React.ReactNode;
-  renderOption?: (o: { value: string; label: string; dot?: string }) => React.ReactNode;
+  renderOption?: (o: { value: string; label: string }) => React.ReactNode;
   disabled?: boolean;
 }) {
   return (
@@ -2000,14 +2100,7 @@ function FieldSelect({
         <SelectContent>
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
-              {renderOption ? (
-                renderOption(o)
-              ) : (
-                <span className="flex items-center gap-2">
-                  {o.dot && <span className={`size-2 rounded-full ${o.dot}`} />}
-                  {o.label}
-                </span>
-              )}
+              {renderOption ? renderOption(o) : o.label}
             </SelectItem>
           ))}
         </SelectContent>
@@ -2110,18 +2203,16 @@ function PosterCard({
           </div>
         )}
 
-        {/* Status pill — dot + sentence-case short label. Sentence case at
-            normal tracking keeps every status ("In progress", "Complete")
-            inside a 2-col phone grid tile without truncating to COMPL…. */}
+        {/* Status as a solid badge in its colour; sentence case keeps every
+            status inside a 2-col phone grid tile without truncating. */}
         {item.status !== 'pending' && (
           <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)]">
-            <span
-              className="inline-flex h-6 max-w-full items-center gap-1.5 rounded-full bg-background/95 pr-2.5 pl-2 text-xs font-medium shadow-sm ring-1 ring-foreground/10"
+            <MediaStatusBadge
+              status={isUpcomingRelease(item) ? 'upcoming' : item.status}
+              label={statusDisplay.shortLabel}
               title={statusDisplay.label}
-            >
-              <span className="size-1.5 shrink-0 rounded-full" style={{ background: statusDisplay.color }} />
-              <span className="truncate">{statusDisplay.shortLabel}</span>
-            </span>
+              className="shadow-sm"
+            />
           </div>
         )}
 
@@ -2298,36 +2389,6 @@ function relativeTiny(iso: string): string {
     .replace(/ years? ago$/, 'y ago');
 }
 
-function progressLabel(item: MediaEntry): string {
-  if (item.type === 'show') {
-    // Prefer the precise S?E? when we have per-season counts. Walk the
-    // array to find the season the cumulative `episodes_watched` lands
-    // in, and the offset within that season.
-    if (item.season_episodes && item.season_episodes.length > 0) {
-      let acc = 0;
-      for (let i = 0; i < item.season_episodes.length; i++) {
-        const len = item.season_episodes[i];
-        if (acc + len >= item.episodes_watched || i === item.season_episodes.length - 1) {
-          const epInSeason = Math.max(0, item.episodes_watched - acc);
-          return `S${i + 1}E${epInSeason}`;
-        }
-        acc += len;
-      }
-    }
-    if (item.episodes_total > 0) {
-      const s = item.seasons_watched > 0 ? `S${item.seasons_watched}` : 'S?';
-      const e = `E${item.episodes_watched}`;
-      return `${s}${e}`;
-    }
-    return '';
-  }
-  if (item.type === 'book') {
-    if (item.episodes_total > 0) return `p. ${item.episodes_watched}/${item.episodes_total}`;
-    return '';
-  }
-  return '';
-}
-
 function chipClassFor(status: MediaStatus): string {
   switch (status) {
     case 'in_progress':
@@ -2348,153 +2409,247 @@ function chipClassFor(status: MediaStatus): string {
   }
 }
 
-// RowRail — the fixed right-hand rail every non-progress list row shares:
-// ghost numeral slot · five-star slot · chip slot. Slots are RESERVED even
-// when data is missing (blank ghost, dim empty stars) so the columns line
-// up row after row — no ragged right edge when TMDB has no year or the
-// entry is unrated.
-function RowRail({ rating, chip }: { ghost?: React.ReactNode; rating: number; chip: React.ReactNode }) {
-  return (
-    <div className="flex shrink-0 items-center gap-2 self-center">
-      <span
-        className="hidden w-[84px] justify-center md:inline-flex"
-        title={rating ? `Rated ${rating}/5` : 'Not rated'}
-      >
-        {/* Slot stays reserved for column alignment; stars only once rated. */}
-        {rating > 0 ? <StarRating value={rating} /> : null}
-      </span>
-      <span className="flex w-auto justify-end md:w-28">{chip}</span>
-    </div>
-  );
-}
-
 // MediaListRow — dense single-entry list row. One tight flex line:
 // thumb · (title + meta + optional thin progress) · (status chip + age).
 // The old three-column grid reserved a wide right column that read as
 // empty space; everything now hugs the content.
-function MediaListRow({
-  item,
-  index,
-  onClick,
-  compact = false,
-  attached = false,
-  first = false,
-  morphOpen: _morphOpen = false,
-}: {
-  item: MediaEntry;
-  index: number;
-  onClick: (source: HTMLElement) => void;
-  compact?: boolean;
-  attached?: boolean;
-  first?: boolean;
-  morphOpen?: boolean;
-}) {
-  const pct = listProgressPct(item);
-  const hasProgress = pct !== null;
-  const statusDisplay = mediaStatusDisplay(item);
+/** A show's episode count (seasons summed when known). */
+function totalEpisodes(item: MediaEntry): number {
+  return item.season_episodes?.length ? item.season_episodes.reduce((a, b) => a + b, 0) : item.episodes_total;
+}
+
+/** The season (1-based) holding episode number `episode` (1-based). */
+function seasonOfEpisode(seasons: number[], episode: number): number {
+  let seen = 0;
+  for (let i = 0; i < seasons.length; i++) {
+    seen += seasons[i];
+    if (episode <= seen) return i + 1;
+  }
+  return Math.max(1, seasons.length);
+}
+
+/** "Next: S5 E13", "Next: episode 89", "All 153 episodes"; null when not a show with episodes. */
+function nextEpisodeLabel(item: MediaEntry): string | null {
+  const total = totalEpisodes(item);
+  if (item.type !== 'show' || total <= 0) return null;
+  if (item.episodes_watched >= total) return `All ${total} episodes`;
+  const next = item.episodes_watched + 1;
+  if (!item.season_episodes?.length) return `Next: episode ${next}`;
+  const season = seasonOfEpisode(item.season_episodes, next);
+  const before = item.season_episodes.slice(0, season - 1).reduce((a, b) => a + b, 0);
+  return `Next: S${season} E${next - before}`;
+}
+
+/** The +1 step: episodes watched after it, its season, and whether that finishes the show. */
+function nextEpisodeStep(item: MediaEntry): { watched: number; season: number; complete: boolean } | null {
+  const total = totalEpisodes(item);
+  if (item.type !== 'show' || total <= 0 || item.episodes_watched >= total) return null;
+  const next = item.episodes_watched + 1;
+  const season = item.season_episodes?.length ? seasonOfEpisode(item.season_episodes, next) : item.seasons_watched;
+  return { watched: next, season, complete: next >= total };
+}
+
+function mediaMeta(item: MediaEntry): string {
+  const genres = item.genre
+    .split(',')
+    .map((g) => g.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(', ');
+  return [item.year ? String(item.year) : '', genres].filter(Boolean).join(', ');
+}
+
+function ListHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <h3 className="serif mb-2.5 px-0.5 text-sm font-semibold tracking-tight">
+      {label} <span className="mono text-xs font-normal text-muted-foreground">({count})</span>
+    </h3>
+  );
+}
+
+function PlusOneButton({ onClick, className }: { onClick: () => void; className?: string }) {
   return (
     <button
+      type="button"
+      aria-label="Watched one more episode"
       onClick={(e) => {
-        const source = e.currentTarget.querySelector<HTMLElement>('[data-media-morph-source]');
-        onClick(source ?? e.currentTarget);
+        e.stopPropagation();
+        onClick();
       }}
       className={cn(
-        'm3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995]',
-        attached
-          ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
-          : 'rounded-2xl border border-[hsl(var(--outline-variant))] hover:border-[hsl(var(--outline))]',
-        compact ? 'p-2' : 'p-2.5 sm:px-3',
+        'grid shrink-0 place-items-center font-bold transition-transform active:scale-95 motion-reduce:transition-none',
+        className,
       )}
     >
-      {/* Ambient art: the poster's own colors bleed in from the left and
-          dissolve — every row carries its artwork's temperature. */}
+      +1
+    </button>
+  );
+}
+
+// Up next: a wide art card, progress along its bottom edge, +1 at hand.
+function UpNextCard({
+  item,
+  onOpen,
+  onPlusOne,
+}: {
+  item: MediaEntry;
+  onOpen: (source: HTMLElement) => void;
+  onPlusOne: (item: MediaEntry) => void;
+}) {
+  const total = totalEpisodes(item);
+  const label = nextEpisodeLabel(item);
+  const left = total - item.episodes_watched;
+  const sub = label
+    ? left > 0
+      ? `${label}, ${left} to go`
+      : label
+    : item.status === 'new_season'
+      ? 'New season out'
+      : item.type === 'book'
+        ? 'Reading'
+        : 'Watching';
+  const step = nextEpisodeStep(item);
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={(e) => onOpen(e.currentTarget)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(e.currentTarget);
+        }
+      }}
+      data-media-morph-source
+      style={titleToneVars(item.poster_color)}
+      className={cn(
+        'group relative h-[190px] cursor-pointer overflow-hidden rounded-[26px] text-white outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        tt.accentBg,
+      )}
+    >
       {item.poster_url && (
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <img
-            src={item.poster_url}
-            alt=""
-            loading="lazy"
-            className="h-full w-full scale-125 object-cover opacity-[0.32] blur-xl saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:opacity-[0.42] dark:group-hover:opacity-[0.55]"
-            style={{
-              maskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
-            }}
+        <img
+          src={item.poster_url}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover object-[center_20%] transition-transform duration-500 ease-[var(--motion-ease-out)] group-hover:scale-[1.03] motion-reduce:transition-none"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+      <div className="absolute inset-x-4 bottom-4 flex items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="serif line-clamp-2 text-xl leading-tight font-semibold">{item.title}</div>
+          <div className="mt-0.5 truncate text-xs text-white/85">{sub}</div>
+        </div>
+        {step && (
+          <PlusOneButton
+            onClick={() => onPlusOne(item)}
+            className="size-12 rounded-2xl bg-[hsl(var(--primary-container))] text-[hsl(var(--on-primary-container))]"
+          />
+        )}
+      </div>
+      {total > 0 && (
+        <div className="absolute inset-x-0 bottom-0 h-[5px] bg-white/20">
+          <div
+            className="h-full bg-[hsl(var(--primary-container))]"
+            style={{ width: `${Math.min(100, (item.episodes_watched / total) * 100)}%` }}
           />
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="relative flex min-w-0 items-center gap-3">
-        <MediaThumb
-          item={item}
-          index={index}
-          variant="sm"
-          className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
-        />
-
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <span
-              className={cn('serif min-w-0 truncate leading-snug font-medium', compact ? 'text-[14px]' : 'text-[15px]')}
-            >
-              {item.title || 'Untitled'}
-            </span>
-            {item.rating ? (
-              <span
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-0.5 text-xs text-secondary',
-                  !hasProgress && 'md:hidden',
-                )}
-              >
-                <Star className="size-3 fill-current" />
-                <span className="tabular-nums">{item.rating}</span>
-              </span>
-            ) : null}
+// Every other title: a row in its own poster's colour.
+function TintRow({
+  item,
+  onOpen,
+  onPlusOne,
+}: {
+  item: MediaEntry;
+  onOpen: (source: HTMLElement) => void;
+  onPlusOne?: (item: MediaEntry) => void;
+}) {
+  const line =
+    item.status === 'upcoming' && item.release_date
+      ? `Releases ${formatReleaseDate(item.release_date)}`
+      : nextEpisodeLabel(item);
+  const step = onPlusOne ? nextEpisodeStep(item) : null;
+  const meta = mediaMeta(item);
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={(e) => onOpen(e.currentTarget)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(e.currentTarget);
+        }
+      }}
+      style={titleToneVars(item.poster_color)}
+      className={cn(
+        'flex cursor-pointer items-center gap-3.5 rounded-[22px] py-2.5 pr-3.5 pl-2.5 transition-[filter] outline-none hover:brightness-[0.98] focus-visible:ring-2 focus-visible:ring-ring dark:hover:brightness-110',
+        tt.container,
+        tt.onContainer,
+      )}
+    >
+      <div data-media-morph-source className="h-[75px] w-[50px] shrink-0 overflow-hidden rounded-[11px] bg-black/5">
+        {item.poster_url && <img src={item.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="serif line-clamp-2 text-[15.5px] leading-snug font-semibold">{item.title}</div>
+        {meta && <div className="truncate text-xs opacity-70">{meta}</div>}
+        {(line || !!item.rating) && (
+          <div className="mt-0.5 flex items-center gap-2 text-xs font-semibold">
+            {line && <span>{line}</span>}
+            {item.rating ? <StarRating value={item.rating} /> : null}
           </div>
-          <div className="mono flex min-w-0 items-center gap-x-2 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">
-            {item.year ? <span className="shrink-0">{item.year}</span> : null}
-            {item.platform ? (
-              <PlatformLogo platform={item.platform} className="min-w-0 shrink-0" iconClassName="size-[15px]" />
-            ) : null}
-            {progressLabel(item) ? (
-              <span className="hidden shrink-0 min-[420px]:inline">· {progressLabel(item)}</span>
-            ) : null}
-          </div>
-          {hasProgress && (
-            <div className="mt-1.5 flex items-center gap-2.5">
-              <WavyProgress
-                value={pct ?? 0}
-                height={12}
-                active={item.status === 'in_progress'}
-                label={`${pct}% watched`}
-                className="flex-1"
-              />
-              <span className="mono shrink-0 text-xs text-muted-foreground tabular-nums">{pct}%</span>
-            </div>
-          )}
-        </div>
-
-        {hasProgress ? (
-          <span
-            className={cn('chip h-6 max-w-[9rem] shrink-0 px-2.5 text-xs leading-none', statusDisplay.chipClass)}
-            title={statusDisplay.label}
-          >
-            <span className="truncate">{statusDisplay.shortLabel}</span>
-          </span>
-        ) : (
-          <RowRail
-            rating={item.rating || 0}
-            chip={
-              item.status === 'pending' ? null : (
-                <span
-                  className={cn('chip h-6 max-w-[9rem] px-2.5 text-xs leading-none', statusDisplay.chipClass)}
-                  title={statusDisplay.label}
-                >
-                  <span className="truncate">{statusDisplay.shortLabel}</span>
-                </span>
-              )
-            }
-          />
         )}
+      </div>
+      {step && onPlusOne && (
+        <PlusOneButton
+          onClick={() => onPlusOne(item)}
+          className={cn('size-11 rounded-[14px]', tt.accentBg, tt.onAccent)}
+        />
+      )}
+    </div>
+  );
+}
+
+function SeriesTintRow({ row, onOpen }: { row: Extract<SeriesRow, { kind: 'series' }>; onOpen: () => void }) {
+  const watched = row.members.filter((m) => m.status === 'complete').length;
+  const shown = row.members.slice(0, 3);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      style={titleToneVars(row.members[0]?.poster_color)}
+      className={cn(
+        'flex items-center gap-3.5 rounded-[22px] py-2.5 pr-3.5 pl-2.5 text-left transition-[filter] hover:brightness-[0.98] dark:hover:brightness-110',
+        tt.container,
+        tt.onContainer,
+      )}
+    >
+      <div className="relative h-[75px] shrink-0" style={{ width: 50 + (shown.length - 1) * 12 }}>
+        {shown
+          .slice()
+          .reverse()
+          .map((m, i) => (
+            <div
+              key={m.id}
+              className="absolute top-0 h-[75px] w-[50px] overflow-hidden rounded-[11px] bg-black/5 shadow-sm"
+              style={{ left: (shown.length - 1 - i) * 12 }}
+            >
+              {m.poster_url && <img src={m.poster_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+            </div>
+          ))}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="serif line-clamp-2 text-[15.5px] leading-snug font-semibold">{row.collectionName}</div>
+        <div className="text-xs font-semibold">
+          {watched} of {row.members.length} watched
+        </div>
       </div>
     </button>
   );
@@ -2526,10 +2681,10 @@ function MediaShelves({
     <div className="flex flex-col gap-6">
       {shelves.map(({ meta, items: shelfItems }) => (
         <section key={meta.value} aria-label={meta.label}>
-          <header className="mb-2.5 flex items-baseline gap-2 px-0.5">
-            <span className={cn('size-2 shrink-0 self-center rounded-full', meta.dot)} />
-            <h3 className="serif text-sm font-semibold tracking-tight">{meta.label}</h3>
-            <span className="mono text-xs text-muted-foreground tabular-nums">{shelfItems.length}</span>
+          <header className="mb-2.5 px-0.5">
+            <h3 className="serif text-sm font-semibold tracking-tight">
+              {meta.label} <span className="mono text-xs font-normal text-muted-foreground">({shelfItems.length})</span>
+            </h3>
           </header>
           <div className="no-scrollbar -mx-1 flex snap-x snap-proximity gap-3 overflow-x-auto px-1 pb-1">
             {shelfItems.map((item) => (
@@ -2609,12 +2764,11 @@ function MediaTable({
                 </td>
                 <td className="mono px-3 py-2 text-xs text-muted-foreground tabular-nums">{item.year || '–'}</td>
                 <td className="px-3 py-2">
-                  <span
-                    className={cn('chip h-6 max-w-full px-2.5 text-xs leading-none', statusDisplay.chipClass)}
+                  <MediaStatusBadge
+                    status={isUpcomingRelease(item) ? 'upcoming' : item.status}
+                    label={statusDisplay.shortLabel}
                     title={statusDisplay.label}
-                  >
-                    <span className="truncate">{statusDisplay.shortLabel}</span>
-                  </span>
+                  />
                 </td>
                 <td className="px-3 py-2">
                   {item.rating ? (
@@ -2786,151 +2940,18 @@ function SeriesDialog({
                   </div>
                   <div className="mono mt-0.5 truncate text-xs text-muted-foreground">{watchAgeLabel(m)}</div>
                 </div>
-                <span
-                  className={cn('chip h-6 max-w-[11rem] shrink-0 px-2.5 text-xs leading-none', statusDisplay.chipClass)}
+                <MediaStatusBadge
+                  status={isUpcomingRelease(m) ? 'upcoming' : m.status}
+                  label={statusDisplay.label}
                   title={statusDisplay.label}
-                >
-                  <span className="truncate">{statusDisplay.label}</span>
-                </span>
+                  className="max-w-[11rem] shrink-0"
+                />
               </button>
             );
           })}
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// SeriesListRow shares Today’s compact review-disclosure pattern. It spans a
-// grid row when needed, so a collection expands without moving poster tiles.
-function SeriesListRow({
-  row,
-  expanded,
-  onToggle,
-  onPickItem,
-  openItemId = null,
-  className,
-  attached = false,
-  first = false,
-}: {
-  row: Extract<SeriesRow, { kind: 'series' }>;
-  expanded: boolean;
-  onToggle: () => void;
-  onPickItem: (m: MediaEntry, source?: HTMLElement) => void;
-  openItemId?: number | null;
-  className?: string;
-  attached?: boolean;
-  first?: boolean;
-}) {
-  const cover = row.members[0];
-  const watched = row.members.filter((m) => m.status === 'complete').length;
-  const upcoming = nextUpcomingMember(row.members);
-  const upcomingDate = upcoming ? formatReleaseDate(upcoming.release_date) : '';
-  const oldest = row.members[0]?.year;
-  const newest = row.members[row.members.length - 1]?.year;
-  const yearLabel = oldest && newest && oldest !== newest ? `${oldest}–${newest}` : oldest ? String(oldest) : '';
-  // Series rating = best member rating; unrated members don't drag it down.
-  const seriesRating = row.members.reduce((m, x) => Math.max(m, x.rating || 0), 0);
-  const pct = Math.round((watched / row.members.length) * 100);
-
-  return (
-    <div
-      className={cn(
-        'overflow-hidden bg-[hsl(var(--surface-container-low))]',
-        attached
-          ? cn('rounded-none border-0', !first && 'border-t border-[hsl(var(--outline-variant))]')
-          : 'rounded-2xl border border-[hsl(var(--outline-variant))]',
-        className,
-      )}
-    >
-      {/* Header — the exact MediaListRow anatomy (thumb · text block ·
-          RowRail) so series rows sit flush with single movies. */}
-      <button
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className="m3-state group relative w-full overflow-hidden bg-[hsl(var(--surface-container-low))] p-2.5 text-left transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[hsl(var(--surface-container))] active:scale-[0.995] sm:px-3"
-      >
-        {cover?.poster_url && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <img
-              src={cover.poster_url}
-              alt=""
-              loading="lazy"
-              className="h-full w-full scale-125 object-cover opacity-[0.32] blur-xl saturate-150 transition-opacity duration-300 group-hover:opacity-[0.45] dark:opacity-[0.42] dark:group-hover:opacity-[0.55]"
-              style={{
-                maskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, black 15%, rgba(0,0,0,0.35) 70%, transparent 100%)',
-              }}
-            />
-          </div>
-        )}
-
-        <div className="relative flex min-w-0 items-center gap-3">
-          <MediaThumb
-            item={cover}
-            index={0}
-            variant="sm"
-            className="fine-group-hover-scale-105 transition-transform duration-200 ease-[var(--motion-ease-out)] motion-reduce:transition-none"
-          />
-
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="serif min-w-0 truncate text-[15px] leading-snug font-medium">{row.collectionName}</span>
-            </div>
-            <div className="mono flex min-w-0 items-center gap-x-2 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">
-              {yearLabel && <span className="shrink-0">{yearLabel}</span>}
-              {upcoming && <span className="hidden min-w-0 truncate sm:inline">· next {upcomingDate}</span>}
-            </div>
-            <div className="mt-1.5 flex items-center gap-2.5">
-              <WavyProgress
-                value={pct}
-                height={12}
-                active={watched > 0 && watched < row.members.length}
-                label={`${watched} of ${row.members.length} watched`}
-                className="flex-1"
-              />
-              <span className="mono shrink-0 text-xs text-muted-foreground tabular-nums">
-                {watched}/{row.members.length}
-              </span>
-            </div>
-          </div>
-
-          <RowRail
-            rating={seriesRating}
-            chip={
-              <span className="chip chip-sage h-6 gap-1 px-2.5 text-xs leading-none">
-                <Film className="size-3" /> Series
-                <ChevronRight className={cn('size-3 transition-transform duration-200', expanded && 'rotate-90')} />
-              </span>
-            }
-          />
-        </div>
-      </button>
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-            className="overflow-hidden border-t border-[hsl(var(--outline-variant))]"
-          >
-            {row.members.map((m, mi) => (
-              <MediaListRow
-                key={m.id}
-                item={m}
-                index={mi}
-                compact
-                attached
-                first={mi === 0}
-                morphOpen={openItemId === m.id}
-                onClick={() => onPickItem(m)}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -3397,5 +3418,507 @@ function CollectionBadge({
         </div>
       )}
     </Section>
+  );
+}
+
+// ─── An item, opened ─────────────────────────────────────────────────────
+// The cover hero, then what changes most (the next episode, status, stars,
+// where you watch), the story, the series and notes. Taps save at once
+// (status offers Undo); title, year, genre and poster sit behind Edit
+// details (the form). Coloured with the title's own tones. Same as Android.
+const MAIN_STATUSES: MediaStatus[] = ['pending', 'in_progress', 'complete'];
+
+function MediaDetailView({
+  item,
+  library,
+  onClose,
+  onEdit,
+  onOpen,
+  save,
+  create,
+}: {
+  item: MediaEntry;
+  library: MediaEntry[];
+  onClose: () => void;
+  onEdit: () => void;
+  onOpen: (item: MediaEntry) => void;
+  save: (id: number, patch: MediaPatch) => Promise<void>;
+  create: (patch: MediaPatch) => Promise<unknown>;
+}) {
+  // Taps show at once; the server's copy replaces them when it lands.
+  const [over, setOver] = useState<MediaPatch>({});
+  const [seenAt, setSeenAt] = useState(item.updated_at);
+  if (seenAt !== item.updated_at) {
+    setSeenAt(item.updated_at);
+    setOver({});
+  }
+  const shown = { ...item, ...over } as MediaEntry;
+  const [preview, setPreview] = useState<CollectionPart | null>(null);
+  const details = useQuery({
+    queryKey: ['media-details', item.external_id],
+    queryFn: () => mediaApi.details(item.external_id),
+    enabled: item.external_id.startsWith('tmdb:'),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+  const collection = useQuery({
+    queryKey: ['media-collection', item.collection_id],
+    queryFn: () => mediaApi.collection(item.collection_id),
+    enabled: !!item.collection_id,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+
+  const apply = (patch: MediaPatch) => {
+    setOver((o) => ({ ...o, ...patch }));
+    save(item.id, patch).catch((err) => {
+      setOver({});
+      toast.error(failureText(err, 'Could not save'));
+    });
+  };
+  const setStatus = (next: MediaStatus) => {
+    const before = shown.status;
+    if (next === before) return;
+    apply({ status: next });
+    toast(`Marked ${statusMeta(next)?.label ?? next}`, {
+      id: 'media-status',
+      action: { label: 'Undo', onClick: () => apply({ status: before }) },
+    });
+  };
+
+  if (preview) {
+    return (
+      <SeriesPartPreview
+        part={preview}
+        seriesName={item.collection_name}
+        onBack={() => setPreview(null)}
+        onAdd={async (status) => {
+          const d = await mediaApi.details(preview.external_id).catch(() => null);
+          await create({
+            title: preview.title,
+            type: 'movie',
+            status,
+            poster_url: preview.poster_url || d?.poster_url || '',
+            year: preview.year ? parseInt(preview.year) : null,
+            release_date: preview.release_date || d?.release_date || '',
+            genre: d?.genre ?? '',
+            external_id: preview.external_id,
+            collection_id: item.collection_id,
+            collection_name: item.collection_name,
+          });
+          toast.success(`Added ${preview.title}`);
+          setPreview(null);
+        }}
+      />
+    );
+  }
+
+  const total = totalEpisodes(shown);
+  const step = nextEpisodeStep(shown);
+  const upcoming = hasFutureRelease(shown.type, shown.release_date);
+  const overview = details.data?.overview ?? '';
+  const parts = collection.data?.parts ?? [];
+  const meta = [shown.year ? String(shown.year) : '', shown.genre].filter(Boolean).join(', ');
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" style={titleToneVars(item.poster_color)}>
+      <MediaHero
+        posterUrl={shown.poster_url}
+        title={shown.title}
+        lines={[
+          meta,
+          shown.platform ? platformLabel(shown.platform) : '',
+          upcoming && shown.release_date ? `Releases ${formatReleaseDate(shown.release_date)}` : '',
+        ]}
+        leading={<HeroButton label="Close" onClick={onClose} icon={<X className="size-4" />} />}
+        trailing={<HeroButton label="Edit details" onClick={onEdit} icon={<Pencil className="size-4" />} />}
+      />
+      <div className="grid gap-3 px-4 pb-6 md:grid-cols-[1.1fr_1fr] md:px-6">
+        <div className="flex min-w-0 flex-col gap-3">
+          {shown.type === 'show' && total > 0 && (
+            <div className={cn('rounded-[24px] p-4', tt.container, tt.onContainer)}>
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="serif text-2xl font-semibold">
+                    {(nextEpisodeLabel(shown) ?? '').replace('Next: ', '')}
+                  </div>
+                  <div className="text-xs opacity-75">
+                    {total - shown.episodes_watched > 0
+                      ? `Up next, episode ${shown.episodes_watched + 1} of ${total}, ${total - shown.episodes_watched} to go`
+                      : "You've watched every episode"}
+                  </div>
+                </div>
+                {step && (
+                  <PlusOneButton
+                    onClick={() =>
+                      apply({
+                        episodes_watched: step.watched,
+                        seasons_watched: step.season,
+                        ...(step.complete ? { status: 'complete' as const } : {}),
+                      })
+                    }
+                    className={cn('h-14 w-[72px] rounded-[20px] text-lg', tt.accentBg, tt.onAccent)}
+                  />
+                )}
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+                <div
+                  className={cn('h-full rounded-full', tt.accentBg)}
+                  style={{ width: `${Math.min(100, (shown.episodes_watched / total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {upcoming ? (
+            <div className="rounded-[20px] bg-[hsl(var(--tertiary-container))] p-4 text-sm text-[hsl(var(--on-tertiary-container))]">
+              Upcoming. It moves to Pending on its release day.
+            </div>
+          ) : (
+            <StatusButtons status={shown.status} onStatus={setStatus} />
+          )}
+
+          <div className="flex items-center justify-between rounded-[20px] bg-[hsl(var(--surface-container-lowest))] px-4 py-3">
+            <span className="text-sm text-muted-foreground">Your rating</span>
+            <StarRating
+              value={shown.rating || 0}
+              interactive
+              size="md"
+              onChange={(v) => apply({ rating: v || null })}
+            />
+          </div>
+
+          {shown.type !== 'book' && (
+            <div>
+              <div className="mb-2 px-1 text-sm text-muted-foreground">Where</div>
+              <div className="flex flex-wrap gap-2">
+                {PLATFORM_OPTIONS.map((p) => {
+                  const on = p.value === shown.platform;
+                  return (
+                    <button
+                      key={p.value}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => apply({ platform: on ? '' : p.value })}
+                      className={cn(
+                        'h-9 rounded-xl px-3 text-sm transition-colors',
+                        on
+                          ? cn('font-semibold', tt.accentBg, tt.onAccent)
+                          : 'bg-[hsl(var(--surface-container-lowest))] hover:bg-[hsl(var(--surface-container-highest))]',
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-3">
+          {overview && <AboutCard text={overview} />}
+          {parts.length > 1 && (
+            <SeriesShelf
+              name={collection.data?.name || item.collection_name}
+              parts={parts}
+              current={shown}
+              library={library}
+              onOpen={onOpen}
+              onPreview={setPreview}
+            />
+          )}
+          {shown.notes && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-[20px] bg-[hsl(var(--surface-container-lowest))] p-4 text-left"
+            >
+              <div className="mb-1 text-sm text-muted-foreground">Notes</div>
+              <div className="text-sm whitespace-pre-wrap">{shown.notes}</div>
+            </button>
+          )}
+        </div>
+        <div className="md:col-span-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="flex w-full items-center gap-2 rounded-[20px] bg-[hsl(var(--surface-container-lowest))] px-4 py-3.5 text-left hover:bg-[hsl(var(--surface-container-highest))]"
+          >
+            <span className="flex-1">Edit details</span>
+            <span className="text-xs text-muted-foreground">Title, year, genre, poster, notes</span>
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroButton({ label, onClick, icon }: { label: string; onClick: () => void; icon: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="grid size-10 place-items-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// The cover hero: the poster blurred behind, the poster itself, the title in white.
+function MediaHero({
+  posterUrl,
+  title,
+  lines,
+  leading,
+  trailing,
+}: {
+  posterUrl: string;
+  title: string;
+  lines: string[];
+  leading: React.ReactNode;
+  trailing: React.ReactNode;
+}) {
+  const fade = 'linear-gradient(to bottom, black 78%, transparent)';
+  return (
+    <div className="relative h-[270px] shrink-0 overflow-hidden text-white">
+      <div className="absolute inset-0" style={{ maskImage: fade, WebkitMaskImage: fade }}>
+        {posterUrl ? (
+          <img src={posterUrl} alt="" className="h-full w-full scale-125 object-cover blur-2xl saturate-150" />
+        ) : (
+          <div className="h-full w-full bg-[hsl(var(--inverse-surface))]" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/60" />
+      </div>
+      <div className="absolute inset-x-3 top-3 flex justify-between">
+        {leading}
+        {trailing}
+      </div>
+      <div className="absolute inset-x-5 bottom-7 flex items-end gap-4 md:inset-x-6">
+        <div className="h-[168px] w-[112px] shrink-0 overflow-hidden rounded-2xl bg-black/20 shadow-2xl">
+          {posterUrl && <img src={posterUrl} alt="" className="h-full w-full object-cover" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="serif line-clamp-3 text-2xl leading-tight font-semibold drop-shadow md:text-[28px]">
+            {title}
+          </div>
+          {lines.filter(Boolean).map((l) => (
+            <div key={l} className="mt-0.5 truncate text-xs text-white/85">
+              {l}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Pending, In progress, Complete as one connected row; the rest under More.
+function StatusButtons({ status, onStatus }: { status: MediaStatus; onStatus: (s: MediaStatus) => void }) {
+  const inMore = !MAIN_STATUSES.includes(status);
+  const others = EDITABLE_STATUS_OPTIONS.filter((s) => !MAIN_STATUSES.includes(s.value));
+  // Connected row: outer ends round, inner joins small; the chosen one is a full pill.
+  const seg = (on: boolean, edge: 'first' | 'middle' | 'last') =>
+    cn(
+      'h-11 min-w-0 flex-1 px-2 text-sm transition-all',
+      on
+        ? cn('rounded-full font-semibold', tt.accentBg, tt.onAccent)
+        : cn(
+            'bg-[hsl(var(--surface-container-lowest))] hover:bg-[hsl(var(--surface-container-highest))]',
+            edge === 'first'
+              ? 'rounded-l-full rounded-r-lg'
+              : edge === 'last'
+                ? 'rounded-l-lg rounded-r-full'
+                : 'rounded-lg',
+          ),
+    );
+  return (
+    <div className="flex gap-[3px]" role="group" aria-label="Status">
+      {MAIN_STATUSES.map((s, i) => (
+        <button
+          key={s}
+          type="button"
+          aria-pressed={status === s}
+          onClick={() => onStatus(s)}
+          className={seg(status === s, i === 0 ? 'first' : 'middle')}
+        >
+          <span className="truncate">{statusMeta(s)?.label}</span>
+        </button>
+      ))}
+      <Select value={inMore ? status : ''} onValueChange={(v) => v && onStatus(v as MediaStatus)}>
+        {/* Inline radius: the trigger's own rounded-xl would win over the end shape in CSS order. */}
+        <SelectTrigger
+          aria-label="More statuses"
+          className={cn(seg(inMore, 'last'), 'h-11 justify-center border-0')}
+          style={{ borderRadius: inMore ? 9999 : '8px 9999px 9999px 8px' }}
+        >
+          <span className="truncate">{inMore ? statusMeta(status)?.label : 'More'}</span>
+        </SelectTrigger>
+        <SelectContent>
+          {others.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function AboutCard({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen((o) => !o)}
+      className="rounded-[20px] bg-[hsl(var(--surface-container-lowest))] p-4 text-left"
+    >
+      <div className="mb-1 text-sm text-muted-foreground">About</div>
+      <div className={cn('text-sm leading-relaxed', !open && 'line-clamp-4')}>{text}</div>
+      {!open && text.length > 220 && <div className={cn('mt-1 text-sm font-semibold', tt.accentText)}>More</div>}
+    </button>
+  );
+}
+
+// The other parts of this movie's series: one you have opens it; one you
+// don't opens a preview you can add from.
+function SeriesShelf({
+  name,
+  parts,
+  current,
+  library,
+  onOpen,
+  onPreview,
+}: {
+  name: string;
+  parts: CollectionPart[];
+  current: MediaEntry;
+  library: MediaEntry[];
+  onOpen: (item: MediaEntry) => void;
+  onPreview: (part: CollectionPart) => void;
+}) {
+  const owned = new Map(parts.map((p) => [p.external_id, library.find((m) => m.external_id === p.external_id)]));
+  const watched = [...owned.values()].filter((m) => m?.status === 'complete').length;
+  return (
+    <div className="rounded-[20px] bg-[hsl(var(--surface-container-lowest))] py-4">
+      <div className="mb-2.5 flex items-baseline gap-2 px-4">
+        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{name || 'In this series'}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {watched} of {parts.length} watched
+        </span>
+      </div>
+      <div className="no-scrollbar flex gap-2.5 overflow-x-auto px-4">
+        {parts.map((p) => {
+          const mine = owned.get(p.external_id);
+          const here = p.external_id === current.external_id;
+          return (
+            <button
+              key={p.external_id}
+              type="button"
+              disabled={here}
+              onClick={() => (mine ? onOpen(mine) : onPreview(p))}
+              className="w-[92px] shrink-0 text-left disabled:cursor-default"
+            >
+              <div
+                className={cn(
+                  'relative h-[138px] w-[92px] overflow-hidden rounded-[14px] bg-[hsl(var(--surface-container-high))]',
+                  here &&
+                    cn(
+                      'ring-[3px] ring-offset-2 ring-offset-[hsl(var(--surface-container-lowest))]',
+                      'ring-[var(--tt-accent)] dark:ring-[var(--tt-accent-d)]',
+                    ),
+                )}
+              >
+                {p.poster_url && (
+                  <img
+                    src={p.poster_url}
+                    alt=""
+                    loading="lazy"
+                    className={cn('h-full w-full object-cover', !mine && 'opacity-60 saturate-50')}
+                  />
+                )}
+                {mine ? (
+                  <MediaStatusBadge status={mine.status} className="absolute top-1.5 left-1.5 h-5 px-1.5 text-[10px]" />
+                ) : (
+                  <span className="absolute right-1.5 bottom-1.5 grid size-8 place-items-center rounded-xl bg-background text-foreground shadow">
+                    <Plus className="size-4" />
+                  </span>
+                )}
+              </div>
+              <div className="mt-1.5 line-clamp-2 text-xs leading-tight font-semibold">{p.title}</div>
+              <div className="text-[11px] text-muted-foreground">
+                {here
+                  ? 'This one'
+                  : mine
+                    ? p.year
+                    : p.release_state === 'upcoming'
+                      ? 'Upcoming'
+                      : `${p.year}, not added`}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// A series part not in the library: its hero and story, and Add.
+function SeriesPartPreview({
+  part,
+  seriesName,
+  onBack,
+  onAdd,
+}: {
+  part: CollectionPart;
+  seriesName: string;
+  onBack: () => void;
+  onAdd: (status: MediaStatus) => Promise<void>;
+}) {
+  const [adding, setAdding] = useState(false);
+  const upcoming = part.release_state === 'upcoming' || hasFutureRelease('movie', part.release_date);
+  const add = async (status: MediaStatus) => {
+    setAdding(true);
+    try {
+      await onAdd(status);
+    } catch (err) {
+      toast.error(failureText(err, `Could not add ${part.title}`));
+    } finally {
+      setAdding(false);
+    }
+  };
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <MediaHero
+        posterUrl={part.poster_url}
+        title={part.title}
+        lines={[
+          part.year,
+          seriesName,
+          upcoming && part.release_date ? `Releases ${formatReleaseDate(part.release_date)}` : '',
+        ]}
+        leading={<HeroButton label="Back" onClick={onBack} icon={<ArrowLeft className="size-4" />} />}
+        trailing={<span />}
+      />
+      <div className="flex flex-col gap-3 px-4 pb-6 md:px-6">
+        {part.overview && <AboutCard text={part.overview} />}
+        <div className="px-1 text-sm text-muted-foreground">Add to your library as</div>
+        <div className="flex gap-2.5">
+          {!upcoming && (
+            <Button variant="tonal" disabled={adding} onClick={() => void add('complete')} className="h-12 flex-1">
+              Complete
+            </Button>
+          )}
+          <Button disabled={adding} onClick={() => void add(upcoming ? 'upcoming' : 'pending')} className="h-12 flex-1">
+            {adding ? 'Adding…' : upcoming ? 'Upcoming' : 'Pending'}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
