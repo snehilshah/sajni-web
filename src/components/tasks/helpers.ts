@@ -24,27 +24,7 @@ export const STATUS_LABELS: Record<Task['status'], string> = {
   scratched: 'Scratched',
 };
 
-export const STATUS_DOT: Record<Task['status'], string> = {
-  todo: 'bg-muted-foreground/40',
-  in_progress: 'bg-secondary',
-  blocked: 'bg-destructive',
-  done: 'bg-primary',
-  scratched: 'bg-muted-foreground/30',
-};
-
-export const PRIORITIES: Task['priority'][] = ['low', 'medium', 'high'];
-
-export const PRIORITY_COLORS: Record<string, string> = {
-  high: 'bg-destructive',
-  medium: 'bg-amber-500',
-  low: 'bg-muted-foreground/50',
-};
-
-export const PRIORITY_LABEL: Record<string, string> = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-};
+export { PRIORITIES, PRIORITY_LABEL } from './look';
 
 export type Selection = { kind: 'smart'; smart: SmartList } | { kind: 'list'; id: number };
 

@@ -1,4 +1,5 @@
 import { Fragment, startTransition, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { FrostBackdrop } from '@/components/ui/frost-backdrop';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1686,11 +1687,8 @@ export default function MediaPage() {
         <BookmarksPanel kind={activeType as 'video' | 'site'} addSignal={bookmarkAddSignal} />
       ) : (
         <div className="relative flex min-w-0 flex-col gap-4">
-          {/* The theme's own wash behind every view, top to bottom of the page. */}
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_20%_0%,hsl(var(--primary-container)/0.6),transparent_60%),linear-gradient(to_bottom,hsl(var(--primary-container)/0.35),hsl(var(--tertiary-container)/0.18)_45%,hsl(var(--secondary-container)/0.22))]"
-          />
+          {/* The frosted backdrop behind every view, top to bottom of the page. */}
+          <FrostBackdrop />
           <section aria-label="Library controls" className="relative flex flex-col gap-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <MediaSearchField value={searchQuery} onChange={setSearchQuery} onClear={() => setSearchQuery('')} />

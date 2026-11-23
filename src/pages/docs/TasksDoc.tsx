@@ -100,20 +100,49 @@ export default function TasksDoc() {
             <p>
               Full child tasks with their own status, dates and reminders. The parent row shows a progress ring and the
               count (“2/5”); tap it and the subtasks drop down one by one under the parent. You can add subtasks while
-              creating a task: “Paint the room” with “Buy paint” and “Sand the walls” typed under More details are all
-              created together when you press Create (on the phone, Add at the top of the sheet). When a subtask shows
-              up on its own in a smart view (My Day, Missed, All), a small “↳ Paint the room” chip beside its title
-              names the parent; tap the chip to open the parent. A task in a Journal plan carries that plan's name as a
-              chip too (“Office start”); tap it to open that day in Journal. A repeating task shows ↻ and how often
-              (“Workdays”). Delete the last subtask and the group folds away with it. Use subtasks when the child is
-              real work; steps when it's just a checklist line. Month-goal sessions are subtasks.
+              creating a task: “Paint the room” with “Buy paint” and “Sand the walls” typed in the task are all created
+              together when you press Create (on the phone, Add). When a subtask shows up on its own in a smart view (My
+              Day, Missed, All), a small “↳ Paint the room” chip beside its title names the parent; tap the chip to open
+              the parent. A task in a Journal plan carries that plan's name as a chip too (“Office start”); tap it to
+              open that day in Journal. A repeating task shows ↻ and how often (“Workdays”). Delete the last subtask and
+              the group folds away with it. Use subtasks when the child is real work; steps when it's just a checklist
+              line. Month-goal sessions are subtasks.
             </p>
           </Feature>
           <Feature name="Priority & Important">
             <p>
-              Priority (low/medium/high) is a sorting weight; Important is a star that pins the task into the Important
-              smart view. The task's box shows its priority: a red border and light red fill for high, amber for medium,
-              grey for low (a task with its own colour uses that instead).
+              Priority has four levels, Low, Medium, High and Max, and is a sorting weight (Max first). Pick it on the
+              slider in the task: click a stop or drag the white thumb (arrow keys work too); on the phone each level
+              buzzes, Max like a rocket launch. Important is a star that pins the task into the Important smart view.
+              The task's ring shows its priority: grey for low, ochre for medium, terracotta for high, and Max's ring
+              runs through ember, magenta, violet and blue (a task with its own colour uses that instead).
+            </p>
+          </Feature>
+          <Feature name="Status at a glance">
+            <p>
+              The ring's shape says where a task stands: <strong>dashed</strong> for To do, a plain outline for{' '}
+              <strong>In progress</strong>, crossed through for <strong>Blocked</strong>, and filled sage with a check
+              for <strong>Done</strong>. The colours stay calm: In progress wears your theme's colour, Blocked is sand,
+              Done is sage; only an overdue date is red. In progress tasks lead the list as cards, unless you group by
+              status.
+            </p>
+          </Feature>
+          <Feature name="Finishing a task">
+            <p>
+              Tick the ring, or point at a row and press <strong>Done</strong> (or focus it and press D); its neighbour{' '}
+              <strong>Tomorrow</strong> (T) moves it to tomorrow. Done plays a short moment, a sage wave across the row
+              with “Done”, then files it under Done with Undo. On the phone, swipe the row right for Done and left for
+              Tomorrow. Inside a task, <strong>Mark done</strong> sits at the foot. A task with open steps or subtasks
+              can't be done yet: it says so (“Tick its 1 open step first”) and stays open, here, on the phone and when
+              Sajni is asked.
+            </p>
+          </Feature>
+          <Feature name="Saving and closing">
+            <p>
+              Save appears at the foot once you've changed something (⌘/Ctrl+Enter saves too). Clicking outside the task
+              keeps your changes: it saves and closes, like swiping the sheet down on the phone. Esc (Back on the phone)
+              is how you throw changes away: the first press warns, the second discards. Scratch, Skip this time and
+              Delete sit at the end of the task.
             </p>
           </Feature>
           <Feature name="Description & #tags">
@@ -336,7 +365,7 @@ export default function TasksDoc() {
           Desktop offers two projections of the same data: <strong>List</strong> and <strong>Board</strong>.{' '}
           <strong>Group</strong>, beside the switch, picks how each one splits your tasks: by <strong>Status</strong>{' '}
           (the default: To do, In progress, Blocked; on the Board Done is a lane too, before Blocked, the exception),{' '}
-          <strong>Due date</strong> (Overdue, Today, This week, Later, No date), <strong>Priority</strong> (High,
+          <strong>Due date</strong> (Overdue, Today, This week, Later, No date), <strong>Priority</strong> (Max, High,
           Medium, Low) or <strong>List</strong> (Inbox, then your lists; not offered inside one list). The List can also
           show <strong>None</strong>, one plain list. Each view keeps its own choice on this device, so the List can go
           by due date while the Board goes by status.
@@ -354,9 +383,9 @@ export default function TasksDoc() {
           doesn't show (open it from the List). A card shows the title on up to four lines and grows downward. Under it,
           only the date is a pill (red when overdue, blue for today); the rest are small marks: repeats, steps (1/4),
           subtasks (0/3), a bell for a reminder, lines when it has notes, and a picture with a count when it has images.
-          Click the card for the notes and the rest. The ring of its box shows priority (red high, amber medium, grey
-          low); a task with its own colour is ringed and lightly tinted in it. The star shows on starred tasks; on the
-          others it appears when you point at the card. A blocked card's box carries the blocked symbol, with a line
+          Click the card for the notes and the rest. Its ring is the same as in the List: the shape for the status, the
+          colour for the priority (a task with its own colour is ringed in it). The star shows on starred tasks; on the
+          others it appears when you point at the card. A blocked card's ring is crossed through, with a sand line
           saying what it's waiting on, for example "Waiting on Find the invoice PDF".
         </p>
         <ul>

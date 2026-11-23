@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, isPast, isToday } from 'date-fns';
+import { addDays, format, parseISO, isPast, isToday } from 'date-fns';
 import {
   Star,
   ChevronDown,
@@ -26,11 +27,14 @@ import { Input } from '@/components/ui/input';
 import {
   useToggleTaskStatus,
   useToggleTaskImportant,
+  useRescheduleTask,
+  useUpdateTask,
   useCreateTask,
   useSubtasks,
   usePrefetchSubtasks,
 } from '@/queries/tasks';
-import { priorityBox } from './grouping';
+import { TaskRing } from './TaskRing';
+import { FinishOverlay, useFinishTask } from './finish';
 import { cn } from '@/lib/utils';
 import { WavyProgress } from '@/components/ui/wavy-progress';
 
@@ -103,6 +107,34 @@ export default function TaskRow({
     toggleStatus.mutate({ id: task.id, status: task.status === 'done' ? 'todo' : 'done' });
   };
 
+  // Done and Tomorrow, the phone's two swipes as buttons: they show while
+  // the pointer is over the row (or it has focus; D and T from the keyboard).
+  // Done plays its moment first: the sage wave drifts across the row with a
+  // white "Done" for a beat, then it files under Done with Undo.
+  const reschedule = useRescheduleTask();
+  const updateTask = useUpdateTask();
+  const { open, finishing, finish } = useFinishTask(task);
+  const tomorrow = (e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    if (!open) return;
+    const prevDue = task.due_date;
+    reschedule.mutate(
+      { id: task.id, date: format(addDays(new Date(), 1), 'yyyy-MM-dd') },
+      {
+        onSuccess: () =>
+          toast(`Tomorrow: ${task.title}`, {
+            action: {
+              label: 'Undo',
+              onClick: () =>
+                prevDue
+                  ? reschedule.mutate({ id: task.id, date: prevDue })
+                  : updateTask.mutate({ id: task.id, data: { clear_due: true, clear_scheduled: true } }),
+            },
+          }),
+      },
+    );
+  };
+
   const handleToggleStar = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleImportant.mutate({ id: task.id, important: !task.important });
@@ -146,8 +178,15 @@ export default function TaskRow({
   const row = (
     <div
       onClick={onClick}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter') onClick();
+        else if (e.key === 'd' || e.key === 'D') finish(e);
+        else if (e.key === 't' || e.key === 'T') tomorrow(e);
+      }}
       className={cn(
-        'group @container cursor-pointer text-left transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
+        'group @container cursor-pointer text-left transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.2,0,0,1)] outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]',
         attached
           ? cn(
               'bg-transparent hover:bg-[hsl(var(--on-surface)/0.04)]',
@@ -157,7 +196,7 @@ export default function TaskRow({
         dimmed && 'opacity-60',
       )}
     >
-      <div className={cn('flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
+      <div className={cn('relative flex h-14 items-center gap-3', compact ? 'px-3' : 'px-3.5')}>
         {/* Done checkbox — 24px visual, padded to a comfortable target */}
         <motion.button
           onClick={handleToggleStatus}
@@ -166,42 +205,7 @@ export default function TaskRow({
           className="-m-2 flex shrink-0 items-center justify-center p-2"
           title={task.status === 'done' ? 'Mark not done' : 'Mark done'}
         >
-          {/* M3 Expressive shape morph: soft square while open, full
-                circle once done — the state change reads in silhouette. */}
-          <motion.span
-            initial={false}
-            animate={{ borderRadius: task.status === 'done' ? '50%' : '32%' }}
-            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-            className={`flex size-7 items-center justify-center border-2 transition-colors ${
-              task.status === 'done'
-                ? 'border-primary bg-primary text-primary-foreground'
-                : task.status === 'blocked'
-                  ? 'border-destructive/70 bg-[hsl(var(--error-container))]'
-                  : ''
-            }`}
-            // Priority is the box: its colour (or the task's own) as border and a light fill.
-            style={
-              task.status === 'done' || task.status === 'blocked' ? undefined : priorityBox(task.priority, task.color)
-            }
-          >
-            <AnimatePresence>
-              {task.status === 'done' && (
-                <motion.svg
-                  viewBox="0 0 12 12"
-                  className="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  initial={{ transform: 'scale(0.95)', opacity: 0 }}
-                  animate={{ transform: 'scale(1)', opacity: 1 }}
-                  exit={{ transform: 'scale(0.95)', opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 520, damping: 22 }}
-                >
-                  <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
-                </motion.svg>
-              )}
-            </AnimatePresence>
-          </motion.span>
+          <TaskRing status={task.status} priority={task.priority} color={task.color} size={26} />
         </motion.button>
 
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -345,9 +349,7 @@ export default function TaskRow({
               </button>
             )}
             {showStatus && task.status === 'in_progress' && (
-              <span
-                className={cn(chip, 'bg-[hsl(var(--secondary-container))] text-[hsl(var(--on-secondary-container))]')}
-              >
+              <span className={cn(chip, 'bg-[var(--task-prog-c)] text-[hsl(var(--on-primary-container))]')}>
                 In progress
               </span>
             )}
@@ -360,7 +362,7 @@ export default function TaskRow({
                     window.dispatchEvent(new CustomEvent('task:open', { detail: { id: task.blocked_by_task_id } }));
                   }
                 }}
-                className={cn(chip, 'min-w-0 bg-[hsl(var(--error-container))] text-[hsl(var(--on-error-container))]')}
+                className={cn(chip, 'min-w-0 bg-[var(--task-sand-c)] text-[var(--task-sand-on)]')}
                 title={task.blocked_by_task_title ? `Blocked by ${task.blocked_by_task_title}` : 'Blocked'}
               >
                 <GitBranch className="size-3 shrink-0" />
@@ -373,6 +375,32 @@ export default function TaskRow({
           </div>
         </div>
 
+        {open && !finishing && (
+          <div
+            className="pointer-events-none absolute inset-y-0 right-11 flex items-center gap-1.5 pl-10 opacity-0 transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+            style={{ background: 'linear-gradient(to right, transparent, hsl(var(--card)) 2.25rem)' }}
+          >
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={tomorrow}
+              title="Move to tomorrow (T)"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[hsl(var(--surface-container-high))] px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Clock className="size-3.5" /> Tomorrow
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={finish}
+              title="Mark done (D)"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--task-sage-c)] px-3 text-xs font-semibold text-[var(--task-sage-on)] transition-[filter] hover:brightness-110"
+            >
+              <Check className="size-3.5" strokeWidth={3} /> Done
+            </button>
+          </div>
+        )}
+        <FinishOverlay show={finishing} title={task.title} />
         <button
           onClick={handleToggleStar}
           className={`-m-1.5 shrink-0 rounded-full p-1.5 opacity-60 transition-[background-color,color,opacity] hover:bg-[hsl(var(--surface-container-high))] hover:opacity-100 ${task.important ? 'text-[hsl(var(--tertiary))] opacity-100' : ''}`}

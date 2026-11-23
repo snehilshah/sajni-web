@@ -11,7 +11,6 @@ import {
   Trash2,
   Star,
   CalendarClock,
-  ListChecks,
   Bell,
   Clock,
   History,
@@ -22,8 +21,6 @@ import {
   Ban,
   RotateCcw,
   Mail,
-  ChevronDown,
-  MoreHorizontal,
   Circle,
   SkipForward,
   Image as ImageIcon,
@@ -32,7 +29,8 @@ import { M3CookieLoader } from '@/components/ui/shapes';
 
 import type { ReminderRecurrence, Task, TaskColor, TaskList, TaskPatch, TaskStep } from '@/types';
 import { useEditorDraft } from '@/hooks/use-editor-draft';
-import { EditActions } from '@/components/editor-actions';
+import { UnsavedNotice } from '@/components/editor-actions';
+import { DoneFoot, MarkDone, PrioritySlider, StatusRow } from './TaskControls';
 import { tasks as tasksApi, uploads, type TaskHistoryEntry, type TaskEvent, type TaskReminder } from '@/api';
 import { qk } from '@/queries/keys';
 import { patchTaskInLists } from '@/queries/tasks';
@@ -54,21 +52,11 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  STATUSES,
-  STATUS_LABELS,
-  STATUS_DOT,
-  PRIORITIES,
-  PRIORITY_COLORS,
-  PRIORITY_LABEL,
-  weekMondayKey,
-  monthFirstKey,
-} from './helpers';
+import { STATUS_LABELS, weekMondayKey, monthFirstKey } from './helpers';
 import { StepsEditor } from './TaskRow';
-import { RepeatPicker, repeatLabel, repeats } from './RepeatPicker';
+import { RepeatPicker, repeats } from './RepeatPicker';
 import { TaskAttachments, imageFiles, pickImages, type AttachmentTile } from './TaskAttachments';
 
 export interface FormState {
@@ -151,8 +139,6 @@ const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
   { value: '#8B6FA1', label: 'Lavender' },
   { value: '#7A7A7A', label: 'Slate' },
 ];
-
-const MORE_DETAILS_KEY = 'sajni:task-editor:more-details';
 
 // Local "HH:MM" from an ISO instant, in the browser's tz. '' when null.
 function timeFromISO(iso?: string | null): string {
@@ -344,13 +330,6 @@ export default function TaskFormDialog({
   // The parent task when editing a subtask — drives the "Subtask of …" banner
   // so a child never reads as a standalone task, and so the user can promote it.
   const [parent, setParent] = useState<{ id: number; title: string } | null>(null);
-  const [moreDetails, setMoreDetails] = useState(() => {
-    try {
-      return localStorage.getItem(MORE_DETAILS_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   const invalid = !form.title.trim()
     ? 'a task needs a title.'
@@ -642,12 +621,63 @@ export default function TaskFormDialog({
     onOpenChange(false);
   };
 
+  // A click outside keeps what was typed: it saves (or creates) and closes.
+  const closeKeeping = () => {
+    if (editing) {
+      if (editor.changed) void editor.save(() => onOpenChange(false));
+      else onOpenChange(false);
+      return;
+    }
+    if (form.title.trim()) void handleSave();
+    else requestClose();
+  };
+
+  // Mark done refuses while steps or subtasks are open (the server does too).
+  const openSteps = form.steps.filter((st) => !st.done).length;
+  const openSubs = editing ? Math.max(0, (editing.subtask_count ?? 0) - (editing.subtasks_done ?? 0)) : 0;
+  const doneRefusal =
+    openSteps > 0
+      ? `Tick its ${openSteps} open step${openSteps === 1 ? '' : 's'} first`
+      : openSubs > 0
+        ? `Mark its ${openSubs} open subtask${openSubs === 1 ? '' : 's'} done first`
+        : null;
+  // Saves the dialog as it stands, as done, and closes; Undo puts it back.
+  const markDone = async () => {
+    if (!editing) return;
+    const id = editing.id;
+    const prev = editing.status;
+    const before = form;
+    const next: FormState = { ...form, status: 'done' };
+    setForm(next);
+    try {
+      await editor.commit(next);
+      onOpenChange(false);
+      toast(`Done: ${next.title.trim()}`, {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            tasksApi
+              .update(id, { status: prev })
+              .then(onSaved)
+              .catch((e) => toast.error(clientMsg(e, 'Could not undo')));
+          },
+        },
+      });
+    } catch (e) {
+      setForm(before);
+      toast.error(clientMsg(e, "Couldn't mark it done"));
+    }
+  };
+
   const isMobile = useIsMobile();
   return (
     <MorphingDialog
       open={open}
       showClose={false}
+      // Esc asks, then discards; a click outside keeps the changes (saves and
+      // closes), like a swipe down on the phone.
       onClose={requestClose}
+      onBackdrop={closeKeeping}
       onCloseComplete={onCloseComplete}
       // New-task opens can morph from a page-owned source. Flows without one
       // (task rows, the editor's /task) keep the scale/fade fallback.
@@ -655,14 +685,8 @@ export default function TaskFormDialog({
       ariaLabel={editing ? 'Edit task' : 'New task'}
       className={cn(
         isMobile
-          ? cn(
-              'inset-x-0 bottom-0 max-h-[92dvh] w-full max-w-full rounded-b-none',
-              moreDetails ? 'h-[92dvh]' : 'h-auto',
-            )
-          : cn(
-              'top-[7vh] right-0 left-0 mx-auto max-h-[min(85vh,720px)] w-[min(42rem,92vw)]',
-              moreDetails ? 'h-[min(85vh,720px)]' : 'h-auto',
-            ),
+          ? 'inset-x-0 bottom-0 h-[92dvh] w-full max-w-full rounded-b-none'
+          : 'top-[6vh] right-0 left-0 mx-auto h-[min(88vh,780px)] w-[min(60rem,94vw)]',
       )}
     >
       {/* An image pasted or dropped anywhere in the task attaches to it. */}
@@ -685,47 +709,22 @@ export default function TaskFormDialog({
         }}
       >
         <div className="shrink-0 px-4 pt-4 pb-1 md:px-6 md:pt-5">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, status: form.status === 'done' ? 'todo' : 'done' })}
-              className="flex min-h-10 min-w-0 items-center gap-2 rounded-full px-2 text-left text-sm hover:bg-[hsl(var(--on-surface)/0.06)]"
-              title={form.status === 'done' ? 'Mark not done' : 'Mark done'}
-            >
-              <span
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                id="task-title"
+                name="task-title"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                autoFocus={!editing}
+                placeholder="What needs doing?"
                 className={cn(
-                  'flex size-6 shrink-0 items-center justify-center rounded-full border-2',
-                  form.status === 'done'
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-[hsl(var(--outline))]',
+                  'h-auto rounded-none border-0 bg-transparent px-0 py-1 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:shadow-none focus-visible:ring-0 md:text-[1.75rem]',
+                  form.status === 'done' && 'text-muted-foreground line-through',
                 )}
-              >
-                {form.status === 'done' && <Check className="size-4" />}
-              </span>
-              <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
-              <span className="truncate font-medium">
-                {form.due_type === 'month' && form.month_of
-                  ? format(parseISO(form.month_of), 'MMMM yyyy')
-                  : form.due_type === 'week' && form.week_of
-                    ? `Week of ${format(parseISO(form.week_of), 'MMM d')}`
-                    : form.due_date
-                      ? format(parseISO(form.due_date), 'EEE, MMM d')
-                      : 'No date'}
-                {scopeDate(form) && repeats(form.recurrence) && (
-                  <span className="font-normal text-muted-foreground"> · ↻ {repeatLabel(form.recurrence)}</span>
-                )}
-              </span>
-            </button>
-            <div className="flex shrink-0 items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Task list"
-                title="Task list"
-                onClick={() => setMoreDetails(true)}
-              >
-                <ListChecks />
-              </Button>
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-0.5 pt-1.5">
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={<Button variant="ghost" size="icon-sm" aria-label="Task color" title="Task color" />}
@@ -756,16 +755,6 @@ export default function TaskFormDialog({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Reminder settings"
-                title="Reminder settings"
-                onClick={() => setMoreDetails(true)}
-                className={form.remind || form.reminders.length ? 'text-primary' : undefined}
-              >
-                <Bell />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
                 aria-label="Attach image"
                 title="Attach image (or paste one)"
                 onClick={() => pickImages(addFiles)}
@@ -781,239 +770,43 @@ export default function TaskFormDialog({
               >
                 <Star className={form.important ? 'fill-current text-[hsl(var(--tertiary))]' : ''} />
               </Button>
-              {editing && (
-                <DropdownMenu modal={false}>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button variant="ghost" size="icon-sm" aria-label="More task actions" title="More task actions" />
-                    }
-                  >
-                    <MoreHorizontal />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={8} className="z-[70]">
-                    {repeats(editing.recurrence) && (
-                      <DropdownMenuItem onClick={handleSkip}>
-                        <SkipForward /> Skip this time
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={handleScratch}>
-                      {form.status === 'scratched' ? <RotateCcw /> : <Ban />}
-                      {form.status === 'scratched' ? 'Unscratch' : 'Scratch'}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-                      <Trash2 /> Delete task
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              <Button variant="ghost" size="icon-sm" aria-label="Close task editor" onClick={requestClose}>
-                <X />
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* Sections never shrink: once "More details" pins the dialog height,
-            flex would squeeze the notes box (explicit min-h) to 92px and the
-            editor would overflow onto the sections below. Scroll instead. */}
-        <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4 md:px-6 [&>*]:shrink-0">
-          {/* Subtask context — makes parentage explicit (a child must never
-              read as a normal task) and lets the user promote it out so it can
-              live in its own list. */}
-          {parent && (
-            <div className="flex min-h-12 items-center gap-2.5 rounded-xl bg-card px-4 text-sm">
-              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-              <span className="shrink-0 text-muted-foreground">Subtask of</span>
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: parent.id } }))}
-                className="truncate font-medium transition-colors hover:text-primary"
-              >
-                {parent.title}
-              </button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="-mr-3 ml-auto h-8 shrink-0 text-primary"
-                onClick={handleDetach}
-              >
-                Move out
-              </Button>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <Input
-              id="task-title"
-              name="task-title"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              autoFocus={!editing}
-              placeholder="What needs doing?"
-              className="h-auto rounded-none border-0 bg-transparent px-0 py-1 font-sans text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/40 focus-visible:shadow-none focus-visible:ring-0 md:text-3xl"
-            />
-          </div>
-
-          <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
-            <MarkdownEditor
-              value={form.description}
-              onChange={(value) => setForm((f) => ({ ...f, description: value }))}
-              placeholder="Add some extra notes here…"
-              toolbar="compact"
-              onImageFiles={addFiles}
-            />
-          </div>
-
-          <TaskAttachments tiles={tiles} uploading={uploading} />
-
-          <div className="py-0.5">
-            <StepsEditor
-              steps={form.steps}
-              onChange={(next) => setForm({ ...form, steps: next })}
-              onCommit={
-                editing
-                  ? (next) => {
-                      tasksApi
-                        .update(editing.id, { steps: next })
-                        .then(onSaved)
-                        .catch(() => {});
-                    }
-                  : undefined
-              }
-            />
-          </div>
-
-          <button
-            type="button"
-            aria-expanded={moreDetails}
-            onClick={() => {
-              const next = !moreDetails;
-              setMoreDetails(next);
-              try {
-                localStorage.setItem(MORE_DETAILS_KEY, String(next));
-              } catch {}
-            }}
-            className="flex min-h-12 items-center gap-2 rounded-xl bg-card px-4 text-left text-sm font-medium hover:bg-[hsl(var(--surface-container-high))]"
-          >
-            <span className="flex-1">More details</span>
-            {!moreDetails && form.status === 'blocked' && (
-              <span className="rounded-full bg-[hsl(var(--error-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-error-container))]">
-                Blocked
-              </span>
-            )}
-            {!moreDetails && form.priority === 'high' && (
-              <span className="rounded-full bg-[hsl(var(--tertiary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-tertiary-container))]">
-                High priority
-              </span>
-            )}
-            {!moreDetails && form.subtasks.length > 0 && (
-              <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">
-                {form.subtasks.length} subtask{form.subtasks.length > 1 ? 's' : ''}
-              </span>
-            )}
-            {!moreDetails && form.reminders.length > 0 && (
-              <span className="rounded-full bg-[hsl(var(--secondary-container))] px-2 py-0.5 text-xs text-[hsl(var(--on-secondary-container))]">
-                {form.reminders.length} extra reminder{form.reminders.length > 1 ? 's' : ''}
-              </span>
-            )}
-            <ChevronDown className={cn('size-4 transition-transform', moreDetails && 'rotate-180')} />
-          </button>
-
-          {moreDetails && (
-            <div className="flex flex-col gap-4 px-0.5 md:gap-5">
-              <div className="grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="label-kicker flex h-6 items-center font-mono text-xs text-muted-foreground">
-                    Status
-                  </Label>
-                  <Select
-                    value={form.status}
-                    onValueChange={(v) => setForm({ ...form, status: (v as Task['status']) || 'todo' })}
+        {/* Two columns on wide screens: what the task is (status, priority,
+            when, reminders, list) on the left; its contents (notes, images,
+            steps, subtasks, history) on the right. One column on phones.
+            Sections never shrink: the body scrolls instead. */}
+        <div className="flex flex-1 flex-col overflow-y-auto px-4 pt-2 pb-4 md:px-6">
+          <div className="grid gap-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+            <div className="flex min-w-0 flex-col gap-4 [&>*]:shrink-0">
+              {parent && (
+                <div className="flex min-h-12 items-center gap-2.5 rounded-xl bg-card px-4 text-sm">
+                  <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="shrink-0 text-muted-foreground">Subtask of</span>
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('task:open', { detail: { id: parent.id } }))}
+                    className="truncate font-medium transition-colors hover:text-primary"
                   >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue>
-                        <span className="flex items-center gap-2">
-                          <span className={`size-2 rounded-full ${STATUS_DOT[form.status]}`} />
-                          {STATUS_LABELS[form.status]}
-                        </span>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          <span className="flex items-center gap-2">
-                            <span className={`size-2 rounded-full ${STATUS_DOT[s]}`} />
-                            {STATUS_LABELS[s]}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label className="label-kicker flex h-6 items-center font-mono text-xs text-muted-foreground">
-                    Priority
-                  </Label>
-                  <Select
-                    value={form.priority}
-                    onValueChange={(v) => setForm({ ...form, priority: (v as Task['priority']) || 'medium' })}
+                    {parent.title}
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-mr-3 ml-auto h-8 shrink-0 text-primary"
+                    onClick={handleDetach}
                   >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue>
-                        <span className="flex items-center gap-2">
-                          <span className={`size-2 rounded-full ${PRIORITY_COLORS[form.priority]}`} />
-                          {PRIORITY_LABEL[form.priority]}
-                        </span>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRIORITIES.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          <span className="flex items-center gap-2">
-                            <span className={`size-2 rounded-full ${PRIORITY_COLORS[p]}`} />
-                            {PRIORITY_LABEL[p]}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    Move out
+                  </Button>
                 </div>
+              )}
 
-                <div className="flex flex-col gap-1.5">
-                  <Label className="label-kicker flex h-6 items-center font-mono text-xs text-muted-foreground">
-                    List
-                  </Label>
-                  <Select
-                    value={form.list_id ? String(form.list_id) : 'inbox'}
-                    onValueChange={(v) => setForm({ ...form, list_id: v === 'inbox' ? null : Number(v) })}
-                    items={[
-                      { value: 'inbox', label: 'Inbox' },
-                      ...lists.map((l) => ({ value: String(l.id), label: l.name })),
-                    ]}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="inbox">Inbox</SelectItem>
-                      {lists.map((l) => (
-                        <SelectItem key={l.id} value={String(l.id)}>
-                          <span className="flex items-center gap-2">
-                            <span className="size-2 rounded-full" style={{ backgroundColor: l.color }} />
-                            {l.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+              <StatusRow status={form.status} onChange={(status) => setForm({ ...form, status })} />
               {form.status === 'blocked' && (
-                <div className="flex flex-col gap-1.5 rounded-xl bg-[hsl(var(--error-container)/0.55)] p-3">
-                  <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-[hsl(var(--on-error-container))]">
+                <div className="flex flex-col gap-1.5 rounded-xl bg-[var(--task-sand-c)] p-3">
+                  <Label className="label-kicker inline-flex items-center gap-1.5 font-mono text-xs text-[var(--task-sand-on)]">
                     <GitBranch className="size-3" /> Blocked by
                   </Label>
                   <BlockerPicker
@@ -1021,12 +814,13 @@ export default function TaskFormDialog({
                     tasks={blockerCandidates}
                     onChange={(id) => setForm({ ...form, blocked_by_task_id: id })}
                   />
-                  <p className="text-xs text-[hsl(var(--on-error-container)/0.8)]">
+                  <p className="text-xs text-[var(--task-sand-on)]/80">
                     Marking the blocker done, scratching or deleting it returns this task to To do.
                   </p>
                 </div>
               )}
 
+              <PrioritySlider priority={form.priority} onChange={(priority) => setForm({ ...form, priority })} />
               {/* Due scope — its own full-width row (a 3-way toggle crammed into a
               grid cell overran the List label). Connected M3 button-group picks
               the scope; the picker below adapts. Day → date, Week → Monday
@@ -1173,6 +967,60 @@ export default function TaskFormDialog({
                 </div>
               </div>
 
+              <div className="flex items-center gap-3 rounded-xl bg-card py-1.5 pr-1.5 pl-3.5">
+                <Label className="flex-1 text-sm">List</Label>
+                <Select
+                  value={form.list_id ? String(form.list_id) : 'inbox'}
+                  onValueChange={(v) => setForm({ ...form, list_id: v === 'inbox' ? null : Number(v) })}
+                  items={[
+                    { value: 'inbox', label: 'Inbox' },
+                    ...lists.map((l) => ({ value: String(l.id), label: l.name })),
+                  ]}
+                >
+                  <SelectTrigger className="h-9 w-48 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inbox">Inbox</SelectItem>
+                    {lists.map((l) => (
+                      <SelectItem key={l.id} value={String(l.id)}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-col gap-3.5 [&>*]:shrink-0">
+              <div className="min-h-[92px] rounded-xl bg-[hsl(var(--surface-container-highest))] px-3.5 py-2 focus-within:shadow-[inset_0_0_0_2px_hsl(var(--primary))]">
+                <MarkdownEditor
+                  value={form.description}
+                  onChange={(value) => setForm((f) => ({ ...f, description: value }))}
+                  placeholder="Add some extra notes here…"
+                  toolbar="compact"
+                  onImageFiles={addFiles}
+                />
+              </div>
+
+              <TaskAttachments tiles={tiles} uploading={uploading} />
+
+              <div className="py-0.5">
+                <StepsEditor
+                  steps={form.steps}
+                  onChange={(next) => setForm({ ...form, steps: next })}
+                  onCommit={
+                    editing
+                      ? (next) => {
+                          tasksApi
+                            .update(editing.id, { steps: next })
+                            .then(onSaved)
+                            .catch(() => {});
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+
               {/* Subtasks — real child tasks (own status/due). A new task has no
               id to parent them to yet, so they're buffered and created on save. */}
               {editing ? (
@@ -1237,24 +1085,54 @@ export default function TaskFormDialog({
                 </div>
               )}
             </div>
-          )}
-        </div>
-
-        <div className="flex shrink-0 flex-row items-center justify-end gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:py-4">
-          <div className="mr-auto min-w-0 text-xs text-muted-foreground">
-            {!editing && !editor.warning && form.color && (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2.5 rounded-full" style={{ backgroundColor: form.color }} /> Colored task
-              </span>
+            {editing && (
+              <div className="flex items-center gap-1 border-t border-border/40 pt-3 md:col-span-2">
+                {repeats(editing.recurrence) && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleSkip}>
+                    <SkipForward /> Skip this time
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleScratch}>
+                  {form.status === 'scratched' ? <RotateCcw /> : <Ban />}
+                  {form.status === 'scratched' ? 'Unscratch' : 'Scratch'}
+                </Button>
+                {/* Delete lives down here, out of the way. */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto text-destructive hover:text-destructive"
+                  onClick={handleDelete}
+                >
+                  <Trash2 /> Delete
+                </Button>
+              </div>
             )}
           </div>
-          <EditActions
-            draft={editor}
-            onCancel={() => onOpenChange(false)}
-            onSave={() => void handleSave()}
-            saveLabel={editing ? 'Save' : saving ? 'Creating…' : 'Create task'}
-            disabled={!editing && (saving || !!invalid)}
-          />
+        </div>
+
+        <div className="flex shrink-0 flex-row items-center gap-2 border-t border-border/40 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:py-4">
+          {editing &&
+            form.status !== 'scratched' &&
+            (form.status === 'done' ? (
+              <DoneFoot onReopen={() => setForm({ ...form, status: 'todo' })} />
+            ) : (
+              <MarkDone refusal={doneRefusal} onDone={() => void markDone()} />
+            ))}
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            <UnsavedNotice draft={editor} />
+            {/* Save shows once there's something to save; ⌘/Ctrl+Enter too. */}
+            {editing ? (
+              editor.changed && (
+                <Button onClick={() => void handleSave()} disabled={editor.saving}>
+                  <Check /> {editor.saving ? 'Saving…' : 'Save'}
+                </Button>
+              )
+            ) : (
+              <Button onClick={() => void handleSave()} disabled={saving || !!invalid}>
+                {saving ? 'Creating…' : 'Create task'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </MorphingDialog>

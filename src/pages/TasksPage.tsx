@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { addDays, format, startOfWeek } from 'date-fns';
+import { addDays, format, parseISO, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import BoardView from '@/components/tasks/BoardView';
-import { Bell, Plus, LayoutGrid, ListChecks, ChevronDown, CalendarDays } from '@/components/ui/icons';
+import { Bell, Check, Plus, LayoutGrid, ListChecks, ChevronDown, CalendarDays } from '@/components/ui/icons';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import type { Task, TaskList } from '@/types';
@@ -36,7 +36,6 @@ import {
   foldOpen,
   groupOptions,
   groupTasks,
-  priorityBox,
   readGroupBy,
   saveFold,
   saveGroupBy,
@@ -55,6 +54,9 @@ import RemindersPanel from '@/components/reminders/RemindersPanel';
 import { type Selection, weekMondayKey, monthFirstKey } from '@/components/tasks/helpers';
 import { useNavChrome } from '@/components/nav-chrome';
 import PageShell, { PageShellTabs } from '@/components/PageShell';
+import { PriorityMark } from '@/components/tasks/PriorityMark';
+import { FrostBackdrop } from '@/components/ui/frost-backdrop';
+import { FinishOverlay, useFinishTask } from '@/components/tasks/finish';
 import { SplitButton } from '@/components/ui/split-button';
 import { lazyPage } from '@/lib/lazyPage';
 
@@ -261,6 +263,8 @@ export default function TasksPage() {
   return (
     <PageShell
       title="Tasks"
+      // The tasks tab has its own frosted backdrop: no band behind the header.
+      restBackdrop={activeTab !== 'tasks'}
       // The List and Board run (almost) edge to edge, capped for very wide
       // screens, instead of the reading column's 6xl.
       columnClassName={
@@ -336,8 +340,10 @@ export default function TasksPage() {
           <PlannerView onCreateTask={openCreate} onEditTask={openEdit} />
         </Suspense>
       ) : (
-        <div className="flex flex-col gap-3.5">
-          <section aria-label="Task controls" className="flex flex-col gap-2.5">
+        <div className="relative flex flex-col gap-3.5">
+          {/* The frosted backdrop, as on Media and the phone. */}
+          <FrostBackdrop />
+          <section aria-label="Task controls" className="relative flex flex-col gap-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <div className="min-w-0 flex-1">
                 <PillScroller
@@ -382,10 +388,14 @@ export default function TasksPage() {
 
           {/* Missed-tasks highlight + reschedule CTA. Hidden while actually
             viewing the Missed list (would be redundant). Self-hides when empty. */}
-          {!(selection.kind === 'smart' && selection.smart === 'missed') && <MissedBanner />}
+          {!(selection.kind === 'smart' && selection.smart === 'missed') && (
+            <div className="relative">
+              <MissedBanner />
+            </div>
+          )}
 
           {/* Body */}
-          <div className="min-h-0">
+          <div className="relative min-h-0">
             {loading ? (
               <div className="flex flex-col gap-2">
                 {[1, 2, 3, 4].map((i) => (
@@ -639,15 +649,7 @@ function TaskGroupSection({ group, by, onClick }: { group: TaskGroup; by: GroupB
         open={open}
         onToggle={toggle}
         tone={group.tone}
-        mark={
-          group.priority ? (
-            <span
-              aria-hidden
-              className="size-3.5 shrink-0 rounded-[32%] border-2"
-              style={priorityBox(group.priority)}
-            />
-          ) : undefined
-        }
+        mark={group.priority ? <PriorityMark priority={group.priority} /> : undefined}
       />
       <FoldBody id={id} open={open}>
         <AnimatePresence initial={false}>
@@ -700,7 +702,12 @@ function ListView({
   archiveScope: number | 'all' | null;
   onClick: (t: Task) => void;
 }) {
-  const groups = useMemo(() => groupTasks(open, groupBy, 'list', lists), [open, groupBy, lists]);
+  // In progress tasks lead as cards (unless the groups are statuses already).
+  const { leading, rest, groups } = useMemo(() => {
+    const leading = groupBy === 'status' ? [] : open.filter((t) => t.status === 'in_progress');
+    const rest = leading.length ? open.filter((t) => t.status !== 'in_progress') : open;
+    return { leading, rest, groups: groupTasks(rest, groupBy, 'list', lists) };
+  }, [open, groupBy, lists]);
 
   if (open.length === 0 && done.length === 0 && scratched.length === 0) {
     return (
@@ -715,9 +722,28 @@ function ListView({
   }
   return (
     <div className="flex flex-col gap-2">
+      {leading.length > 0 && (
+        <section aria-label="In progress" className="mb-2">
+          <h3 className="mx-1 mb-2 text-sm font-semibold">
+            In progress <span className="font-normal text-muted-foreground">({leading.length})</span>
+          </h3>
+          <div className="grid gap-2.5 md:grid-cols-2">
+            <AnimatePresence initial={false}>
+              {leading.map((t) => (
+                <InProgressCard
+                  key={t.id}
+                  task={t}
+                  listName={lists.find((l) => l.id === t.list_id)?.name}
+                  onOpen={() => onClick(t)}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        </section>
+      )}
       {groupBy === 'none' ? (
         <AnimatePresence initial={false}>
-          {open.map((t) => (
+          {rest.map((t) => (
             <TaskRow key={t.id} task={t} showStatus onClick={() => onClick(t)} />
           ))}
         </AnimatePresence>
@@ -787,5 +813,65 @@ function ArchiveFold({ scope, onClick }: { scope: number | 'all'; onClick: (t: T
         )}
       </FoldBody>
     </section>
+  );
+}
+
+/** An In progress task as a card in the theme's own colour, softened: its
+ *  title, when and which list, its steps, and a Done button. */
+function InProgressCard({ task, listName, onOpen }: { task: Task; listName?: string; onOpen: () => void }) {
+  const { finishing, finish } = useFinishTask(task);
+  const when = task.due_date
+    ? format(parseISO(task.due_date), 'EEE, MMM d')
+    : task.week_of
+      ? 'This week'
+      : task.month_of
+        ? 'This month'
+        : null;
+  const meta = [when, listName].filter(Boolean).join(', ');
+  const steps = task.steps ?? [];
+  const doneSteps = steps.filter((st) => st.done).length;
+  return (
+    <motion.div
+      layout="position"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter') onOpen();
+        else if (e.key === 'd' || e.key === 'D') finish(e);
+      }}
+      className="relative flex cursor-pointer items-center gap-3 overflow-hidden rounded-[22px] bg-[var(--task-prog-c)] py-3.5 pr-3 pl-4.5 text-[hsl(var(--on-primary-container))] outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--primary))]"
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="line-clamp-2 text-[0.9375rem] font-semibold">{task.title}</span>
+        {meta && <span className="truncate text-xs opacity-75">{meta}</span>}
+        {steps.length > 0 && (
+          <div className="mt-1.5 flex items-center gap-2 pr-2">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-[hsl(var(--on-primary-container)/0.14)]">
+              <div
+                className="h-full rounded-full bg-[hsl(var(--primary))]"
+                style={{ width: `${(doneSteps / steps.length) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs tabular-nums opacity-75">
+              {doneSteps} of {steps.length} steps
+            </span>
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={finish}
+        title="Mark done (D)"
+        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-[hsl(var(--primary))] px-3.5 text-xs font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--primary)/0.1)]"
+      >
+        <Check className="size-3.5" strokeWidth={3} /> Done
+      </button>
+      <FinishOverlay show={finishing} title={task.title} />
+    </motion.div>
   );
 }

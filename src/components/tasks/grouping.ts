@@ -1,5 +1,4 @@
 import { addDays, format, startOfWeek } from 'date-fns';
-import type { CSSProperties } from 'react';
 
 import type { Task, TaskList, TaskPatch } from '@/types';
 import { STATUS_LABELS, weekMondayKey } from './helpers';
@@ -55,7 +54,7 @@ export interface TaskGroup {
   tasks: Task[];
   /** Overdue: the header reads in the error colour. */
   tone?: 'error';
-  /** A priority group shows that priority's tinted box as its mark. */
+  /** A priority group shows that priority's ring as its mark. */
   priority?: Task['priority'];
 }
 
@@ -77,6 +76,7 @@ const DUE_DEFS: GroupDef[] = [
 ];
 
 const PRIORITY_DEFS: GroupDef[] = [
+  { key: 'max', label: 'Max', priority: 'max' },
   { key: 'high', label: 'High', priority: 'high' },
   { key: 'medium', label: 'Medium', priority: 'medium' },
   { key: 'low', label: 'Low', priority: 'low' },
@@ -198,21 +198,6 @@ export function laneRefusal(by: GroupBy, lane: string, task: Task): string | nul
     return "A task can't be made overdue. Drop it on a date.";
   }
   return null;
-}
-
-// ── Priority mark: the tinted box ─────────────────────────────────────────
-// The status box carries priority: its border in the priority's colour (or
-// the task's own colour) and a light fill of it. No separate dot.
-
-const PRIORITY_HUE: Record<Task['priority'], string> = {
-  high: 'var(--color-destructive)',
-  medium: 'var(--color-amber-500)',
-  low: 'var(--color-outline)',
-};
-
-export function priorityBox(priority: Task['priority'], color?: string | null): CSSProperties {
-  const hue = color || PRIORITY_HUE[priority];
-  return { borderColor: hue, backgroundColor: `color-mix(in oklab, ${hue} 18%, transparent)` };
 }
 
 // ── Folds (List view), kept on this device ────────────────────────────────

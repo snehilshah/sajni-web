@@ -1,4 +1,5 @@
 import { DateBadge } from '@/components/ui/state-chip';
+import { TaskRing } from '@/components/tasks/TaskRing';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, isPast, isToday, parseISO } from 'date-fns';
@@ -361,15 +362,11 @@ export default function TodayPage() {
                             toggleTask.mutate({ id: t.id, status: 'done' });
                           }}
                           aria-label="Mark done"
-                          // Priority is the ring colour (same as the task row), not a chip.
-                          className={`size-[18px] shrink-0 rounded-full border-2 transition-colors hover:bg-primary/10 ${
-                            t.priority === 'high'
-                              ? 'border-destructive'
-                              : t.priority === 'low'
-                                ? 'border-[hsl(var(--outline-variant))]'
-                                : 'border-[hsl(var(--outline))]'
-                          }`}
-                        />
+                          className="-m-1 shrink-0 p-1"
+                        >
+                          {/* The ring, as on the task row: status by shape, priority by colour. */}
+                          <TaskRing status={t.status} priority={t.priority} color={t.color} size={20} />
+                        </button>
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[14px] font-medium text-foreground">{t.title}</div>
                           <div className="mt-1 flex gap-2 text-xs text-muted-foreground">

@@ -29,7 +29,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { track } from '@/lib/telemetry';
 import { repeats } from './RepeatPicker';
-import { type GroupBy, type TaskGroup, dropAction, keyOf, laneRefusal, priorityBox } from './grouping';
+import { type GroupBy, type TaskGroup, dropAction, keyOf, laneRefusal } from './grouping';
+import { PriorityMark } from './PriorityMark';
+import { TaskRing } from './TaskRing';
 
 // The Tasks board (desktop): one tonal lane per group (Group by: status by
 // default, or due date, priority, list); a card is its title (up to four
@@ -452,9 +454,7 @@ function BoardLane({
         </p>
       )}
       <header className="flex h-13 shrink-0 items-center gap-2 pr-2 pl-4">
-        {group.priority && (
-          <span aria-hidden className="size-3.5 shrink-0 rounded-[32%] border-2" style={priorityBox(group.priority)} />
-        )}
+        {group.priority && <PriorityMark priority={group.priority} />}
         <h3 className={cn('text-[15px] font-semibold', group.tone === 'error' && 'text-destructive')}>{group.label}</h3>
         <span className="text-xs text-muted-foreground tabular-nums">{tasks.length}</span>
         <Button
@@ -700,24 +700,8 @@ function CardBody({
           }}
           className="-m-1 shrink-0 p-1"
         >
-          <span
-            className={cn(
-              'flex size-5 items-center justify-center rounded-[32%] border-2 transition-colors',
-              done
-                ? 'rounded-full border-primary bg-primary text-primary-foreground'
-                : blocked && 'border-destructive/70 bg-[hsl(var(--error-container))] text-destructive',
-            )}
-            // Priority is the box (its colour, or the task's own, tinted).
-            style={done || blocked ? undefined : priorityBox(task.priority, task.color)}
-          >
-            {/* Blocked: the box itself says so; the lane already does too. */}
-            {blocked && <Ban className="size-3" />}
-            {done && (
-              <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 6.5L5 9L10 3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </span>
+          {/* The ring, as in the list: To do dashed, In progress plain, Blocked crossed. */}
+          <TaskRing status={task.status} priority={task.priority} color={task.color} size={20} />
         </button>
         <span
           className={cn(
@@ -747,8 +731,8 @@ function CardBody({
       </div>
 
       {blocked && task.blocked_by_task_title && (
-        <p className="flex items-start gap-1.5 rounded-[10px] bg-[hsl(var(--error-container)/0.7)] px-2 py-1.5 text-xs leading-4 text-[hsl(var(--on-error-container))]">
-          <Ban className="mt-px size-3.5 shrink-0 text-destructive" />
+        <p className="flex items-start gap-1.5 rounded-[10px] bg-[var(--task-sand-c)] px-2 py-1.5 text-xs leading-4 text-[var(--task-sand-on)]">
+          <Ban className="mt-px size-3.5 shrink-0 text-[var(--task-sand)]" />
           <span className="min-w-0 [overflow-wrap:anywhere]">
             Waiting on <strong className="font-semibold">{task.blocked_by_task_title}</strong>
           </span>

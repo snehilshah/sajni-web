@@ -61,6 +61,34 @@
   --radius: 12px;
 }
 
+/* Tasks' calm tones (components/tasks/look.ts; Android TaskLook.kt): In
+   progress is the theme's own colour softened, Blocked sand, Done sage;
+   priority medium ochre, high terracotta, max ember. */
+:root {
+  --task-prog-c: color-mix(in oklab, hsl(var(--surface-container)), hsl(var(--primary-container)) 70%);
+  --task-sand: #b08a5a;
+  --task-sand-c: #f3e9da;
+  --task-sand-on: #4a3519;
+  --task-sage: #6f9c7c;
+  --task-sage-c: #e2efe5;
+  --task-sage-on: #20402b;
+  --task-medium: #c9a24a;
+  --task-high: #c0705a;
+  --task-max: #d9744f;
+}
+:root[data-mode='dark'] {
+  --task-prog-c: color-mix(in oklab, hsl(var(--surface-container)), hsl(var(--primary-container)) 55%);
+  --task-sand: #d2b38a;
+  --task-sand-c: #3a2f22;
+  --task-sand-on: #ead6b8;
+  --task-sage: #a3c9ae;
+  --task-sage-c: #213328;
+  --task-sage-on: #c5e0cc;
+  --task-medium: #ddbf7a;
+  --task-high: #e0a08e;
+  --task-max: #f0a07e;
+}
+
 /* ============================================================
    Density presets — scale html font-size.
    ============================================================ */

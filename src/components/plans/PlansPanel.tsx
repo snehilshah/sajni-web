@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { TaskRing } from '@/components/tasks/TaskRing';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowDownToLine, CalendarClock, Check, ChevronDown, Plus, Repeat } from '@/components/ui/icons';
+import { ArrowDownToLine, CalendarClock, ChevronDown, Plus, Repeat } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -244,12 +245,6 @@ function usePickerOpen() {
   };
 }
 
-const ringTone: Record<PlanTask['priority'], string> = {
-  high: 'border-destructive',
-  medium: 'border-[hsl(var(--outline))]',
-  low: 'border-[hsl(var(--outline-variant))]',
-};
-
 /** Today's card for one plan: progress, its tasks as full rows (same anatomy
  *  as On deck), left-overs to move in, and a footer to add or pick tasks.
  *  `showName` heads the card when Today lists several plans. */
@@ -339,14 +334,9 @@ export function PlanCard({ plan, showName }: { plan: DayPlan; showName: boolean 
                 toggle(t);
               }}
               aria-label={isDone ? 'Mark not done' : 'Mark done'}
-              className={cn(
-                'grid size-[18px] shrink-0 place-items-center rounded-full border-2 transition-colors',
-                isDone
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : cn(ringTone[t.priority], 'hover:bg-primary/10'),
-              )}
+              className="-m-1 shrink-0 p-1"
             >
-              {isDone && <Check className="size-3" strokeWidth={3} />}
+              <TaskRing status={isDone ? 'done' : 'todo'} priority={t.priority} size={20} />
             </button>
             <span
               className={cn(

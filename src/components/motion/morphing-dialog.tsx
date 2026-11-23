@@ -35,6 +35,7 @@ export function MorphingDialog({
   children,
   ariaLabel,
   showClose = true,
+  onBackdrop,
 }: {
   open: boolean;
   onClose: () => void;
@@ -48,6 +49,9 @@ export function MorphingDialog({
   ariaLabel?: string;
   /** Pass false when the dialog has its own footer Cancel — one close CTA only. */
   showClose?: boolean;
+  /** A click outside, when it means something other than Esc (the task
+   *  dialog keeps its changes on a click outside, Esc discards). */
+  onBackdrop?: () => void;
 }) {
   const id = useId();
   // Callers pass inline closures; reading the latest through a ref keeps the
@@ -96,7 +100,7 @@ export function MorphingDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            onClick={onClose}
+            onClick={onBackdrop ?? onClose}
           />
           <MorphPanel
             key="md-panel"

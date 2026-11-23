@@ -5,7 +5,6 @@ import { ChevronDown } from '@/components/ui/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { STATUS_DOT } from './helpers';
 
 // The "Blocked by" field: pick the task that must be done first. Type to
 // narrow the list (with many open tasks scrolling gets slow).
@@ -39,7 +38,6 @@ export default function BlockerPicker({
       >
         {picked ? (
           <span className="flex min-w-0 items-center gap-2">
-            <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT[picked.status]}`} />
             <span className="truncate">{picked.title}</span>
           </span>
         ) : (
@@ -77,7 +75,6 @@ export default function BlockerPicker({
                 }}
                 className={cn(t.id === value && 'font-semibold')}
               >
-                <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT[t.status]}`} />
                 <span className="truncate">{t.title}</span>
               </CommandItem>
             ))}

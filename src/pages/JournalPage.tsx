@@ -1769,7 +1769,6 @@ function DailySection({
                         <Checkbox onCheckedChange={() => onMarkTaskDone(t.id)} className="size-3.5" />
                         <TaskScopeBadge task={t} />
                         <span className="flex-1 truncate text-[13px]">{t.title}</span>
-                        <PriorityDot priority={t.priority} />
                       </div>
                     ))}
                     {doneTasks.map((t) => (
@@ -1887,9 +1886,6 @@ function WeekTasksSection({
                 >
                   {t.title}
                 </button>
-                {t.priority === 'high' && !isDone && (
-                  <span className="size-2 shrink-0 rounded-full bg-destructive" title="High priority" />
-                )}
               </motion.div>
             );
           })}
@@ -2251,9 +2247,6 @@ function MonthTasksSection({
                     {t.subtasks_done ?? 0}/{t.subtask_count}
                   </span>
                 )}
-                {t.priority === 'high' && !isDone && (
-                  <span className="size-2 shrink-0 rounded-full bg-destructive" title="High priority" />
-                )}
               </motion.div>
             );
           })}
@@ -2321,18 +2314,8 @@ function MissedTaskRow({ task, onJump }: { task: MissedTask; onJump: (date: stri
           </span>
         )}
       </div>
-      <PriorityDot priority={task.priority} />
     </div>
   );
-}
-
-function PriorityDot({ priority }: { priority: string }) {
-  const colors: Record<string, string> = {
-    high: 'bg-destructive',
-    medium: 'bg-amber-500',
-    low: 'bg-muted-foreground/40',
-  };
-  return <span className={`size-2 shrink-0 rounded-full ${colors[priority] || 'bg-muted'}`} />;
 }
 
 function CheckIcon() {

@@ -22,7 +22,7 @@ export interface Task {
   /** 'scratched' = abandoned-but-kept: struck through, dropped from open
    *  lists / smart views / reminders, reversible back to 'todo'. */
   status: 'todo' | 'in_progress' | 'blocked' | 'done' | 'scratched';
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'max';
   color?: TaskColor | null;
   tags?: string[];
   due_date?: string | null;
