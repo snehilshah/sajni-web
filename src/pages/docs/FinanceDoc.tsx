@@ -845,9 +845,19 @@ export default function FinanceDoc() {
             <p>
               An item doesn't add anything on its due date. When a payment that fits is recorded, captured or typed by
               you, it ticks the item by itself: the same direction, the item's account, the amount (a fixed one within
-              2%; one that varies within half to double its guess) and a day from 3 days before the due date to 7 after.
-              A captured row takes the item's name and category; a title you typed stays yours. It's a best guess, so a
-              payment that doesn't fit is simply left alone; tick it by hand with Attach existing.
+              2%; one that varies within half to double its guess) and a day in that cycle. A cycle runs from the day
+              after the last due date to its own: MSEDCL Electricity, due the 16th, counts a bill paid on 3 Dec, the day
+              it arrived, for 16 Dec. Paid late, it still counts while the missed due date is nearer than the next one
+              (Home Contrib due the 5th, paid the 6th). A captured row takes the item's name and category; a title you
+              typed stays yours. It's a best guess, so a payment that doesn't fit is simply left alone; tick it by hand
+              with Attach existing.
+            </p>
+            <p>
+              An item with no account (a bill you pay from whichever card has the offer) also needs the payment to
+              mention a word of its name: “Mahanagar Gas” fits a payment to MAHANAGAR GAS LTD from any card, and your
+              concert ticket of a similar amount in the same weeks doesn't. If the card's message names no one, Amazon
+              Pay's mail naming MSEDCL ticks it when it arrives. Paying it for someone else? Split it to them afterwards
+              (Include me off): it becomes their lend and the item stays ticked.
             </p>
           </Feature>
           <Feature name="The 8 pm nudge">
@@ -860,7 +870,7 @@ export default function FinanceDoc() {
           </Feature>
           <Feature name="Money you expect">
             <p>
-              Salary is <em>Money in</em>, varies: expected ₹67,772 on the 5th, into Salary. A month with variable pay
+              Salary is <em>Money in</em>, varies: expected ₹59,070 on the 5th, into Salary. A month with variable pay
               or a bonus still ticks it with the real figure. It shows with a + and counts in the header's <em>In</em>,
               not <em>Out</em>.
             </p>
